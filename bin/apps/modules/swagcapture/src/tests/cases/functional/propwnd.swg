@@ -52,6 +52,46 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     return result
 }
 
+// The shape inspector's scrollbar takes pointer input inside its wide target and leaves the
+// window resize edge free. The gesture is sent through the actual inspector and property grid.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+    f.main.editMode = .Shape
+    prop.selectionHasChanged()
+    f.gui.pump()
+
+    let body = unwrap prop.parent
+    body.resize(body.position.width, 260)
+    body.applyLayout()
+    f.gui.pump()
+
+    let scroll  = prop.grid.scrollWnd
+    let metrics = scroll.themeMetrics()
+    Swag.require(scroll.scrollSize.y > scroll.position.height)
+    Swag.require(scroll.surfaceRect().right() <= prop.surfaceRect().right())
+    scroll.setScrollPos(0, 0)
+
+    var grip = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,
+                                                 scroll.clientRect().height * 0.65})
+    scroll.surface!.surfaceToScreen(&grip)
+    f.gui.moveMouse(grip)
+    f.gui.mouseDown(grip)
+    Swag.require(f.gui.app.mouseCapture() == scroll and scroll.scrollPosition().y > 0)
+    f.gui.mouseUp(grip)
+    Swag.require(f.gui.app.mouseCapture() == null)
+
+    var edge = scroll.localToSurface(Math.Point{scroll.clientRect().right() - 1, scroll.clientRect().height * 0.65})
+    scroll.surface.surfaceToScreen(&edge)
+    f.gui.moveMouse(edge)
+    f.gui.mouseDown(edge)
+    Swag.require(f.gui.app.mouseCapture() != scroll)
+    f.gui.mouseUp(edge)
+}
+
 // Shape and dash choices share the same cell grid in the inspector.
 #test
 {

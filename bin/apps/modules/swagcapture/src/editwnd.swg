@@ -26,6 +26,7 @@ impl EditWnd
     {
         let scroll = Wnd.create'EditWnd(parent)
         scroll.main = main
+        scroll.updateFlags(.HideBars)
 
         with let view = Wnd.create'EditView(scroll)
         {

@@ -376,12 +376,12 @@ impl RecentWnd
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
-        with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
+        let metrics = parent.themeMetrics()
+        let barRoom = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
+        with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2 + barRoom})
         {
-            .updateFlags(.AlwaysShowHorizontal)
             .backgroundStyle = .Panel
             .main = main
-            .style.addStyleSheetColors("scrollBar_Bk $wnd_Bk")
 
             .recentView           = recent.createView'RecentView()
             .recentView.padding   = RecentPadding

@@ -4,17 +4,17 @@ using Core, Pixel
 #[Swag.EnumFlags]
 public enum ScrollWndFlags
 {
-    None = 0                 // Overlays bars when content overflows, without resizing the viewport.
+    None = 0                 // Reserves a gutter for each overflowing axis.
     AlwaysShowHorizontal     // Keeps the horizontal bar visible without overflow.
     AlwaysShowVertical       // Keeps the vertical bar visible without overflow.
     TransparentBars          // Omits the scrollbar track background.
     DisableHorizontal        // Never exposes horizontal scrolling, even when content is wider.
+    HideBars                 // Keeps the viewport scrollable without painting or hitting bars.
 }
 
-// Hosts one view in a stable scrollable viewport with overlaid scrollbars.
+// Hosts one view in a scrollable viewport with bars in their own edge gutters.
 //
-// Bars appear during scrolling or pointer hover without changing the view's size.
-// Content with controls at an edge should keep a fixed inset clear of the bars.
+// A bar reserves its gutter while content overflows, so the thumb never covers the view.
 public struct ScrollWnd
 {
     public
@@ -62,10 +62,8 @@ public struct ScrollWnd
     isMoving:      bool     // Whether a thumb is being dragged with the left button.
     isGrabbing:    bool     // Whether the content is being panned with the middle button.
     correcMoving:  f32      // Offset of the pointer inside the dragged thumb.
-    offsetClientV: f32      // Travel the vertical thumb loses to its minimum size.
-    offsetClientH: f32      // Travel the horizontal thumb loses to its minimum size.
-    barWidthV:     f32      // Width of the overlaid vertical bar's hit region.
-    barHeightH:    f32      // Height of the overlaid horizontal bar's hit region.
+    barWidthV:     f32      // Width reserved for the vertical bar.
+    barHeightH:    f32      // Height reserved for the horizontal bar.
 
     // A view can update its extent while it is being resized. Finish that one
     // resize before computing the bars from the resulting extent.
@@ -78,10 +76,11 @@ public struct ScrollWnd
 
     grabbingPos: Math.Point     // Pointer position at the last step of a middle-button pan.
 
-    // The bars rest invisible: they show while the view scrolls or the pointer is over them, and
-    // fade out once both have been still for `motion_ScrollRest`. They overlay a stable viewport.
-    barPresence: f32         // How much of the bars is shown, from zero (at rest) to one.
+    // A quiet thumb remains in its gutter at rest; motion and hover bring it to full contrast.
+    barPresence: f32         // Animated bar presence before the resting visibility floor is applied.
     restTimer:   *Timer?     // Pending fade of the bars.
+    barExpansionV: f32       // Animated extra thickness of the vertical bar.
+    barExpansionH: f32       // Animated extra thickness of the horizontal bar.
 }
 
 public impl IWnd for ScrollWnd
@@ -96,8 +95,8 @@ public impl IWnd for ScrollWnd
     {
         .restTimer = null
 
-        // A bar under the pointer or under the hand stays.
-        if .isHotBarV or .isHotBarH or .isMoving
+        // Pointer motion starts the rest timer; only an active drag keeps it alive.
+        if .isMoving
         {
             .restTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
             return
@@ -106,7 +105,9 @@ public impl IWnd for ScrollWnd
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
         options.easing   = .Linear
-        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Scroll.Bars"), .barPresence, 0, func(wnd, value) { wnd.barPresence = value }, options)
+        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Scroll.Bars"), .barPresence,
+                                           .themeMetrics().scrollBar_RestPresence,
+                                           func(wnd, value) { wnd.barPresence = value }, options)
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -127,30 +128,28 @@ public impl IWnd for ScrollWnd
         defer .layingView = false
         if .view == null do
             return
-        var rect = .paddedClientRect()
-        rect.applyPadding(.view.margin)
-        .view.setPosition(rect)
         .computeLayout()
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let clientRect = .clientRect()
         let pos        = .surfaceToLocal(evt.surfacePos)
 
         switch evt.kind
         {
         case .Wheel:
-            if evt.modifiers & .Shift or not .showBarV do
+            if evt.modifiers & .Shift or not .needV do
                 .setScrollPos(.view.scrollPos.x - (evt.delta.y * .horizontalScrollStep), .view.scrollPos.y)
             else do
                 .setScrollPos(.view.scrollPos.x, .view.scrollPos.y - (evt.delta.y * .verticalScrollStep))
 
         case .Leave:
             .isHotV, .isHotH, .isHotBarV, .isHotBarH = false
+            .animateBarExpansion(true, true)
             .invalidate()
 
         case .Move:
+            .revealScrollBars()
             if .isGrabbing
             {
                 let move   = evt.surfacePos - .grabbingPos
@@ -181,16 +180,16 @@ public impl IWnd for ScrollWnd
 
             if .isPressedV
             {
-                let vh = .position.height - .barHeightH
-                var f  = (pos.y - .correcMoving) / (vh - .offsetClientV)
-                f *= .scrollSize.y
+                let travel = Math.max(.view.position.height - .sizeBoxV, 1)
+                let f = (pos.y - .correcMoving - .view.position.y) / travel *
+                        Math.max(.scrollSize.y - .view.position.height, 0)
                 .setScrollPos(.view.scrollPos.x, f)
             }
             elif .isPressedH
             {
-                let vh = .position.width - .barWidthV
-                var f  = (pos.x - .correcMoving) / (vh - .offsetClientH)
-                f *= .scrollSize.x
+                let travel = Math.max(.view.position.width - .sizeBoxH, 1)
+                let f = (pos.x - .correcMoving - .view.position.x) / travel *
+                        Math.max(.scrollSize.x - .view.position.width, 0)
                 .setScrollPos(f, .view.scrollPos.y)
             }
 
@@ -222,16 +221,18 @@ public impl IWnd for ScrollWnd
                 {
                     .correcMoving = 0
                     .isPressedV   = true
-                    var f = pos.y / clientRect.height
-                    f *= .scrollSize.y
+                    let travel = Math.max(.view.position.height - .sizeBoxV, 1)
+                    let f = (pos.y - .view.position.y) / travel *
+                            Math.max(.scrollSize.y - .view.position.height, 0)
                     .setScrollPos(.view.scrollPos.x, f)
                 }
                 elif .isHotBarH
                 {
                     .correcMoving = 0
                     .isPressedH   = true
-                    var f = pos.x / clientRect.width
-                    f *= .scrollSize.x
+                    let travel = Math.max(.view.position.width - .sizeBoxH, 1)
+                    let f = (pos.x - .view.position.x) / travel *
+                            Math.max(.scrollSize.x - .view.position.width, 0)
                     .setScrollPos(f, .view.scrollPos.y)
                 }
 
@@ -269,8 +270,8 @@ public impl IWnd for ScrollWnd
         let colors  = .themeColors()
         let rects   = .themeRects()
 
-        // Everything the bars draw is drawn at their presence; at rest they are not there at all.
-        let presence = .barPresence
+        // The reserved gutter keeps a quiet thumb visible at rest.
+        let presence = Math.max(.barPresence, metrics.scrollBar_RestPresence)
         if presence <= 0 do
             return
 
@@ -285,11 +286,13 @@ public impl IWnd for ScrollWnd
         // Vertical bar
         if .showBarV
         {
-            var clientRect = .clientRect()
-            clientRect.x     = clientRect.right() - .barWidthV
-            clientRect.width = .barWidthV
+            var clientRect = .barClientRect()
+            let edge = clientRect.right() - metrics.scrollBar_EdgeInset
+            clientRect.width = metrics.scrollBar_Size +
+                               .barExpansionV * (metrics.scrollBar_HoverSize - metrics.scrollBar_Size)
+            clientRect.x     = edge - clientRect.width
             if .showBarH do
-                clientRect.height -= .barHeightH
+                clientRect.height = .view.position.height
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkV, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
@@ -319,11 +322,13 @@ public impl IWnd for ScrollWnd
         // Horizontal bar
         if .showBarH
         {
-            var clientRect = .clientRect()
-            clientRect.y      = clientRect.bottom() - .barHeightH
-            clientRect.height = .barHeightH
+            var clientRect = .barClientRect()
+            let edge = clientRect.bottom() - metrics.scrollBar_EdgeInset
+            clientRect.height = metrics.scrollBar_Size +
+                                .barExpansionH * (metrics.scrollBar_HoverSize - metrics.scrollBar_Size)
+            clientRect.y      = edge - clientRect.height
             if .showBarV do
-                clientRect.width -= .barWidthV
+                clientRect.width = .view.position.width
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_BkH, fadeColor(colorBk, presence))
 
             var colBk = colors.scrollBar_HotBk
@@ -353,9 +358,9 @@ public impl IWnd for ScrollWnd
         // Corner
         if .showBarV and .showBarH
         {
-            var clientRect = .clientRect()
-            clientRect.x      = clientRect.right() - .barWidthV
-            clientRect.y      = clientRect.bottom() - .barHeightH
+            var clientRect = .barClientRect()
+            clientRect.x      = clientRect.right() - metrics.scrollBar_EdgeInset - .barWidthV
+            clientRect.y      = clientRect.bottom() - metrics.scrollBar_EdgeInset - .barHeightH
             clientRect.width  = .barWidthV
             clientRect.height = .barHeightH
             theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, fadeColor(colors.scrollBar_Bk, presence))
@@ -365,8 +370,14 @@ public impl IWnd for ScrollWnd
 
 impl ScrollWnd
 {
-    // The view fills the viewport, so pointer events at an overlaid bar reach a
-    // child first. Claim only that edge; the rest belongs to the child's controls.
+    mtd barClientRect()->Math.Rectangle
+    {
+        var result = .paddedClientRect()
+        result.applyPadding(.view.margin)
+        return result
+    }
+
+    // Motion over the content reveals the bar, while the reserved gutter owns its hit target.
     func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
     {
         let scroll = assume cast(*ScrollWnd, wnd)
@@ -374,6 +385,8 @@ impl ScrollWnd
         {
             if mouse.kind == .Move or mouse.kind == .Pressed
             {
+                if mouse.kind == .Move do
+                    scroll.revealScrollBars()
                 scroll.hitTest(mouse.surfacePos)
                 if scroll.isHotV or scroll.isHotH or scroll.isHotBarV or scroll.isHotBarH
                 {
@@ -390,6 +403,9 @@ impl ScrollWnd
     mtd hitTest(surfacePos: Math.Point)
     {
         let pos = .surfaceToLocal(surfacePos)
+        let wasHotV = .isHotV or .isHotBarV
+        let wasHotH = .isHotH or .isHotBarH
+        defer .animateBarExpansion(wasHotV, wasHotH)
         if .isHotV or .isHotH or .isHotBarV or .isHotBarH
         {
             .invalidate()
@@ -397,7 +413,7 @@ impl ScrollWnd
         }
 
         var rect = .verticalThumbRect()
-        if rect.contains(pos)
+        if .showBarV and .needV and rect.contains(pos)
         {
             .isHotV, .isHotBarV = true
             .revealScrollBars()
@@ -406,7 +422,7 @@ impl ScrollWnd
         }
 
         rect = .horizontalThumbRect()
-        if rect.contains(pos)
+        if .showBarH and .needH and rect.contains(pos)
         {
             .isHotH, .isHotBarH = true
             .revealScrollBars()
@@ -415,7 +431,7 @@ impl ScrollWnd
         }
 
         rect = .verticalThumbRect(true)
-        if rect.contains(pos)
+        if .showBarV and .needV and rect.contains(pos)
         {
             .isHotBarV = true
             .revealScrollBars()
@@ -424,7 +440,7 @@ impl ScrollWnd
         }
 
         rect = .horizontalThumbRect(true)
-        if rect.contains(pos)
+        if .showBarH and .needH and rect.contains(pos)
         {
             .isHotBarH = true
             .revealScrollBars()
@@ -435,9 +451,20 @@ impl ScrollWnd
 
     mtd verticalThumbRect(full = false)->Math.Rectangle
     {
-        var result: #returntype = .clientRect()
-        result.x     = result.right() - .barWidthV
-        result.width = .barWidthV
+        var result: #returntype = .barClientRect()
+        let metrics = .themeMetrics()
+        let right   = result.right()
+        if full
+        {
+            result.width = metrics.scrollBar_HitSize
+            result.x     = right - metrics.scrollBar_EdgeInset - result.width
+            result.height = .view.position.height
+        }
+        else
+        {
+            result.width = metrics.scrollBar_Size
+            result.x     = right - metrics.scrollBar_EdgeInset - result.width
+        }
         if not full
         {
             result.y      = .posBoxV
@@ -449,9 +476,20 @@ impl ScrollWnd
 
     mtd horizontalThumbRect(full = false)->Math.Rectangle
     {
-        var result: #returntype = .clientRect()
-        result.y      = result.bottom() - .barHeightH
-        result.height = .barHeightH
+        var result: #returntype = .barClientRect()
+        let metrics = .themeMetrics()
+        let bottom  = result.bottom()
+        if full
+        {
+            result.height = metrics.scrollBar_HitSize
+            result.y      = bottom - metrics.scrollBar_EdgeInset - result.height
+            result.width  = .view.position.width
+        }
+        else
+        {
+            result.height = metrics.scrollBar_Size
+            result.y      = bottom - metrics.scrollBar_EdgeInset - result.height
+        }
         if not full
         {
             result.x     = .posBoxH
@@ -461,68 +499,99 @@ impl ScrollWnd
         return result
     }
 
+    // Expands the painted bar after the pointer enters its larger hit target.
+    mtd animateBarExpansion(wasHotV: bool, wasHotH: bool)
+    {
+        if wasHotV != (.isHotV or .isHotBarV)
+        {
+            var options: AnimationOptions
+            options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+            options.easing   = .EaseOut
+            let target = (.isHotV or .isHotBarV) ? 1 : 0
+            discard .app().animator.animateF32(me,
+                                               AnimationChannel.from("Gui.Scroll.Width.V"),
+                                               .barExpansionV,
+                                               target,
+                                               func(wnd, value) { wnd.barExpansionV = value },
+                                               options)
+        }
+
+        if wasHotH != (.isHotH or .isHotBarH)
+        {
+            var options: AnimationOptions
+            options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+            options.easing   = .EaseOut
+            let target = (.isHotH or .isHotBarH) ? 1 : 0
+            discard .app().animator.animateF32(me,
+                                               AnimationChannel.from("Gui.Scroll.Width.H"),
+                                               .barExpansionH,
+                                               target,
+                                               func(wnd, value) { wnd.barExpansionH = value },
+                                               options)
+        }
+    }
+
     mtd computeLayout()
     {
         if .position.width == 0 or .position.height == 0 do
             return
-        let clientRect = .paddedClientRect()
-        let metrics    = .themeMetrics()
-        let barSize    = metrics.scrollBar_Size
-        let sx         = Math.max(.scrollSize.x, clientRect.width)
-        let sy         = Math.max(.scrollSize.y, clientRect.height)
+        let wasLaying = .layingView
+        .layingView = true
+        defer .layingView = wasLaying
 
-        // Neither bar changes the viewport. Overflow is therefore decided once
-        // against the complete content rectangle, without cross-axis feedback.
-        .needV    = sy > clientRect.height
-        .needH    = not .flags.has(.DisableHorizontal) and sx > clientRect.width
-        .showBarV = .needV or .flags.has(.AlwaysShowVertical)
-        .showBarH = .needH or .flags.has(.AlwaysShowHorizontal)
+        let clientRect = .barClientRect()
+        let metrics = .themeMetrics()
+        let gutter  = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
+        var needV   = .scrollSize.y > clientRect.height
+        var needH   = not .flags.has(.DisableHorizontal) and .scrollSize.x > clientRect.width
 
-        .barWidthV, .barHeightH = 0
-        if .showBarV do
-            .barWidthV = barSize
-        if .showBarH do
-            .barHeightH = barSize
+        // A bar owns its gutter. Check the cross-axis overflow again after each gutter appears.
+        for index in 4
+        {
+            discard index
+            .showBarV = not .flags.has(.HideBars) and (needV or .flags.has(.AlwaysShowVertical))
+            .showBarH = not .flags.has(.HideBars) and (needH or .flags.has(.AlwaysShowHorizontal))
+            .barWidthV  = .showBarV ? gutter : 0
+            .barHeightH = .showBarH ? gutter : 0
 
-        let viewWidth  = Math.max(clientRect.width, 1)
-        let viewHeight = Math.max(clientRect.height, 1)
+            var viewport = clientRect
+            viewport.width  = Math.max(viewport.width - .barWidthV, 1)
+            viewport.height = Math.max(viewport.height - .barHeightH, 1)
+            if viewport != .view.position do
+                .view.setPosition(viewport)
 
+            let nextV = needV or .scrollSize.y > viewport.height
+            let nextH = needH or (not .flags.has(.DisableHorizontal) and .scrollSize.x > viewport.width)
+            if nextV == needV and nextH == needH do
+                break
+            needV = nextV
+            needH = nextH
+        }
+
+        .needV = needV
+        .needH = needH
+        let viewWidth  = .view.position.width
+        let viewHeight = .view.position.height
         if .showBarV
         {
-            let vh0 = viewHeight
-            var vh1 = .position.height - .barHeightH
-            .sizeBoxV = (vh0 / sy) * vh1
-            if .sizeBoxV < metrics.scrollBar_BoxMinSize
-            {
-                .offsetClientV = metrics.scrollBar_BoxMinSize - .sizeBoxV
-                vh1            -= .offsetClientV
-                .sizeBoxV      = metrics.scrollBar_BoxMinSize
-            }
-
-            .posBoxV = .view.scrollPos.y / sy
-            .posBoxV *= vh1
-
-            if .view.scrollPos.y > .scrollSize.y - viewHeight do
-                .view.scrollPos.y = Math.max(.scrollSize.y - viewHeight, 0)
+            let virtualHeight = Math.max(.scrollSize.y, viewHeight)
+            .sizeBoxV = Math.min(viewHeight, Math.max(metrics.scrollBar_BoxMinSize,
+                                                     viewHeight * viewHeight / virtualHeight))
+            let travel = Math.max(viewHeight - .sizeBoxV, 0)
+            let range  = Math.max(.scrollSize.y - viewHeight, 0)
+            .view.scrollPos.y = Math.clamp(.view.scrollPos.y, 0, range)
+            .posBoxV = .view.position.y + (range > 0 ? .view.scrollPos.y / range * travel : 0)
         }
 
         if .showBarH
         {
-            let vh0 = viewWidth
-            var vh1 = .position.width - .barWidthV
-            .sizeBoxH = (vh0 / sx) * vh1
-            if .sizeBoxH < metrics.scrollBar_BoxMinSize
-            {
-                .offsetClientH = metrics.scrollBar_BoxMinSize - .sizeBoxH
-                vh1            -= .offsetClientH
-                .sizeBoxH      = metrics.scrollBar_BoxMinSize
-            }
-
-            .posBoxH = .view.scrollPos.x / sx
-            .posBoxH *= vh1
-
-            if .view.scrollPos.x > .scrollSize.x - viewWidth do
-                .view.scrollPos.x = Math.max(.scrollSize.x - viewWidth, 0)
+            let virtualWidth = Math.max(.scrollSize.x, viewWidth)
+            .sizeBoxH = Math.min(viewWidth, Math.max(metrics.scrollBar_BoxMinSize,
+                                                    viewWidth * viewWidth / virtualWidth))
+            let travel = Math.max(viewWidth - .sizeBoxH, 0)
+            let range  = Math.max(.scrollSize.x - viewWidth, 0)
+            .view.scrollPos.x = Math.clamp(.view.scrollPos.x, 0, range)
+            .posBoxH = .view.position.x + (range > 0 ? .view.scrollPos.x / range * travel : 0)
         }
 
         .invalidate()
@@ -608,7 +677,7 @@ public impl ScrollWnd
     // Briefly reveals the available scrollbars and restarts their normal fade delay.
     //
     // A composite can call this when its content is hovered or receives keyboard focus, so
-    // scrolling is discoverable without a permanent bar. This changes neither layout nor scroll
+    // scrolling is discoverable at full contrast. This changes neither layout nor scroll
     // position and has no effect before the window belongs to a surface.
     mtd revealScrollBars()
     {

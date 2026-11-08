@@ -231,6 +231,8 @@ struct HtmlView
         // the pointer or being scrolled, and fades once that has been still for `motion_ScrollRest`.
         barRegion = HtmlNoNode
         barPresence: f32
+        barExpansion: f32
+        isBarExpanded: bool
         barTimer:    *Timer?
     }
 }
@@ -1256,10 +1258,13 @@ internal impl HtmlView
 
         result.scrollTrack    = .themeColors().scrollBar_Bk
         result.scrollThumb    = .themeColors().scrollBar_Box
-        result.scrollBarSize  = .themeMetrics().scrollBar_Size
-        result.scrollThumbMin = .themeMetrics().scrollBar_BoxMinSize
-        result.barRegion      = .barRegion
-        result.barPresence    = .barPresence
+        result.scrollBarSize       = .themeMetrics().scrollBar_Size
+        result.scrollBarHitSize    = .themeMetrics().scrollBar_HitSize
+        result.scrollBarHoverSize = .themeMetrics().scrollBar_HoverSize
+        result.scrollBarExpansion  = .barExpansion
+        result.scrollThumbMin      = .themeMetrics().scrollBar_BoxMinSize
+        result.barRegion           = .barRegion
+        result.barPresence         = .barPresence
         return result
     }
 
@@ -1682,6 +1687,7 @@ internal impl IWnd for HtmlCanvas
             }
 
             var painter = owner.painter()
+            owner.setRegionBarExpanded(painter.scrollBarAt(point).box != HtmlNoNode)
 
             // The region under the pointer shows its bar.
             let region = painter.scrollableAt(point)
@@ -1720,6 +1726,7 @@ internal impl IWnd for HtmlCanvas
                 .app().setFrameCursor(Cursor.from(.IBeam))
 
         case .Leave:
+            owner.setRegionBarExpanded(false)
             if owner.hovered != HtmlNoNode
             {
                 let hadLink = owner.linkElementAt(owner.hovered) != HtmlNoNode
@@ -1734,8 +1741,8 @@ internal impl IWnd for HtmlCanvas
             let bar     = painter.scrollBarAt(point)
             if bar.box != HtmlNoNode
             {
-                // The visible thumb is intentionally narrow, but the whole track width remains
-                // its pointer target so it is as easy to grab as a native compact scrollbar.
+                // The visible thumb is intentionally narrow, while the expanded track target is
+                // easy to grab without changing the document layout.
                 if point.y >= bar.thumb.y and point.y <= bar.thumb.bottom()
                 {
                     owner.beginRegionScrollDrag(bar, point.y)
@@ -1900,6 +1907,28 @@ internal impl HtmlView
         if .barTimer do
             .removeTimer(.barTimer)
         .barTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
+    }
+
+    // Grows a region bar while the pointer is inside its expanded track target.
+    private mtd setRegionBarExpanded(expanded: bool)
+    {
+        if .isBarExpanded == expanded do
+            return
+        .isBarExpanded = expanded
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
+        options.easing   = .EaseOut
+        discard .app().animator.animateF32(me,
+                                           AnimationChannel.from("Gui.Html.RegionBar.Width"),
+                                           .barExpansion,
+                                           expanded ? 1 : 0,
+                                           func(view, value)
+                                           {
+                                               view.barExpansion = value
+                                               view.canvas.invalidate()
+                                           },
+                                           options)
     }
 
     // Fades the shown region bar out, unless its thumb is in the hand.

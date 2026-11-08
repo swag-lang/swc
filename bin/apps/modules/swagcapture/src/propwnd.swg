@@ -468,17 +468,13 @@ impl PropWnd
             .grid.setSectionRules(false)
             .grid.setRowGrounds(false)
 
-            // The panel layout keeps its own margin before each row; the grid reaches past the
-            // column by that much so its labels stand on the edge of the inspector's labels.
-            .grid.margin = {-GridRowInset, 0, -GridRowInset, 0}
+            // The rows reach the label edge, while the scrollbar gutter stays inside the panel.
+            .grid.margin = {-GridRowInset, 0, 0, 0}
             .grid.setRevertButtonsVisible(false)
 
             // Most specific first: a form edits its own fields (text, caps, round...)
             // before the BaseForm style shared by every form
             .grid.setUsingFieldsLast(true)
-
-            // Always show a small vertical bar so the row width does not jump with the content
-            .grid.scrollWnd.updateFlags(.AlwaysShowVertical)
 
             // The edges the panel marks follow the scroll (see `scrollEdges`), over the grid.
             prop.wndFlags.add(.AfterChildrenPaint)

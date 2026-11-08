@@ -195,8 +195,9 @@ duplicating screenshots.
 - The window shadow is restrained: 35 % on Encre and 24 % on Papier. It separates the surface
   from its surroundings without competing with the work. Floating panels and sheets use the
   stronger shadow described in [Measures](#measures).
-- A document shows its position with a 1 px thread on the right edge and a short mark, not a
-  scrollbar. A thin scrollbar (6 px) appears while scrolling or on hover.
+- A document shows its position with a 1 px thread on the right edge and a short mark. Scrollable
+  controls reserve a narrow gutter outside their content for a quiet 6 px thumb. The thumb gains
+  contrast during movement and grows on hover; its 16 px target stays clear of window resize edges.
 - A faint hint line ("Ctrl Space — everything else") may sit 24 px above the bottom edge while the
   reader is new to the window or the surface is empty.
 - `Ctrl+Space` opens the lens from any focused control. The window handles it before the focused

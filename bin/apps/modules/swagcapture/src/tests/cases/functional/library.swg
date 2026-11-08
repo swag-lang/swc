@@ -12,6 +12,50 @@ impl IAllocator for LibraryRejectAllocator
     mtd impl free(_: *AllocatorRequest) {}
 }
 
+// The library's real thumbnail grid publishes its overflow, and the reserved bar can be
+// dragged from the widened target without stealing the window's resize edge.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.gui.surfaceWnd.view = f.main
+
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    lib.setPosition({0, 0, 900, 600})
+    lib.applyLayout()
+    for index in 30 do
+        discard testAddLibraryItem(lib.view, Format.toString("capture-%", index), 10, 1)
+
+    let wasDirty = g_DirtyList
+    defer g_DirtyList = wasDirty
+    g_DirtyList = false
+    discard f.gui.render(lib)
+
+    let scroll = lib.captureHost
+    Swag.require(scroll.scrollSize.y > scroll.position.height)
+    var contentBottom = 0'f32
+    for item in lib.view.items do
+        contentBottom = Math.max(contentBottom, item.rect.bottom())
+    Swag.require(scroll.scrollSize.y == contentBottom + LibraryCellRing)
+    let metrics = scroll.themeMetrics()
+    var grip = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,
+                                                 scroll.clientRect().height * 0.65})
+    scroll.surface!.surfaceToScreen(&grip)
+    f.gui.moveMouse(grip)
+    f.gui.mouseDown(grip)
+    Swag.require(f.gui.app.mouseCapture() == scroll and scroll.scrollPosition().y > 0)
+    f.gui.mouseUp(grip)
+
+    var edge = scroll.localToSurface(Math.Point{scroll.clientRect().right() - 1, scroll.clientRect().height * 0.65})
+    scroll.surface.surfaceToScreen(&edge)
+    f.gui.moveMouse(edge)
+    f.gui.mouseDown(edge)
+    Swag.require(f.gui.app.mouseCapture() != scroll)
+    f.gui.mouseUp(edge)
+}
+
 // Destroying a view joins its loader even when no close command was sent first.
 #test
 {

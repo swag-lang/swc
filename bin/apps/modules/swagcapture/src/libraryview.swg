@@ -417,11 +417,13 @@ impl IWnd for LibraryView
         var decodeBudget  = MaxPreviewDecodesPerPaint
         var decodesRemain = false
         var animateNames  = false
+        var contentBottom = 0'f32
 
         let cellHeight = h + FileTile.captionHeight(me)
         for it, i in .items
         {
             it.rect    = Math.Rectangle{x, y, w, cellHeight}
+            contentBottom = Math.max(contentBottom, it.rect.bottom())
             it.visible = y + cellHeight >= viewTop and y <= viewBottom
 
             // Next cell. The grid advances whether or not this one is painted, so a culled cell
@@ -485,7 +487,7 @@ impl IWnd for LibraryView
             painter.drawString(clientRect.x, font.opticalLineTop(clientRect.y + .themeMetrics().fileTile_NameHeight), text, font, .themeColors().faintText)
         }
 
-        .scrollWnd.setScrollSize(0, y + cellHeight + LibraryCellRing)
+        .scrollWnd.setScrollSize(0, contentBottom > 0 ? contentBottom + LibraryCellRing : 0)
 
         // Cells this frame could not afford to decode. Ask for another one; the hourglass they
         // carry meanwhile is the same one they carry while their capture is still loading.

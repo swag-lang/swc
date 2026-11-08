@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// A responsive view keeps its full width when a vertical bar appears or goes away.
+// A responsive view republishes its extent when a bar reserves a gutter.
 struct ResponsiveScrollView
 {
     using wnd:  Wnd
@@ -30,7 +30,7 @@ impl IWnd for ResponsiveScrollView
     }
 }
 
-// A vertical bar overlays a stable viewport and cannot change the view's own extent.
+// A vertical bar reserves width and gives it back when the view fits again.
 #test
 {
     var host: Testing.HeadlessHost
@@ -39,10 +39,10 @@ impl IWnd for ResponsiveScrollView
     scroll.updateFlags(.DisableHorizontal)
     let view = scroll.createView'ResponsiveScrollView()
     scroll.setScrollSize(0, 200)
-    Swag.require(view.position.width == 200)
+    Swag.require(view.position.width == 200 - host.theme.metrics.scrollBar_HitSize - host.theme.metrics.scrollBar_EdgeInset)
     Swag.require(scroll.scrollSize.y == view.position.width and scroll.showBarV)
     scroll.setScrollPos(0, 100)
-    Swag.require(scroll.scrollPosition() == Math.Point{0, 4} and scroll.showBarV)
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 0} and scroll.showBarV)
 
     view.visits = 0
     scroll.resize(200, 220)
@@ -50,7 +50,7 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.scrollSize.y == 200)
 }
 
-// A horizontal bar likewise leaves the view's height and extent alone.
+// A horizontal bar reserves height and gives it back when the view fits again.
 #test
 {
     var host: Testing.HeadlessHost
@@ -59,10 +59,10 @@ impl IWnd for ResponsiveScrollView
     let view   = scroll.createView'ResponsiveScrollView()
     view.horizontal = true
     scroll.setScrollSize(200, 0)
-    Swag.require(view.position.height == 200)
+    Swag.require(view.position.height == 200 - host.theme.metrics.scrollBar_HitSize - host.theme.metrics.scrollBar_EdgeInset)
     Swag.require(scroll.scrollSize.x == view.position.height and scroll.showBarH)
     scroll.setScrollPos(100, 0)
-    Swag.require(scroll.scrollPosition() == Math.Point{4, 0} and scroll.showBarH)
+    Swag.require(scroll.scrollPosition() == Math.Point{0, 0} and scroll.showBarH)
 
     view.visits = 0
     scroll.resize(220, 200)
@@ -70,7 +70,7 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.scrollSize.x == 200)
 }
 
-// Neither axis can create overflow on the other; the bars leave the viewport unchanged.
+// Each gutter belongs outside the view, and a second axis can need its own gutter.
 #test
 {
     var host: Testing.HeadlessHost
@@ -79,43 +79,60 @@ impl IWnd for ResponsiveScrollView
     let view   = scroll.createView'Wnd()
     let room   = view.position
 
-    scroll.setScrollSize(200, 300)
-    Swag.require(scroll.showBarV and not scroll.showBarH and view.position == room)
-    scroll.setScrollSize(300, 200)
-    Swag.require(scroll.showBarH and not scroll.showBarV and view.position == room)
+    scroll.setScrollSize(100, 300)
+    Swag.require(scroll.showBarV and not scroll.showBarH and view.position.width < room.width)
+    scroll.setScrollSize(300, 100)
+    Swag.require(scroll.showBarH and not scroll.showBarV and view.position.height < room.height)
     scroll.setScrollSize(300, 300)
-    Swag.require(scroll.showBarV and scroll.showBarH and view.position == room)
+    Swag.require(scroll.showBarV and scroll.showBarH and view.position.width < room.width and view.position.height < room.height)
     scroll.setScrollSize(100, 100)
     Swag.require(not scroll.showBarV and not scroll.showBarH and view.position == room)
 }
 
-// The overlaid track remains draggable while the child owns the full viewport.
+// The gutter takes the bar gesture without covering the child or the resize edge.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
+    host.setReducedMotion(false)
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
     let view   = scroll.createView'Wnd()
     scroll.setScrollSize(200, 1000)
-    let edge = Math.Point{197, 100}
-    Swag.require(host.mouseTargetAt(edge) == view)
+    let edge = Math.Point{180, 100}
+    Swag.require(host.mouseTargetAt(edge) == scroll)
     host.moveMouse(edge)
+    host.advanceAnimations(host.theme.metrics.motion_QuickSeconds * 0.5)
+    Swag.require(scroll.barExpansionV > 0 and scroll.barExpansionV < 1)
     host.finishAnimations()
-    Swag.require(scroll.isHotBarV and scroll.barPresence > 0)
+    Swag.require(scroll.isHotBarV and scroll.barPresence > 0 and scroll.barExpansionV == 1)
     host.mouseDown(edge)
     Swag.require(host.app.mouseCaptureWnd == scroll and scroll.scrollPosition().y > 0)
     host.mouseUp(edge)
     Swag.require(host.app.mouseCaptureWnd == null)
+    host.fireTimers()
+    host.finishAnimations()
+    Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
+
+    let resizeEdge = Math.Point{197, 100}
+    host.moveMouse(resizeEdge)
+    Swag.require(not scroll.isHotBarV)
+    host.mouseDown(resizeEdge)
+    Swag.require(host.app.mouseCaptureWnd == null)
+    host.mouseUp(resizeEdge)
 
     scroll.setScrollSize(1000, 1000)
-    let bottom = Math.Point{100, 197}
-    Swag.require(host.mouseTargetAt(bottom) == view)
+    let bottom = Math.Point{100, 180}
+    Swag.require(host.mouseTargetAt(bottom) == scroll)
     host.moveMouse(bottom)
     Swag.require(scroll.isHotBarH)
     host.mouseDown(bottom)
     Swag.require(host.app.mouseCaptureWnd == scroll and scroll.scrollPosition().x > 0)
     host.mouseUp(bottom)
-    Swag.require(view.position == Math.Rectangle{0, 0, 200, 200})
+    Swag.require(view.position.width < 200 and view.position.height < 200)
+
+    scroll.setScrollSize(100, 100)
+    host.moveMouse(edge)
+    Swag.require(not scroll.isHotBarV and not scroll.isHotBarH)
 }
 
 // A hover hint exposes existing scrollbars without moving content or changing its viewport.
@@ -133,7 +150,7 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.view.position == viewport and scroll.scrollPosition() == position)
     host.fireTimers()
     host.finishAnimations()
-    Swag.require(scroll.barPresence == 0)
+    Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
 }
 
 // Repeated wheel destinations preserve speed instead of kicking a fresh ease-out each time.
@@ -304,7 +321,7 @@ struct ScrollHeadlessViewport
     Swag.require(outer.view.surfaceRect().contains(last.surfaceRect()))
 }
 
-// The bars rest invisible: a scroll shows them, and they fade once the view has been still.
+// The bars become strong during a scroll, then return to their quiet resting presence.
 #test
 {
     var host: Testing.HeadlessHost
@@ -322,5 +339,5 @@ struct ScrollHeadlessViewport
 
     host.fireTimers()
     host.finishAnimations()
-    Swag.require(scroll.barPresence == 0)
+    Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
 }

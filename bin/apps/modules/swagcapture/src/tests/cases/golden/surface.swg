@@ -815,6 +815,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 
     lib.view.selModel.select(1)
     lib.view.hotItem = 2
+    lib.setSortMethod(.Modified)
     lib.refreshAutomaticFilters(force: true)
     main.applyLayout()
 

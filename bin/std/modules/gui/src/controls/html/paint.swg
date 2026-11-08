@@ -42,8 +42,11 @@ struct HtmlPainter
 
     scrollTrack:    Color
     scrollThumb:    Color
-    scrollBarSize:  f32
-    scrollThumbMin: f32
+    scrollBarSize:       f32
+    scrollBarHitSize: f32
+    scrollBarHoverSize: f32
+    scrollBarExpansion: f32
+    scrollThumbMin:      f32
 
     // The one region whose bar is shown, and how much of it: a region's bar rests invisible.
     barRegion = HtmlNoNode
@@ -54,6 +57,7 @@ struct HtmlPainter
 struct HtmlRegionScrollBar
 {
     box = HtmlNoNode
+    hit:   Math.Rectangle
     track: Math.Rectangle
     thumb: Math.Rectangle
 }
@@ -791,11 +795,15 @@ impl HtmlPainter
         if not target.scrollable or target.scrollHeight <= target.content.height or rect.height <= 0 do
             return result
 
-        let width = Math.min(Math.max(.scrollBarSize, 2), rect.width)
+        let hoverWidth = .scrollBarSize + .scrollBarExpansion * (.scrollBarHoverSize - .scrollBarSize)
+        let width      = Math.min(Math.max(hoverWidth, 2), rect.width)
         result.box         = box
         result.track       = rect
         result.track.x     = rect.right() - width
         result.track.width = width
+        result.hit         = rect
+        result.hit.x       = rect.right() - Math.min(.scrollBarHitSize, rect.width)
+        result.hit.width   = Math.min(.scrollBarHitSize, rect.width)
 
         let limit       = target.scrollHeight - target.content.height
         let thumbHeight = Math.min(Math.max(result.track.height * target.content.height / target.scrollHeight, .scrollThumbMin), result.track.height)
@@ -1064,7 +1072,7 @@ impl HtmlPainter
         clip.width  -= style.borderLeft.width + style.borderRight.width
         clip.height -= style.borderTop.width + style.borderBottom.width
         let result = .regionScrollBar(box, clip)
-        if result.box != HtmlNoNode and result.track.contains(point) do
+        if result.box != HtmlNoNode and result.hit.contains(point) do
             return result
 
         var inner = offset

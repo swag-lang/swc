@@ -464,7 +464,6 @@ impl Properties
             .scrollWnd.dockStyle = .Center
             // Property editors keep a fixed trailing safe edge beside the
             // overlaid bar, so their width never follows scroll visibility.
-            .scrollWnd.setPadding(0, 0, .themeMetrics().scrollBar_Size, 0)
             .scrollWnd.updateFlags(.TransparentBars)
 
             .edView             = .scrollWnd.createView'PropertiesView()

@@ -93,3 +93,46 @@ func sameColors(decoded: Image, source: Image)->bool
     let decoded = expect Image.decode("flat.gif", bytes.toSlice())
     Swag.require(sameColors(decoded, image))
 }
+
+// Ordered dithering is an explicit animation choice for frames with more than 256 colours.
+#test
+{
+    var frame  = Image.create(32, 16, .RGB8)
+    let pixels = frame.pixels.storage()
+    for y in frame.height
+    {
+        for x in frame.width
+        {
+            let at = cast(u64, (frame.height - 1 - y) * frame.rowStride + x * 3)
+            pixels[at]     = cast(u8, x * 8)
+            pixels[at + 1] = cast(u8, y * 15)
+            pixels[at + 2] = cast(u8, (x * 7 + y * 11) & 255)
+        }
+    }
+
+    var plainName = String.from("gif-plain-")
+    plainName += Guid64.random().toString()
+    plainName += ".gif"
+    var ditherName = String.from("gif-dither-")
+    ditherName += Guid64.random().toString()
+    ditherName += ".gif"
+    let plainPath  = Path.combine(Env.getSpecialDirectory(.Temp).toString(), plainName)
+    let ditherPath = Path.combine(Env.getSpecialDirectory(.Temp).toString(), ditherName)
+    defer catch File.delete(plainPath)
+    defer catch File.delete(ditherPath)
+
+    var plain = expect Gif.AnimationWriter.create(plainPath, 32, 16)
+    expect plain.addFrame(frame, 100_000)
+    expect plain.end()
+
+    var options: Gif.AnimationOptions
+    options.dither = true
+    var dithered = expect Gif.AnimationWriter.create(ditherPath, 32, 16, options)
+    expect dithered.addFrame(frame, 100_000)
+    expect dithered.end()
+
+    let plainBytes  = expect File.readAllBytes(plainPath)
+    let ditherBytes = expect File.readAllBytes(ditherPath)
+    Swag.require(plainBytes.count != ditherBytes.count or
+                 Memory.compare(plainBytes.storage(), ditherBytes.storage(), plainBytes.count) != 0)
+}

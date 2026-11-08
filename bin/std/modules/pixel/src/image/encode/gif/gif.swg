@@ -9,7 +9,7 @@ using Swag, Core, Core.Errors
 
 private
 {
-    const MaxPaletteColors = 128'u32
+    const MaxPaletteColors = 256'u32
 
     struct PaletteColor
     {
@@ -24,6 +24,19 @@ private
         lzwMinCodeSize:   u8
         transparentIndex: s32 = -1
         indexes:          Array'u8
+    }
+
+    struct HistogramCell
+    {
+        count: u64
+        red, green, blue: u64
+    }
+
+    struct ColorBox
+    {
+        minRed, maxRed, minGreen, maxGreen, minBlue, maxBlue: s32
+        pixels: u64
+        redTotal, greenTotal, blueTotal: u64
     }
 }
 

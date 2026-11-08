@@ -208,16 +208,16 @@ ships; history lives in Git, not here.
 - Done when: grayscale and RGB fixtures encode with multiple valid scans, decode identically to
   their baseline equivalents within JPEG tolerance, and malformed scan plans are rejected.
 
-### std.pixel.image.051 — Animated GIF frames lose colours beyond 128
+### std.pixel.image.051 — Animated GIF palette quality and sharing need visual validation
 
-- Evidence: `Gif.AnimationWriter` reuses the still encoder's palette: an exact palette up to 128
-  colours, otherwise a fixed quantization, with no dithering choice. Screen content with
-  anti-aliased text or gradients bands visibly.
-- Next: build an adaptive palette (median cut or octree) per frame, up to 256 colours, with an
-  optional ordered dither that screen content can turn off, and share it across frames when they
-  agree.
+- Evidence: `Gif.AnimationWriter` now uses up to 256 exact colours or a weighted median-cut
+  palette built from the frame's colours. Ordered dithering is optional and off by default.
+  Each frame still writes its own colour table, even when consecutive palettes agree; quality
+  and output size have not been measured on a representative screen-recording corpus.
+- Next: compare anti-aliased text and gradients against the former fixed palette on the same
+  captures, measure file size, and reuse an unchanged palette across frames where GIF permits it.
 - Done when: a screen recording with anti-aliased text exports without visible banding at a size
-  comparable to the current one, and still frames keep their exact palette.
+  comparable to the former encoder, and still frames keep their exact palette.
 - Related: app.capture.012, std.pixel.image.052
 
 ### std.pixel.image.052 — No animated PNG encoding

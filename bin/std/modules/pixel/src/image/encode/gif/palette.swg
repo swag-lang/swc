@@ -7,7 +7,8 @@
 
 using Swag, Core, Core.Errors
 
-private const QuantizePack24 = cast(Math.Simd.U8x16, [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
+// Balanced 4x4 ordered offsets avoid a directional bias in smooth gradients.
+private const Dither: [16] s32 = [-8, 0, -6, 2, 4, -4, 6, -2, -5, 3, -7, 1, 7, -1, 5, -3]
 
 impl Encoder
 {
@@ -58,146 +59,19 @@ impl Encoder
         if not image.pixelFormat.hasAlpha() do
             return false
 
-        var pix = cast([*] u8, image.pixels.storage())
-        for image.width * image.height
+        for y in image.height
         {
-            let col = readPixelColor(image, pix)
-            if col.a < 128 do
-                return true
-            pix += image.bytesPerPixel
+            var pix = image.pixels.storage() + cast(u64, y) * image.rowStride
+            for image.width
+            {
+                let col = readPixelColor(image, pix)
+                if col.a < 128 do
+                    return true
+                pix += image.bytesPerPixel
+            }
         }
 
         return false
-    }
-
-    func quantLevel(level, maxLevel: u32)->u8
-    {
-        if not maxLevel do
-            return 0
-        return cast(u8, ((level * 255 + maxLevel / 2) / maxLevel))
-    }
-
-    func quantizedOpaqueIndex(col: Color)->u8
-    {
-        let r = cast(u32, col.r) * 3 / 255
-        let g = cast(u32, col.g) * 7 / 255
-        let b = cast(u32, col.b) * 3 / 255
-        return cast(u8, (r * 32 + g * 4 + b))
-    }
-
-    func quantizedTransparentIndex(col: Color)->u8
-    {
-        let r = cast(u32, col.r) * 4 / 255
-        let g = cast(u32, col.g) * 4 / 255
-        let b = cast(u32, col.b) * 4 / 255
-        return cast(u8, (1 + r * 25 + g * 5 + b))
-    }
-
-    #[Swag.Inline]
-    func divideBy255(value: Math.Simd.U32x4)->Math.Simd.U32x4
-    {
-        let adjusted = value + 1'u32
-        return (adjusted + (adjusted >> 8)) >> 8
-    }
-
-    #[Swag.Inline]
-    func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizePixels4(pixels: Math.Simd.U32x4)->Math.Simd.U8x16
-    {
-        let zero32 = Math.Simd.splat(0's32)
-        let zero16 = Math.Simd.splat(0's16)
-        let low    = pixels & 255'u32
-        let green  = (pixels >> 8) & 255'u32
-        let high   = (pixels >> 16) & 255'u32
-        let red    = BLUE_FIRST ? high : low
-        let blue   = BLUE_FIRST ? low : high
-        var indexes: Math.Simd.U32x4
-        #static if HAS_TRANSPARENCY
-        {
-            let redLevel   = divideBy255(red * 4'u32)
-            let greenLevel = divideBy255(green * 4'u32)
-            let blueLevel  = divideBy255(blue * 4'u32)
-            indexes = 1'u32 + (redLevel << 4) + (redLevel << 3) + redLevel + (greenLevel << 2) + greenLevel + blueLevel
-            indexes = Math.Simd.select((pixels >> 24) < Math.Simd.splat(128'u32), Math.Simd.splat(0'u32), indexes)
-        }
-        else
-        {
-            let redLevel   = divideBy255(red * 3'u32)
-            let greenLevel = divideBy255(green * 7'u32)
-            let blueLevel  = divideBy255(blue * 3'u32)
-            indexes = (redLevel << 5) + (greenLevel << 2) + blueLevel
-        }
-
-        let packed16 = Math.Simd.packUnsigned(cast #bit(Math.Simd.S32x4, indexes), zero32)
-        return Math.Simd.packUnsigned(cast #bit(Math.Simd.S16x8, packed16), zero16)
-    }
-
-    func(BLUE_FIRST: bool, HAS_TRANSPARENCY: bool) quantizeRow4(source: const [*] u8, destination: [*] u8, pixelCount: u32)
-    {
-        var src   = source
-        var dst   = destination
-        var count = pixelCount
-        while count >= 4
-        {
-            let pixels = Math.Simd.load(cast(const [*] u32, src))
-            Math.Simd.storeLow4(dst, quantizePixels4'(BLUE_FIRST, HAS_TRANSPARENCY)(pixels))
-            src   += 16
-            dst   += 4
-            count -= 4
-        }
-    }
-
-    func(BLUE_FIRST: bool) quantizeRow3(source: const [*] u8, destination: [*] u8, pixelCount: u32)
-    {
-        var src   = source
-        var dst   = destination
-        var count = pixelCount
-        while count >= 4
-        {
-            let pixels = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(Math.Simd.load(src), QuantizePack24))
-            Math.Simd.storeLow4(dst, quantizePixels4'(BLUE_FIRST, false)(pixels))
-            src   += 12
-            dst   += 4
-            count -= 4
-        }
-    }
-
-    func fillOpaqueQuantizedPalette(data: *PaletteData)
-    {
-        data.count = 128
-        for r in 4
-        {
-            for g in 8
-            {
-                for b in 4
-                {
-                    let idx = r * 32 + g * 4 + b
-                    data.colors[idx].r = quantLevel(cast(u32, r), 3)
-                    data.colors[idx].g = quantLevel(cast(u32, g), 7)
-                    data.colors[idx].b = quantLevel(cast(u32, b), 3)
-                }
-            }
-        }
-    }
-
-    func fillTransparentQuantizedPalette(data: *PaletteData)
-    {
-        data.transparentIndex = 0
-        data.count            = 126
-        data.colors[0]        = {}
-
-        for r in 5
-        {
-            for g in 5
-            {
-                for b in 5
-                {
-                    let idx = 1 + r * 25 + g * 5 + b
-                    data.colors[idx].r = quantLevel(cast(u32, r), 4)
-                    data.colors[idx].g = quantLevel(cast(u32, g), 4)
-                    data.colors[idx].b = quantLevel(cast(u32, b), 4)
-                }
-            }
-        }
     }
 
     func resetPaletteResult(data: *PaletteData, pixelCount: u64)
@@ -273,83 +147,242 @@ impl Encoder
         return true
     }
 
-    func buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent: bool)
+    func histogramIndex(red, green, blue: u8)->u32 =>
+        (cast(u32, red >> 3) << 10) | (cast(u32, green >> 3) << 5) | (blue >> 3)
+
+    func occupiedBox(region: ColorBox, histogram: const [*] HistogramCell)->ColorBox
+    {
+        var result = ColorBox{32, -1, 32, -1, 32, -1}
+
+        for red in region.minRed to region.maxRed
+        {
+            for green in region.minGreen to region.maxGreen
+            {
+                for blue in region.minBlue to region.maxBlue
+                {
+                    let cell = histogram[(red << 10) | (green << 5) | blue]
+                    if not cell.count do
+                        continue
+                    result.minRed     = Math.min(result.minRed, red)
+                    result.maxRed     = Math.max(result.maxRed, red)
+                    result.minGreen   = Math.min(result.minGreen, green)
+                    result.maxGreen   = Math.max(result.maxGreen, green)
+                    result.minBlue    = Math.min(result.minBlue, blue)
+                    result.maxBlue    = Math.max(result.maxBlue, blue)
+                    result.pixels     += cell.count
+                    result.redTotal   += cell.red
+                    result.greenTotal += cell.green
+                    result.blueTotal  += cell.blue
+                }
+            }
+        }
+
+        return result
+    }
+
+    func splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell)->bool
+    {
+        var selected = -1
+        var best     = 0'u64
+
+        // Split the occupied region with the most pixels and the widest colour range.
+        for i in boxCount
+        {
+            let box   = boxes[][i]
+            let span  = Math.max(box.maxRed - box.minRed, Math.max(box.maxGreen - box.minGreen, box.maxBlue - box.minBlue))
+            let score = cast(u64, span) * box.pixels
+            if span > 0 and score > best
+            {
+                selected = cast(s32, i)
+                best     = score
+            }
+        }
+
+        if selected < 0 do
+            return false
+
+        let box       = boxes[][selected]
+        let redSpan   = box.maxRed - box.minRed
+        let greenSpan = box.maxGreen - box.minGreen
+        let blueSpan  = box.maxBlue - box.minBlue
+        var axis      = 0
+        var first     = box.minRed
+        var last      = box.maxRed
+        if greenSpan > redSpan and greenSpan >= blueSpan
+        {
+            axis  = 1
+            first = box.minGreen
+            last  = box.maxGreen
+        }
+        elif blueSpan > redSpan and blueSpan > greenSpan
+        {
+            axis  = 2
+            first = box.minBlue
+            last  = box.maxBlue
+        }
+
+        var slices: [32] u64
+        Memory.clear(&slices, #sizeof(slices))
+
+        for red in box.minRed to box.maxRed
+        {
+            for green in box.minGreen to box.maxGreen
+            {
+                for blue in box.minBlue to box.maxBlue
+                {
+                    let axisValue = axis == 0 ? red : axis == 1 ? green : blue
+                    slices[axisValue] += histogram[(red << 10) | (green << 5) | blue].count
+                }
+            }
+        }
+
+        var cumulative = 0'u64
+        var cut        = first
+        for value in first to last - 1
+        {
+            cumulative += slices[value]
+            if cumulative >= box.pixels / 2 and cumulative < box.pixels
+            {
+                cut = value
+                break
+            }
+        }
+
+        var left  = box
+        var right = box
+        switch axis
+        {
+        case 0:
+            left.maxRed  = cut
+            right.minRed = cut + 1
+
+        case 1:
+            left.maxGreen  = cut
+            right.minGreen = cut + 1
+
+        default:
+            left.maxBlue  = cut
+            right.minBlue = cut + 1
+        }
+
+        boxes[][selected] = occupiedBox(left, histogram)
+        boxes[][boxCount] = occupiedBox(right, histogram)
+        return true
+    }
+
+    func buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent, dither: bool)
     {
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
-        if hasTransparent do
-            fillTransparentQuantizedPalette(data)
-        else do
-            fillOpaqueQuantizedPalette(data)
-
-        var dstIndex = 0'u64
+        // Five bits per channel keep the histogram bounded independently of image size.
+        var histogram: Array'HistogramCell
+        histogram.resize(32 * 32 * 32)
+        Memory.clear(histogram.storage(), histogram.count * #sizeof(HistogramCell))
         for y in image.height
         {
-            var pix = cast([*] u8, image.pixels.storage()) + cast(u64, (image.height - y - 1)) * image.rowStride
-            var x   = 0
-            if image.bytesPerPixel == 4
+            var pix = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
+            for image.width
             {
-                let vectorWidth = cast(u32, image.width) & ~3'u32
-                let destination = data.indexes.storage() + dstIndex
-                let blueFirst   = image.pixelFormat == .BGRA8
-                if blueFirst
+                let color = readPixelColor(image, pix)
+                if not hasTransparent or color.a >= 128
                 {
-                    if hasTransparent do
-                        quantizeRow4'(true, true)(pix, destination, vectorWidth)
-                    else do
-                        quantizeRow4'(true, false)(pix, destination, vectorWidth)
+                    let cell = &histogram[histogramIndex(color.r, color.g, color.b)]
+                    cell.count += 1
+                    cell.red   += color.r
+                    cell.green += color.g
+                    cell.blue  += color.b
+                }
+
+                pix += image.bytesPerPixel
+            }
+        }
+
+        var boxes: [256] ColorBox
+        boxes[0] = occupiedBox(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
+        var boxCount  = 1'u32
+        let maxColors = MaxPaletteColors - (hasTransparent ? 1'u32 : 0'u32)
+        while boxCount < maxColors and splitBox(&boxes, boxCount, histogram.storage()) do
+            boxCount += 1
+
+        let firstColor = hasTransparent ? 1'u32 : 0'u32
+        if hasTransparent do
+            data.transparentIndex = 0
+        data.count = boxCount + firstColor
+        for i in boxCount
+        {
+            let box = boxes[i]
+            data.colors[i + firstColor] = {
+                cast(u8, (box.redTotal + box.pixels / 2) / box.pixels),
+                cast(u8, (box.greenTotal + box.pixels / 2) / box.pixels),
+                cast(u8, (box.blueTotal + box.pixels / 2) / box.pixels)}
+        }
+
+        // Map every histogram cell, including empty ones a dithered pixel may reach.
+        var mapping: Array'u8
+        mapping.resize(histogram.count)
+        for red in 32
+        {
+            for green in 32
+            {
+                for blue in 32
+                {
+                    let index        = (red << 10) | (green << 5) | blue
+                    var bestDistance = Swag.U32.Max
+                    var bestIndex    = firstColor
+                    for i in firstColor to data.count - 1
+                    {
+                        let color    = data.colors[i]
+                        let dr       = cast(s32, red * 8 + 4) - cast(s32, color.r)
+                        let dg       = cast(s32, green * 8 + 4) - cast(s32, color.g)
+                        let db       = cast(s32, blue * 8 + 4) - cast(s32, color.b)
+                        let distance = cast(u32, dr * dr + dg * dg + db * db)
+                        if distance < bestDistance
+                        {
+                            bestDistance = distance
+                            bestIndex    = i
+                        }
+                    }
+
+                    mapping[index] = cast(u8, bestIndex)
+                }
+            }
+        }
+
+        var destination = 0'u64
+        for y in image.height
+        {
+            var pix = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
+            for x in image.width
+            {
+                let color = readPixelColor(image, pix)
+                if hasTransparent and color.a < 128
+                {
+                    data.indexes[destination] = 0
                 }
                 else
                 {
-                    if hasTransparent do
-                        quantizeRow4'(false, true)(pix, destination, vectorWidth)
-                    else do
-                        quantizeRow4'(false, false)(pix, destination, vectorWidth)
+                    let shift = dither ? Dither[((y & 3) << 2) | (x & 3)] : 0
+                    let red   = cast(u8, Math.clamp(cast(s32, color.r) + shift, 0, 255))
+                    let green = cast(u8, Math.clamp(cast(s32, color.g) + shift, 0, 255))
+                    let blue  = cast(u8, Math.clamp(cast(s32, color.b) + shift, 0, 255))
+                    data.indexes[destination] = mapping[histogramIndex(red, green, blue)]
                 }
 
-                x        = cast(s32, vectorWidth)
-                pix      += cast(u64, vectorWidth) * 4
-                dstIndex += vectorWidth
-            }
-            elif image.bytesPerPixel == 3
-            {
-                let vectorWidth = image.width >= 6 ? (cast(u32, image.width) - 2) & ~3'u32 : 0'u32
-                let destination = data.indexes.storage() + dstIndex
-                if image.pixelFormat == .BGR8 do
-                    quantizeRow3'(true)(pix, destination, vectorWidth)
-                else do
-                    quantizeRow3'(false)(pix, destination, vectorWidth)
-                x        = cast(s32, vectorWidth)
-                pix      += cast(u64, vectorWidth) * 3
-                dstIndex += vectorWidth
-            }
-
-            while x < image.width
-            {
-                let col = readPixelColor(image, pix)
-                if hasTransparent and col.a < 128 do
-                    data.indexes[dstIndex] = cast(u8, data.transparentIndex)
-                elif hasTransparent do
-                    data.indexes[dstIndex] = quantizedTransparentIndex(col)
-                else do
-                    data.indexes[dstIndex] = quantizedOpaqueIndex(col)
-
-                dstIndex += 1
-                pix      += image.bytesPerPixel
-                x        += 1
+                destination += 1
+                pix         += image.bytesPerPixel
             }
         }
 
         finishPaletteResult(data)
     }
 
-    func buildPalette(image: Image)->PaletteData
+    func buildPalette(image: Image, dither: bool = false)->PaletteData
     {
         let hasTransparent = imageHasTransparentPixels(image)
         var result: #returntype
         if not tryBuildExactPalette(&result, image, hasTransparent) do
-            buildQuantizedPalette(&result, image, hasTransparent)
+            buildQuantizedPalette(&result, image, hasTransparent, dither)
         return result
     }
 

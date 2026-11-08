@@ -11,6 +11,7 @@ using Swag, Core, Core.Errors
 public struct AnimationOptions
 {
     public loopCount: u16 = 0     // Times the animation plays; zero plays it forever.
+    public dither:    bool        // Apply ordered colour dithering when a frame needs quantization; off by default.
 }
 
 // Writes an animated GIF frame by frame, without holding the animation in memory.
@@ -21,7 +22,7 @@ public struct AnimationOptions
 // hundredths of a second; the writer carries the rounding from frame to frame, so the total
 // duration stays exact.
 //
-// [[Gif.AnimationWriter.end]] writes what is still pending and finishes the file, so its failure
+// [[Pixel.Gif.AnimationWriter.end]] writes what is still pending and finishes the file, so its failure
 // must be handled.
 #[Swag.NoCopy]
 public struct AnimationWriter
@@ -35,6 +36,7 @@ public struct AnimationWriter
     pendingY:        s32
     pendingDuration: u64     // Time `pending` is shown so far, in microseconds.
     writtenTime:     u64     // Time covered by the frames written, in microseconds.
+    dither:          bool
     isEnded:         bool
 }
 
@@ -52,6 +54,7 @@ public impl AnimationWriter
         result.sink   = try ByteSink.createFile(fileName)
         result.width  = width
         result.height = height
+        result.dither = options.dither
 
         // Logical screen without a global colour table, then the looping extension.
         try result.sink.write("GIF89a")
@@ -146,7 +149,7 @@ private impl AnimationWriter
         let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
         .writtenTime = endTime
 
-        let palette = Encoder.buildPalette(.pending)
+        let palette = Encoder.buildPalette(.pending, .dither)
         var block: ConcatBuffer
 
         // Graphic control: keep the frame in place for the next one, which covers only what changed.

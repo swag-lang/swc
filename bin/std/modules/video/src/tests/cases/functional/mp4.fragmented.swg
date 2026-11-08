@@ -74,6 +74,8 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(rejected.value() is BadParameterError)
     discard catch Mp4.rebuildFragmentedIndex(path) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
+    discard catch Mp4.FragmentedWriter.resume(path) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
     Swag.require((expect File.info(path)).size == file.count)
 }
 
@@ -176,6 +178,68 @@ func fragmentedPacketSource()->ByteSource fail
     let stoppedSummary = expect Mp4.summarizeFragmentedRecording(stoppedPath)
     Swag.require(stoppedSummary.video.packetCount == 2 and stoppedSummary.video.endDecodeTime == 1024)
     Swag.require(stoppedSummary.completeMediaByteCount == lastFragment and stoppedSummary.hasIncompleteTail)
+    cursor.close()
+    var restartSource  = expect fragmentedPacketSource()
+    let restartPicture = expect fragmentedPacket(&restartSource)
+    var resumed        = expect Mp4.FragmentedWriter.resume(stoppedPath, Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 1, true})
+    Swag.require(resumed.writtenByteCount() == lastFragment and resumed.videoEndTime() == 1024)
+    expect resumed.addPacket(EncodedPacket{restartPicture.toSlice(), 1024, 1024, 512, true})
+    expect resumed.end()
+    var resumedReader = expect Reader.open(stoppedPath)
+    Swag.require(resumedReader.frameCount() == 3)
+    var resumedIndex = expect Mp4.FragmentedIndex.open(stoppedPath)
+    Swag.require(resumedIndex.entryCount() == 2)
+    let resumedSummary = expect Mp4.summarizeFragmentedRecording(stoppedPath)
+    Swag.require(resumedSummary.video.packetCount == 3 and resumedSummary.video.endDecodeTime == 1536)
+    Swag.require(not resumedSummary.hasIncompleteTail)
+}
+
+// Resuming an indexed recording keeps independent AAC clocks and replaces the old index.
+#test
+{
+    let path = videoTempPath("fragmented-resume-two-aac", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    let tracks: [2] Mp4.FragmentedAudioConfig = [
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)},
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)}]
+    const Options = Mp4.FragmentedOptions{2, 4 * 1024 * 1024, 2, true}
+    var writer = expect Mp4.FragmentedWriter.createWithAudioTracks(path, 64, 48, 12_800, config.toSlice(), Swag.makeSlice(&tracks[0], 2), Options)
+    var video  = expect fragmentedPacketSource()
+    let first  = expect fragmentedPacket(&video)
+    let second = expect fragmentedPacket(&video)
+    var audio  = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    let sound  = expect fragmentedPacket(&audio)
+    expect writer.addPacket(EncodedPacket{first.toSlice(), 0, 0, 512, true})
+    expect writer.addPacket(EncodedPacket{second.toSlice(), 512, 512, 512, false})
+    for index in 2 do
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true},
+                                     0)
+    expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), 1024, 1024, 1024, true}, 1)
+    expect writer.end()
+
+    let oldSummary = expect Mp4.summarizeFragmentedRecording(path)
+    var resumed    = expect Mp4.FragmentedWriter.resume(path, Options)
+    Swag.require(resumed.writtenByteCount() == oldSummary.completeMediaByteCount)
+    Swag.require(resumed.videoEndTime() == 1024)
+    expect resumed.addPacket(EncodedPacket{first.toSlice(), 1024, 1024, 512, true})
+    expect resumed.addAudioPacket(EncodedPacket{sound.toSlice(), 2048, 2048, 1024, true}, 0)
+    expect resumed.addAudioPacket(EncodedPacket{sound.toSlice(), 2048, 2048, 1024, true}, 1)
+    expect resumed.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "mfra") == 1)
+    var index = expect Mp4.FragmentedIndex.open(path)
+    Swag.require(index.entryCount() == 2)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 2)
+    Swag.require((unwrap reader.audioTrack(0)).packetCount() == 3)
+    Swag.require((unwrap reader.audioTrack(1)).packetCount() == 2)
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.endDecodeTime == 1536 and summary.audioTracks[0].endDecodeTime == 3072)
+    Swag.require(summary.audioTracks[1].endDecodeTime == 3072 and not summary.hasIncompleteTail)
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.

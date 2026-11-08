@@ -159,6 +159,99 @@ impl FragmentedWriter
         return try createConfigured(fileName, width, height, timescale, avcConfig, audioTracks, options)
     }
 
+    // Resumes a stopped file produced by this writer after its last complete fragment.
+    //
+    // Complete video and AAC packets remain in place. An incomplete final box or an existing
+    // `mfra` index is removed; a new index is written at `end` when requested in `options`.
+    // The scan and optional key-frame spool use bounded memory. The file must stay unchanged
+    // during the scan. At least one complete video fragment is required. Validation happens
+    // before truncation; an I/O failure after truncation may leave a playable media prefix.
+    func resume(fileName: string, options: FragmentedOptions = {})->FragmentedWriter fail
+    {
+        try validateOptions(options)
+        let originalSize = (try File.info(fileName)).size
+        var cursor       = try FragmentedPacketCursor.open(fileName)
+        defer cursor.close()
+        try validateAvcConfig(cursor.avcConfig())
+
+        with var result: #returntype
+        {
+            .width     = cast(u16, cursor.width())
+            .height    = cast(u16, cursor.height())
+            .timescale = cursor.timescale()
+            .options   = options
+            .config.add(cursor.avcConfig())
+            .audioTracks.reserve(cursor.audioTrackCount())
+            for index in cursor.audioTrackCount()
+            {
+                let audio = try cursor.audioTrack(index)
+                try validateAudioConfig(audio)
+                var track: FragmentedAudioTrack
+                track.sampleRate = audio.sampleRate
+                track.channels   = audio.channelCount
+                track.config.add(audio.decoderConfig)
+                .audioTracks.add(#move track)
+            }
+
+            if options.writeRandomAccessIndex
+            {
+                .indexPath = Path.combine(Env.getSpecialDirectory(.Temp),
+                                          Format.toString("swag-mp4-index-%.tmp", Guid128.random()))
+                .indexStream = try File.open(.indexPath.toString(), .CreateNew, .ReadWrite, .Zero)
+            }
+        }
+
+        var packet: FragmentedCursorPacket
+        var lastFragment = Swag.U64.Max
+        while try cursor.nextPacket(&packet)
+        {
+            if packet.fragmentOffset != lastFragment
+            {
+                if result.sequence == Swag.U32.Max do
+                    fail OverflowError{"fragmented MP4 sequence number is exhausted"}
+                result.sequence += 1
+                lastFragment    = packet.fragmentOffset
+            }
+
+            if packet.isVideo
+            {
+                result.hasPackets     = true
+                result.nextDecodeTime = packet.info.decodeTime + packet.info.duration
+                if options.writeRandomAccessIndex and packet.info.isKeyFrame
+                {
+                    if result.indexCount >= (Swag.U32.Max - 48) / 20 do
+                        fail OverflowError{"fragmented MP4 random-access index exceeds a compact box"}
+                    let entry = RandomAccessEntry{packet.info.decodeTime, packet.fragmentOffset,
+                                                  packet.sampleNumber}
+                    try result.indexStream.writeAll(Swag.makeSlice(cast(const [*] u8, &entry), #sizeof(RandomAccessEntry)))
+                    result.indexCount += 1
+                }
+            }
+            else
+            {
+                let track = &result.audioTracks[packet.trackIndex]
+                track.hasPackets = true
+                track.nextTime   = packet.info.decodeTime + packet.info.duration
+            }
+        }
+
+        let mediaEnd = cursor.completeMediaByteCount()
+        cursor.close()
+        if not result.hasPackets or not mediaEnd do
+            fail InvalidFormatError{"fragmented MP4 resume found no complete video fragment"}
+        scope
+        {
+            var file = try File.open(fileName, .Open, .ReadWrite, .Zero)
+            if try file.size() != originalSize or mediaEnd > originalSize do
+                fail InvalidFormatError{"fragmented MP4 changed during resume"}
+            try file.resize(mediaEnd)
+            file.close()
+        }
+
+        result.sink = try ByteSink.openAppendFile(fileName)
+        return result
+    }
+
     // Appends one H.264 access unit, flushing a complete fragment when its limits are reached.
     //
     // `packet.bytes` contains four-byte-length-prefixed NAL units, not Annex B start codes.
@@ -387,13 +480,7 @@ private impl FragmentedWriter
             fail BadParameterError{"fragmented MP4 needs dimensions in the range 1 to 65535"}
         if not timescale do
             fail BadParameterError{"fragmented MP4 needs a positive timescale"}
-        if not options.maxPacketsPerFragment or
-           options.maxPacketsPerFragment > 1_024 or
-           not options.maxAudioPacketsPerFragment or
-           options.maxAudioPacketsPerFragment > 1_024 or
-           not options.maxBufferedBytes or
-           options.maxBufferedBytes > Swag.U32.Max - 8 do
-            fail BadParameterError{"fragmented MP4 grouping limits are outside the supported range"}
+        try validateOptions(options)
         try validateAvcConfig(avcConfig)
         for audio in audioTracks do
             try validateAudioConfig(audio)
@@ -427,6 +514,17 @@ private impl FragmentedWriter
         try result.writeInitialization()
         try result.sink.flush()
         return result
+    }
+
+    func validateOptions(options: FragmentedOptions) fail
+    {
+        if not options.maxPacketsPerFragment or
+           options.maxPacketsPerFragment > 1_024 or
+           not options.maxAudioPacketsPerFragment or
+           options.maxAudioPacketsPerFragment > 1_024 or
+           not options.maxBufferedBytes or
+           options.maxBufferedBytes > Swag.U32.Max - 8 do
+            fail BadParameterError{"fragmented MP4 grouping limits are outside the supported range"}
     }
 
     func validateAudioConfig(audio: FragmentedAudioConfig) fail

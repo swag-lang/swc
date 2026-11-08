@@ -49,7 +49,8 @@ Four codecs ship in the box:
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
   Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
-  AAC-LC sound tracks. The writer reports its submitted video end time and completed byte count
+  AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
+  The writer reports its submitted video end time and completed byte count
   for recording progress and file-size limits. [[Video.Mp4.FragmentedPacketReader]] exposes their
   original compressed packets and track clocks for copying without decoding.
   [[Video.Mp4.FragmentedPacketCursor]]

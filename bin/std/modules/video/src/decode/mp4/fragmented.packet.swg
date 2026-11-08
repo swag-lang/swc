@@ -8,6 +8,20 @@
 
 using Core, Core.Errors
 
+// Describes one compressed sample without reading its payload.
+//
+// Times use the containing track's timescale. The signed presentation time retains negative
+// composition offsets that [[Video.EncodedPacket]] cannot represent.
+struct FragmentedPacketInfo
+{
+    public sourceOffset:     u64      // Absolute byte offset of the encoded payload.
+    public byteSize:         u32      // Number of payload bytes.
+    public decodeTime:       u64      // Decode-time ticks on the track.
+    public presentationTime: s64      // Presentation-time ticks, possibly negative.
+    public duration:         u32      // Positive duration in track ticks.
+    public isKeyFrame:       bool     // Sample can start decoding without prior video samples.
+}
+
 // Describes one AAC-LC track of a fragmented MP4 file.
 //
 // `decoderConfig` is borrowed from the reader and remains valid until it closes.
@@ -69,6 +83,14 @@ impl FragmentedPacketReader
     // Returns the number of complete video access units.
     mtd const packetCount()->u64 => .layout.fragments.count
 
+    // Returns one video packet's timing and location without reading its payload.
+    mtd const packetInfo(index: u64)->FragmentedPacketInfo fail
+    {
+        if index >= .layout.fragments.count do
+            fail BadParameterError{"fragmented MP4 video packet index is outside its track"}
+        return describeSample(.layout.fragments[index])
+    }
+
     // Reads one video access unit into `bytes` and returns its original track timestamps.
     //
     // The returned payload borrows `bytes` until it is changed. The caller can pass it directly
@@ -101,6 +123,15 @@ impl FragmentedPacketReader
                                    track.aacConfig.toSlice(), .layout.audioFragments[trackIndex].samples.count}
     }
 
+    // Returns one AAC-LC packet's timing and location without reading its payload.
+    mtd const audioPacketInfo(trackIndex, packetIndex: u64)->FragmentedPacketInfo fail
+    {
+        if trackIndex >= .layout.audioFragments.count or
+           packetIndex >= .layout.audioFragments[trackIndex].samples.count do
+            fail BadParameterError{"fragmented MP4 AAC packet index is outside its track"}
+        return describeSample(.layout.audioFragments[trackIndex].samples[packetIndex])
+    }
+
     // Reads one raw AAC-LC access unit into `bytes` with its original track timestamps.
     //
     // The returned payload borrows `bytes` until it is changed. It contains no ADTS header and
@@ -126,3 +157,8 @@ private impl FragmentedPacketReader
         try .source.readExact(bytes.toSlice())
     }
 }
+
+private func describeSample(sample: FragmentSample)->FragmentedPacketInfo
+    =>
+{sample.offset, sample.size, sample.decodeTime, sample.presentationTime,
+ sample.duration, sample.isKeyFrame}

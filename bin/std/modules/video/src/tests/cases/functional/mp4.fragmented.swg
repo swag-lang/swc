@@ -223,8 +223,11 @@ func fragmentedPacketSource()->ByteSource fail
     var bytes: Array'u8
     for index in 3
     {
+        let info     = expect packets.packetInfo(index)
         let packet   = expect packets.readPacket(index, &bytes)
         let expected = expect fragmentedPacket(&original)
+        Swag.require(info.decodeTime == Decode[index] and info.presentationTime == cast(s64, Present[index]))
+        Swag.require(info.sourceOffset > 0 and info.byteSize == expected.count)
         Swag.require(packet.decodeTime == Decode[index] and packet.presentationTime == Present[index])
         Swag.require(packet.duration == 512 and packet.isKeyFrame == (index == 0))
         Swag.require(packet.bytes.count == expected.count)
@@ -729,6 +732,10 @@ func fragmentedPacketSource()->ByteSource fail
     let secondAudio = expect packets.audioTrack(1)
     Swag.require(firstAudio.packetCount == 3 and secondAudio.packetCount == 2)
     Swag.require(firstAudio.sampleRate == 44_100 and firstAudio.channelCount == 2)
+    let firstSoundInfo  = expect packets.audioPacketInfo(0, 0)
+    let secondSoundInfo = expect packets.audioPacketInfo(1, 0)
+    Swag.require(firstSoundInfo.decodeTime == 0 and firstSoundInfo.duration == 1024)
+    Swag.require(secondSoundInfo.decodeTime == 1024 and secondSoundInfo.sourceOffset != firstSoundInfo.sourceOffset)
     let copiedTracks: [2] Mp4.FragmentedAudioConfig = [
         {firstAudio.sampleRate,  firstAudio.channelCount,  firstAudio.decoderConfig},
         {secondAudio.sampleRate, secondAudio.channelCount, secondAudio.decoderConfig}]

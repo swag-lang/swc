@@ -91,6 +91,8 @@ func fragmentedPacketSource()->ByteSource fail
     expect source.readExact(config.toSlice())
 
     var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice())
+    let initializationSize = writer.writtenByteCount()
+    Swag.require(initializationSize > 0 and writer.videoEndTime() == 0)
     for index in 3
     {
         let packetSize = expect source.readBigEndian'u32()
@@ -99,6 +101,8 @@ func fragmentedPacketSource()->ByteSource fail
         expect source.readExact(bytes.toSlice())
         expect writer.addPacket(EncodedPacket{bytes.toSlice(), cast(u64, index) * 512,
                                               cast(u64, index) * 512, 512, index == 0})
+        Swag.require(writer.videoEndTime() == cast(u64, index + 1) * 512)
+        Swag.require(writer.writtenByteCount() > initializationSize)
     }
 
     expect writer.end()
@@ -106,6 +110,7 @@ func fragmentedPacketSource()->ByteSource fail
 
     let file = expect File.readAllBytes(path)
     let raw  = file.toSlice()
+    Swag.require(writer.writtenByteCount() == file.count)
     Swag.require(raw[4] == 'f' and raw[5] == 't' and raw[6] == 'y' and raw[7] == 'p')
     Swag.require(fragmentedTagCount(raw, "moov") == 1)
     Swag.require(fragmentedTagCount(raw, "mvex") == 1)
@@ -589,11 +594,14 @@ func fragmentedPacketSource()->ByteSource fail
     let config = expect fragmentedConfig()
     var source = expect fragmentedPacketSource()
     var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024})
+    let initializationSize = writer.writtenByteCount()
     for index in 3
     {
         let packet = expect fragmentedPacket(&source)
         expect writer.addPacket(EncodedPacket{packet.toSlice(), cast(u64, index) * 512,
                                               cast(u64, index) * 512, 512, index == 0})
+        Swag.require(writer.videoEndTime() == cast(u64, index + 1) * 512)
+        Swag.require((writer.writtenByteCount() > initializationSize) == (index == 2))
     }
 
     expect writer.end()

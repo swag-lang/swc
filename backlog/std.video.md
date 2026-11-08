@@ -214,8 +214,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   scans samples in video and AAC-LC audio fragments and recovers completed frames and sound packets
   when the final fragment or final index is cut. The writer has one video track, up to four sound
   tracks, and an optional 64-bit `mfra`/`tfra` key-frame index written with bounded memory through
-  temporary disk storage. `Mp4.FragmentedIndex` reads a completed file's final index directly
-  from its tail and locates key frames with binary search. `Mp4.FragmentedPacketCursor` walks
+  temporary disk storage. It reports submitted video end time and bytes written after completed
+  groups, so a recorder can monitor duration and size. `Mp4.FragmentedIndex` reads a completed
+  file's final index from its tail and locates key frames with binary search.
+  `Mp4.FragmentedPacketCursor` walks
   compressed video and AAC packets one fragment at a time with a bounded sample window, reads
   payload only on request, and can start at an indexed fragment. A sparse 64-bit-offset stress
   test places a decodable indexed fragment beyond 4 GiB. `Video.Timebase` converts absolute

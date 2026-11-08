@@ -110,6 +110,19 @@ struct FragmentedWriter
 
 impl FragmentedWriter
 {
+    // Returns bytes accepted by the output sink so far.
+    //
+    // This includes the initialization movie, completed fragments, and an optional final index.
+    // Pending video and AAC groups are excluded. Call `flush` first to include every submitted
+    // packet and obtain the current complete file size.
+    mtd const writtenByteCount()->u64 => .sink.position()
+
+    // Returns the decode-time end of the last submitted video packet in video timescale ticks.
+    //
+    // The value is zero before the first video packet. It advances even when that packet is still
+    // in a pending group, so a recorder can check its time threshold before flushing or splitting.
+    mtd const videoEndTime()->u64 => .nextDecodeTime
+
     // Creates a fragmented H.264 MP4 file and writes its initialization movie.
     //
     // `avcConfig` is a complete AVCDecoderConfigurationRecord with four-byte NAL lengths and is

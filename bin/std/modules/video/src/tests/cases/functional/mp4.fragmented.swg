@@ -725,3 +725,73 @@ func fragmentedPacketSource()->ByteSource fail
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 1 and (unwrap reader.audioTrack(0)).packetCount() == 3)
 }
+
+// A completed file can append a 64-bit index pointing to each video key-frame fragment.
+#test
+{
+    let path = videoTempPath("fragmented-indexed", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 1, true})
+    var video  = expect fragmentedPacketSource()
+    let first  = expect fragmentedPacket(&video)
+    expect writer.addPacket(EncodedPacket{first.toSlice(), 0, 0, 512, true})
+    let second = expect fragmentedPacket(&video)
+    expect writer.addPacket(EncodedPacket{second.toSlice(), 512, 512, 512, false})
+    expect writer.addPacket(EncodedPacket{first.toSlice(), 1024, 1024, 512, true})
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    let raw  = file.toSlice()
+    Swag.require(fragmentedTagCount(raw, "moof") == 2)
+    Swag.require(fragmentedTagCount(raw, "mfra") == 1 and fragmentedTagCount(raw, "tfra") == 1)
+    Swag.require(fragmentedTagCount(raw, "mfro") == 1)
+    var moofOffsets: [2] u64
+    var moofIndex  = 0
+    var tfraOffset = raw.count
+    var mfraOffset = raw.count
+    for offset in raw.count - 3
+    {
+        if Memory.compare(raw.buffer + offset, "moof".buffer, 4) == 0
+        {
+            moofOffsets[moofIndex] = offset - 4
+            moofIndex += 1
+        }
+
+        if Memory.compare(raw.buffer + offset, "tfra".buffer, 4) == 0 do
+            tfraOffset = offset - 4
+        if Memory.compare(raw.buffer + offset, "mfra".buffer, 4) == 0 do
+            mfraOffset = offset - 4
+    }
+
+    Swag.require(moofIndex == 2 and tfraOffset < raw.count and mfraOffset < raw.count)
+    var source = ByteSource.openMemory(raw)
+    expect source.seek(tfraOffset)
+    Swag.require(expect source.readBigEndian'u32() == 64)
+    expect source.skip(4)
+    Swag.require(expect source.readBigEndian'u32() == 0x01000000)
+    Swag.require(expect source.readBigEndian'u32() == 1)
+    Swag.require(expect source.readBigEndian'u32() == 1)
+    Swag.require(expect source.readBigEndian'u32() == 2)
+    for index in 2
+    {
+        Swag.require(expect source.readBigEndian'u64() == cast(u64, index) * 1024)
+        Swag.require(expect source.readBigEndian'u64() == moofOffsets[index])
+        Swag.require(expect source.readBigEndian'u8() == 1)
+        Swag.require(expect source.readBigEndian'u8() == 1)
+        Swag.require(expect source.readBigEndian'u16() == 1)
+    }
+
+    expect source.seek(raw.count - 4)
+    Swag.require(expect source.readBigEndian'u32() == raw.count - mfraOffset)
+
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3)
+    let frame = expect reader.decodeFrame(2)
+    Swag.require(frame.width == 64 and frame.height == 48)
+    for cut in mfraOffset to raw.count - 1
+    {
+        var recovered = expect Reader.openMemory("indexed-cut.mp4", raw[0 until cut])
+        Swag.require(recovered.frameCount() == 3)
+    }
+}

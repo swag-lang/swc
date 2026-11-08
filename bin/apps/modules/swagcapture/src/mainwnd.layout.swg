@@ -194,6 +194,8 @@ impl MainWnd
             let view = main.editWnd.editView
             view.setZoom(view.zoom)
             main.placeMiniBar()
+            if main.taskStrip != null do
+                main.taskStrip.itf.onLayout()
         }
 
         with let body = Wnd.create'Wnd(.inspector)

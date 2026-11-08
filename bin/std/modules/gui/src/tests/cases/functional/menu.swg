@@ -19,6 +19,22 @@ using Swag, Core
     Swag.require(menu.items[0]!.id == expected)
 }
 
+// A popup note remains readable information and cannot be selected like a command.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 240)
+    let menu = MenuCtrl.createPopup(&host.root)
+    menu.addLabel("Capture keys")
+    let note = menu.addNote("PrintScreen is unavailable")
+    menu.addItem("Capture Area", "capture.area")
+
+    Swag.require(note.disabled and not note.label)
+    Swag.require(note.name.raw == "PrintScreen is unavailable" and note.id == "")
+    menu.computeLayoutPopup()
+    Swag.require(note.size > 0)
+}
+
 // An automatically destroyed popup retires its surface-sibling submenus before their owner.
 #test
 {

@@ -58,6 +58,7 @@ public struct PopupMenuItem
 
     submenuOpensLeft: bool       // Resolved opening side used by layout and painting.
     commandId:        String     // Owns a dynamically supplied identifier for as long as this item exists.
+    note:             bool       // Readable information in a popup, never chosen.
 }
 
 // Displays either a persistent menu bar or a modal popup menu.
@@ -253,7 +254,7 @@ public impl IWnd for MenuCtrl
                 continue
             }
 
-            colorText      = it.disabled ? colors.popupItem_DisabledText : (it.critical ? colors.critical : colors.popupItem_Text)
+            colorText      = it.note ? colors.popupItem_Text : (it.disabled ? colors.popupItem_DisabledText : (it.critical ? colors.critical : colors.popupItem_Text))
             colorRightText = it.disabled ? colors.popupItem_DisabledText : colors.popupItem_RightText
 
             // Back selection
@@ -1324,6 +1325,26 @@ public impl MenuCtrl
         {
             .name.set(name)
             .label    = true
+            .disabled = true
+        }
+
+        .items.add(item)
+        .dirtyLayout = true
+        return item
+    }
+
+    // Adds readable information to a popup without making it a command or keyboard stop.
+    //
+    // Unlike a disabled command, a note keeps body-text contrast; it is useful for an explanation
+    // or a value that the reader needs to see but cannot choose.
+    #[Swag.Discardable]
+    mtd addNote(text: string)->*PopupMenuItem
+    {
+        Swag.assert(not .bar, "notes belong in popup menus")
+        with let item = me.items.allocate()
+        {
+            .name.set(text)
+            .note     = true
             .disabled = true
         }
 

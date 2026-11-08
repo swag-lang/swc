@@ -11,17 +11,38 @@ struct TaskStrip
 {
     using wnd: Wnd
 
+    late main: *MainWnd
+
     late
     {
         leading:       *StackLayoutCtrl     // Capture, its modes, and the library.
         trailing:      *StackLayoutCtrl     // Save and copy the picture, while the editor shows one.
         captureChoice: *IconButton          // The chevron that opens the capture modes.
+        shortcutPanel:  *FloatingPanel      // Unavailable capture keys, anchored below Capture.
+        shortcutWarning: *IconButton        // Opens the unavailable key names.
+        frozenPanel:    *FloatingPanel      // Selection mode, anchored beside the inspector.
+        frozenButton:   *IconButton         // Releases the selection mode.
         copyButton:    *PushButton          // Copy the finished picture: the primary action.
     }
 }
 
 impl IWnd for TaskStrip
 {
+    mtd impl onNotifyEvent(evt: *NotifyEvent)
+    {
+        switch evt.kind
+        {
+        case .LanguageChanged:
+            .frozenButton.setQuietText(appStrings().ui_Frozen)
+            .shortcutWarning.setQuietText(appStrings().ui_ShortcutsUnavailable)
+            .itf.onLayout()
+
+        case .ThemeChanged:
+            .frozenButton.setIconColor(.themeColors().arc)
+            .shortcutWarning.setIconColor(.themeColors().critical)
+        }
+    }
+
     mtd impl onLayout()
     {
         let parent = .parent
@@ -54,6 +75,27 @@ impl IWnd for TaskStrip
         .leading.applyLayout()
         .trailing.applyLayout()
 
+        // Persistent states sit in small floating surfaces beside the work they affect. They
+        // never compete with the caption, Capture, or the output commands for strip width.
+        let pad = metrics.miniBar_Padding
+        let y   = height + metrics.floating_Inset
+        if .shortcutPanel.isLocallyVisible()
+        {
+            let button = .shortcutWarning
+            .shortcutPanel.setPosition({.leading.position.x, y, button.position.width + 2 * pad, metrics.quiet_Height + 2 * pad})
+            button.setPosition({pad, pad, button.position.width, metrics.quiet_Height})
+        }
+        if .frozenPanel.isLocallyVisible()
+        {
+            let button = .frozenButton
+            let width  = button.position.width + 2 * pad
+            var right  = .main.clientRect().right() - metrics.floating_Inset
+            if .main.inspector.isLocallyVisible() and not .main.inspector.folded do
+                right = .main.inspector.surfaceRect().x - .main.surfaceRect().x - metrics.floating_Inset
+            .frozenPanel.setPosition({right - width, y, width, metrics.quiet_Height + 2 * pad})
+            button.setPosition({pad, pad, button.position.width, metrics.quiet_Height})
+        }
+
         // The title stays centred between the groups, with the air of a title margin on each side.
         if strip > 0 and frame
         {
@@ -72,6 +114,7 @@ impl TaskStrip
         {
             .dockStyle       = .Float
             .backgroundStyle = .Application
+            .main            = main
         }
 
         with result.leading = StackLayoutCtrl.create(result, .Left)
@@ -121,6 +164,39 @@ impl TaskStrip
             .wndFlags.remove(.ActivatesOnKey)
         }
 
+        with result.shortcutPanel = FloatingPanel.create(main)
+        {
+            .dockStyle = .Float
+            .hide()
+        }
+        with result.shortcutWarning = IconButton.createQuiet(result.shortcutPanel, menu: false)
+        {
+            .owner       = main
+            .focusPolicy = .None
+            .setIcon(.theme().icon(.Warning))
+            .setIconColor(.themeColors().critical)
+            .setArrowPosition(.RightDownward)
+            .setQuietText(appStrings().ui_ShortcutsUnavailable)
+            .sigPressed += func|main|(button) { main.showUnavailableShortcuts(button) }
+        }
+
+        with result.frozenPanel = FloatingPanel.create(main)
+        {
+            .dockStyle = .Float
+            .hide()
+        }
+        with result.frozenButton = IconButton.createQuiet(result.frozenPanel, menu: false)
+        {
+            .owner       = main
+            .focusPolicy = .None
+            .setIcon(.theme().icon(.Lock))
+            .setIconColor(.themeColors().arc)
+            .setQuietText(appStrings().ui_Frozen)
+            .sigPressed += func|main|(_) { main.postCommandEvent(ActionSelection.Freeze) }
+        }
+
+        result.showUnavailableShortcuts(not main.takenHotKeys.isEmpty())
+
         return result
     }
 
@@ -133,6 +209,24 @@ impl TaskStrip
         .trailing.show(shown)
         .itf.onLayout()
         .invalidate()
+    }
+
+    // Keeps a persistent mode beside the inspector, with the same control to leave it.
+    mtd showFrozen(frozen: bool)
+    {
+        if .frozenPanel.isLocallyVisible() == frozen do
+            return
+        .frozenPanel.show(frozen)
+        .itf.onLayout()
+    }
+
+    // Keeps a global-key failure by the capture control until the next registration attempt.
+    mtd showUnavailableShortcuts(unavailable: bool)
+    {
+        if .shortcutPanel.isLocallyVisible() == unavailable do
+            return
+        .shortcutPanel.show(unavailable)
+        .itf.onLayout()
     }
 
     // Returns the height of the band the groups take at the top of `wnd` when its surface has no

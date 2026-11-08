@@ -128,7 +128,7 @@ struct MainWnd
         appearanceButton:    *AppearanceButton
     }
 
-    embInfoFreeze: *InfoBar?
+    takenHotKeys: Array'String      // Capture keys the desktop did not grant this process.
 
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
@@ -574,29 +574,19 @@ impl MainWnd
     }
 
     // Freezes the forms the capture holds now, so the mouse only reaches forms drawn after them,
-    // and shows a bar saying so; or thaws them again.
+    // or makes them reachable again. A small status beside the inspector stays visible until then.
     mtd freezeSelection(freeze: bool)
     {
-        if not freeze and .embInfoFreeze
-        {
-            .embInfoFreeze.destroy()
-            .embInfoFreeze = null
-            .freezeSel     = false
-        }
-        elif freeze and not .embInfoFreeze
+        if freeze == .freezeSel do
+            return
+
+        if freeze
         {
             // Nothing to freeze without a capture (the Freeze command is disabled in
             // that case, but guard here too so no code path can fault on getCapture()).
             let capture = .getCapture()
             if not capture do
                 return
-
-            .embInfoFreeze = InfoBar.create(.editWnd.view, appStrings().ui_Frozen, .Message, flags: .Bottom)
-            .embInfoFreeze.sigDismissed += func|main = me|(_)
-            {
-                main.freezeSel     = false
-                main.embInfoFreeze = null
-            }
 
             capture.selection.clear()
             capture.selectionHasChanged()
@@ -605,6 +595,12 @@ impl MainWnd
             for it in capture.forms do
                 it.freeze = true
         }
+        else do
+            .freezeSel = false
+
+        if .taskStrip != null do
+            .taskStrip.showFrozen(.freezeSel)
+        .updateCommandState()
     }
 
     mtd updateState()
@@ -635,6 +631,8 @@ impl MainWnd
             .inspector.show(showInspector)
             let view = .editWnd.editView
             view.setZoom(view.zoom)
+            if .taskStrip != null do
+                .taskStrip.itf.onLayout()
         }
 
         if showInspector do
@@ -757,6 +755,22 @@ impl MainWnd
         }
 
         menu.addPopup(appStrings().act_DelayBefore, delays, icon: .theme().icon(.HourGlass))
+
+        discard menu.doModal(button, autoDestroy: true)
+    }
+
+    // Explains which desktop capture keys were unavailable at startup, beside Capture itself.
+    mtd showUnavailableShortcuts(button: *IconButton)
+    {
+        let main = me
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            .addLabel(appStrings().ui_CaptureShortcuts)
+            for key in main.takenHotKeys do
+                .addNote(key.toString())
+            .addSeparator()
+            .addNote(appStrings().msg_ShortcutsUnavailableHelp)
+        }
 
         discard menu.doModal(button, autoDestroy: true)
     }
@@ -1043,6 +1057,7 @@ impl MainWnd
         .registerKeyShortcut(.Control, .D, ActionCopyPaste.Duplicate)
         .registerKeyShortcut(.CtrlShift, .D, ActionFile.DupCapture)
         .registerKeyShortcut(.CtrlShift, .I, ActionSelection.InvertSelection)
+        .registerKeyShortcut(.Control, .L, ActionSelection.Freeze)
         .registerKeyShortcut(.CtrlShift, .T, ActionFlatten.FlattenAll)
         .registerKeyShortcut(.Alt, .F4, ActionGlobal.Exit)
         .registerKeyShortcut(.Control, .N, ActionFile.NewImage)
@@ -1106,14 +1121,14 @@ impl MainWnd
         .registerKeyShortcut(.None, .I, ActionView.Inspector)
         .registerKeyShortcut(.CtrlShift, .H, ActionView.Recent)
 
-        // Every shortcut another application already owns is named in one information bar.
-        var taken: Array'String
+        // Keep failed registrations by Capture, where their absence affects the user.
+        .takenHotKeys.clear()
 
         #[Swag.Mixin]
         mtd registerHotKey(modifiers: Input.KeyModifiers, key: Input.Key, wndId: WndId)
         {
             catch .app().registerHotKey(modifiers, key, wndId, me) do
-                taken.add(Input.formatKeyShortcut(modifiers, key))
+                .takenHotKeys.add(Input.formatKeyShortcut(modifiers, key))
         }
 
         .registerHotKey(.None, .PrintScreen, ActionCapture.Area)
@@ -1122,26 +1137,8 @@ impl MainWnd
         .registerHotKey(.Control, .PrintScreen, ActionCapture.FullScreen)
         .registerHotKey(.Alt, .PrintScreen, ActionCapture.ActiveWnd)
 
-        if taken.count == 1
-        {
-            var msg = Format.toString(appStrings().msg_ShortcutTaken, taken[0])
-            msg += appStrings().msg_ShortcutTakenWhy
-            discard InfoBar.create(.editWnd, msg, .Critical)
-        }
-        elif taken.count > 1
-        {
-            var names: String
-            for name, index in taken
-            {
-                if index != 0 do
-                    names += ", "
-                names += name.toString()
-            }
-
-            var msg = Format.toString(appStrings().msg_ShortcutsTaken, names)
-            msg += appStrings().msg_ShortcutsTakenWhy
-            discard InfoBar.create(.editWnd, msg, .Critical)
-        }
+        if .taskStrip != null do
+            .taskStrip.showUnavailableShortcuts(not .takenHotKeys.isEmpty())
     }
 
     mtd setTheme()

@@ -47,10 +47,8 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionSelection.Freeze)
     Swag.require(f.main.freezeSel)
-    Swag.require(f.main.embInfoFreeze != null)
     f.main.sendCommandEvent(ActionSelection.Freeze)
     Swag.require(not f.main.freezeSel)
-    Swag.require(f.main.embInfoFreeze == null)
 }
 
 // Tool-mode actions update checked state and switch every safe editor mode.

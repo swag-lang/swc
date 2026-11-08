@@ -65,7 +65,9 @@ struct AppStrings
     ui_KeepRatio:              string = "Keep Ratio"
     ui_Anchor:                 string = "Anchor"
     ui_AnchorVertical:         string = "Vertical Anchor"     // How the lines of a text stand down its box, in the mini-bar.
-    ui_Frozen:                 string = "Selection is frozen"
+    ui_Frozen:                 string = "Selection frozen"            // Persistent status in the editor strip; clicking it releases the forms.
+    ui_ShortcutsUnavailable:   string = "Shortcuts unavailable"       // Persistent status beside Capture when a global key is taken.
+    ui_CaptureShortcuts:       string = "Capture shortcuts"           // Heading above the unavailable key names.
     ui_Desktop:                string = "Desktop"
     ui_MyImages:               string = "My Images"
     ui_CommonImages:           string = "Images"
@@ -136,10 +138,7 @@ struct AppStrings
     msg_FailedSaveMetadata:    string = "Cannot save capture metadata"
     msg_FailedExportCaptures:  string = "Cannot export the selected captures"
     msg_FailedMoveCaptures:    string = "Some captures could not be moved. They are still where they were."
-    msg_ShortcutTaken:         string = "Cannot register global shortcut %. "
-    msg_ShortcutTakenWhy:      string = "Another running application is probably already using it!"
-    msg_ShortcutsTaken:        string = "Cannot register global shortcuts %. "     // Lists every unavailable shortcut, separated by commas.
-    msg_ShortcutsTakenWhy:     string = "Other running applications are probably already using them!"
+    msg_ShortcutsUnavailableHelp: string = "Another app may own these keys. Restart Swag Capture to try again."
     msg_ResetStyles:           string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:    string = "Rename Capture"     // Title of the capture rename dialog.
     ui_Outline:                string = "Outline"            // Label of the outline thickness slider.

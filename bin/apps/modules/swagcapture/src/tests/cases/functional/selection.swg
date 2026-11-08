@@ -420,7 +420,6 @@ using Swag, Core
 
     f.main.freezeSelection(true)
     Swag.require(not f.main.freezeSel)
-    Swag.require(f.main.embInfoFreeze == null)
 }
 
 // Snap computes x/y offsets against capture bounds and neighboring form edges.

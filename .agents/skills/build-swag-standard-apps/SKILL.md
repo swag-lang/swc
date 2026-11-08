@@ -210,6 +210,10 @@ like. The toolkit types live in `bin/std/modules/gui/src/controls/lens` and
   commands.
 - **Use a toast** for a short confirmation of what the hand just did, or for a failure that needs
   no answer. Anything that needs an answer is a dialog.
+- **Show persistent state at its operation.** A mode stays visible in the control that leaves it;
+  an unavailable capability stays beside the affected command, with details on demand. Do not
+  use a dismissible information bar for a state that still holds. The shared distinction between
+  transient toasts and persistent states is in the charter's Toast section.
 
 ### Put every command in the lens
 

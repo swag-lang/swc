@@ -459,6 +459,15 @@ action, and as long as the pointer is over it; then it leaves with the floating 
 never takes the keyboard. A new toast replaces the one on screen rather than stacking under it.
 Anything that needs an answer is a dialog, not a toast.
 
+Transient events and persistent states have different homes. A saved file or copied picture is
+confirmed by a toast; the toast may offer one immediate action. A mode that stays in force is
+shown by the control that can leave that mode, in the part of the window where it applies. A
+capability that remains unavailable is shown beside the affected command, with its exact details
+available by clicking the status. Neither state takes a dismissible full-width bar: dismissal
+would hide a fact that still holds. Keep the status visible until its cause changes, and let the
+work retain its space. Colour the active-mode mark in Arc and the unavailable-capability mark in
+its failure tone; the status words remain in body ink. Both follow the current palette.
+
 ## Controls
 
 ![Controls in Encre](imgs/gui.controls.ink.png)
@@ -495,6 +504,8 @@ Anything that needs an answer is a dialog, not a toast.
   the others leave. A list with no row says so in one faint sentence where its rows would be.
 - **Menus**: raised ground, corner 10, 6 px padding, rows 30, hover/selection Arc ground, shortcuts in
   mono faint at the right, `✓` in Arc, `›` for submenus, separators of one hairline inset 10.
+  A noninteractive note keeps body-text contrast without a hover state; an unavailable command
+  stays faint.
   Anchored menus leave 6 px of clear space from their opener and 8 px from window edges.
   The opener has a quiet selected ground, without an extended border or independent shadow.
   Align text openers with the entries' wording when room permits; centre icon-only openers

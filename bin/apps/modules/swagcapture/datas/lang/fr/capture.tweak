@@ -50,7 +50,9 @@ ui_Height              Hauteur
 ui_KeepRatio           Conserver les proportions
 ui_Anchor              Ancrage
 ui_AnchorVertical      Ancrage vertical
-ui_Frozen              La sélection est figée
+ui_Frozen              Sélection figée
+ui_ShortcutsUnavailable Raccourcis indisponibles
+ui_CaptureShortcuts    Raccourcis de capture
 ui_Desktop             Bureau
 ui_MyImages            Mes images
 ui_CommonImages        Images
@@ -100,10 +102,7 @@ msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
 msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
 msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
 msg_FailedMoveCaptures Certaines captures n'ont pas pu être déplacées. Elles sont restées à leur place.
-msg_ShortcutTaken      Impossible d'enregistrer le raccourci global %.
-msg_ShortcutTakenWhy   Une autre application l'utilise probablement déjà !
-msg_ShortcutsTaken     Impossible d'enregistrer les raccourcis globaux %. 
-msg_ShortcutsTakenWhy  D'autres applications les utilisent probablement déjà !
+msg_ShortcutsUnavailableHelp Une autre application utilise peut-être ces touches. Relancez Swag Capture pour réessayer.
 act_ActualSize         Taille réelle
 act_Arrow              Flèche
 act_BigView            Grandes vignettes

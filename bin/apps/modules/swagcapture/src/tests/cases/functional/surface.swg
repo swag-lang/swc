@@ -223,6 +223,8 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         let trailing = main.taskStrip.trailing
         Swag.require(leading.children.count == 3 and trailing.children.count == 2)
         Swag.require(leading.children[0].name == appStrings().act_CaptureArea)
+        Swag.require(not main.taskStrip.shortcutPanel.isLocallyVisible())
+        Swag.require(not main.taskStrip.frozenPanel.isLocallyVisible())
         Swag.require(trailing.children[0].name == appStrings().act_SaveImage)
         Swag.require(trailing.children[1] == main.taskStrip.copyButton)
         Swag.require(main.taskStrip.copyButton.name == appStrings().act_CopyImage)

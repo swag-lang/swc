@@ -209,6 +209,7 @@ namespace Command
             SymbolSort::sortAndUniqueByLocation(preMainFunctions, compiler);
             SymbolSort::sortAndUniqueByLocation(mainFunctions, compiler);
             SymbolSort::sortAndUniqueByLocation(dropFunctions, compiler);
+            std::ranges::reverse(dropFunctions);
 
             SWC_RESULT(CommandRun::afterPauses(ctx, [&] { return SymbolFunction::jitBatch(ctx, allFunctions); }));
 

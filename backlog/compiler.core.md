@@ -667,15 +667,16 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.104 — Align module drop-hook order across native, script and JIT execution
 
-- Evidence: `NativeBackendBuilder` sorts drop functions by source position, while
+- Earlier evidence: `NativeBackendBuilder` sorted drop functions by source position, while
   `NativeArtifactBuilder` and `Command.Build` invoke the list forwards. The lifecycle reference
   (`002_010_module_lifecycle.swg`) promises the reverse of the corresponding initialization
   sequence. Reversing dependency modules alone does not establish the order of hooks inside one
-  module. JIT test cleanup must initially match the existing native lifecycle to avoid introducing
-  another execution-mode difference while fixing missing shutdown.
-- Next: establish one intra-module shutdown order, implement it in native, script and JIT paths,
-  and exercise multiple hooks, dependent modules and a failing shutdown hook. Keep resource
-  release complete before restoring test data or unloading generated code.
+  module. Native artifacts, scripts and JIT tests now run multiple drop hooks in reverse
+  source-location order, with passing Linux regressions for each path. The script regression
+  failed on the preceding compiler and passes with the correction.
+- Next: cover hooks in dependent modules and a failing shutdown hook. Check that every remaining
+  hook runs after one fails, and that resource release completes before restoring test data or
+  unloading generated code.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

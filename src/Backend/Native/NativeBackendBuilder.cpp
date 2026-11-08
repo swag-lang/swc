@@ -1808,6 +1808,8 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_, sortKeys);
     for (std::vector<SymbolFunction*>* roots : {&testFunctions, &initFunctions, &preMainFunctions, &dropFunctions, &mainFunctions})
         orderLocationTies(ctx_, *roots);
+    // Release hooks in the reverse source order of initialization hooks.
+    std::ranges::reverse(dropFunctions);
     orderLocationTies(ctx_, regularGlobals);
     appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
     std::vector<SymbolFunction*> executableRoots;

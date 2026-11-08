@@ -126,6 +126,9 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         stages.append(Stage('workspace-import-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'import_core_without_using.swgs')],
                             expected_output='SWAG_IMPORTED_CORE_WITHOUT_USING_RAN'))
+        stages.append(Stage('workspace-lifecycle-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_order.swgs')],
+                            expected_output='SWAG_LIFECYCLE_ORDER_RAN'))
     return stages
 
 

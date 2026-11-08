@@ -192,6 +192,30 @@ impl FragmentedPacketCursor
         for &seen in .audioSeen do
             seen[] = false
     }
+
+    // Positions the next packet on the indexed video key frame at or before `decodeTime`.
+    //
+    // `index` must refer to this cursor's unchanged file and its video track. Returns false before
+    // the first indexed key frame, leaving the cursor in place. Only entries pointing to the first
+    // sample of a video fragment are supported; this module's writer produces such entries.
+    // The query uses the video track's decode-time ticks. Seeking resets track continuity checks.
+    mtd trySeekVideoAtOrBefore(index: *FragmentedIndex, decodeTime: u64)->bool fail
+    {
+        var point: FragmentedSeekPoint
+        if not try index.tryFindAtOrBefore(decodeTime, &point) do
+            return false
+        if point.trackFragmentNumber != 1 or point.trackRunNumber != 1 or point.sampleNumber != 1 do
+            fail UnsupportedFormatError{"fragmented MP4 seek needs a key frame at the start of its fragment"}
+        try .seekFragment(point.moofOffset)
+        var packet: FragmentedCursorPacket
+        if not try .nextPacket(&packet) or
+           not packet.isVideo or
+           not packet.info.isKeyFrame or
+           packet.info.decodeTime != point.decodeTime do
+            fail InvalidFormatError{"fragmented MP4 index does not point to its video key frame"}
+        .scan.currentIndex -= 1
+        return true
+    }
 }
 
 private impl FragmentedPacketCursor

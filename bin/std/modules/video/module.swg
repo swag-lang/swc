@@ -65,7 +65,8 @@ Four codecs ship in the box:
   key-frame packet ranges for either copy operation.
   [[Video.Mp4.FragmentedIndex]] reads an
   optional final key-frame index from the file tail and locates a fragment without scanning media
-  data. [[Video.Mp4.rebuildFragmentedIndex]] can finalize complete fragments after an interrupted
+  data; the cursor can seek directly to its video key frame.
+  [[Video.Mp4.rebuildFragmentedIndex]] can finalize complete fragments after an interrupted
   write and rebuild that index using temporary disk storage. [[Video.Reader]] reads samples
   by scanning fragment headers and
   recovers complete fragments after an

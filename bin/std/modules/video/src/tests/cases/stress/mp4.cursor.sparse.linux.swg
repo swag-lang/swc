@@ -85,8 +85,11 @@ using Swag, Core, Core.Errors
     Swag.require(index.entryCount() == 2)
     let point = expect index.point(1)
     Swag.require(point.moofOffset == LargeOffset and point.decodeTime == 512)
+    var later: Mp4.FragmentedSeekPoint
+    Swag.require(expect index.tryFindAtOrAfter(1, &later))
+    Swag.require(later.moofOffset == LargeOffset)
     var cursor = expect Mp4.FragmentedPacketCursor.open(sparsePath)
-    expect cursor.seekFragment(point.moofOffset)
+    Swag.require(expect cursor.trySeekVideoAtOrBefore(&index, 512))
     var found: Mp4.FragmentedCursorPacket
     Swag.require(expect cursor.nextPacket(&found))
     Swag.require(found.isVideo and found.info.isKeyFrame and found.info.decodeTime == 512)

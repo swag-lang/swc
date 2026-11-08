@@ -61,6 +61,8 @@ Four codecs ship in the box:
   [[Video.Mp4.copyVideoRanges]] joins
   key-frame-aligned H.264 ranges into a video-only file without re-encoding;
   [[Video.Mp4.copyRanges]] also copies AAC-LC tracks, rounding cut edges to whole sound packets.
+  [[Video.Mp4.planVideoTimeRanges]] expands intervals on the video decode-time clock to safe
+  key-frame packet ranges for either copy operation.
   [[Video.Mp4.FragmentedIndex]] reads an
   optional final key-frame index from the file tail and locates a fragment without scanning media
   data. [[Video.Mp4.rebuildFragmentedIndex]] can finalize complete fragments after an interrupted

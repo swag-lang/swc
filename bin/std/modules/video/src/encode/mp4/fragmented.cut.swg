@@ -19,6 +19,99 @@ struct VideoPacketRange
     public afterLastPacket: u64     // First packet to omit after this range.
 }
 
+// Selects a half-open interval on the video track's decode-time clock.
+//
+// Times are ticks at [[Video.Mp4.FragmentedPacketCursor.timescale]]. The first selected picture
+// may precede `startDecodeTime`; the last selected picture may end after `endDecodeTime` because
+// a copy needs complete groups of pictures.
+struct VideoTimeRange
+{
+    public startDecodeTime: u64     // Requested inclusive start time.
+    public endDecodeTime:   u64     // Requested exclusive end time.
+}
+
+// Expands decode-time intervals to complete key-frame-aligned packet ranges.
+//
+// Each start moves back to the last key frame at or before it, or to the first video packet.
+// Each end moves forward to the first key frame at or after it, or to the end of the recording.
+// Intervals must be nonempty, ordered and separate, and end no later than the last complete
+// video packet. Expansion must leave each interval nonempty and may not make intervals overlap.
+// The returned ranges can be passed to [[Video.Mp4.copyRanges]] or
+// [[Video.Mp4.copyVideoRanges]]. The scan reads fragment headers only and uses memory proportional
+// to the number of requested intervals, independent of recording duration.
+func planVideoTimeRanges(fileName: string, ranges: const [..] VideoTimeRange)->Array'VideoPacketRange fail
+{
+    if not ranges.count do
+        fail BadParameterError{"fragmented MP4 time cut needs at least one video range"}
+    var previousEnd = 0'u64
+    for range in ranges
+    {
+        if range.startDecodeTime < previousEnd or range.startDecodeTime >= range.endDecodeTime do
+            fail BadParameterError{"fragmented MP4 time ranges are empty or overlapping"}
+        previousEnd = range.endDecodeTime
+    }
+
+    var cursor = try FragmentedPacketCursor.open(fileName)
+    var result: #returntype
+    result.resize(ranges.count)
+    var packet: FragmentedCursorPacket
+    var packetIndex = 0'u64
+    var keyIndex    = 0'u64
+    var startIndex  = 0'u64
+    var endIndex    = 0'u64
+    var videoEnd    = 0'u64
+    while try cursor.nextPacket(&packet)
+    {
+        if not packet.isVideo do
+            continue
+        while startIndex < ranges.count and packet.info.decodeTime >= ranges[startIndex].startDecodeTime
+        {
+            let start = ranges[startIndex].startDecodeTime
+            result[startIndex].firstPacket = packet.info.isKeyFrame and packet.info.decodeTime == start ? packetIndex : keyIndex
+            startIndex += 1
+        }
+
+        if packet.info.isKeyFrame
+        {
+            keyIndex = packetIndex
+            while endIndex < ranges.count and packet.info.decodeTime >= ranges[endIndex].endDecodeTime
+            {
+                result[endIndex].afterLastPacket = packetIndex
+                endIndex += 1
+            }
+        }
+
+        if packet.info.decodeTime > Swag.U64.Max - packet.info.duration do
+            fail OverflowError{"fragmented MP4 video packet end overflows"}
+        videoEnd    = packet.info.decodeTime + packet.info.duration
+        packetIndex += 1
+    }
+
+    while startIndex < ranges.count and ranges[startIndex].startDecodeTime < videoEnd
+    {
+        result[startIndex].firstPacket = keyIndex
+        startIndex += 1
+    }
+
+    if startIndex != ranges.count or ranges[ranges.count - 1].endDecodeTime > videoEnd do
+        fail BadParameterError{"fragmented MP4 time range is outside the source"}
+    while endIndex < ranges.count
+    {
+        result[endIndex].afterLastPacket = packetIndex
+        endIndex += 1
+    }
+
+    previousEnd = 0
+    for range in result
+    {
+        if range.firstPacket < previousEnd or range.firstPacket >= range.afterLastPacket do
+            fail BadParameterError{"fragmented MP4 key-frame expansion makes time ranges empty or overlapping"}
+        previousEnd = range.afterLastPacket
+    }
+
+    return result
+}
+
 private struct ValidatedVideoRange
 {
     firstPacket:     u64

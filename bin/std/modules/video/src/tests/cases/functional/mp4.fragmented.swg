@@ -68,7 +68,10 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(summary.video.timescale == 12_800 and summary.video.packetCount == 0)
     Swag.require(summary.audioTracks.count == 0 and summary.completeMediaByteCount == 0)
     Swag.require(not summary.hasIncompleteTail)
+    const EmptyTimeRange: [1] Mp4.VideoTimeRange = [{0, 1}]
     var rejected: Swag.Error
+    discard catch Mp4.planVideoTimeRanges(path, Swag.makeSlice(&EmptyTimeRange[0], 1)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
     discard catch Mp4.rebuildFragmentedIndex(path) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
     Swag.require((expect File.info(path)).size == file.count)
@@ -337,8 +340,31 @@ func fragmentedPacketSource()->ByteSource fail
 
     expect writer.end()
 
-    const Kept: [2] Mp4.VideoPacketRange = [{0, 3}, {6, 9}]
-    expect Mp4.copyRanges(sourcePath, targetPath, Swag.makeSlice(&Kept[0], 2), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3, true})
+    const Kept:  [2] Mp4.VideoPacketRange = [{0, 3}, {6, 9}]
+    const Times: [2] Mp4.VideoTimeRange   = [{100, 1400}, {3100, 4400}]
+    let planned = expect Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&Times[0], 2))
+    Swag.require(planned.count == 2)
+    for index in 2 do
+        Swag.require(planned[index].firstPacket == Kept[index].firstPacket and
+                     planned[index].afterLastPacket == Kept[index].afterLastPacket)
+    const Exact: [2] Mp4.VideoTimeRange = [{0, 1536}, {3072, 4608}]
+    let exact = expect Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&Exact[0], 2))
+    Swag.require(exact[0].firstPacket == 0 and exact[0].afterLastPacket == 3)
+    Swag.require(exact[1].firstPacket == 6 and exact[1].afterLastPacket == 9)
+    const Tail: [1] Mp4.VideoTimeRange = [{4600, 4608}]
+    let tail = expect Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&Tail[0], 1))
+    Swag.require(tail[0].firstPacket == 6 and tail[0].afterLastPacket == 9)
+    const OverlapTimes: [2] Mp4.VideoTimeRange = [{0, 1}, {2, 1024}]
+    const OutsideTimes: [1] Mp4.VideoTimeRange = [{0, 4609}]
+    const EmptyTimes:   [1] Mp4.VideoTimeRange = [{200, 200}]
+    var rejected: Swag.Error
+    discard catch Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&OverlapTimes[0], 2)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&OutsideTimes[0], 1)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.planVideoTimeRanges(sourcePath, Swag.makeSlice(&EmptyTimes[0], 1)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    expect Mp4.copyRanges(sourcePath, targetPath, planned.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3, true})
     var source = expect Mp4.FragmentedPacketReader.open(sourcePath)
     var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
     Swag.require(copied.packetCount() == 6 and copied.audioTrackCount() == 2)
@@ -1268,6 +1294,9 @@ func fragmentedPacketSource()->ByteSource fail
     }
 
     Swag.require(moofIndex == 2 and tfraOffset < raw.count and mfraOffset < raw.count)
+    const BeforeFirstPacket: [1] Mp4.VideoTimeRange = [{0, 1024}]
+    let planned = expect Mp4.planVideoTimeRanges(path, Swag.makeSlice(&BeforeFirstPacket[0], 1))
+    Swag.require(planned[0].firstPacket == 0 and planned[0].afterLastPacket == 2)
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 3 and summary.video.firstDecodeTime == 512)
     Swag.require(summary.video.endDecodeTime == 2048 and summary.completeMediaByteCount == mfraOffset)

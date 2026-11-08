@@ -229,7 +229,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   index from a bounded temporary spool. A sparse 64-bit offset stress test places a decodable
   indexed fragment beyond 4 GiB. `Video.Timebase` converts absolute timestamps between integer
   clocks without per-packet rounding drift; AAC cuts use it to map
-  video boundaries to sample clocks. The writer has no timed metadata tracks;
+  video boundaries to sample clocks. `Mp4.planVideoTimeRanges` maps requested decode-time
+  intervals to key-frame packet ranges with a bounded fragment scan. The writer has no timed metadata tracks;
   `Video.Reader` still scans fragments to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
   Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets

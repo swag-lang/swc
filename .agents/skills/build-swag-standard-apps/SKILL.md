@@ -487,7 +487,8 @@ Run native journeys on the normal interactive desktop. The shared contract and c
 [tools/application-scenarios.md](../../../tools/application-scenarios.md).
 Ordinary focused tests, scenario tests and the shipped executable's bounded startup smoke prove
 different contracts; none replaces the other two. Keep maintained snapshots in
-`golden/<subject>.swg`, with the `golden` tag.
+`src/tests/cases/golden/<subject>.swg`, with the `golden` tag; reference images belong in
+`src/tests/goldens/`.
 
 1. While iterating, run the owning test file:
    `tools/apps.bat test <application> --test-file <name>.swg`.

@@ -2,6 +2,12 @@
 
 Use complementary test families. A passing startup smoke is not a completed user journey.
 
+Every `.swg` file that defines a test case belongs under `src/tests/cases/`. The first directory
+below `cases/` names the test family. `src/tests/helpers/` contains shared setup and assertions,
+`src/tests/datas/` contains fixture inputs, and `src/tests/goldens/` contains reference outputs;
+none of these three directories defines a test case. A viewer folder, when useful, goes below the
+family: `cases/<family>/viewers/<viewer>/`. A plan spanning several viewers stays at the family root.
+
 | Boundary | What it establishes | Where it lives |
 | --- | --- | --- |
 | Ordinary tests | Model, decoder, command and layout behavior | `src/tests/cases/functional/`, with an optional area folder |
@@ -92,7 +98,7 @@ Its portable `cases/desktop/drawandundo.swg` clicks the Shape tool, drags on the
 Control+Z and Control+Y through the shared Windows or Linux desktop input backend.
 `cases/desktop/deleteandundo.swg` covers Delete and undo on a preselected mark through native keyboard input.
 
-Swag Scope's `stress/previewcache.swg` creates 160 local entries in a temporary Films folder
+Swag Scope's `cases/stress/previewcache.swg` creates 160 local entries in a temporary Films folder
 from real video fixtures and exercises eviction and reload across the 128-texture preview cache.
 The separate `cases/journeys/browsemedialibrary.swg` follows the user journey through filtering,
 viewer open/return, refresh, resize and theme changes, with visible thumbnails and native presentation

@@ -339,9 +339,9 @@ whole recording loaded at once.
 ---
 ### app.capture.040 — Exercise lasso selection through native pointer input
 
-- Next: Trace the editor's pointer coordinates and mouse events during a native lasso drag, then add a desktop plan that selects and deletes one annotation.
+- Next: On an interactive desktop, start the native lasso away from the capture's resize handles, trace the editor's pointer events, then add a desktop plan that selects and deletes one annotation.
 - Done when: a portable `desktop/` test selects the intended mark by native drag and passes on Windows and Linux.
-- Evidence: a Windows desktop drag from image point `{5, 5}` to `{90, 80}` selected no mark, while the in-process drag over the same plan selected one; the lasso path needs a focused input-level investigation.
+- Evidence: a Windows desktop drag from image point `{5, 5}` to `{90, 80}` selected no mark, while the in-process drag over the same plan selected one. The start is inside the capture-edge handle reach. A reverse-drag attempt could not reach the editor because the subsequent desktop session had no foreground window and refused activation, so the pointer-path diagnosis remains open.
 
 ### app.capture.041 — Match library hints to the filtered result
 

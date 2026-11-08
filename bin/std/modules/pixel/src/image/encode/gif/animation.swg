@@ -1,5 +1,5 @@
 //! Format: Graphics Interchange Format (GIF89a) encoder component.
-//! Supported: Animations written frame by frame into a file, with a global palette reused for compatible frames, frame durations, looping, and frames reduced to the rectangle that changed.
+//! Supported: Animations written frame by frame into a file, with a global palette reused for compatible frames, long frame durations, looping, and frames reduced to the rectangle that changed.
 //! Not supported: Transparency and interlaced output.
 //! Role: This file owns the public animated GIF writer.
 //
@@ -20,8 +20,8 @@ public struct AnimationOptions
 // later frames reuse it when their colours occur in that table, or carry their own palette. Only
 // the rectangle that changed since the previous frame is stored. A frame identical to the previous
 // one lengthens it instead of adding a frame. GIF counts time in
-// hundredths of a second; the writer carries the rounding from frame to frame, so the total
-// duration stays exact.
+// hundredths of a second; the writer carries the rounding from frame to frame and repeats a frame
+// when a still interval exceeds GIF's 655.35-second delay limit, so long pauses retain their time.
 //
 // [[Pixel.Gif.AnimationWriter.end]] writes what is still pending and finishes the file, so its failure
 // must be handled.
@@ -66,7 +66,8 @@ public impl AnimationWriter
     // Adds `image`, shown for `duration` microseconds.
     //
     // The image must have the size of the animation, in an 8-bit RGB or BGR format with or without
-    // alpha.
+    // alpha. Durations that overflow the animation's microsecond clock are rejected before the
+    // frame is accepted.
     mtd addFrame(image: Image, duration: u64) fail
     {
         Swag.assert(not .isEnded)
@@ -77,6 +78,13 @@ public impl AnimationWriter
            image.pixelFormat != .BGR8 and
            image.pixelFormat != .RGB8 do
             fail UnsupportedFormatError{"unsupported frame pixel format"}
+        if .writtenTime > Swag.U64.Max - 5_000 do
+            fail OverflowError{"GIF animation duration exceeds the supported range"}
+        let available = Swag.U64.Max - 5_000 - .writtenTime
+        if .pendingDuration > available do
+            fail OverflowError{"GIF animation duration exceeds the supported range"}
+        if duration > available - .pendingDuration do
+            fail OverflowError{"GIF animation duration exceeds the supported range"}
 
         if not .previous.isValid()
         {
@@ -180,15 +188,6 @@ private impl AnimationWriter
             useGlobal = true
         }
 
-        // Graphic control: keep the frame in place for the next one, which covers only what changed.
-        block.addNative(0x21'u8)
-        block.addNative(0xF9'u8)
-        block.addNative(0x04'u8)
-        block.addNative(0x04'u8)
-        Encoder.writeU16(&block, cast(u16, Math.min(delay, cast(u64, Swag.U16.Max))))
-        block.addNative(0'u8)
-        block.addNative(0'u8)
-
         // Image descriptor, with a local colour table only when the global one lacks a colour.
         block.addNative(0x2C'u8)
         Encoder.writeU16(&block, cast(u16, .pendingX))
@@ -205,7 +204,22 @@ private impl AnimationWriter
         Encoder.writeSubBlocks(&block, compressed.toSlice())
 
         block.makeLinear()
-        try .sink.write(unwrap block.toSlice())
+        let picture   = unwrap block.toSlice()
+        var remaining = delay
+        while remaining
+        {
+            var chunk = Math.min(remaining, cast(u64, Swag.U16.Max))
+            if remaining - chunk == 1 do
+                chunk -= 1
+
+            // Disposal mode 1 keeps the picture; another copy carries time beyond 655.35 seconds.
+            try .sink.write([0x21'u8, 0xF9, 0x04, 0x04])
+            try .sink.writeLittleEndian(cast(u16, chunk))
+            try .sink.write([0'u8, 0])
+            try .sink.write(picture)
+            remaining -= chunk
+        }
+
         .pending.release()
     }
 

@@ -214,6 +214,38 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(0), 0.0, 0.000001))
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(1), 0.04, 0.000001))
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(2), 0.08, 0.000001))
+
+    var packets = expect Mp4.FragmentedPacketReader.open(path)
+    Swag.require(packets.width() == 64 and packets.height() == 48)
+    Swag.require(packets.timescale() == 12_800 and packets.packetCount() == 3)
+    Swag.require(Memory.compare(packets.avcConfig().buffer, config.storage(), config.count) == 0)
+    var original = expect fragmentedPacketSource()
+    var bytes: Array'u8
+    for index in 3
+    {
+        let packet   = expect packets.readPacket(index, &bytes)
+        let expected = expect fragmentedPacket(&original)
+        Swag.require(packet.decodeTime == Decode[index] and packet.presentationTime == Present[index])
+        Swag.require(packet.duration == 512 and packet.isKeyFrame == (index == 0))
+        Swag.require(packet.bytes.count == expected.count)
+        Swag.require(Memory.compare(packet.bytes.buffer, expected.storage(), expected.count) == 0)
+    }
+
+    var rejected: Swag.Error
+    discard catch packets.readPacket(3, &bytes) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch packets.audioTrack(0) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch packets.readAudioPacket(0, 0, &bytes) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+}
+
+// The packet reader reports its fragmented-H.264 scope for a classic Motion JPEG MP4.
+#test
+{
+    var rejected: Swag.Error
+    discard catch Mp4.FragmentedPacketReader.open(videoFixturePath("ffmpeg-mjpeg.mp4")) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
 }
 
 // A fragment with an offset outside its media-data box or an incomplete tail is rejected.
@@ -690,6 +722,67 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 2)
     Swag.require((unwrap reader.audioTrack(0)).packetCount() == 3)
     Swag.require((unwrap reader.audioTrack(1)).packetCount() == 2)
+
+    var packets = expect Mp4.FragmentedPacketReader.open(path)
+    Swag.require(packets.packetCount() == 3 and packets.audioTrackCount() == 2)
+    let firstAudio  = expect packets.audioTrack(0)
+    let secondAudio = expect packets.audioTrack(1)
+    Swag.require(firstAudio.packetCount == 3 and secondAudio.packetCount == 2)
+    Swag.require(firstAudio.sampleRate == 44_100 and firstAudio.channelCount == 2)
+    let copiedTracks: [2] Mp4.FragmentedAudioConfig = [
+        {firstAudio.sampleRate,  firstAudio.channelCount,  firstAudio.decoderConfig},
+        {secondAudio.sampleRate, secondAudio.channelCount, secondAudio.decoderConfig}]
+    let copyPath = videoTempPath("fragmented-remux-two-aac", "mp4")
+    defer discard catch File.delete(copyPath)
+    var remux = expect Mp4.FragmentedWriter.createWithAudioTracks(copyPath,
+                                                                  packets.width(),
+                                                                  packets.height(),
+                                                                  packets.timescale(),
+                                                                  packets.avcConfig(),
+                                                                  Swag.makeSlice(&copiedTracks[0], 2),
+                                                                  Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3})
+    var payload: Array'u8
+    for index in 3
+    {
+        let picture = expect packets.readPacket(index, &payload)
+        expect remux.addPacket(picture)
+        for audioIndex in 2 where index < (audioIndex == 0 ? firstAudio.packetCount : secondAudio.packetCount)
+        {
+            let sound = expect packets.readAudioPacket(audioIndex, index, &payload)
+            expect remux.addAudioPacket(sound, cast(u32, audioIndex))
+        }
+    }
+
+    expect remux.end()
+
+    var copied = expect Mp4.FragmentedPacketReader.open(copyPath)
+    Swag.require(copied.packetCount() == 3 and copied.audioTrackCount() == 2)
+    var originalBytes: Array'u8
+    var copiedBytes:   Array'u8
+    for index in 3
+    {
+        let originalPacket = expect packets.readPacket(index, &originalBytes)
+        let copiedPacket   = expect copied.readPacket(index, &copiedBytes)
+        Swag.require(originalPacket.decodeTime == copiedPacket.decodeTime and
+                     originalPacket.presentationTime == copiedPacket.presentationTime and
+                     originalPacket.bytes.count == copiedPacket.bytes.count)
+        Swag.require(Memory.compare(originalPacket.bytes.buffer, copiedPacket.bytes.buffer, originalPacket.bytes.count) == 0)
+    }
+
+    for audioIndex in 2
+    {
+        let sourceTrack = expect packets.audioTrack(audioIndex)
+        let copiedTrack = expect copied.audioTrack(audioIndex)
+        Swag.require(sourceTrack.packetCount == copiedTrack.packetCount)
+        for index in sourceTrack.packetCount
+        {
+            let originalPacket = expect packets.readAudioPacket(audioIndex, index, &originalBytes)
+            let copiedPacket   = expect copied.readAudioPacket(audioIndex, index, &copiedBytes)
+            Swag.require(originalPacket.decodeTime == copiedPacket.decodeTime and
+                         originalPacket.bytes.count == copiedPacket.bytes.count)
+            Swag.require(Memory.compare(originalPacket.bytes.buffer, copiedPacket.bytes.buffer, originalPacket.bytes.count) == 0)
+        }
+    }
 }
 
 // The byte bound completes an AAC group before its next packet would exceed the limit.

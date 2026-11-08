@@ -230,11 +230,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.017 — Packets cannot be copied between files
 
-- Evidence: every path through `std/video` either decodes or encodes pictures. Trimming or cutting
-  an hours-long recording (app.capture.037) must not re-encode the parts it keeps unchanged.
-- Next: read demuxed packets (H.264 access units, sound packets, metadata samples) with their
-  timestamps and write them to the muxer of std.video.016 unchanged, cutting on key frames, with
-  timestamps rebased across removed ranges and parameter sets carried over.
+- Evidence: `Mp4.FragmentedPacketReader` now exposes demuxed H.264 and AAC-LC packets with their
+  source track timestamps and decoder configurations. A video and two-sound-track remux preserves
+  packet bytes and times without decoding. Trimming or cutting an hours-long recording
+  (app.capture.037) still needs a cut operation that joins the retained ranges.
+- Next: cut demuxed video and sound packets on key frames, rebasing timestamps across removed
+  ranges and preserving parameter sets; extend the packet path to timed metadata when available.
 - Done when: a recording cut into kept ranges on key frames produces a file whose packets are
   byte-identical to the source's, with continuous timestamps and sound in sync across each join.
 - Related: std.video.016, app.capture.037

@@ -47,8 +47,10 @@ Four codecs ship in the box:
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
   Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
-  AAC-LC sound tracks. [[Video.Mp4.FragmentedIndex]] reads an optional final key-frame index from
-  the file tail and locates a fragment without scanning media data. [[Video.Reader]] reads samples
+  AAC-LC sound tracks. [[Video.Mp4.FragmentedPacketReader]] exposes their original compressed
+  packets and track clocks for copying without decoding. [[Video.Mp4.FragmentedIndex]] reads an
+  optional final key-frame index from the file tail and locates a fragment without scanning media
+  data. [[Video.Reader]] reads samples
   by scanning fragment headers and
   recovers complete fragments after an
   interrupted final write. The classic reader expands compact sample tables into direct packet

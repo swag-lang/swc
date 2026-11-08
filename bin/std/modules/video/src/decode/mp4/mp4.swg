@@ -91,7 +91,7 @@ struct FrameEntry
 }
 
 // One complete sample described by a movie fragment.
-private struct FragmentSample
+internal struct FragmentSample
 {
     offset:           u64
     size:             u32
@@ -108,7 +108,7 @@ private struct FragmentTrackSamples
     samples: Array'FragmentSample
 }
 
-private struct AudioFragmentSamples
+internal struct AudioFragmentSamples
 {
     samples: Array'FragmentSample
 }
@@ -186,7 +186,7 @@ private struct CtsEntry
 }
 
 // What walking the movie metadata found.
-private struct Layout
+internal struct Layout
 {
     track:            Track
     audioTracks:      Array'Track
@@ -279,7 +279,7 @@ private func describeId(id: u32)->String
     return result
 }
 
-private impl Layout
+impl Layout
 {
     mtd const hasClassicAudioSamples()->bool
     {

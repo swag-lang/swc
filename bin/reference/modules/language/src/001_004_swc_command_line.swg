@@ -86,13 +86,14 @@ or extend.
 |---|---|
 | 'devmode' | Default: full safety/sanity with optimized code and lighter allocation tracking |
 | 'release' | Optimized code, static sanity on, runtime safety and tracking off |
+| 'release-safe' | Optimized code, static sanity and runtime safety on, allocation tracking off |
 
 Each configuration also asks for a backend optimization level, which
 '--optim-level' ('-O') overrides: '0' runs no backend optimization, '1' runs
 everything that costs no compilation time, and '2' also runs what does.
-'devmode' asks for '1' and 'release' for '2'.
+'devmode' asks for '1'; 'release' and 'release-safe' ask for '2'.
 
-Neither configuration emits debug information by default. Add '--debug' to a
+No configuration emits debug information by default. Add '--debug' to a
 'test', 'build', or 'run' command when a debugger needs symbols, types,
 and source line mappings. The option does not change optimization or guard policy.
 

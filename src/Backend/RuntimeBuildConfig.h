@@ -10,8 +10,8 @@ SWC_BEGIN_NAMESPACE();
 namespace Runtime
 {
     inline constexpr String DEFAULT_REGISTERED_BUILD_CFGS = {
-        .ptr    = "devmode|release",
-        .length = 15,
+        .ptr    = "devmode|release|release-safe",
+        .length = 28,
     };
 
     // Each field lists warning identifiers separated with '|', and accepts 'all' to name

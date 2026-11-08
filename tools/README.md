@@ -350,7 +350,7 @@ tools\coverage.bat -DevMode -Suite full
 | `full` | All standard-module and application tests, including goldens and stress, on the selected renderer | Complete functional/visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
-`-Configuration devmode|release` selects the program preset; goldens are recorded in devmode.
+`-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
 Each workspace reports elapsed wall time including compilation. Shared-machine admission rules
 still apply. Integration tests for native windows, application journeys, networks and drivers
 keep their explicit launchers; `full` is not the compiler or privileged integration campaign.

@@ -69,11 +69,12 @@ The registered presets are the contract:
 | --- | --- | --- |
 | `devmode` | backend optimization; safety and sanity guards; lighter allocator diagnostics; automatic inlining | the default path and optimized code that must retain guards |
 | `release` | backend optimization; no runtime safety guards; sanity guards; automatic inlining, SSE2 vectorization, aggressive FP policy | Release-only optimization, vectorization, FP, or guard-free behavior |
+| `release-safe` | release optimization and static sanity; runtime safety guards; no allocator diagnostics; no unsafe nonfinite FP assumptions | Optimized shipped programs that retain located runtime checks |
 
-The `test` command enables `.Assert` by default in both presets; explicit local `Swag.Safety`
+The `test` command enables `.Assert` by default in every preset; explicit local `Swag.Safety`
 overrides still apply. Other runtime guards retain their configured defaults.
 
-Neither preset emits CodeView or PDB information by default. `--debug` is an orthogonal output
+No preset emits CodeView or PDB information by default. `--debug` is an orthogonal output
 request, not a third configuration: use it only for the dedicated compiler unit tests that inspect
 debug symbols, types, source checksums, line mappings, breakpoint addresses, or PDB consumption.
 Do not add it to examples, standard modules, applications, the reference, workspace tests, or a

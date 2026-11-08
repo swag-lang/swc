@@ -1,7 +1,7 @@
 // Checks a programmer invariant and stops execution when it is false.
 //
 // Assertions are controlled by [[Swag.SafetyWhat.Assert]] in [[Swag.Build.Config.safetyGuards]]
-// and by [[Swag.Safety]] overrides. They are enabled by default in devmode and by the
+// and by [[Swag.Safety]] overrides. They are enabled by default in devmode and release-safe, and by the
 // 'test' command in every configuration, including release. Other release commands
 // disable them by default. Explicit [[Swag.Safety]] overrides still apply in tests.
 // Disabled assertions emit no code and evaluate none of their arguments; their arguments

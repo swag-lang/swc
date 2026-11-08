@@ -109,7 +109,7 @@ namespace Swag.Build
     {
         O0 = 0     // No backend optimization.
         O1 = 1     // Everything that does not cost compilation time; the 'devmode' preset.
-        O2 = 2     // Also what does; the 'release' preset.
+        O2 = 2     // Also what does; the 'release' and 'release-safe' presets.
     }
 
     // Iterations policy overrides; every zero field selects the compiler default.
@@ -381,7 +381,7 @@ namespace Swag.Build
             resAppCompany:     string?     // For an executable, the associated company name
             resAppCopyright:   string?     // For an executable, the associated copyright notice
             genDoc:            GenDoc      // Parameters for document generation
-            registeredConfigs: string = "devmode|release"     // Registered build configuration names used by --build-cfg and #cfg
+            registeredConfigs: string = "devmode|release|release-safe"     // Registered build configuration names used by --build-cfg and #cfg
         }
     }
 }

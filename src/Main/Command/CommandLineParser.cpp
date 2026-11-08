@@ -238,11 +238,11 @@ namespace
             // constant arguments would have folded away, which costs far more than the call.
             buildCfg.backend.inlineMode = Runtime::BuildCfgBackendInlineMode::Auto;
         }
-        else if (cfgName == "release")
+        else if (cfgName == "release" || cfgName == "release-safe")
         {
-            // Runtime safety guards cost cycles and stay off in release; the static
-            // sanity checks are free at runtime and stay on.
-            buildCfg.safetyGuards              = Runtime::SafetyWhat::None;
+            // The guarded release preset keeps release optimization and static
+            // sanity, but retains the runtime guards for shipped builds.
+            buildCfg.safetyGuards              = cfgName == "release-safe" ? Runtime::SafetyWhat::All : Runtime::SafetyWhat::None;
             buildCfg.sanityGuards              = Runtime::SafetyWhat::All;
             buildCfg.allocatorCaptureStack     = false;
             buildCfg.allocatorLeaks            = false;
@@ -258,6 +258,13 @@ namespace
             buildCfg.backend.math.noInf        = true;
             buildCfg.backend.math.noSignedZero = true;
             buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Auto;
+            if (cfgName == "release-safe")
+            {
+                // Guards can observe non-finite values even when they came from
+                // foreign code; do not let the optimizer assume those away.
+                buildCfg.backend.math.noNaN = false;
+                buildCfg.backend.math.noInf = false;
+            }
         }
         else
         {

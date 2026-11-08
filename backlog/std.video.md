@@ -212,13 +212,17 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   fragment by default), and flushes completed fragments. FFmpeg reads grouped video with two AAC
   tracks and a file stopped at a fragment boundary. `Video.Reader`
   scans samples in video and AAC-LC audio fragments and recovers completed frames and sound packets
-  when the final fragment is cut. The writer has one video track, up to four sound tracks, no
-  timed metadata tracks, and no final random-access index.
+  when the final fragment or final index is cut. The writer has one video track, up to four sound
+  tracks, and an optional 64-bit `mfra`/`tfra` key-frame index written with bounded memory through
+  temporary disk storage. `Mp4.FragmentedIndex` reads a completed file's final index directly
+  from its tail and locates key frames with binary search. `Mp4.FragmentedPacketCursor` walks
+  compressed video and AAC packets one fragment at a time with a bounded sample window, reads
+  payload only on request, and can start at an indexed fragment. The writer has no timed metadata tracks;
+  `Video.Reader` still scans fragments to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
-  Add a key-frame index
-  (`mfra`/`tfra`) so seeking does not scan a long file. Keep 64-bit offsets and a timescale that
-  does not accumulate rounding, with muxer memory independent of recording duration. Keep the
-  current single-stream writer as a facade.
+  Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets
+  and a timescale that does not accumulate rounding. Keep the current single-stream writer as a
+  facade.
 - Done when: a recording with video, two sound tracks and a metadata track plays in the module's
   decoder and in reference players; a file cut at any fragment boundary still plays to it; and a
   synthetic four-hour, multi-gigabyte stream seeks to any instant from its index while the muxer's
@@ -228,11 +232,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.017 — Packets cannot be copied between files
 
-- Evidence: every path through `std/video` either decodes or encodes pictures. Trimming or cutting
-  an hours-long recording (app.capture.037) must not re-encode the parts it keeps unchanged.
-- Next: read demuxed packets (H.264 access units, sound packets, metadata samples) with their
-  timestamps and write them to the muxer of std.video.016 unchanged, cutting on key frames, with
-  timestamps rebased across removed ranges and parameter sets carried over.
+- Evidence: `Mp4.FragmentedPacketReader` now exposes demuxed H.264 and AAC-LC packets with their
+  source track timestamps and decoder configurations. A video and two-sound-track remux preserves
+  packet bytes and times without decoding. `Mp4.copyVideoRanges` joins selected closed H.264 groups
+  on key frames. `Mp4.copyRanges` also joins AAC-LC tracks, with cumulative rounding to whole AAC
+  packets; a six-join test keeps the audio within half a packet of video time at every join.
+  Both replace the output only after it is complete. AAC cuts remain packet-granular, and the
+  writer has no timed metadata track.
+- Next: add timed metadata to the packet path when available, and support sample-exact AAC cuts
+  when the output can carry edit lists or an audio re-encode at the boundaries.
 - Done when: a recording cut into kept ranges on key frames produces a file whose packets are
   byte-identical to the source's, with continuous timestamps and sound in sync across each join.
 - Related: std.video.016, app.capture.037

@@ -98,7 +98,9 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     workers = option_value(options, ('-j', '--num-cores'), '3')
     extension = '.dll' if windows else '.so'
     library = workspace / '.output/runtime_context_dynamic_dll/shared-library' / cfg / 'x86_64' / ('runtime_context_dynamic_dll' + extension)
+    dynamic_dependency = workspace / '.output/runtime_context_dynamic_dep/shared-library' / cfg / 'x86_64' / ('runtime_context_dynamic_dep' + extension)
     build_name = 'workspace-build-dynamic-library'
+    package_name = 'workspace-package-dynamic-library-dependency'
     build_options = ['--build-cfg', cfg, '--num-cores', workers]
     if '--rebuild' in options:
         build_options.append('--rebuild')
@@ -107,6 +109,11 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     if 'runtime_context_dynamic_consumer' in selected:
         stages.append(Stage(build_name, [str(compiler), 'build', '--workspace', str(workspace),
                                          '--workspace-module', 'runtime_context_dynamic_dll', *build_options]))
+        # A NativeLibrary path identifies one deployable directory. Package its workspace
+        # dependency beside it so the platform loader can resolve the library's SONAME.
+        stages.append(Stage(package_name, [sys.executable, '-c',
+                                           'import shutil, sys; shutil.copy2(sys.argv[1], sys.argv[2])',
+                                           str(dynamic_dependency), str(library.parent)], [build_name]))
     script_dependency_build_name = 'workspace-build-lifecycle-script-dependency'
     if script:
         stages.append(Stage(script_dependency_build_name, [str(compiler), 'build', '--workspace', str(workspace),
@@ -125,7 +132,10 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
             command.append('--no-test-jit')
         if module == 'runtime_context_dynamic_consumer':
             command.append('--run-arg=--dynamic-runtime-library=' + str(library))
-            requires = [build_name]
+            requires = [package_name]
+            expected_output = ('SWAG_DYNAMIC_DEP_INIT\nSWAG_DYNAMIC_LIB_INIT\n'
+                               'SWAG_DYNAMIC_DEP_PREMAIN\nSWAG_DYNAMIC_LIB_PREMAIN\n'
+                               'SWAG_DYNAMIC_LIB_DROP\nSWAG_DYNAMIC_DEP_DROP')
         if module == 'lifecycle_native_consumer':
             expected_output = ('SWAG_DEP_INIT\nSWAG_NATIVE_INIT\nSWAG_DEP_PREMAIN\n'
                                'SWAG_NATIVE_PREMAIN\nSWAG_NATIVE_TEST\nSWAG_NATIVE_DROP\nSWAG_DEP_DROP')

@@ -1,3 +1,4 @@
+#import("runtime_context_dynamic_dep", link: "shared-library")
 #import("core", location: "swag@std")
 
 #run

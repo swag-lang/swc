@@ -618,20 +618,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   report and remove completed acceptance work from this entry.
 - Related: compiler.core.004, compiler.core.005, compiler.core.097.
 
-### compiler.core.103 — Avoid rebuilding production dependencies for test-only edits
-
-- Evidence: changing an assertion in GUI's guarded `src/tests/cases/golden/headless.render.swg`
-  makes `swc test --workspace bin/std --workspace-module gui` rebuild `gui.dll` before
-  rebuilding `gui.test.exe`, even though the changed file is disabled outside `Test`.
-  Repeated focused edits pay about twelve seconds for that production-module stage alone.
-- Next: separate the dependency artifact's effective source/configuration identity from
-  the test executable's identity. Account for `#global if`, imported compile-time inputs,
-  generated exports and command-dependent setup; a filename convention alone is not proof
-  that an edit is irrelevant to the production artifact.
-- Done when: a guarded assertion-only edit rebuilds and executes the selected native tests
-  while reusing their unchanged production dependencies, and edits affecting exported code
-  or build configuration still invalidate every required consumer.
-
 ## Deliberately out of scope
 
 - **An LLVM back end.** The native and Micro back ends are the supported architecture. Reconsider only if a concrete platform or optimization requirement cannot be met within them.
@@ -661,9 +647,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   A native executable that imports the shared-library lifecycle fixture now records dependency
   `#init/#premain` before its own hooks and its own `#drop` before the dependency's `#drop`. A
   native `#drop` panic exits with an error before later hooks can touch abandoned state.
-- Next: cover dynamic library load/unload with dependent modules and verify resource release on
-  ordinary failed hooks before restoring test data or unloading generated code. Document the
-  panic boundary alongside the normal reverse-order lifecycle contract.
+  A dynamically loaded library with a shared-library dependency previously ran the dependency's
+  `#premain` before its own `#init`. Dynamic acquisition now completes every `#init` before
+  the dependency and library `#premain` hooks; closing the last reference drops the library
+  before its dependency. The dynamic consumer checks the complete order and repeated loading.
+  The reference documents this order and the boundary after an uncaught native or JIT panic.
+- Next: verify resource release on ordinary failed hooks before restoring test data or unloading
+  generated code, including dynamically loaded dependencies.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

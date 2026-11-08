@@ -35,15 +35,16 @@ const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
 const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
 const Mpeg4AudioObjectType = 0x40'u8
 
-const SyncSampleId          = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
-const CompositionId         = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
-const AvcConfigId           = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
-const HevcConfigId          = fourCc('h'u32, 'v'u32, 'c'u32, 'C'u32)
-const FragmentId            = fourCc('m'u32, 'o'u32, 'o'u32, 'f'u32)
-const FragmentTrackId       = fourCc('t'u32, 'r'u32, 'a'u32, 'f'u32)
-const FragmentTrackHeaderId = fourCc('t'u32, 'f'u32, 'h'u32, 'd'u32)
-const FragmentDecodeTimeId  = fourCc('t'u32, 'f'u32, 'd'u32, 't'u32)
-const FragmentRunId         = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
+const SyncSampleId           = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
+const CompositionId          = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
+const AvcConfigId            = fourCc('a'u32, 'v'u32, 'c'u32, 'C'u32)
+const HevcConfigId           = fourCc('h'u32, 'v'u32, 'c'u32, 'C'u32)
+const FragmentId             = fourCc('m'u32, 'o'u32, 'o'u32, 'f'u32)
+const FragmentRandomAccessId = fourCc('m'u32, 'f'u32, 'r'u32, 'a'u32)
+const FragmentTrackId        = fourCc('t'u32, 'r'u32, 'a'u32, 'f'u32)
+const FragmentTrackHeaderId  = fourCc('t'u32, 'f'u32, 'h'u32, 'd'u32)
+const FragmentDecodeTimeId   = fourCc('t'u32, 'f'u32, 'd'u32, 't'u32)
+const FragmentRunId          = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
 
 const JpegCodecIds: [3] u32 = [
     fourCc('j'u32, 'p'u32, 'e'u32, 'g'u32),
@@ -90,7 +91,7 @@ struct FrameEntry
 }
 
 // One complete sample described by a movie fragment.
-private struct FragmentSample
+internal struct FragmentSample
 {
     offset:           u64
     size:             u32
@@ -101,13 +102,13 @@ private struct FragmentSample
 }
 
 // One track run parsed from a movie fragment.
-private struct FragmentTrackSamples
+internal struct FragmentTrackSamples
 {
     trackId: u32
     samples: Array'FragmentSample
 }
 
-private struct AudioFragmentSamples
+internal struct AudioFragmentSamples
 {
     samples: Array'FragmentSample
 }
@@ -185,7 +186,7 @@ private struct CtsEntry
 }
 
 // What walking the movie metadata found.
-private struct Layout
+internal struct Layout
 {
     track:            Track
     audioTracks:      Array'Track
@@ -278,7 +279,7 @@ private func describeId(id: u32)->String
     return result
 }
 
-private impl Layout
+impl Layout
 {
     mtd const hasClassicAudioSamples()->bool
     {
@@ -321,13 +322,14 @@ private impl Layout
             }
 
             // The writer patches `moof` when complete and declares `mdat` before its payload.
-            // A partial final box cannot invalidate fragments already indexed.
+            // Its optional final `mfra` may also be cut. A partial final box cannot invalidate
+            // fragments already indexed.
             if .fragments.count
             {
                 let declared = try source.readBigEndian'u32()
                 let kind     = try source.readBigEndian'u32()
                 try source.seek(start)
-                if (kind == FragmentId or kind == MediaDataId) and
+                if (kind == FragmentId or kind == MediaDataId or kind == FragmentRandomAccessId) and
                    ((kind == FragmentId and not declared) or
                     (declared >= BoxHeaderSize and declared > remaining))
                 {

@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4) fragmented writer.
-//! Supported: H.264 video with up to four AAC-LC audio tracks, bounded packet groups per fragment, and interruption-safe completed fragments.
-//! Not supported: Timed metadata, encryption, and a final random-access index.
+//! Supported: H.264 video with up to four AAC-LC audio tracks, bounded packet groups, an optional final video key-frame index, and interruption-safe completed fragments.
+//! Not supported: Timed metadata and encryption.
 //! Role: This file writes an initialization movie followed by bounded `moof`/`mdat` pairs.
 //
 #global namespace Mp4
@@ -8,17 +8,20 @@
 
 using Core, Core.Errors
 
-private const MovieExtendsId        = fourCc('m'u32, 'v'u32, 'e'u32, 'x'u32)
-private const TrackExtendsId        = fourCc('t'u32, 'r'u32, 'e'u32, 'x'u32)
-private const MovieFragmentId       = fourCc('m'u32, 'o'u32, 'o'u32, 'f'u32)
-private const MovieFragmentHeaderId = fourCc('m'u32, 'f'u32, 'h'u32, 'd'u32)
-private const TrackFragmentId       = fourCc('t'u32, 'r'u32, 'a'u32, 'f'u32)
-private const TrackFragmentHeaderId = fourCc('t'u32, 'f'u32, 'h'u32, 'd'u32)
-private const DecodeTimeId          = fourCc('t'u32, 'f'u32, 'd'u32, 't'u32)
-private const TrackRunId            = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
-private const AvcSampleEntryId      = fourCc('a'u32, 'v'u32, 'c'u32, '1'u32)
-private const Iso6BrandId           = fourCc('i'u32, 's'u32, 'o'u32, '6'u32)
-private const SoundMediaHeaderId    = fourCc('s'u32, 'm'u32, 'h'u32, 'd'u32)
+private const MovieExtendsId                    = fourCc('m'u32, 'v'u32, 'e'u32, 'x'u32)
+private const TrackExtendsId                    = fourCc('t'u32, 'r'u32, 'e'u32, 'x'u32)
+private const MovieFragmentId                   = fourCc('m'u32, 'o'u32, 'o'u32, 'f'u32)
+private const MovieFragmentHeaderId             = fourCc('m'u32, 'f'u32, 'h'u32, 'd'u32)
+private const TrackFragmentId                   = fourCc('t'u32, 'r'u32, 'a'u32, 'f'u32)
+private const TrackFragmentHeaderId             = fourCc('t'u32, 'f'u32, 'h'u32, 'd'u32)
+private const DecodeTimeId                      = fourCc('t'u32, 'f'u32, 'd'u32, 't'u32)
+private const TrackRunId                        = fourCc('t'u32, 'r'u32, 'u'u32, 'n'u32)
+private const AvcSampleEntryId                  = fourCc('a'u32, 'v'u32, 'c'u32, '1'u32)
+private const Iso6BrandId                       = fourCc('i'u32, 's'u32, 'o'u32, '6'u32)
+private const SoundMediaHeaderId                = fourCc('s'u32, 'm'u32, 'h'u32, 'd'u32)
+private const MovieFragmentRandomAccessId       = fourCc('m'u32, 'f'u32, 'r'u32, 'a'u32)
+private const TrackFragmentRandomAccessId       = fourCc('t'u32, 'f'u32, 'r'u32, 'a'u32)
+private const MovieFragmentRandomAccessOffsetId = fourCc('m'u32, 'f'u32, 'r'u32, 'o'u32)
 
 private struct BufferedPacket
 {
@@ -29,12 +32,20 @@ private struct BufferedPacket
     isKeyFrame:        bool
 }
 
+private struct RandomAccessEntry
+{
+    time:         u64
+    moofOffset:   u64
+    sampleNumber: u64
+}
+
 // Controls how encoded packets are grouped into MP4 fragments.
 struct FragmentedOptions
 {
-    public maxPacketsPerFragment:      u32 = 1     // Video packets per fragment, at most 1024.
-    public maxBufferedBytes:           u32 = 4 * 1024 * 1024     // Buffered payload limit per track.
-    public maxAudioPacketsPerFragment: u32 = 1     // AAC packets per fragment, at most 1024.
+    public maxPacketsPerFragment:      u32  = 1         // Video packets per fragment, at most 1024.
+    public maxBufferedBytes:           u32  = 4 * 1024 * 1024     // Buffered payload limit per track.
+    public maxAudioPacketsPerFragment: u32  = 1         // AAC packets per fragment, at most 1024.
+    public writeRandomAccessIndex:     bool = false     // Append a video key-frame index at end(); temporary disk space grows with its entries.
 }
 
 // Describes one AAC-LC sound track to add when the fragmented MP4 file is created.
@@ -69,16 +80,19 @@ private struct FragmentedAudioTrack
 // the `timescale` given at creation.
 //
 // [[Video.Mp4.FragmentedWriter.createWithAudioTracks]] adds up to four AAC-LC tracks. Audio packets
-// are submitted separately and may be interleaved with video calls. The file has no final index;
-// sequential playback and recovery of complete fragments work before
-// [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] scans their headers and ignores a partial
-// final fragment after at least one complete video fragment.
+// are submitted separately and may be interleaved with video calls. A final key-frame index can
+// be requested in the options; sequential playback and recovery of complete fragments work before
+// [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] scans fragment headers and ignores a partial
+// final fragment or index after at least one complete video fragment.
 #[Swag.NoCopy]
 struct FragmentedWriter
 {
     private
     {
         sink:           ByteSink
+        indexStream:    File.FileStream
+        indexPath:      String
+        indexCount:     u32
         config:         Array'u8
         audioTracks:    Array'FragmentedAudioTrack
         pendingPackets: Array'BufferedPacket
@@ -101,7 +115,9 @@ impl FragmentedWriter
     // `avcConfig` is a complete AVCDecoderConfigurationRecord with four-byte NAL lengths and is
     // copied. `timescale` is positive ticks per second. Width and height must fit a visual sample
     // entry. `options` limits a group to at most 1024 packets and bounds buffered payload bytes.
-    // A packet above the byte bound is written alone. Failure may leave a partial destination file.
+    // A packet above the byte bound is written alone. An indexed file uses temporary disk storage
+    // for key-frame entries until `end` and keeps writer memory bounded. Failure may leave a partial
+    // destination file.
     func create(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, options: FragmentedOptions = {})->FragmentedWriter fail
         => try createConfigured(fileName, width, height, timescale, avcConfig, [], options)
 
@@ -252,19 +268,73 @@ impl FragmentedWriter
         try .sink.flush()
     }
 
-    // Flushes and closes the stream; repeated calls do nothing.
+    // Flushes, optionally appends the random-access index, and closes the stream; repeated calls do nothing.
     mtd end() fail
     {
         if .isEnded do
             return
         try .flush()
+        if .options.writeRandomAccessIndex do
+            try .writeRandomAccessIndex()
         .isEnded = true
         try .sink.close()
+        .closeIndex()
+    }
+
+    // Removes the temporary key-frame entries if a writer is discarded before `end`.
+    mtd opDrop()
+    {
+        .closeIndex()
     }
 }
 
 private impl FragmentedWriter
 {
+    mtd closeIndex()
+    {
+        .indexStream.close()
+        if not .indexPath.isEmpty()
+        {
+            discard catch File.delete(.indexPath.toString())
+            .indexPath.clear()
+        }
+    }
+
+    #[Swag.Propagate]
+    mtd writeRandomAccessIndex() fail
+    {
+        if not .indexCount do
+            return
+        if .indexCount > (Swag.U32.Max - 48) / 20 do
+            fail OverflowError{"fragmented MP4 random-access index exceeds a compact box"}
+        .indexStream.seek(.Begin, 0)
+        let randomAccess = beginBox(&.sink, MovieFragmentRandomAccessId)
+        let trackAccess  = beginBox(&.sink, TrackFragmentRandomAccessId)
+        writeFullBox(&.sink, 1, 0)
+        writeU32(&.sink, 1)
+        writeU32(&.sink, 1)     // One-byte traf/trun numbers and a two-byte sample number.
+        writeU32(&.sink, .indexCount)
+        for .indexCount
+        {
+            var entry: RandomAccessEntry
+            let bytes = Swag.makeSlice(cast([*] u8, &entry), #sizeof(RandomAccessEntry))
+            if not .indexStream.readExact(bytes) do
+                fail InvalidFormatError{"fragmented MP4 random-access entries are truncated"}
+            writeU64(&.sink, entry.time)
+            writeU64(&.sink, entry.moofOffset)
+            writeU8(&.sink, 1)
+            writeU8(&.sink, 1)
+            writeU16(&.sink, cast(u16, entry.sampleNumber))
+        }
+
+        endBox(&.sink, trackAccess)
+        let offset = beginBox(&.sink, MovieFragmentRandomAccessOffsetId)
+        writeFullBox(&.sink, 0, 0)
+        writeU32(&.sink, cast(u32, .sink.position() - randomAccess + 4))
+        endBox(&.sink, offset)
+        endBox(&.sink, randomAccess)
+    }
+
     mtd flushVideo() fail
     {
         if not .pendingPackets.count do
@@ -310,7 +380,14 @@ private impl FragmentedWriter
 
         with var result: #returntype
         {
-            .sink      = try ByteSink.createFile(fileName)
+            .sink = try ByteSink.createFile(fileName)
+            if options.writeRandomAccessIndex
+            {
+                .indexPath = Path.combine(Env.getSpecialDirectory(.Temp),
+                                          Format.toString("swag-mp4-index-%.tmp", Guid128.random()))
+                .indexStream = try File.open(.indexPath.toString(), .CreateNew, .ReadWrite, .Zero)
+            }
+
             .width     = cast(u16, width)
             .height    = cast(u16, height)
             .timescale = timescale
@@ -758,5 +835,16 @@ private impl FragmentedWriter
         writeU32(&.sink, cast(u32, bytes.count + 8))
         writeU32(&.sink, MediaDataId)
         .sink.write(bytes)
+        if trackId == 1 and .options.writeRandomAccessIndex
+        {
+            for index in samples.count where samples[index].isKeyFrame
+            {
+                if .indexCount == Swag.U32.Max do
+                    fail OverflowError{"fragmented MP4 random-access index has too many entries"}
+                let entry = RandomAccessEntry{samples[index].decodeTime, fragment, index + 1}
+                .indexStream.writeAll(Swag.makeSlice(cast(const [*] u8, &entry), #sizeof(RandomAccessEntry)))
+                .indexCount += 1
+            }
+        }
     }
 }

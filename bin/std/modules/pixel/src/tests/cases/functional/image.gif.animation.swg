@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, Core.Errors
 
 // A screen-like frame: opaque colours stored with a zero alpha channel, as a desktop grab gives
 // them, and a square of another colour at `squareX`.
@@ -147,6 +147,61 @@ func sameColors(decoded: Image, source: Image)->bool
     Swag.require(bytes.count > 13)
     Swag.require(Memory.compare(bytes.storage(), "GIF89a".buffer, 6) == 0)
     Swag.require(bytes[bytes.count - 1] == 0x3B)
+}
+
+// A long unchanged screen interval is split without losing time at GIF's delay limit.
+#test
+{
+    var name = String.from("gif-long-delay-")
+    name += Guid64.random().toString()
+    name += ".gif"
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    let frame  = animationFrame(2, Color.fromArgb(255, 220, 40, 40))
+    var writer = expect Gif.AnimationWriter.create(path, 40, 30)
+    expect writer.addFrame(frame, 700_000_000)
+    expect writer.end()
+
+    let bytes  = expect File.readAllBytes(path)
+    var reader = expect ImageReader.decode("long.gif", bytes.toSlice())
+    Swag.require(reader.info.frames.count == 2)
+    Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 655.35) < 0.01)
+    Swag.require(Math.abs(reader.info.frames[1].durationSeconds - 44.65) < 0.01)
+    Swag.require(sameColors(expect reader.read(0), frame))
+    Swag.require(sameColors(expect reader.read(1), frame))
+
+    var boundary = expect Gif.AnimationWriter.create(path, 40, 30)
+    expect boundary.addFrame(frame, 655_360_000)
+    expect boundary.end()
+    let boundaryBytes  = expect File.readAllBytes(path)
+    var boundaryReader = expect ImageReader.decode("boundary.gif", boundaryBytes.toSlice())
+    Swag.require(boundaryReader.info.frames.count == 2)
+    Swag.require(Math.abs(boundaryReader.info.frames[0].durationSeconds - 655.34) < 0.01)
+    Swag.require(Math.abs(boundaryReader.info.frames[1].durationSeconds - 0.02) < 0.001)
+}
+
+// An impossible duration is rejected before it can corrupt the writer's clock.
+#test
+{
+    var name = String.from("gif-overflow-")
+    name += Guid64.random().toString()
+    name += ".gif"
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    let frame  = animationFrame(2, Color.fromArgb(255, 220, 40, 40))
+    var writer = expect Gif.AnimationWriter.create(path, 40, 30)
+    var rejected: Swag.Error
+    discard catch writer.addFrame(frame, Swag.U64.Max) as rejected
+    Swag.require((rejected.value() is OverflowError))
+    expect writer.addFrame(frame, 100_000)
+    expect writer.end()
+
+    let bytes  = expect File.readAllBytes(path)
+    var reader = expect ImageReader.decode("valid.gif", bytes.toSlice())
+    Swag.require(reader.info.frames.count == 1)
+    Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 0.1) < 0.001)
 }
 
 // A still GIF compresses repeated colours instead of storing one code per pixel.

@@ -57,19 +57,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
   shared libraries apart from the image timestamp.
 
-### compiler.core.084 — Stop native test recovery from reusing state abandoned by a panic
-
-- Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex
-  skips the deferred unlock. The native test runner catches the panic and starts the next GUI
-  test in the same process; that test waits on the abandoned mutex until the module timeout.
-  The original failing test is reported, but subsequent tests cannot make progress.
-- Next: define the recovery boundary for an uncaught test panic. Stop the affected process or
-  isolate tests whose execution can abandon shared state; do not assume a caught panic ran
-  deferred cleanup. Keep explicit `Swag.catchPanic` tests supported.
-- Done when: a regression with a panic under a deferred mutex unlock reports the original
-  failure promptly without hanging the next test, and the campaign can continue with other
-  modules.
-
 ### compiler.core.082 — Hot-path node containers that need more than a container swap
 
 - Evidence: several remaining node maps are iterated in ways that affect diagnostics or output:
@@ -667,10 +654,16 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   now also run module drop hooks and release dependencies whose initialization completed.
   Both expected-failure fixtures lacked their drop marker before the correction. A dedicated
   shared-library dependency now records that its `#drop` follows the script's `#drop`
-  after either failure, while the original error exit remains.
-- Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
-  release completes after failed init/premain stages and before restoring test data or unloading
-  generated code.
+  after either failure, while the original error exit remains. The JIT test runner now stops
+  shutdown hooks after an uncaught panic in `#init`, `#premain`, or `#drop`, because the panic
+  abandons `defer` cleanup and the remaining hooks can touch invalid state. Dedicated failing
+  JIT fixtures show the preceding compiler ran those hooks and the corrected compiler does not.
+  A native executable that imports the shared-library lifecycle fixture now records dependency
+  `#init/#premain` before its own hooks and its own `#drop` before the dependency's `#drop`. A
+  native `#drop` panic exits with an error before later hooks can touch abandoned state.
+- Next: cover dynamic library load/unload with dependent modules and verify resource release on
+  ordinary failed hooks before restoring test data or unloading generated code. Document the
+  panic boundary alongside the normal reverse-order lifecycle contract.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

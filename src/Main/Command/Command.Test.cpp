@@ -459,20 +459,33 @@ namespace
         }
     };
 
-    bool runJitFunction(TaskContext& ctx, const SymbolFunction& function)
+    bool runJitFunction(TaskContext& ctx, const SymbolFunction& function, bool* outAbandoned = nullptr)
     {
+        if (outAbandoned)
+            *outAbandoned = false;
         if (!function.jitEntryAddress())
             return false;
 
-        const JITExecManager::Request request = immediateJitRequest(function);
-        return CommandRun::afterPauses(ctx, [&] { return ctx.compiler().jitExecMgr().submit(ctx, request); }) == Result::Continue && !Stats::hasError();
+        JITCallErrorKind        callErrorKind = JITCallErrorKind::None;
+        JITExecManager::Request request       = immediateJitRequest(function);
+        if (outAbandoned)
+            request.outCallErrorKind = &callErrorKind;
+        const Result result = CommandRun::afterPauses(ctx, [&] {
+            const Result callResult = ctx.compiler().jitExecMgr().submit(ctx, request);
+            if (outAbandoned && callErrorKind == JITCallErrorKind::HardwareException)
+                *outAbandoned = true;
+            return callResult;
+        });
+        return result == Result::Continue && !Stats::hasError();
     }
 
     // Like runJitFunction, but success is judged against the error count taken before
     // the call: once one test has failed, the global error state must not make every
     // following test look failed too.
-    bool runJitTestFunction(TaskContext& ctx, const SymbolFunction& function)
+    bool runJitTestFunction(TaskContext& ctx, const SymbolFunction& function, bool* outAbandoned = nullptr)
     {
+        if (outAbandoned)
+            *outAbandoned = false;
         if (!function.jitEntryAddress())
             return false;
 
@@ -483,12 +496,17 @@ namespace
         // never comes through here.
         ctx.compiler().ensureProcessInfoRunArgs();
 
-        const JITExecManager::Request request = immediateJitRequest(function);
+        JITCallErrorKind        callErrorKind = JITCallErrorKind::None;
+        JITExecManager::Request request       = immediateJitRequest(function);
+        if (outAbandoned)
+            request.outCallErrorKind = &callErrorKind;
 
         const size_t errorsBefore = Stats::getNumErrors();
         while (true)
         {
             const Result result = ctx.compiler().jitExecMgr().submit(ctx, request);
+            if (outAbandoned && callErrorKind == JITCallErrorKind::HardwareException)
+                *outAbandoned = true;
             if (result == Result::Continue)
                 break;
 
@@ -510,15 +528,22 @@ namespace
 
         ~JitTestDropGuard() { run(); }
 
+        void cancel() { functions = {}; }
+
         bool run()
         {
             const auto pending   = std::exchange(functions, {});
             bool       succeeded = true;
-            // Keep the same intra-module order as native and script execution. An
-            // earlier test or hook failure must not prevent another hook's cleanup.
+            // Keep the same intra-module order as native and script execution. A failed check
+            // can leave cleanup running; a panic abandons the frame, so later hooks are unsafe.
             for (const SymbolFunction* function : pending)
-                if (!runJitTestFunction(*ctx, *function))
+            {
+                bool abandoned = false;
+                if (!runJitTestFunction(*ctx, *function, &abandoned))
                     succeeded = false;
+                if (abandoned)
+                    break;
+            }
             return succeeded;
         }
     };
@@ -611,30 +636,39 @@ namespace
         // Declaration order also guarantees this after an init/premain/test failure.
         JitTestDropGuard dropGuard{.ctx = &ctx, .functions = dropFunctions};
 
+        bool abandoned = false;
         for (const SymbolFunction* function : initFunctions)
         {
-            if (!runJitFunction(ctx, *function))
+            if (!runJitFunction(ctx, *function, &abandoned))
+            {
+                if (abandoned)
+                    dropGuard.cancel();
                 return false;
+            }
         }
 
         for (const SymbolFunction* function : preMainFunctions)
         {
-            if (!runJitFunction(ctx, *function))
+            if (!runJitFunction(ctx, *function, &abandoned))
+            {
+                if (abandoned)
+                    dropGuard.cancel();
                 return false;
+            }
         }
 
-        // Run every test even when one fails: a failing #test has already reported its
-        // diagnostic through the JIT exception handler, so keep executing the remaining
-        // tests and report a pass/fail tally instead of stopping at the first failure.
+        // A failed check can leave the stack intact; a panic cannot. Once a test abandons a
+        // frame, later tests and module drop hooks may wait on locks that its defers kept held.
         uint32_t executedTestCount = 0;
         uint32_t failedTestCount   = 0;
+        abandoned = false;
         for (const SymbolFunction* function : testFunctions)
         {
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
             if (stage)
                 stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
 
-            const bool testPassed = runJitTestFunction(ctx, *function);
+            const bool testPassed = runJitTestFunction(ctx, *function, &abandoned);
             if (!testPassed)
             {
                 failedTestCount++;
@@ -649,6 +683,8 @@ namespace
             executedTestCount++;
             if (stage)
                 stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
+            if (abandoned)
+                break;
         }
 
         if (stage)
@@ -658,10 +694,15 @@ namespace
             stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
         }
 
-        const bool dropped = dropGuard.run();
+        if (abandoned)
+            dropGuard.cancel();
+        const bool dropped = !abandoned && dropGuard.run();
 
         Stats::get().numTests.fetch_add(executedTestCount, std::memory_order_relaxed);
         Stats::get().numTestsFailed.fetch_add(failedTestCount, std::memory_order_relaxed);
+
+        if (abandoned)
+            return false;
 
         if (executedTestCount != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, executedTestCount);

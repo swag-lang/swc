@@ -189,8 +189,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 ### std.video.015 — No H.264 encoding
 
 - Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
-  contract and a video-only fragmented MP4 writer now consume H.264 access units, but nothing
-  in the module produces them. Screen recording in Swag Capture (app.capture.011) needs a modern
+  contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
+  converts Annex B encoder output and extracts `avcC`, but nothing in the module encodes frames.
+  Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: add an H.264 encoder that produces `EncodedPacket` access units and AVC parameter sets.
   Implement it first over the Media Foundation
@@ -207,13 +208,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: `Video.Writer` still drives one `IEncoder` that owns both codec and container, and
   its MP4 path writes Motion JPEG with the sample table at the end. A separate
   `Mp4.FragmentedWriter` now accepts length-prefixed H.264 packets with decode and presentation
-  times, groups packets into bounded `moof`/`mdat` pairs (one packet per fragment by default), and
-  flushes completed fragments. FFmpeg reads a file stopped at a fragment boundary. `Video.Reader`
+  times, groups video and AAC packets per track into bounded `moof`/`mdat` pairs (one packet per
+  fragment by default), and flushes completed fragments. FFmpeg reads grouped video with two AAC
+  tracks and a file stopped at a fragment boundary. `Video.Reader`
   scans samples in video and AAC-LC audio fragments and recovers completed frames and sound packets
-  when the final fragment is cut. The writer has one video track, optionally one sound track, no
+  when the final fragment is cut. The writer has one video track, up to four sound tracks, no
   timed metadata tracks, and no final random-access index.
-- Next: add multiple `mp4a` sound tracks and timed metadata tracks with interleaving, and extend
-  `Video.Reader` to those tracks. Add a key-frame index
+- Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
+  Add a key-frame index
   (`mfra`/`tfra`) so seeking does not scan a long file. Keep 64-bit offsets and a timescale that
   does not accumulate rounding, with muxer memory independent of recording duration. Keep the
   current single-stream writer as a facade.

@@ -380,6 +380,10 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require((rejected.value() is BadParameterError))
     discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 0}) as rejected
     Swag.require((rejected.value() is BadParameterError))
+    discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 100, 0}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    discard catch Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 100, 1_025}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
 }
 
 // Video and AAC packets interleave in separate fragments and both tracks remain readable.
@@ -521,4 +525,203 @@ func fragmentedPacketSource()->ByteSource fail
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.packetCount() == 3 and sound.sampleFrameCount() == 3 * 1024 - 1_764)
     Swag.require(Math.isEqualEpsilon(sound.timelineStartSeconds(), 0.0, 0.000001))
+}
+
+// Two AAC tracks keep separate packet indices and presentation origins.
+#test
+{
+    let path = videoTempPath("fragmented-two-aac", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    let Tracks: [2] Mp4.FragmentedAudioConfig = [
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)},
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)}]
+    var tooMany: Array'Mp4.FragmentedAudioConfig
+    for 5 do
+        tooMany.add(Tracks[0])
+    var rejected: Swag.Error
+    discard catch Mp4.FragmentedWriter.createWithAudioTracks(path, 64, 48, 12_800, config.toSlice(), tooMany.toSlice()) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    var writer = expect Mp4.FragmentedWriter.createWithAudioTracks(path, 64, 48, 12_800, config.toSlice(), Swag.makeSlice(&Tracks[0], 2))
+    var video  = expect fragmentedPacketSource()
+    var audio  = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let picture = expect fragmentedPacket(&video)
+        expect writer.addPacket(EncodedPacket{picture.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true},
+                                     0)
+        if index < 2 do
+            expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index + 1) * 1024,
+                                                       cast(u64, index + 1) * 1024, 1024, true},
+                                         1)
+    }
+
+    const Empty: [1] u8 = [0]
+    discard catch writer.addAudioPacket(EncodedPacket{Swag.makeSlice(&Empty[0], 1), 0, 0, 1024, true}, 2) as rejected
+    Swag.require((rejected.value() is BadParameterError))
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 8)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 2)
+    let first  = unwrap reader.audioTrack(0)
+    let second = unwrap reader.audioTrack(1)
+    Swag.require(first.packetCount() == 3 and second.packetCount() == 2)
+    Swag.require(first.sampleFrameCount() == 3 * 1024 and second.sampleFrameCount() == 2 * 1024)
+    Swag.require(Math.isEqualEpsilon(first.timelineStartSeconds(), 0.0, 0.000001))
+    Swag.require(Math.isEqualEpsilon(second.timelineStartSeconds(), 1024.0 / 44_100.0, 0.000001))
+    Swag.require((expect first.packet(0)).sourceOffset != (expect second.packet(0)).sourceOffset)
+}
+
+// Interleaved submissions form bounded video and AAC groups without losing either timeline.
+#test
+{
+    let path = videoTempPath("fragmented-grouped-aac", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)},
+                                                             Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3})
+    var video = expect fragmentedPacketSource()
+    var audio = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let picture = expect fragmentedPacket(&video)
+        expect writer.addPacket(EncodedPacket{picture.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true})
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 2)
+    Swag.require(fragmentedTagCount(file.toSlice(), "mdat") == 2)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.packetCount() == 3 and sound.sampleFrameCount() == 3 * 1024)
+}
+
+// Explicit flush completes partial groups for both tracks; a later group remains readable.
+#test
+{
+    let path = videoTempPath("fragmented-grouped-aac-flush", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)},
+                                                             Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3})
+    var video = expect fragmentedPacketSource()
+    var audio = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let picture = expect fragmentedPacket(&video)
+        expect writer.addPacket(EncodedPacket{picture.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true})
+        if index == 0 do
+            expect writer.flush()
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 4)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and (unwrap reader.audioTrack(0)).packetCount() == 3)
+}
+
+// Each AAC track forms its own group, including a partial final group.
+#test
+{
+    let path = videoTempPath("fragmented-grouped-two-aac", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    let tracks: [2] Mp4.FragmentedAudioConfig = [
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)},
+        {44_100, 2, Swag.makeSlice(&AudioConfig[0], 2)}]
+    var writer = expect Mp4.FragmentedWriter.createWithAudioTracks(path, 64, 48, 12_800, config.toSlice(), Swag.makeSlice(&tracks[0], 2), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 3})
+    var video  = expect fragmentedPacketSource()
+    var audio  = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let picture = expect fragmentedPacket(&video)
+        expect writer.addPacket(EncodedPacket{picture.toSlice(), cast(u64, index) * 512,
+                                              cast(u64, index) * 512, 512, index == 0})
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true},
+                                     0)
+        if index < 2 do
+            expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index + 1) * 1024,
+                                                       cast(u64, index + 1) * 1024, 1024, true},
+                                         1)
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 3)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 2)
+    Swag.require((unwrap reader.audioTrack(0)).packetCount() == 3)
+    Swag.require((unwrap reader.audioTrack(1)).packetCount() == 2)
+}
+
+// The byte bound completes an AAC group before its next packet would exceed the limit.
+#test
+{
+    let path = videoTempPath("fragmented-grouped-aac-bytes", "mp4")
+    defer discard catch File.delete(path)
+    let config = expect fragmentedConfig()
+    const AudioConfig: [2] u8 = [0x12, 0x10]
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             12_800,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)},
+                                                             Mp4.FragmentedOptions{3, 360, 3})
+    var video   = expect fragmentedPacketSource()
+    let picture = expect fragmentedPacket(&video)
+    expect writer.addPacket(EncodedPacket{picture.toSlice(), 0, 0, 512, true})
+    var audio = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
+    for index in 3
+    {
+        let sound = expect fragmentedPacket(&audio)
+        expect writer.addAudioPacket(EncodedPacket{sound.toSlice(), cast(u64, index) * 1024,
+                                                   cast(u64, index) * 1024, 1024, true})
+    }
+
+    expect writer.end()
+
+    let file = expect File.readAllBytes(path)
+    Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 3)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 1 and (unwrap reader.audioTrack(0)).packetCount() == 3)
 }

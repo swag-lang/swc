@@ -3,6 +3,7 @@
 Usage: tool.py <tests|unittests|std|apps|examples|reference|goldens> [dm] [action|suite] [module] [swc options]
 Use `tool.py goldens accept` to promote reviewed pending snapshots without a compiler.
 Set SWC_COMPILER or SWC_DEVMODE_COMPILER to select an externally built compiler.
+Use --keep-going to continue independent test stages after a failure.
 """
 
 from dataclasses import dataclass, field
@@ -24,6 +25,7 @@ class Stage:
     command: list[str]
     requires: list[str] = field(default_factory=list)
     expected_output: str = ''
+    forbidden_output: str = ''
     expected_returncode: int = 0
 
 
@@ -112,6 +114,7 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
     for module in selected:
         command = [str(compiler), 'test', '--workspace', str(workspace), '--workspace-module', module]
         requires = []
+        expected_output = ''
         if module == 'sandbox_consumer':
             command += ['--rebuild', '--no-test-native']
         elif module == 'runtime_context_dynamic_consumer' and execution == 'jit':
@@ -123,8 +126,43 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         if module == 'runtime_context_dynamic_consumer':
             command.append('--run-arg=--dynamic-runtime-library=' + str(library))
             requires = [build_name]
-        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires))
+        if module == 'lifecycle_native_consumer':
+            expected_output = ('SWAG_DEP_INIT\nSWAG_NATIVE_INIT\nSWAG_DEP_PREMAIN\n'
+                               'SWAG_NATIVE_PREMAIN\nSWAG_NATIVE_TEST\nSWAG_NATIVE_DROP\nSWAG_DEP_DROP')
+        stages.append(Stage('workspace-' + module, [*command, '--num-cores', '3', *options], requires,
+                            expected_output=expected_output))
     if script:
+        failed_drop = workspace / 'native_failed_drop'
+        stages.append(Stage('workspace-native-failed-drop', [str(compiler), 'test',
+                            '--directory', str(failed_drop / 'src'), '--module-file', str(failed_drop / 'module.swg'),
+                            '--module-namespace', 'NativeFailedDrop', '--artifact-kind', 'executable',
+                            '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg,
+                            '--num-cores', runtime_workers(options)],
+                            expected_output='SWAG_NATIVE_DROP_PANIC', forbidden_output='SWAG_NATIVE_SECOND_DROP',
+                            expected_returncode=5))
+        failed_test = workspace / 'native_failed_test'
+        stages.append(Stage('workspace-native-abandoned-test', [str(compiler), 'test',
+                            '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),
+                            '--module-namespace', 'NativeAbandonedTest', '--artifact-kind', 'executable',
+                            '--no-test-jit', '--run-timeout', '5', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
+                            expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
+                            expected_returncode=5))
+        stages.append(Stage('workspace-jit-abandoned-test', [str(compiler), 'test',
+                            '--directory', str(failed_test / 'src'), '--module-file', str(failed_test / 'module.swg'),
+                            '--module-namespace', 'JitAbandonedTest', '--artifact-kind', 'export',
+                            '--no-test-native', '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
+                            expected_output='SWAG_TEST_PANIC_STARTED', forbidden_output='SWAG_TEST_AFTER_PANIC',
+                            expected_returncode=5))
+        for name, namespace, marker, forbidden in (
+                ('jit_failed_init', 'JitFailedInit', 'SWAG_JIT_INIT_PANIC', 'SWAG_JIT_DROP_AFTER_INIT'),
+                ('jit_failed_premain', 'JitFailedPreMain', 'SWAG_JIT_PREMAIN_PANIC', 'SWAG_JIT_DROP_AFTER_PREMAIN'),
+                ('jit_failed_drop', 'JitFailedDrop', 'SWAG_JIT_DROP_PANIC', 'SWAG_JIT_SECOND_DROP')):
+            fixture = workspace / name
+            stages.append(Stage('workspace-' + name.replace('_', '-'), [str(compiler), 'test',
+                                '--directory', str(fixture / 'src'), '--module-file', str(fixture / 'module.swg'),
+                                '--module-namespace', namespace, '--artifact-kind', 'export', '--no-test-native',
+                                '--build-cfg', cfg, '--num-cores', runtime_workers(options)],
+                                expected_output=marker, forbidden_output=forbidden, expected_returncode=5))
         stages.append(Stage('workspace-import-png-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'import_png.swgs')],
                             expected_output='SWAG_IMPORTED_PNG_RAN'))
@@ -209,11 +247,20 @@ def package_vault(bin_root, module, options):
         shutil.copy2(source, output / source.name)
 
 
-def execute(stages, environment):
+def execute(stages, environment, *, keep_going=False):
+    passed = set()
+    first_failure = 0
     for stage in stages:
+        if any(name not in passed for name in stage.requires):
+            print(f'blocked {stage.name}: prerequisite did not pass', file=sys.stderr)
+            first_failure = first_failure or 1
+            if not keep_going:
+                return first_failure
+            continue
         result = subprocess.run(stage.command, env=environment, check=False,
-                                stdout=subprocess.PIPE if stage.expected_output else None)
-        if stage.expected_output:
+                                stdout=subprocess.PIPE if stage.expected_output or stage.forbidden_output else None)
+        stage_failure = 0
+        if stage.expected_output or stage.forbidden_output:
             output = result.stdout.decode('utf-8', errors='replace')
             if hasattr(sys.stdout, 'buffer'):
                 sys.stdout.buffer.write(result.stdout)
@@ -222,10 +269,19 @@ def execute(stages, environment):
                 print(output, end='', flush=True)
             if result.returncode == stage.expected_returncode and stage.expected_output not in output:
                 print(f'expected output is missing: {stage.expected_output}', file=sys.stderr)
-                return 1
+                stage_failure = 1
+            if stage.forbidden_output and stage.forbidden_output in output:
+                print(f'forbidden output was present: {stage.forbidden_output}', file=sys.stderr)
+                stage_failure = 1
         if result.returncode != stage.expected_returncode:
-            return result.returncode if result.returncode > 0 else 128 - result.returncode
-    return 0
+            stage_failure = result.returncode if result.returncode > 0 else 128 - result.returncode
+        if stage_failure:
+            first_failure = first_failure or stage_failure
+            if not keep_going:
+                return first_failure
+        else:
+            passed.add(stage.name)
+    return first_failure
 
 
 def accept_goldens(bin_root):
@@ -258,6 +314,8 @@ def main(arguments=None):
         print(__doc__)
         print('Compiler suites: ' + ', '.join(COMPILER_SUITES))
         return 0
+    keep_going = '--keep-going' in arguments
+    arguments = [argument for argument in arguments if argument != '--keep-going']
     root = Path(__file__).resolve().parent.parent
     bin_root = root / 'bin'
     if tool == 'goldens':
@@ -289,7 +347,7 @@ def main(arguments=None):
         stages = [module_stage(compiler, bin_root, tool, action, module, arguments)]
     if action == 'test':
         environment.setdefault('SWAG_RUNTIME_THREADS', runtime_workers(arguments))
-    result = execute(stages, environment)
+    result = execute(stages, environment, keep_going=keep_going)
     if result == 0 and windows and tool == 'apps' and action == 'build':
         package_vault(bin_root, module, arguments)
     return result

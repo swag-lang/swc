@@ -168,6 +168,8 @@ def run_stage(stage, scratch, environment, timeout, admission):
         state = 'failed' if state == 'passed' else state
     elif stage.expected_output and stage.expected_output not in content:
         code, state = 1, 'missing-output'
+    elif stage.forbidden_output and stage.forbidden_output in content:
+        code, state = 1, 'forbidden-output'
     result = dict(name=stage.name, status=state, returncode=code,
                   seconds=round(time.monotonic() - start, 2), log=str(log), command=stage.command)
     print(f'{state.upper()} {stage.name} ({result["seconds"]}s)', flush=True)

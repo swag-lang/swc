@@ -41,6 +41,8 @@ Result JITExecManager::executeItem(Item& item)
     SWC_ASSERT(item.ownerCtx != nullptr);
     SWC_ASSERT(item.request.function != nullptr);
     SWC_ASSERT(item.request.function->jitEntryAddress() != nullptr);
+    if (item.request.outCallErrorKind)
+        *item.request.outCallErrorKind = JITCallErrorKind::None;
 
     TaskContext&          ctx = item.executionCtx;
     const SymbolFunction* fn  = item.request.function;
@@ -69,6 +71,8 @@ Result JITExecManager::executeItem(Item& item)
     {
         auto callErrorKind = JITCallErrorKind::None;
         callResult         = JIT::call(ctx, fn->jitEntryAddress(), item.request.hasArg0 ? &item.request.arg0 : nullptr, &callErrorKind, item.request.runtimeSetupMode, fn->callConvKind());
+        if (item.request.outCallErrorKind)
+            *item.request.outCallErrorKind = callErrorKind;
     }
 
     if (callResult == Result::Pause)
@@ -88,6 +92,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     SWC_ASSERT(request.function != nullptr);
     SWC_ASSERT(request.function->jitEntryAddress() != nullptr);
     SWC_ASSERT(!(request.hasArg0 && (!request.jitArgs.empty() || request.hasJitReturn)));
+    SWC_ASSERT(!request.outCallErrorKind || (request.runImmediate && request.jitArgs.empty() && !request.hasJitReturn));
 
     if (request.runImmediate || strategy_ == Strategy::Immediate)
     {

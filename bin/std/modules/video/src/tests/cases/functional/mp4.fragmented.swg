@@ -63,6 +63,11 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(fragmentedTagCount(raw, "mvex") == 1)
     Swag.require(fragmentedTagCount(raw, "avcC") == 1)
     Swag.require(fragmentedTagCount(raw, "moof") == 0)
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.width == 64 and summary.height == 48)
+    Swag.require(summary.video.timescale == 12_800 and summary.video.packetCount == 0)
+    Swag.require(summary.audioTracks.count == 0 and summary.completeMediaByteCount == 0)
+    Swag.require(not summary.hasIncompleteTail)
     var rejected: Swag.Error
     discard catch Mp4.rebuildFragmentedIndex(path) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
@@ -164,6 +169,10 @@ func fragmentedPacketSource()->ByteSource fail
         completePackets += 1
     Swag.require(completePackets == 2)
     Swag.require(cursor.completeMediaByteCount() == lastFragment)
+    Swag.require(cursor.endedWithIncompleteTail())
+    let stoppedSummary = expect Mp4.summarizeFragmentedRecording(stoppedPath)
+    Swag.require(stoppedSummary.video.packetCount == 2 and stoppedSummary.video.endDecodeTime == 1024)
+    Swag.require(stoppedSummary.completeMediaByteCount == lastFragment and stoppedSummary.hasIncompleteTail)
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.
@@ -1023,6 +1032,14 @@ func fragmentedPacketSource()->ByteSource fail
 
     let file = expect File.readAllBytes(path)
     Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 3)
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.packetCount == 3 and summary.video.firstDecodeTime == 0)
+    Swag.require(summary.video.endDecodeTime == 1536 and summary.video.timescale == 12_800)
+    Swag.require(summary.audioTracks.count == 2 and summary.audioTracks[0].timescale == 44_100)
+    Swag.require(summary.audioTracks[0].packetCount == 3 and summary.audioTracks[0].endDecodeTime == 3072)
+    Swag.require(summary.audioTracks[1].packetCount == 2 and summary.audioTracks[1].firstDecodeTime == 1024)
+    Swag.require(summary.audioTracks[1].endDecodeTime == 3072)
+    Swag.require(summary.completeMediaByteCount == file.count and not summary.hasIncompleteTail)
     let recoveredPath = videoTempPath("fragmented-two-aac-recovered", "mp4")
     defer discard catch File.delete(recoveredPath)
     discard expect File.writeAllBytes(recoveredPath, file.toSlice())
@@ -1251,6 +1268,10 @@ func fragmentedPacketSource()->ByteSource fail
     }
 
     Swag.require(moofIndex == 2 and tfraOffset < raw.count and mfraOffset < raw.count)
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.packetCount == 3 and summary.video.firstDecodeTime == 512)
+    Swag.require(summary.video.endDecodeTime == 2048 and summary.completeMediaByteCount == mfraOffset)
+    Swag.require(not summary.hasIncompleteTail)
     var source = ByteSource.openMemory(raw)
     expect source.seek(tfraOffset)
     Swag.require(expect source.readBigEndian'u32() == 64)

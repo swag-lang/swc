@@ -1251,6 +1251,77 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_RebuildModulePreservesCurrentDependencies)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
+{
+    ApiPublicationTestDirectory directory("GuardedTestCache");
+    const fs::path              modules = directory.path() / "modules";
+    const fs::path              testFile = modules / "consumer" / "src" / "tests" / "test_only.swg";
+
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", R"(#import("core", location: "swag@std")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Provider"
+    cfg.backendKind = .SharedLibrary
+}
+)"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#global public\nfunc answer()->s32 => 42\n"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", R"(#import("provider", link: "shared-library")
+#import("core", location: "swag@std")
+#run
+{
+    let cfg = unwrap Swag.compiler().getBuildCfg()
+    cfg.moduleNamespace = "Consumer"
+    cfg.backendKind = .Executable
+}
+)"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "main.swg", "#test { Swag.require(Provider.answer() == 42) }\n#main { Swag.require(Provider.answer() == 42) }\n"));
+
+    auto test = [&](std::string& output) -> Result {
+        const std::vector<Utf8> arguments = {"test", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--no-test-jit", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx)), "--no-log-color"};
+        Os::ProcessRunOptions   options;
+        options.capturedOutput = &output;
+        options.forwardOutput  = false;
+        uint32_t exitCode      = UINT32_MAX;
+        if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) == Os::ProcessRunResult::Ok && exitCode == 0)
+            return Result::Continue;
+        std::println(stderr, "guarded workspace test failed:\n{}", output);
+        return Result::Error;
+    };
+
+    std::string output;
+    SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if #command == Swag.CompilerCommand.Test\n#test { Swag.print(\"CACHE_TEST_ONE\\n\") }\n"));
+    SWC_RESULT(test(output));
+
+    SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if #command == Swag.CompilerCommand.Test\n#test { Swag.print(\"CACHE_TEST_TWO\\n\") }\n"));
+    output.clear();
+    SWC_RESULT(test(output));
+    if (output.find("provider • up-to-date") == std::string::npos || output.find("consumer • up-to-date") == std::string::npos || output.find("CACHE_TEST_TWO") == std::string::npos || output.find("CACHE_TEST_ONE") != std::string::npos || output.find("forged") == std::string::npos)
+    {
+        std::println(stderr, "guarded test edit rebuilt production or missed the edited native test:\n{}", output);
+        return Result::Error;
+    }
+
+    SWC_RESULT(CompilerTestFile::writeText(testFile, "#global if true\n#test { Swag.print(\"CACHE_TEST_TWO\\n\") }\n"));
+    output.clear();
+    SWC_RESULT(test(output));
+    if (output.find("consumer • up-to-date") != std::string::npos)
+    {
+        std::println(stderr, "changing the file guard failed to invalidate the production module:\n{}", output);
+        return Result::Error;
+    }
+
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "answer.swg", "#global public\nfunc answer()->s32 => 40 + 2\n"));
+    output.clear();
+    SWC_RESULT(test(output));
+    if (output.find("provider • up-to-date") != std::string::npos || output.find("consumer • up-to-date") != std::string::npos)
+    {
+        std::println(stderr, "production source edit failed to invalidate a dependent module:\n{}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 #ifdef _WIN32
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_LocalFunctionDoesNotOverrideNativeImport)
 {

@@ -1473,6 +1473,41 @@ namespace
             outInputs.push_back(filePath);
     }
 
+    bool isDisabledInProductionBuild(const fs::path& path)
+    {
+        // This is a conservative cache proof, not a file-name rule. Recheck the guard on
+        // every probe so changing or removing it immediately invalidates the artifact.
+        bool underTests = false;
+        for (const fs::path& component : path.parent_path())
+            underTests |= component == "tests";
+        if (!underTests)
+            return false;
+
+        std::ifstream input(path, std::ios::binary);
+        std::string   line;
+        if (!std::getline(input, line))
+            return false;
+        if (line.ends_with('\r'))
+            line.pop_back();
+        if (line != "#global if #command == Swag.CompilerCommand.Test")
+            return false;
+
+        // A later #global condition could re-enable declarations in this file. Accept only
+        // visibility directives after the guard; unknown forms remain ordinary inputs.
+        while (std::getline(input, line))
+        {
+            const size_t directive = line.find("#global");
+            if (directive == std::string::npos)
+                continue;
+            if (line.ends_with('\r'))
+                line.pop_back();
+            const std::string_view tail(line.data() + directive, line.size() - directive);
+            if (tail != "#global private" && tail != "#global public")
+                return false;
+        }
+        return input.eof();
+    }
+
     void collectWorkspaceModuleInputs(std::vector<fs::path>& outInputs, const CommandLine& cmdLine, const fs::path& moduleFile, const fs::path& sourceDir, const std::set<fs::path>& loadedFiles, const std::set<fs::path>& setupCompilerInputFiles, const std::set<fs::path>& buildCompilerInputFiles)
     {
         outInputs.clear();
@@ -1480,7 +1515,12 @@ namespace
             outInputs.push_back(moduleFile);
 
         if (!sourceDir.empty())
+        {
+            const size_t sourceInputStart = outInputs.size();
             collectSwagFilesRec(cmdLine, sourceDir, outInputs, true);
+            if (cmdLine.command == CommandKind::Build && !cmdLine.sourceDrivenTest)
+                outInputs.erase(std::remove_if(outInputs.begin() + sourceInputStart, outInputs.end(), isDisabledInProductionBuild), outInputs.end());
+        }
 
         appendWorkspaceInputFiles(outInputs, loadedFiles);
         appendWorkspaceInputFiles(outInputs, setupCompilerInputFiles);

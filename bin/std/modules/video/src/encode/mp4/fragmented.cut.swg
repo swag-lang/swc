@@ -320,12 +320,13 @@ private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..]
                 continue
             }
 
-            let inputStart  = try roundToAudioTime(range.sourceStart, track.sampleRate, source.timescale())
-            let inputEnd    = try roundToAudioTime(range.sourceEnd, track.sampleRate, source.timescale())
-            let outputStart = try roundToAudioTime(range.outputStart, track.sampleRate, source.timescale())
-            let outputEnd   = try roundToAudioTime(videoEnd, track.sampleRate, source.timescale())
-            let firstTime   = summary.firstTime
-            var firstIndex  = 0'u64
+            let audioTimebase = try Timebase.create(track.sampleRate)
+            let inputStart    = try audioTimebase.convertFrom(range.sourceStart, source.timescale())
+            let inputEnd      = try audioTimebase.convertFrom(range.sourceEnd, source.timescale())
+            let outputStart   = try audioTimebase.convertFrom(range.outputStart, source.timescale())
+            let outputEnd     = try audioTimebase.convertFrom(videoEnd, source.timescale())
+            let firstTime     = summary.firstTime
+            var firstIndex    = 0'u64
             if inputStart > firstTime
             {
                 let delta = inputStart - firstTime
@@ -393,20 +394,6 @@ private func planAudioRanges(source: *FragmentedPacketCursor, ranges: const [..]
     }
 
     return result
-}
-
-private func roundToAudioTime(videoTime: u64, sampleRate, videoTimescale: u32)->u64 fail
-{
-    let whole     = videoTime / videoTimescale
-    let remainder = videoTime % videoTimescale
-    if whole > Swag.U64.Max / sampleRate do
-        fail OverflowError{"fragmented MP4 audio time conversion overflows"}
-    let base    = whole * sampleRate
-    let part    = remainder * sampleRate
-    let rounded = part / videoTimescale + cast(u64, part % videoTimescale >= (cast(u64, videoTimescale) + 1) / 2)
-    if rounded > Swag.U64.Max - base do
-        fail OverflowError{"fragmented MP4 audio time conversion overflows"}
-    return base + rounded
 }
 
 private func rebasedVideoTime(packet: FragmentedPacketInfo, sourceStart, outputBase: u64)->{decodeTime: u64, presentationTime: u64} fail

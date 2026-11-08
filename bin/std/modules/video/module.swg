@@ -10,7 +10,9 @@ at a time into its destination. Encoded media payloads remain in their source;
 indexed containers retain compact sample tables while decoding keeps only the
 active picture, codec references, and bounded audio buffers. [[Video.Clip]] is
 the other half of the picture — the frames a program builds in memory before
-encoding them.
+encoding them. [[Video.Timebase]] converts absolute timestamps between integer media clocks,
+including nanosecond capture timestamps and video or audio track ticks, without cumulative
+rounding.
 
 ```swag
 #import("video")

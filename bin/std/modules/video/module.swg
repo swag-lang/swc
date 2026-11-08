@@ -54,7 +54,8 @@ Four codecs ship in the box:
   original compressed packets and track clocks for copying without decoding.
   [[Video.Mp4.FragmentedPacketCursor]]
   walks the same video and AAC packets one fragment at a time, keeping a bounded sample window;
-  it can start at a key-frame fragment located through [[Video.Mp4.FragmentedIndex]].
+  it reports each packet's fragment location and the last complete media boundary, and can start
+  at a key-frame fragment located through [[Video.Mp4.FragmentedIndex]].
   [[Video.Mp4.copyVideoRanges]] joins
   key-frame-aligned H.264 ranges into a video-only file without re-encoding;
   [[Video.Mp4.copyRanges]] also copies AAC-LC tracks, rounding cut edges to whole sound packets.

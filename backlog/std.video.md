@@ -219,7 +219,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   file's final index from its tail and locates key frames with binary search.
   `Mp4.FragmentedPacketCursor` walks
   compressed video and AAC packets one fragment at a time with a bounded sample window, reads
-  payload only on request, and can start at an indexed fragment. A sparse 64-bit-offset stress
+  payload only on request, reports each packet's fragment location and the last complete media
+  boundary, and can start at an indexed fragment. A sparse 64-bit-offset stress
   test places a decodable indexed fragment beyond 4 GiB. `Video.Timebase` converts absolute
   timestamps between integer clocks without per-packet rounding drift; AAC cuts use it to map
   video boundaries to sample clocks. The writer has no timed metadata tracks;

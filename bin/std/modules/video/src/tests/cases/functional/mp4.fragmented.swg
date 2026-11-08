@@ -159,6 +159,7 @@ func fragmentedPacketSource()->ByteSource fail
     while expect cursor.nextPacket(&packet) do
         completePackets += 1
     Swag.require(completePackets == 2)
+    Swag.require(cursor.completeMediaByteCount() == lastFragment)
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.
@@ -1037,13 +1038,27 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(cursor.width() == packets.width() and cursor.height() == packets.height())
     Swag.require(cursor.timescale() == packets.timescale() and cursor.audioTrackCount() == 2)
     Swag.require((expect cursor.audioTrack(0)).sampleRate == 44_100)
-    var cursorPacket:  Mp4.FragmentedCursorPacket
-    var cursorBytes:   Array'u8
-    var expectedBytes: Array'u8
-    var videoIndex:    u64
-    var audioIndices:  [2] u64
+    var cursorPacket:   Mp4.FragmentedCursorPacket
+    var cursorBytes:    Array'u8
+    var expectedBytes:  Array'u8
+    var videoIndex:     u64
+    var audioIndices:   [2] u64
+    var fragmentOffset: u64
+    var sampleNumber:   u32
     while expect cursor.nextPacket(&cursorPacket)
     {
+        if cursorPacket.fragmentOffset != fragmentOffset
+        {
+            Swag.require(cursorPacket.fragmentOffset > fragmentOffset)
+            fragmentOffset = cursorPacket.fragmentOffset
+            sampleNumber   = 1
+        }
+        else
+        {
+            sampleNumber += 1
+        }
+
+        Swag.require(cursorPacket.sampleNumber == sampleNumber)
         expect cursor.readPayload(cursorPacket, &cursorBytes)
         if cursorPacket.isVideo
         {
@@ -1073,6 +1088,7 @@ func fragmentedPacketSource()->ByteSource fail
 
     Swag.require(videoIndex == 3 and audioIndices[0] == 3 and audioIndices[1] == 2)
     Swag.require(not expect cursor.nextPacket(&cursorPacket))
+    Swag.require(cursor.completeMediaByteCount() == file.count)
     let copiedTracks: [2] Mp4.FragmentedAudioConfig = [
         {firstAudio.sampleRate,  firstAudio.channelCount,  firstAudio.decoderConfig},
         {secondAudio.sampleRate, secondAudio.channelCount, secondAudio.decoderConfig}]
@@ -1258,10 +1274,12 @@ func fragmentedPacketSource()->ByteSource fail
     discard catch cursor.seekFragment(lastPoint.moofOffset + 1) as rejected
     Swag.require(rejected.value() is BadParameterError)
     expect cursor.seekFragment(lastPoint.moofOffset)
+    Swag.require(cursor.completeMediaByteCount() == 0)
     var cursorPacket: Mp4.FragmentedCursorPacket
     Swag.require(expect cursor.nextPacket(&cursorPacket))
     Swag.require(cursorPacket.isVideo and cursorPacket.info.isKeyFrame)
-    Swag.require(cursorPacket.info.decodeTime == 1536)
+    Swag.require(cursorPacket.info.decodeTime == 1536 and cursorPacket.fragmentOffset == lastPoint.moofOffset)
+    Swag.require(cursorPacket.sampleNumber == 1)
     Swag.require(not expect cursor.nextPacket(&cursorPacket))
     var found: Mp4.FragmentedSeekPoint
     Swag.require(not expect index.tryFindAtOrBefore(511, &found))

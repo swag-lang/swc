@@ -90,6 +90,7 @@ using Swag, Core, Core.Errors
     var found: Mp4.FragmentedCursorPacket
     Swag.require(expect cursor.nextPacket(&found))
     Swag.require(found.isVideo and found.info.isKeyFrame and found.info.decodeTime == 512)
+    Swag.require(found.fragmentOffset == LargeOffset and found.sampleNumber == 1)
     var payload: Array'u8
     expect cursor.readPayload(found, &payload)
     Swag.require(payload.count == picture.count)

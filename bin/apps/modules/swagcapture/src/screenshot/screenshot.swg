@@ -223,14 +223,16 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture
     inPlaceWnd.newMain.fileDlgState = main.fileDlgStateInPlace
     defer main.fileDlgStateInPlace = inPlaceWnd.newMain.fileDlgState
 
-    if not waitForCapture()
+    let accepted = waitForCapture()
+    inPlaceWnd.editWnd.editView.capture = null
+    if capture.backTexture.isValid() do
+        inPlaceWnd.app().renderer.removeTexture(&capture.backTexture)
+    surface.destroy()
+    if not accepted
     {
-        surface.destroy()
+        Memory.delete(capture)
         return null
     }
-
-    inPlaceWnd.editWnd.editView.capture = null
-    surface.destroy()
     if g_CaptureMedia == .Animation do
         return try recordZone(main, capture)
     return capture

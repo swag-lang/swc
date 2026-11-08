@@ -3,6 +3,14 @@
 
 using Core, Gui, Pixel
 
+enum RecordingJourneyEnd
+{
+    Stop
+    Cancel
+    CancelCountdown
+    PauseThenStop
+}
+
 // Keep each journey on the native desktop, with the same startup wiring and private library
 // that the shipped application uses. The fixture owns every file it creates.
 struct CaptureJourney
@@ -30,10 +38,10 @@ impl CaptureJourney
         testUseScratchLibrary()
         .root = Testing.tempFilePath("capture-journey-", "")
         expect Directory.create(.root)
+        g_Library.defaultFolder = .root
         expect g_Library.setFolder(.root)
 
-        let statePath = Path.combine(.root, "settings.scc")
-        .app.setStatePath(statePath)
+        .app.setStatePath(Library.getStatePath())
         .app.setAppIcon(expect Image.decode(".png", AppIcon))
         registerAppStrings(&.app.resources)
         .surface = expect .app.createSurface(40, 40, 1100, 760, surfaceId: "capture-test-journey")
@@ -82,6 +90,10 @@ impl CaptureJourney
             {
                 Console.println("ready=", ready(), " animations=", .app.animator.activeCount(),
                                 " renderFailure=", .surface.renderFailure)
+                Console.println("libraryMode=", .main.libraryMode, " items=", .main.libWnd.view.allItems.count,
+                                " updating=", g_UpdatingLib)
+                for item in .main.libWnd.view.allItems do
+                    Console.println("item=", item!.fi.fullName, " loaded=", item.loaded)
                 Swag.require(false, Format.toString("Swag Capture journey timed out at %", stage))
             }
         }
@@ -110,6 +122,145 @@ impl CaptureJourney
         var path = String.from(capture.file)
         .waitFor("new capture saved", func|&path|()->bool => File.exists(path))
         return path
+    }
+
+    mtd selectScreenArea(overlay: *CaptureRectWnd)
+    {
+        var pointer = MouseEvent{kind: .Pressed, button: .Left, surfacePos: {24, 24}}
+        overlay.sendEvent(&pointer)
+        pointer.kind       = .Move
+        pointer.surfacePos = {120, 88}
+        overlay.sendEvent(&pointer)
+        pointer.kind = .Released
+        overlay.sendEvent(&pointer)
+    }
+
+    // Take an area picture through the native selector and open it in the editor.
+    mtd captureScreenPicture()
+    {
+        let app = .app
+        let main = .main
+        var selected: bool
+        main.captureOptions.inPlaceEdit = false
+        main.captureOptions.sendToEditor = true
+        defer app.sigFrame.clear()
+        app.sigFrame += func|journey = me, selected = &selected|(_)
+        {
+            if selected[] do
+                return
+            Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "picture selector timed out")
+            for surface in journey.app.surfaces
+            {
+                if surface.view() is CaptureRectWnd as overlay
+                {
+                    journey.selectScreenArea(overlay)
+                    selected[] = true
+                    return
+                }
+            }
+        }
+
+        main.sendCommandEvent(ActionCapture.Area)
+        app.runFrame()
+        Swag.require(selected)
+        Swag.require(main.editWnd.getCapture() != null)
+    }
+
+    // Select a small screen area, start recording from the in-place editor, then use the
+    // recording pill. Wait for written frames before ending it.
+    mtd recordAnimation(ending: RecordingJourneyEnd)
+    {
+        var stage: u32
+        var pausedCount: u64
+        let main = .main
+        let app  = .app
+        let watch = &.watch
+        defer app.sigFrame.clear()
+
+        main.captureOptions.recordCountdown = ending == .CancelCountdown
+        main.captureOptions.captureCursor   = false
+        app.sigFrame += func|journey = me, ending, watch, stage = &stage, pausedCount = &pausedCount|(_)
+        {
+            Swag.require(watch[].elapsedMilliseconds() < 38_000, "recording journey timed out")
+
+            if stage[] == 0
+            {
+                for surface in g_App.surfaces
+                {
+                    if surface.view() is CaptureRectWnd as overlay
+                    {
+                        journey.selectScreenArea(overlay)
+                        stage[] = 1
+                        return
+                    }
+                }
+            }
+
+            if stage[] == 1
+            {
+                for surface in g_App.surfaces
+                {
+                    if surface.view() is InPlaceEditWnd as editor
+                    {
+                        var key = KeyEvent{kind: .Pressed, key: .Return, modifiers: .None}
+                        editor.sendEvent(&key)
+                        Swag.require(key.accepted)
+                        stage[] = 2
+                        return
+                    }
+                }
+            }
+
+            if stage[] == 2 and g_Recorder
+            {
+                let recorder = unwrap g_Recorder
+                let hud = unwrap recorder.hud
+                let count = recorder.writer.frameCount()
+                if ending == .CancelCountdown and recorder.state == .Counting
+                {
+                    stage[] = 5
+                    hud.cancelButton.sigPressed.call(hud.cancelButton)
+                    return
+                }
+                elif ending == .PauseThenStop and count >= 1
+                {
+                    pausedCount[] = count
+                    stage[] = 3
+                    hud.pauseButton.sigPressed.call(hud.pauseButton)
+                    return
+                }
+                elif ending != .PauseThenStop and ending != .CancelCountdown and count >= 2
+                {
+                    stage[] = 5
+                    let button = ending == .Cancel ? hud.cancelButton : hud.stopButton
+                    button.sigPressed.call(button)
+                    return
+                }
+            }
+
+            if stage[] == 3 and g_Recorder
+            {
+                let recorder = unwrap g_Recorder
+                Swag.require(recorder.state == .Paused)
+                let hud = unwrap recorder.hud
+                stage[] = 4
+                hud.pauseButton.sigPressed.call(hud.pauseButton)
+                return
+            }
+
+            if stage[] == 4 and g_Recorder and g_Recorder!.writer.frameCount() > pausedCount[]
+            {
+                let hud = unwrap g_Recorder!.hud
+                stage[] = 5
+                hud.stopButton.sigPressed.call(hud.stopButton)
+            }
+        }
+
+        main.sendCommandEvent(ActionCapture.Record)
+        app.runFrame()
+        Swag.require(stage == 5)
+        Swag.require(g_Recorder == null)
+        Swag.require(app.surfaces.count == 1)
     }
 
     // Send the same tool command and editor pointer events as a drag on the visible image.

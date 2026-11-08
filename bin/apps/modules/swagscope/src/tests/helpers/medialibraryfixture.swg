@@ -141,7 +141,6 @@ impl MediaLibraryFixture
                 fail Errors.InvalidFormatError{Errors.mkString(Format.toString("Viewer stage '%' exceeded its deadline", stage))}
             }
 
-            Threading.Thread.sleep(10'ms)
         }
     }
 

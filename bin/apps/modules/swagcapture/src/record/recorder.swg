@@ -240,12 +240,9 @@ impl Recorder
     // Shows the frame around the area and the recording pill beside it.
     private mtd showChrome()
     {
-        // The frame and the pill are native top-most windows of the application, which a
-        // headless test host cannot give back to the next test, as for the grab itself.
-        #static if #command == Swag.CompilerCommand.Test
-        {
+        // A headless host makes its drawable by hand, outside the application's native surfaces.
+        if g_App.surfaces.isEmpty() do
             return
-        }
 
         let scale = Env.monitorForPoint({.area.horzCenter(), .area.vertCenter()}).scaleFactor
         let thick = Math.ceil(RecordFrameWidth * scale)

@@ -91,6 +91,27 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     Swag.require(Slice.equals(actual.toSlice(), expected.toSlice()))
 }
 
+// Appending preserves the existing bytes, starts at their absolute offset, and can patch them.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("bytesink_append.bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "HEAD")
+
+    var sink = expect ByteSink.openAppendFile(fileName.toString())
+    Swag.require(sink.position() == 4)
+    expect sink.writeText("BODY")
+    expect sink.patch(0, cast(const [..] u8, "SIZE"))
+    Swag.require(sink.position() == 8)
+    expect sink.writeText("END")
+    expect sink.close()
+    Swag.require((expect File.readAllText(fileName)) == "SIZEBODYEND")
+
+    var missing: Swag.Error
+    discard catch ByteSink.openAppendFile(CoreTests.makeFilesystemTestPath("bytesink-missing.bin").toString()) as missing
+    Swag.require(missing.value() is FileNotFoundError)
+}
+
 // A memory sink appends after whatever its buffer already holds, and its offsets stay relative
 // to the first byte it wrote, so the same encoder produces the same stream on both backings.
 #test

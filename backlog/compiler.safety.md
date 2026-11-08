@@ -97,6 +97,10 @@ is the current scorecard.
   lifetime routes and returned payload projections (`25b9598b6`, `e1b81113e`) do not
   distinguish the borrowed pointee of this opaque heap result. Propagating the carrier's
   enclosing borrow wholesale would also reject releasing the independently allocated field.
+- Linux DevMode reproducer: add `release(carrier.target, #sizeof(s32))` after
+  `let carrier = create(&value)` in `bin/unittests/sanity/borrow_free_carrier.swg` and mark it
+  `swc-expected-error {{sanity_err_free_borrowed}}`; the focused sanity test reports
+  `directive declared but never raised`. The invalid release must stay outside executable tests.
 - Next: trace this returned-field route through the existing projection and frees-summary
   machinery, then preserve each field's provenance. Cover both fields through generated
   module APIs; never execute an invalid free merely to probe its diagnostic.
@@ -133,21 +137,6 @@ is the current scorecard.
   the residual cost of runtime guards is measured on the affected loops with behavior
   preserved.
 - Related: compiler.optimization.105.
-
-### compiler.safety.024 — A mutable cast can write through an any that borrows a literal
-
-- Evidence: `var boxed: any = 42's32` followed by a mutable `try cast(*s32, boxed)` (or the
-  `is ... as` type pattern) and a write through the result is accepted. The JIT test
-  passes, but the native executable raises `0xC0000005` writing the literal in read-only
-  storage. A variable holding an `any` does not itself own mutable storage for the borrowed
-  value.
-- Change: compiler type descriptors now carry storage-only constness for constant-backed `any`
-  payloads without changing their logical runtime type. Cast checks preserve it through pointer
-  copies and reject mutable borrows; value copies, const views, `kindOf`, and folded extraction
-  have matching handling and JIT/native fixtures.
-- Next: run focused JIT, native, and reference tests once machine-load admission allows a build.
-- Done when: JIT and native execution agree, a mutable cast cannot expose read-only literal
-  storage, and tests cover literal, constant, mutable-local, and const-local sources.
 
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 
@@ -266,8 +255,11 @@ is the current scorecard.
 - Audit: generic `cast` calls use the same specialized sema rules; reflection assignment copies
   values of one runtime type; text parsing accepts declared enum names; command-line parsing uses
   that parser. `assume cast` remains the explicit unchecked escape hatch.
-- Next: run the focused JIT/native, sema, standard-library, and application tests for the migrated
-  shipped code.
+- Validation: focused JIT/native enum casts, semantic rejection tests, and the complete `core`
+  standard-library test module pass on Linux. Swag Capture now compiles and links after fixing
+  `Cursor.activate`'s non-propagating Linux error handling, but its GUI tests need an X11 display.
+- Next: run the application tests in a GUI-capable environment, including the migrated Swag Capture
+  enum storage and user-data paths.
 - Done when: JIT/native and semantic suites pass, including constant member values, rejected runtime
   values, a runtime flags combination, an open enum, and the migrated shipped call sites; the cast
   reference documents the rule.
@@ -310,18 +302,3 @@ is the current scorecard.
 - Done when: the foreign boundary has one documented default, and the reference says what
   crossing it suspends.
 - Related: compiler.safety.006.
-
-### compiler.safety.029 — Converting an indexed heap pointer invents a container borrow
-
-- Evidence: storing allocated blocks in `[2] ([*] u8?)` and passing `blocks[0]` to an
-  inline release wrapper taking `[*] void?` reports `sanity_err_free_borrowed` against
-  the local array. Reading the element through value iteration is accepted. The
-  allocator benchmark's aligned batch exposed this with `Core.Memory.free`.
-- Next: distinguish the element's type before a contextual pointer conversion from
-  the converted result while retaining the stored pointee's provenance. Reading
-  only the index's stored type accepts the owned case, but also loses the diagnostic
-  for a slice over an array containing a pointer to a local. Trace that alias back to
-  its element projection; do not treat every indexed pointer as independently owned.
-- Done when: releasing owned pointer elements works through arrays, slices, and
-  pointer conversions, while releases of local borrows stored in those containers
-  remain diagnosed by focused sanity tests.

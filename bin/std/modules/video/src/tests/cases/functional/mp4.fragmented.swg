@@ -53,6 +53,10 @@ func fragmentedPacketSource()->ByteSource fail
 
     let config = expect fragmentedConfig()
     var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice())
+    Swag.require(writer.videoPacketCount() == 0 and writer.videoEndTime() == 0)
+    var badTrack: Swag.Error
+    discard catch writer.audioPacketCount(0) as badTrack
+    Swag.require(badTrack.value() is BadParameterError)
     expect writer.end()
     expect writer.end()
 
@@ -116,6 +120,7 @@ func fragmentedPacketSource()->ByteSource fail
         expect writer.addPacket(EncodedPacket{bytes.toSlice(), cast(u64, index) * 512,
                                               cast(u64, index) * 512, 512, index == 0})
         Swag.require(writer.videoEndTime() == cast(u64, index + 1) * 512)
+        Swag.require(writer.videoPacketCount() == index + 1)
         Swag.require(writer.writtenByteCount() > initializationSize)
     }
 
@@ -183,7 +188,9 @@ func fragmentedPacketSource()->ByteSource fail
     let restartPicture = expect fragmentedPacket(&restartSource)
     var resumed        = expect Mp4.FragmentedWriter.resume(stoppedPath, Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 1, true})
     Swag.require(resumed.writtenByteCount() == lastFragment and resumed.videoEndTime() == 1024)
+    Swag.require(resumed.videoPacketCount() == 2)
     expect resumed.addPacket(EncodedPacket{restartPicture.toSlice(), 1024, 1024, 512, true})
+    Swag.require(resumed.videoPacketCount() == 3)
     expect resumed.end()
     var resumedReader = expect Reader.open(stoppedPath)
     Swag.require(resumedReader.frameCount() == 3)
@@ -224,9 +231,15 @@ func fragmentedPacketSource()->ByteSource fail
     var resumed    = expect Mp4.FragmentedWriter.resume(path, Options)
     Swag.require(resumed.writtenByteCount() == oldSummary.completeMediaByteCount)
     Swag.require(resumed.videoEndTime() == 1024)
+    Swag.require(resumed.videoPacketCount() == 2)
+    Swag.require(expect resumed.audioPacketCount(0) == 2 and expect resumed.audioEndTime(0) == 2048)
+    Swag.require(expect resumed.audioPacketCount(1) == 1 and expect resumed.audioEndTime(1) == 2048)
     expect resumed.addPacket(EncodedPacket{first.toSlice(), 1024, 1024, 512, true})
     expect resumed.addAudioPacket(EncodedPacket{sound.toSlice(), 2048, 2048, 1024, true}, 0)
     expect resumed.addAudioPacket(EncodedPacket{sound.toSlice(), 2048, 2048, 1024, true}, 1)
+    Swag.require(resumed.videoPacketCount() == 3)
+    Swag.require(expect resumed.audioPacketCount(0) == 3 and expect resumed.audioPacketCount(1) == 2)
+    Swag.require(expect resumed.audioEndTime(0) == 3072 and expect resumed.audioEndTime(1) == 3072)
     expect resumed.end()
 
     let file = expect File.readAllBytes(path)

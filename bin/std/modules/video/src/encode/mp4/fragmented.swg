@@ -64,6 +64,7 @@ private struct FragmentedAudioTrack
     config:         Array'u8
     pendingPackets: Array'BufferedPacket
     pendingData:    Array'u8
+    packetCount:    u64
     sampleRate:     u32
     channels:       u16
     nextTime:       u64
@@ -102,6 +103,7 @@ struct FragmentedWriter
         height:         u16
         timescale:      u32
         sequence:       u32
+        videoPackets:   u64
         nextDecodeTime: u64
         hasPackets:     bool
         isEnded:        bool
@@ -112,7 +114,8 @@ impl FragmentedWriter
 {
     // Returns bytes accepted by the output sink so far.
     //
-    // This includes the initialization movie, completed fragments, and an optional final index.
+    // This includes the initialization movie, completed fragments, an optional final index, and
+    // existing bytes when a recording was resumed.
     // Pending video and AAC groups are excluded. Call `flush` first to include every submitted
     // packet and obtain the current complete file size.
     mtd const writtenByteCount()->u64 => .sink.position()
@@ -122,6 +125,27 @@ impl FragmentedWriter
     // The value is zero before the first video packet. It advances even when that packet is still
     // in a pending group, so a recorder can check its time threshold before flushing or splitting.
     mtd const videoEndTime()->u64 => .nextDecodeTime
+
+    // Returns the number of video packets successfully submitted, including pending packets.
+    mtd const videoPacketCount()->u64 => .videoPackets
+
+    // Returns the number of packets submitted to an AAC track, including pending packets.
+    mtd const audioPacketCount(trackIndex: u32)->u64 fail
+    {
+        if trackIndex >= .audioTracks.count do
+            fail BadParameterError{"fragmented MP4 has no audio track at this index"}
+        return .audioTracks[trackIndex].packetCount
+    }
+
+    // Returns the decode-time end of an AAC track in its own sample-rate ticks.
+    //
+    // An empty track returns zero. This includes submitted packets still in a pending group.
+    mtd const audioEndTime(trackIndex: u32)->u64 fail
+    {
+        if trackIndex >= .audioTracks.count do
+            fail BadParameterError{"fragmented MP4 has no audio track at this index"}
+        return .audioTracks[trackIndex].nextTime
+    }
 
     // Creates a fragmented H.264 MP4 file and writes its initialization movie.
     //
@@ -216,6 +240,7 @@ impl FragmentedWriter
             if packet.isVideo
             {
                 result.hasPackets     = true
+                result.videoPackets   += 1
                 result.nextDecodeTime = packet.info.decodeTime + packet.info.duration
                 if options.writeRandomAccessIndex and packet.info.isKeyFrame
                 {
@@ -230,8 +255,9 @@ impl FragmentedWriter
             else
             {
                 let track = &result.audioTracks[packet.trackIndex]
-                track.hasPackets = true
-                track.nextTime   = packet.info.decodeTime + packet.info.duration
+                track.hasPackets  = true
+                track.packetCount += 1
+                track.nextTime    = packet.info.decodeTime + packet.info.duration
             }
         }
 
@@ -306,6 +332,7 @@ impl FragmentedWriter
         }
 
         .nextDecodeTime = packet.decodeTime + packet.duration
+        .videoPackets   += 1
         .hasPackets     = true
     }
 
@@ -357,8 +384,9 @@ impl FragmentedWriter
             }
         }
 
-        .audioTracks[trackIndex].nextTime   = packet.decodeTime + packet.duration
-        .audioTracks[trackIndex].hasPackets = true
+        .audioTracks[trackIndex].nextTime    = packet.decodeTime + packet.duration
+        .audioTracks[trackIndex].packetCount += 1
+        .audioTracks[trackIndex].hasPackets  = true
     }
 
     // Writes and flushes pending video and audio groups, making their packets recoverable.

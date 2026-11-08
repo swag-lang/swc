@@ -50,8 +50,8 @@ Four codecs ship in the box:
   Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
   AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
-  The writer reports its submitted video end time and completed byte count
-  for recording progress and file-size limits. [[Video.Mp4.FragmentedPacketReader]] exposes their
+  The writer reports submitted video and audio packet counts, track end times, and completed byte
+  count for recording progress and file-size limits. [[Video.Mp4.FragmentedPacketReader]] exposes their
   original compressed packets and track clocks for copying without decoding.
   [[Video.Mp4.FragmentedPacketCursor]]
   walks the same video and AAC packets one fragment at a time, keeping a bounded sample window;

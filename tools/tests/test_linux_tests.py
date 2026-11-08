@@ -48,7 +48,7 @@ class LinuxCampaignTests(unittest.TestCase):
                                 'workspace-package-dynamic-library-dependency',
                                 'workspace-runtime_context_dynamic_consumer', 'workspace-runtime_context_dynamic_dll',
                                 'workspace-build-lifecycle-script-dependency', 'workspace-lifecycle-script',
-                                'workspace-failed-init-script', 'workspace-failed-premain-script',
+                                'workspace-failed-init-script', 'workspace-failed-check-script', 'workspace-failed-premain-script',
                                 'workspace-failed-main-script', 'workspace-failed-drop-script',
                                 'workspace-native-failed-drop', 'workspace-native-abandoned-test',
                                 'workspace-jit-abandoned-test', 'workspace-jit-failed-init',

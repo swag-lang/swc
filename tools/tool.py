@@ -196,6 +196,9 @@ def workspace_stages(compiler, bin_root, options, *, windows=False, modules=None
         stages.append(Stage('workspace-failed-init-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'lifecycle_failed_init.swgs')],
                             requires=[script_dependency_build_name], expected_output='SWAG_SCRIPT_DROP\nSWAG_DEP_DROP', expected_returncode=5))
+        stages.append(Stage('workspace-failed-check-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
+                            str(workspace / 'lifecycle_failed_check.swgs')],
+                            requires=[script_dependency_build_name], expected_output='SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP', expected_returncode=5))
         stages.append(Stage('workspace-failed-premain-script', [str(compiler), '--build-cfg', cfg, '--num-cores', workers,
                             str(workspace / 'lifecycle_failed_premain.swgs')],
                             requires=[script_dependency_build_name], expected_output='SWAG_SCRIPT_DROP\nSWAG_DEP_DROP', expected_returncode=5))

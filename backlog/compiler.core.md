@@ -633,8 +633,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   the dependency and library `#premain` hooks; closing the last reference drops the library
   before its dependency. The dynamic consumer checks the complete order and repeated loading.
   The reference documents this order and the boundary after an uncaught native or JIT panic.
-- Next: verify resource release on ordinary failed hooks before restoring test data or unloading
-  generated code, including dynamically loaded dependencies.
+  A recoverable `Swag.check` failure in a script `#init` now has a regression that allocates a
+  byte, verifies and frees it in `#drop`, then observes the imported shared dependency's `#drop`.
+  The script still exits with an error. This checks resource access before hosted cleanup.
+- Next: verify resource release on ordinary failed hooks before restoring JIT test data or
+  unloading generated code, including dynamically loaded dependencies.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

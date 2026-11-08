@@ -111,6 +111,9 @@ class ToolTests(unittest.TestCase):
             failed_main = next(stage for stage in self.stages if stage.name == 'workspace-failed-main-script')
             self.assertEqual(failed_main.expected_returncode, 5)
             self.assertEqual(failed_main.expected_output, 'SWAG_DROP_AFTER_MAIN_RAN')
+            failed_check = next(stage for stage in self.stages if stage.name == 'workspace-failed-check-script')
+            self.assertEqual(failed_check.expected_returncode, 5)
+            self.assertEqual(failed_check.expected_output, 'SWAG_ORDINARY_DROP_RELEASED\nSWAG_DEP_DROP')
 
     def test_workers_and_explicit_runtime_override(self):
         for workers, expected in (('1', '1'), ('2', '2'), ('0', '3'), ('8', '3')):

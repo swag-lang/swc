@@ -150,13 +150,14 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   after the per-voice filter boundary.
 - Related: platform.portability.064, std.audio.008, std.audio.009
 
-### std.audio.015 — No sound encoding
+### std.audio.015 — No compressed sound encoding
 
-- Evidence: every codec under `codec/` decodes, and no file format writes, not even WAV. Swag
-  Capture recordings (app.capture.013) need a compressed track for MP4 and lossless files for
+- Evidence: every codec under `codec/` decodes. `Wav.Writer` now streams mono or stereo PCM16
+  to a classic RIFF file, updating the playable header on flush. Swag Capture recordings
+  (app.capture.013) still need a compressed track for MP4 and a lossless compressed format for
   sound-only captures.
 - Next: add an encoder contract mirroring the decoder registry, producing packets with
-  timestamps. Implement WAV writing and FLAC first, then AAC-LC over the Media Foundation encoder
+  timestamps. Implement FLAC next, then AAC-LC over the Media Foundation encoder
   (platform.portability.099) and later in Swag on the decoder's MDCT and tables.
 - Done when: WAV and FLAC round-trip bit-exactly through the module's decoders, and AAC-LC
   packets mux into MP4 (std.video.016) and play in reference players.

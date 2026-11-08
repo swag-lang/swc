@@ -29,11 +29,12 @@ private struct BufferedPacket
     isKeyFrame:        bool
 }
 
-// Controls how H.264 packets are grouped into MP4 fragments.
+// Controls how encoded packets are grouped into MP4 fragments.
 struct FragmentedOptions
 {
-    public maxPacketsPerFragment: u32 = 1     // One packet per fragment by default; at most 1024.
-    public maxBufferedBytes:      u32 = 4 * 1024 * 1024     // Buffered payload limit when grouping packets.
+    public maxPacketsPerFragment:      u32 = 1     // Video packets per fragment, at most 1024.
+    public maxBufferedBytes:           u32 = 4 * 1024 * 1024     // Buffered payload limit per track.
+    public maxAudioPacketsPerFragment: u32 = 1     // AAC packets per fragment, at most 1024.
 }
 
 // Describes one AAC-LC sound track to add when the fragmented MP4 file is created.
@@ -49,20 +50,23 @@ struct FragmentedAudioConfig
 
 private struct FragmentedAudioTrack
 {
-    config:     Array'u8
-    sampleRate: u32
-    channels:   u16
-    nextTime:   u64
-    hasPackets: bool
+    config:         Array'u8
+    pendingPackets: Array'BufferedPacket
+    pendingData:    Array'u8
+    sampleRate:     u32
+    channels:       u16
+    nextTime:       u64
+    hasPackets:     bool
 }
 
 // Writes H.264 and optional AAC-LC access units to a fragmented MP4 file.
 //
 // The caller supplies an AVC decoder configuration (`avcC`) with four-byte NAL lengths and submits
 // access units in decode order through [[Video.Mp4.FragmentedWriter.addPacket]]. By default every
-// call writes and flushes one `moof`/`mdat` pair. [[Video.Mp4.FragmentedOptions]] can group packets
-// within fixed byte and count limits; [[Video.Mp4.FragmentedWriter.flush]] completes a pending
-// group. The first packet must be a key frame. Timestamps use the `timescale` given at creation.
+// call writes and flushes one `moof`/`mdat` pair. [[Video.Mp4.FragmentedOptions]] can group video
+// and AAC packets per track within fixed byte and count limits. [[Video.Mp4.FragmentedWriter.flush]]
+// completes all pending groups. The first video packet must be a key frame. Video timestamps use
+// the `timescale` given at creation.
 //
 // [[Video.Mp4.FragmentedWriter.createWithAudioTracks]] adds up to four AAC-LC tracks. Audio packets
 // are submitted separately and may be interleaved with video calls. The file has no final index;
@@ -159,7 +163,7 @@ impl FragmentedWriter
 
         if .pendingPackets.count and
            (packet.isKeyFrame or packet.decodeTime != .nextDecodeTime or .pendingPackets.count >= .options.maxPacketsPerFragment or packet.bytes.count > .options.maxBufferedBytes - .pendingData.count) do
-            try .flush()
+            try .flushVideo()
 
         let sample = BufferedPacket{cast(u32, packet.bytes.count), packet.decodeTime, packet.duration,
                                     cast(s32, compositionOffset), packet.isKeyFrame}
@@ -176,7 +180,7 @@ impl FragmentedWriter
             .pendingData.add(packet.bytes)
             if .pendingPackets.count == .options.maxPacketsPerFragment or
                .pendingData.count == .options.maxBufferedBytes do
-                try .flush()
+                try .flushVideo()
         }
 
         .nextDecodeTime = packet.decodeTime + packet.duration
@@ -189,6 +193,8 @@ impl FragmentedWriter
     // and presentation times are equal and use the audio sample rate as their timescale. Audio
     // packets must be continuous; the caller can interleave them with video in recording order.
     // The key-frame flag is ignored because every AAC-LC access unit is independently decodable.
+    // Grouped payload is copied until the count or byte limit, or an explicit flush. An oversized
+    // packet is written alone.
     mtd addAudioPacket(packet: EncodedPacket, trackIndex: u32 = 0) fail
     {
         if .isEnded or trackIndex >= .audioTracks.count do
@@ -204,30 +210,44 @@ impl FragmentedWriter
         if packet.decodeTime > cast(u64, Swag.S64.Max) - 1_024 do
             fail OverflowError{"fragmented MP4 AAC timestamp exceeds the supported range"}
 
-        try .flush()
-        let sample: [1] BufferedPacket = [{cast(u32, packet.bytes.count), packet.decodeTime,
-                                           packet.duration, 0, true}]
-        try .writeFragment(Swag.makeSlice(&sample[0], 1), packet.bytes, 2 + trackIndex)
-        try .sink.flush()
-        .sequence += 1
+        let sample = BufferedPacket{cast(u32, packet.bytes.count), packet.decodeTime,
+                                    packet.duration, 0, true}
+        if .audioTracks[trackIndex].pendingPackets.count and
+           packet.bytes.count > .options.maxBufferedBytes - .audioTracks[trackIndex].pendingData.count do
+            try .flushAudioTrack(trackIndex)
+
+        if .options.maxAudioPacketsPerFragment == 1 or packet.bytes.count > .options.maxBufferedBytes
+        {
+            try .flush()
+            let one: [1] BufferedPacket = [sample]
+            try .writeFragment(Swag.makeSlice(&one[0], 1), packet.bytes, 2 + trackIndex)
+            try .sink.flush()
+            .sequence += 1
+        }
+        else
+        {
+            .audioTracks[trackIndex].pendingPackets.add(sample)
+            .audioTracks[trackIndex].pendingData.add(packet.bytes)
+            if .audioTracks[trackIndex].pendingPackets.count == .options.maxAudioPacketsPerFragment or
+               .audioTracks[trackIndex].pendingData.count == .options.maxBufferedBytes
+            {
+                try .flushAudioTrack(trackIndex)
+            }
+        }
+
         .audioTracks[trackIndex].nextTime   = packet.decodeTime + packet.duration
         .audioTracks[trackIndex].hasPackets = true
     }
 
-    // Writes and flushes the current group, making every packet in it recoverable.
+    // Writes and flushes pending video and audio groups, making their packets recoverable.
     mtd flush() fail
     {
         if .isEnded do
             fail BadParameterError{"cannot flush an ended fragmented MP4"}
-        if .pendingPackets.count
-        {
-            if .sequence == Swag.U32.Max do
-                fail OverflowError{"fragmented MP4 sequence number is exhausted"}
-            try .writeFragment(.pendingPackets.toSlice(), .pendingData.toSlice())
-            .pendingPackets.clear()
-            .pendingData.clear()
-            .sequence += 1
-        }
+        try .flushVideo()
+
+        for index in .audioTracks.count do
+            try .flushAudioTrack(cast(u32, index))
 
         try .sink.flush()
     }
@@ -245,6 +265,32 @@ impl FragmentedWriter
 
 private impl FragmentedWriter
 {
+    mtd flushVideo() fail
+    {
+        if not .pendingPackets.count do
+            return
+        if .sequence == Swag.U32.Max do
+            fail OverflowError{"fragmented MP4 sequence number is exhausted"}
+        try .writeFragment(.pendingPackets.toSlice(), .pendingData.toSlice())
+        .pendingPackets.clear()
+        .pendingData.clear()
+        .sequence += 1
+        try .sink.flush()
+    }
+
+    mtd flushAudioTrack(index: u32) fail
+    {
+        if not .audioTracks[index].pendingPackets.count do
+            return
+        try .writeFragment(.audioTracks[index].pendingPackets.toSlice(),
+                           .audioTracks[index].pendingData.toSlice(),
+                           2 + index)
+        .audioTracks[index].pendingPackets.clear()
+        .audioTracks[index].pendingData.clear()
+        .sequence += 1
+        try .sink.flush()
+    }
+
     func createConfigured(fileName: string, width, height: s32, timescale: u32, avcConfig: const [..] u8, audioTracks: const [..] FragmentedAudioConfig, options: FragmentedOptions)->FragmentedWriter fail
     {
         if width <= 0 or width > Swag.U16.Max or height <= 0 or height > Swag.U16.Max do
@@ -253,6 +299,8 @@ private impl FragmentedWriter
             fail BadParameterError{"fragmented MP4 needs a positive timescale"}
         if not options.maxPacketsPerFragment or
            options.maxPacketsPerFragment > 1_024 or
+           not options.maxAudioPacketsPerFragment or
+           options.maxAudioPacketsPerFragment > 1_024 or
            not options.maxBufferedBytes or
            options.maxBufferedBytes > Swag.U32.Max - 8 do
             fail BadParameterError{"fragmented MP4 grouping limits are outside the supported range"}

@@ -232,10 +232,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 - Evidence: `Mp4.FragmentedPacketReader` now exposes demuxed H.264 and AAC-LC packets with their
   source track timestamps and decoder configurations. A video and two-sound-track remux preserves
-  packet bytes and times without decoding. Trimming or cutting an hours-long recording
-  (app.capture.037) still needs a cut operation that joins the retained ranges.
-- Next: cut demuxed video and sound packets on key frames, rebasing timestamps across removed
-  ranges and preserving parameter sets; extend the packet path to timed metadata when available.
+  packet bytes and times without decoding. `Mp4.copyVideoRanges` joins selected closed H.264 groups
+  on key frames, rebases both clocks, and replaces the output only after it is complete. It writes
+  a video-only file; an hours-long recording with sound (app.capture.037) needs sound cuts too.
+- Next: join AAC packets across retained video ranges while keeping sound aligned, and extend the
+  packet path to timed metadata when available.
 - Done when: a recording cut into kept ranges on key frames produces a file whose packets are
   byte-identical to the source's, with continuous timestamps and sound in sync across each join.
 - Related: std.video.016, app.capture.037

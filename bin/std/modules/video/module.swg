@@ -48,7 +48,8 @@ Four codecs ship in the box:
   Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
   AAC-LC sound tracks. [[Video.Mp4.FragmentedPacketReader]] exposes their original compressed
-  packets and track clocks for copying without decoding. [[Video.Mp4.FragmentedIndex]] reads an
+  packets and track clocks for copying without decoding. [[Video.Mp4.copyVideoRanges]] joins
+  key-frame-aligned H.264 ranges into a video-only file without re-encoding. [[Video.Mp4.FragmentedIndex]] reads an
   optional final key-frame index from the file tail and locates a fragment without scanning media
   data. [[Video.Reader]] reads samples
   by scanning fragment headers and

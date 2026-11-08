@@ -241,6 +241,22 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(rejected.value() is BadParameterError)
     discard catch packets.readAudioPacket(0, 0, &bytes) as rejected
     Swag.require(rejected.value() is BadParameterError)
+
+    let cutPath = videoTempPath("fragmented-presentation-cut", "mp4")
+    defer discard catch File.delete(cutPath)
+    const Whole: [1] Mp4.VideoPacketRange = [{0, 3}]
+    expect Mp4.copyVideoRanges(path, cutPath, Swag.makeSlice(&Whole[0], 1))
+    var copied = expect Mp4.FragmentedPacketReader.open(cutPath)
+    for index in 3
+    {
+        let info = expect copied.packetInfo(index)
+        Swag.require(info.decodeTime == cast(u64, index) * 512)
+        Swag.require(info.presentationTime == cast(s64, Present[index] - 1000))
+    }
+
+    var display = expect Reader.open(cutPath)
+    Swag.require(Math.isEqualEpsilon(display.frameTimestamp(1), 0.04, 0.000001))
+    Swag.require(Math.isEqualEpsilon(display.frameTimestamp(2), 0.08, 0.000001))
 }
 
 // The packet reader reports its fragmented-H.264 scope for a classic Motion JPEG MP4.
@@ -249,6 +265,69 @@ func fragmentedPacketSource()->ByteSource fail
     var rejected: Swag.Error
     discard catch Mp4.FragmentedPacketReader.open(videoFixturePath("ffmpeg-mjpeg.mp4")) as rejected
     Swag.require(rejected.value() is UnsupportedFormatError)
+}
+
+// Two closed GOPs join across a removed GOP with unchanged packet bytes and continuous clocks.
+#test
+{
+    let sourcePath   = videoTempPath("fragmented-cut-source", "mp4")
+    let targetPath   = videoTempPath("fragmented-cut-target", "mp4")
+    let sentinelPath = videoTempPath("fragmented-cut-invalid", "mp4")
+    defer discard catch File.delete(sourcePath)
+    defer discard catch File.delete(targetPath)
+    defer discard catch File.delete(sentinelPath)
+    let config = expect fragmentedConfig()
+    var writer = expect Mp4.FragmentedWriter.create(sourcePath, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024})
+    for group in 3
+    {
+        var video = expect fragmentedPacketSource()
+        for index in 3
+        {
+            let picture = expect fragmentedPacket(&video)
+            let time    = cast(u64, group * 3 + index) * 512
+            expect writer.addPacket(EncodedPacket{picture.toSlice(), time, time, 512, index == 0})
+        }
+    }
+
+    expect writer.end()
+
+    const Kept: [2] Mp4.VideoPacketRange = [{0, 3}, {6, 9}]
+    expect Mp4.copyVideoRanges(sourcePath, targetPath, Swag.makeSlice(&Kept[0], 2), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 1, true})
+    var source = expect Mp4.FragmentedPacketReader.open(sourcePath)
+    var copied = expect Mp4.FragmentedPacketReader.open(targetPath)
+    Swag.require(source.packetCount() == 9 and copied.packetCount() == 6)
+    var originalBytes: Array'u8
+    var copiedBytes:   Array'u8
+    for index in 6
+    {
+        let sourceIndex = index < 3 ? index : index + 3
+        let original    = expect source.readPacket(sourceIndex, &originalBytes)
+        let result      = expect copied.readPacket(index, &copiedBytes)
+        Swag.require(result.decodeTime == index * 512 and result.presentationTime == index * 512)
+        Swag.require(result.bytes.count == original.bytes.count and result.isKeyFrame == original.isKeyFrame)
+        Swag.require(Memory.compare(result.bytes.buffer, original.bytes.buffer, result.bytes.count) == 0)
+    }
+
+    var index = expect Mp4.FragmentedIndex.open(targetPath)
+    Swag.require(index.entryCount() == 2)
+
+    discard expect File.writeAllText(sentinelPath, "keep")
+    const NotKey:  [1] Mp4.VideoPacketRange = [{1, 3}]
+    const BadEnd:  [1] Mp4.VideoPacketRange = [{0, 2}]
+    const Overlap: [2] Mp4.VideoPacketRange = [{0, 3}, {2, 6}]
+    var rejected: Swag.Error
+    discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&NotKey[0], 1)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&BadEnd[0], 1)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.copyVideoRanges(sourcePath, sentinelPath, Swag.makeSlice(&Overlap[0], 2)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require((expect File.readAllText(sentinelPath)) == "keep")
+
+    source.close()
+    expect Mp4.copyVideoRanges(sourcePath, sourcePath, Swag.makeSlice(&Kept[0], 2))
+    var replaced = expect Mp4.FragmentedPacketReader.open(sourcePath)
+    Swag.require(replaced.packetCount() == 6)
 }
 
 // A fragment with an offset outside its media-data box or an incomplete tail is rejected.

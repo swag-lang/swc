@@ -255,6 +255,41 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(summary.audioTracks[1].endDecodeTime == 3072 and not summary.hasIncompleteTail)
 }
 
+// A late capture can fill its missed slot before MP4 writes the next picture.
+#test
+{
+    let path = videoTempPath("fragmented-paced", "mp4")
+    defer discard catch File.delete(path)
+    let config  = expect fragmentedConfig()
+    var source  = expect fragmentedPacketSource()
+    let picture = expect fragmentedPacket(&source)
+    var pacer   = expect FramePacer.create(expect FrameRate.create(60, 1), 1000, 90_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 64, 48, 90_000, config.toSlice())
+    var slot: FrameSlot
+    Swag.require(expect pacer.tryAccept(10_000, &slot))
+    expect writer.addPacket(EncodedPacket{picture.toSlice(), slot.decodeTime, slot.decodeTime,
+                                          slot.duration, true})
+    Swag.require(expect pacer.tryAccept(10_034, &slot))
+    Swag.require(slot.index == 2 and slot.skippedFrames == 1)
+    let repeated = expect pacer.slotAt(1)
+    expect writer.addPacket(EncodedPacket{picture.toSlice(), repeated.decodeTime, repeated.decodeTime,
+                                          repeated.duration, true})
+    expect writer.addPacket(EncodedPacket{picture.toSlice(), slot.decodeTime, slot.decodeTime,
+                                          slot.duration, true})
+    expect writer.end()
+    var packets = expect Mp4.FragmentedPacketReader.open(path)
+    Swag.require(packets.packetCount() == 3 and writer.videoPacketCount() == 3)
+    for index in 3
+    {
+        let info = expect packets.packetInfo(index)
+        Swag.require(info.decodeTime == index * 1500 and info.duration == 1500)
+    }
+
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3)
+    Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(2), 2.0 / 60.0, 0.000001))
+}
+
 // Rejected packets do not advance the sequence or leave a partial fragment.
 #test
 {

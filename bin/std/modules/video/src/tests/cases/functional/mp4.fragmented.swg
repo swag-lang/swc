@@ -735,10 +735,10 @@ func fragmentedPacketSource()->ByteSource fail
     var writer = expect Mp4.FragmentedWriter.create(path, 64, 48, 12_800, config.toSlice(), Mp4.FragmentedOptions{3, 4 * 1024 * 1024, 1, true})
     var video  = expect fragmentedPacketSource()
     let first  = expect fragmentedPacket(&video)
-    expect writer.addPacket(EncodedPacket{first.toSlice(), 0, 0, 512, true})
+    expect writer.addPacket(EncodedPacket{first.toSlice(), 512, 512, 512, true})
     let second = expect fragmentedPacket(&video)
-    expect writer.addPacket(EncodedPacket{second.toSlice(), 512, 512, 512, false})
-    expect writer.addPacket(EncodedPacket{first.toSlice(), 1024, 1024, 512, true})
+    expect writer.addPacket(EncodedPacket{second.toSlice(), 1024, 1024, 512, false})
+    expect writer.addPacket(EncodedPacket{first.toSlice(), 1536, 1536, 512, true})
     expect writer.end()
 
     let file = expect File.readAllBytes(path)
@@ -775,7 +775,7 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(expect source.readBigEndian'u32() == 2)
     for index in 2
     {
-        Swag.require(expect source.readBigEndian'u64() == cast(u64, index) * 1024)
+        Swag.require(expect source.readBigEndian'u64() == cast(u64, index) * 1024 + 512)
         Swag.require(expect source.readBigEndian'u64() == moofOffsets[index])
         Swag.require(expect source.readBigEndian'u8() == 1)
         Swag.require(expect source.readBigEndian'u8() == 1)
@@ -784,6 +784,27 @@ func fragmentedPacketSource()->ByteSource fail
 
     expect source.seek(raw.count - 4)
     Swag.require(expect source.readBigEndian'u32() == raw.count - mfraOffset)
+
+    var index = expect Mp4.FragmentedIndex.open(path)
+    Swag.require(index.entryCount() == 2)
+    var rejected: Swag.Error
+    discard catch Mp4.FragmentedIndex.open(path, 0) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch Mp4.FragmentedIndex.open(path, 2) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+    let firstPoint = expect index.point(0)
+    let lastPoint  = expect index.point(1)
+    Swag.require(firstPoint.decodeTime == 512 and firstPoint.moofOffset == moofOffsets[0])
+    Swag.require(lastPoint.decodeTime == 1536 and lastPoint.moofOffset == moofOffsets[1])
+    var found: Mp4.FragmentedSeekPoint
+    Swag.require(not expect index.tryFindAtOrBefore(511, &found))
+    Swag.require(expect index.tryFindAtOrBefore(1535, &found))
+    Swag.require(found.decodeTime == 512 and found.sampleNumber == 1)
+    Swag.require(expect index.tryFindAtOrBefore(1536, &found))
+    Swag.require(found.decodeTime == 1536 and found.moofOffset == moofOffsets[1])
+    Swag.require(expect index.tryFindAtOrBefore(Swag.U64.Max, &found))
+    Swag.require(found.decodeTime == 1536)
+    index.close()
 
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 3)
@@ -794,4 +815,58 @@ func fragmentedPacketSource()->ByteSource fail
         var recovered = expect Reader.openMemory("indexed-cut.mp4", raw[0 until cut])
         Swag.require(recovered.frameCount() == 3)
     }
+
+    let cutPath = videoTempPath("fragmented-index-missing", "mp4")
+    defer discard catch File.delete(cutPath)
+    discard expect File.writeAllBytes(cutPath, raw[0 until mfraOffset])
+    discard catch Mp4.FragmentedIndex.open(cutPath) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    var damaged: Array'u8
+    damaged.add(raw)
+    damaged[tfraOffset + 32] = 0xFF
+    discard expect File.writeAllBytes(cutPath, damaged.toSlice())
+    discard catch Mp4.FragmentedIndex.open(cutPath) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    damaged.clear()
+    damaged.add(raw)
+    for byte in 8 do
+        damaged[tfraOffset + 44 + byte] = 0
+    discard expect File.writeAllBytes(cutPath, damaged.toSlice())
+    discard catch Mp4.FragmentedIndex.open(cutPath) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    // Version zero and four-byte fragment/run/sample numbers are also valid ISO-BMFF indexes.
+    var trailer: ConcatBuffer
+    var sink = ByteSink.createMemory(&trailer)
+    expect sink.writeBigEndian(88'u32)
+    expect sink.writeText("mfra")
+    expect sink.writeBigEndian(64'u32)
+    expect sink.writeText("tfra")
+    expect sink.writeBigEndian(0'u32)
+    expect sink.writeBigEndian(1'u32)
+    expect sink.writeBigEndian(0x3F'u32)
+    expect sink.writeBigEndian(2'u32)
+    for index in 2
+    {
+        expect sink.writeBigEndian(cast(u32, index) * 1024 + 512)
+        expect sink.writeBigEndian(cast(u32, moofOffsets[index]))
+        for 3 do
+            expect sink.writeBigEndian(1'u32)
+    }
+
+    expect sink.writeBigEndian(16'u32)
+    expect sink.writeText("mfro")
+    expect sink.writeBigEndian(0'u32)
+    expect sink.writeBigEndian(88'u32)
+    var legacy: Array'u8
+    legacy.add(raw[0 until mfraOffset])
+    let trailerBytes = trailer.toArray()
+    legacy.add(trailerBytes.toSlice())
+    discard expect File.writeAllBytes(cutPath, legacy.toSlice())
+    var legacyIndex = expect Mp4.FragmentedIndex.open(cutPath)
+    Swag.require(legacyIndex.entryCount() == 2)
+    let point = expect legacyIndex.point(1)
+    Swag.require(point.decodeTime == 1536 and point.moofOffset == moofOffsets[1])
 }

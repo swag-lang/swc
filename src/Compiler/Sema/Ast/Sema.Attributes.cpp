@@ -419,6 +419,7 @@ namespace
     {
         Utf8                        moduleName;
         Utf8                        functionName;
+        Utf8                        fwdMoveFunctionName;
         Utf8                        linkModuleName;
         std::optional<CallConvKind> callConvKind;
         if (!args.empty())
@@ -434,7 +435,10 @@ namespace
             callConvKind = explicitCallConvKind;
         }
 
-        outAttributes.setForeign(moduleName, functionName, linkModuleName, callConvKind);
+        if (args.size() > 4)
+            SWC_RESULT(collectForeignStringValue(sema, fwdMoveFunctionName, args[4]));
+
+        outAttributes.setForeign(moduleName, functionName, linkModuleName, callConvKind, fwdMoveFunctionName);
         return Result::Continue;
     }
 

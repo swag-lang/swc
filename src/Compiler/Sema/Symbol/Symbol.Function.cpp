@@ -886,6 +886,18 @@ Utf8 SymbolFunction::resolveForeignFunctionName(const TaskContext& ctx) const
     if (!isForeign())
         return {};
 
+    if (!attributes().foreignFwdMoveFunctionName.empty())
+    {
+        const bool copyVariant = std::ranges::any_of(parameters_, [](const SymbolVariable* parameter) {
+            return parameter->hasExtraFlag(SymbolVariableFlagsE::FwdCopy);
+        });
+        const bool moveVariant = !copyVariant && std::ranges::any_of(parameters_, [&](const SymbolVariable* parameter) {
+            return ctx.typeMgr().get(parameter->typeRef()).isMoveReference();
+        });
+        if (moveVariant)
+            return attributes().foreignFwdMoveFunctionName;
+    }
+
     if (!foreignFunctionName().empty())
         return Utf8{foreignFunctionName()};
 

@@ -631,20 +631,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   report and remove completed acceptance work from this entry.
 - Related: compiler.core.004, compiler.core.005, compiler.core.097.
 
-### compiler.core.100 — Preserve forwarding overload identity in exported module interfaces
-
-- Evidence: an exported `IconAtlas.setRaster(cell: s32, image: #fwd Image)` instantiated
-  by GUI tests emitted two foreign declarations into `gui.swg`, one for the copy symbol and
-  one for the move symbol, both retaining the identical `#fwd Image` parameter. Capture's
-  call with `expect Image.decode(...)` then failed with `ambiguous function name 'setRaster'`.
-  Both candidates pointed to those adjacent generated declarations. The same API passed its
-  two in-module JIT tests before the downstream import failed.
-- Next: reduce to a producer and consumer with one exported non-generic forwarding method;
-  inspect export specialization and import reconstruction. Preserve copy/move distinction
-  without exporting two identical source signatures or changing their native bindings.
-- Done when: separate-workspace consumers can call both forwarding forms after producer
-  specialization, with native and JIT coverage and no ambiguous import candidates.
-
 ### compiler.core.103 — Avoid rebuilding production dependencies for test-only edits
 
 - Evidence: changing an assertion in GUI's guarded `src/tests/cases/golden/headless.render.swg`
@@ -689,6 +675,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   then native tuning reports `unknown name 'loadArguments'` at its declaration. Prefixing
   the local name with `__` gives the same result. Returning the host setup status directly
   to `__setupRuntime` compiles and passes the native argument-preservation reproducer.
+- Linux DevMode reductions: a nested helper in an ordinary function and the same helper in a
+  temporary copy of `os.linux.process.swg`'s `__hostSetupProcessArguments` both compile and run
+  as native tests. The Windows runtime path remains the failing boundary.
 - Next: reduce a nested runtime helper to a constant return and inspect runtime cloning,
   symbol publication and native lowering. Establish whether ordinary source nesting can
   reproduce it before choosing a source-suite or compiler filesystem regression.

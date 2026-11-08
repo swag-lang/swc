@@ -153,8 +153,8 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 ### std.audio.015 — No compressed sound encoding
 
 - Evidence: every codec under `codec/` decodes. `Wav.Writer` now streams mono or stereo PCM16
-  to a classic RIFF file, updating the playable header on flush and resuming from that prefix
-  after an interruption. Swag Capture recordings
+  to a classic RIFF file, updating the playable header on flush, filling silent gaps in bounded
+  memory, and resuming from that prefix after an interruption. Swag Capture recordings
   (app.capture.013) still need a compressed track for MP4 and a lossless compressed format for
   sound-only captures.
 - Next: add an encoder contract mirroring the decoder registry, producing packets with

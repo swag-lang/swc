@@ -80,7 +80,7 @@ impl Writer
         let blockAlign    = try source.readLittleEndian'u16()
         let bitsPerSample = try source.readLittleEndian'u16()
         try source.seek(40)
-        let dataSize      = try source.readLittleEndian'u32()
+        let dataSize = try source.readLittleEndian'u32()
         if formatSize != 16 or
            formatTag != 1 or
            (channels != 1 and channels != 2) or
@@ -129,9 +129,7 @@ impl Writer
             fail BadParameterError{"cannot append to an ended WAV writer"}
         if samples.count % .channels do
             fail BadParameterError{"WAV samples must contain complete interleaved frames"}
-        let usedBytes = .frameCount * .channels * #sizeof(s16)
-        if samples.count > (Swag.U32.Max - 36 - usedBytes) / #sizeof(s16) do
-            fail OverflowError{"WAV data exceeds the classic RIFF size limit"}
+        try .validateAdditionalFrames(samples.count / .channels)
         let bytes = samples.count * #sizeof(s16)
 
         if Core.BIG_ENDIAN
@@ -145,6 +143,27 @@ impl Writer
         }
 
         .frameCount += samples.count / .channels
+    }
+
+    // Appends `count` silent sample frames using a fixed-size zero buffer.
+    //
+    // This fills a gap without allocating memory proportional to its duration. A request that
+    // exceeds the remaining RIFF capacity fails before writing any silence.
+    mtd addSilence(count: u64) fail
+    {
+        if .isEnded do
+            fail BadParameterError{"cannot append to an ended WAV writer"}
+        try .validateAdditionalFrames(count)
+        var zeros: [32 * 1024] u8
+        let bytesPerFrame = cast(u64, .channels) * #sizeof(s16)
+        var remaining     = count
+        while remaining
+        {
+            let frames = Math.min(remaining, zeros.count / bytesPerFrame)
+            try .sink.write(Swag.makeSlice(&zeros[0], frames * bytesPerFrame))
+            .frameCount += frames
+            remaining   -= frames
+        }
     }
 
     // Updates the RIFF and data lengths and flushes a playable prefix to the file.
@@ -173,6 +192,14 @@ impl Writer
 
 private impl Writer
 {
+    mtd validateAdditionalFrames(count: u64) fail
+    {
+        let usedBytes     = .frameCount * .channels * #sizeof(s16)
+        let bytesPerFrame = cast(u64, .channels) * #sizeof(s16)
+        if count > (Swag.U32.Max - 36 - usedBytes) / bytesPerFrame do
+            fail OverflowError{"WAV data exceeds the classic RIFF size limit"}
+    }
+
     mtd writeHeader() fail
     {
         try .sink.writeText("RIFF")

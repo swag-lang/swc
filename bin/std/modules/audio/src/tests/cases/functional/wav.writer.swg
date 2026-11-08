@@ -96,6 +96,7 @@ using Swag, Core, Core.Errors
         expect writer.flush()
         expect writer.addFrames(Swag.makeSlice(&Lost[0], 2))
     }
+
     var tail = expect ByteSink.openAppendFile(path.toString())
     expect tail.writeByte(0xAA)
     expect tail.close()
@@ -135,4 +136,35 @@ using Swag, Core, Core.Errors
     discard catch Wav.Writer.resume(path.toString()) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
     Swag.require((expect File.info(path)).size == complete.count - 1)
+}
+
+// Silence spans multiple fixed-size chunks and preserves the samples around the gap.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-writer-silence-%.wav", Guid128.random()))
+    defer discard catch File.delete(path)
+    var writer = expect Wav.Writer.create(path.toString(), 2, 48_000)
+    var rejected: Swag.Error
+    discard catch writer.addSilence(Swag.U64.Max) as rejected
+    Swag.require(rejected.value() is OverflowError)
+    Swag.require(writer.sampleFrameCount() == 0 and writer.writtenByteCount() == 44)
+    const First: [2] s16 = [123, -123]
+    const Last:  [2] s16 = [456, -456]
+    expect writer.addFrames(Swag.makeSlice(&First[0], 2))
+    expect writer.addSilence(20_000)
+    expect writer.addFrames(Swag.makeSlice(&Last[0], 2))
+    expect writer.end()
+    Swag.require(writer.sampleFrameCount() == 20_002)
+    let sound = expect SoundFile.load(path.toString(), preloadData: false)
+    Swag.require(sound.sampleFrameCount() == 20_002 and sound.payloadSize() == 80_008)
+    let start = expect sound.readPayload(0, 8)
+    Swag.require(Slice.equals(start.toSlice(), [123'u8, 0, 133, 255, 0, 0, 0, 0]))
+    let middle = expect sound.readPayload(32 * 1024, 16)
+    for byte in middle do
+        Swag.require(byte == 0)
+    let end = expect sound.readPayload(80_004, 4)
+    Swag.require(Slice.equals(end.toSlice(), [200'u8, 1, 56, 254]))
+    discard catch writer.addSilence(0) as rejected
+    Swag.require(rejected.value() is BadParameterError)
 }

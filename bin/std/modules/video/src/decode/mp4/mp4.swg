@@ -265,11 +265,39 @@ private impl Layout
     mtd parse(source: *ByteSource) fail
     {
         var pending: FragmentSample
-        var hasPending = false
-        while source.position() + BoxHeaderSize <= source.size()
+        var hasPending  = false
+        var interrupted = false
+        while source.position() < source.size()
         {
-            let start = source.position()
-            let box   = try readBox(source, source.size())
+            let start     = source.position()
+            let remaining = source.size() - start
+            if remaining < BoxHeaderSize
+            {
+                if .fragments.isEmpty() do
+                    fail InvalidFormatError{"MP4 stream has a partial box header"}
+                interrupted = true
+                break
+            }
+
+            // The writer patches `moof` when complete and declares `mdat` before its payload.
+            // A partial final box cannot invalidate fragments already indexed.
+            if .fragments.count
+            {
+                let declared = try source.readBigEndian'u32()
+                let kind     = try source.readBigEndian'u32()
+                try source.seek(start)
+                if (kind == FragmentId or kind == MediaDataId) and
+                   ((kind == FragmentId and not declared) or
+                    (declared >= BoxHeaderSize and declared > remaining))
+                {
+                    interrupted = true
+                    break
+                }
+            }
+
+            let box = try readBox(source, source.size())
+            if hasPending and box.kind != MediaDataId do
+                fail InvalidFormatError{"MP4 movie fragment is not followed by media data"}
             switch box.kind
             {
             case MovieId:
@@ -321,9 +349,9 @@ private impl Layout
             try source.seek(box.end)
         }
 
-        if hasPending do
+        if hasPending and .fragments.isEmpty() do
             fail InvalidFormatError{"MP4 movie fragment has no complete media-data box"}
-        if source.position() != source.size() do
+        if not interrupted and not hasPending and source.position() != source.size() do
             fail InvalidFormatError{"MP4 stream has trailing bytes outside a box"}
         if not .hasMovie do
             fail InvalidFormatError{"MP4 stream has no movie box"}
@@ -1059,8 +1087,9 @@ impl Track
 // Reads ISO-BMFF files carrying Motion JPEG, H.264, or H.265 video samples.
 //
 // Opening expands classic sample tables or single-sample H.264 movie fragments into one direct
-// offset-and-size entry per frame. Frame payloads remain in the source and are read only when
-// requested. A Motion JPEG sample is a key frame, so seeking costs one table lookup; a coded
+// offset-and-size entry per frame. A partial final fragment is ignored after earlier fragments
+// have completed. Frame payloads remain in the source and are read only when requested.
+// A Motion JPEG sample is a key frame, so seeking costs one table lookup; a coded
 // stream seeks by decoding forward from the nearest sync sample, and its frames are returned
 // in display order whatever order the file stores them in.
 //

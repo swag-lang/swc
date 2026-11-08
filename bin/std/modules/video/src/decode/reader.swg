@@ -215,9 +215,9 @@ impl Reader
 
     // Opens `fileName` and reads its stream metadata.
     //
-    // The extension selects the decoder. A fragmented MP4 scans each fragment header at open;
-    // frame payloads remain in the file and are read only when requested. The file stays open
-    // until the reader is closed.
+    // The extension selects the decoder. A fragmented MP4 scans each fragment header at open
+    // and recovers completed fragments when the final one is incomplete. Frame payloads remain
+    // in the file and are read only when requested. The file stays open until the reader is closed.
     //
     // `pictureOnly` opens the pictures alone: the reader reports no sound or subtitle track,
     // and a container that indexes its sound beside its pictures reads nothing for it. A

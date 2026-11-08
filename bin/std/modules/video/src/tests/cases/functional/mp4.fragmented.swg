@@ -116,9 +116,17 @@ func fragmentedConfig()->Array'u8 fail
     for offset in raw.count - 3 where Memory.compare(raw.buffer + offset, "moof".buffer, 4) == 0 do
         lastFragment = offset - 4
     Swag.require(lastFragment < raw.count)
-    var prefix = expect Reader.openMemory("stopped.mp4", raw[0 until lastFragment])
-    Swag.require(prefix.frameCount() == 2)
-    Swag.require((expect prefix.decodeFrame(1)).width == 64)
+
+    // Every incomplete prefix of the final fragment leaves the preceding two frames playable.
+    let expected = expect original.decodeFrame(1)
+    for cut in lastFragment to raw.count - 1
+    {
+        var prefix = expect Reader.openMemory("stopped.mp4", raw[0 until cut])
+        Swag.require(prefix.frameCount() == 2)
+        let recovered = expect prefix.decodeFrame(1)
+        Swag.require(recovered.byteCount == expected.byteCount)
+        Swag.require(Memory.compare(recovered.pixels.storage(), expected.pixels.storage(), recovered.byteCount) == 0)
+    }
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.

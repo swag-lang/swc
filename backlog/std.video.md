@@ -209,8 +209,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   `Mp4.FragmentedWriter` now accepts length-prefixed H.264 packets with decode and presentation
   times, writes one `moof`/`mdat` pair per packet, and flushes every completed fragment. FFmpeg
   reads a file stopped at a fragment boundary. `Video.Reader` now scans these single-sample video
-  fragments, including a file stopped at a fragment boundary. The writer has one video track, no
-  audio or metadata tracks, and no final random-access index.
+  fragments and recovers completed frames when the final fragment is cut at any point. The writer
+  has one video track, no audio or metadata tracks, and no final random-access index.
 - Next: group packets into bounded fragments, add `mp4a` sound and timed metadata tracks with
   interleaving, and extend `Video.Reader` to those tracks and grouped fragments. Add a key-frame index
   (`mfra`/`tfra`) so seeking does not scan a long file. Keep 64-bit offsets and a timescale that

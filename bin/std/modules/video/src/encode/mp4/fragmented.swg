@@ -27,8 +27,8 @@ private const Iso6BrandId           = fourCc('i'u32, 's'u32, 'o'u32, '6'u32)
 // The first packet must be a key frame. Timestamps use the `timescale` given at creation.
 //
 // The file has no final index; sequential playback and recovery of complete fragments work before
-// [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] can open these complete video fragments by
-// scanning their headers.
+// [[Video.Mp4.FragmentedWriter.end]]. [[Video.Reader]] scans their headers and ignores a partial
+// final fragment after at least one complete video fragment.
 #[Swag.NoCopy]
 struct FragmentedWriter
 {

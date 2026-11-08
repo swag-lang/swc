@@ -164,7 +164,7 @@ def run_stage(stage, scratch, environment, timeout, admission):
                 raise
             code, state = 124, 'timeout'
     content = log.read_text(errors='replace')
-    if code != 0:
+    if code != stage.expected_returncode:
         state = 'failed' if state == 'passed' else state
     elif stage.expected_output and stage.expected_output not in content:
         code, state = 1, 'missing-output'

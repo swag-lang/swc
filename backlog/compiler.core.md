@@ -673,10 +673,12 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   sequence. Reversing dependency modules alone does not establish the order of hooks inside one
   module. Native artifacts, scripts and JIT tests now run multiple drop hooks in reverse
   source-location order, with passing Linux regressions for each path. The script regression
-  failed on the preceding compiler and passes with the correction.
-- Next: cover hooks in dependent modules and a failing shutdown hook. Check that every remaining
-  hook runs after one fails, and that resource release completes before restoring test data or
-  unloading generated code.
+  failed on the preceding compiler and passes with the correction. A script now attempts every
+  remaining drop hook after one panics, while still exiting with an error; a failing-script
+  regression requires the later hook's output marker.
+- Next: cover hooks in dependent modules and a failing native shutdown hook. Check that resource
+  release completes after failed entry points and before restoring test data or unloading generated
+  code.
 - Done when: the documented order is observed consistently by every execution mode, including
   failed test and failed-hook paths, with regression tests that record the complete sequence.
 

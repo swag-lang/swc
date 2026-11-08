@@ -93,10 +93,14 @@ class ToolTests(unittest.TestCase):
             sandbox = next(stage for stage in self.stages if stage.name.endswith('sandbox_consumer'))
             self.assertIn('--rebuild', sandbox.command)
             self.assertIn('--no-test-native', sandbox.command)
-            self.assertEqual(self.stages[-1].expected_output, 'SWAG_IMPORTED_CORE_WITHOUT_USING_RAN')
+            imported = next(stage for stage in self.stages if stage.name == 'workspace-import-script')
+            self.assertEqual(imported.expected_output, 'SWAG_IMPORTED_CORE_WITHOUT_USING_RAN')
             png = next(stage for stage in self.stages if stage.name == 'workspace-import-png-script')
             self.assertEqual(png.expected_output, 'SWAG_IMPORTED_PNG_RAN')
             self.assertTrue(png.command[-1].endswith('import_png.swgs'))
+            failed_drop = next(stage for stage in self.stages if stage.name == 'workspace-failed-drop-script')
+            self.assertEqual(failed_drop.expected_returncode, 5)
+            self.assertEqual(failed_drop.expected_output, 'SWAG_SECOND_DROP_RAN')
 
     def test_workers_and_explicit_runtime_override(self):
         for workers, expected in (('1', '1'), ('2', '2'), ('0', '3'), ('8', '3')):
@@ -149,6 +153,15 @@ class ToolTests(unittest.TestCase):
                   tool.Stage('later', [sys.executable, '-c', f'open({str(marker)!r}, "w").close()'])]
         self.assertEqual(tool.execute(stages, os.environ.copy()), 7)
         self.assertFalse(marker.exists())
+
+    def test_expected_failure_still_needs_its_output_marker(self):
+        command = [sys.executable, '-c', 'print("second drop ran"); raise SystemExit(5)']
+        stage = tool.Stage('failed drop', command, expected_output='second drop ran', expected_returncode=5)
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(tool.execute([stage], os.environ.copy()), 0)
+        stage.expected_output = 'missing marker'
+        with redirect_stdout(io.StringIO()):
+            self.assertNotEqual(tool.execute([stage], os.environ.copy()), 0)
 
     def test_script_needs_output_marker(self):
         with redirect_stdout(io.StringIO()):

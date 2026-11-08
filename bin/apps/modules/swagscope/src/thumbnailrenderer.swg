@@ -19,11 +19,16 @@ impl ThumbnailRenderer
 {
     func create()->ThumbnailRenderer fail
     {
-        let family = FontFamily.findSystemFont("Segoe UI")
-        if family.name.isEmpty() do
-            fail Errors.InvalidFormatError{"a system font is unavailable"}
-
-        let face = try FontFamily.createTypeFace(family, .Regular)
+        var face: *TypeFace?
+        for name in ["Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", "Arial"]
+        {
+            let family = FontFamily.findSystemFont(name)
+            if family.name.isEmpty() do
+                continue
+            face = catch FontFamily.createTypeFace(family, .Regular)
+            if face do
+                break
+        }
         if not face do
             fail Errors.InvalidFormatError{"a system font is unavailable"}
 

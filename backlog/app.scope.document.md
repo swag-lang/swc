@@ -1,6 +1,6 @@
 # Swag Scope Document Viewer Backlog
 
-This backlog covers Swag Scope's Markdown, HTML, PDF, office-document, and ebook reading surfaces.
+This backlog covers Swag Scope's Markdown, HTML, PDF, Office Open XML, and ebook reading surfaces.
 Parser, layout, and renderer defects remain with their engines in [std.gui.markdown.md](std.gui.markdown.md),
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
@@ -139,11 +139,9 @@ integration around those engines.
 ### app.scope.document.020 — Office Open XML files stop at the ZIP structure
 
 - Evidence: `.docx`, `.xlsx`, and `.pptx` are selected only by the Archive and Binary viewers,
-  so they still show a list of parts, as OpenDocument files do since their partial reader was
-  withdrawn (app.scope.opendocument.023).
-- Next: identify the shared document structure that can read paragraphs, headings, lists, tables,
-  and spreadsheet cells for both office families, so the complete OpenDocument reader and this one
-  do not grow two compatibility layers.
+  so they show a list of package parts rather than readable document content.
+- Next: define a bounded Office Open XML package and document model for paragraphs, headings,
+  lists, tables, and spreadsheet cells.
 - Done when: Office Open XML documents open through readable document and table surfaces rather
   than only their ZIP hierarchy.
 - Related: app.scope.text.015, app.scope.binary.010

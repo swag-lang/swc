@@ -2,6 +2,43 @@
 #global if #os == Swag.TargetOs.Linux
 #global private
 
+// Fill the kernel queue without reading it. Alternating create/delete events for the same
+// pathname do not coalesce, so a bounded number of operations forces IN_Q_OVERFLOW.
+#[Swag.TestTag("integration.watcher.overflow")]
+#test
+{
+    var limitText = expect File.readAllText("/proc/sys/fs/inotify/max_queued_events")
+    limitText.trim()
+    let limit = expect StrConv.toU32(limitText.toString())
+    Swag.require(limit > 0 and limit <= 65536, "bounded kernel-overflow stress requires a queue limit no greater than 65536")
+
+    let root = CoreTests.makeFilesystemTestPath("core_watcher_kernel_overflow")
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    var watcher = expect Directory.watch(root, {filter: .FileName})
+    let path = expect Path.nativePath(Path.combine(root, "cycle"))
+    for limit / 2 + 128
+    {
+        Swag.require(Linux.symlinkat("target".buffer, Linux.AT_FDCWD, path.storage()) == 0)
+        Swag.require(Linux.unlinkat(Linux.AT_FDCWD, path.storage(), 0) == 0)
+    }
+
+    var overflow: bool
+    for limit / 64 + 16
+    {
+        let batch = expect watcher.next(0)
+        if batch.status == .Overflow
+        {
+            overflow = true
+            break
+        }
+        Swag.require(batch.status == .Changes, "watcher stopped before reporting kernel overflow")
+    }
+
+    Swag.require(overflow, "kernel queue loss was not reported as Overflow")
+    Swag.require((expect watcher.next(0)).status == .Cancelled)
+}
+
 #[Swag.TestTag("integration.watcher")]
 #test
 {

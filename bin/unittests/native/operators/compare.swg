@@ -104,6 +104,16 @@ func touch(flag: bool, delta: s32)->bool
     Swag.require(b)
 }
 
+// Ordered enum operands retain their enum type when another comparison uses them.
+#test
+{
+    var value = CmpEnum.B
+    Swag.require(value >= .A)
+    Swag.require(value <= .B)
+    Swag.require(value > .A)
+    Swag.require(not (value < .B))
+}
+
 #test
 {
     let a = cast(CompareStrictEnum, CmpEnum.A)

@@ -452,6 +452,7 @@ struct NotifyEvent
             ThemeChanged          // The resolved theme or inherited style changed.
             LanguageChanged       // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
             PressedElsewhere      // A press went where no window of the application hears it: in another application, or on the ground or the edge the system moves or sizes a window by; sent to the global hooks only.
+            KeyboardLayoutChanged // The system's active keyboard layout or keymap changed.
         }
 
         kind: Kind      // Notification kind.

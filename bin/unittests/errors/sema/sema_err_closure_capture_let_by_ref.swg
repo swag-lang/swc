@@ -7,3 +7,9 @@ alias ClosureNullary = func||()->s32
     let fixed = 10
     let bad: ClosureNullary = func|&fixed|()->s32 { return fixed }     // swc-expected-error {{sema_err_closure_capture_let_by_ref}}
 }
+
+#test
+{
+    let fixed: string = "capture path"
+    let bad = func|&fixed|()->bool => fixed.count != 0     // swc-expected-error {{sema_err_closure_capture_let_by_ref}}
+}

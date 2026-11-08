@@ -1499,6 +1499,29 @@ impl Application
             .notifyThemeChanged()
     }
 
+    // A native input-layout update is distinct from changing Gui.strings. Only the affected
+    // surface tree is notified, so Windows can forward one window message without duplicating
+    // notifications for the application's other top-level windows.
+    internal mtd notifyKeyboardLayoutChanged(root: *Wnd)
+    {
+        func updateLayout(app: *Application, wnd: *Wnd)
+        {
+            if not wnd.surface do
+                return
+
+            wnd.invalidate()
+            var children: Array'(*Wnd)
+            children.add(wnd.children.toSlice())
+            for child in children do
+                updateLayout(app, child)
+
+            if wnd.surface do
+                app.sendBroadcastNotifyEvent(wnd, .KeyboardLayoutChanged)
+        }
+
+        updateLayout(me, root)
+    }
+
     // Recomputes styles and emits a theme-change notification throughout every surface tree.
     mtd notifyThemeChanged()
     {

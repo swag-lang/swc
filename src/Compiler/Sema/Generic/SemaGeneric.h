@@ -20,6 +20,7 @@ struct AstFunctionDecl;
 struct AstNode;
 struct AttributeList;
 struct CastFailure;
+struct SourceCodeRef;
 
 namespace SemaGeneric
 {
@@ -191,7 +192,7 @@ namespace SemaGeneric
         bool bindGenericTypeParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode);
         bool bindGenericValueParam(Sema& sema, std::span<const GenericParamDesc> params, std::span<GenericResolvedArg> resolvedArgs, IdentifierRef idRef, AstNodeRef exprRef, uint32_t callArgIndex, ConstantRef cstRef, TypeRef typeRef, CastFailure* outFailure, GenericDeductionMode mode);
 
-        Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const WhereBindingText& bindingText, CastFailure* outFailure, AstNodeRef errorNodeRef);
+        Result checkFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, std::span<const SemaClone::ParamBinding> bindings, const WhereBindingText& bindingText, CastFailure* outFailure, SourceCodeRef errorCodeRef);
         Result validateGenericStructWhereConstraints(Sema& sema, const SymbolStruct& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef errorNodeRef);
     }
 }

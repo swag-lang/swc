@@ -230,6 +230,27 @@ impl Application
                 break
             defer Linux.free(event)
             let kind = event.response_type & 0x7F
+            if kind == 34 or (context.xkbEventBase != 0 and kind == context.xkbEventBase and event.pad0 <= 2)
+            {
+                var changed: bool
+                if kind == 34 or event.pad0 <= 1
+                {
+                    changed = LinuxDesktop.refreshKeyboardMap(context)
+                }
+                else
+                {
+                    let state = cast(*Linux.xcb_xkb_state_notify_event_t, cast(*void, event))
+                    changed = state.changed & 0xF0 != 0
+                }
+
+                if changed
+                {
+                    for owned in context.surfaces do
+                        owned.app.notifyKeyboardLayoutChanged(owned.wnd)
+                }
+                continue
+            }
+
             var id: u32
             switch kind
             {
@@ -314,8 +335,11 @@ impl Application
             switch kind
             {
             case 2, 3:
-                if not surface.isDisabled do
-                    LinuxDesktop.dispatchKey(context, surface, cast(*Linux.xcb_key_press_event_t, cast(*void, event)), kind == 2)
+                if not surface.isDisabled
+                {
+                    let packet = cast(*Linux.xcb_key_press_event_t, cast(*void, event))
+                    LinuxDesktop.dispatchKey(context, surface, packet, kind == 2)
+                }
 
             case 4, 5:
                 let packet = cast(*Linux.xcb_button_press_event_t, cast(*void, event))
@@ -469,6 +493,7 @@ namespace LinuxDesktop
     {
         let app = surface.app
         var key = app.nativeKeyPresses[packet.detail]
+        let wasPressed = key != .None
         if key == .None do
             key = portableKey(context, packet.detail, packet.state)
 
@@ -487,10 +512,15 @@ namespace LinuxDesktop
             modifiers |= .Control
         if packet.state & 8 do
             modifiers |= .Alt
-        var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: modifiers}
-        target.sendEvent(&event)
-        if pressed and not event.accepted do
-            app.routeUnhandledKey(target, key, event.modifiers)
+        // X11 can deliver another KeyPress while the key remains held. Keep the physical
+        // transition single, while still delivering the repeated text below.
+        if not pressed or not wasPressed
+        {
+            var event = KeyEvent{kind: pressed ? .Pressed : .Released, key: key, modifiers: modifiers}
+            target.sendEvent(&event)
+            if pressed and not event.accepted do
+                app.routeUnhandledKey(target, key, event.modifiers)
+        }
         if not pressed do
             return
         let keyboardState = unwrap context.keyboardState
@@ -502,9 +532,27 @@ namespace LinuxDesktop
             let status = context.xkb_compose_state_get_status(surface.compose)
             if status == 1 do
                 return
-            if status == 2 do
-                symbol = context.xkb_compose_state_get_one_sym(surface.compose)
-            if status == 2 or status == 3 do
+            if status == 2
+            {
+                // A compose result can contain several Unicode scalars and have no keysym.
+                let size = context.xkb_compose_state_get_utf8(surface.compose, null, 0)
+                if size > 0 and not (packet.state & (4 | 8))
+                {
+                    var bytes: Array'u8
+                    bytes.resize(cast(u64, size) + 1)
+                    let count = context.xkb_compose_state_get_utf8(surface.compose, bytes.buffer, bytes.count)
+                    if count > 0 and count <= size
+                    {
+                        let runes = Unicode.fromUtf8(Swag.makeSlice(bytes.buffer, cast(u64, count)))
+                        for r in runes do
+                            app.sendRuneEvent(key, r)
+                    }
+                }
+
+                context.xkb_compose_state_reset(surface.compose)
+                return
+            }
+            if status == 3 do
                 context.xkb_compose_state_reset(surface.compose)
             if status == 3 do
                 return

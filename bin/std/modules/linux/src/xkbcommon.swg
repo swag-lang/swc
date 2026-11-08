@@ -47,7 +47,7 @@ alias xkb_compose_state_feed_fn              = func(*void, u32)->u32
 alias xkb_compose_state_get_status_fn        = func(*void)->u32
 
 #[Swag.CallingConvention(.C)]
-alias xkb_compose_state_get_one_sym_fn       = func(*void)->u32
+alias xkb_compose_state_get_utf8_fn          = func(*void, [*]u8?, u64)->s32
 
 #[Swag.CallingConvention(.C)]
 alias xkb_compose_state_reset_fn             = func(*void)
@@ -63,3 +63,71 @@ alias xkb_x11_keymap_new_from_device_fn      = func(*void, *void, s32, u32)->*vo
 
 #[Swag.CallingConvention(.C)]
 alias xkb_x11_state_new_from_device_fn       = func(*void, *void, s32)->*void?
+
+// libxcb-xkb 1.x: subscribe to core-keyboard map and device replacement notifications.
+#[Swag.CallingConvention(.C)]
+alias xcb_xkb_select_events_checked_fn       = func(*void, u16, u16, u16, u16, u16, u16, const *void?)->xcb_void_cookie_t
+
+// Per-client detectable repeat omits synthetic KeyRelease/KeyPress pairs while a key is held.
+alias xcb_xkb_per_client_flags_cookie_t = xcb_void_cookie_t
+
+struct xcb_xkb_per_client_flags_reply_t
+{
+    public
+    {
+        response_type:   u8
+        deviceID:        u8
+        sequence:        u16
+        length:          u32
+        supported:       u32
+        value:           u32
+        autoCtrls:       u32
+        autoCtrlsValues: u32
+        pad0:            [8]u8
+    }
+}
+
+#[Swag.CallingConvention(.C)]
+alias xcb_xkb_per_client_flags_fn       = func(*void, u16, u32, u32, u32, u32, u32)->xcb_xkb_per_client_flags_cookie_t
+
+#[Swag.CallingConvention(.C)]
+alias xcb_xkb_per_client_flags_reply_fn = func(*void, xcb_xkb_per_client_flags_cookie_t, *(*xcb_generic_error_t?)?)->*xcb_xkb_per_client_flags_reply_t?
+
+#assert(#sizeof(xcb_xkb_per_client_flags_cookie_t) == 4)
+#assert(#sizeof(xcb_xkb_per_client_flags_reply_t) == 32)
+#assert(#offsetof(xcb_xkb_per_client_flags_reply_t.supported) == 8)
+
+// XKB StateNotify reports changed group components separately from modifier-only updates.
+struct xcb_xkb_state_notify_event_t
+{
+    public
+    {
+        response_type:    u8
+        xkbType:          u8
+        sequence:         u16
+        time:             u32
+        deviceID:         u8
+        mods:             u8
+        baseMods:         u8
+        latchedMods:      u8
+        lockedMods:       u8
+        group:            u8
+        baseGroup:        s16
+        latchedGroup:     s16
+        lockedGroup:      u8
+        compatState:      u8
+        grabMods:         u8
+        compatGrabMods:   u8
+        lookupMods:       u8
+        compatLookupMods: u8
+        ptrBtnState:      u16
+        changed:          u16
+        keycode:          u8
+        eventType:        u8
+        requestMajor:     u8
+        requestMinor:     u8
+    }
+}
+
+#assert(#sizeof(xcb_xkb_state_notify_event_t) == 32)
+#assert(#offsetof(xcb_xkb_state_notify_event_t.changed) == 26)

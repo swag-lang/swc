@@ -458,6 +458,13 @@ impl Panel
             return
         }
 
+        // Compile-time execution has no executor thread. Produce only the bounded
+        // run-ahead queue here, then let the next timer tick continue after publication.
+        if Swag.jit()
+        {
+            while .produceOne() {}
+        }
+
         if not .playing
         {
             // Only a requested seek or the first picture may publish while paused. Draining the

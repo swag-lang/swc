@@ -290,7 +290,7 @@ public impl ImageReader
             let descriptor = &.info.frames[current]
             if descriptor.disposal == .Previous do
                 .previous = .canvas
-            let image = try multiple!.readFrame(current, .options)
+            let image = try multiple.readFrame(current, .options)
             try .composite(descriptor[], image)
             .canvas.metadata = image.metadata
             .lastIndex       += 1

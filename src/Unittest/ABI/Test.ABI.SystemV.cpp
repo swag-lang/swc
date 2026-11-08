@@ -2203,6 +2203,50 @@ SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxPageReservationsAndProcessStorage)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxPageRegistryIsolatedAfterFork)
+{
+    static constexpr std::string_view SOURCE = R"SWAG(#global if #os == Swag.TargetOs.Linux
+#global private
+
+#[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
+{
+    func fork()->s32
+    func waitpid(pid: s32, status: *s32, options: s32)->s32
+}
+
+#main
+{
+    let size = AllocatorHostCommitGranularity
+    let parentReservation = __hostPageReserve(size)
+    Swag.assert(parentReservation != null)
+    let parentAddress = cast(u64, parentReservation)
+    Swag.assert(__hostPageCommit(parentReservation, size))
+
+    let child = fork()
+    Swag.assert(child >= 0)
+    if child == 0
+    {
+        let childReservation = __hostPageReserve(size)
+        if not childReservation do
+            __LinuxRT._exit(1)
+        let childAddress = cast(u64, childReservation)
+        if not __hostPageCommit(childReservation, size) or __hostPageAllocationBase(childAddress) != childAddress do
+            __LinuxRT._exit(2)
+        // Leave the child reservation live: its pointer must never enter the parent's registry.
+        __LinuxRT._exit(0)
+    }
+
+    var status: s32
+    Swag.assert(waitpid(child, &status, 0) == child and status == 0)
+    Swag.assert(__hostPageAllocationBase(parentAddress) == parentAddress)
+    __hostPageRelease(parentReservation, size)
+    Swag.assert(__hostPageAllocationBase(parentAddress) == 0)
+}
+)SWAG";
+    return runLinuxRuntimeProbe(ctx, "LinuxPageRegistryForkIsolation", SOURCE, {.native = true});
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Runtime_LinuxCompilerRetiresOwnedThreadStorage)
 {
     constexpr uint32_t key = 0x544c5343;

@@ -1169,8 +1169,17 @@ private impl Panel
         // wait for it; see [[Sound.warmEngine]].
         Sound.warmEngine()
         result.decodeWake.init()
-        result.decodeExecutor.start()
-        result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
+        if Swag.jit()
+        {
+            // Compile-time executors run a submission on this thread. The persistent
+            // producer below waits for wakeups, so open here and decode on GUI ticks.
+            discard openViewerReader(result)
+        }
+        else
+        {
+            result.decodeExecutor.start()
+            result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
+        }
         result.timer = result.addTimer(10'ms)
         result.applyLayout()
         result.arrangeVeils()
@@ -1183,23 +1192,30 @@ private impl Panel
 // view cancels it.
 //
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
-private func runViewerDecode(view: *Panel)
+private func openViewerReader(view: *Panel)->bool
 {
     var video = catch Reader.open(view.openFileName)
     {
         view.openFailure = Viewer.failureText(Swag.err)
         Atomic.exchange(&view.openState, OpenFailed)
-        return
+        return false
     }
 
     if Swag.isCancelled()
     {
         video.close()
-        return
+        return false
     }
 
     view.pendingVideo = #move video
     Atomic.exchange(&view.openState, OpenSucceeded)
+    return true
+}
+
+private func runViewerDecode(view: *Panel)
+{
+    if not openViewerReader(view) do
+        return
     while not Swag.isCancelled()
     {
         view.decodeWake.wait()

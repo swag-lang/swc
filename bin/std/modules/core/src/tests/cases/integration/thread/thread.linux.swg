@@ -15,6 +15,39 @@ func linuxThreadBody(thread: const *Threading.Thread)
     probe.ran.raise()
 }
 
+func linuxCountedThreadBody(thread: const *Threading.Thread)
+{
+    let completed = cast(*Swag.AtomicValue'u32, unwrap thread.userParam)
+    discard completed.add(1)
+}
+
+// A rejected second start must leave the original owner joinable and run its body only once.
+#[Swag.TestTag("integration.thread")]
+#test
+{
+    var completed: Swag.AtomicValue'u32
+    var thread:    Threading.Thread
+    for cycle in 64'u32
+    {
+        expect thread.init(&linuxCountedThreadBody, &completed)
+        Swag.require(thread.isValid())
+        expect thread.start()
+        var rejected = false
+        catch thread.start()
+        {
+            if Swag.err is Swag.SystemError as system do
+                Swag.require(system.errorID == Linux.EINVAL)
+            else do
+                Swag.require(false, "second start returned a different error type")
+            rejected = true
+        }
+
+        Swag.require(rejected and thread.isValid())
+        thread.wait()
+        Swag.require(not thread.isValid() and completed.load() == cycle + 1)
+    }
+}
+
 #[Swag.TestTag("integration.thread")]
 #test
 {

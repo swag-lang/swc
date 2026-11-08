@@ -757,7 +757,8 @@ namespace SemaGeneric
                 buildFunctionWhereInputs(*sourceSema, *function, source, whereInputs);
 
                 bool satisfied = true;
-                SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, outWhereFailure, errorNodeRef));
+                const SourceCodeRef errorCodeRef = errorNodeRef.isValid() ? sema.node(errorNodeRef).codeRef() : SourceCodeRef::invalid();
+                SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, outWhereFailure, errorCodeRef));
 
                 if (!satisfied)
                     return outWhereFailure ? Result::Continue : Result::Error;
@@ -1082,7 +1083,9 @@ namespace SemaGeneric
 
             CastFailure  localFailure;
             CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
-            SWC_RESULT(Internal::checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorNodeRef));
+            // The call belongs to this AST; sourceSema may own a different AST for an imported generic.
+            const SourceCodeRef errorCodeRef = errorNodeRef.isValid() ? sema.node(errorNodeRef).codeRef() : SourceCodeRef::invalid();
+            SWC_RESULT(Internal::checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorCodeRef));
 
             if (!whereSatisfied)
                 return Result::Continue;

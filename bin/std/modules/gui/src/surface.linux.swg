@@ -279,19 +279,10 @@ impl Surface
 
     internal mtd prepareNativePresentation(target: const *RenderTarget)->bool
     {
-        .painter.begin()
-        .painter.setContentScale(1)
-        .painter.setDefaultShader(.Simple)
-        .painter.setColorMaskFull()
-        .painter.setInterpolationMode(.Pixel)
-        .painter.setBlendingMode(.Copy)
-        let area = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
-        .painter.drawTexture(area, area, target.colorBuffer, Argb.White)
-        .painter.end()
         .app.renderer.unbindRenderTarget()
-        catch .app.renderer.draw(&.painter)
+        if not (catch .app.rendererOgl.blitRenderTargetToWindow(target, .rc.width, .rc.height))
         {
-            .renderFailure = Errors.message(Swag.err)
+            .renderFailure = "OpenGL could not copy the window presentation target"
             return false
         }
 
@@ -329,6 +320,12 @@ impl Surface
         let context = expect LinuxDesktop.ensure()
         let kind    = expect LinuxDesktop.atom(context, .flags.has(.ToolWindow) ? "_NET_WM_WINDOW_TYPE_UTILITY" : "_NET_WM_WINDOW_TYPE_NORMAL")
         expect LinuxDesktop.property(context, .windowId, expect LinuxDesktop.atom(context, "_NET_WM_WINDOW_TYPE"), 4, 32, 1, &kind)
+        .applyNativeSizeHints(context)
+        .setNativeState("_NET_WM_STATE_ABOVE", .topMost)
+    }
+
+    private mtd applyNativeSizeHints(context: *LinuxDesktop.Context)
+    {
         var hints: [18]u32
         hints[0] = (1 << 4) | (1 << 5)
         let fixed = not .flags.has(.Resizable)
@@ -337,7 +334,6 @@ impl Surface
         hints[7] = cast(u32, fixed ? .position.width : .maxSize.x > 0 ? .maxSize.x * .dpiScale : 65535)
         hints[8] = cast(u32, fixed ? .position.height : .maxSize.y > 0 ? .maxSize.y * .dpiScale : 65535)
         expect LinuxDesktop.property(context, .windowId, 40, 41, 32, 18, hints)
-        .setNativeState("_NET_WM_STATE_ABOVE", .topMost)
     }
 
     private mtd setNativeState(name: string, enabled: bool)
@@ -380,11 +376,18 @@ impl Surface
     mtd setPosition(pos: Math.Rectangle)
     {
         let next = .clampToSizeLimits(pos)
+        let sizeChanged = .position.width != next.width or .position.height != next.height
+        if .rc.width != cast(s32, next.width) or .rc.height != cast(s32, next.height) do
+            .presentedFrame = false
         .position = next
         if .windowId != 0
         {
             let context    = expect LinuxDesktop.ensure()
             let connection = unwrap context.connection
+            // A fixed-size surface may change its size programmatically. Tell the window
+            // manager the new allowed size before sending the configure request.
+            if sizeChanged and not .flags.has(.Resizable) do
+                .applyNativeSizeHints(context)
             Swag.assert(next.x >= -32768 and next.x <= 32767 and next.y >= -32768 and next.y <= 32767)
             Swag.assert(next.width <= 65535 and next.height <= 65535)
             let values: [4]u32 = [cast #bit(u32, cast(s32, next.x)), cast #bit(u32, cast(s32, next.y)), cast(u32, next.width), cast(u32, next.height)]
@@ -867,8 +870,11 @@ impl Surface
         .surfaceToScreen(&origin)
         .position.x = origin.x
         .position.y = origin.y
-        if .rc.width != width or .rc.height != height do
+        if .rc.width != width or .rc.height != height
+        {
+            .presentedFrame = false
             .sendResizeEvent(cast(f32, width), cast(f32, height))
+        }
     }
 }
 

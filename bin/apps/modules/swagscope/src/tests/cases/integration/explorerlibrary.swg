@@ -1,5 +1,4 @@
 #global if #command == Swag.CompilerCommand.Test
-#global if #os == Swag.TargetOs.Windows
 #global private
 
 using Core, Gui, Pixel
@@ -47,6 +46,7 @@ using Core, Gui, Pixel
 
         Swag.require(checked, "the library produced no completed native frame")
         var visible = 0'u64
+        var cached  = 0'u64
         let range   = explorer.grid.visibleRange()
         for row in range.first until Math.min(range.end, explorer.shown.count) where
             explorer.entries[explorer.shown[row]].texture.isValid()
@@ -54,18 +54,35 @@ using Core, Gui, Pixel
             visible += 1
             let entry = &explorer.entries[explorer.shown[row]]
 
-            // An online request may still display its local fallback; compare settled previews.
+            // An online request may still display its local fallback. Generic icons and
+            // previews of archive members need not have a cache entry under this file key.
             if not entry.onlinePending
             {
                 let settings = ThumbnailSettings.capture(window, entry, localArtworkOnly: explorer.artworkSource == .Local, previewEpoch: explorer.previewEpoch)
                 let key      = expect ThumbnailCache.key(entry.path, settings: settings)
-                let expected = ThumbnailCache.read(key).convertedTo(.RGBA8)
-                let pixels   = app.renderer.readTexturePixels(entry.texture, .RGBA8)
-                Swag.require(Slice.equals(pixels.toSlice(), expected.pixels.toSlice()))
+                let image    = ThumbnailCache.read(key)
+                if image.isValid()
+                {
+                    let expected = image.convertedTo(.RGBA8)
+                    let pixels   = app.renderer.readTexturePixels(entry.texture, .RGBA8)
+                    Swag.require(Slice.equals(pixels.toSlice(), expected.pixels.toSlice()))
+                    cached += 1
+                }
             }
         }
 
-        Console.println("Library stage ", stage, ": ", explorer.shown.count, " entries; ", visible, " visible previews")
+        Console.println("Library stage ", stage, ": ", explorer.shown.count, " entries; ", visible, " visible previews; ", cached, " cache matches")
+        if visible == 0
+        {
+            Console.println("Preview workers: ", explorer.previews.count)
+            for preview in explorer.previews do
+                Console.println("preview running=", preview.started, " path=", preview.path, " error=", preview.error)
+            for row in range.first until Math.min(range.end, explorer.shown.count)
+            {
+                let entry = &explorer.entries[explorer.shown[row]]
+                Console.println("tile=", entry.name, " attempted=", entry.attempted, " texture=", entry.texture.isValid())
+            }
+        }
         Swag.require(visible > 0, "the library produced no visible previews")
     }
 }

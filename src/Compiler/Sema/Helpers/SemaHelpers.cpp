@@ -1099,9 +1099,37 @@ void SemaHelpers::addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFac
 
 namespace
 {
-    // Find assignment/address-of roots before semantic resolution. Set outKillAll
-    // when syntax cannot identify one root.
-    void collectNarrowWrittenRoot(Sema& sema, AstNodeRef nodeRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
+    void retainNarrowFactsForImmutableLocalRoots(SemaFrame& frame)
+    {
+        // An implicit member write may target `me` or a `with` subject, but it
+        // cannot replace an unrelated local `let`. Facts about fields of that
+        // local can still be invalidated through a `with` subject.
+        SmallVector4<SemaNarrowFact> kept;
+        for (const SemaNarrowFact& fact : frame.narrowFacts())
+        {
+            if (fact.path.size() != 1)
+                continue;
+
+            const Symbol* root = fact.path.front();
+            if (root->isLetVariable() && root->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::FunctionLocal))
+                kept.push_back(fact);
+        }
+
+        frame.clearNarrowFacts();
+        for (const SemaNarrowFact& fact : kept)
+        {
+            const auto path = std::span<const Symbol* const>{fact.path.data(), fact.path.size()};
+            if (!fact.holds)
+                frame.addNarrowKill(path);
+            else if (fact.kind == SemaNarrowFactKind::Case)
+                frame.addNarrowCaseFact(path, fact.cases);
+            else
+                frame.addNarrowFact(path, fact.kind);
+        }
+    }
+
+    // Find assignment/address-of roots before semantic resolution.
+    void collectNarrowWrittenRoot(Sema& sema, AstNodeRef nodeRef, SmallVector8<IdentifierRef>& outRoots, bool& outImplicitMemberWrite)
     {
         while (nodeRef.isValid())
         {
@@ -1118,7 +1146,7 @@ namespace
 
                 case AstNodeId::AutoMemberAccessExpr:
                     // Implicit `me`/`with` rooted write: cannot attribute it syntactically.
-                    outKillAll = true;
+                    outImplicitMemberWrite = true;
                     return;
 
                 case AstNodeId::Identifier:
@@ -1138,7 +1166,7 @@ namespace
         }
     }
 
-    void collectNarrowLoopBodyWrites(Sema& sema, AstNodeRef bodyRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
+    void collectNarrowLoopBodyWrites(Sema& sema, AstNodeRef bodyRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll, bool& outImplicitMemberWrite)
     {
         SmallVector<AstNodeRef> stack;
         stack.push_back(bodyRef);
@@ -1157,7 +1185,7 @@ namespace
                 case AstNodeId::AssignStmt:
                     // Compound assignments (`+=`, ...) cannot make a pointer null.
                     if (sema.token(node.codeRef()).id == TokenId::SymEqual)
-                        collectNarrowWrittenRoot(sema, node.cast<AstAssignStmt>().nodeLeftRef, outRoots, outKillAll);
+                        collectNarrowWrittenRoot(sema, node.cast<AstAssignStmt>().nodeLeftRef, outRoots, outImplicitMemberWrite);
                     break;
 
                 case AstNodeId::AssignList:
@@ -1168,7 +1196,7 @@ namespace
 
                 case AstNodeId::UnaryExpr:
                     if (sema.token(node.codeRef()).id == TokenId::SymAmpersand)
-                        collectNarrowWrittenRoot(sema, node.cast<AstUnaryExpr>().nodeExprRef, outRoots, outKillAll);
+                        collectNarrowWrittenRoot(sema, node.cast<AstUnaryExpr>().nodeExprRef, outRoots, outImplicitMemberWrite);
                     break;
 
                 default:
@@ -1189,13 +1217,17 @@ void SemaHelpers::killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, Sem
     // whose address it takes) is not stable across the back edge, so drop it up front.
     SmallVector8<IdentifierRef> writtenRoots;
     bool                        killAll = false;
-    collectNarrowLoopBodyWrites(sema, bodyRef, writtenRoots, killAll);
+    bool                        implicitMemberWrite = false;
+    collectNarrowLoopBodyWrites(sema, bodyRef, writtenRoots, killAll, implicitMemberWrite);
 
     if (killAll)
     {
         frame.clearNarrowFacts();
         return;
     }
+
+    if (implicitMemberWrite)
+        retainNarrowFactsForImmutableLocalRoots(frame);
 
     if (!writtenRoots.empty())
         frame.killNarrowFactsByRootId({writtenRoots.data(), writtenRoots.size()});

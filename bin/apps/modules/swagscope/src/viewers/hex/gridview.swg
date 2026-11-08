@@ -1283,13 +1283,15 @@ impl IWnd for GridView
 
             // One cell per value, each at its own place in the row.
             let size = .valueSize()
-            for value in (rowLast - rowOffset) / size + 1
+            var column = 0'u64
+            while column <= rowLast - rowOffset
             {
-                let offset   = rowOffset + value * size
+                let offset   = rowOffset + column
                 let complete = offset + size <= .doc.fileSize
                 let zero     = .grouping == .Bytes ? .doc.byteAt(offset) == 0 : (complete and .scalarAt(offset) == 0)
                 .writeValueText(&.cellText, offset)
-                .drawBuffer(painter, &.cellText, originX + .hexCellX(value * size), textTop, font, zero ? faintInk : strongInk)
+                .drawBuffer(painter, &.cellText, originX + .hexCellX(column), textTop, font, zero ? faintInk : strongInk)
+                column += size
             }
 
             .drawBuffer(painter, &.rowTextStrong, originX + .textColumnLeft(), textTop, font, letterInk)

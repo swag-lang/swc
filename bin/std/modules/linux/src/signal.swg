@@ -2,6 +2,7 @@
 #global export
 
 const SIGKILL     = 9's32
+const SIGUSR1     = 10's32
 const SIGPIPE     = 13's32
 const SIGTERM     = 15's32
 const SIGCHLD     = 17's32
@@ -21,8 +22,22 @@ struct siginfo_t
     private storage: [16] u64
 }
 
+// glibc x86-64 sigaction layout, with the handler pointer in the first union slot.
+struct sigaction_t
+{
+    public
+    {
+        handler:  *void?
+        mask:     sigset_t
+        flags:    s32
+        padding:  u32
+        restorer: *void?
+    }
+}
+
 #assert(#sizeof(sigset_t) == 128)
 #assert(#sizeof(siginfo_t) == 128)
+#assert(#sizeof(sigaction_t) == 152)
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {
@@ -32,4 +47,6 @@ struct siginfo_t
     func sigpending(set: *sigset_t)->s32
     func sigtimedwait(set: const *sigset_t, info: *siginfo_t?, timeout: const *timespec?)->s32
     func kill(pid: s32, signal: s32)->s32
+    func tgkill(pid: s32, tid: s32, signal: s32)->s32
+    func sigaction(signal: s32, action: const *sigaction_t?, previous: *sigaction_t?)->s32
 }

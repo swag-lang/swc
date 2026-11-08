@@ -29,6 +29,16 @@
     var invalidName: Swag.Error
     discard catch Directory.createNative(truncated) as invalidName
     Swag.require((invalidName.value() is Errors.InvalidFileNameError))
+    Swag.require((assume cast(const *Errors.InvalidFileNameError, invalidName.value())).nativeErrorID == 0)
+
+    var component: String
+    for 256 do
+        component.append("x")
+    let tooLong = Path.combine(root, component.toString())
+    discard catch Directory.createNative(tooLong) as invalidName
+    Swag.require(invalidName.value() is Errors.InvalidFileNameError)
+    let longNameError = assume cast(const *Errors.InvalidFileNameError, invalidName.value())
+    Swag.require(longNameError.nativeErrorID == cast(u64, Linux.ENAMETOOLONG) and longNameError.fileName == tooLong.toString())
 
     let link   = Path.combine(root, "link")
     let linked = Linux.symlinkat(child.storage(), Linux.AT_FDCWD, link.storage())

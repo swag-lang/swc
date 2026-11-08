@@ -1,4 +1,4 @@
-#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
+#global if #command == Swag.CompilerCommand.Test
 #global internal
 
 using Core, Gui, Pixel, Video, Viewers
@@ -64,6 +64,10 @@ impl MediaLibraryFixture
             // Odd RGB widths expose upload alignment mistakes, with a different color per entry.
             var image = Image.create(37, 53, .RGB8)
             image.fill(Color.fromRgb(cast(u8, index), 127, 241))
+            var title: ImageMetadata
+            title.tag   = MovieTitleTag
+            title.value = Format.toString("Offline film %", index)
+            image.metadata.add(#move title)
             let key = expect ThumbnailCache.key(entry.fullName, settings: settings)
             expect ThumbnailCache.write(key, &image)
         }

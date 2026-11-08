@@ -7,7 +7,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 ### compiler.core.107 — Reject invalid closure captures without a host exception
 
 - Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.
-- Next: reduce the two invalid capture forms to standalone semantic tests, identify which one triggers the host exception, and inspect the closure-capture diagnostic path.
+- Linux DevMode reductions: a by-reference capture of a `let string` and an unqualified
+  `.main` capture initializer now have standalone expected-diagnostic fixtures. Both report
+  their source error without a host exception; the Windows failure is not reproduced here.
+- Next: run each fixture under Windows Release and DevMode, identify which one triggers the
+  host exception, and inspect that closure-capture diagnostic path.
 - Done when: each invalid form yields its intended diagnostic without a host exception under the Release and DevMode compilers.
 
 ### compiler.core.108 — Preserve generic parameters across an incremental app build
@@ -15,22 +19,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Evidence: an incremental Release build of Swag Capture diagnosed `unknown name 'arr'` at `core`'s `Array.opSet(arr: const [..] T)` for `T = FileInfo`, although the parameter is declared in the adjacent signature. A forced dependency rebuild compiled the same source, and the following warm build was up to date.
 - Next: reproduce from a retained dependency artifact after changing a GUI or application test source, then compare the imported generic body and specialization state with a forced rebuild.
 - Done when: incremental and rebuilt application compilations both resolve the `opSet` parameter, with a regression that preserves the failing dependency-reuse boundary.
-
-### compiler.core.101 — Preserve enum context inside a generic constraint block
-
-- Evidence: in the integer-bound constraints of `bin/runtime/iteration.swg`, replacing the
-  qualified `Swag.TypeInfoNativeKind.S8` and `.U64` values with leading-dot `.S8` and `.U64`
-  makes a three-worker DevMode Pixel build reject `native.nativeKind >= .S8` as a comparison
-  between `TypeInfoNativeKind` and `u8`. A forced dependency rebuild reproduces it; the same
-  constraint passes the standalone `native/flow/for.swg` tests. The qualified values compile
-  the Pixel module. The constraint obtains `native` through an `assume cast` of a typeinfo
-  pointer after unwrapping aliases.
-- Next: restore that leading-dot expression in an isolated worktree and reproduce with
-  `tools/std.bat dm build pixel --rebuild`. Reduce the constraint and its importing module,
-  then inspect the expected enum type and constant type assigned to the leading-dot value
-  during generic instantiation.
-- Done when: the reduced case compiles identically with leading-dot and qualified enum values,
-  and a regression covers the failing module boundary.
 
 ### compiler.core.088 — Capture the intermittent standard-library documentation exception
 
@@ -546,22 +534,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   library target, and a host can use that target without parsing command-line arguments or
   exchanging requests over process stdio.
 
-### compiler.core.093 — A narrowed nullable local loses its narrowing inside a `while` nested in a `for`
-
-- Evidence: in `GridView.onPaint` of Swag Scope's hex viewer
-  (`bin/apps/modules/swagscope/src/viewers/hex/gridview.swg`), `let font = .font().regular` is
-  narrowed by `if not font ... do return` and passed to `drawBuffer(..., font: *Font, ...)` in the
-  body of `for row in visible`. The same call inside a `while column <= rowLast - rowOffset`
-  nested in that `for`, after `.writeValueText(&.cellText, offset)` and a
-  `let zero = cond ? a == 0 : (complete and .scalarAt(offset) == 0)`, is rejected with
-  "argument 5 for call to 'drawBuffer' has type '*Font?', but parameter 'font' needs '*Font'";
-  rewriting the `while` as `for value in count` compiles. Three standalone reductions (a `while`
-  in a `for`, a mutating borrow of `me` in the loop, a conditional with `and`) keep the
-  narrowing, so the trigger is still unknown.
-- Next: restore the `while` form in a copy of `onPaint` and remove statements until the
-  diagnostic goes, then add the reduced case to the `sema` suite.
-- Done when: the reduced case compiles and a `sema` fixture holds it.
-
 ### compiler.core.095 — Workspace golden tests can lose their writable corpus
 
 - Evidence: an earlier workspace JIT golden collection with `SWAG_GOLDEN_CONTINUE=1`
@@ -735,3 +707,14 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   reproduce it before choosing a source-suite or compiler filesystem regression.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
+
+### compiler.core.109 — Resolve member access through a referenced pointer in a foreach loop
+
+- Evidence: a native Swag Scope test passed semantic checking, then asserted at
+  `CodeGen.cpp:931` with `missing-codegen-payload` for `preview.started` inside
+  `for &preview in explorer.previews`, where `previews` is `Array'*ExplorerPreview`.
+  Iterating as `for preview` compiles, so the test now uses that form.
+- Next: reduce the reference-to-pointer case to a standalone source and determine whether
+  member access should lower through the pointer or receive a source diagnostic.
+- Done when the reduced case compiles and runs or receives a clear diagnostic without a
+  compiler assertion, with a regression test for the chosen contract.

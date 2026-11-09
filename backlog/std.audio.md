@@ -174,15 +174,26 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   from 2,003 to 992 bytes, 3,751 to 2,859 bytes and 5,137 to 4,230 bytes. FFmpeg decoded
   all three to PCM bit-identical to the previous output; Audio Release passed 200/200 tests,
   including section-length boundaries 1, 30, 31, 32 and 49. A 10-second stereo capture
-  through 96→48 kHz resampling and AAC takes
-  about 2.1 seconds in Release and produces about 113 kb/s on the measured wide-band sample.
+  through 96→48 kHz resampling and AAC takes about 2.1 seconds in Release and produces
+  about 113 kb/s on the measured wide-band sample.
+  A separate 48 kHz mono transient probe encodes 12 AAC packets with a +20,000 impulse
+  at input frame 6,400. SoundFile and FFmpeg find its decoded peak at frame 7,424,
+  exactly the 1,024-frame priming delay, with at most one PCM LSB of difference.
+  Pre-attack energy over 512 frames is 32.99 dB below post-attack energy for an isolated
+  impulse, but only 12.10 dB below for music plus impulse after subtracting the
+  music-only decode. Pre-attack energy extends at least 1,536 frames before the peak.
+  Subtraction also reflects context-dependent quantization.
+  The encoder currently uses only long AAC windows; transient pre-echo needs short-window
+  coding and an A/B quality test before a regression bound is chosen.
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
   priming frames; the MP4 presentation edit reports the exact audible final frame count to
   `Video.Reader`, while FFmpeg currently ignores edits in fragmented MP4 and exposes at most
   1023 padding frames at the end.
-- Next: add bounded target bitrate and short-window transient coding. Test sample-accurate
-  final trimming in other reference players while keeping the resumable fragmented prefix and
-  the software implementation independent of external codec libraries.
+- Next: add bounded target bitrate and transient coding with AAC LONG_START, EIGHT_SHORT
+  and LONG_STOP window transitions. Compare pre-attack energy on isolated and music-backed
+  impulses against the measured long-window baseline before setting a quality threshold.
+  Test sample-accurate final trimming in other reference players while keeping the
+  resumable fragmented prefix and an implementation independent of external codec libraries.
 - Done when: a captured non-silent recording plays in the module and reference players with
   video/audio sync within one video frame, including its start, end, source gaps and long runs.
 - Related: app.capture.013, std.video.016, platform.portability.099

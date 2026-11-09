@@ -248,6 +248,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   against an exact recording. The same four-slice scene at exact QP 0 takes 1.37–1.51
   seconds and 7.78 MB with the one matching (−16,−8) vector. On this machine, two slices
   take 4.75 seconds at QP 28, while eight take 3.85 seconds; four and eight are close.
+  A direct inter-CBP lookup replaces a 48-entry scan: the lookup alone falls from 166.6 to
+  6.7 ms over 10.8 million operations weighted by the scene's actual patterns, with identical
+  bitstreams. A proven zero-coefficient bound halves the luma quantizer's cost on sampled
+  moving-tile blocks (9.35 to 4.85 ms over 102,400 calls), without changing coefficients or
+  reconstructed pixels across QP 0–51. Whole-capture timings remain noisy and have not
+  established an additional end-to-end gain from these two shortcuts.
+  In this scene QP 28 video totals 21.86 MB versus 7.75 MB at exact QP 0; a color wrap in the
+  flat background makes one QP 28 P picture 1.73 MB. Fixed QP is not yet a useful bitrate
+  guarantee, even on a regular screen animation.
   These profiles remain above the 16.7 ms per-picture budget. One exact 4K IDR can still
   occupy about 12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
   Quantized intra reduces a 4K textured IDR to 336 KB at QP 36 in one fixture (39.44 dB

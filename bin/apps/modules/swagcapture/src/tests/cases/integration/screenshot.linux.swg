@@ -127,6 +127,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     var source = expect ScreenFrameSource.create(true, 10, 20, 64, 64)
     var cursor: Image
     expect source.grabInto(&cursor)
+    Swag.require(source.capture.fixesReady)
+    var repeated: Image
+    expect source.grabInto(&repeated)
+    Swag.require(Slice.equals(cursor.pixels.toSlice(), repeated.pixels.toSlice()))
     var changed = false
     for index in plain.pixels.count where plain.pixels[index] != cursor.pixels[index]
     {

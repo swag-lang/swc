@@ -19,13 +19,31 @@ private func copyX11BgraRow(input: const [*] u8, output: [*] u8, width: u64, opa
     }
 }
 
+// XFixes request headers are filled by xcb_send_request. The remaining words
+// are the protocol payload; both requests fit in one iovec.
+private struct XfixesVersionRequest
+{
+    header: u32
+    major:  u32
+    minor:  u32
+}
+
+private struct XfixesCursorRequest
+{
+    header: u32
+}
+
+#assert(#sizeof(XfixesVersionRequest) == 12)
+#assert(#sizeof(XfixesCursorRequest) == 4)
+
 // Owns an independent X11 connection for desktop capture and best-effort window queries.
 // The GUI event queue remains owned by Gui; capture never consumes its events.
 #[Swag.NoCopy]
 struct X11Capture
 {
     library:              *void?
-    fixesLibrary:         *void?
+    fixesExtension:       Linux.xcb_extension_t
+    fixesReady:           bool
     shmExtension:         Linux.xcb_extension_t
     shmData:              *void?
     shmSize:              u64
@@ -70,6 +88,7 @@ impl X11Capture
         if not result.library do
             fail Swag.SystemError{"desktop capture cannot load libxcb.so.1"}
         result.shmExtension.name = "MIT-SHM".buffer
+        result.fixesExtension.name = "XFIXES".buffer
         let library = result.library
         result.disconnect = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
         let connect         = try symbol'Linux.xcb_connect_fn(library, "xcb_connect")
@@ -115,8 +134,6 @@ impl X11Capture
         .releaseSharedMemory()
         if .connection do
             .disconnect(.connection)
-        if .fixesLibrary do
-            discard Linux.dlclose(.fixesLibrary)
         if .library do
             discard Linux.dlclose(.library)
     }
@@ -307,8 +324,9 @@ impl X11Capture
     }
 
     // libxcb fills the four-byte X11 header and routes the request through the
-    // MIT-SHM extension descriptor. Each wire request below is otherwise Swag data.
-    private mtd sharedRequest(wire: *void, size: u64, opcode: u8, isvoid, checked: bool)->u32
+    // selected extension descriptor. Each wire request below is otherwise Swag data.
+    private mtd extensionRequest(extension: *Linux.xcb_extension_t, wire: *void, size: u64,
+                                 opcode: u8, isvoid, checked: bool)->u32
     {
         let send = cast(Linux.xcb_send_request_fn, unwrap Linux.dlsym(unwrap .library, "xcb_send_request".buffer))
         var vectors: [2] Linux.xcb_iovec_t
@@ -317,11 +335,14 @@ impl X11Capture
         vectors[1].length = (4 - size % 4) % 4
         var descriptor: Linux.xcb_protocol_request_t
         descriptor.count  = 2
-        descriptor.ext    = &.shmExtension
+        descriptor.ext    = extension
         descriptor.opcode = opcode
         descriptor.isvoid = isvoid ? 1 : 0
         return send(unwrap .connection, checked ? 1 : 0, &vectors[0], &descriptor)
     }
+
+    private mtd sharedRequest(wire: *void, size: u64, opcode: u8, isvoid, checked: bool)->u32 =>
+        .extensionRequest(&.shmExtension, wire, size, opcode, isvoid, checked)
 
     // Keep one segment across frames. A failed MIT-SHM attach disables the optional
     // path for this connection, so remote X servers continue through GetImage.
@@ -596,36 +617,41 @@ impl X11Capture
     private mtd drawCursor(image: *Image, x, y: s32) fail
     {
         let connection = unwrap .connection
-        if not .fixesLibrary do
-            .fixesLibrary = Linux.dlopen("libxcb-xfixes.so.0".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
-        if not .fixesLibrary do
-            fail Swag.SystemError{"cursor capture cannot load libxcb-xfixes.so.0"}
-        let library       = .fixesLibrary
-        let extension     = Linux.dlsym(library, "xcb_xfixes_id".buffer)
-        let extensionData = try symbol'Linux.xcb_get_extension_data_fn(unwrap .library, "xcb_get_extension_data")
-        if not extension do
-            fail Swag.SystemError{"cursor capture cannot resolve the XFixes extension"}
-        let available = extensionData(connection, cast(*Linux.xcb_extension_t, extension))
-        if not available or not available.present do
-            fail Swag.SystemError{"cursor capture needs the XFixes display extension"}
-        let version      = try symbol'Linux.xcb_xfixes_query_version_fn(library, "xcb_xfixes_query_version")
-        let versionReply = try symbol'Linux.xcb_xfixes_query_version_reply_fn(library, "xcb_xfixes_query_version_reply")
-        let negotiated   = versionReply(connection, version(connection, 4, 0), null)
-        if not negotiated do
-            fail Swag.SystemError{"cursor capture cannot negotiate XFixes"}
-        defer Linux.free(negotiated)
-        let get    = try symbol'Linux.xcb_xfixes_get_cursor_image_fn(library, "xcb_xfixes_get_cursor_image")
-        let reply  = try symbol'Linux.xcb_xfixes_get_cursor_image_reply_fn(library, "xcb_xfixes_get_cursor_image_reply")
-        let pixels = try symbol'Linux.xcb_xfixes_get_cursor_image_cursor_image_fn(library, "xcb_xfixes_get_cursor_image_cursor_image")
-        let length = try symbol'Linux.xcb_xfixes_get_cursor_image_cursor_image_length_fn(library, "xcb_xfixes_get_cursor_image_cursor_image_length")
-        let cursor = reply(connection, get(connection), null)
-        if not cursor do
+        let library    = unwrap .library
+        let extension  = try symbol'Linux.xcb_get_extension_data_fn(library, "xcb_get_extension_data")
+        let wait       = try symbol'Linux.xcb_wait_for_reply_fn(library, "xcb_wait_for_reply")
+        if not .fixesReady
+        {
+            let available = extension(connection, &.fixesExtension)
+            if not available or not available.present do
+                fail Swag.SystemError{"cursor capture needs the XFixes display extension"}
+            var wire: XfixesVersionRequest
+            wire.major = 4
+            wire.minor = 0
+            var error: *Linux.xcb_generic_error_t?
+            let sequence = .extensionRequest(&.fixesExtension, &wire, #sizeof(wire), 0, false, true)
+            let raw = wait(connection, sequence, &error)
+            defer Linux.free(error)
+            if error or not raw do
+                fail Swag.SystemError{"cursor capture cannot negotiate XFixes"}
+            defer Linux.free(raw)
+            let negotiated = cast(*Linux.xcb_xfixes_query_version_reply_t, cast(*void, raw))
+            if negotiated.major_version < 2 do
+                fail Swag.SystemError{"XFixes cursor capture requires version 2"}
+            .fixesReady = true
+        }
+        var wire: XfixesCursorRequest
+        var error: *Linux.xcb_generic_error_t?
+        let sequence = .extensionRequest(&.fixesExtension, &wire, #sizeof(wire), 4, false, true)
+        let raw = wait(connection, sequence, &error)
+        defer Linux.free(error)
+        if error or not raw do
             fail Swag.SystemError{"X11 cannot read the cursor image"}
-        defer Linux.free(cursor)
-        let pixelCount = length(cursor)
-        if pixelCount < 0 or cast(u64, pixelCount) < cast(u64, cursor.width) * cursor.height do
+        defer Linux.free(raw)
+        let cursor = cast(*Linux.xcb_xfixes_get_cursor_image_reply_t, cast(*void, raw))
+        if cast(u64, cursor.length) < cast(u64, cursor.width) * cursor.height do
             fail Swag.SystemError{"X11 returned an incomplete cursor image"}
-        let source = pixels(cursor)
+        let source = cast([*] u32, cast([*] u8, cursor) + #sizeof(Linux.xcb_xfixes_get_cursor_image_reply_t))
         for row in cast(u32, cursor.height)
         {
             let targetY = cast(s32, cursor.y) - cursor.yhot - y + cast(s32, row)

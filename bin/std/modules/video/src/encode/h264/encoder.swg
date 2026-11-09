@@ -1,7 +1,7 @@
 //! Format: H.264/AVC constrained-baseline encoder.
-//! Supported: Progressive NV12 pictures, exact PCM macroblocks, P-skip for unchanged macroblocks, and periodic IDR pictures.
-//! Not supported: Lossy transform coding, motion search, rate control, B pictures, and real-time high-resolution capture.
-//! Role: This file supplies a portable encoded-packet path before a platform encoder is available.
+//! Supported: Progressive NV12 pictures, flat intra blocks, exact PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
+//! Not supported: Transform coding, rate control, B pictures, and real-time high-resolution capture.
+//! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
 #global export
@@ -14,6 +14,19 @@ private struct EncoderBits
     current: u8
     used:    u32
 }
+
+private struct EncoderMotion
+{
+    x:     s32
+    y:     s32
+    inter: bool
+}
+
+private const MotionOffsets: [16, 2] s32 = [
+    [0, -2], [0, 2], [0, -4], [0, 4], [0, -8], [0, 8],
+    [0, -16], [0, 16], [0, -32], [0, 32],
+    [-16, 0], [16, 0], [-32, 0], [32, 0],
+    [-16, -16], [16, 16]]
 
 private impl EncoderBits
 {
@@ -54,6 +67,11 @@ private impl EncoderBits
         .bits(code, size)
     }
 
+    mtd signed(value: s32)
+    {
+        .unsigned(cast(u32, value > 0 ? value * 2 - 1 : -value * 2))
+    }
+
     mtd alignZero()
     {
         while .used do
@@ -75,9 +93,10 @@ private impl EncoderBits
 
 // Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.
 //
-// This portable first stage codes changed macroblocks exactly with I_PCM and unchanged blocks
-// with P-skip. It is useful for interoperability and correctness, but its uncompressed changed
-// blocks are not suitable for real-time 1080p60 recording. The result borrows the encoder's
+// This portable first stage codes flat intra blocks with no residual, copies exact integer-pixel
+// motion blocks in P pictures, uses P-skip for unchanged blocks, and codes remaining changes
+// with I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks
+// are not suitable for arbitrary high-motion 1080p60 recording. The result borrows the encoder's
 // packet storage until the next call to encode. The AVC configuration remains valid for the
 // encoder's lifetime and uses four-byte NAL lengths.
 //
@@ -185,20 +204,59 @@ impl Encoder
         bits.unsigned(1)                     // Disable deblocking; PCM and skip stay exact.
 
         var skipped = 0'u32
+        var motions: Array'EncoderMotion
+        var pcm: Array'bool
+        pcm.resize(cast(u64, .mbWidth) * .mbHeight)
+        for &value in pcm do
+            value[] = false
+        if not key
+        {
+            motions.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight))
+            for &value in motions do
+                value[] = {}
+        }
         for mbY in .mbHeight
         {
             for mbX in .mbWidth
             {
-                if not key and .unchanged(frame, mbX, mbY)
+                let motionIndex = cast(u64, mbY) * .mbWidth + mbX
+                let prediction = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY)
+                if not key and .unchanged(frame, mbX, mbY) and
+                   .skipMotionIsZero(motions.toSlice(), mbX, mbY)
                 {
                     skipped += 1
+                    motions[motionIndex] = {0, 0, true}
                     continue
                 }
                 if not key do
                     bits.unsigned(skipped)
-                bits.unsigned(key ? 25 : 30)    // I_PCM in I/P slice type spaces.
+                if .flatIntra(frame, mbX, mbY)
+                {
+                    bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
+                    bits.unsigned(0)           // Chroma DC prediction.
+                    bits.signed(0)             // No QP change.
+                    .writeEmptyIntraDc(&bits, pcm.toSlice(), mbX, mbY)
+                    skipped = 0
+                    continue
+                }
+                if not key
+                {
+                    var motion: EncoderMotion
+                    if .findMotion(frame, mbX, mbY, prediction, &motion)
+                    {
+                        bits.unsigned(0)             // P_L0_16x16.
+                        bits.signed(motion.x - prediction.x)
+                        bits.signed(motion.y - prediction.y)
+                        bits.unsigned(0)             // No residual coefficients.
+                        motions[motionIndex] = motion
+                        skipped = 0
+                        continue
+                    }
+                }
+                bits.unsigned(key ? 25 : 30)   // I_PCM in I/P slice type spaces.
                 bits.alignZero()
                 .writePcm(&bits, frame, mbX, mbY)
+                pcm[motionIndex] = true
                 skipped = 0
             }
         }
@@ -230,6 +288,185 @@ impl Encoder
 
 private impl Encoder
 {
+    // A constant 16x16 block is represented by Intra_16x16 DC without coefficients when
+    // every available top and left boundary has the same samples in all three planes.
+    mtd const flatIntra(frame: const *Nv12Frame, mbX, mbY: u32)->bool
+    {
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        if not mbX and not mbY do
+            return false
+        let luma = frame.luma()
+        let chroma = frame.chroma()
+        let valueY = luma[y * width + x]
+        let valueU = chroma[y / 2 * width + x]
+        let valueV = chroma[y / 2 * width + x + 1]
+        for row in 16'u64
+        {
+            let sourceY = Math.min(y + row, height - 1)
+            for column in 16'u64 where luma[sourceY * width + Math.min(x + column, width - 1)] != valueY do
+                return false
+        }
+        for row in 8'u64
+        {
+            for column in 8'u64
+            {
+                let sourceY = Math.min(y / 2 + row, height / 2 - 1)
+                let sourceX = Math.min(x + column * 2, width - 2)
+                let offset = sourceY * width + sourceX
+                if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                    return false
+            }
+        }
+        if mbY
+        {
+            for column in 16'u64 where luma[(y - 1) * width + Math.min(x + column, width - 1)] != valueY do
+                return false
+            for column in 8'u64
+            {
+                let offset = (y / 2 - 1) * width + Math.min(x + column * 2, width - 2)
+                if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                    return false
+            }
+        }
+        if mbX
+        {
+            for row in 16'u64 where luma[Math.min(y + row, height - 1) * width + x - 1] != valueY do
+                return false
+            for row in 8'u64
+            {
+                let offset = Math.min(y / 2 + row, height / 2 - 1) * width + x - 2
+                if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                    return false
+            }
+        }
+        return true
+    }
+
+    mtd const writeEmptyIntraDc(bits: *EncoderBits, pcm: const [..] bool, mbX, mbY: u32)
+    {
+        let left = mbX > 0 ? (pcm[cast(u64, mbY) * .mbWidth + mbX - 1] ? 16'u32 : 0) : 0
+        let top = mbY > 0 ? (pcm[cast(u64, mbY - 1) * .mbWidth + mbX] ? 16'u32 : 0) : 0
+        let nC = mbX > 0 and mbY > 0 ? (left + top + 1) / 2 : left + top
+        if nC < 2 do
+            bits.bit(1)
+        elif nC < 4 do
+            bits.bits(3, 2)
+        elif nC < 8 do
+            bits.bits(15, 4)
+        else do
+            bits.bits(3, 6)
+    }
+
+    mtd const motionAt(motions: const [..] EncoderMotion, x, y: s32)->EncoderMotion
+    {
+        if x < 0 or y < 0 or x >= cast(s32, .mbWidth) or y >= cast(s32, .mbHeight) do
+            return {}
+        return motions[cast(u64, y) * .mbWidth + cast(u64, x)]
+    }
+
+    // Section 8.4.1.3: 16x16 L0 vector prediction from A, B, and C (or D).
+    mtd const predictMotion(motions: const [..] EncoderMotion, mbX, mbY: u32)->EncoderMotion
+    {
+        let x = cast(s32, mbX)
+        let y = cast(s32, mbY)
+        let a = .motionAt(motions, x - 1, y)
+        let b = .motionAt(motions, x, y - 1)
+        var c = .motionAt(motions, x + 1, y - 1)
+        if x + 1 >= cast(s32, .mbWidth) do
+            c = .motionAt(motions, x - 1, y - 1)
+
+        let availableA = x > 0
+        let availableB = y > 0
+        let availableC = y > 0 and (x + 1 < cast(s32, .mbWidth) or x > 0)
+        if availableA and not availableB and not availableC do
+            return a
+        if a.inter and not b.inter and not c.inter do
+            return a
+        if b.inter and not a.inter and not c.inter do
+            return b
+        if c.inter and not a.inter and not b.inter do
+            return c
+
+        let middleX = Math.max(Math.min(a.x, b.x), Math.min(Math.max(a.x, b.x), c.x))
+        let middleY = Math.max(Math.min(a.y, b.y), Math.min(Math.max(a.y, b.y), c.y))
+        return {middleX, middleY, true}
+    }
+
+    mtd const skipMotionIsZero(motions: const [..] EncoderMotion, mbX, mbY: u32)->bool
+    {
+        if mbX == 0 or mbY == 0 do
+            return true
+        let a = .motionAt(motions, cast(s32, mbX) - 1, cast(s32, mbY))
+        let b = .motionAt(motions, cast(s32, mbX), cast(s32, mbY) - 1)
+        if a.inter and a.x == 0 and a.y == 0 do
+            return true
+        if b.inter and b.x == 0 and b.y == 0 do
+            return true
+        let predicted = .predictMotion(motions, mbX, mbY)
+        return predicted.x == 0 and predicted.y == 0
+    }
+
+    // Tests exact whole-pixel matches against the previous picture, including interleaved
+    // chroma. A motion copy never reaches into a cropped or padded edge macroblock.
+    mtd const matchesMotion(frame: const *Nv12Frame, mbX, mbY: u32, dx, dy: s32)->bool
+    {
+        let x = cast(s32, mbX) * 16
+        let y = cast(s32, mbY) * 16
+        if x + 16 > .width or y + 16 > .height or x + dx < 0 or y + dy < 0 or
+           x + dx + 16 > .width or y + dy + 16 > .height do
+            return false
+        let width = cast(u64, .width)
+        let current = frame.luma()
+        let uv = frame.chroma()
+        let previousUv = width * cast(u64, .height)
+        for row in 16'u64
+        {
+            let currentStart = (cast(u64, y) + row) * width + cast(u64, x)
+            let priorStart = (cast(u64, y + dy) + row) * width + cast(u64, x + dx)
+            for column in 16'u64 where current[currentStart + column] != .previous[priorStart + column] do
+                return false
+        }
+        for row in 8'u64
+        {
+            let currentStart = (cast(u64, y) / 2 + row) * width + cast(u64, x)
+            let priorStart = (cast(u64, y + dy) / 2 + row) * width + cast(u64, x + dx)
+            for column in 16'u64 where uv[currentStart + column] != .previous[previousUv + priorStart + column] do
+                return false
+        }
+        return true
+    }
+
+    mtd const findMotion(frame: const *Nv12Frame, mbX, mbY: u32,
+                         prediction: EncoderMotion, result: *EncoderMotion)->bool
+    {
+        if prediction.x % 4 == 0 and prediction.y % 4 == 0 and
+           prediction.x % 8 == 0 and prediction.y % 8 == 0 and
+           .matchesMotion(frame, mbX, mbY, prediction.x / 4, prediction.y / 4)
+        {
+            result[] = {prediction.x, prediction.y, true}
+            return true
+        }
+        if .matchesMotion(frame, mbX, mbY, 0, 0)
+        {
+            result[] = {0, 0, true}
+            return true
+        }
+        for index in 16'u64
+        {
+            let dx = MotionOffsets[index, 0]
+            let dy = MotionOffsets[index, 1]
+            if .matchesMotion(frame, mbX, mbY, dx, dy)
+            {
+                result[] = {dx * 4, dy * 4, true}
+                return true
+            }
+        }
+        return false
+    }
+
     mtd buildConfig()
     {
         var sps: EncoderBits

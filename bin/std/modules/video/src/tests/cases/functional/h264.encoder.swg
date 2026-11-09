@@ -31,6 +31,44 @@ func encoderFrame(width, height: s32, changeX = -1's32, changeY = -1's32)->Nv12F
     return result
 }
 
+func encoderScrolledFrame(width, height, shiftX, shiftY: s32)->Nv12Frame fail
+{
+    var rgb: Array'u8
+    rgb.resize(cast(u64, width) * cast(u64, height) * 3)
+    for y in cast(u64, height)
+    {
+        for x in cast(u64, width)
+        {
+            let sampleX = (x + cast(u64, shiftX)) % cast(u64, width)
+            let sampleY = (y + cast(u64, shiftY)) % cast(u64, height)
+            let offset = (y * cast(u64, width) + x) * 3
+            rgb[offset]     = cast(u8, (sampleX * 7 + sampleY * 3) & 255)
+            rgb[offset + 1] = cast(u8, (sampleX * 5 + sampleY * 11) & 255)
+            rgb[offset + 2] = cast(u8, (sampleX * 13 + sampleY * 2) & 255)
+        }
+    }
+    let image = Image.create(width, height, .RGB8, rgb.toSlice())
+    var result: Nv12Frame
+    try result.convertFrom(&image)
+    return result
+}
+
+func encoderSolidFrame(width, height: s32, red, green, blue: u8)->Nv12Frame fail
+{
+    var rgb: Array'u8
+    rgb.resize(cast(u64, width) * cast(u64, height) * 3)
+    for pixel in cast(u64, width) * cast(u64, height)
+    {
+        rgb[pixel * 3] = red
+        rgb[pixel * 3 + 1] = green
+        rgb[pixel * 3 + 2] = blue
+    }
+    let image = Image.create(width, height, .RGB8, rgb.toSlice())
+    var result: Nv12Frame
+    try result.convertFrom(&image)
+    return result
+}
+
 func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
 {
     Swag.require(decoded.width == original.width and decoded.height == original.height)
@@ -197,4 +235,101 @@ func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
     requireEncodedNv12(&frame, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 256)
     requireEncodedNv12(&frame, &decoded)
+}
+
+// Vertical and horizontal screen scrolls use exact inter prediction for most blocks.
+#test
+{
+    let path = videoTempPath("h264-encoder-scroll", "mp4")
+    defer discard catch File.delete(path)
+    let first = expect encoderScrolledFrame(128, 128, 0, 0)
+    let vertical = expect encoderScrolledFrame(128, 128, 0, 16)
+    let diagonal = expect encoderScrolledFrame(128, 128, 16, 16)
+    let smallScroll = expect encoderScrolledFrame(128, 128, 16, 18)
+    var encoder = expect H264.Encoder.create(128, 128, keyInterval: 10)
+    var writer = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&first, 0, 3_000)
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+    let movedDown = expect encoder.encode(&vertical, 3_000, 3_000)
+    Swag.require(movedDown.bytes.count < keySize / 3)
+    expect writer.addPacket(movedDown)
+    let movedRight = expect encoder.encode(&diagonal, 6_000, 3_000)
+    Swag.require(movedRight.bytes.count < keySize / 3)
+    expect writer.addPacket(movedRight)
+    let still = expect encoder.encode(&diagonal, 9_000, 3_000)
+    Swag.require(still.bytes.count < keySize / 20)
+    expect writer.addPacket(still)
+    let twoPixels = expect encoder.encode(&smallScroll, 12_000, 3_000)
+    Swag.require(twoPixels.bytes.count < keySize / 3)
+    expect writer.addPacket(twoPixels)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&first, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&vertical, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&diagonal, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 3)
+    requireEncodedNv12(&diagonal, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 4)
+    requireEncodedNv12(&smallScroll, &decoded)
+}
+
+// When there is no exact whole-pixel match, a changed P picture retains exact samples.
+#test
+{
+    let path = videoTempPath("h264-encoder-unmatched", "mp4")
+    defer discard catch File.delete(path)
+    let first = expect encoderScrolledFrame(64, 64, 0, 0)
+    let changed = expect encoderScrolledFrame(64, 64, 1, 1)
+    var encoder = expect H264.Encoder.create(64, 64)
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&first, 0, 3_000)
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+    let fallback = expect encoder.encode(&changed, 3_000, 3_000)
+    Swag.require(fallback.bytes.count > keySize / 2)
+    expect writer.addPacket(fallback)
+    expect writer.end()
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&changed, &decoded)
+}
+
+// A flat-color key picture and a full-screen color change avoid raw PCM beyond the first block.
+#test
+{
+    let path = videoTempPath("h264-encoder-flat", "mp4")
+    defer discard catch File.delete(path)
+    let first = expect encoderSolidFrame(128, 128, 30, 90, 200)
+    let changed = expect encoderSolidFrame(128, 128, 200, 50, 30)
+    var encoder = expect H264.Encoder.create(128, 128, keyInterval: 2)
+    var writer = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&first, 0, 3_000)
+    Swag.require(key.bytes.count < 2_000)
+    expect writer.addPacket(key)
+    let recolored = expect encoder.encode(&changed, 3_000, 3_000)
+    Swag.require(recolored.bytes.count < 2_000)
+    expect writer.addPacket(recolored)
+    let newKey = expect encoder.encode(&changed, 6_000, 3_000)
+    Swag.require(newKey.isKeyFrame and newKey.bytes.count < 2_000)
+    expect writer.addPacket(newKey)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&first, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&changed, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&changed, &decoded)
 }

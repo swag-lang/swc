@@ -32,7 +32,8 @@ private struct CaptureSlot
 // The caller supplies a monotonic `originTick` shared with video and submits each source block
 // with its first-sample timestamp. Gaps and overlapping samples are reconciled by
 // [[Audio.SampleTimeline]]. A full queue discards its oldest block; the next `pop` reports the
-// missing frames. `markLost` and `markRestored` preserve the timeline across device outages.
+// missing frames. `markLost` and `markRestored` preserve the timeline across device outages;
+// `markSilentUntil` advances it while an active output loopback source has no packets.
 // The queue itself does not open a microphone; a platform backend supplies its PCM and ticks.
 // Producers and consumers may call different methods concurrently.
 #[Swag.NoCopy]
@@ -55,6 +56,7 @@ struct CaptureQueue
         droppedBlocks:       u64
         droppedFrames:       u64
         lost:                bool
+        idleSilent:          bool
     }
 }
 
@@ -109,7 +111,20 @@ impl CaptureQueue
         if .lost do
             fail BadParameterError{"capture source is lost; mark it restored before submitting samples"}
 
-        let placement = try .timeline.place(firstTick, samples.count / .channels)
+        var adjustedTick = firstTick
+        var lateFrames = 0'u64
+        if .idleSilent and firstTick < .timeline.previousTick
+        {
+            let exact = cast(f64, .timeline.previousTick - firstTick) * .timeline.sampleRate /
+                        .timeline.clockFrequency
+            let frames = samples.count / .channels
+            lateFrames = exact >= frames ? frames : cast(u64, Math.ceil(exact))
+            if lateFrames == frames do
+                return SamplePlacement{.timeline.sampleEnd(), 0, lateFrames, 0}
+            adjustedTick = .timeline.previousTick
+        }
+        var placement = try .timeline.place(adjustedTick, samples.count / .channels - lateFrames)
+        placement.discardedFrames += lateFrames
         if not placement.acceptedFrames do
             return placement
         if .count == .slotCount
@@ -122,13 +137,14 @@ impl CaptureQueue
         let tail = (.head + .count) % .slotCount
         let slot = &.slots[tail]
         slot.startSample = placement.startSample
-        slot.firstTick = firstTick
+        slot.firstTick = adjustedTick
         slot.frameCount = cast(u32, placement.acceptedFrames)
         slot.generation = .generation
         let offset = cast(u64, tail) * .blockFrames * .channels
         Memory.copy(&.storage[offset], samples.buffer + placement.discardedFrames * .channels,
                     placement.acceptedFrames * .channels * #sizeof(s16))
         .count += 1
+        .idleSilent = false
         return placement
     }
 
@@ -166,7 +182,8 @@ impl CaptureQueue
     {
         .mutex.lock()
         defer .mutex.unlock()
-        discard try .timeline.advanceTo(tick)
+        let effective = .idleSilent and tick < .timeline.previousTick ? .timeline.previousTick : tick
+        discard try .timeline.advanceTo(effective)
         if not .lost
         {
             .lost = true
@@ -179,8 +196,26 @@ impl CaptureQueue
     {
         .mutex.lock()
         defer .mutex.unlock()
-        discard try .timeline.advanceTo(tick)
+        let effective = .idleSilent and tick < .timeline.previousTick ? .timeline.previousTick : tick
+        discard try .timeline.advanceTo(effective)
         .lost = false
+    }
+
+    // Advances an active but idle source with silence up to one safe monotonic timestamp.
+    //
+    // A loopback endpoint may stop delivering packets when nothing is playing. The caller
+    // should subtract its maximum expected packet latency before calling this method. Later
+    // source packets whose beginning predates the committed silence are clipped to its end.
+    // This does not mark a device interruption or change the restoration generation.
+    mtd markSilentUntil(tick: u64)->u64 fail
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        if .lost or tick <= .timeline.previousTick do
+            return 0
+        let silence = try .timeline.advanceTo(tick)
+        .idleSilent = true
+        return silence
     }
 
     // Returns whether the input is currently unavailable.
@@ -223,15 +258,15 @@ impl CaptureQueue
         return .timeline.sampleEnd()
     }
 
-    // Returns a safe silence endpoint while a lost source has no buffered block.
+    // Returns a safe silence endpoint while an idle or lost source has no buffered block.
     //
-    // The source-loss check and sample-end snapshot share one lock. New blocks submitted after
-    // restoration therefore cannot be mistaken for silence by a recorder on another thread.
-    // Zero means no idle lost-source gap is available.
+    // The source-state check and sample-end snapshot share one lock. New blocks submitted after
+    // restoration or idle time therefore cannot be mistaken for silence on another thread.
+    // Zero means no idle or lost-source gap is available.
     mtd silentGapEnd()->u64
     {
         .mutex.lock()
         defer .mutex.unlock()
-        return .lost and not .count ? .timeline.sampleEnd() : 0
+        return (.lost or .idleSilent) and not .count ? .timeline.sampleEnd() : 0
     }
 }

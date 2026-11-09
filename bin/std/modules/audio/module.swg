@@ -24,8 +24,9 @@ interruption.
 [[Audio.CaptureQueue]] transfers timestamped PCM blocks from a capture backend in bounded memory,
 reporting gaps, overflows, and source restoration.
 [[Audio.CapturePcmFeeder]] converts native PCM16, float32, and silent packets into that queue.
-On Windows, `CaptureMicrophone` opens the default input through native shared-mode WASAPI and
-feeds the queue; device execution still needs validation on a Windows machine.
+On Windows, `CaptureMicrophone` opens the default input and `CaptureOutputLoopback` reads the
+system output mix through native shared-mode WASAPI; device execution still needs validation
+on a Windows machine. The loopback path emits bounded silence when the output is inactive.
 [[Audio.CaptureAacTrack]] turns those blocks and missing intervals into timestamped AAC-LC packets
 with bounded memory and reports encoder priming for a container timeline.
 [[Audio.CaptureClockDrift]] measures a source's sample-clock drift from raw frame positions and

@@ -19,6 +19,7 @@ struct CaptureMicrophone
         feeder:                CapturePcmFeeder
         late queue:            *CaptureQueue
         format:                WasapiCaptureFormat
+        source:                WasapiCaptureSource
         pendingDiscontinuity:  bool
     }
 }
@@ -41,17 +42,22 @@ impl CaptureMicrophone
     // Use [[Win32.wasapiCaptureNow100ns]] for the queue's origin tick when picture and sound
     // should share a monotonic start. Unsupported rates, channel counts, and mix encodings fail.
     func openDefault(queue: *CaptureQueue)->CaptureMicrophone fail
+        => try openDefaultSource(queue, .Microphone)
+
+    // Opens either Windows source through the same queue conversion and packet lifecycle.
+    internal func openDefaultSource(queue: *CaptureQueue, source: WasapiCaptureSource)->CaptureMicrophone fail
     {
         if queue.clockFrequencyHz() != 10_000_000 do
             fail BadParameterError{"WASAPI capture queue must use 100-nanosecond timestamps"}
         var result: #returntype
-        result.native = try WasapiCapture.openDefault()
+        result.native = try WasapiCapture.openDefault(source)
         defer #fail result.native.close()
         result.format = result.native.mixFormat()
         if queue.sampleRateHz() != result.format.sampleRate or
            queue.channelCount() != result.format.channels do
-            fail BadParameterError{"capture queue must match the microphone shared mix format"}
+            fail BadParameterError{"capture queue must match the audio source shared mix format"}
         result.queue = queue
+        result.source = source
         result.feeder = CapturePcmFeeder.create(queue)
         return result
     }
@@ -65,8 +71,11 @@ impl CaptureMicrophone
     // `timeoutMs` can be zero for polling. Each packet is released before the next is borrowed.
     mtd pump(timeoutMs: u32 = 0)->u32 fail
     {
-        if not try .native.wait(timeoutMs) do
+        if not try .native.wait(timeoutMs)
+        {
+            try .advanceIdleLoopback()
             return 0
+        }
         var count = 0'u32
         var packet: WasapiCapturePacket
         while try .native.nextPacket(&packet)
@@ -102,9 +111,25 @@ impl CaptureMicrophone
             .pendingDiscontinuity = false
             try .native.releasePacket()
         }
+        try .advanceIdleLoopback()
         return count
     }
 
     // Stops capture and releases native endpoint, event, and COM apartment resources.
     mtd close() => .native.close()
+}
+
+private impl CaptureMicrophone
+{
+    mtd advanceIdleLoopback() fail
+    {
+        if .source != .OutputLoopback do
+            return
+        // Leave 250 ms for packets already mixed by the render endpoint to arrive before
+        // committing the otherwise silent interval to a live AAC track.
+        const SafeLag100ns = 2_500_000'u64
+        let now = try wasapiCaptureNow100ns()
+        if now > SafeLag100ns do
+            discard try .queue.markSilentUntil(now - SafeLag100ns)
+    }
 }

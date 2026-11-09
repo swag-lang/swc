@@ -22,6 +22,11 @@ private struct EncoderMotion
     inter: bool
 }
 
+private struct EncoderSlicePacket
+{
+    bytes: Array'u8
+}
+
 private struct EncoderQuantizedMb
 {
     lumaLevels:     [256] s16
@@ -293,6 +298,7 @@ struct Encoder
         mbHeight:       u32
         keyInterval:    u32
         quantizationQp: u32
+        sliceCount:     u32
         frameNumber:    u32
         framesSinceKey: u32
         previousEnd:    u64
@@ -309,17 +315,21 @@ impl Encoder
     // The interval is 1 to 255 pictures. A new encoder starts with an IDR picture.
     // `quantizationQp` is 0 for exact samples or 1 through 51 for quantized P residuals.
     // IDR pictures remain exact; this fixed QP is not a target-bitrate controller.
+    // `sliceCount` divides each picture into 1 to 8 complete macroblock-row bands.
+    // The default single slice preserves the original bitstream.
     func create(width, height: s32, keyInterval: u32 = 60,
-                quantizationQp: u32 = 0)->Encoder fail
+                quantizationQp: u32 = 0, sliceCount: u32 = 1)->Encoder fail
     {
         if width <= 0 or height <= 0 or width > 4096 or height > 4096 or
            width % 2 or height % 2 or not keyInterval or keyInterval > 255 or
-           quantizationQp > 51 do
-            fail BadParameterError{"H.264 encoder needs even dimensions, an IDR interval of 1 to 255 and QP of 0 to 51"}
+           quantizationQp > 51 or not sliceCount or sliceCount > 8 do
+            fail BadParameterError{"H.264 encoder needs even dimensions, an IDR interval of 1 to 255, QP of 0 to 51 and 1 to 8 slices"}
         let mbWidth  = cast(u32, (width + 15) / 16)
         let mbHeight = cast(u32, (height + 15) / 16)
         if mbWidth * mbHeight > 36_864 do
             fail UnsupportedFormatError{"H.264 encoder picture exceeds level 5.2 frame size"}
+        if sliceCount > mbHeight do
+            fail BadParameterError{"H.264 encoder needs at least one macroblock row per slice"}
 
         with var result: #returntype
         {
@@ -329,6 +339,7 @@ impl Encoder
             .mbHeight    = mbHeight
             .keyInterval = keyInterval
             .quantizationQp = quantizationQp
+            .sliceCount = sliceCount
         }
         result.buildConfig()
         return result
@@ -358,8 +369,59 @@ impl Encoder
             .reconstructed.clear()
             .reconstructed.add(frame.bytes.toSlice())
         }
+        var packet: Array'u8
+        if .sliceCount == 1 do
+            .encodeSlice(frame, key, 0, &packet)
+        else
+        {
+            var slices: Array'EncoderSlicePacket
+            slices.resize(.sliceCount)
+            let encoder = me
+            let slots = slices.storage()
+            parallel for |encoder, frame, key, slots| sliceIndex in cast(u64, .sliceCount) do
+                encoder.encodeSlice(frame, key, cast(u32, sliceIndex), &slots[sliceIndex].bytes)
+            for &slice in slices do
+                packet.add(slice.bytes.toSlice())
+        }
+        .packet   = #move packet
+        if .quantizationQp
+        {
+            Core.swap(&.previous, &.reconstructed)
+            .previousInput.clear()
+            .previousInput.add(frame.bytes.toSlice())
+        }
+        else
+        {
+            .previous.clear()
+            .previous.add(frame.bytes.toSlice())
+        }
+        .previousEnd = decodeTime + duration
+        .hasFrame    = true
+        if key
+        {
+            .frameNumber    = 1
+            .framesSinceKey = 1
+        }
+        else
+        {
+            .frameNumber    += 1
+            .framesSinceKey += 1
+        }
+        let presentationTime = decodeTime
+        return EncodedPacket{.packet.toSlice(), decodeTime, presentationTime, duration, key}
+    }
+}
+
+private impl Encoder
+{
+    // One independently coded row band. All spatial contexts restart at its first row.
+    mtd encodeSlice(frame: const *Nv12Frame, key: bool, sliceIndex: u32,
+                    packet: *Array'u8)
+    {
+        let sliceStartY = sliceIndex * .mbHeight / .sliceCount
+        let sliceEndY = (sliceIndex + 1) * .mbHeight / .sliceCount
         var bits: EncoderBits
-        bits.unsigned(0)                     // first_mb_in_slice.
+        bits.unsigned(sliceStartY * .mbWidth) // first_mb_in_slice.
         bits.unsigned(key ? 2 : 0)           // I or P slice.
         bits.unsigned(0)                     // pic_parameter_set_id.
         bits.bits(key ? 0 : .frameNumber, 8)
@@ -401,17 +463,17 @@ impl Encoder
             for &value in chromaNonZero do
                 value[] = 0
         }
-        for mbY in .mbHeight
+        for mbY in sliceStartY until sliceEndY
         {
             for mbX in .mbWidth
             {
                 let motionIndex = cast(u64, mbY) * .mbWidth + mbX
-                let prediction = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY)
+                let prediction = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY, sliceStartY)
                 if not key and .quantizationQp and .unchangedInput(frame, mbX, mbY)
                 {
                     // Repeating an input after a lossy picture must hold the decoded reference,
                     // not spend another quantization pass or copy the raw source into it.
-                    if .skipMotionIsZero(motions.toSlice(), mbX, mbY) do
+                    if .skipMotionIsZero(motions.toSlice(), mbX, mbY, sliceStartY) do
                         skipped += 1
                     else
                     {
@@ -428,7 +490,7 @@ impl Encoder
                 }
                 var firstDifferent = 256'u32
                 let same = not key and .unchanged(frame, mbX, mbY, &firstDifferent)
-                if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY)
+                if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY, sliceStartY)
                 {
                     skipped += 1
                     motions[motionIndex] = {0, 0, true}
@@ -436,12 +498,12 @@ impl Encoder
                 }
                 if not key do
                     bits.unsigned(skipped)
-                if (key or not .quantizationQp) and .flatIntra(frame, mbX, mbY)
+                if (key or not .quantizationQp) and .flatIntra(frame, mbX, mbY, sliceStartY)
                 {
                     bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
                     bits.unsigned(0)           // Chroma DC prediction.
                     bits.signed(0)             // No QP change.
-                    .writeEmptyIntraDc(&bits, pcm.toSlice(), mbX, mbY)
+                    .writeEmptyIntraDc(&bits, pcm.toSlice(), mbX, mbY, sliceStartY)
                     skipped = 0
                     continue
                 }
@@ -479,7 +541,7 @@ impl Encoder
                                                          quantized.chromaAc.buffer,
                                                          quantized.cbpChroma,
                                                          &currentQp,
-                                                         cast(s32, .quantizationQp))
+                                                         cast(s32, .quantizationQp), sliceStartY)
                             let written = bits.bytes.count * 8 + bits.used -
                                           (oldBytes * 8 + oldUsed)
                             if coded and written < 3_072
@@ -531,7 +593,7 @@ impl Encoder
                                                              chromaNonZero.toSlice(), mbX, mbY,
                                                              levels.buffer, cbp, chromaLevels.buffer,
                                                              chromaAcLevels.buffer, chromaCbp,
-                                                             &currentQp)
+                                                             &currentQp, sliceStartY)
                                 let written = bits.bytes.count * 8 + bits.used -
                                               (oldBytes * 8 + oldUsed)
                                 if coded and written < 3_072
@@ -565,7 +627,7 @@ impl Encoder
                                                              acLevels.buffer, cbp,
                                                              chromaLevels.buffer,
                                                              chromaAcLevels.buffer, chromaCbp,
-                                                             &currentQp, 0)
+                                                             &currentQp, 0, sliceStartY)
                                 let written = bits.bytes.count * 8 + bits.used -
                                               (oldBytes * 8 + oldUsed)
                                 if coded and written < 3_072
@@ -603,40 +665,9 @@ impl Encoder
         if not key and skipped do
             bits.unsigned(skipped)
         bits.trailing()
-
-        var packet: Array'u8
-        appendEncoderNal(&packet, key ? 0x65 : 0x41, bits.bytes.toSlice())
-        .packet   = #move packet
-        if .quantizationQp
-        {
-            Core.swap(&.previous, &.reconstructed)
-            .previousInput.clear()
-            .previousInput.add(frame.bytes.toSlice())
-        }
-        else
-        {
-            .previous.clear()
-            .previous.add(frame.bytes.toSlice())
-        }
-        .previousEnd = decodeTime + duration
-        .hasFrame    = true
-        if key
-        {
-            .frameNumber    = 1
-            .framesSinceKey = 1
-        }
-        else
-        {
-            .frameNumber    += 1
-            .framesSinceKey += 1
-        }
-        let presentationTime = decodeTime
-        return EncodedPacket{.packet.toSlice(), decodeTime, presentationTime, duration, key}
+        appendEncoderNal(packet, key ? 0x65 : 0x41, bits.bytes.toSlice())
     }
-}
 
-private impl Encoder
-{
     // Tests the visible input samples, including a cropped edge macroblock. A previously
     // quantized reference can differ from this input even when the screen has not changed.
     mtd const unchangedInput(frame: const *Nv12Frame, mbX, mbY: u32)->bool
@@ -1162,7 +1193,7 @@ private impl Encoder
     mtd const writeAcResidual(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s16, cbp: u32,
                               chromaLevels, chromaAcLevels: const [*] s16, chromaCbp: u32,
-                              currentQp: *s32, targetQp: s32)->bool
+                              currentQp: *s32, targetQp: s32, sliceStartY: u32)->bool
     {
         var code = 0'u32
         let pattern = cbp | (chromaCbp << 4)
@@ -1186,7 +1217,7 @@ private impl Encoder
                 let by = cast(u32, (quad >> 1) * 2 + (cell >> 1))
                 let block = by * 4 + bx
                 let blockLevels = levels + block * 16
-                let context = .lumaNc(nonZero, mbX, mbY, bx, by)
+                let context = .lumaNc(nonZero, mbX, mbY, bx, by, sliceStartY)
                 if not bits.residual4(blockLevels, context) do
                     return false
                 var total = 0'u8
@@ -1197,7 +1228,7 @@ private impl Encoder
             }
         }
         return .writeChromaResidual(bits, chromaNonZero, mbX, mbY,
-                                    chromaLevels, chromaAcLevels, chromaCbp)
+                                    chromaLevels, chromaAcLevels, chromaCbp, sliceStartY)
     }
 
     // Detects an exact DC-only 4x4 luma residual at QP 0. Chroma is checked
@@ -1264,14 +1295,14 @@ private impl Encoder
         return nonZero[index]
     }
 
-    mtd const lumaNc(nonZero: const [..] u8, mbX, mbY, bx, by: u32)->u32
+    mtd const lumaNc(nonZero: const [..] u8, mbX, mbY, bx, by, sliceStartY: u32)->u32
     {
         let hasLeft = bx > 0 or mbX > 0
-        let hasTop = by > 0 or mbY > 0
+        let hasTop = by > 0 or mbY > sliceStartY
         let left = bx > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY, bx - 1, by) :
                             (mbX > 0 ? .lumaNonZeroAt(nonZero, mbX - 1, mbY, 3, by) : 0)
         let top = by > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY, bx, by - 1) :
-                           (mbY > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY - 1, bx, 3) : 0)
+                           (mbY > sliceStartY ? .lumaNonZeroAt(nonZero, mbX, mbY - 1, bx, 3) : 0)
         if hasLeft and hasTop do
             return (left + top + 1) / 2
         return left + top
@@ -1285,14 +1316,14 @@ private impl Encoder
     }
 
     mtd const chromaNc(nonZero: const [..] u8,
-                        mbX, mbY, plane, bx, by: u32)->u32
+                        mbX, mbY, plane, bx, by, sliceStartY: u32)->u32
     {
         let hasLeft = bx > 0 or mbX > 0
-        let hasTop = by > 0 or mbY > 0
+        let hasTop = by > 0 or mbY > sliceStartY
         let left = bx > 0 ? .chromaNonZeroAt(nonZero, mbX, mbY, plane, bx - 1, by) :
                             (mbX > 0 ? .chromaNonZeroAt(nonZero, mbX - 1, mbY, plane, 1, by) : 0)
         let top = by > 0 ? .chromaNonZeroAt(nonZero, mbX, mbY, plane, bx, by - 1) :
-                           (mbY > 0 ? .chromaNonZeroAt(nonZero, mbX, mbY - 1, plane, bx, 1) : 0)
+                           (mbY > sliceStartY ? .chromaNonZeroAt(nonZero, mbX, mbY - 1, plane, bx, 1) : 0)
         if hasLeft and hasTop do
             return (left + top + 1) / 2
         return left + top
@@ -1300,7 +1331,7 @@ private impl Encoder
 
     mtd const writeChromaResidual(bits: *EncoderBits, nonZero: [..] u8,
                                   mbX, mbY: u32, dc: const [*] s16,
-                                  ac: const [*] s16, cbp: u32)->bool
+                                  ac: const [*] s16, cbp: u32, sliceStartY: u32)->bool
     {
         if not cbp do
             return true
@@ -1317,7 +1348,7 @@ private impl Encoder
             {
                 let bx = block & 1
                 let by = block >> 1
-                let context = .chromaNc(nonZero, mbX, mbY, plane, bx, by)
+                let context = .chromaNc(nonZero, mbX, mbY, plane, bx, by, sliceStartY)
                 let levels = ac + (plane * 4 + block) * 16
                 if not bits.residual15(levels + 1, context) do
                     return false
@@ -1334,7 +1365,7 @@ private impl Encoder
     mtd const writeDcResidual(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s32, cbp: u32,
                               chromaLevels, chromaAcLevels: const [*] s16, chromaCbp: u32,
-                              currentQp: *s32)->bool
+                              currentQp: *s32, sliceStartY: u32)->bool
     {
         var code = 0'u32
         let pattern = cbp | (chromaCbp << 4)
@@ -1354,24 +1385,24 @@ private impl Encoder
                 let bx = cast(u32, (quad & 1) * 2 + (cell & 1))
                 let by = cast(u32, (quad >> 1) * 2 + (cell >> 1))
                 let level = levels[by * 4 + bx]
-                bits.singleDc(level, .lumaNc(nonZero, mbX, mbY, bx, by))
+                bits.singleDc(level, .lumaNc(nonZero, mbX, mbY, bx, by, sliceStartY))
                 let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + by * 4 + bx
                 nonZero[index] = level == 0 ? 0 : 1
             }
         }
         return .writeChromaResidual(bits, chromaNonZero, mbX, mbY,
-                                    chromaLevels, chromaAcLevels, chromaCbp)
+                                    chromaLevels, chromaAcLevels, chromaCbp, sliceStartY)
     }
 
     // A constant 16x16 block is represented by Intra_16x16 DC without coefficients when
     // every available top and left boundary has the same samples in all three planes.
-    mtd const flatIntra(frame: const *Nv12Frame, mbX, mbY: u32)->bool
+    mtd const flatIntra(frame: const *Nv12Frame, mbX, mbY, sliceStartY: u32)->bool
     {
         let x = cast(u64, mbX) * 16
         let y = cast(u64, mbY) * 16
         let width = cast(u64, .width)
         let height = cast(u64, .height)
-        if not mbX and not mbY do
+        if not mbX and mbY == sliceStartY do
             return false
         let luma = frame.luma()
         let chroma = frame.chroma()
@@ -1395,7 +1426,7 @@ private impl Encoder
                     return false
             }
         }
-        if mbY
+        if mbY > sliceStartY
         {
             for column in 16'u64 where luma[(y - 1) * width + Math.min(x + column, width - 1)] != valueY do
                 return false
@@ -1420,11 +1451,12 @@ private impl Encoder
         return true
     }
 
-    mtd const writeEmptyIntraDc(bits: *EncoderBits, pcm: const [..] bool, mbX, mbY: u32)
+    mtd const writeEmptyIntraDc(bits: *EncoderBits, pcm: const [..] bool,
+                                mbX, mbY, sliceStartY: u32)
     {
         let left = mbX > 0 ? (pcm[cast(u64, mbY) * .mbWidth + mbX - 1] ? 16'u32 : 0) : 0
-        let top = mbY > 0 ? (pcm[cast(u64, mbY - 1) * .mbWidth + mbX] ? 16'u32 : 0) : 0
-        let nC = mbX > 0 and mbY > 0 ? (left + top + 1) / 2 : left + top
+        let top = mbY > sliceStartY ? (pcm[cast(u64, mbY - 1) * .mbWidth + mbX] ? 16'u32 : 0) : 0
+        let nC = mbX > 0 and mbY > sliceStartY ? (left + top + 1) / 2 : left + top
         if nC < 2 do
             bits.bit(1)
         elif nC < 4 do
@@ -1443,19 +1475,20 @@ private impl Encoder
     }
 
     // Section 8.4.1.3: 16x16 L0 vector prediction from A, B, and C (or D).
-    mtd const predictMotion(motions: const [..] EncoderMotion, mbX, mbY: u32)->EncoderMotion
+    mtd const predictMotion(motions: const [..] EncoderMotion,
+                            mbX, mbY, sliceStartY: u32)->EncoderMotion
     {
         let x = cast(s32, mbX)
         let y = cast(s32, mbY)
         let a = .motionAt(motions, x - 1, y)
-        let b = .motionAt(motions, x, y - 1)
-        var c = .motionAt(motions, x + 1, y - 1)
-        if x + 1 >= cast(s32, .mbWidth) do
+        let b = mbY > sliceStartY ? .motionAt(motions, x, y - 1) : EncoderMotion{}
+        var c = mbY > sliceStartY ? .motionAt(motions, x + 1, y - 1) : EncoderMotion{}
+        if mbY > sliceStartY and x + 1 >= cast(s32, .mbWidth) do
             c = .motionAt(motions, x - 1, y - 1)
 
         let availableA = x > 0
-        let availableB = y > 0
-        let availableC = y > 0 and (x + 1 < cast(s32, .mbWidth) or x > 0)
+        let availableB = mbY > sliceStartY
+        let availableC = mbY > sliceStartY and (x + 1 < cast(s32, .mbWidth) or x > 0)
         if availableA and not availableB and not availableC do
             return a
         if a.inter and not b.inter and not c.inter do
@@ -1470,9 +1503,10 @@ private impl Encoder
         return {middleX, middleY, true}
     }
 
-    mtd const skipMotionIsZero(motions: const [..] EncoderMotion, mbX, mbY: u32)->bool
+    mtd const skipMotionIsZero(motions: const [..] EncoderMotion,
+                               mbX, mbY, sliceStartY: u32)->bool
     {
-        if mbX == 0 or mbY == 0 do
+        if mbX == 0 or mbY == sliceStartY do
             return true
         let a = .motionAt(motions, cast(s32, mbX) - 1, cast(s32, mbY))
         let b = .motionAt(motions, cast(s32, mbX), cast(s32, mbY) - 1)
@@ -1480,7 +1514,7 @@ private impl Encoder
             return true
         if b.inter and b.x == 0 and b.y == 0 do
             return true
-        let predicted = .predictMotion(motions, mbX, mbY)
+        let predicted = .predictMotion(motions, mbX, mbY, sliceStartY)
         return predicted.x == 0 and predicted.y == 0
     }
 

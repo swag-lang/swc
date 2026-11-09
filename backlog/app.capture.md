@@ -232,8 +232,10 @@ whole recording loaded at once.
   test has no actual audio device. `VideoCaptureSession` accepts optional H.264 QP 0–51 and
   one through eight row-band slices, preserving exact QP 0 and one slice by default. On the
   same dynamic X11 4K60 scene, quantized QP 28 with four slices, motion residuals and
-  P-slice Intra16x16 coding of flat regions takes 2.40–2.93 seconds across measured runs
-  for capture, conversion, video encoding and MP4 and produces 4.16 MB (final-frame luma PSNR
+  P-slice Intra16x16 coding of flat regions took 2.40–2.93 seconds across earlier runs.
+  A later portable flat-block row comparison reduced a paired run from 2.514 to 2.340
+  seconds for capture, conversion, video encoding and MP4 with a byte-identical 4.16 MB
+  recording (final-frame luma PSNR
   48.41 dB). This P-intra candidate is currently limited to QP 28. QP 36 takes 3.55–3.73
   seconds and produces 10.06 MB (38.10 dB), following the previous path. Exact QP 0
   with four slices and one matching diagonal motion vector takes
@@ -243,11 +245,15 @@ whole recording loaded at once.
   the last playable MP4 prefix when free space falls below that threshold; an integration
   test reopens its final video and AAC tracks after the simulated stop. The nine X11
   integration tests passed before the last chroma shortcut; two later repeats stalled in
-  the first generated X11 test at three and one workers. A direct run showed that test
-  starting, and temporary trace prints around its window creation made all nine pass;
-  the traces were removed. This points to a timing-sensitive GUI/X11 startup race that
-  still needs isolation. Swag Capture has no video-recording UI. The persistent
-  Win32 GDI `BitBlt` source passes semantic checks, but its
+  the first generated X11 test at three and one workers. Temporary trace prints narrowed
+  repeated direct-run timeouts to just before or within `Reader.decodeFramePlanesInto`:
+  at two runtime workers, 4 of 12 and then 5 of 24 runs stopped between `Reader.open`
+  and the first decoded picture, while 12 of 12 at one worker passed. Closing the X11
+  fixture before decoding did not resolve it (5 of 24 timeouts). Disabling the small
+  H.264 reconstruction pipeline also did not resolve it (3 of 24 timeouts); a separate
+  run stopped before the test body. All diagnostic edits were removed. The intermittent
+  test-runner or decode stall still needs isolation. Swag Capture has no video-recording
+  UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.
 - Next: isolate the generated X11 test runner stall. Once app.capture.012 has proven the

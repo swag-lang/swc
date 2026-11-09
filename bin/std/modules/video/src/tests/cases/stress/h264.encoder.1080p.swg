@@ -584,7 +584,11 @@ func runQpStress(width, height: s32) fail
             var reader = try Reader.open(path)
             var decoded: PlanarFrame
             try reader.decodeFramePlanesInto(&decoded, 0)
-            requireStressPicture(&base, &decoded)
+            let idrQuality = qpStressQuality(&base, &decoded)
+            if qp == 0 do
+                requireStressPicture(&base, &decoded)
+            else do
+                Swag.require(idrQuality.yPsnr >= 18.0 and idrQuality.uvPsnr >= 18.0)
             var minY = 99.0'f64
             var minUv = 99.0'f64
             var maxY = 0'u32
@@ -615,16 +619,18 @@ func runQpStress(width, height: s32) fail
             }
             let sceneName = scene == 0 ? "still" : (scene == 1 ? "scroll" : "texture")
             let gopMbps = cast(f64, idrBytes + 59 * middleBytes) * 8.0 / 1_000_000.0
-            Console.printf("H264 QP % % by % %: IDR % bytes; P median % bytes/% us; GOP60 % Mb/s; PSNR Y/UV %/% dB; max error %/%\n",
-                           qp, width, height, sceneName, idrBytes, middleBytes,
-                           middleMicros, gopMbps, minY, minUv, maxY, maxUv)
+            Console.printf("H264 QP % % by % %: IDR % bytes, PSNR %/% dB; P median % bytes/% us; GOP60 % Mb/s; PSNR Y/UV %/% dB; max error %/%\n",
+                           qp, width, height, sceneName, idrBytes,
+                           idrQuality.yPsnr, idrQuality.uvPsnr,
+                           middleBytes, middleMicros,
+                           gopMbps, minY, minUv, maxY, maxUv)
         }
         Console.printf("H264 QP % % by % IDR median % us\n", qp, width, height,
                        qpStressMedian(idrTimes[0], idrTimes[1], idrTimes[2]))
     }
 }
 
-// Timing is diagnostic only; size, exact IDRs, and decoded quality are asserted.
+// Timing is diagnostic only; size, QP0 exactness, and decoded quality are asserted.
 #[Swag.TestTag("stress")]
 #test
 {
@@ -676,7 +682,8 @@ func runQpRepeatedInput(width, height: s32) fail
         var reader = try Reader.open(path)
         var decoded: PlanarFrame
         try reader.decodeFramePlanesInto(&decoded, 0)
-        requireStressPicture(&base, &decoded)
+        let idrQuality = qpStressQuality(&base, &decoded)
+        Swag.require(idrQuality.yPsnr >= 18.0 and idrQuality.uvPsnr >= 18.0)
         for frame in 1'u64 until 5
         {
             try reader.decodeFramePlanesInto(&decoded, frame)
@@ -715,12 +722,26 @@ private impl Nv12Frame
 
 // Measures helper cost separately from motion search, CAVLC and reference copying.
 // The zero counts identify opportunities to skip inverse transforms safely.
-func qpStressHelperProfile(width, height: s32, qp: u32, uniform: bool) fail
+func qpStressHelperProfile(width, height: s32, qp: u32, mode: u32) fail
 {
-    let reference = try encoderStressTiles(0, width, height)
+    var reference = try encoderStressTiles(0, width, height)
     var source = try encoderStressTiles(0, width, height)
-    if uniform do
+    if mode == 1 do
         source.qpStressUniformDelta()
+    elif mode == 2
+    {
+        let yCount = cast(u64, width) * cast(u64, height)
+        for index in yCount
+        {
+            reference.bytes[index] = 100
+            source.bytes[index] = index & 1 ? 117 : 115
+        }
+        for index in yCount / 2
+        {
+            reference.bytes[yCount + index] = 128
+            source.bytes[yCount + index] = (index / 2) & 1 ? 145 : 143
+        }
+    }
     else do
         source.qpStressTexture()
     let stride = cast(u64, width)
@@ -731,6 +752,8 @@ func qpStressHelperProfile(width, height: s32, qp: u32, uniform: bool) fail
     var watch: Time.Stopwatch
     var zeroLuma = 0'u64
     var zeroChroma = 0'u64
+    var dcOnlyLuma = 0'u64
+    var dcOnlyChroma = 0'u64
     watch.start()
     for mbY in cast(u64, height) / 16
     {
@@ -747,6 +770,8 @@ func qpStressHelperProfile(width, height: s32, qp: u32, uniform: bool) fail
                                               stride, stride, qp, &result)
                     if not result.nonZero do
                         zeroLuma += 1
+                    elif result.nonZero == 1 and result.levels[0] do
+                        dcOnlyLuma += 1
                 }
             }
         }
@@ -767,23 +792,91 @@ func qpStressHelperProfile(width, height: s32, qp: u32, uniform: bool) fail
                                             stride, stride, qp, 0, &result)
                 if not result.cbp do
                     zeroChroma += 1
+                elif result.cbp == 1 do
+                    dcOnlyChroma += 1
             }
         }
     }
     watch.stop()
     let chromaMicros = watch.elapsedMicroseconds()
     let mbCount = cast(u64, width) * cast(u64, height) / 256
-    Console.printf("H264 helper QP % % by % uniform %: luma % us, zero %/% blocks; chroma % us, zero %/% planes\n",
-                   qp, width, height, uniform, lumaMicros, zeroLuma, mbCount * 16,
-                   chromaMicros, zeroChroma, mbCount * 2)
+    Console.printf("H264 helper QP % % by % mode %: luma % us, zero %/%, DC-only %/% blocks; chroma % us, zero %/%, DC-only %/% planes\n",
+                   qp, width, height, mode, lumaMicros, zeroLuma, mbCount * 16,
+                   dcOnlyLuma, mbCount * 16, chromaMicros, zeroChroma, mbCount * 2,
+                   dcOnlyChroma, mbCount * 2)
     Swag.require(zeroLuma <= mbCount * 16 and zeroChroma <= mbCount * 2)
 }
 
 #[Swag.TestTag("stress")]
 #test
 {
-    expect qpStressHelperProfile(3840, 2160, 28, false)
-    expect qpStressHelperProfile(3840, 2160, 36, false)
-    expect qpStressHelperProfile(3840, 2160, 28, true)
-    expect qpStressHelperProfile(3840, 2160, 36, true)
+    expect qpStressHelperProfile(3840, 2160, 28, 0)
+    expect qpStressHelperProfile(3840, 2160, 36, 0)
+    expect qpStressHelperProfile(3840, 2160, 28, 1)
+    expect qpStressHelperProfile(3840, 2160, 36, 1)
+    expect qpStressHelperProfile(3840, 2160, 28, 2)
+    expect qpStressHelperProfile(3840, 2160, 36, 2)
+}
+
+// Separate IDR cost from P-frame cost on a flat screen and a textured screen.
+// Three independent IDRs give a median time, and Reader checks all three.
+func qpStressIdrScene(source: const *Nv12Frame, qp, scene: u32)->u64 fail
+{
+    let path = videoTempPath("h264-qp-idr-4k", "mp4")
+    defer discard catch File.delete(path)
+    var encoder = try H264.Encoder.create(source.width, source.height, 1, qp)
+    var writer = try Mp4.FragmentedWriter.create(path, source.width, source.height,
+                                                 90_000, encoder.decoderConfig())
+    var bytes: [3] u64
+    var micros: [3] u64
+    var watch: Time.Stopwatch
+    for frame in 3'u64
+    {
+        watch.restart()
+        let packet = try encoder.encode(source, frame * 1_500, 1_500)
+        watch.stop()
+        bytes[frame] = packet.bytes.count
+        micros[frame] = watch.elapsedMicroseconds()
+        try writer.addPacket(packet)
+    }
+    try writer.end()
+
+    var reader = try Reader.open(path)
+    var decoded: PlanarFrame
+    var minY = 99.0'f64
+    var minUv = 99.0'f64
+    for frame in 3'u64
+    {
+        try reader.decodeFramePlanesInto(&decoded, frame)
+        let quality = qpStressQuality(source, &decoded)
+        minY = Math.min(minY, quality.yPsnr)
+        minUv = Math.min(minUv, quality.uvPsnr)
+        if qp == 0 do
+            requireStressPicture(source, &decoded)
+        else do
+            Swag.require(quality.yPsnr >= 25.0 and quality.uvPsnr >= 25.0)
+    }
+    let middleBytes = qpStressMedian(bytes[0], bytes[1], bytes[2])
+    Console.printf("H264 IDR 4K QP % scene %: % bytes, median % us, PSNR Y/UV %/% dB\n",
+                   qp, scene, middleBytes, qpStressMedian(micros[0], micros[1], micros[2]),
+                   minY, minUv)
+    return middleBytes
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    var flat = expect encoderStressTiles(0, 3840, 2160)
+    let yCount = 3840'u64 * 2160
+    for index in yCount do
+        flat.bytes[index] = 110
+    for index in yCount / 2 do
+        flat.bytes[yCount + index] = 128
+    let textured = expect encoderStressTiles(0, 3840, 2160)
+    let flatExact = expect qpStressIdrScene(&flat, 0, 0)
+    let texturedExact = expect qpStressIdrScene(&textured, 0, 1)
+    let flatQuantized = expect qpStressIdrScene(&flat, 36, 0)
+    let texturedQuantized = expect qpStressIdrScene(&textured, 36, 1)
+    Swag.require(flatQuantized < flatExact * 2)
+    Swag.require(texturedQuantized < texturedExact / 4)
 }

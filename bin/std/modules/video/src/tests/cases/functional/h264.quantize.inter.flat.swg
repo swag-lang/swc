@@ -49,6 +49,52 @@ using Swag, Core
     }
 }
 
+// A weak checkerboard is not a constant residual, but higher QPs retain only
+// DC. The decoder transform remains the reconstruction oracle for that path.
+#test
+{
+    var dcOnlySeen = false
+    var acSeen = false
+    for qp in 52'u32
+    {
+        for pattern in 3'u64
+        {
+            var source: [16] u8
+            var prediction: [16] u8
+            for index in 16'u64
+            {
+                let pred = pattern == 0 ? 100'u8 : (pattern == 1 ? 240'u8 : 15'u8)
+                prediction[index] = pred
+                if pattern == 0 do
+                    source[index] = index & 1 ? 117 : 115
+                elif pattern == 1 do
+                    source[index] = index & 1 ? 255 : 253
+                else do
+                    source[index] = index & 1 ? 2 : 0
+            }
+            var actual: H264.InterLuma4x4Result
+            H264.quantizeInterLuma4x4(source.buffer, prediction.buffer, 4, 4, qp, &actual)
+            if actual.nonZero == 1 and actual.levels[0] do
+                dcOnlySeen = true
+            if actual.nonZero > 1 do
+                acSeen = true
+
+            var expected = prediction
+            var coefficients: [16] s16
+            for scan in 16'u64
+            {
+                let raster = cast(u64, H264.ResidualOrder[H264.ResidualOrder4x4 + scan])
+                let class = (raster & 1) + ((raster >> 2) & 1)
+                let scale = cast(u32, H264.Dequant4Scale[(qp % 6) * 3 + class]) * 16 << (qp / 6)
+                coefficients[raster] = H264.dequantLevel(actual.levels[scan], scale, 4)
+            }
+            H264.addIdct4x4Scalar(expected.buffer, 4, coefficients.buffer)
+            Swag.require(Memory.compare(actual.reconstructed.buffer, expected.buffer, 16) == 0)
+        }
+    }
+    Swag.require(dcOnlySeen and acSeen)
+}
+
 // Flat chroma may differ in each quadrant; only the per-block AC is zero.
 // Reconstructing through the decoder checks the shared 2x2 DC transform and QPc map.
 #test

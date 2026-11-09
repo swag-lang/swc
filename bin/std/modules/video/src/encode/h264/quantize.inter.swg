@@ -125,7 +125,9 @@ private func quantizeInterLuma4x4(source, prediction: const [*] u8,
             scaled[column * 4 + row] = dequantLevel(level, scale, 4)
         }
     }
-    if result.nonZero do
+    if result.nonZero == 1 and result.levels[0] do
+        addDc4x4(result.reconstructed.buffer, 4, scaled[0])
+    elif result.nonZero do
         addIdct4x4Scalar(result.reconstructed.buffer, 4, scaled.buffer)
 }
 
@@ -274,6 +276,17 @@ private func quantizeInterChroma8x8(source, prediction: const [*] u8,
     var inverseDc = result.dc
     hadamard2x2(inverseDc.buffer)
     let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
+    if result.cbp == 1
+    {
+        var dc: [4] s32
+        for block in 4'u64
+        {
+            let value = (cast(s64, inverseDc[block]) * dcScale) >> 5
+            dc[block] = cast(s32, Math.clamp(value, -32768, 32767))
+        }
+        addDc8x8Quad(result.reconstructed.buffer, 8, dc[0], dc[1], dc[2], dc[3])
+        return
+    }
     for block in 4'u64
     {
         let dcValue = (cast(s64, inverseDc[block]) * dcScale) >> 5
@@ -282,7 +295,11 @@ private func quantizeInterChroma8x8(source, prediction: const [*] u8,
             continue
         let bx = block & 1
         let by = block >> 1
-        addIdct4x4Scalar(result.reconstructed.buffer + by * 4 * 8 + bx * 4,
-                         8, scaled.buffer + block * 16)
+        if not result.nonZeroAc[block] do
+            addDc4x4(result.reconstructed.buffer + by * 4 * 8 + bx * 4,
+                     8, scaled[block * 16])
+        else do
+            addIdct4x4Scalar(result.reconstructed.buffer + by * 4 * 8 + bx * 4,
+                             8, scaled.buffer + block * 16)
     }
 }

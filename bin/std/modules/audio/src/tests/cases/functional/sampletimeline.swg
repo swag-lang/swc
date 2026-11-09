@@ -89,6 +89,36 @@ using Swag, Core, Core.Errors
     Swag.require(next.startSample == 1 and next.acceptedFrames == 1)
 }
 
+// A lost input can leave silence through recording stop, even before its first block.
+#test
+{
+    var timeline = expect SampleTimeline.createWithOrigin(48_000, 1_000_000_000, 1_000_000_000)
+    Swag.require(expect timeline.advanceTo(1_050_000_000) == 2_400)
+    Swag.require(timeline.sampleEnd() == 2_400)
+    let resumed = expect timeline.place(1_050_000_000, 480)
+    Swag.require(resumed.startSample == 2_400 and resumed.silenceFrames == 0)
+    Swag.require(resumed.acceptedFrames == 480)
+    Swag.require(expect timeline.advanceTo(1_055_000_000) == 0)
+    Swag.require(expect timeline.advanceTo(1_100_000_000) == 1_920)
+    Swag.require(expect timeline.advanceTo(1_100_000_000) == 0)
+    Swag.require(timeline.sampleEnd() == 4_800)
+
+    var rejected: Swag.Error
+    discard catch timeline.advanceTo(1_099_999_999) as rejected
+    Swag.require(rejected.value() is BadParameterError and timeline.sampleEnd() == 4_800)
+    Swag.require(expect timeline.advanceTo(1_120_000_000) == 960)
+
+    var huge = expect SampleTimeline.createWithOrigin(Swag.U32.Max, 1, 0)
+    discard catch huge.advanceTo(Swag.U64.Max) as rejected
+    Swag.require(rejected.value() is OverflowError and huge.sampleEnd() == 0)
+    Swag.require(expect huge.advanceTo(1) == Swag.U32.Max)
+
+    var implicit = expect SampleTimeline.create(1_000, 1_000)
+    Swag.require(expect implicit.advanceTo(10_000) == 0)
+    let first = expect implicit.place(10_005, 2)
+    Swag.require(first.startSample == 5 and first.silenceFrames == 5)
+}
+
 // The placement feeds a streaming WAVE file without retaining captured audio.
 #test
 {
@@ -112,6 +142,7 @@ using Swag, Core, Core.Errors
     let third = expect timeline.place(5, Third.count)
     expect writer.addSilence(third.silenceFrames)
     expect writer.addFrames(Swag.makeSlice(&Third[third.discardedFrames], third.acceptedFrames))
+    expect writer.addSilence(expect timeline.advanceTo(9))
     expect writer.end()
 
     Swag.require(writer.sampleFrameCount() == timeline.sampleEnd())
@@ -122,5 +153,5 @@ using Swag, Core, Core.Errors
         decoded.add(part)
         return true
     })
-    Swag.require(Slice.equals(decoded.toSlice(), [10's16, 20, 0, 0, 30, 40, 60]))
+    Swag.require(Slice.equals(decoded.toSlice(), [10's16, 20, 0, 0, 30, 40, 60, 0, 0]))
 }

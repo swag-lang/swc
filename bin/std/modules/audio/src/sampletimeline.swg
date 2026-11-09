@@ -14,9 +14,10 @@ struct SamplePlacement
 // Places timestamped PCM blocks on a sample clock without retaining audio data.
 //
 // The timestamp of each block names its first sample on one monotonic clock. The first block
-// starts sample zero. Later blocks may leave a gap or overlap the written prefix; the placement
-// tells the caller how much silence to insert or how many leading frames to discard. All counts
-// refer to sample frames, regardless of channel count. State has constant size.
+// starts sample zero unless an origin was provided or `advanceTo` established one. Later blocks
+// may leave a gap or overlap the written prefix; the placement tells the caller how much silence
+// to insert or how many leading frames to discard. All counts refer to sample frames, regardless
+// of channel count. State has constant size.
 #[Swag.Opaque]
 struct SampleTimeline
 {
@@ -63,6 +64,29 @@ impl SampleTimeline
     // Returns the end of the placed audio in sample frames.
     mtd const sampleEnd()->u64 => .sampleEndValue
 
+    // Extends the timeline with silence up to `tick` and returns the frames to write.
+    //
+    // This also covers a source that disappears before recording stops. Without an explicit
+    // origin, the first call establishes sample zero at `tick`. Timestamps must not move
+    // backwards; an invalid or overflowing timestamp leaves the timeline unchanged.
+    mtd advanceTo(tick: u64)->u64 fail
+    {
+        if not .hasBlock and not .hasOrigin
+        {
+            .firstTick    = tick
+            .previousTick = tick
+            .hasBlock     = true
+            return 0
+        }
+
+        let target  = try .targetAt(tick)
+        let silence = target > .sampleEndValue ? target - .sampleEndValue : 0
+        .sampleEndValue += silence
+        .previousTick    = tick
+        .hasBlock        = true
+        return silence
+    }
+
     // Places a nonempty block and advances the timeline if it contains new samples.
     //
     // Timestamps must not move backwards. Rounding is to the nearest sample, with midpoint
@@ -79,6 +103,22 @@ impl SampleTimeline
             .hasBlock       = true
             return SamplePlacement{0, 0, 0, frameCount}
         }
+        let target = try .targetAt(tick)
+        if frameCount > Swag.U64.Max - target do
+            fail OverflowError{"sample timeline block end overflows"}
+
+        let silence   = target > .sampleEndValue ? target - .sampleEndValue : 0
+        let discarded = target < .sampleEndValue ? Math.min(.sampleEndValue - target, frameCount) : 0
+        let accepted  = frameCount - discarded
+        let start     = Math.max(target, .sampleEndValue)
+        .sampleEndValue = start + accepted
+        .previousTick   = tick
+        .hasBlock       = true
+        return SamplePlacement{start, silence, discarded, accepted}
+    }
+
+    private mtd const targetAt(tick: u64)->u64 fail
+    {
         if tick < .previousTick do
             fail BadParameterError{"sample timeline timestamps must not move backwards"}
 
@@ -107,16 +147,6 @@ impl SampleTimeline
                     target = .sampleEndValue
             }
         }
-        if frameCount > Swag.U64.Max - target do
-            fail OverflowError{"sample timeline block end overflows"}
-
-        let silence   = target > .sampleEndValue ? target - .sampleEndValue : 0
-        let discarded = target < .sampleEndValue ? Math.min(.sampleEndValue - target, frameCount) : 0
-        let accepted  = frameCount - discarded
-        let start     = Math.max(target, .sampleEndValue)
-        .sampleEndValue = start + accepted
-        .previousTick   = tick
-        .hasBlock       = true
-        return SamplePlacement{start, silence, discarded, accepted}
+        return target
     }
 }

@@ -880,3 +880,85 @@ func qpStressIdrScene(source: const *Nv12Frame, qp, scene: u32)->u64 fail
     Swag.require(flatQuantized < flatExact * 2)
     Swag.require(texturedQuantized < texturedExact / 4)
 }
+
+// A deterministic packet checksum permits an A/B check of entropy-only changes.
+// Uniform screen deltas exercise single-DC CAVLC; texture exercises the general path.
+func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
+{
+    let base = try encoderStressTiles(0, width, height)
+    var source = try encoderStressTiles(0, width, height)
+    if mode == 0
+    {
+        // Quantized IDR reconstruction can differ from the raw source. Build
+        // the P picture from the decoder's reference so every 4x4 delta is
+        // truly constant while the tiled picture remains non-flat.
+        let anchorPath = videoTempPath("h264-qp-cavlc-anchor", "mp4")
+        defer discard catch File.delete(anchorPath)
+        var anchorEncoder = try H264.Encoder.create(width, height, 60, qp)
+        var anchorWriter = try Mp4.FragmentedWriter.create(anchorPath, width, height,
+                                                           90_000, anchorEncoder.decoderConfig())
+        try anchorWriter.addPacket(try anchorEncoder.encode(&base, 0, 1_500))
+        try anchorWriter.end()
+        var anchorReader = try Reader.open(anchorPath)
+        var anchor: PlanarFrame
+        try anchorReader.decodeFramePlanesInto(&anchor, 0)
+        let yCount = cast(u64, width) * cast(u64, height)
+        for index in yCount do
+            source.bytes[index] = anchor.luma[index] + 5
+        for index in yCount / 4
+        {
+            source.bytes[yCount + index * 2] = anchor.chromaB[index] + 3
+            source.bytes[yCount + index * 2 + 1] = anchor.chromaR[index] - 3
+        }
+    }
+    else do
+        source.qpStressTexture()
+    let path = videoTempPath("h264-qp-cavlc", "mp4")
+    defer discard catch File.delete(path)
+    var encoder = try H264.Encoder.create(width, height, 60, qp)
+    var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000,
+                                                 encoder.decoderConfig())
+    try writer.addPacket(try encoder.encode(&base, 0, 1_500))
+    var watch: Time.Stopwatch
+    var pMicros: [3] u64
+    watch.start()
+    let packet = try encoder.encode(&source, 1_500, 1_500)
+    watch.stop()
+    pMicros[0] = watch.elapsedMicroseconds()
+    let checksum = Hash.Crc32.compute(packet.bytes)
+    let packetSize = packet.bytes.count
+    try writer.addPacket(packet)
+    try writer.end()
+    for trial in 1'u64 until 3
+    {
+        var timed = try H264.Encoder.create(width, height, 60, qp)
+        discard try timed.encode(&base, 0, 1_500)
+        watch.restart()
+        let timedPacket = try timed.encode(&source, 1_500, 1_500)
+        watch.stop()
+        pMicros[trial] = watch.elapsedMicroseconds()
+        Swag.require(Hash.Crc32.compute(timedPacket.bytes) == checksum)
+    }
+    var reader = try Reader.open(path)
+    var decoded: PlanarFrame
+    try reader.decodeFramePlanesInto(&decoded, 1)
+    let quality = qpStressQuality(&source, &decoded)
+    if qp == 0 do
+        requireStressPicture(&source, &decoded)
+    else do
+        Swag.require(quality.yPsnr >= 25.0 and quality.uvPsnr >= 25.0)
+    Console.printf("H264 CAVLC probe % by % QP % mode %: % bytes, CRC32 %, P median % us, PSNR Y/UV %/% dB\n",
+                   width, height, qp, mode, packetSize, checksum,
+                   qpStressMedian(pMicros[0], pMicros[1], pMicros[2]), quality.yPsnr,
+                   quality.uvPsnr)
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    expect qpStressCavlcProbe(1920, 1080, 0, 0)
+    expect qpStressCavlcProbe(1920, 1080, 28, 0)
+    expect qpStressCavlcProbe(1920, 1080, 36, 0)
+    expect qpStressCavlcProbe(3840, 2160, 28, 0)
+    expect qpStressCavlcProbe(1920, 1080, 28, 1)
+}

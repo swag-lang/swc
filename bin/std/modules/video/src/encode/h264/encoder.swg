@@ -37,6 +37,7 @@ private struct EncoderQuantizedMb
     reconstructedUv:[128] u8
     cbpLuma:       u32
     cbpChroma:     u32
+    simpleLumaMask:u32
 }
 
 private const MotionOffsets: [16, 2] s32 = [
@@ -587,7 +588,8 @@ private impl Encoder
                                                          quantized.chromaAc.buffer,
                                                          quantized.cbpChroma,
                                                          &currentQp,
-                                                         cast(s32, .quantizationQp), sliceStartY)
+                                                         cast(s32, .quantizationQp), sliceStartY,
+                                                         quantized.simpleLumaMask)
                             let written = bits.bytes.count * 8 + bits.used -
                                           (oldBytes * 8 + oldUsed)
                             if coded and written < 3_072
@@ -838,6 +840,7 @@ private impl Encoder
         let previousUv = previousY + width * height
         result.cbpLuma = 0
         result.cbpChroma = 0
+        result.simpleLumaMask = 0
         for by in 4'u64
         {
             for bx in 4'u64
@@ -849,6 +852,10 @@ private impl Encoder
                                      width, width, .quantizationQp, &quantized)
                 for scan in 16'u64 do
                     result.lumaLevels[block * 16 + scan] = quantized.levels[scan]
+                if not quantized.nonZero or
+                   (quantized.nonZero == 1 and quantized.levels[0] != 0 and
+                    Math.abs(cast(s32, quantized.levels[0])) <= 2_048) do
+                    result.simpleLumaMask |= 1'u32 << cast(u32, block)
                 if quantized.nonZero do
                     result.cbpLuma |= 1'u32 << cast(u32, by / 2 * 2 + bx / 2)
                 for row in 4'u64
@@ -1290,7 +1297,8 @@ private impl Encoder
     mtd const writeAcResidual(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s16, cbp: u32,
                               chromaLevels, chromaAcLevels: const [*] s16, chromaCbp: u32,
-                              currentQp: *s32, targetQp: s32, sliceStartY: u32)->bool
+                              currentQp: *s32, targetQp: s32, sliceStartY: u32,
+                              simpleLumaMask: u32 = 0)->bool
     {
         var code = 0'u32
         let pattern = cbp | (chromaCbp << 4)
@@ -1315,12 +1323,18 @@ private impl Encoder
                 let block = by * 4 + bx
                 let blockLevels = levels + block * 16
                 let context = .lumaNc(nonZero, mbX, mbY, bx, by, sliceStartY)
+                let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + block
+                if simpleLumaMask & (1'u32 << block)
+                {
+                    bits.singleDc(blockLevels[0], context)
+                    nonZero[index] = blockLevels[0] ? 1 : 0
+                    continue
+                }
                 if not bits.residual4(blockLevels, context) do
                     return false
                 var total = 0'u8
                 for scan in 16'u64 where blockLevels[scan] != 0 do
                     total += 1
-                let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + block
                 nonZero[index] = total
             }
         }

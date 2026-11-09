@@ -1,7 +1,7 @@
 //! Format: H.264/AVC inter residual quantization.
-//! Supported: Progressive 8-bit inter 4x4 luma blocks at QP 0 through 51.
-//! Not supported: Chroma, intra prediction, entropy coding, and rate control.
-//! Role: This file prepares quantized luma levels and their locally reconstructed prediction.
+//! Supported: Progressive 8-bit inter 4x4 luma and 4:2:0 chroma blocks at QP 0 through 51.
+//! Not supported: Intra prediction, entropy coding, and rate control.
+//! Role: This file prepares quantized inter levels and their locally reconstructed prediction.
 //
 #global namespace H264
 #global private
@@ -100,4 +100,139 @@ private func quantizeInterLuma4x4(source, prediction: const [*] u8,
         }
     }
     addIdct4x4Scalar(result.reconstructed.buffer, 4, scaled.buffer)
+}
+
+// One chroma plane of an inter 8x8 macroblock. AC levels are in the 4x4 zigzag order
+// expected by residual15, with the unused DC slot at each block start set to zero.
+private struct InterChroma8x8Result
+{
+    dc:            [4] s16
+    ac:            [4 * 16] s16
+    reconstructed: [64] u8
+    nonZeroAc:     [4] u8
+    cbp:           u8
+    qpc:           u8
+}
+
+// Quantizes and reconstructs one Cb or Cr 8x8 inter plane from NV12 byte positions.
+//
+// Both input pointers address that plane's first byte in an interleaved UV row, so samples
+// are two bytes apart. `result.reconstructed` is a packed single-plane 8x8 block; the
+// caller places those samples into its separate current-picture NV12 buffer. The PPS chroma
+// QP offset is applied before the non-linear 4:2:0 QPc map. The caller uses the Cb or Cr
+// offset for the respective plane.
+private func quantizeInterChroma8x8(source, prediction: const [*] u8,
+                                    sourceStride, predictionStride: u64,
+                                    lumaQp: u32, chromaQpOffset: s32,
+                                    result: *InterChroma8x8Result)
+{
+    Swag.assert(lumaQp <= 51)
+    let qpIndex = cast(u64, Math.clamp(cast(s32, lumaQp) + chromaQpOffset, 0, 51))
+    let qpc = cast(u32, ChromaQp[qpIndex])
+    result.qpc = cast(u8, qpc)
+    result.cbp = 0
+    let qmod = cast(u64, qpc % 6)
+    let qdiv = qpc / 6
+    let qbits = 15 + qdiv
+    var rawDc: [4] s32
+    var scaled: [4 * 16] s16
+    for block in 4'u64
+    {
+        let bx = block & 1
+        let by = block >> 1
+        let base = block * 16
+        var horizontal: [16] s32
+        result.nonZeroAc[block] = 0
+        result.ac[base] = 0
+        for row in 4'u64
+        {
+            let src = source + (by * 4 + row) * sourceStride + bx * 8
+            let pred = prediction + (by * 4 + row) * predictionStride + bx * 8
+            let a0 = cast(s32, src[0]) - cast(s32, pred[0])
+            let a1 = cast(s32, src[2]) - cast(s32, pred[2])
+            let a2 = cast(s32, src[4]) - cast(s32, pred[4])
+            let a3 = cast(s32, src[6]) - cast(s32, pred[6])
+            let s0 = a0 + a3
+            let s1 = a1 + a2
+            let s2 = a1 - a2
+            let s3 = a0 - a3
+            horizontal[row * 4] = s0 + s1
+            horizontal[row * 4 + 1] = 2 * s3 + s2
+            horizontal[row * 4 + 2] = s0 - s1
+            horizontal[row * 4 + 3] = s3 - 2 * s2
+            for column in 4'u64 do
+                result.reconstructed[(by * 4 + row) * 8 + bx * 4 + column] = pred[column * 2]
+        }
+        for column in 4'u64
+        {
+            let a0 = horizontal[column]
+            let a1 = horizontal[4 + column]
+            let a2 = horizontal[8 + column]
+            let a3 = horizontal[12 + column]
+            let s0 = a0 + a3
+            let s1 = a1 + a2
+            let s2 = a1 - a2
+            let s3 = a0 - a3
+            let coefficients: [4] s32 = [s0 + s1, 2 * s3 + s2,
+                                         s0 - s1, s3 - 2 * s2]
+            for row in 4'u64
+            {
+                let raster = row * 4 + column
+                let coefficient = coefficients[row]
+                if not raster
+                {
+                    rawDc[block] = coefficient
+                    continue
+                }
+                let class = (row & 1) + (column & 1)
+                let factor = cast(s64, InterLuma4x4QuantFactor[qmod, class])
+                let magnitude = (cast(s64, Math.abs(coefficient)) * factor +
+                                 (1's64 << (qbits - 1))) >> qbits
+                Swag.assert(magnitude <= Swag.S16.Max)
+                let level = cast(s32, coefficient < 0 ? -magnitude : magnitude)
+                let scan = cast(u64, InterLuma4x4ScanPosition[raster])
+                result.ac[base + scan] = cast(s16, level)
+                if level
+                {
+                    result.nonZeroAc[block] += 1
+                    result.cbp = 2
+                }
+                let scale = cast(u32, Dequant4Scale[qmod * 3 + class]) * 16 << qdiv
+                scaled[base + column * 4 + row] = dequantLevel(level, scale, 4)
+            }
+        }
+    }
+
+    let d0 = rawDc[0]
+    let d1 = rawDc[1]
+    let d2 = rawDc[2]
+    let d3 = rawDc[3]
+    let transformed: [4] s32 = [d0 + d1 + d2 + d3, d0 - d1 + d2 - d3,
+                                 d0 + d1 - d2 - d3, d0 - d1 - d2 + d3]
+    let dcBits = qbits + 1
+    for index in 4'u64
+    {
+        let coefficient = transformed[index]
+        let magnitude = (cast(s64, Math.abs(coefficient)) *
+                         cast(s64, InterLuma4x4QuantFactor[qmod, 0]) +
+                         (1's64 << (dcBits - 1))) >> dcBits
+        Swag.assert(magnitude <= Swag.S16.Max)
+        let level = cast(s32, coefficient < 0 ? -magnitude : magnitude)
+        result.dc[index] = cast(s16, level)
+        if level and result.cbp == 0 do
+            result.cbp = 1
+    }
+
+    var inverseDc = result.dc
+    hadamard2x2(inverseDc.buffer)
+    let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
+    for block in 4'u64
+    {
+        let dcValue = (cast(s64, inverseDc[block]) * dcScale) >> 5
+        scaled[block * 16] = cast(s16, Math.clamp(dcValue, -32768, 32767))
+        let bx = block & 1
+        let by = block >> 1
+        addIdct4x4Scalar(result.reconstructed.buffer + by * 4 * 8 + bx * 4,
+                         8, scaled.buffer + block * 16)
+    }
 }

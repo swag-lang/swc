@@ -73,14 +73,14 @@ using Swag, Core, Core.Errors, Pixel
     Swag.require(Memory.compare(frame.bytes.storage(), &Expected[0], Expected.count) == 0)
 }
 
-// The specialized BGRA8 path must match the BGR8 path for every Y and Cb/Cr sample.
-#test
+// The specialized BGRA8 path must match BGR8 across vector groups and the scalar tail.
+func requireBgraBgrParity(width: s32)
 {
-    let bgr  = Image.create(8, 6, .BGR8)
-    let bgra = Image.create(8, 6, .BGRA8)
+    let bgr  = Image.create(width, 6, .BGR8)
+    let bgra = Image.create(width, 6, .BGRA8)
     let bgrPixels  = bgr.pixels.storage()
     let bgraPixels = bgra.pixels.storage()
-    for pixel in 48'u64
+    for pixel in cast(u64, width) * 6
     {
         let blue  = cast(u8, (pixel * 37 + 11) & 0xFF)
         let green = cast(u8, (pixel * 53 + 97) & 0xFF)
@@ -100,8 +100,14 @@ using Swag, Core, Core.Errors, Pixel
     var bgraFrame: Nv12Frame
     expect bgrFrame.convertFrom(&bgr)
     expect bgraFrame.convertFrom(&bgra)
-    Swag.require(bgrFrame.bytes.count == 8 * 6 * 3 / 2)
+    Swag.require(bgrFrame.bytes.count == cast(u64, width) * 6 * 3 / 2)
     Swag.require(bgraFrame.bytes.count == bgrFrame.bytes.count)
     for byte in bgrFrame.bytes.count do
         Swag.require(bgraFrame.bytes[byte] == bgrFrame.bytes[byte])
+}
+
+#test
+{
+    requireBgraBgrParity(8)
+    requireBgraBgrParity(6)
 }

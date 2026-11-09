@@ -29,6 +29,31 @@ private func nv12Chroma(value: s32)->u8
 private func nv12BgraLuma(pixel: const [*] u8)->u8
     => cast #wrap(u8, 16 + (11_966 * cast(s32, pixel[2]) + 40_254 * cast(s32, pixel[1]) + 4_064 * cast(s32, pixel[0]) + 32_768) / 65_536)
 
+private const Nv12BlueBytes  = cast(Math.Simd.U8x16, [0'u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Nv12GreenBytes = cast(Math.Simd.U8x16, [1'u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Nv12RedBytes   = cast(Math.Simd.U8x16, [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+
+#[Swag.Inline]
+private func nv12BgraLuma4(pixels: const [*] u8)->Math.Simd.U8x16
+{
+    let packed = Math.Simd.load(pixels)
+    let blue   = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12BlueBytes))))
+    let green  = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12GreenBytes))))
+    let red    = cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(Math.Simd.shuffle(packed, Nv12RedBytes))))
+    let luma   = 16 + ((red * 11_966 + green * 40_254 + blue * 4_064 + 32_768) >> 16)
+    return Math.Simd.packUnsigned(Math.Simd.packSigned(luma, Math.Simd.splat(0's32)), Math.Simd.splat(0's16))
+}
+
+#[Swag.Inline]
+private func nv12BgraChroma(top, bottom: const [*] u8, uv: [*] u8)
+{
+    let red   = cast(s32, top[2]) + cast(s32, top[6]) + cast(s32, bottom[2]) + cast(s32, bottom[6])
+    let green = cast(s32, top[1]) + cast(s32, top[5]) + cast(s32, bottom[1]) + cast(s32, bottom[5])
+    let blue  = cast(s32, top[0]) + cast(s32, top[4]) + cast(s32, bottom[0]) + cast(s32, bottom[4])
+    uv[0] = nv12Chroma(-6_596 * red - 22_189 * green + 28_785 * blue)
+    uv[1] = nv12Chroma(28_784 * red - 26_145 * green - 2_639 * blue)
+}
+
 // One pair of luma rows and its chroma row can be converted independently.
 private func convertBgraNv12Band(source: const [*] u8, target: [*] u8, width, height, rowStride, lumaSize, blockY: u64)
 {
@@ -37,21 +62,26 @@ private func convertBgraNv12Band(source: const [*] u8, target: [*] u8, width, he
     let topY      = target + blockY * 2 * width
     let bottomY   = topY + width
     let uvRow     = target + lumaSize + blockY * width
-    for blockX in width / 2
+    for group in width / 4
     {
-        let top    = topRow + blockX * 8
-        let bottom = bottomRow + blockX * 8
-        let x      = blockX * 2
-        topY[x]        = nv12BgraLuma(top)
-        topY[x + 1]    = nv12BgraLuma(top + 4)
-        bottomY[x]     = nv12BgraLuma(bottom)
-        bottomY[x + 1] = nv12BgraLuma(bottom + 4)
+        let top    = topRow + group * 16
+        let bottom = bottomRow + group * 16
+        let x      = group * 4
+        Math.Simd.storeLow4(topY + x, nv12BgraLuma4(top))
+        Math.Simd.storeLow4(bottomY + x, nv12BgraLuma4(bottom))
+        nv12BgraChroma(top, bottom, uvRow + x)
+        nv12BgraChroma(top + 8, bottom + 8, uvRow + x + 2)
+    }
 
-        let red   = cast(s32, top[2]) + cast(s32, top[6]) + cast(s32, bottom[2]) + cast(s32, bottom[6])
-        let green = cast(s32, top[1]) + cast(s32, top[5]) + cast(s32, bottom[1]) + cast(s32, bottom[5])
-        let blue  = cast(s32, top[0]) + cast(s32, top[4]) + cast(s32, bottom[0]) + cast(s32, bottom[4])
-        uvRow[x]     = nv12Chroma(-6_596 * red - 22_189 * green + 28_785 * blue)
-        uvRow[x + 1] = nv12Chroma(28_784 * red - 26_145 * green - 2_639 * blue)
+    if width % 4
+    {
+        let top    = topRow + (width - 2) * 4
+        let bottom = bottomRow + (width - 2) * 4
+        topY[width - 2]    = nv12BgraLuma(top)
+        topY[width - 1]    = nv12BgraLuma(top + 4)
+        bottomY[width - 2] = nv12BgraLuma(bottom)
+        bottomY[width - 1] = nv12BgraLuma(bottom + 4)
+        nv12BgraChroma(top, bottom, uvRow + width - 2)
     }
 }
 

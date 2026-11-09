@@ -62,8 +62,8 @@ impl WasapiCapture
 {
     // Opens and starts the selected default source in shared, event-driven mode.
     //
-    // Accepts mono or stereo PCM16 and float32 mix formats at 44.1 or 48 kHz. The format is
-    // rejected explicitly if it cannot feed the software AAC recording path without a converter.
+    // Accepts mono or stereo PCM16 and float32 mix formats at 8-192 kHz. The Audio adapter
+    // resamples that source rate to a 44.1 or 48 kHz recording queue when needed.
     // Output loopback requires a Windows version with event-driven loopback support (Windows 10
     // version 1703 or later); unsupported systems return the native initialization error.
     func openDefault(source: WasapiCaptureSource = .Microphone)->WasapiCapture fail
@@ -257,8 +257,8 @@ func wasapiCaptureNow100ns()->u64 fail
 private func classifyWasapiCaptureFormat(mix: *WAVEFORMATEX)->WasapiCaptureFormat fail
 {
     if mix.nChannels < 1 or mix.nChannels > 2 or
-       (mix.nSamplesPerSec != 44_100 and mix.nSamplesPerSec != 48_000) do
-        fail SystemError{"audio source mix must be mono or stereo at 44.1 or 48 kHz"}
+       mix.nSamplesPerSec < 8_000 or mix.nSamplesPerSec > 192_000 do
+        fail SystemError{"audio source mix must be mono or stereo at 8-192 kHz"}
     if mix.nBlockAlign != mix.nChannels * mix.wBitsPerSample / 8 do
         fail SystemError{"invalid audio source mix frame alignment"}
     if mix.wFormatTag == WAVE_FORMAT_PCM and mix.wBitsPerSample == 16 do

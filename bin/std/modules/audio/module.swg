@@ -24,6 +24,8 @@ interruption.
 [[Audio.CaptureQueue]] transfers timestamped PCM blocks from a capture backend in bounded memory,
 reporting gaps, overflows, and source restoration.
 [[Audio.CapturePcmFeeder]] converts native PCM16, float32, and silent packets into that queue.
+[[Audio.CaptureResampledFeeder]] converts 8-192 kHz input to a 44.1/48 kHz recording clock and
+adjusts its resampler from the device's timestamped sample positions.
 On Windows, `CaptureMicrophone` opens the default input and `CaptureOutputLoopback` reads the
 system output mix through native shared-mode WASAPI; device execution still needs validation
 on a Windows machine. The loopback path emits bounded silence when the output is inactive.

@@ -8,8 +8,8 @@ using Swag, Core, Core.Errors, Win32
 // This source reads the default render endpoint, so it includes sound from all applications
 // routed to that endpoint. It uses the same 100-nanosecond monotonic clock as
 // [[Audio.CaptureMicrophone]] and copies packets into a caller-owned [[Audio.CaptureQueue]].
-// The queue must match the endpoint's mono/stereo 44.1/48 kHz shared mix format. A surround
-// endpoint or Windows version without event-driven loopback returns an explicit open error.
+// The queue uses mono/stereo 44.1/48 kHz output, and source rates from 8-192 kHz are resampled.
+// A surround endpoint or Windows version without event-driven loopback returns an open error.
 // Call `pump` and `close` on the opening COM thread. After device loss, close and reopen with
 // the same queue when [[Audio.CaptureRecovery]] allows a retry.
 #[Swag.NoCopy]
@@ -38,6 +38,12 @@ impl CaptureOutputLoopback
 
     // Returns the system output mix format read when the endpoint opened.
     mtd const mixFormat()->WasapiCaptureFormat => .stream.mixFormat()
+
+    // Returns whether the render endpoint's sample clock has been measured against QPC time.
+    mtd const clockEstimateIsReady()->bool => .stream.clockEstimateIsReady()
+
+    // Returns the latest measured render-clock offset in parts per million.
+    mtd const inputClockDriftPpm()->s32 => .stream.inputClockDriftPpm()
 
     // Waits up to `timeoutMs` for output packets and copies all available data to the queue.
     mtd pump(timeoutMs: u32 = 0)->u32 fail => try .stream.pump(timeoutMs)

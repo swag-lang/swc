@@ -91,6 +91,19 @@ impl Resampler
         .step = makeStep(.inputRate, .outputRate, ppm)
     }
 
+    // Starts a new continuous source run without rebuilding the filter coefficients.
+    //
+    // Call after a capture device switch or discontinuity. The next input frame becomes sample
+    // zero of the new run, the phase restarts at zero, and input-clock drift returns to nominal.
+    mtd restart()
+    {
+        .receivedFrames = 0
+        .positionFrame = 0
+        .positionPart = 0
+        .step = makeStep(.inputRate, .outputRate, 0)
+        .isEnded = false
+    }
+
     // Appends every output frame made available by these complete interleaved input frames.
     //
     // The caller owns `output` and may reuse its array after consuming the appended frames.

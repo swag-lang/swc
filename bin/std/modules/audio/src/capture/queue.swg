@@ -85,6 +85,12 @@ impl CaptureQueue
     // Returns the configured number of interleaved PCM channels.
     mtd const channelCount()->u16 => .channels
 
+    // Returns the recording sample rate in frames per second.
+    mtd const sampleRateHz()->u32 => .timeline.sampleRate
+
+    // Returns the monotonic timestamp clock frequency in ticks per second.
+    mtd const clockFrequencyHz()->u64 => .timeline.clockFrequency
+
     // Returns the maximum frames allowed in one submitted block.
     mtd const maximumBlockFrames()->u32 => .blockFrames
 

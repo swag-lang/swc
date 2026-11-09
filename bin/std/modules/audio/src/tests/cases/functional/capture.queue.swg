@@ -25,6 +25,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
 #test
 {
     var queue = expect CaptureQueue.create(1_000, 1, 0, 1_000, blockFrames: 4, slots: 3, tolerance: 0)
+    Swag.require(queue.sampleRateHz() == 1_000 and queue.clockFrequencyHz() == 1_000)
     const First: [3] s16 = [10, 20, 30]
     const Second: [2] s16 = [40, 50]
     let first = expect queue.push(Swag.makeSlice(&First[0], First.count), 0)

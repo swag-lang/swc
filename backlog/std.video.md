@@ -278,6 +278,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   pictures and the AAC track. Reader decoded the last QP 36 picture in isolated runs
   at one, two and three workers (1/1, 6/6 and 6/6). A previous app verification stall
   was not reproduced in isolation; the separate intermittent app/Reader stall remains.
+  On two QP 28 P frames with about 28,000 accepted flat Intra blocks each, temporary
+  per-slice instrumentation attributed 10.6–13.5 ms CPU to luma quantization,
+  7.3–9.3 ms to chroma, 6.0 ms to result copies, 5.1–5.2 ms to classification
+  and 3.8–3.9 ms to CAVLC, summed across four slices rather than wall time.
+  Skipping unused luma AC copies did not improve complete app timings consistently
+  in paired QP 28/36 runs, so that experiment was removed.
   These profiles remain above the 16.7 ms per-picture budget. One exact 4K IDR can still
   occupy about 12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
   Quantized intra reduces a 4K textured IDR to 336 KB at QP 36 in one fixture (39.44 dB

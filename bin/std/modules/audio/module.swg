@@ -16,6 +16,9 @@ default Windows backend is XAudio2; Linux uses FAudio through the SDL audio devi
 [[Audio.Wav.Writer]] writes mono or stereo PCM16 recordings in bounded memory, updates a
 playable file prefix on every flush, fills silence gaps, and can resume from that prefix after an
 interruption.
+[[Audio.Flac.Writer]] compresses PCM16 recordings into resumable native FLAC files.
+[[Audio.Resampler]] converts streaming PCM between sample rates and adjusts its ratio for clock drift.
+[[Audio.Aac.SilenceEncoder]] supplies AAC-LC silence packets during a lost capture source.
 Linux requires `libFAudio.so.0` and its SDL dependencies; device acquisition failures are reported.
 The Linux backend accepts one through eight source or bus channels, including mono/stereo
 conversion and multiple or nested bus routes. Source sample rates range from 1000 to 200000 Hz,

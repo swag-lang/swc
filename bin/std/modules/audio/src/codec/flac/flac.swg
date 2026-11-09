@@ -128,7 +128,7 @@ private impl BitReader
 // A frame is allowed to name its own sample rate and sample width, but it is also allowed to
 // say "the one the stream declared", which is why the decoder keeps these even though the
 // container already reported them.
-private struct StreamInfo
+internal struct StreamInfo
 {
     minBlockSize:  u32
     maxBlockSize:  u32
@@ -156,7 +156,7 @@ private struct FrameHeader
 // Size of the stream information block, clause 8.2.
 private const StreamInfoSize = 34'u64
 
-private struct Codec
+internal struct Codec
 {
     // Every registered codec starts with the registry's own header: a voice destroys one through
     // this, reading back the concrete type and the allocator the instance was made with.

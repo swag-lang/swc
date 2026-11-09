@@ -150,26 +150,24 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   after the per-voice filter boundary.
 - Related: platform.portability.064, std.audio.008, std.audio.009
 
-### std.audio.015 — No compressed sound encoding
+### std.audio.015 — No general AAC-LC sound encoder
 
-- Evidence: every codec under `codec/` decodes. `Wav.Writer` now streams mono or stereo PCM16
-  to a classic RIFF file, updating the playable header on flush, filling silent gaps in bounded
-  memory, and resuming from that prefix after an interruption. Swag Capture recordings
-  (app.capture.013) still need a compressed track for MP4 and a lossless compressed format for
-  sound-only captures.
-- Next: add an encoder contract mirroring the decoder registry, producing packets with
-  timestamps. Implement FLAC next, then AAC-LC over the Media Foundation encoder
-  (platform.portability.099) and later in Swag on the decoder's MDCT and tables.
-- Done when: WAV and FLAC round-trip bit-exactly through the module's decoders, and AAC-LC
-  packets mux into MP4 (std.video.016) and play in reference players.
+- Evidence: `Wav.Writer` streams resumable PCM16 RIFF files. `Flac.Writer` streams native PCM16
+  FLAC for one to eight channels, with bit-exact decoder round trips, external FFmpeg playback,
+  bounded buffering, and a validated checkpoint for resume. `Aac.SilenceEncoder` produces real
+  AAC-LC silence packets for source interruptions, but cannot encode microphone samples.
+- Next: add a streaming encoder contract with timestamps and implement a bounded software
+  AAC-LC encoder in Swag for non-silent PCM, then connect its packets to MP4 (std.video.016).
+- Done when: AAC-LC packets from non-silent capture PCM mux into MP4 and play in reference players.
 - Related: app.capture.013, std.video.016, platform.portability.099
 
-### std.audio.016 — No general resampler with drift correction
+### std.audio.016 — Resampler drift endurance not yet measured
 
-- Evidence: only the SILK decoder resamples internally. Several capture devices and a video clock
-  drift apart over a long recording, and capture rates differ from the rate of the exported track.
-- Next: add a streaming resampler with a bounded-quality windowed filter and a ratio that can be
-  adjusted continuously, so a capture stream can follow a master clock.
+- Evidence: `Audio.Resampler` now converts interleaved floating-point PCM in bounded memory with
+  a 96-tap windowed sinc filter, 44.1/48 kHz conversion tests, passband/alias checks, and live
+  input-clock drift adjustments. A four-hour drift endurance check remains outstanding.
+- Next: measure a 100 ppm clock mismatch over four hours, confirm the output-clock error stays
+  below one millisecond, and wire drift control to Swag Capture's capture clocks.
 - Done when: rate conversions between 44.1 and 48 kHz meet a stated passband and alias bound, and
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
 - Related: std.audio.011, app.capture.013

@@ -237,9 +237,10 @@ whole recording loaded at once.
   seconds. Direct flat luma DC quantization moved one run to 2.289 seconds; a single-DC
   CAVLC path then reduced a paired run with the same AAC from 2.301 to 2.229 seconds,
   with a byte-identical MP4. The file is 4.159 MB after separate AAC section savings,
-  at 48.41 dB final-frame luma PSNR. This P-intra candidate is currently limited to
-  QP 28. QP 36 takes 3.55–3.73
-  seconds and produces 10.06 MB (38.10 dB), following the previous path. Exact QP 0
+  at 48.41 dB final-frame luma PSNR. Flat P Intra now also supports QP 36: a current
+  app run took 2.214 seconds, 3,180,677 bytes and 40.26 dB, compared with
+  3.55–3.73 seconds, 10.06 MB and 38.10 dB on the earlier path. Reader and FFmpeg
+  decode the 60 pictures and AAC. Exact QP 0
   with four slices and one matching diagonal motion vector takes
   1.37–1.51 seconds and produces 7.78 MB. These modes remain slower than the one-second
   4K60 target on this machine. `VideoCaptureSession` also

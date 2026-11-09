@@ -271,10 +271,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   a paired run from 2.301 to 2.229 seconds with the same AAC version and a
   byte-identical MP4. The final file is 4.159 MB after separate AAC section savings
   and reaches 48.41 dB final-frame luma PSNR.
-  The largest previous P packet falls from 1.73 MB to 81 KB. QP 36 follows the prior path
-  unchanged and still takes 3.55–3.73 seconds, 10.06 MB and 38.10 dB on this scene. The P-intra
-  candidate is currently limited to QP 28 because a QP 36 4K prototype stalled the app
-  verification after producing 60 FFmpeg-readable packets.
+  The largest previous P packet falls from 1.73 MB to 81 KB. The flat P Intra path
+  also supports QP 36 after an isolated Reader regression: the earlier path took
+  3.55–3.73 seconds, 10.06 MB and 38.10 dB on this scene; the new 4K60 app
+  run took 2.214 seconds, 3,180,677 bytes and 40.26 dB. FFmpeg decoded all 60 H.264
+  pictures and the AAC track. Reader decoded the last QP 36 picture in isolated runs
+  at one, two and three workers (1/1, 6/6 and 6/6). A previous app verification stall
+  was not reproduced in isolation; the separate intermittent app/Reader stall remains.
   These profiles remain above the 16.7 ms per-picture budget. One exact 4K IDR can still
   occupy about 12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
   Quantized intra reduces a 4K textured IDR to 336 KB at QP 36 in one fixture (39.44 dB
@@ -285,8 +288,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
-  quantized luma/chroma residuals and CAVLC on changing screens, then remeasure the complete
-  1080p60 and 4K60 paths.
+  quantized luma/chroma residuals and avoid unused result copies on changing screens,
+  then remeasure the complete 1080p60 and 4K60 paths.
   Connect the pure-Swag rate controller only after the encoder can change QP per picture;
   refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
   or make packet submission transactional. Use each H.264 packet's bytes and duration for

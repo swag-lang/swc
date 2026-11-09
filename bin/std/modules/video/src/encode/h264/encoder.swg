@@ -1,6 +1,6 @@
 //! Format: H.264/AVC constrained-baseline encoder.
-//! Supported: Progressive NV12 pictures, flat intra blocks, exact PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
-//! Not supported: Transform coding, rate control, B pictures, and real-time high-resolution capture.
+//! Supported: Progressive NV12, flat intra blocks, exact DC residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
+//! Not supported: AC residuals, rate control, B pictures, and real-time full-motion high-resolution capture.
 //! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
@@ -47,8 +47,17 @@ private impl EncoderBits
         var remaining = count
         while remaining
         {
-            remaining -= 1
-            .bit(value >> remaining)
+            let take = Math.min(remaining, 8 - .used)
+            let part = (value >> (remaining - take)) & ((1'u32 << take) - 1)
+            .current = cast(u8, (cast(u32, .current) << take) | part)
+            .used += take
+            remaining -= take
+            if .used == 8
+            {
+                .bytes.add(.current)
+                .current = 0
+                .used = 0
+            }
         }
     }
 
@@ -62,8 +71,7 @@ private impl EncoderBits
             size += 1
             copy >>= 1
         }
-        for size - 1 do
-            .bit(0)
+        .bits(0, size - 1)
         .bits(code, size)
     }
 
@@ -95,13 +103,41 @@ private impl EncoderBits
         Swag.assert(not .used)
         .bytes.add(values)
     }
+
+    // CAVLC for a 4x4 block with zero or one DC coefficient. The one-coefficient
+    // case has no leading zeros in scan order and therefore no run_before syntax.
+    mtd singleDc(level: s32, nC: u32)
+    {
+        let table = nC < 2 ? 0'u64 : (nC < 4 ? 1'u64 : (nC < 8 ? 2'u64 : 3'u64))
+        let trailing = level == 1 or level == -1
+        let token = level == 0 ? 0'u64 : (trailing ? 5'u64 : 4'u64)
+        let offset = table * 68 + token
+        .bits(CoeffTokenBits[offset], CoeffTokenLen[offset])
+        if not level do
+            return
+        if trailing do
+            .bit(level < 0 ? 1 : 0)
+        else
+        {
+            let code = level > 0 ? level * 2 - 2 : -level * 2 - 1
+            let value = cast(u32, code - 2)
+            let prefix = value < 14 ? value : (value < 30 ? 14'u32 : 15'u32)
+            .bits(0, prefix)
+            .bit(1)
+            if prefix == 14 do
+                .bits(value - 14, 4)
+            elif prefix == 15 do
+                .bits(value - 30, 12)
+        }
+        .bit(1) // total_zeros = 0 for totalCoeff = 1.
+    }
 }
 
 // Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.
 //
-// This portable first stage codes flat intra blocks with no residual, copies exact integer-pixel
-// motion blocks in P pictures, uses P-skip for unchanged blocks, and codes remaining changes
-// with I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks
+// This portable first stage codes flat intra blocks, exact DC-only residuals for constant
+// 4x4 luminance changes, integer-pixel motion copies, and P-skip. Other changes use I_PCM.
+// It is useful for scrolling and interoperability, but uncompressed remaining blocks
 // are not suitable for arbitrary high-motion 1080p60 recording. The result borrows the encoder's
 // packet storage until the next call to encode. The AVC configuration remains valid for the
 // encoder's lifetime and uses four-byte NAL lengths.
@@ -207,11 +243,13 @@ impl Encoder
         else do
             bits.bit(0)                      // adaptive_ref_pic_marking_mode_flag.
         bits.unsigned(0)                     // slice_qp_delta = 0.
-        bits.unsigned(1)                     // Disable deblocking; PCM and skip stay exact.
+        bits.unsigned(1)                     // Disable deblocking; coded samples stay exact.
 
         var skipped = 0'u32
+        var currentQp = 26's32
         var motions: Array'EncoderMotion
         var pcm: Array'bool
+        var nonZero: Array'u8
         pcm.resize(cast(u64, .mbWidth) * .mbHeight)
         for &value in pcm do
             value[] = false
@@ -220,6 +258,9 @@ impl Encoder
             motions.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight))
             for &value in motions do
                 value[] = {}
+            nonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 16)
+            for &value in nonZero do
+                value[] = 0
         }
         for mbY in .mbHeight
         {
@@ -258,11 +299,30 @@ impl Encoder
                         skipped = 0
                         continue
                     }
+
+                    var levels: [16] s32
+                    var cbp = 0'u32
+                    if .dcResidual(frame, mbX, mbY, levels.buffer, &cbp)
+                    {
+                        bits.unsigned(0) // P_L0_16x16 with zero motion.
+                        bits.signed(-prediction.x)
+                        bits.signed(-prediction.y)
+                        .writeDcResidual(&bits, nonZero.toSlice(), mbX, mbY, levels.buffer, cbp,
+                                         &currentQp)
+                        motions[motionIndex] = {0, 0, true}
+                        skipped = 0
+                        continue
+                    }
                 }
                 bits.unsigned(key ? 25 : 30)   // I_PCM in I/P slice type spaces.
                 bits.alignZero()
                 .writePcm(&bits, frame, mbX, mbY)
                 pcm[motionIndex] = true
+                if not key
+                {
+                    for block in 16'u64 do
+                        nonZero[motionIndex * 16 + block] = 16
+                }
                 skipped = 0
             }
         }
@@ -294,6 +354,103 @@ impl Encoder
 
 private impl Encoder
 {
+    // Detects an exact DC-only 4x4 luma residual at QP 0. Chroma must match the
+    // reference. Inverse dequantization scales DC by ten, so a level is accepted
+    // only when the decoder's rounded (level * 10) / 64 equals every input delta.
+    mtd const dcResidual(frame: const *Nv12Frame, mbX, mbY: u32,
+                         levels: [*] s32, cbp: *u32)->bool
+    {
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        if x + 16 > width or y + 16 > height do
+            return false
+        let chroma = frame.chroma()
+        let previousChroma = width * height
+        for row in 8'u64
+        {
+            let offset = (y / 2 + row) * width + x
+            for column in 16'u64 where
+                chroma[offset + column] != .previous[previousChroma + offset + column] do
+                return false
+        }
+
+        let luma = frame.luma()
+        cbp[] = 0
+        for by in 4'u64
+        {
+            for bx in 4'u64
+            {
+                let offset = (y + by * 4) * width + x + bx * 4
+                let delta = cast(s32, luma[offset]) - cast(s32, .previous[offset])
+                let level = delta * 64 / 10
+                if (level * 10 + 32) >> 6 != delta do
+                    return false
+                for row in 4'u64
+                {
+                    for column in 4'u64
+                    {
+                        let pixel = offset + row * width + column
+                        if cast(s32, luma[pixel]) - cast(s32, .previous[pixel]) != delta do
+                            return false
+                    }
+                }
+                levels[by * 4 + bx] = level
+                if level != 0 do
+                    cbp[] |= 1'u32 << cast(u32, (by / 2) * 2 + bx / 2)
+            }
+        }
+        return cbp[] != 0
+    }
+
+    mtd const lumaNonZeroAt(nonZero: const [..] u8, mbX, mbY, bx, by: u32)->u32
+    {
+        let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + by * 4 + bx
+        return nonZero[index]
+    }
+
+    mtd const lumaNc(nonZero: const [..] u8, mbX, mbY, bx, by: u32)->u32
+    {
+        let hasLeft = bx > 0 or mbX > 0
+        let hasTop = by > 0 or mbY > 0
+        let left = bx > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY, bx - 1, by) :
+                            (mbX > 0 ? .lumaNonZeroAt(nonZero, mbX - 1, mbY, 3, by) : 0)
+        let top = by > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY, bx, by - 1) :
+                           (mbY > 0 ? .lumaNonZeroAt(nonZero, mbX, mbY - 1, bx, 3) : 0)
+        if hasLeft and hasTop do
+            return (left + top + 1) / 2
+        return left + top
+    }
+
+    mtd const writeDcResidual(bits: *EncoderBits, nonZero: [..] u8,
+                              mbX, mbY: u32, levels: const [*] s32, cbp: u32,
+                              currentQp: *s32)
+    {
+        var code = 0'u32
+        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == cbp
+        {
+            code = cast(u32, index)
+            break
+        }
+        bits.unsigned(code)
+        bits.signed(-currentQp[])
+        currentQp[] = 0
+
+        for quad in 4'u64 where cbp & (1'u32 << cast(u32, quad)) != 0
+        {
+            for cell in 4'u64
+            {
+                let bx = cast(u32, (quad & 1) * 2 + (cell & 1))
+                let by = cast(u32, (quad >> 1) * 2 + (cell >> 1))
+                let level = levels[by * 4 + bx]
+                bits.singleDc(level, .lumaNc(nonZero, mbX, mbY, bx, by))
+                let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + by * 4 + bx
+                nonZero[index] = level == 0 ? 0 : 1
+            }
+        }
+    }
+
     // A constant 16x16 block is represented by Intra_16x16 DC without coefficients when
     // every available top and left boundary has the same samples in all three planes.
     mtd const flatIntra(frame: const *Nv12Frame, mbX, mbY: u32)->bool

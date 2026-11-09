@@ -69,6 +69,28 @@ func encoderSolidFrame(width, height: s32, red, green, blue: u8)->Nv12Frame fail
     return result
 }
 
+func encoderBrightnessTiles(width, height, bright: s32)->Nv12Frame fail
+{
+    var rgb: Array'u8
+    rgb.resize(cast(u64, width) * cast(u64, height) * 3)
+    for y in cast(u64, height)
+    {
+        for x in cast(u64, width)
+        {
+            let value = cast(u8, 30 + ((x / 4 * 17 + y / 4 * 31) % 160) +
+                                 cast(u64, bright))
+            let offset = (y * cast(u64, width) + x) * 3
+            rgb[offset] = value
+            rgb[offset + 1] = value
+            rgb[offset + 2] = value
+        }
+    }
+    let image = Image.create(width, height, .RGB8, rgb.toSlice())
+    var result: Nv12Frame
+    try result.convertFrom(&image)
+    return result
+}
+
 func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
 {
     Swag.require(decoded.width == original.width and decoded.height == original.height)
@@ -332,4 +354,76 @@ func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
     requireEncodedNv12(&changed, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 2)
     requireEncodedNv12(&changed, &decoded)
+}
+
+// A screen-wide luma brightness change uses quantized DC residuals without reference drift.
+#test
+{
+    let path = videoTempPath("h264-encoder-dc-residual", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderBrightnessTiles(128, 128, 0)
+    let brighter = expect encoderBrightnessTiles(128, 128, 1)
+    let brightest = expect encoderBrightnessTiles(128, 128, 2)
+    let highlight = expect encoderBrightnessTiles(128, 128, 20)
+    var encoder = expect H264.Encoder.create(128, 128, keyInterval: 5)
+    var writer = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+    let fade = expect encoder.encode(&brighter, 3_000, 3_000)
+    Swag.require(fade.bytes.count < keySize / 3)
+    expect writer.addPacket(fade)
+    let secondFade = expect encoder.encode(&brightest, 6_000, 3_000)
+    Swag.require(secondFade.bytes.count < keySize / 3)
+    expect writer.addPacket(secondFade)
+    let boosted = expect encoder.encode(&highlight, 9_000, 3_000)
+    Swag.require(boosted.bytes.count < keySize / 3)
+    expect writer.addPacket(boosted)
+    let dimmed = expect encoder.encode(&base, 12_000, 3_000)
+    Swag.require(dimmed.bytes.count < keySize / 3)
+    expect writer.addPacket(dimmed)
+    let refreshed = expect encoder.encode(&base, 15_000, 3_000)
+    Swag.require(refreshed.isKeyFrame)
+    expect writer.addPacket(refreshed)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    for index in 6'u64
+    {
+        expect reader.decodeFramePlanesInto(&decoded, index)
+        let source = index == 1 ? &brighter :
+                     (index == 2 ? &brightest : (index == 3 ? &highlight : &base))
+        requireEncodedNv12(source, &decoded)
+    }
+}
+
+// The largest studio-range DC swings exercise the extended CAVLC level code in both signs.
+#test
+{
+    let path = videoTempPath("h264-encoder-dc-extremes", "mp4")
+    defer discard catch File.delete(path)
+    let dark = expect encoderSolidFrame(16, 16, 0, 0, 0)
+    let light = expect encoderSolidFrame(16, 16, 255, 255, 255)
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&dark, 0, 3_000)
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+    let up = expect encoder.encode(&light, 3_000, 3_000)
+    Swag.require(up.bytes.count < keySize / 2)
+    expect writer.addPacket(up)
+    let down = expect encoder.encode(&dark, 6_000, 3_000)
+    Swag.require(down.bytes.count < keySize / 2)
+    expect writer.addPacket(down)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&light, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&dark, &decoded)
 }

@@ -78,8 +78,8 @@ Four codecs ship in the box:
   length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
   [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder.
   [[Video.H264.Encoder]] produces Constrained Baseline packets from those surfaces with flat
-  intra blocks, exact inter copies for small screen movements, P-skip for unchanged blocks,
-  and PCM for remaining changes. It establishes the portable packet path, but arbitrary
+  intra blocks, exact inter copies for small screen movements, exact DC residuals for uniform
+  4×4 luminance changes, P-skip for unchanged blocks, and PCM for remaining changes. Arbitrary
   changes still yield large files at high resolution.
   [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
   and reports skipped frames without retaining pictures.

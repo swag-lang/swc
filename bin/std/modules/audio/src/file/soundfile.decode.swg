@@ -19,8 +19,8 @@ impl SoundFile
 {
     // Decodes this sound sequentially to interleaved PCM16 chunks.
     //
-    // Compressed packets are decoded in playback order and codec priming is omitted, so the total
-    // delivered frame count matches [[Audio.SoundFile.sampleFrameCount]]. PCM sources are converted
+    // Compressed packets are decoded in playback order with codec priming and padding omitted.
+    // The delivered frame count matches [[Audio.SoundFile.sampleFrameCount]]. PCM sources are converted
     // without requiring an audio engine. `consumer` borrows each bounded chunk only until it
     // returns; returning `false` cancels the remaining work without failure.
     mtd const decodePcm16(consumer: SoundPcm16Consumer) fail
@@ -102,6 +102,7 @@ private impl SoundFile
         var packetBytes:  Array'u8
         var decodedBytes: Array'u8
         var discardFrames = .leadingTrim
+        var remainingFrames = .frameCount
 
         for packet in .packets
         {
@@ -133,10 +134,13 @@ private impl SoundFile
             discardFrames -= skippedFrames
             let firstSample = skippedFrames * .channelCount
             let sampleCount = producedBytes / #sizeof(s16)
-            if firstSample < sampleCount
+            if firstSample < sampleCount and remainingFrames
             {
                 let samples = cast(const [*] s16, decodedBytes.storage())
-                if not consumer(samples[firstSample until sampleCount]) do
+                let lastSample = firstSample + Math.min(remainingFrames,
+                                                       (sampleCount - firstSample) / .channelCount) * .channelCount
+                remainingFrames -= (lastSample - firstSample) / .channelCount
+                if not consumer(samples[firstSample until lastSample]) do
                     return
             }
         }

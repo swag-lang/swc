@@ -175,7 +175,10 @@ impl Voice
         {
             let packet = file.packets[.streamPacketIdx]
             let packetDecodedBytes = cast(u64, packet.sampleFrameCount) * file.channelCount * 2
-            if packetDecodedBytes > destinationSize - writtenBytes do
+            let trimBytes = .streamPacketIdx + 1 == file.packets.count ?
+                            file.trailingTrim * file.channelCount * 2 : 0
+            let keptPacketBytes = packetDecodedBytes - trimBytes
+            if keptPacketBytes > destinationSize - writtenBytes do
                 break
 
             // A packet without payload is a gap in the stream: it plays as silence, of which a
@@ -183,7 +186,9 @@ impl Voice
             if not packet.byteSize
             {
                 let discardFrames = Math.min(.seekDiscardFrames, packet.sampleFrameCount)
-                let keptBytes     = packetDecodedBytes - cast(u64, discardFrames) * file.channelCount * 2
+                let audibleFrames = keptPacketBytes / (file.channelCount * 2)
+                let keptBytes = (audibleFrames - Math.min(cast(u64, discardFrames), audibleFrames)) *
+                                file.channelCount * 2
                 Memory.clear(cast([*] u8, destination) + writtenBytes, keptBytes)
                 writtenBytes       += keptBytes
                 .seekDiscardFrames -= discardFrames
@@ -218,7 +223,9 @@ impl Voice
                 if discardBytes < missingBytes do
                     fail InvalidFormatError{"compressed sound packet decoded fewer frames than its index states"}
                 let availableDiscardBytes = discardBytes - missingBytes
-                let keptBytes = producedBytes - availableDiscardBytes
+                if trimBytes > producedBytes - availableDiscardBytes do
+                    fail InvalidFormatError{"compressed sound packet ends before its audible frames"}
+                let keptBytes = producedBytes - availableDiscardBytes - trimBytes
                 if keptBytes
                 {
                     Memory.copy(cast([*] u8, destination) + writtenBytes,
@@ -231,12 +238,20 @@ impl Voice
             }
             else
             {
-                let producedBytes = try .packetCodec!.decodePacket(cast([*] u8, destination) + writtenBytes,
-                                                                   packetDecodedBytes,
+                var output = cast([*] u8, destination) + writtenBytes
+                if trimBytes
+                {
+                    if .packetScratch.count != packetDecodedBytes do
+                        .packetScratch.resize(packetDecodedBytes)
+                    output = .packetScratch.storage()
+                }
+                let producedBytes = try .packetCodec!.decodePacket(output, packetDecodedBytes,
                                                                    .packetBuffer.toSlice())
                 if producedBytes != packetDecodedBytes do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
-                writtenBytes += producedBytes
+                if trimBytes do
+                    Memory.copy(cast([*] u8, destination) + writtenBytes, output, keptPacketBytes)
+                writtenBytes += keptPacketBytes
             }
 
             .streamPacketIdx += 1

@@ -22,6 +22,9 @@ private const SoundMediaHeaderId                = fourCc('s'u32, 'm'u32, 'h'u32,
 private const MovieFragmentRandomAccessId       = fourCc('m'u32, 'f'u32, 'r'u32, 'a'u32)
 private const TrackFragmentRandomAccessId       = fourCc('t'u32, 'f'u32, 'r'u32, 'a'u32)
 private const MovieFragmentRandomAccessOffsetId = fourCc('m'u32, 'f'u32, 'r'u32, 'o'u32)
+private const EditContainerId                    = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
+private const EditListId                         = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
+private const FreeBoxId                          = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
 
 private struct BufferedPacket
 {
@@ -69,6 +72,7 @@ private struct FragmentedAudioTrack
     channels:       u16
     nextTime:       u64
     hasPackets:     bool
+    editOffset:     u64
 }
 
 // Writes H.264 and optional AAC-LC access units to a fragmented MP4 file.
@@ -102,6 +106,8 @@ struct FragmentedWriter
         width:          u16
         height:         u16
         timescale:      u32
+        movieTimescale: u32
+        videoEditOffset: u64
         sequence:       u32
         videoPackets:   u64
         nextDecodeTime: u64
@@ -402,6 +408,51 @@ impl FragmentedWriter
         try .sink.flush()
     }
 
+    // Publishes one sample-accurate presentation range per populated track. The reserved
+    // `free` boxes are patched in place, leaving every completed fragment and its offsets
+    // intact. Until the final box type is changed, an interrupted file keeps its live prefix.
+    mtd setPresentationEdits(videoMediaStart: u64, audioFrameCounts: const [..] u64) fail
+    {
+        if .isEnded or not .movieTimescale or not .videoEditOffset or
+           audioFrameCounts.count != .audioTracks.count or
+           videoMediaStart >= .nextDecodeTime do
+            fail BadParameterError{"fragmented MP4 presentation edits do not match its tracks"}
+        for index in audioFrameCounts.count
+        {
+            let track = &.audioTracks[index]
+            let frames = audioFrameCounts[index]
+            if frames > Swag.U64.Max / .movieTimescale or
+               (not frames and track.hasPackets) do
+                fail BadParameterError{"fragmented MP4 audio edit exceeds its decoded packets"}
+            if frames
+            {
+                if not track.hasPackets or track.nextTime < 2_048 do
+                    fail BadParameterError{"fragmented MP4 audio edit needs a priming and a drain packet"}
+                let audibleCapacity = track.nextTime - 1_024
+                if frames > audibleCapacity or audibleCapacity - frames >= 1_024 do
+                    fail BadParameterError{"fragmented MP4 audio edit needs one priming packet and less than one padding packet"}
+            }
+        }
+        if .nextDecodeTime - videoMediaStart > Swag.U64.Max / .movieTimescale do
+            fail OverflowError{"fragmented MP4 video presentation duration overflows"}
+
+        try .flush()
+        let videoDuration = (.nextDecodeTime - videoMediaStart) * .movieTimescale / .timescale
+        try .publishEdit(.videoEditOffset, videoDuration, videoMediaStart)
+        for index in audioFrameCounts.count
+        {
+            let frames = audioFrameCounts[index]
+            if not frames do
+                continue
+            let track = &.audioTracks[index]
+            // The movie clock is at least as fine as this sample clock. Flooring here and
+            // ceiling the inverse in Reader recovers `frames` exactly, including 44.1 kHz.
+            let duration = frames * .movieTimescale / track.sampleRate
+            try .publishEdit(track.editOffset, duration, 1_024)
+        }
+        try .sink.flush()
+    }
+
     // Flushes, optionally appends the random-access index, and closes the stream; repeated calls do nothing.
     mtd end() fail
     {
@@ -526,6 +577,7 @@ private impl FragmentedWriter
             .width     = cast(u16, width)
             .height    = cast(u16, height)
             .timescale = timescale
+            .movieTimescale = timescale
             .options   = options
             .config.add(avcConfig)
             .audioTracks.reserve(audioTracks.count)
@@ -536,6 +588,7 @@ private impl FragmentedWriter
                 track.channels   = audio.channelCount
                 track.config.add(audio.decoderConfig)
                 .audioTracks.add(#move track)
+                result.movieTimescale = Math.max(result.movieTimescale, audio.sampleRate)
             }
         }
 
@@ -646,6 +699,31 @@ private impl FragmentedWriter
         endBox(&.sink, movie)
     }
 
+    // A 44-byte edit list sits inside an ignored `free` box until the completed stream
+    // publishes it. The box type is patched last, so a partly finalized file remains readable.
+    #[Swag.Propagate]
+    mtd writeEditPlaceholder()->u64 fail
+    {
+        let start = beginBox(&.sink, FreeBoxId)
+        let list = beginBox(&.sink, EditListId)
+        writeFullBox(&.sink, 1, 0)
+        writeU32(&.sink, 1)
+        writeU64(&.sink, 0)
+        writeU64(&.sink, 0)
+        writeU16(&.sink, 1)
+        writeU16(&.sink, 0)
+        endBox(&.sink, list)
+        endBox(&.sink, start)
+        return start
+    }
+
+    mtd publishEdit(offset, duration, mediaTime: u64) fail
+    {
+        try patchU64(&.sink, offset + 24, duration)
+        try patchU64(&.sink, offset + 32, mediaTime)
+        try patchU32(&.sink, offset + 4, EditContainerId)
+    }
+
     #[Swag.Propagate]
     mtd writeMovieHeader() fail
     {
@@ -653,7 +731,7 @@ private impl FragmentedWriter
         writeFullBox(&.sink, 1, 0)
         writeU64(&.sink, 0)
         writeU64(&.sink, 0)
-        writeU32(&.sink, .timescale)
+        writeU32(&.sink, .movieTimescale)
         writeU64(&.sink, 0)
         writeU32(&.sink, 0x0001_0000)
         writeU16(&.sink, 0x0100)
@@ -686,6 +764,8 @@ private impl FragmentedWriter
         writeU32(&.sink, cast(u32, .width) << 16)
         writeU32(&.sink, cast(u32, .height) << 16)
         endBox(&.sink, header)
+
+        .videoEditOffset = .writeEditPlaceholder()
 
         let media = beginBox(&.sink, MediaId)
         .writeMediaHeader()
@@ -830,6 +910,8 @@ private impl FragmentedWriter
         writeU32(&.sink, 0)
         writeU32(&.sink, 0)
         endBox(&.sink, header)
+
+        .audioTracks[index].editOffset = .writeEditPlaceholder()
 
         let media  = beginBox(&.sink, MediaId)
         let timing = beginBox(&.sink, MediaHeaderId)

@@ -120,6 +120,90 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     return real * real + imaginary * imaginary
 }
 
+// A short final AAC packet still decodes its full transform block, but only the
+// unpadded source frames reach sequential consumers and a seeked voice.
+#test
+{
+    const Config: [2] u8 = [0x12, 0x10]
+    const Lead = 1_024'u64
+    const Tail = 37'u64
+    let path = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let packets = expect aacTestPackets(path)
+    let decodedFrames = packets.count * 1_024
+    var full = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
+                                                  decodedFrames, packets.toSlice(), Config)
+    var trimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
+                                                     decodedFrames, packets.toSlice(), Config,
+                                                     {leadingTrimFrames: Lead,
+                                                      trailingTrimFrames: Tail})
+    Swag.require(trimmed.sampleFrameCount() == decodedFrames - Lead - Tail)
+    var invalidPadding: Swag.Error
+    discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
+                                             decodedFrames, packets.toSlice(), Config,
+                                             {trailingTrimFrames: 1_024}) as invalidPadding
+    Swag.require(invalidPadding.value() is BadParameterError)
+    var all: Array's16
+    expect full.decodePcm16(func|all = &all|(part: const [..] s16)->bool
+    {
+        all.add(part)
+        return true
+    })
+    var audible: Array's16
+    expect trimmed.decodePcm16(func|audible = &audible|(part: const [..] s16)->bool
+    {
+        audible.add(part)
+        return true
+    })
+    Swag.require(audible.count == trimmed.sampleFrameCount() * 2)
+    Swag.require(Slice.equals(audible.toSlice(), all[Lead * 2 until all.count - Tail * 2]))
+
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&trimmed)
+    defer voice.destroy()
+    var played: Array's16
+    for
+    {
+        let part = expect voice.readBuffer()
+        if not part.buffer do
+            break
+        let samples = cast(const [*] s16, part.buffer)
+        played.add(samples[until part.size / #sizeof(s16)])
+    }
+    Swag.require(Slice.equals(played.toSlice(), audible.toSlice()))
+
+    let lastStart = trimmed.sampleFrameCount() - 23
+    discard expect voice.seekSampleFrame(lastStart)
+    let finalPart = expect voice.readBuffer()
+    Swag.require(finalPart.size == 23 * 2 * #sizeof(s16))
+    let finalSamples = cast(const [*] s16, unwrap finalPart.buffer)
+    Swag.require(Slice.equals(finalSamples[until 23 * 2], audible[lastStart * 2 until audible.count]))
+}
+
+// The final indexed packet may be a silent gap. Its padding must remain excluded
+// even when a voice seeks into its last audible samples.
+#test
+{
+    const Config: [2] u8 = [0x12, 0x10]
+    let path = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    var packets = expect aacTestPackets(path)
+    packets.add({0, 0, 1_024})
+    var sound = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
+                                                  packets.count * 1_024, packets.toSlice(), Config,
+                                                  {trailingTrimFrames: 37})
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&sound)
+    defer voice.destroy()
+    discard expect voice.seekSampleFrame(sound.sampleFrameCount() - 23)
+    let finalPart = expect voice.readBuffer()
+    Swag.require(finalPart.size == 23 * 2 * #sizeof(s16))
+    let samples = cast(const [*] s16, unwrap finalPart.buffer)
+    for index in 23 * 2 do
+        Swag.require(samples[index] == 0)
+    Swag.require((expect voice.readBuffer()).size == 0)
+}
+
 #test
 {
     var sound = expect aacTestSound()

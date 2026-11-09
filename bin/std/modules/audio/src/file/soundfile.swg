@@ -89,6 +89,7 @@ struct PacketStreamOptions
     public
     {
         leadingTrimFrames:    u64             // Decoded priming frames omitted before audible frame zero.
+        trailingTrimFrames:   u64             // Decoded padding omitted at end; smaller than the final packet.
         speakerMask:          u32             // WAVE speaker-position mask; zero derives the standard mask from the channel count.
         timelineStartSeconds: f64             // Position of audible frame zero on the containing media timeline, in seconds.
         displayName:          string = ""     // Optional human-readable track name supplied by the containing media.
@@ -130,6 +131,7 @@ struct SoundFile
         mediaName:     Array'u8              // Human-readable track name copied from the container.
         mediaLanguage: Array'u8              // Media language code copied from the container.
         leadingTrim:   u64                   // Decoded priming frames before audible frame zero.
+        trailingTrim:  u64                   // Decoded padding frames after the audible stream.
         timelineStart: f64                   // Position of frame zero on an enclosing media timeline.
 
         frameCount: u64     // Number of sample frames across all channels.
@@ -377,6 +379,7 @@ impl SoundFile
         }
 
         result.leadingTrim = options.leadingTrimFrames
+        result.trailingTrim = options.trailingTrimFrames
         result.packets.reserve(packets.count)
         result.packetStarts.reserve(packets.count)
         result.decoderConfig.add(decoderConfig)
@@ -407,8 +410,12 @@ impl SoundFile
             fail UnsupportedFormatError{"sound priming exceeds the supported seek-discard range"}
         if result.leadingTrim >= decodedFrames do
             fail InvalidFormatError{"sound priming consumes every decoded frame"}
+        if result.trailingTrim >= decodedFrames - result.leadingTrim do
+            fail InvalidFormatError{"sound padding consumes every audible frame"}
+        if result.trailingTrim >= packets[packets.count - 1].sampleFrameCount do
+            fail BadParameterError{"sound padding consumes the final packet"}
 
-        result.frameCount      = frameCount - result.leadingTrim
+        result.frameCount      = frameCount - result.leadingTrim - result.trailingTrim
         result.dataSize        = payloadBytes
         result.durationSeconds = cast(f32, result.frameCount) / cast(f32, sampleRateHz)
         result.availableFields = .Format |

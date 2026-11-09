@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
-//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments.
-//! Not supported: Multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
+//! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits.
+//! Not supported: Complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
 //! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
 //
 #global namespace Mp4
@@ -15,6 +15,8 @@ const FileTypeId           = fourCc('f'u32, 't'u32, 'y'u32, 'p'u32)
 const MovieId              = fourCc('m'u32, 'o'u32, 'o'u32, 'v'u32)
 const TrackId              = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
 const TrackHeaderId        = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
+const ParsedEditContainerId = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
+const ParsedEditListId      = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
 const MediaDataId          = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
 const MediaId              = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
 const MediaHeaderId        = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
@@ -169,6 +171,9 @@ struct Track
     isAvc:          bool
     isHevc:         bool
     isAac:          bool
+    editMediaTime: s64
+    editDuration:  u64
+    hasSingleEdit: bool
 }
 
 private impl Track
@@ -195,6 +200,7 @@ internal struct Layout
     hasMovie:         bool
     hasVideo:         bool
     hasFragments:     bool
+    movieTimescale:   u32
     unsupportedCodec: u32
 }
 
@@ -461,6 +467,17 @@ impl Layout
                     .audioFragments.add(#move fragments)
                 }
             }
+            elif box.kind == MovieHeaderId
+            {
+                let version = try readFullBox(source)
+                if version > 1 do
+                    fail UnsupportedFormatError{"MP4 movie-header version is unsupported"}
+                let prefix = version == 1 ? 16'u64 : 8'u64
+                if box.end - source.position() < prefix + 4 do
+                    fail InvalidFormatError{"MP4 movie header has no timescale"}
+                try source.skip(prefix)
+                .movieTimescale = try source.readBigEndian'u32()
+            }
 
             try source.seek(box.end)
         }
@@ -595,10 +612,38 @@ impl Track
             switch box.kind
             {
             case TrackHeaderId: .parseTrackHeader(source, box.end)
+            case ParsedEditContainerId: .parseEdits(source, box.end)
             case MediaId:       .parseMedia(source, box.end)
             }
 
             source.seek(box.end)
+        }
+    }
+
+    mtd parseEdits(source: *ByteSource, end: u64) fail
+    {
+        while source.position() + BoxHeaderSize <= end
+        {
+            let box = try readBox(source, end)
+            if box.kind == ParsedEditListId
+            {
+                if box.end - source.position() < 8 do
+                    fail InvalidFormatError{"MP4 edit list is truncated"}
+                let version = try readFullBox(source)
+                let count = try source.readBigEndian'u32()
+                if version == 1 and count == 1 and box.end - source.position() >= 20
+                {
+                    .editDuration = try source.readBigEndian'u64()
+                    let mediaTime = try source.readBigEndian'u64()
+                    let rate = try source.readBigEndian'u32()
+                    if mediaTime <= cast(u64, Swag.S64.Max) and rate == 0x0001_0000 and .editDuration
+                    {
+                        .editMediaTime = cast(s64, mediaTime)
+                        .hasSingleEdit = true
+                    }
+                }
+            }
+            try source.seek(box.end)
         }
     }
 
@@ -1297,7 +1342,38 @@ impl IDecoder for Decoder
                         start += cast(f64, trim) / audioTrack.sampleRate
                     }
 
+                    var trailingTrim = 0'u64
+                    if audioTrack.hasSingleEdit and layout.movieTimescale
+                    {
+                        // This reader can expose a single continuous edit with padding only
+                        // in the final AAC packet. Other valid edit layouts retain the packet
+                        // timeline used before edit-list support was added.
+                        if audioTrack.editDuration <= Swag.U64.Max / audioTrack.sampleRate
+                        {
+                            let scaled = audioTrack.editDuration * audioTrack.sampleRate
+                            let audibleFrames = scaled / layout.movieTimescale +
+                                                (scaled % layout.movieTimescale != 0 ? 1'u64 : 0)
+                            let mediaStart = cast(u64, audioTrack.editMediaTime)
+                            let decodedCount = samples.count * AacFrameSamples
+                            let firstSampleTime = samples[0].decodeTime
+                            if mediaStart >= firstSampleTime and
+                               mediaStart - firstSampleTime < decodedCount
+                            {
+                                let proposedTrim = mediaStart - firstSampleTime
+                                if audibleFrames and audibleFrames <= decodedCount - proposedTrim and
+                                   decodedCount - proposedTrim - audibleFrames < AacFrameSamples and
+                                   proposedTrim <= Swag.U32.Max
+                                {
+                                    trim = proposedTrim
+                                    start = 0
+                                    trailingTrim = decodedCount - trim - audibleFrames
+                                }
+                            }
+                        }
+                    }
+
                     let options = PacketStreamOptions{leadingTrimFrames: trim,
+                                                      trailingTrimFrames: trailingTrim,
                                                       timelineStartSeconds: Math.max(start, 0.0)}
                     let sound = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, samples.count * AacFrameSamples, packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
                     .soundTracks.add(#move sound)

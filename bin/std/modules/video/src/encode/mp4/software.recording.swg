@@ -26,8 +26,9 @@ private struct SoftwareAudioTrack
 // The caller assigns video slots with [[Video.FramePacer]]. Every slot, including a repeated
 // picture for a missed capture, must be submitted in order. Sound may arrive in arbitrary
 // complete-frame chunks. With audio, the first video packet begins one AAC priming packet after
-// sound so [[Video.Reader]] removes the encoder's 1024 delayed samples and aligns audible frame
-// zero with video frame zero. `end` drains audio before finalizing the file. Internal
+// sound. The live prefix lets [[Video.Reader]] derive the 1024-sample encoder delay; `end`
+// publishes standard edit lists that align both tracks at zero and omit final AAC padding.
+// It drains audio before finalizing the file. Internal
 // picture, PCM and packet storage stays bounded as the recording grows. Up to four independent
 // sound tracks share one sample rate; a capture source can be kept on each track for later mixing.
 // A video-only recording starts at video time zero and needs no audio device.
@@ -247,8 +248,8 @@ impl SoftwareRecording
     // Drains audio and finalizes the MP4 recording; repeated calls are harmless.
     //
     // At least one video frame must have been submitted. A short last audio block is padded
-    // to a full AAC packet; its valid input count remains available through
-    // `audioInputFrameCount`, while the container currently plays that short padded tail.
+    // for AAC encoding; the final MP4 edit list omits that padding and encoder priming.
+    // FFmpeg versions that ignore edit lists in fragmented MP4 may still expose the padding.
     mtd end() fail
     {
         if .ended do
@@ -265,6 +266,13 @@ impl SoftwareRecording
                                                          track.encoder.lastPacketStartSample(),
                                                          1_024, true}, cast(u32, index))
             }
+        }
+        if .tracks.count
+        {
+            var frameCounts: Array'u64
+            for &track in .tracks do
+                frameCounts.add(track.encoder.inputFrameCount())
+            try .writer.setPresentationEdits(.videoOffset, frameCounts.toSlice())
         }
         try .writer.end()
         .ended = true

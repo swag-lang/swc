@@ -431,3 +431,23 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     discard catch session.captureAt(33_334) as stopped
     Swag.require(stopped.value() is Swag.SystemError and session.frameCount() == 1)
 }
+
+// A long interruption is represented by one held picture instead of encoding 864000 repeats.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("swag-capture-long-video-gap-%.mp4", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    var session = expect VideoCaptureSession.create(
+        path, {0, 0, 16, 16}, expect FrameRate.create(60, 1), false)
+    Swag.require(expect session.captureAt(0))
+    Swag.require(expect session.captureAt(4'u64 * 60 * 60 * 1_000_000))
+    Swag.require(session.missedFrameSlotCount() == 864_000 - 1 and
+                 session.repeatedFrameCount() == 1 and session.frameCount() == 3)
+    expect session.end()
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.audioTrackCount() == 0)
+    Swag.require(reader.frameTimestamp(2) >= 14_400.0 and
+                 reader.frameAtTime(7_200.0) == 1 and reader.durationInSeconds() > 14_400.0)
+}

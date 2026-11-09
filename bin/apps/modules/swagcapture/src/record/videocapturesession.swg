@@ -2,9 +2,11 @@ using Core, Core.Errors, Pixel, Video
 
 // Keeps one screen source, frame pacer and software MP4 writer alive for a recording.
 //
-// The caller drives `captureAt` with monotonic microsecond timestamps. Missed slots repeat the
-// preceding frame; if the screen cannot be read, a black first frame or the last good frame
-// fills the slot and the source is reopened. The session checks destination free space once
+// The caller drives `captureAt` with monotonic microsecond timestamps. Short missed intervals
+// repeat each frame slot; long gaps use a held picture with a long duration, so a suspended
+// recorder does not encode hours of identical frames. If the screen cannot be read, a black
+// first frame or the last good frame fills the slot and the source is reopened. The session
+// checks destination free space once
 // per second and finalizes a playable prefix before the configured reserve is exhausted.
 // Audio PCM16 can be added on zero through four separate tracks. The caller creates audio
 // queues against `captureOriginTick` (microseconds)
@@ -20,6 +22,8 @@ struct VideoCaptureSession
     audioConfigs:  Array'Mp4.SoftwareAudioConfig
     outputDirectory: String
     originTick:    u64
+    nextVideoTime: u64
+    missedSlots: u64
     nextSpaceCheckTick: u64
     minimumFreeSpace:  u64
     hasOrigin:     bool
@@ -63,6 +67,7 @@ impl VideoCaptureSession
     //
     // Returns true only when a fresh screen image was accepted. A repeated or black frame is
     // still written when capture fails; a timestamp inside the current slot writes nothing.
+    // Up to 120 missed slots remain individual frames; longer intervals become held samples.
     mtd captureAt(tick: u64)->bool fail
     {
         if .lowStorageStop do
@@ -86,26 +91,58 @@ impl VideoCaptureSession
             .originTick = tick
             .hasOrigin = true
         }
-        for index in .recording.videoFrameCount() until slot.index
+        if slot.decodeTime < .nextVideoTime do
+            fail BadParameterError{"video capture pacer moved behind the encoded timeline"}
+        if slot.skippedFrames > Swag.U64.Max - .missedSlots do
+            fail OverflowError{"video capture missed-slot counter overflows"}
+        .missedSlots += slot.skippedFrames
+        if slot.skippedFrames <= 120
         {
-            let missed = try .pacer.slotAt(index)
-            if not .recording.videoFrameCount() do
-                try .recording.addFrame(&.picture, missed)
-            else do
-                try .recording.repeatLastFrame(missed)
+            for index in slot.index - slot.skippedFrames until slot.index
+            {
+                let missed = try .pacer.slotAt(index)
+                try .writeRepeatedPicture(missed.duration)
+            }
         }
+        else
+        {
+            // One long sample represents a stable screen across a large interruption. MP4
+            // sample duration is u32, so very long gaps are split into bounded chunks.
+            while .nextVideoTime < slot.decodeTime
+            {
+                let duration = cast(u32, Math.min(slot.decodeTime - .nextVideoTime,
+                                                   cast(u64, Swag.U32.Max)))
+                try .writeRepeatedPicture(duration)
+            }
+        }
+        if slot.decodeTime != .nextVideoTime do
+            fail BadParameterError{"video capture gap did not align with the next frame"}
+        let outputSlot = FrameSlot{.recording.videoFrameCount(), .nextVideoTime,
+                                   slot.duration, 0}
         catch .source.grabInto(&.picture)
         {
             .sourceFailures += 1
             if not .recording.videoFrameCount() do
-                try .recording.addFrame(&.picture, slot)
+                try .recording.addFrame(&.picture, outputSlot)
             else do
-                try .recording.repeatLastFrame(slot)
+                try .recording.repeatLastFrame(outputSlot)
+            .nextVideoTime += slot.duration
             discard catch .source.reopen()
             return false
         }
-        try .recording.addFrame(&.picture, slot)
+        try .recording.addFrame(&.picture, outputSlot)
+        .nextVideoTime += slot.duration
         return true
+    }
+
+    private mtd writeRepeatedPicture(duration: u32) fail
+    {
+        let repeated = FrameSlot{.recording.videoFrameCount(), .nextVideoTime, duration, 0}
+        if not .recording.videoFrameCount() do
+            try .recording.addFrame(&.picture, repeated)
+        else do
+            try .recording.repeatLastFrame(repeated)
+        .nextVideoTime += duration
     }
 
     // Returns whether the first video slot established a monotonic origin.
@@ -132,6 +169,9 @@ impl VideoCaptureSession
 
     // Returns the number of slots filled from a previous picture after a missed grab.
     mtd const repeatedFrameCount()->u64 => .recording.repeatedFrameCount()
+
+    // Returns real-time frame slots missed by screen acquisition, including condensed gaps.
+    mtd const missedFrameSlotCount()->u64 => .missedSlots
 
     // Returns the number of screen-source grabs that failed.
     mtd const sourceFailureCount()->u64 => .sourceFailures

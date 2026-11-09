@@ -265,7 +265,9 @@ whole recording loaded at once.
   MP4, and reopens the H.264 pictures and AAC sound through `Video.Reader`.
   `VideoCaptureSession` now keeps a screen source, exact frame pacer and MP4 writer alive; X11
   tests cover sound input, repeated missed slots, source failure and recovery, and a black first
-  frame before a source returns. The X11 source uses native MIT-SHM through the existing XCB
+  frame before a source returns. A four-hour video interruption now uses one held MP4 picture
+  instead of encoding 863,999 repeated frames; the reader seeks within its exact long duration.
+  The X11 source uses native MIT-SHM through the existing XCB
   connection and reuses frame storage. Parallel 4K BGRA conversion improved acquisition from
   6.1–6.3 to 4.7–5.1 ms per image with full color parity; 1080p remains about 1.2 ms on its
   sequential path. An opt-in 4K60 test on a static Xorg dummy screen measured

@@ -248,10 +248,10 @@ using Swag, Core
     f.capture.height, f.capture.heightOrg = 6
     f.capture.backImg                     = Image.create(8, 6, .BGRA8)
     f.capture.sourceApplication           = "bad\napplication"
-    f.capture.sourceExecutable            = "bad|application.exe"
+    f.capture.sourceExecutable            = "bad\napplication.exe"
     f.capture.sourceWindowTitle           = "bad\nwindow"
     f.capture.sourceWindowClass           = "bad\nclass"
-    f.capture.linkedImage                 = "bad|linked.png"
+    f.capture.linkedImage                 = "bad\nlinked.png"
     f.capture.linkedUpToDate              = false
 
     let path = testTempCapturePath()

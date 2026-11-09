@@ -46,6 +46,13 @@ private const MotionOffsets: [16, 2] s32 = [
     [-16, 0], [16, 0], [-32, 0], [32, 0],
     [-16, -16], [16, 16]]
 
+// Inverse of Table 9-4's inter coded-block-pattern column. CAVLC writes this
+// code for every residual macroblock, so avoid scanning 48 entries per block.
+private const InterCbpToGolomb: [48] u8 = [
+    0, 2, 3, 7, 4, 8, 17, 13, 5, 18, 9, 14, 10, 15, 16, 11,
+    1, 32, 33, 36, 34, 37, 44, 40, 35, 45, 38, 41, 39, 42, 43, 19,
+    6, 24, 25, 20, 26, 21, 46, 28, 27, 47, 22, 29, 23, 30, 31, 12]
+
 // Raster coefficient position to H.264 4x4 zigzag scan position.
 private const EncoderZigzagInverse: [16] u8 = [0, 1, 5, 6, 2, 4, 7, 12,
                                                 3, 8, 11, 13, 9, 10, 14, 15]
@@ -1315,14 +1322,8 @@ private impl Encoder
                               currentQp: *s32, targetQp: s32, sliceStartY: u32,
                               simpleLumaMask: u32 = 0)->bool
     {
-        var code = 0'u32
         let pattern = cbp | (chromaCbp << 4)
-        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == pattern
-        {
-            code = cast(u32, index)
-            break
-        }
-        bits.unsigned(code)
+        bits.unsigned(cast(u32, InterCbpToGolomb[pattern]))
         if pattern
         {
             bits.signed(targetQp - currentQp[])
@@ -1533,14 +1534,8 @@ private impl Encoder
                               chromaLevels, chromaAcLevels: const [*] s16, chromaCbp: u32,
                               currentQp: *s32, sliceStartY: u32)->bool
     {
-        var code = 0'u32
         let pattern = cbp | (chromaCbp << 4)
-        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == pattern
-        {
-            code = cast(u32, index)
-            break
-        }
-        bits.unsigned(code)
+        bits.unsigned(cast(u32, InterCbpToGolomb[pattern]))
         bits.signed(-currentQp[])
         currentQp[] = 0
 

@@ -31,7 +31,7 @@ impl CaptureMicrophone
     // Inspects the current default endpoint's mix format before constructing a capture queue.
     //
     // This opens the endpoint briefly and returns its sample rate and channel count. The output
-    // queue may use a different rate but must have the same channel count.
+    // queue may use a different rate and mono/stereo channel layout.
     func describeDefault()->WasapiCaptureFormat fail
     {
         var native = try WasapiCapture.openDefault()
@@ -56,11 +56,10 @@ impl CaptureMicrophone
         result.native = try WasapiCapture.openDefault(source)
         defer #fail result.native.close()
         result.format = result.native.mixFormat()
-        if queue.channelCount() != result.format.channels do
-            fail BadParameterError{"capture queue channels must match the audio source mix"}
         result.queue = queue
         result.source = source
-        result.feeder = try CaptureResampledFeeder.create(queue, result.format.sampleRate)
+        result.feeder = try CaptureResampledFeeder.create(queue, result.format.sampleRate,
+                                                          result.format.channels)
         return result
     }
 

@@ -12,8 +12,8 @@ using Core, Core.Errors
 // [[Audio.CaptureClockDrift]] estimate adjusts [[Audio.Resampler]] as the source clock moves.
 // Converted output is timestamped on the recording clock and copied into [[Audio.CaptureQueue]].
 // On a discontinuity, the old filter tail is emitted, the filter phase restarts, and the queue
-// records a loss/restoration boundary. Input and output channel counts must match; channel
-// remixing is separate. The adapter uses fixed-size input chunks and reuses its output arrays.
+// records a loss/restoration boundary. A mono source is duplicated into stereo; a stereo source
+// is averaged into mono. The adapter uses fixed-size input chunks and reuses its output arrays.
 #[Swag.NoCopy]
 struct CaptureResampledFeeder
 {
@@ -26,6 +26,7 @@ struct CaptureResampledFeeder
         scratchInput:     [2 * 1_024] f32
         scratchOutput:    Array'f32
         channels:         u16
+        sourceChannels:   u16
         inputRate:        u32
         outputRate:       u32
         clockFrequency:   u64
@@ -39,15 +40,21 @@ struct CaptureResampledFeeder
 impl CaptureResampledFeeder
 {
     // Creates a bounded converter for a native source and a 44.1/48 kHz recording queue.
-    func create(queue: *CaptureQueue, inputRate: u32)->CaptureResampledFeeder fail
+    //
+    // `sourceChannels` defaults to the queue format for existing same-channel producers.
+    func create(queue: *CaptureQueue, inputRate: u32,
+                sourceChannels: u16 = 0)->CaptureResampledFeeder fail
     {
         let outputRate = queue.sampleRateHz()
-        if queue.channelCount() > 2 or (outputRate != 44_100 and outputRate != 48_000) do
+        let nativeChannels = sourceChannels ? sourceChannels : queue.channelCount()
+        if queue.channelCount() > 2 or not nativeChannels or nativeChannels > 2 or
+           (outputRate != 44_100 and outputRate != 48_000) do
             fail BadParameterError{"resampled AAC capture needs mono/stereo 44.1 or 48 kHz output"}
         with var result: #returntype
         {
             .queue = queue
             .channels = queue.channelCount()
+            .sourceChannels = nativeChannels
             .inputRate = inputRate
             .outputRate = outputRate
             .clockFrequency = queue.clockFrequencyHz()
@@ -68,16 +75,37 @@ impl CaptureResampledFeeder
     mtd pushPcm16(samples: const [..] s16, firstTick: u64, sourceFrame: u64,
                   discontinuity: bool = false) fail
     {
-        if .finished or not samples.count or samples.count % .channels do
+        if .finished or not samples.count or samples.count % .sourceChannels do
             fail BadParameterError{"resampled capture needs complete nonempty PCM16 packets"}
         try .beginPacket(firstTick, sourceFrame, discontinuity)
-        let frames = samples.count / .channels
+        let frames = samples.count / .sourceChannels
         var offset = 0'u64
         while offset < frames
         {
             let count = Math.min(frames - offset, 1_024'u64)
-            for index in count * .channels do
-                .scratchInput[index] = cast(f32, samples[offset * .channels + index]) / 32_768.0
+            if .sourceChannels == .channels
+            {
+                for index in count * .channels do
+                    .scratchInput[index] = cast(f32, samples[offset * .channels + index]) / 32_768.0
+            }
+            elif .sourceChannels == 1
+            {
+                for frame in count
+                {
+                    let value = cast(f32, samples[offset + frame]) / 32_768.0
+                    .scratchInput[frame * 2] = value
+                    .scratchInput[frame * 2 + 1] = value
+                }
+            }
+            else
+            {
+                for frame in count
+                {
+                    let source = (offset + frame) * 2
+                    .scratchInput[frame] = cast(f32, cast(s32, samples[source]) +
+                                                      cast(s32, samples[source + 1])) / 65_536.0
+                }
+            }
             .scratchOutput.clear()
             try .resampler.addFrames(Swag.makeSlice(&.scratchInput[0], count * .channels), &.scratchOutput)
             try .emit()
@@ -89,17 +117,38 @@ impl CaptureResampledFeeder
     mtd pushFloat32(samples: const [..] f32, firstTick: u64, sourceFrame: u64,
                     discontinuity: bool = false) fail
     {
-        if .finished or not samples.count or samples.count % .channels do
+        if .finished or not samples.count or samples.count % .sourceChannels do
             fail BadParameterError{"resampled capture needs complete nonempty float packets"}
         try .beginPacket(firstTick, sourceFrame, discontinuity)
-        let frames = samples.count / .channels
+        let frames = samples.count / .sourceChannels
         var offset = 0'u64
         while offset < frames
         {
             let count = Math.min(frames - offset, 1_024'u64)
             .scratchOutput.clear()
-            try .resampler.addFrames(samples[offset * .channels until (offset + count) * .channels],
-                                     &.scratchOutput)
+            if .sourceChannels == .channels do
+                try .resampler.addFrames(samples[offset * .channels until (offset + count) * .channels],
+                                         &.scratchOutput)
+            else
+            {
+                if .sourceChannels == 1
+                {
+                    for frame in count
+                    {
+                        let value = samples[offset + frame]
+                        .scratchInput[frame * 2] = value
+                        .scratchInput[frame * 2 + 1] = value
+                    }
+                }
+                else
+                {
+                    for frame in count do
+                        .scratchInput[frame] = 0.5 *
+                            (samples[(offset + frame) * 2] + samples[(offset + frame) * 2 + 1])
+                }
+                try .resampler.addFrames(Swag.makeSlice(&.scratchInput[0], count * .channels),
+                                         &.scratchOutput)
+            }
             try .emit()
             offset += count
         }

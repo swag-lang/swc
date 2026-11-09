@@ -81,6 +81,8 @@ Four codecs ship in the box:
   intra blocks, exact inter copies for small screen movements, exact DC residuals for uniform
   4×4 luminance changes, P-skip for unchanged blocks, and PCM for remaining changes. Arbitrary
   changes still yield large files at high resolution.
+  [[Video.Mp4.SoftwareRecording]] joins RGB-to-NV12 conversion, software H.264 and AAC encoding,
+  sequential frame slots, arbitrary PCM chunks, AAC priming and fragmented MP4 finalization.
   [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
   and reports skipped frames without retaining pictures.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,

@@ -91,6 +91,37 @@ private func quantizeInterLuma4x4(source, prediction: const [*] u8,
         return
     }
 
+    // A vertical coefficient is bounded by the absolute horizontal sums below.
+    // If even the bound rounds to zero, the prediction is already reconstructed;
+    // this skips the vertical transform and quantizer for smooth blocks.
+    let zeroLimit = 1's64 << (qbits - 1)
+    var onlyZero = true
+    for column in 4'u64
+    {
+        let h0 = Math.abs(horizontal[column])
+        let h1 = Math.abs(horizontal[4 + column])
+        let h2 = Math.abs(horizontal[8 + column])
+        let h3 = Math.abs(horizontal[12 + column])
+        let evenBound = h0 + h1 + h2 + h3
+        let oddBound = Math.max(2 * h0 + h1 + h2 + 2 * h3,
+                                h0 + 2 * h1 + 2 * h2 + h3)
+        let evenFactor = cast(s64, InterLuma4x4QuantFactor[qmod, column & 1])
+        let oddFactor = cast(s64, InterLuma4x4QuantFactor[qmod, 1 + (column & 1)])
+        if cast(s64, evenBound) * evenFactor >= zeroLimit or
+           cast(s64, oddBound) * oddFactor >= zeroLimit
+        {
+            onlyZero = false
+            break
+        }
+    }
+    if onlyZero
+    {
+        for index in 16'u64 do
+            result.levels[index] = 0
+        result.nonZero = 0
+        return
+    }
+
     var scaled: [16] s16
     result.nonZero = 0
     for column in 4'u64

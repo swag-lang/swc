@@ -29,6 +29,7 @@ struct SoftwareRecording
         videoOffset:   u64
         nextVideoTime: u64
         frameCount:    u64
+        repeatedFrames: u64
         ended:         bool
     }
 }
@@ -64,6 +65,9 @@ impl SoftwareRecording
     // Returns the number of accepted video frames, including caller-supplied repeats.
     mtd const videoFrameCount()->u64 => .frameCount
 
+    // Returns the number of frame slots filled by repeating the previous picture.
+    mtd const repeatedFrameCount()->u64 => .repeatedFrames
+
     // Returns the number of source PCM16 frames consumed so far.
     mtd const audioInputFrameCount()->u64 => .audio.inputFrameCount()
 
@@ -91,6 +95,26 @@ impl SoftwareRecording
         let packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
         try .writer.addPacket(packet)
         .frameCount += 1
+        .nextVideoTime = slot.decodeTime + slot.duration
+    }
+
+    // Fills one missed capture slot with the last converted picture without reading the screen.
+    //
+    // The slot must directly follow the last written video slot. A recorder can call this once
+    // for each gap reported by [[Video.FramePacer]] while a screen source is unavailable.
+    mtd repeatLastFrame(slot: FrameSlot) fail
+    {
+        if .ended or not .frameCount do
+            fail BadParameterError{"software recording has no live picture to repeat"}
+        if slot.index != .frameCount or slot.decodeTime != .nextVideoTime or not slot.duration do
+            fail BadParameterError{"software recording needs consecutive video slots"}
+        if slot.decodeTime > Swag.U64.Max - .videoOffset or
+           slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
+            fail OverflowError{"software recording video time overflows"}
+        let packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
+        try .writer.addPacket(packet)
+        .frameCount += 1
+        .repeatedFrames += 1
         .nextVideoTime = slot.decodeTime + slot.duration
     }
 

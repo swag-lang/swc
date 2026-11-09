@@ -101,3 +101,38 @@ using Swag, Core, Core.Errors, Audio, Pixel
     discard catch recorder.addAudioFrames(Swag.makeSlice(&Pair[0], Pair.count)) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
+
+// Lost screen slots repeat the last picture and remain visible as reported recorder frames.
+#test
+{
+    let path = videoTempPath("mp4-software-recorder-repeat", "mp4")
+    defer discard catch File.delete(path)
+    let image = Image.create(16, 16, .BGRA8)
+    Memory.set(image.pixels.storage(), 90, image.pixels.count)
+    var recorder = expect Mp4.SoftwareRecording.create(path, 16, 16, 90_000, 48_000, 1)
+    let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000, 90_000)
+    var rejected: Swag.Error
+    discard catch recorder.repeatLastFrame(expect pacer.slotAt(0)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    expect recorder.addFrame(&image, expect pacer.slotAt(0))
+    discard catch recorder.repeatLastFrame(expect pacer.slotAt(2)) as rejected
+    Swag.require(rejected.value() is BadParameterError and recorder.videoFrameCount() == 1)
+    for index in 1'u64 until 4 do
+        expect recorder.repeatLastFrame(expect pacer.slotAt(index))
+    expect recorder.addFrame(&image, expect pacer.slotAt(4))
+    Swag.require(recorder.videoFrameCount() == 5 and recorder.repeatedFrameCount() == 3)
+    var silence: [1_024] s16
+    expect recorder.addAudioFrames(Swag.makeSlice(&silence[0], silence.count))
+    expect recorder.end()
+
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 5)
+    var expected: Nv12Frame
+    expect expected.convertFrom(&image)
+    var decoded: PlanarFrame
+    for index in 5'u64
+    {
+        expect reader.decodeFramePlanesInto(&decoded, index)
+        Swag.require(Slice.equals(decoded.luma.toSlice(), expected.luma()))
+    }
+}

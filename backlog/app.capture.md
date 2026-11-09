@@ -274,15 +274,19 @@ whole recording loaded at once.
   1.033–1.048 seconds for 60 screen grabs and encoded frames, with a 40,846-byte MP4;
   adding 48 stereo AAC packets took 1.282 seconds total. `Video.Reader` reopened the file in
   3.6 ms and decoded the last frame in 298 ms. This is a synthetic static scene just beyond
-  real time, and the output-sound test has no actual audio device. `VideoCaptureSession` now
+  real time. A separate X11 4K60 changing-screen test with AAC takes 2.75 seconds for 60
+  capture/convert/encode/write operations (45.8 ms per image), plus 0.21 seconds for AAC, and
+  produces a 99.2 MB MP4. `Video.Reader`, FFprobe and FFmpeg read both tracks; the output-sound
+  test has no actual audio device. `VideoCaptureSession` now
   checks the destination volume once per second, reserves 64 MiB by default, and finalizes
   the last playable MP4 prefix when free space falls below that threshold; an integration
   test reopens its final video and AAC tracks after the simulated stop. Swag Capture has no
-  video-recording UI,
-  and `BitBlt` acquisition cannot sustain large areas at 60 frames per second.
+  video-recording UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
+  large-area cadence has not been measured on Windows hardware.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
-  medium using `Video.Mp4.SoftwareRecording`: Desktop Duplication acquisition
-  (platform.portability.097), pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
+  medium using `Video.Mp4.SoftwareRecording`: measure the persistent GDI source on Windows and
+  use Desktop Duplication acquisition (platform.portability.097) only if the required cadence
+  cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
   and readback through the existing H.264 decoder for the timeline and re-export.
   Long recordings need, beside the stream: a recording folder that may differ from the library,
   a visible low-space stop reason and optional automatic splitting by

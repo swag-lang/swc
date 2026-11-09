@@ -1609,6 +1609,47 @@ private impl Encoder
         let valueY = luma[y * width + x]
         let valueU = chroma[y / 2 * width + x]
         let valueV = chroma[y / 2 * width + x + 1]
+        // A complete macroblock can compare a whole row at once. Cropped edges
+        // keep the padded scalar path below.
+        if x + 16 <= width and y + 16 <= height
+        {
+            var expectedY, expectedUv: [16] u8
+            for index in 16'u64 do
+                expectedY[index] = valueY
+            for index in 8'u64
+            {
+                expectedUv[index * 2] = valueU
+                expectedUv[index * 2 + 1] = valueV
+            }
+            for row in 16'u64 where
+                Memory.compare(luma.buffer + (y + row) * width + x,
+                               expectedY.buffer, 16) != 0 do
+                return false
+            for row in 8'u64 where
+                Memory.compare(chroma.buffer + (y / 2 + row) * width + x,
+                               expectedUv.buffer, 16) != 0 do
+                return false
+            if mbY > sliceStartY
+            {
+                if Memory.compare(luma.buffer + (y - 1) * width + x,
+                                  expectedY.buffer, 16) != 0 or
+                   Memory.compare(chroma.buffer + (y / 2 - 1) * width + x,
+                                  expectedUv.buffer, 16) != 0 do
+                    return false
+            }
+            if mbX
+            {
+                for row in 16'u64 where luma[(y + row) * width + x - 1] != valueY do
+                    return false
+                for row in 8'u64
+                {
+                    let at = (y / 2 + row) * width + x - 2
+                    if chroma[at] != valueU or chroma[at + 1] != valueV do
+                        return false
+                }
+            }
+            return true
+        }
         for row in 16'u64
         {
             let sourceY = Math.min(y + row, height - 1)

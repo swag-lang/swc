@@ -369,6 +369,39 @@ impl X11Capture
             target[] = Image.create(width, height, .BGRA8)
         let source = data(captured)
         let bytes  = format.bits_per_pixel / 8
+        let imageHeight = cast(u64, height)
+        let imageWidth  = cast(u64, width)
+
+        // A little-endian 32-bit TrueColor reply already stores B, G and R in BGRA order.
+        // Reverse its rows and make alpha opaque without per-pixel mask scaling.
+        if format.bits_per_pixel == 32 and .setup.image_byte_order == 0 and
+           visual.blue_mask == 0x000000FF and
+           visual.green_mask == 0x0000FF00 and
+           visual.red_mask == 0x00FF0000
+        {
+            let opaque = Math.Simd.splat(0xFF000000'u32)
+            for row in imageHeight
+            {
+                let input  = source + row * stride
+                let output = target.pixels.storage() + (imageHeight - row - 1) * cast(u64, target.rowStride)
+                for group in imageWidth / 4
+                {
+                    let offset = group * 16
+                    let pixels = cast #bit(Math.Simd.U32x4, Math.Simd.load(input + offset))
+                    Math.Simd.store(output + offset, cast #bit(Math.Simd.U8x16, pixels | opaque))
+                }
+                for pixel in imageWidth % 4
+                {
+                    let offset = (imageWidth / 4 * 4 + pixel) * 4
+                    Memory.copy(output + offset, input + offset, 3)
+                    output[offset + 3] = 255
+                }
+            }
+            if drawCursor do
+                try .drawCursor(target, x, y)
+            return
+        }
+
         for row in cast(u64, height)
         {
             for column in cast(u64, width)

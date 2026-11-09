@@ -243,8 +243,10 @@ whole recording loaded at once.
   the last playable MP4 prefix when free space falls below that threshold; an integration
   test reopens its final video and AAC tracks after the simulated stop. The nine X11
   integration tests passed before the last chroma shortcut; two later repeats stalled in
-  the generated test runner before reporting individual results, at three and one workers.
-  Their cause remains unisolated. Swag Capture has no video-recording UI. The persistent
+  the first generated X11 test at three and one workers. A direct run showed that test
+  starting, and temporary trace prints around its window creation made all nine pass;
+  the traces were removed. This points to a timing-sensitive GUI/X11 startup race that
+  still needs isolation. Swag Capture has no video-recording UI. The persistent
   Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.

@@ -240,11 +240,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   changing Reader output. FFmpeg also decodes the quantized four-picture H.264 probe.
   On the X11 4K60 dynamic scene with stereo AAC, fixed QP 28 initially took 10.27–11.05
   seconds for capture, conversion, H.264 and MP4 and produced 53.60 MB. Uniform-DC and
-  CAVLC shortcuts plus four parallel slices bring this to about 4.17 seconds and 51.35 MB,
-  with 44.64 dB luma PSNR on the final picture. The same four-slice scene at exact QP 0
-  takes 1.69 seconds and 99.19 MB without diagonal motion copy, or 1.51 seconds and 7.78 MB
-  with the one matching (−16,−8) vector. That exact copy does not help QP 28 because its
-  reconstructed reference differs from the source; quantized motion residuals remain needed.
+  CAVLC shortcuts plus four parallel slices brought this to about 4.17 seconds and 51.35 MB,
+  with 44.64 dB luma PSNR on the final picture. Residuals against a shifted reconstructed
+  reference further reduce the same scene to 3.88 seconds and 21.89 MB at QP 28, with
+  45.40 dB final-frame luma PSNR; QP 36 takes 3.71 seconds and 10.06 MB, at 38.10 dB.
+  FFmpeg decodes all 60 QP 28 pictures without errors and measures 44.61 dB mean luma PSNR
+  against an exact recording. The same four-slice scene at exact QP 0 takes 1.37–1.51
+  seconds and 7.78 MB with the one matching (−16,−8) vector. On this machine, two slices
+  take 4.75 seconds at QP 28, while eight take 3.85 seconds; four and eight are close.
   These profiles remain above the 16.7 ms per-picture budget. One exact 4K IDR can still
   occupy about 12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
   Quantized intra reduces a 4K textured IDR to 336 KB at QP 36 in one fixture (39.44 dB
@@ -254,8 +257,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   observed packet sizes, but it is internal and not connected to the recorder.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
-- Next: code motion residuals against a selected reconstructed reference area so quantized P
-  pictures can follow moving textures, then remeasure the complete 1080p60 and 4K60 paths.
+- Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
+  quantized luma/chroma residuals and CAVLC on changing screens, then remeasure the complete
+  1080p60 and 4K60 paths.
   Connect the pure-Swag rate controller only after the encoder can change QP per picture;
   refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
   or make packet submission transactional. Use each H.264 packet's bytes and duration for

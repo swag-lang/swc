@@ -229,7 +229,14 @@ whole recording loaded at once.
   real time. A separate X11 4K60 changing-screen test with AAC takes 2.75 seconds for 60
   capture/convert/encode/write operations (45.8 ms per image), plus 0.21 seconds for AAC, and
   produces a 99.2 MB MP4. `Video.Reader`, FFprobe and FFmpeg read both tracks; the output-sound
-  test has no actual audio device. `VideoCaptureSession` now
+  test has no actual audio device. `VideoCaptureSession` accepts optional H.264 QP 0–51 and
+  one through eight row-band slices, preserving exact QP 0 and one slice by default. On the
+  same dynamic X11 4K60 scene, quantized QP 28 with four slices and motion residuals takes
+  3.88 seconds for capture, conversion, video encoding and MP4 and produces 21.89 MB
+  (final-frame luma PSNR 45.40 dB). QP 36 takes 3.71 seconds and produces 10.06 MB
+  (38.10 dB). Exact QP 0 with four slices and one matching diagonal motion vector takes
+  1.37–1.51 seconds and produces 7.78 MB. These modes remain slower than the one-second
+  4K60 target on this machine. `VideoCaptureSession` also
   checks the destination volume once per second, reserves 64 MiB by default, and finalizes
   the last playable MP4 prefix when free space falls below that threshold; an integration
   test reopens its final video and AAC tracks after the simulated stop. Swag Capture has no

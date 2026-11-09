@@ -222,4 +222,16 @@ impl CaptureQueue
         defer .mutex.unlock()
         return .timeline.sampleEnd()
     }
+
+    // Returns a safe silence endpoint while a lost source has no buffered block.
+    //
+    // The source-loss check and sample-end snapshot share one lock. New blocks submitted after
+    // restoration therefore cannot be mistaken for silence by a recorder on another thread.
+    // Zero means no idle lost-source gap is available.
+    mtd silentGapEnd()->u64
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        return .lost and not .count ? .timeline.sampleEnd() : 0
+    }
 }

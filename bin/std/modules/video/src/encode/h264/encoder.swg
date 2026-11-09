@@ -89,6 +89,12 @@ private impl EncoderBits
         Swag.assert(not .used)
         .bytes.add(value)
     }
+
+    mtd alignedBytes(values: const [..] u8)
+    {
+        Swag.assert(not .used)
+        .bytes.add(values)
+    }
 }
 
 // Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.
@@ -589,26 +595,42 @@ private impl Encoder
         let height = cast(u64, .height)
         let luma   = frame.luma()
         let uv     = frame.chroma()
-        for row in 16'u64
+        if cast(u64, mbX) * 16 + 16 <= width and
+           cast(u64, mbY) * 16 + 16 <= height
         {
-            for column in 16'u64
+            for row in 16'u64
             {
-                let x = Math.min(cast(u64, mbX) * 16 + column, width - 1)
-                let y = Math.min(cast(u64, mbY) * 16 + row, height - 1)
-                bits.byte(luma[y * width + x])
+                let offset = (cast(u64, mbY) * 16 + row) * width + cast(u64, mbX) * 16
+                bits.alignedBytes(luma[offset until offset + 16])
             }
+        }
+        else
+        {
+            var paddedLuma: [256] u8
+            for row in 16'u64
+            {
+                for column in 16'u64
+                {
+                    let x = Math.min(cast(u64, mbX) * 16 + column, width - 1)
+                    let y = Math.min(cast(u64, mbY) * 16 + row, height - 1)
+                    paddedLuma[row * 16 + column] = luma[y * width + x]
+                }
+            }
+            bits.alignedBytes(Swag.makeSlice(&paddedLuma[0], paddedLuma.count))
         }
         for plane in 2'u64
         {
+            var planar: [64] u8
             for row in 8'u64
             {
                 for column in 8'u64
                 {
                     let x = Math.min(cast(u64, mbX) * 8 + column, width / 2 - 1)
                     let y = Math.min(cast(u64, mbY) * 8 + row, height / 2 - 1)
-                    bits.byte(uv[y * width + x * 2 + plane])
+                    planar[row * 8 + column] = uv[y * width + x * 2 + plane]
                 }
             }
+            bits.alignedBytes(Swag.makeSlice(&planar[0], planar.count))
         }
     }
 }

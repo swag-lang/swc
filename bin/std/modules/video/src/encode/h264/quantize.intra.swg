@@ -234,6 +234,67 @@ private func quantizeIntraLuma16x16(source: const [*] u8, sourceStride: u64,
     }
 }
 
+// A constant source leaves only the four quadrant DC coefficients. This is the
+// same 2x2 Hadamard, quantizer and inverse as the inter chroma DC path, without
+// constructing four 4x4 forward transforms or their AC coefficients.
+private func quantizeFlatIntraChroma8x8(sourceValue: u8, predictors: const [*] s32,
+                                        lumaQp: u32, chromaQpOffset: s32,
+                                        result: *InterChroma8x8Result)
+{
+    let qpIndex = cast(u64, Math.clamp(cast(s32, lumaQp) + chromaQpOffset, 0, 51))
+    let qpc = cast(u32, ChromaQp[qpIndex])
+    result.qpc = cast(u8, qpc)
+    result.cbp = 0
+    let qmod = cast(u64, qpc % 6)
+    let qdiv = qpc / 6
+    let dcBits = 16 + qdiv
+    var rawDc: [4] s32
+    for block in 4'u64
+    {
+        rawDc[block] = 16 * (cast(s32, sourceValue) - predictors[block])
+        result.nonZeroAc[block] = 0
+        for scan in 16'u64 do
+            result.ac[block * 16 + scan] = 0
+    }
+    for row in 8'u64
+    {
+        for column in 8'u64
+        {
+            let block = (row >= 4 ? 2'u64 : 0'u64) + (column >= 4 ? 1'u64 : 0'u64)
+            result.reconstructed[row * 8 + column] = cast(u8, predictors[block])
+        }
+    }
+    let d0 = rawDc[0]
+    let d1 = rawDc[1]
+    let d2 = rawDc[2]
+    let d3 = rawDc[3]
+    let transformed: [4] s32 = [d0 + d1 + d2 + d3, d0 - d1 + d2 - d3,
+                                 d0 + d1 - d2 - d3, d0 - d1 - d2 + d3]
+    for index in 4'u64
+    {
+        let coefficient = transformed[index]
+        let magnitude = (cast(s64, Math.abs(coefficient)) *
+                         cast(s64, InterLuma4x4QuantFactor[qmod, 0]) +
+                         (1's64 << (dcBits - 1))) >> dcBits
+        let level = cast(s32, coefficient < 0 ? -magnitude : magnitude)
+        result.dc[index] = cast(s16, level)
+        if level do
+            result.cbp = 1
+    }
+    if not result.cbp do
+        return
+    var inverseDc = result.dc
+    hadamard2x2(inverseDc.buffer)
+    let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
+    var dc: [4] s32
+    for block in 4'u64
+    {
+        let value = (cast(s64, inverseDc[block]) * dcScale) >> 5
+        dc[block] = cast(s32, Math.clamp(value, -32768, 32767))
+    }
+    addDc8x8Quad(result.reconstructed.buffer, 8, dc[0], dc[1], dc[2], dc[3])
+}
+
 // Builds the four quadrant DC predictions of one intra chroma plane from already
 // reconstructed neighbouring macroblocks, then reuses the inter 8x8 transform,
 // quantizer and inverse. The default intra/inter scaling matrices are identical here.
@@ -297,15 +358,34 @@ private func quantizeIntraChroma8x8(sourceUv: const [*] u8, sourceStride: u64,
         dc3 = 128
     }
 
+    let predictors: [4] s32 = [dc0, dc1, dc2, dc3]
+    let sourceValue = sourceUv[lane]
+    var flatSource = true
+    for row in 8'u64
+    {
+        for column in 8'u64 where
+            sourceUv[row * sourceStride + column * 2 + lane] != sourceValue
+        {
+            flatSource = false
+            break
+        }
+        if not flatSource do
+            break
+    }
+    if flatSource
+    {
+        quantizeFlatIntraChroma8x8(sourceValue, predictors.buffer,
+                                    lumaQp, chromaQpOffset, result)
+        return
+    }
+
     var prediction: [8 * 16] u8
     for row in 8'u64
     {
         for column in 8'u64
         {
             let quadrant = (row >= 4 ? 2'u32 : 0'u32) + (column >= 4 ? 1'u32 : 0'u32)
-            let value = quadrant == 0 ? dc0 :
-                        (quadrant == 1 ? dc1 : (quadrant == 2 ? dc2 : dc3))
-            prediction[row * 16 + column * 2 + lane] = cast(u8, value)
+            prediction[row * 16 + column * 2 + lane] = cast(u8, predictors[quadrant])
         }
     }
     quantizeInterChroma8x8(sourceUv + lane,

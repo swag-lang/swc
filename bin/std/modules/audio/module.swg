@@ -21,8 +21,11 @@ interruption.
 [[Audio.Aac.Encoder]] encodes mono or stereo PCM16 to AAC-LC packets in full or voice bandwidth.
 [[Audio.Aac.StreamEncoder]] buffers arbitrary PCM16 chunks into packets and reports the 1024-frame priming delay.
 [[Audio.Aac.SilenceEncoder]] supplies AAC-LC silence packets during a lost capture source.
-[[Audio.CaptureQueue]] transfers timestamped PCM blocks from a future device backend in bounded memory,
-reporting gaps, overflows, and source restoration; no microphone backend is connected yet.
+[[Audio.CaptureQueue]] transfers timestamped PCM blocks from a capture backend in bounded memory,
+reporting gaps, overflows, and source restoration.
+[[Audio.CapturePcmFeeder]] converts native PCM16, float32, and silent packets into that queue.
+On Windows, `CaptureMicrophone` opens the default input through native shared-mode WASAPI and
+feeds the queue; device execution still needs validation on a Windows machine.
 [[Audio.CaptureAacTrack]] turns those blocks and missing intervals into timestamped AAC-LC packets
 with bounded memory and reports encoder priming for a container timeline.
 [[Audio.CaptureClockDrift]] measures a source's sample-clock drift from raw frame positions and

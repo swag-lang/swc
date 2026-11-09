@@ -39,6 +39,11 @@ const WAVE_FORMAT_PCM = 1'u16
 const WAVE_FORMAT_IEEE_FLOAT = 3'u16
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE'u16
 
+const KSDATAFORMAT_SUBTYPE_PCM = GUID{1, 0, 0x0010,
+                                     [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+const KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = GUID{3, 0, 0x0010,
+                                            [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+
 #[Swag.Pack(1)]
 struct WAVEFORMATEX
 {
@@ -57,6 +62,23 @@ struct WAVEFORMATEX
 #assert(#sizeof(WAVEFORMATEX) == 18)
 #assert(#offsetof(WAVEFORMATEX.nSamplesPerSec) == 4)
 #assert(#offsetof(WAVEFORMATEX.cbSize) == 16)
+
+#[Swag.Pack(1)]
+struct WAVEFORMATEXTENSIBLE
+{
+    public
+    {
+        Format:              WAVEFORMATEX
+        wValidBitsPerSample: WORD
+        dwChannelMask:       DWORD
+        SubFormat:           GUID
+    }
+}
+
+#assert(#sizeof(WAVEFORMATEXTENSIBLE) == 40)
+#assert(#offsetof(WAVEFORMATEXTENSIBLE.wValidBitsPerSample) == 18)
+#assert(#offsetof(WAVEFORMATEXTENSIBLE.dwChannelMask) == 20)
+#assert(#offsetof(WAVEFORMATEXTENSIBLE.SubFormat) == 24)
 
 struct IMMDeviceCollection { public lpVtbl: *IMMDeviceCollectionVtbl }
 struct IMMDeviceEnumerator { public lpVtbl: *IMMDeviceEnumeratorVtbl }

@@ -21,6 +21,8 @@ interruption.
 [[Audio.Aac.Encoder]] encodes mono or stereo PCM16 to AAC-LC packets in full or voice bandwidth.
 [[Audio.Aac.StreamEncoder]] buffers arbitrary PCM16 chunks into packets and reports the 1024-frame priming delay.
 [[Audio.Aac.SilenceEncoder]] supplies AAC-LC silence packets during a lost capture source.
+[[Audio.CaptureQueue]] transfers timestamped PCM blocks from a future device backend in bounded memory,
+reporting gaps, overflows, and source restoration; no microphone backend is connected yet.
 Linux requires `libFAudio.so.0` and its SDL dependencies; device acquisition failures are reported.
 The Linux backend accepts one through eight source or bus channels, including mono/stereo
 conversion and multiple or nested bus routes. Source sample rates range from 1000 to 200000 Hz,

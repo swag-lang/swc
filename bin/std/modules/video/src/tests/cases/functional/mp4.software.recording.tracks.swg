@@ -113,15 +113,41 @@ using Swag, Core, Core.Errors, Audio, Pixel
     let path = videoTempPath("mp4-software-track-limits", "mp4")
     defer discard catch File.delete(path)
     var rejected: Swag.Error
-    discard catch Mp4.SoftwareRecording.createWithAudioTracks(
-        path, 16, 16, 90_000, []) as rejected
-    Swag.require(rejected.value() is BadParameterError)
     const TooMany: [5] Mp4.SoftwareAudioConfig = [{48_000, 1}, {48_000, 1},
                                                   {48_000, 1}, {48_000, 1},
                                                   {48_000, 1}]
     discard catch Mp4.SoftwareRecording.createWithAudioTracks(
         path, 16, 16, 90_000, Swag.makeSlice(&TooMany[0], TooMany.count)) as rejected
     Swag.require(rejected.value() is BadParameterError)
+}
+
+// A video-only recording has no AAC track, no preroll and no sound-device requirement.
+#test
+{
+    let path = videoTempPath("mp4-software-video-only", "mp4")
+    defer discard catch File.delete(path)
+    var recorder = expect Mp4.SoftwareRecording.createVideoOnly(path, 32, 16, 90_000)
+    Swag.require(recorder.videoPrerollTicks() == 0 and recorder.audioTrackCount() == 0)
+    Swag.require(recorder.audioInputFrameCount() == 0 and recorder.audioPacketCount() == 0)
+    let image = Image.create(32, 16, .BGRA8)
+    Memory.set(image.pixels.storage(), 81, image.pixels.count)
+    let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000_000, 90_000)
+    for frame in 4'u64 do
+        expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+    var rejected: Swag.Error
+    discard catch recorder.addAudioFrames([]) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    expect recorder.end()
+    Swag.require(recorder.videoFrameCount() == 4)
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.packetCount == 4 and summary.audioTracks.count == 0)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 4 and reader.audioTrackCount() == 0)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 3)
+    var expected: Nv12Frame
+    expect expected.convertFrom(&image)
+    Swag.require(Slice.equals(decoded.luma.toSlice(), expected.luma()))
 }
 
 // The 44.1 kHz priming boundary is rounded down on a 90 kHz video clock, preserving 1024 samples.

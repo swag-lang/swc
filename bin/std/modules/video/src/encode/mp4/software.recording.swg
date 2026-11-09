@@ -25,11 +25,12 @@ private struct SoftwareAudioTrack
 //
 // The caller assigns video slots with [[Video.FramePacer]]. Every slot, including a repeated
 // picture for a missed capture, must be submitted in order. Sound may arrive in arbitrary
-// complete-frame chunks. The first video packet begins one AAC priming packet after audio so
-// [[Video.Reader]] removes the encoder's 1024 delayed samples and aligns audible frame zero
-// with video frame zero. `end` drains the audio transform before finalizing the file. Internal
+// complete-frame chunks. With audio, the first video packet begins one AAC priming packet after
+// sound so [[Video.Reader]] removes the encoder's 1024 delayed samples and aligns audible frame
+// zero with video frame zero. `end` drains audio before finalizing the file. Internal
 // picture, PCM and packet storage stays bounded as the recording grows. Up to four independent
 // sound tracks share one sample rate; a capture source can be kept on each track for later mixing.
+// A video-only recording starts at video time zero and needs no audio device.
 #[Swag.NoCopy]
 #[Swag.Opaque]
 struct SoftwareRecording
@@ -50,6 +51,15 @@ struct SoftwareRecording
 
 impl SoftwareRecording
 {
+    // Creates a video-only recorder when no sound source is selected or available.
+    //
+    // Video dimensions must be positive and even, and the timescale must express each frame
+    // duration. The resulting MP4 has one video track and no empty sound track.
+    func createVideoOnly(path: string, width, height: s32, videoTimescale: u32,
+                         keyInterval: u32 = 60,
+                         options: FragmentedOptions = {})->SoftwareRecording fail
+        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval, options)
+
     // Creates a software audiovisual recorder and writes the MP4 initialization movie.
     //
     // Video dimensions must be positive and even. The video timescale must express each
@@ -67,7 +77,7 @@ impl SoftwareRecording
                                          keyInterval, options)
     }
 
-    // Creates a recorder with one through four separately encoded AAC-LC sound tracks.
+    // Creates a recorder with zero through four separately encoded AAC-LC sound tracks.
     //
     // Every track must have the same 44.1 or 48 kHz sample rate so one video preroll aligns
     // their AAC priming. Their channel counts and bandwidth profiles may differ. The writer
@@ -77,10 +87,16 @@ impl SoftwareRecording
                                keyInterval: u32 = 60,
                                options: FragmentedOptions = {})->SoftwareRecording fail
     {
-        if not audioConfigs.count or audioConfigs.count > 4 do
-            fail BadParameterError{"software recording needs one to four audio tracks"}
+        if audioConfigs.count > 4 do
+            fail BadParameterError{"software recording supports at most four audio tracks"}
         var result: #returntype
         result.video = try H264.Encoder.create(width, height, keyInterval)
+        if not audioConfigs.count
+        {
+            result.writer = try FragmentedWriter.create(path, width, height, videoTimescale,
+                                                        result.video.decoderConfig(), options)
+            return result
+        }
         result.tracks.reserve(audioConfigs.count)
         for config in audioConfigs
         {
@@ -115,7 +131,7 @@ impl SoftwareRecording
         return result
     }
 
-    // Returns the AAC priming offset added to each submitted video slot, in video ticks.
+    // Returns the AAC priming offset in video ticks, or zero for video-only recording.
     mtd const videoPrerollTicks()->u64 => .videoOffset
 
     // Returns the number of accepted video frames, including caller-supplied repeats.
@@ -127,11 +143,13 @@ impl SoftwareRecording
     // Returns the number of independent AAC-LC sound tracks.
     mtd const audioTrackCount()->u64 => .tracks.count
 
-    // Returns the number of source PCM16 frames consumed by the first sound track.
-    mtd const audioInputFrameCount()->u64 => .tracks[0].encoder.inputFrameCount()
+    // Returns source PCM16 frames consumed by the first track, or zero without audio.
+    mtd const audioInputFrameCount()->u64 => .tracks.count ?
+        .tracks[0].encoder.inputFrameCount() : 0
 
-    // Returns the number of AAC-LC packets submitted on the first track, including its drain.
-    mtd const audioPacketCount()->u64 => .tracks[0].encoder.packetCount()
+    // Returns AAC-LC packets on the first track, or zero without audio.
+    mtd const audioPacketCount()->u64 => .tracks.count ?
+        .tracks[0].encoder.packetCount() : 0
 
     // Returns source PCM16 frames consumed by the selected sound track.
     mtd const audioInputFrameCountOf(trackIndex: u32)->u64 fail

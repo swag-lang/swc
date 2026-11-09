@@ -262,7 +262,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   expected sample position. A 44.1 kHz integration test found that rounding the 90 kHz video
   preroll upward removed 1025 AAC samples; the facade now chooses the preceding video tick,
   verifies that the clock can still identify exactly 1024 priming samples, and rejects a
-  timescale too coarse to do so.
+  timescale too coarse to do so. `SoftwareRecording.createVideoOnly` now writes a playable
+  video track with no empty AAC track and no priming when sound is unavailable or disabled.
   The writer does not yet author final-padding
   metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
   to build its frame table when opening a file.

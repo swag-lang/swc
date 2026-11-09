@@ -249,10 +249,12 @@ whole recording loaded at once.
   repeated direct-run timeouts to just before or within `Reader.decodeFramePlanesInto`:
   at two runtime workers, 4 of 12 and then 5 of 24 runs stopped between `Reader.open`
   and the first decoded picture, while 12 of 12 at one worker passed. Closing the X11
-  fixture before decoding did not resolve it (5 of 24 timeouts). Disabling the small
-  H.264 reconstruction pipeline also did not resolve it (3 of 24 timeouts); a separate
-  run stopped before the test body. All diagnostic edits were removed. The intermittent
-  test-runner or decode stall still needs isolation. Swag Capture has no video-recording
+  fixture before decoding did not resolve it (5 of 24 timeouts). A temporary small-image
+  reconstruction threshold did not resolve it (3 of 24 timeouts), but source inspection
+  showed that this one-slice IDR already uses inline reconstruction, so that threshold
+  did not test the parallel band pipeline. A separate run stopped before the test body.
+  All diagnostic edits were removed. The intermittent test-runner or decode stall still
+  needs isolation. Swag Capture has no video-recording
   UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.

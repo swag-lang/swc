@@ -169,7 +169,12 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   takes about 3.9 ms per 1024-frame packet and an encoder instance needs an 8 MiB basis table.
   Bounded spectral gains per band now retain a 12 kHz component 43.5 dB below a 440 Hz tone
   in the same channel: FFmpeg decodes amplitude 160.47 for an input of 160, instead of 0.01
-  before the change. A 10-second stereo capture through 96→48 kHz resampling and AAC takes
+  before the change. Consecutive AAC sections with the same codebook now share their syntax.
+  Across ten stereo 48 kHz packets, tonal, music and impulse fixtures respectively fell
+  from 2,003 to 992 bytes, 3,751 to 2,859 bytes and 5,137 to 4,230 bytes. FFmpeg decoded
+  all three to PCM bit-identical to the previous output; Audio Release passed 200/200 tests,
+  including section-length boundaries 1, 30, 31, 32 and 49. A 10-second stereo capture
+  through 96→48 kHz resampling and AAC takes
   about 2.1 seconds in Release and produces about 113 kb/s on the measured wide-band sample.
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
   priming frames; the MP4 presentation edit reports the exact audible final frame count to

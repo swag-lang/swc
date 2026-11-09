@@ -14,6 +14,41 @@ private const FullLines     = 1_024'u64
 private const FullBands     = 49'u64
 private const MaximumBandBoost = 48's32
 
+internal struct EncoderSectionCode
+{
+    value: u32
+    width: u32
+}
+
+// Plans AAC long-window section codewords, including the 31-band escape.
+internal func planEncoderSections(active: const [..] bool,
+                                  codes: [..] EncoderSectionCode)->u32
+{
+    Swag.assert(codes.count >= active.count * 2)
+    var count = 0'u32
+    var band = 0'u64
+    while band < active.count
+    {
+        let book = active[band] ? 11'u32 : 0'u32
+        var next = band + 1
+        while next < active.count and active[next] == active[band] do
+            next += 1
+        codes[count] = {book, 4}
+        count += 1
+        var length = next - band
+        while length >= 31
+        {
+            codes[count] = {31, 5}
+            count += 1
+            length -= 31
+        }
+        codes[count] = {cast(u32, length), 5}
+        count += 1
+        band = next
+    }
+    return count
+}
+
 // Selects the MDCT bandwidth of the software AAC encoder.
 enum Bandwidth
 {
@@ -208,11 +243,11 @@ impl Encoder
             .writeBits(0, 1) // Sine window.
             .writeBits(cast(u32, .bandCount), 6)
             .writeBits(0, 1) // No predictor.
-            for band in .bandCount
-            {
-                .writeBits(active[band] ? 11 : 0, 4)
-                .writeBits(1, 5)
-            }
+            var sectionCodes: [2 * FullBands] EncoderSectionCode
+            let sectionCount = planEncoderSections(Swag.makeSlice(&active[0], .bandCount),
+                                                   Swag.makeSlice(&sectionCodes[0], sectionCodes.count))
+            for index in sectionCount do
+                .writeBits(sectionCodes[index].value, sectionCodes[index].width)
             var previousGain = gain
             for band in .bandCount where active[band]
             {

@@ -109,18 +109,20 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 - Done when: a voice or bus can enable and parameterize echo through the public API.
 - Related: platform.portability.064, std.audio.014
 
-### std.audio.011 — No audio capture input
+### std.audio.011 — Audio capture input needs device lifecycle validation
 
 - Evidence: a recorder, a voice-chat path, a level meter, and Swag Capture recording with
   sound ([app.capture.011](app.capture.md#appcapture011--no-video-recording)) all need input.
   `Audio.CaptureQueue` now transfers timestamped PCM16 blocks from a producer to a recorder
   with bounded storage, reports gaps, overflow and device loss, and resumes on the same sample
-  timeline. Simulated concurrent producer, four-hour outage, WAV and AAC tests pass. No real
-  microphone backend is connected yet.
-- Next: add capture-device enumeration and a recording stream as a peer of playback, over WASAPI
-  shared mode on Windows (event-driven), each buffer stamped with its performance-counter time so
-  it can be aligned with screen frames. Report discontinuities and device loss on the stream, and
-  reopen a device that comes back, so a recording of several hours outlives an unplugged headset.
+  timeline. Simulated concurrent producer, four-hour outage, WAV and AAC tests pass. Native
+  event-driven shared-mode WASAPI capture is implemented through `CaptureMicrophone.openDefault`,
+  with 100 ns performance-counter timestamps, PCM16/float32 conversion, resampling and
+  simulated loss/recovery tests. Windows semantic validation passes, but no physical microphone
+  has been exercised on this host.
+- Next: add capture-device enumeration, validate on Windows hardware, and connect automatic
+  device close/reopen to the app's recording worker so a recording of several hours outlives an
+  unplugged headset.
 - Done when: a caller can open a capture device and receive its samples, with timestamps, through
   the public API, and removing then restoring the device yields a reported gap and resumed samples
   instead of a dead stream.
@@ -134,11 +136,14 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   communication and live processing.
 - Related: std.audio.011
 
-### std.audio.013 — No system-output loopback capture
+### std.audio.013 — System loopback needs per-process capture and device validation
 
-- Next: expose desktop/output loopback as a distinct capture source where the backend
-  supports it, and the output of one process tree (WASAPI process loopback, Windows 10 2004 and
-  later) so a window recording can keep only that application's sound.
+- Evidence: `CaptureOutputLoopback.openDefault` uses the native WASAPI render-endpoint loopback
+  and preserves idle periods as timed silence; Windows semantic and simulated tests pass.
+  It has not been exercised on a Windows output device.
+- Next: validate system loopback on Windows hardware, then expose the output of one process tree
+  (WASAPI process loopback, Windows 10 2004 and later) so a window recording can keep only that
+  application's sound.
 - Done when: a caller can record the system output mix and one application's output, and
   unsupported backends report each explicitly.
 - Related: std.audio.011, app.capture.013, platform.portability.101

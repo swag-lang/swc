@@ -395,3 +395,39 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     Swag.require(sound.sampleRateHz() == 48_000 and sound.numChannels() == 2 and
                  sound.sampleFrameCount() == 4_800)
 }
+
+// A low-space decision closes the last complete picture into a readable MP4 before reporting it.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("swag-capture-space-stop-%.mp4", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    let configs: [1] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice}]
+    var insufficient: Swag.Error
+    discard catch VideoCaptureSession.create(
+        path, {0, 0, 16, 16}, expect FrameRate.create(60, 1), false,
+        Swag.makeSlice(&configs[0], configs.count), minimumFreeSpace: Swag.U64.Max) as insufficient
+    Swag.require(insufficient.value() is Swag.SystemError and not File.exists(path))
+    var session = expect VideoCaptureSession.create(
+        path, {0, 0, 16, 16}, expect FrameRate.create(60, 1), false,
+        Swag.makeSlice(&configs[0], configs.count), minimumFreeSpace: 0)
+    Swag.require(expect session.captureAt(0))
+    Swag.require(session.frameCount() == 1)
+    var sound: [512] s16
+    for frame in sound.count do
+        sound[frame] = cast(s16, frame % 2 ? 4_000 : -4_000)
+    expect session.addAudioFrames(Swag.makeSlice(&sound[0], sound.count))
+    session.minimumFreeSpace = Swag.U64.Max
+    session.nextSpaceCheckTick = 0
+    var stopped: Swag.Error
+    discard catch session.captureAt(16_667) as stopped
+    Swag.require(stopped.value() is Swag.SystemError)
+    Swag.require(session.stoppedForLowStorage() and session.frameCount() == 1)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 1 and reader.audioTrackCount() == 1 and
+                 (unwrap reader.audioTrack(0)).sampleFrameCount() == 512)
+    expect session.end()
+    discard catch session.captureAt(33_334) as stopped
+    Swag.require(stopped.value() is Swag.SystemError and session.frameCount() == 1)
+}

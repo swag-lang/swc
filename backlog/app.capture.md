@@ -272,7 +272,10 @@ whole recording loaded at once.
   1.033–1.048 seconds for 60 screen grabs and encoded frames, with a 40,846-byte MP4;
   adding 48 stereo AAC packets took 1.282 seconds total. `Video.Reader` reopened the file in
   3.6 ms and decoded the last frame in 298 ms. This is a synthetic static scene just beyond
-  real time, and the output-sound test has no actual audio device. Swag Capture has no
+  real time, and the output-sound test has no actual audio device. `VideoCaptureSession` now
+  checks the destination volume once per second, reserves 64 MiB by default, and finalizes
+  the last playable MP4 prefix when free space falls below that threshold; an integration
+  test reopens its final video and AAC tracks after the simulated stop. Swag Capture has no
   video-recording UI,
   and `BitBlt` acquisition cannot sustain large areas at 60 frames per second.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
@@ -280,7 +283,7 @@ whole recording loaded at once.
   (platform.portability.097), pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
   and readback through the existing H.264 decoder for the timeline and re-export.
   Long recordings need, beside the stream: a recording folder that may differ from the library,
-  free-space watching that stops cleanly before the disk is full, optional automatic splitting by
+  a visible low-space stop reason and optional automatic splitting by
   duration or size, and recovery when the source is lost (secure desktop, display change, GPU
   reset) by repeating the last frame and reacquiring instead of ending the recording.
 - Done when: a four-hour recording of a 1080p monitor at 60 frames per second, and a 4K one at 60

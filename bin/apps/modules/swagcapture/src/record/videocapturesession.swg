@@ -4,8 +4,10 @@ using Core, Core.Errors, Pixel, Video
 //
 // The caller drives `captureAt` with monotonic microsecond timestamps. Missed slots repeat the
 // preceding frame; if the screen cannot be read, a black first frame or the last good frame
-// fills the slot and the source is reopened. Audio PCM16 can be added on zero through four
-// separate tracks. The caller creates audio queues against `captureOriginTick` (microseconds)
+// fills the slot and the source is reopened. The session checks destination free space once
+// per second and finalizes a playable prefix before the configured reserve is exhausted.
+// Audio PCM16 can be added on zero through four separate tracks. The caller creates audio
+// queues against `captureOriginTick` (microseconds)
 // or `captureOrigin100ns` (WASAPI) after the first accepted picture, using the same monotonic
 // clock to keep sound and video aligned.
 #[Swag.NoCopy]
@@ -16,8 +18,12 @@ struct VideoCaptureSession
     pacer:         FramePacer
     picture:       Image
     audioConfigs:  Array'Mp4.SoftwareAudioConfig
+    outputDirectory: String
     originTick:    u64
+    nextSpaceCheckTick: u64
+    minimumFreeSpace:  u64
     hasOrigin:     bool
+    lowStorageStop: bool
     sourceFailures: u64
 }
 
@@ -27,12 +33,21 @@ impl VideoCaptureSession
     //
     // `audioConfigs` may be empty for video-only capture; otherwise sound arrives later through
     // `addAudioFrames`. The area must have positive even pixel dimensions supported by H.264.
+    // At least `minimumFreeSpace` bytes must remain on the destination volume at creation and
+    // at periodic checks while recording; the default reserve is 64 MiB.
     func create(path: string, area: Math.Rectangle, rate: FrameRate, drawCursor: bool,
-                audioConfigs: const [..] Mp4.SoftwareAudioConfig = [])->VideoCaptureSession fail
+                audioConfigs: const [..] Mp4.SoftwareAudioConfig = [],
+                minimumFreeSpace: u64 = 64 * 1_024 * 1_024)->VideoCaptureSession fail
     {
         let width = cast(s32, area.width)
         let height = cast(s32, area.height)
+        let absolutePath = try Path.absolute(path)
+        let outputDirectory = unwrap Path.directoryName(absolutePath.toString())
+        if (try Directory.freeSpace(outputDirectory)) < minimumFreeSpace do
+            fail Swag.SystemError{"video capture destination has insufficient free space"}
         var result: #returntype
+        result.outputDirectory = outputDirectory
+        result.minimumFreeSpace = minimumFreeSpace
         result.source = try ScreenFrameSource.create(drawCursor, cast(s32, area.x),
                                                       cast(s32, area.y), width, height)
         result.pacer = try FramePacer.create(rate, 1_000_000, 90_000)
@@ -50,9 +65,22 @@ impl VideoCaptureSession
     // still written when capture fails; a timestamp inside the current slot writes nothing.
     mtd captureAt(tick: u64)->bool fail
     {
+        if .lowStorageStop do
+            fail Swag.SystemError{"video capture stopped because the destination has little free space"}
         var slot: FrameSlot
         if not try .pacer.tryAccept(tick, &slot) do
             return false
+        if tick >= .nextSpaceCheckTick
+        {
+            if (try Directory.freeSpace(.outputDirectory.toString())) < .minimumFreeSpace
+            {
+                .lowStorageStop = true
+                if .recording.videoFrameCount() do
+                    try .recording.end()
+                fail Swag.SystemError{"video capture stopped because the destination has little free space"}
+            }
+            .nextSpaceCheckTick = tick > Swag.U64.Max - 1_000_000 ? Swag.U64.Max : tick + 1_000_000
+        }
         if not .hasOrigin
         {
             .originTick = tick
@@ -107,6 +135,9 @@ impl VideoCaptureSession
 
     // Returns the number of screen-source grabs that failed.
     mtd const sourceFailureCount()->u64 => .sourceFailures
+
+    // Returns true when the session finalized its playable prefix before disk space ran out.
+    mtd const stoppedForLowStorage()->bool => .lowStorageStop
 
     // Appends complete interleaved PCM16 frames to a selected sound track.
     mtd addAudioFrames(samples: const [..] s16, trackIndex: u32 = 0) fail

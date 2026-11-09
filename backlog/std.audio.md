@@ -113,6 +113,10 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 - Evidence: a recorder, a voice-chat path, a level meter, and Swag Capture recording with
   sound ([app.capture.011](app.capture.md#appcapture011--no-video-recording)) all need input.
+  `Audio.CaptureQueue` now transfers timestamped PCM16 blocks from a producer to a recorder
+  with bounded storage, reports gaps, overflow and device loss, and resumes on the same sample
+  timeline. Simulated concurrent producer, four-hour outage, WAV and AAC tests pass. No real
+  microphone backend is connected yet.
 - Next: add capture-device enumeration and a recording stream as a peer of playback, over WASAPI
   shared mode on Windows (event-driven), each buffer stamped with its performance-counter time so
   it can be aligned with screen frames. Report discontinuities and device loss on the stream, and
@@ -166,13 +170,16 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   video/audio sync within one video frame, including its start, end, source gaps and long runs.
 - Related: app.capture.013, std.video.016, platform.portability.099
 
-### std.audio.016 — Resampler drift endurance not yet measured
+### std.audio.016 — Resampler drift is not connected to capture clocks
 
 - Evidence: `Audio.Resampler` now converts interleaved floating-point PCM in bounded memory with
   a 96-tap windowed sinc filter, 44.1/48 kHz conversion tests, passband/alias checks, and live
-  input-clock drift adjustments. A four-hour drift endurance check remains outstanding.
-- Next: measure a 100 ppm clock mismatch over four hours, confirm the output-clock error stays
-  below one millisecond, and wire drift control to Swag Capture's capture clocks.
+  input-clock drift adjustments. A phase-accumulator stress test simulates four hours at 48 kHz
+  with +100 and -100 ppm, checks against an independent rational clock with less than one
+  millisecond of error, and keeps history/table capacities fixed. It isolates clock arithmetic;
+  it does not run the filter on four hours of PCM.
+- Next: wire drift control to the timestamped capture source, measure sustained audio/video
+  alignment and filter behavior on representative long recordings.
 - Done when: rate conversions between 44.1 and 48 kHz meet a stated passband and alias bound, and
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
 - Related: std.audio.011, app.capture.013

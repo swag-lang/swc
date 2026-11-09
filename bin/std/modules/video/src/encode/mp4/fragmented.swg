@@ -408,9 +408,12 @@ impl FragmentedWriter
         try .sink.flush()
     }
 
-    // Publishes one sample-accurate presentation range per populated track. The reserved
-    // `free` boxes are patched in place, leaving every completed fragment and its offsets
-    // intact. Until the final box type is changed, an interrupted file keeps its live prefix.
+    // Publishes sample-accurate presentation ranges for the video and AAC tracks.
+    //
+    // `videoMediaStart` is in video track ticks. `audioFrameCounts` gives the audible sample
+    // frames of each AAC track in track order; pass zero for an empty track. This flushes
+    // pending fragments and patches edit lists in place before [[Video.Mp4.FragmentedWriter.end]].
+    // Invalid counts fail without changing the presentation ranges.
     mtd setPresentationEdits(videoMediaStart: u64, audioFrameCounts: const [..] u64) fail
     {
         if .isEnded or not .movieTimescale or not .videoEditOffset or

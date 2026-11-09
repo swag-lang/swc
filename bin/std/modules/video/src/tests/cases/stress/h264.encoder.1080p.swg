@@ -49,6 +49,29 @@ func encoderStressTiles(bright: s32)->Nv12Frame fail
     return frame
 }
 
+func encoderStressSparse(width, height: s32, changed: bool)->Nv12Frame fail
+{
+    var rgb: Array'u8
+    rgb.resize(cast(u64, width) * cast(u64, height) * 3)
+    for y in cast(u64, height)
+    {
+        for x in cast(u64, width)
+        {
+            let special = x % 16 == 0 and y % 16 == 15
+            let value = cast(u8, special ? (changed ? 102 : 100) :
+                                 30 + ((x / 4 * 17 + y / 4 * 31) % 160))
+            let offset = (y * cast(u64, width) + x) * 3
+            rgb[offset] = value
+            rgb[offset + 1] = value
+            rgb[offset + 2] = value
+        }
+    }
+    let image = Image.create(width, height, .RGB8, rgb.toSlice())
+    var frame: Nv12Frame
+    try frame.convertFrom(&image)
+    return frame
+}
+
 func requireStressPicture(source: const *Nv12Frame, decoded: const *PlanarFrame)
 {
     Swag.require(decoded.width == source.width and decoded.height == source.height)
@@ -171,5 +194,51 @@ func requireStressPicture(source: const *Nv12Frame, decoded: const *PlanarFrame)
         expect reader.decodeFramePlanesInto(&decoded, index)
         let source = index == 0 ? &base : (index == 1 ? &brighter : &brightest)
         requireStressPicture(source, &decoded)
+    }
+}
+
+// Sparse AC changes remain byte-exact through 1080p and 4K reference chains.
+#[Swag.TestTag("stress")]
+#test
+{
+    for resolution in 2'u64
+    {
+        let width = resolution == 0 ? 1920 : 3840
+        let height = resolution == 0 ? 1080 : 2160
+        let path = videoTempPath("h264-encoder-ac-sparse", "mp4")
+        defer discard catch File.delete(path)
+        let base = expect encoderStressSparse(width, height, false)
+        let changed = expect encoderStressSparse(width, height, true)
+        var encoder = expect H264.Encoder.create(width, height)
+        var writer = expect Mp4.FragmentedWriter.create(path, width, height, 90_000,
+                                                        encoder.decoderConfig())
+        var watch: Time.Stopwatch
+        watch.start()
+        let key = expect encoder.encode(&base, 0, 1_500)
+        watch.stop()
+        let keySize = key.bytes.count
+        Console.printf("H264 sparse % by % IDR: % bytes, % us\n", width, height, keySize,
+                       watch.elapsedMicroseconds())
+        expect writer.addPacket(key)
+
+        watch.restart()
+        let sparse = expect encoder.encode(&changed, 1_500, 1_500)
+        watch.stop()
+        Console.printf("H264 sparse % by % AC: % bytes, % us\n", width, height,
+                       sparse.bytes.count, watch.elapsedMicroseconds())
+        Swag.require(sparse.bytes.count < keySize / 16)
+        expect writer.addPacket(sparse)
+        let back = expect encoder.encode(&base, 3_000, 1_500)
+        Swag.require(back.bytes.count < keySize / 16)
+        expect writer.addPacket(back)
+        expect writer.end()
+
+        var reader = expect Reader.open(path)
+        var decoded: PlanarFrame
+        for index in 3'u64
+        {
+            expect reader.decodeFramePlanesInto(&decoded, index)
+            requireStressPicture(index == 1 ? &changed : &base, &decoded)
+        }
     }
 }

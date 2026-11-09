@@ -1,6 +1,6 @@
 //! Format: H.264/AVC constrained-baseline encoder.
-//! Supported: Progressive NV12, flat intra blocks, exact DC residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
-//! Not supported: AC residuals, rate control, B pictures, and real-time full-motion high-resolution capture.
+//! Supported: Progressive NV12, flat intra blocks, exact quantized luma residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
+//! Not supported: Lossy or chroma residuals, rate control, B pictures, and real-time full-motion high-resolution capture.
 //! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
@@ -27,6 +27,10 @@ private const MotionOffsets: [16, 2] s32 = [
     [0, -16], [0, 16], [0, -32], [0, 32],
     [-16, 0], [16, 0], [-32, 0], [32, 0],
     [-16, -16], [16, 16]]
+
+// Raster coefficient position to H.264 4x4 zigzag scan position.
+private const EncoderZigzagInverse: [16] u8 = [0, 1, 5, 6, 2, 4, 7, 12,
+                                                3, 8, 11, 13, 9, 10, 14, 15]
 
 private impl EncoderBits
 {
@@ -131,13 +135,106 @@ private impl EncoderBits
         }
         .bit(1) // total_zeros = 0 for totalCoeff = 1.
     }
+
+    // CAVLC for a quantized 4x4 block in zigzag order. Returns false only when
+    // a level exceeds the bounded level-prefix form this encoder emits.
+    mtd residual4(levels: const [*] s16, nC: u32)->bool
+    {
+        var positions: [16] u32
+        var total = 0'u32
+        for scan in 16'u32 where levels[scan] != 0
+        {
+            positions[total] = scan
+            total += 1
+        }
+        var trailing = 0'u32
+        while trailing < total and trailing < 3 and
+              Math.abs(cast(s32, levels[positions[total - trailing - 1]])) == 1 do
+            trailing += 1
+
+        let table = nC < 2 ? 0'u64 : (nC < 4 ? 1'u64 : (nC < 8 ? 2'u64 : 3'u64))
+        let token = cast(u64, total * 4 + trailing)
+        let tokenOffset = table * 68 + token
+        let tokenLength = CoeffTokenLen[tokenOffset]
+        if not tokenLength do
+            return false
+        .bits(CoeffTokenBits[tokenOffset], tokenLength)
+        if not total do
+            return true
+
+        for index in trailing
+        {
+            let level = levels[positions[total - index - 1]]
+            .bit(level < 0 ? 1 : 0)
+        }
+        var suffixLength = total > 10 and trailing < 3 ? 1'u32 : 0'u32
+        for index in trailing until total
+        {
+            let level = cast(s32, levels[positions[total - index - 1]])
+            var code = level > 0 ? level * 2 - 2 : -level * 2 - 1
+            if index == trailing and trailing < 3 do
+                code -= 2
+            if code < 0 do
+                return false
+            let value = cast(u32, code)
+            var prefix = 15'u32
+            var suffixSize = 12'u32
+            var suffixBase = (15'u32 << suffixLength) + (suffixLength == 0 ? 15'u32 : 0'u32)
+            if value < (14'u32 << suffixLength)
+            {
+                prefix = value >> suffixLength
+                suffixSize = suffixLength
+                suffixBase = prefix << suffixLength
+            }
+            elif suffixLength == 0 and value < 30
+            {
+                prefix = 14
+                suffixSize = 4
+                suffixBase = 14
+            }
+            elif suffixLength != 0 and value < (15'u32 << suffixLength)
+            {
+                prefix = 14
+                suffixSize = suffixLength
+                suffixBase = 14'u32 << suffixLength
+            }
+            if value < suffixBase or value - suffixBase >= (1'u32 << suffixSize) do
+                return false
+            .bits(0, prefix)
+            .bit(1)
+            .bits(value - suffixBase, suffixSize)
+            if suffixLength == 0 do
+                suffixLength = 1
+            if Math.abs(level) > (3's32 << (suffixLength - 1)) and suffixLength < 6 do
+                suffixLength += 1
+        }
+
+        let totalZeros = positions[total - 1] + 1 - total
+        if total < 16
+        {
+            let offset = cast(u64, (total - 1) * 16 + totalZeros)
+            .bits(TotalZerosBits[offset], TotalZerosLen[offset])
+        }
+        var zerosLeft = totalZeros
+        for index in total - 1
+        {
+            if not zerosLeft do
+                break
+            let run = positions[total - index - 1] - positions[total - index - 2] - 1
+            let offset = cast(u64, Math.min(zerosLeft - 1, 6) * 16 + run)
+            .bits(RunBeforeBits[offset], RunBeforeLen[offset])
+            zerosLeft -= run
+        }
+        return true
+    }
 }
 
 // Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.
 //
-// This portable first stage codes flat intra blocks, exact DC-only residuals for constant
-// 4x4 luminance changes, integer-pixel motion copies, and P-skip. Other changes use I_PCM.
-// It is useful for scrolling and interoperability, but uncompressed remaining blocks
+// This portable first stage codes flat intra blocks, exact quantized luma residuals at QP 0,
+// integer-pixel motion copies, and P-skip. A residual is used only when local inverse
+// reconstruction matches all input samples and its code is smaller than I_PCM. Other changes
+// use I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks
 // are not suitable for arbitrary high-motion 1080p60 recording. The result borrows the encoder's
 // packet storage until the next call to encode. The AVC configuration remains valid for the
 // encoder's lifetime and uses four-byte NAL lengths.
@@ -313,6 +410,33 @@ impl Encoder
                         skipped = 0
                         continue
                     }
+
+                    var acLevels: [256] s16
+                    if .acResidual(frame, mbX, mbY, acLevels.buffer, &cbp)
+                    {
+                        let oldBytes = bits.bytes.count
+                        let oldCurrent = bits.current
+                        let oldUsed = bits.used
+                        bits.unsigned(0) // P_L0_16x16 with zero motion.
+                        bits.signed(-prediction.x)
+                        bits.signed(-prediction.y)
+                        let coded = .writeAcResidual(&bits, nonZero.toSlice(), mbX, mbY,
+                                                     acLevels.buffer, cbp, currentQp)
+                        let written = bits.bytes.count * 8 + bits.used -
+                                      (oldBytes * 8 + oldUsed)
+                        if coded and written < 3_072
+                        {
+                            currentQp = 0
+                            motions[motionIndex] = {0, 0, true}
+                            skipped = 0
+                            continue
+                        }
+                        bits.bytes.resize(oldBytes)
+                        bits.current = oldCurrent
+                        bits.used = oldUsed
+                        for block in 16'u64 do
+                            nonZero[motionIndex * 16 + block] = 0
+                    }
                 }
                 bits.unsigned(key ? 25 : 30)   // I_PCM in I/P slice type spaces.
                 bits.alignZero()
@@ -354,6 +478,166 @@ impl Encoder
 
 private impl Encoder
 {
+    // Forward 4x4 integer transform and QP-0 quantization for a luma block.
+    // The candidate is accepted only if the decoder's inverse transform reproduces
+    // every source sample exactly, so reference pictures remain byte-exact.
+    mtd const acBlock(frame: const *Nv12Frame, x, y: u64, levels: [*] s16)->bool
+    {
+        let width = cast(u64, .width)
+        let current = frame.luma()
+        var unchanged = true
+        for row in 4'u64
+        {
+            let offset = (y + row) * width + x
+            if Memory.compare(current.buffer + offset, .previous.storage() + offset, 4) != 0
+            {
+                unchanged = false
+                break
+            }
+        }
+        if unchanged
+        {
+            for scan in 16'u64 do
+                levels[scan] = 0
+            return true
+        }
+        var horizontal: [16] s32
+        for row in 4'u64
+        {
+            let offset = (y + row) * width + x
+            let a0 = cast(s32, current[offset]) - cast(s32, .previous[offset])
+            let a1 = cast(s32, current[offset + 1]) - cast(s32, .previous[offset + 1])
+            let a2 = cast(s32, current[offset + 2]) - cast(s32, .previous[offset + 2])
+            let a3 = cast(s32, current[offset + 3]) - cast(s32, .previous[offset + 3])
+            let s0 = a0 + a3
+            let s1 = a1 + a2
+            let s2 = a1 - a2
+            let s3 = a0 - a3
+            horizontal[row * 4] = s0 + s1
+            horizontal[row * 4 + 1] = 2 * s3 + s2
+            horizontal[row * 4 + 2] = s0 - s1
+            horizontal[row * 4 + 3] = s3 - 2 * s2
+        }
+
+        var scaled: [16] s16
+        for column in 4'u64
+        {
+            let a0 = horizontal[column]
+            let a1 = horizontal[4 + column]
+            let a2 = horizontal[8 + column]
+            let a3 = horizontal[12 + column]
+            let s0 = a0 + a3
+            let s1 = a1 + a2
+            let s2 = a1 - a2
+            let s3 = a0 - a3
+            var coeffs: [4] s32 = [s0 + s1, 2 * s3 + s2,
+                                   s0 - s1, s3 - 2 * s2]
+            for row in 4'u64
+            {
+                let class = (row & 1) + (column & 1)
+                let factor = class == 0 ? 13_107's32 : (class == 1 ? 8_066's32 : 5_243's32)
+                let scale = class == 0 ? 10's32 : (class == 1 ? 13's32 : 16's32)
+                let coefficient = coeffs[row]
+                let magnitude = (Math.abs(coefficient) * factor + 16_384) >> 15
+                if magnitude > 2_000 do
+                    return false
+                let quantized = coefficient < 0 ? -magnitude : magnitude
+                scaled[column * 4 + row] = cast(s16, quantized * scale)
+                // The decoder receives coefficients in zigzag order, then transposes
+                // them into the transform's column-major storage.
+                levels[EncoderZigzagInverse[row * 4 + column]] = cast(s16, quantized)
+            }
+        }
+
+        var reconstructed: [16] u8
+        for row in 4'u64
+        {
+            let offset = (y + row) * width + x
+            for column in 4'u64 do
+                reconstructed[row * 4 + column] = .previous[offset + column]
+        }
+        addIdct4x4Scalar(reconstructed.buffer, 4, scaled.buffer)
+        for row in 4'u64
+        {
+            let offset = (y + row) * width + x
+            for column in 4'u64 where
+                reconstructed[row * 4 + column] != current[offset + column] do
+                return false
+        }
+        return true
+    }
+
+    mtd const acResidual(frame: const *Nv12Frame, mbX, mbY: u32,
+                         levels: [*] s16, cbp: *u32)->bool
+    {
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        if x + 16 > width or y + 16 > height do
+            return false
+        let chroma = frame.chroma()
+        let previousChroma = width * height
+        for row in 8'u64
+        {
+            let offset = (y / 2 + row) * width + x
+            for column in 16'u64 where
+                chroma[offset + column] != .previous[previousChroma + offset + column] do
+                return false
+        }
+
+        cbp[] = 0
+        for by in 4'u64
+        {
+            for bx in 4'u64
+            {
+                let blockIndex = by * 4 + bx
+                if not .acBlock(frame, x + bx * 4, y + by * 4, levels + blockIndex * 16) do
+                    return false
+                for scan in 16'u64 where levels[blockIndex * 16 + scan] != 0
+                {
+                    cbp[] |= 1'u32 << cast(u32, (by / 2) * 2 + bx / 2)
+                    break
+                }
+            }
+        }
+        return cbp[] != 0
+    }
+
+    mtd const writeAcResidual(bits: *EncoderBits, nonZero: [..] u8,
+                              mbX, mbY: u32, levels: const [*] s16, cbp: u32,
+                              currentQp: s32)->bool
+    {
+        var code = 0'u32
+        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == cbp
+        {
+            code = cast(u32, index)
+            break
+        }
+        bits.unsigned(code)
+        bits.signed(-currentQp)
+
+        for quad in 4'u64 where cbp & (1'u32 << cast(u32, quad)) != 0
+        {
+            for cell in 4'u64
+            {
+                let bx = cast(u32, (quad & 1) * 2 + (cell & 1))
+                let by = cast(u32, (quad >> 1) * 2 + (cell >> 1))
+                let block = by * 4 + bx
+                let blockLevels = levels + block * 16
+                let context = .lumaNc(nonZero, mbX, mbY, bx, by)
+                if not bits.residual4(blockLevels, context) do
+                    return false
+                var total = 0'u8
+                for scan in 16'u64 where blockLevels[scan] != 0 do
+                    total += 1
+                let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + block
+                nonZero[index] = total
+            }
+        }
+        return true
+    }
+
     // Detects an exact DC-only 4x4 luma residual at QP 0. Chroma must match the
     // reference. Inverse dequantization scales DC by ten, so a level is accepted
     // only when the decoder's rounded (level * 10) / 64 equals every input delta.

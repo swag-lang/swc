@@ -91,6 +91,48 @@ func encoderBrightnessTiles(width, height, bright: s32)->Nv12Frame fail
     return result
 }
 
+func encoderGrayPixel(x, y: s32)->Nv12Frame fail
+{
+    var rgb: Array'u8
+    rgb.resize(16 * 16 * 3)
+    for row in 16'u64
+    {
+        for column in 16'u64
+        {
+            let value = row == cast(u64, (15 - y)) and column == cast(u64, x) ? 102'u8 : 100'u8
+            let offset = (row * 16 + column) * 3
+            rgb[offset] = value
+            rgb[offset + 1] = value
+            rgb[offset + 2] = value
+        }
+    }
+    let image = Image.create(16, 16, .RGB8, rgb.toSlice())
+    var result: Nv12Frame
+    try result.convertFrom(&image)
+    return result
+}
+
+func encoderGrayNoise(seed: u64)->Nv12Frame fail
+{
+    var rgb: Array'u8
+    rgb.resize(32 * 32 * 3)
+    for y in 32'u64
+    {
+        for x in 32'u64
+        {
+            let value = cast(u8, 30 + ((x * 73 + y * 47 + seed * 19 + x * y * 3) % 160))
+            let offset = (y * 32 + x) * 3
+            rgb[offset] = value
+            rgb[offset + 1] = value
+            rgb[offset + 2] = value
+        }
+    }
+    let image = Image.create(32, 32, .RGB8, rgb.toSlice())
+    var frame: Nv12Frame
+    try frame.convertFrom(&image)
+    return frame
+}
+
 func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
 {
     Swag.require(decoded.width == original.width and decoded.height == original.height)
@@ -426,4 +468,60 @@ func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
     requireEncodedNv12(&light, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 2)
     requireEncodedNv12(&dark, &decoded)
+}
+
+// A changed pixel exercises AC transform coefficients and CAVLC without a reference drift.
+#test
+{
+    let path = videoTempPath("h264-encoder-ac-single-pixel", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderSolidFrame(16, 16, 100, 100, 100)
+    let first = expect encoderGrayPixel(0, 0)
+    let next = expect encoderGrayPixel(12, 4)
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+    let partial = expect encoder.encode(&first, 3_000, 3_000)
+    Swag.require(partial.bytes.count < keySize / 2)
+    expect writer.addPacket(partial)
+    let moved = expect encoder.encode(&next, 6_000, 3_000)
+    Swag.require(moved.bytes.count < keySize / 2)
+    expect writer.addPacket(moved)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&first, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&next, &decoded)
+}
+
+// Alternating textured gray pictures mix exact AC residuals and PCM fallback across IDRs.
+#test
+{
+    let path = videoTempPath("h264-encoder-ac-varied", "mp4")
+    defer discard catch File.delete(path)
+    var encoder = expect H264.Encoder.create(32, 32, keyInterval: 7)
+    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
+                                                    encoder.decoderConfig())
+    for index in 16'u64
+    {
+        let frame = expect encoderGrayNoise(index)
+        expect writer.addPacket(expect encoder.encode(&frame, index * 3_000, 3_000))
+    }
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 16)
+    var decoded: PlanarFrame
+    for index in 16'u64
+    {
+        let original = expect encoderGrayNoise(index)
+        expect reader.decodeFramePlanesInto(&decoded, index)
+        requireEncodedNv12(&original, &decoded)
+    }
 }

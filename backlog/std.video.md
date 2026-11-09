@@ -186,7 +186,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   seek cannot read freed packet storage.
 - Related: std.video.002
 
-### std.video.015 — No H.264 encoding
+### std.video.015 — H.264 encoding needs rate control and 4K60 throughput
 
 - Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
   contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
@@ -227,7 +227,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   rate control, encode latency and dropped frames.
 - Related: app.capture.011, std.video.016, platform.portability.099
 
-### std.video.016 — Fragmented MP4 lacks multi-track recording and indexed playback
+### std.video.016 — Fragmented MP4 needs timed metadata and indexed playback
 
 - Evidence: `Video.Writer` still drives one `IEncoder` that owns both codec and container, and
   its MP4 path writes Motion JPEG with the sample table at the end. A separate

@@ -149,6 +149,93 @@ func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
     }
 }
 
+private impl Nv12Frame
+{
+    mtd encoderTint(deltaU, deltaV: s32)
+    {
+        let start = cast(u64, .width) * cast(u64, .height)
+        for index in (.bytes.count - start) / 2
+        {
+            let offset = start + index * 2
+            .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + deltaU)
+            .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + deltaV)
+        }
+    }
+
+    mtd encoderChangeFirstChroma()
+    {
+        let start = cast(u64, .width) * cast(u64, .height)
+        .bytes[start] += 1
+    }
+}
+
+// Flat per-plane chroma changes use one transformed DC coefficient per plane.
+// Luma is patterned so intra flat prediction cannot mask the inter residual path.
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-dc", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderFrame(32, 32)
+    var tint = expect encoderFrame(32, 32)
+    var reversed = expect encoderFrame(32, 32)
+    tint.encoderTint(1, -1)
+    reversed.encoderTint(-1, 1)
+    var encoder = expect H264.Encoder.create(32, 32)
+    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let positive = expect encoder.encode(&tint, 3_000, 3_000)
+    Swag.require(positive.bytes.count < key.bytes.count / 4)
+    expect writer.addPacket(positive)
+    let negative = expect encoder.encode(&reversed, 6_000, 3_000)
+    Swag.require(negative.bytes.count < key.bytes.count / 4)
+    expect writer.addPacket(negative)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&tint, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&reversed, &decoded)
+}
+
+// Chroma DC combines with a luma DC fade; an isolated nonuniform chroma edit falls back to PCM.
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-mixed", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderBrightnessTiles(32, 32, 0)
+    var mixed = expect encoderBrightnessTiles(32, 32, 1)
+    var nonuniform = expect encoderBrightnessTiles(32, 32, 1)
+    mixed.encoderTint(2, -2)
+    nonuniform.encoderChangeFirstChroma()
+    var encoder = expect H264.Encoder.create(32, 32)
+    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let combined = expect encoder.encode(&mixed, 3_000, 3_000)
+    Swag.require(combined.bytes.count < key.bytes.count / 2)
+    expect writer.addPacket(combined)
+    let fallback = expect encoder.encode(&nonuniform, 6_000, 3_000)
+    Swag.require(fallback.bytes.count > combined.bytes.count)
+    expect writer.addPacket(fallback)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&mixed, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&nonuniform, &decoded)
+}
+
 // PCM, unchanged P-skip, a changed edge macroblock, and a new IDR all round-trip exactly.
 #test
 {

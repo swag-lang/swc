@@ -85,6 +85,20 @@ func requireStressPicture(source: const *Nv12Frame, decoded: const *PlanarFrame)
     }
 }
 
+private impl Nv12Frame
+{
+    mtd stressTint(deltaU, deltaV: s32)
+    {
+        let start = cast(u64, .width) * cast(u64, .height)
+        for index in (.bytes.count - start) / 2
+        {
+            let offset = start + index * 2
+            .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + deltaU)
+            .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + deltaV)
+        }
+    }
+}
+
 // Measures a textured IDR, 16px scroll, unchanged picture, and flat color at 1080p.
 // Size gates are loose enough for bitstream improvements; elapsed time is only reported.
 #[Swag.TestTag("stress")]
@@ -240,5 +254,45 @@ func requireStressPicture(source: const *Nv12Frame, decoded: const *PlanarFrame)
             expect reader.decodeFramePlanesInto(&decoded, index)
             requireStressPicture(index == 1 ? &changed : &base, &decoded)
         }
+    }
+}
+
+// A screen-wide tint over textured luma exercises chroma DC on every macroblock.
+#[Swag.TestTag("stress")]
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-1080p", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderStressTiles(0)
+    var tinted = expect encoderStressTiles(0)
+    tinted.stressTint(1, -1)
+    var encoder = expect H264.Encoder.create(1920, 1080)
+    var writer = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000,
+                                                    encoder.decoderConfig())
+    var watch: Time.Stopwatch
+    watch.start()
+    let key = expect encoder.encode(&base, 0, 1_500)
+    watch.stop()
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+
+    watch.restart()
+    let tint = expect encoder.encode(&tinted, 1_500, 1_500)
+    watch.stop()
+    Console.printf("H264 1080p chroma DC: % bytes, % us\n", tint.bytes.count,
+                   watch.elapsedMicroseconds())
+    Swag.require(tint.bytes.count < keySize / 20)
+    expect writer.addPacket(tint)
+    let back = expect encoder.encode(&base, 3_000, 1_500)
+    Swag.require(back.bytes.count < keySize / 20)
+    expect writer.addPacket(back)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    for index in 3'u64
+    {
+        expect reader.decodeFramePlanesInto(&decoded, index)
+        requireStressPicture(index == 1 ? &tinted : &base, &decoded)
     }
 }

@@ -1,6 +1,6 @@
 //! Format: H.264/AVC constrained-baseline encoder.
-//! Supported: Progressive NV12, flat intra blocks, exact quantized luma residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
-//! Not supported: Lossy or chroma residuals, rate control, B pictures, and real-time full-motion high-resolution capture.
+//! Supported: Progressive NV12, flat intra blocks, exact quantized luma and chroma DC residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
+//! Not supported: Lossy or chroma AC residuals, rate control, B pictures, and real-time full-motion high-resolution capture.
 //! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
@@ -136,6 +136,31 @@ private impl EncoderBits
         .bit(1) // total_zeros = 0 for totalCoeff = 1.
     }
 
+    // The 2x2 chroma DC block uses its own coeff_token and total_zeros tables.
+    mtd chromaSingleDc(level: s32)
+    {
+        let trailing = level == 1 or level == -1
+        let token = level == 0 ? 0'u64 : (trailing ? 5'u64 : 4'u64)
+        .bits(ChromaDcCoeffTokenBits[token], ChromaDcCoeffTokenLen[token])
+        if not level do
+            return
+        if trailing do
+            .bit(level < 0 ? 1 : 0)
+        else
+        {
+            let code = level > 0 ? level * 2 - 2 : -level * 2 - 1
+            let value = cast(u32, code - 2)
+            let prefix = value < 14 ? value : (value < 30 ? 14'u32 : 15'u32)
+            .bits(0, prefix)
+            .bit(1)
+            if prefix == 14 do
+                .bits(value - 14, 4)
+            elif prefix == 15 do
+                .bits(value - 30, 12)
+        }
+        .bits(ChromaDcTotalZerosBits[0], ChromaDcTotalZerosLen[0])
+    }
+
     // CAVLC for a quantized 4x4 block in zigzag order. Returns false only when
     // a level exceeds the bounded level-prefix form this encoder emits.
     mtd residual4(levels: const [*] s16, nC: u32)->bool
@@ -231,7 +256,7 @@ private impl EncoderBits
 
 // Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.
 //
-// This portable first stage codes flat intra blocks, exact quantized luma residuals at QP 0,
+// This portable first stage codes flat intra blocks, exact quantized luma and chroma DC residuals at QP 0,
 // integer-pixel motion copies, and P-skip. A residual is used only when local inverse
 // reconstruction matches all input samples and its code is smaller than I_PCM. Other changes
 // use I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks
@@ -398,45 +423,53 @@ impl Encoder
                         continue
                     }
 
-                    var levels: [16] s32
-                    var cbp = 0'u32
-                    if .dcResidual(frame, mbX, mbY, firstDifferent, levels.buffer, &cbp)
+                    var chromaLevels: [2] s32
+                    var chromaChanged = false
+                    if .chromaDcResidual(frame, mbX, mbY, chromaLevels.buffer, &chromaChanged)
                     {
-                        bits.unsigned(0) // P_L0_16x16 with zero motion.
-                        bits.signed(-prediction.x)
-                        bits.signed(-prediction.y)
-                        .writeDcResidual(&bits, nonZero.toSlice(), mbX, mbY, levels.buffer, cbp,
-                                         &currentQp)
-                        motions[motionIndex] = {0, 0, true}
-                        skipped = 0
-                        continue
-                    }
-
-                    var acLevels: [256] s16
-                    if .acResidual(frame, mbX, mbY, acLevels.buffer, &cbp)
-                    {
-                        let oldBytes = bits.bytes.count
-                        let oldCurrent = bits.current
-                        let oldUsed = bits.used
-                        bits.unsigned(0) // P_L0_16x16 with zero motion.
-                        bits.signed(-prediction.x)
-                        bits.signed(-prediction.y)
-                        let coded = .writeAcResidual(&bits, nonZero.toSlice(), mbX, mbY,
-                                                     acLevels.buffer, cbp, currentQp)
-                        let written = bits.bytes.count * 8 + bits.used -
-                                      (oldBytes * 8 + oldUsed)
-                        if coded and written < 3_072
+                        var levels: [16] s32
+                        var cbp = 0'u32
+                        if (firstDifferent >= 256 and chromaChanged) or
+                           .dcResidual(frame, mbX, mbY, firstDifferent, levels.buffer, &cbp)
                         {
-                            currentQp = 0
+                            bits.unsigned(0) // P_L0_16x16 with zero motion.
+                            bits.signed(-prediction.x)
+                            bits.signed(-prediction.y)
+                            .writeDcResidual(&bits, nonZero.toSlice(), mbX, mbY, levels.buffer,
+                                             cbp, chromaLevels.buffer, chromaChanged, &currentQp)
                             motions[motionIndex] = {0, 0, true}
                             skipped = 0
                             continue
                         }
-                        bits.bytes.resize(oldBytes)
-                        bits.current = oldCurrent
-                        bits.used = oldUsed
-                        for block in 16'u64 do
-                            nonZero[motionIndex * 16 + block] = 0
+
+                        var acLevels: [256] s16
+                        if .acResidual(frame, mbX, mbY, acLevels.buffer, &cbp)
+                        {
+                            let oldBytes = bits.bytes.count
+                            let oldCurrent = bits.current
+                            let oldUsed = bits.used
+                            bits.unsigned(0) // P_L0_16x16 with zero motion.
+                            bits.signed(-prediction.x)
+                            bits.signed(-prediction.y)
+                            let coded = .writeAcResidual(&bits, nonZero.toSlice(), mbX, mbY,
+                                                         acLevels.buffer, cbp,
+                                                         chromaLevels.buffer, chromaChanged,
+                                                         currentQp)
+                            let written = bits.bytes.count * 8 + bits.used -
+                                          (oldBytes * 8 + oldUsed)
+                            if coded and written < 3_072
+                            {
+                                currentQp = 0
+                                motions[motionIndex] = {0, 0, true}
+                                skipped = 0
+                                continue
+                            }
+                            bits.bytes.resize(oldBytes)
+                            bits.current = oldCurrent
+                            bits.used = oldUsed
+                            for block in 16'u64 do
+                                nonZero[motionIndex * 16 + block] = 0
+                        }
                     }
                 }
                 bits.unsigned(key ? 25 : 30)   // I_PCM in I/P slice type spaces.
@@ -568,6 +601,42 @@ private impl Encoder
         return true
     }
 
+    // Accepts a flat per-plane chroma change if QP-0 DC dequantization reproduces it.
+    // Each plane then needs just its first coefficient in the 2x2 DC transform.
+    mtd const chromaDcResidual(frame: const *Nv12Frame, mbX, mbY: u32,
+                               levels: [*] s32, changed: *bool)->bool
+    {
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        if x + 16 > width or y + 16 > height do
+            return false
+        let current = frame.chroma()
+        let previousOffset = width * height
+        changed[] = false
+        for plane in 2'u64
+        {
+            let first = y / 2 * width + x + plane
+            let delta = cast(s32, current[first]) - cast(s32, .previous[previousOffset + first])
+            let level = delta * 64 / 5
+            if Math.abs(level) > 1_000 or (level * 5 + 32) >> 6 != delta do
+                return false
+            levels[plane] = level
+            if level != 0 do
+                changed[] = true
+            for row in 8'u64
+            {
+                let offset = (y / 2 + row) * width + x + plane
+                for column in 8'u64 where
+                    cast(s32, current[offset + column * 2]) -
+                    cast(s32, .previous[previousOffset + offset + column * 2]) != delta do
+                    return false
+            }
+        }
+        return true
+    }
+
     mtd const acResidual(frame: const *Nv12Frame, mbX, mbY: u32,
                          levels: [*] s16, cbp: *u32)->bool
     {
@@ -577,16 +646,6 @@ private impl Encoder
         let height = cast(u64, .height)
         if x + 16 > width or y + 16 > height do
             return false
-        let chroma = frame.chroma()
-        let previousChroma = width * height
-        for row in 8'u64
-        {
-            let offset = (y / 2 + row) * width + x
-            for column in 16'u64 where
-                chroma[offset + column] != .previous[previousChroma + offset + column] do
-                return false
-        }
-
         cbp[] = 0
         for by in 4'u64
         {
@@ -607,10 +666,12 @@ private impl Encoder
 
     mtd const writeAcResidual(bits: *EncoderBits, nonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s16, cbp: u32,
+                              chromaLevels: const [*] s32, chromaChanged: bool,
                               currentQp: s32)->bool
     {
         var code = 0'u32
-        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == cbp
+        let pattern = cbp | (chromaChanged ? 16'u32 : 0'u32)
+        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == pattern
         {
             code = cast(u32, index)
             break
@@ -636,18 +697,23 @@ private impl Encoder
                 nonZero[index] = total
             }
         }
+        if chromaChanged
+        {
+            for plane in 2'u64 do
+                bits.chromaSingleDc(chromaLevels[plane])
+        }
         return true
     }
 
-    // Detects an exact DC-only 4x4 luma residual at QP 0. Chroma must match the
-    // reference. Inverse dequantization scales DC by ten, so a level is accepted
+    // Detects an exact DC-only 4x4 luma residual at QP 0. Chroma is checked
+    // separately. Inverse dequantization scales DC by ten, so a level is accepted
     // only when the decoder's rounded (level * 10) / 64 equals every input delta.
     mtd const dcResidual(frame: const *Nv12Frame, mbX, mbY: u32,
                          firstDifferent: u32, levels: [*] s32, cbp: *u32)->bool
     {
         // The first changed luma sample is already known from the skip test. A DC-only
-        // block needs one uniform delta, so reject an AC block before scanning chroma
-        // and the other luma blocks. A chroma-only change cannot use this path.
+        // block needs one uniform delta, so reject an AC block before scanning
+        // the other luma blocks. A chroma-only change uses the caller's DC path.
         if firstDifferent >= 256 do
             return false
         let x = cast(u64, mbX) * 16
@@ -670,16 +736,6 @@ private impl Encoder
                 cast(s32, luma[offset + column]) - cast(s32, .previous[offset + column]) != firstDelta do
                 return false
         }
-        let chroma = frame.chroma()
-        let previousChroma = width * height
-        for row in 8'u64
-        {
-            let offset = (y / 2 + row) * width + x
-            for column in 16'u64 where
-                chroma[offset + column] != .previous[previousChroma + offset + column] do
-                return false
-        }
-
         cbp[] = 0
         for by in 4'u64
         {
@@ -728,10 +784,12 @@ private impl Encoder
 
     mtd const writeDcResidual(bits: *EncoderBits, nonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s32, cbp: u32,
+                              chromaLevels: const [*] s32, chromaChanged: bool,
                               currentQp: *s32)
     {
         var code = 0'u32
-        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == cbp
+        let pattern = cbp | (chromaChanged ? 16'u32 : 0'u32)
+        for index in 48'u64 where cast(u32, GolombToInterCbp[index]) == pattern
         {
             code = cast(u32, index)
             break
@@ -751,6 +809,11 @@ private impl Encoder
                 let index = (cast(u64, mbY) * .mbWidth + mbX) * 16 + by * 4 + bx
                 nonZero[index] = level == 0 ? 0 : 1
             }
+        }
+        if chromaChanged
+        {
+            for plane in 2'u64 do
+                bits.chromaSingleDc(chromaLevels[plane])
         }
     }
 

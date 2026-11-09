@@ -1758,6 +1758,14 @@ private impl Encoder
             result[] = {0, 0, true}
             return true
         }
+        // Common diagonal desktop scroll: the exact mode can copy a tile from
+        // its previous position. Lossy input needs motion-compensated residuals,
+        // so this exact-match probe does not help positive QP pictures.
+        if not .quantizationQp and .matchesMotion(frame, mbX, mbY, -16, -8)
+        {
+            result[] = {-64, -32, true}
+            return true
+        }
         for index in 16'u64
         {
             let dx = MotionOffsets[index, 0]

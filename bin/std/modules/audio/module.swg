@@ -18,6 +18,8 @@ playable file prefix on every flush, fills silence gaps, and can resume from tha
 interruption.
 [[Audio.Flac.Writer]] compresses PCM16 recordings into resumable native FLAC files.
 [[Audio.Resampler]] converts streaming PCM between sample rates and adjusts its ratio for clock drift.
+[[Audio.Aac.Encoder]] encodes mono or stereo PCM16 to AAC-LC packets in full or voice bandwidth.
+[[Audio.Aac.StreamEncoder]] buffers arbitrary PCM16 chunks into packets and reports the 1024-frame priming delay.
 [[Audio.Aac.SilenceEncoder]] supplies AAC-LC silence packets during a lost capture source.
 Linux requires `libFAudio.so.0` and its SDL dependencies; device acquisition failures are reported.
 The Linux backend accepts one through eight source or bus channels, including mono/stereo

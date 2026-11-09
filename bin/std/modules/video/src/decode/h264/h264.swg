@@ -724,6 +724,7 @@ impl Decoder
         let sps   = unwrap .sps
         let frame = found
         frame.prepare(sps.mbWidth, sps.mbHeight, sps.chromaShift())
+        frame.setColorSignal(sps)
         frame.frameNum = frameNum
         frame.poc      = poc
         .current       = frame

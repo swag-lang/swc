@@ -191,18 +191,24 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
   contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
   converts Annex B encoder output and extracts `avcC`. `Video.Nv12Frame` converts packed RGB and
-  BGRA pictures to top-down BT.709 NV12 for an encoder, but nothing in the module encodes frames.
+  BGRA pictures to top-down BT.709 NV12. A portable Constrained Baseline encoder now emits
+  exact I_PCM macroblocks and P-skip for unchanged blocks; its packets round-trip through
+  the module and FFmpeg. On a synthetic 1080p sequence in Release on a four-core Linux
+  container, an IDR took 21.7 ms and 3.15 MB, a fully changed P picture 17.7 ms and
+  3.15 MB, and 60 static P pictures 198 ms total and 660 bytes. A fully changing
+  1080p60 recording would need roughly 189 MB/s before container overhead, so this
+  encoder is an interoperability foundation, not a production capture codec.
   `Video.FramePacer` maps monotonic arrivals to exact frame slots and reports skipped slots over
   long recordings without accumulating time rounding.
   The current conversion is scalar; its throughput still needs a native encoder-path benchmark
   and a SIMD or GPU path before it can serve real-time 1080p60 recording.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
-- Next: add an H.264 encoder that produces `EncodedPacket` access units and AVC parameter sets.
-  Implement it first over the Media Foundation
-  encoder (platform.portability.099), hardware when present and Windows' software encoder
-  otherwise, fed NV12 surfaces; then a Swag encoder (constrained baseline, then main) for
-  portability, tuned for screen content where most macroblocks are skipped.
+- Next: add a Media Foundation encoder (platform.portability.099), hardware when present
+  and Windows' software encoder otherwise, fed NV12 surfaces. Add quantized transform
+  coding, rate control and motion search to the portable path so changed blocks no longer
+  require raw PCM samples. Measure the native NV12 conversion and encoder path at 1080p60
+  and 4K60.
 - Done when: a captured sequence encodes in real time at 1080p60 on the Media Foundation path,
   the Swag encoder produces a stream that the module's decoder and a reference player both read,
   and both paths report their rate control and dropped frames.

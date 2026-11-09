@@ -93,6 +93,8 @@ struct Sps
     cropRight:            s32
     cropTop:              s32
     cropBottom:           s32
+    fullRange:            bool
+    matrixCoefficients:   u8 = 2 // H.273 matrix_coefficients; 2 means unspecified.
     hasScaling:           bool
     scaling4:             [96] u8     // Six weight lists of Table 7-2, in zig-zag scan order.
 
@@ -329,7 +331,29 @@ impl Sps
             .cropBottom = cast(s32, bits.ue()) * unit
         }
 
-        // The VUI that may follow carries nothing this decoder uses.
+        // The first VUI fields describe colour range and matrix. Later timing and HRD
+        // fields do not affect picture reconstruction.
+        if bits.bit()
+        {
+            if bits.bit()
+            {
+                let aspect = bits.read(8)
+                if aspect == 255 do
+                    bits.skip(32)
+            }
+            if bits.bit() do
+                bits.skip(1)
+            if bits.bit()
+            {
+                bits.skip(3)
+                .fullRange = bits.bit() != 0
+                if bits.bit()
+                {
+                    bits.skip(16) // Primaries and transfer characteristic.
+                    .matrixCoefficients = cast(u8, bits.read(8))
+                }
+            }
+        }
         if bits.overran do
             fail InvalidFormatError{"H.264 sequence parameter set is truncated"}
 

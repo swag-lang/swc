@@ -43,6 +43,8 @@ struct Frame
     strideChroma: u64
     mbWidth:      s32
     mbHeight:     s32
+    matrix:       Pixel.YuvMatrix
+    studioRange:  bool
 
     // How far a luma coordinate shifts right to address a chroma plane: one for 4:2:0, none
     // for 4:4:4, whose chroma planes are the size of luma.
@@ -84,8 +86,7 @@ struct Frame
 
 impl Frame
 {
-    // Allocates or reuses storage for a picture of `mbWidth` by `mbHeight` macroblocks whose
-    // chroma planes are `chromaShift` halvings smaller than its luma plane.
+    // Allocates or reuses a picture of macroblocks with the specified chroma layout.
     mtd prepare(mbWidth, mbHeight, chromaShift: s32)
     {
         .mbWidth      = mbWidth
@@ -127,6 +128,18 @@ impl Frame
         Atomic.exchange(&.parseProgress, 0)
         Atomic.exchange(&.progressRows, 0)
         Swag.assert(Atomic.get(&.reconstructionHolds) == 0)
+    }
+
+    // Applies the colour range and matrix signalled by the sequence set.
+    mtd setColorSignal(sps: const *Sps)
+    {
+        .studioRange  = not sps.fullRange
+        switch sps.matrixCoefficients
+        {
+        case 1:     .matrix = .Bt709
+        case 9, 10: .matrix = .Bt2020
+        default:    .matrix = .Bt601
+        }
     }
 
     // Returns the progress value that covers the whole picture, padding included.
@@ -299,7 +312,9 @@ impl Frame
             chromaStride: .strideChroma,
             width: width,
             height: height,
-            chromaShift: .chromaShift}
+            chromaShift: .chromaShift,
+            matrix: .matrix,
+            studioRange: .studioRange}
     }
 
     // Copies the visible window of the frame into tightly packed planes.
@@ -309,6 +324,8 @@ impl Frame
     mtd copyPlanes(target: *PlanarFrame, width, height, cropLeft, cropTop: s32)
     {
         target.resize(width, height, .chromaShift)
+        target.matrix      = .matrix
+        target.studioRange = .studioRange
 
         var destination = target.luma.storage()
         for y in height

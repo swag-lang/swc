@@ -580,7 +580,8 @@ private impl Encoder
                         let oldQp = currentQp
                         let coded = .writeQuantizedIntra(&bits, nonZero.toSlice(),
                                                           chromaNonZero.toSlice(), mbX, mbY,
-                                                          &quantized, &currentQp, sliceStartY, 8)
+                                                          &quantized, &currentQp, sliceStartY, 8,
+                                                          true)
                         let written = bits.bytes.count * 8 + bits.used -
                                       (oldBytes * 8 + oldUsed)
                         if coded and written <= 128
@@ -1499,14 +1500,22 @@ private impl Encoder
     // AC counts, rather than DC counts, form the neighbour contexts for later blocks.
     mtd const writeQuantizedIntra(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
                                   mbX, mbY: u32, result: *EncoderQuantizedMb,
-                                  currentQp: *s32, sliceStartY, typeBase: u32)->bool
+                                  currentQp: *s32, sliceStartY, typeBase: u32,
+                                  singleDcGuaranteed: bool = false)->bool
     {
         bits.unsigned(typeBase + result.cbpChroma * 4 + (result.cbpLuma == 0 ? 0'u32 : 12'u32))
         bits.unsigned(0) // Intra chroma DC prediction.
         bits.signed(cast(s32, .quantizationQp) - currentQp[])
         currentQp[] = cast(s32, .quantizationQp)
-        if not bits.residual4(result.lumaDc.buffer,
-                              .lumaNc(nonZero, mbX, mbY, 0, 0, sliceStartY)) do
+        let dcContext = .lumaNc(nonZero, mbX, mbY, 0, 0, sliceStartY)
+        if singleDcGuaranteed
+        {
+            // The caller has checked that every source Y sample is equal. Its
+            // sixteen 4x4 DC inputs are equal, so Hadamard leaves only scan 0.
+            // The flat-luma helper tests prove that for all supported QPs.
+            bits.singleDc(cast(s32, result.lumaDc[0]), dcContext)
+        }
+        elif not bits.residual4(result.lumaDc.buffer, dcContext) do
             return false
         if result.cbpLuma
         {

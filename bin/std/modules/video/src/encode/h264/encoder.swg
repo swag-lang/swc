@@ -510,9 +510,11 @@ private impl Encoder
                 }
                 if not key do
                     bits.unsigned(skipped)
-                if .flatIntra(frame, mbX, mbY, sliceStartY) and
-                   (not .quantizationQp or
-                    .flatIntraBordersMatchReconstructed(frame, mbX, mbY, sliceStartY))
+                let flatSource = .flatIntra(frame, mbX, mbY, sliceStartY)
+                let flatDecoded = flatSource and
+                                  (not .quantizationQp or
+                                   .flatIntraBordersMatchReconstructed(frame, mbX, mbY, sliceStartY))
+                if flatDecoded
                 {
                     bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
                     bits.unsigned(0)           // Chroma DC prediction.
@@ -543,12 +545,49 @@ private impl Encoder
                         let oldQp = currentQp
                         let coded = .writeQuantizedIntra(&bits, nonZero.toSlice(),
                                                           chromaNonZero.toSlice(), mbX, mbY,
-                                                          &quantized, &currentQp, sliceStartY)
+                                                          &quantized, &currentQp, sliceStartY, 3)
                         let written = bits.bytes.count * 8 + bits.used -
                                       (oldBytes * 8 + oldUsed)
                         if coded and written < 3_072
                         {
                             .storeQuantizedMb(&quantized, mbX, mbY)
+                            continue
+                        }
+                        bits.bytes.resize(oldBytes)
+                        bits.current = oldCurrent
+                        bits.used = oldUsed
+                        currentQp = oldQp
+                        for block in 16'u64 do
+                            nonZero[motionIndex * 16 + block] = 0
+                        for block in 8'u64 do
+                            chromaNonZero[motionIndex * 8 + block] = 0
+                    }
+                }
+                // This flat-source intra shortcut is measured at QP 28, where its
+                // decoded DC anchors the background for following macroblocks.
+                // Higher QPs may miss that anchor and retry across an entire frame.
+                if not key and .quantizationQp == 28 and flatSource and not flatDecoded
+                {
+                    // Source-flat blocks following lossy neighbours cannot use the empty
+                    // intra form. Try the existing quantized DC predictor only when its
+                    // syntax remains small, retaining the inter fallback otherwise.
+                    var quantized: EncoderQuantizedMb
+                    if .quantizeIntraMb(frame, mbX, mbY, sliceStartY, &quantized)
+                    {
+                        let oldBytes = bits.bytes.count
+                        let oldCurrent = bits.current
+                        let oldUsed = bits.used
+                        let oldQp = currentQp
+                        let coded = .writeQuantizedIntra(&bits, nonZero.toSlice(),
+                                                          chromaNonZero.toSlice(), mbX, mbY,
+                                                          &quantized, &currentQp, sliceStartY, 8)
+                        let written = bits.bytes.count * 8 + bits.used -
+                                      (oldBytes * 8 + oldUsed)
+                        if coded and written <= 128
+                        {
+                            .storeQuantizedMb(&quantized, mbX, mbY)
+                            motions[motionIndex] = {}
+                            skipped = 0
                             continue
                         }
                         bits.bytes.resize(oldBytes)
@@ -1460,9 +1499,9 @@ private impl Encoder
     // AC counts, rather than DC counts, form the neighbour contexts for later blocks.
     mtd const writeQuantizedIntra(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
                                   mbX, mbY: u32, result: *EncoderQuantizedMb,
-                                  currentQp: *s32, sliceStartY: u32)->bool
+                                  currentQp: *s32, sliceStartY, typeBase: u32)->bool
     {
-        bits.unsigned(3 + result.cbpChroma * 4 + (result.cbpLuma == 0 ? 0'u32 : 12'u32))
+        bits.unsigned(typeBase + result.cbpChroma * 4 + (result.cbpLuma == 0 ? 0'u32 : 12'u32))
         bits.unsigned(0) // Intra chroma DC prediction.
         bits.signed(cast(s32, .quantizationQp) - currentQp[])
         currentQp[] = cast(s32, .quantizationQp)

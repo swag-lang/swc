@@ -265,7 +265,10 @@ whole recording loaded at once.
   MP4, and reopens the H.264 pictures and AAC sound through `Video.Reader`.
   `VideoCaptureSession` now keeps a screen source, exact frame pacer and MP4 writer alive; X11
   tests cover sound input, repeated missed slots, source failure and recovery, and a black first
-  frame before a source returns. An opt-in 4K60 test on a static Xorg dummy screen measured
+  frame before a source returns. The X11 source uses native MIT-SHM through the existing XCB
+  connection and reuses frame storage. Parallel 4K BGRA conversion improved acquisition from
+  6.1–6.3 to 4.7–5.1 ms per image with full color parity; 1080p remains about 1.2 ms on its
+  sequential path. An opt-in 4K60 test on a static Xorg dummy screen measured
   1.033–1.048 seconds for 60 screen grabs and encoded frames, with a 40,846-byte MP4;
   adding 48 stereo AAC packets took 1.282 seconds total. `Video.Reader` reopened the file in
   3.6 ms and decoded the last frame in 298 ms. This is a synthetic static scene just beyond
@@ -291,10 +294,15 @@ whole recording loaded at once.
 
 - Evidence: `Audio.CaptureQueue` now reports PCM timing, gaps, overflow and source restoration
   with bounded storage; software AAC and MP4 recording consume its output. A simulated
-  microphone outage produces audible sound, silence, then sound in a decoded MP4. A native
-  WASAPI microphone backend has passed Windows semantic checks and simulated PCM conversion
-  tests, but has not been exercised with a Windows device or connected to Swag Capture. System
-  loopback is not implemented yet.
+  microphone outage produces audible sound, silence, then sound in a decoded MP4. Native
+  WASAPI microphone and system-output-loopback backends pass Windows semantic checks and
+  simulated PCM conversion, loss, idle-silence and clock-drift tests. `VideoAudioPump` transfers
+  two independent capture queues to separate MP4 tracks in bounded chunks, including a
+  simulated four-hour source gap without generating all its silence in one call. App tests
+  reopen the MP4 and check both decoded tracks before, during and after the gap, a bounded
+  queue overflow, and live 96 kHz float source packets resampled into a 48 kHz MP4 track.
+  The native backends have not been exercised with a Windows device or connected to Swag
+  Capture's UI.
 - Next: after app.capture.011, add the dock toggles: microphone with its level meter, system
   sound, or this application's sound only for a window target. Keep each source on its own track,
   timestamped on the performance counter and mixed only at export. Add a sound-only medium with a

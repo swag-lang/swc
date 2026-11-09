@@ -162,23 +162,33 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.
   The module and FFmpeg decode non-silent AAC inside fragmented MP4. In Release, full-band stereo
   takes about 3.9 ms per 1024-frame packet and an encoder instance needs an 8 MiB basis table.
-  The decoded AAC stream has 1024 priming frames, and its final packet may carry padding.
-- Next: compensate AAC priming and final padding in the MP4 presentation timeline, then add
-  bounded target bitrate and short-window transient coding. Keep the software implementation
-  independent of external codec libraries.
+  Bounded spectral gains per band now retain a 12 kHz component 43.5 dB below a 440 Hz tone
+  in the same channel: FFmpeg decodes amplitude 160.47 for an input of 160, instead of 0.01
+  before the change. A 10-second stereo capture through 96→48 kHz resampling and AAC takes
+  about 2.1 seconds in Release and produces about 113 kb/s on the measured wide-band sample.
+  Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024
+  priming frames; the MP4 presentation edit reports the exact audible final frame count to
+  `Video.Reader`, while FFmpeg currently ignores edits in fragmented MP4 and exposes at most
+  1023 padding frames at the end.
+- Next: add bounded target bitrate and short-window transient coding. Test sample-accurate
+  final trimming in other reference players while keeping the resumable fragmented prefix and
+  the software implementation independent of external codec libraries.
 - Done when: a captured non-silent recording plays in the module and reference players with
   video/audio sync within one video frame, including its start, end, source gaps and long runs.
 - Related: app.capture.013, std.video.016, platform.portability.099
 
-### std.audio.016 — Resampler drift is not connected to capture clocks
+### std.audio.016 — Capture resampler drift needs real-device validation
 
 - Evidence: `Audio.Resampler` now converts interleaved floating-point PCM in bounded memory with
   a 96-tap windowed sinc filter, 44.1/48 kHz conversion tests, passband/alias checks, and live
   input-clock drift adjustments. A phase-accumulator stress test simulates four hours at 48 kHz
   with +100 and -100 ppm, checks against an independent rational clock with less than one
   millisecond of error, and keeps history/table capacities fixed. It isolates clock arithmetic;
-  it does not run the filter on four hours of PCM.
-- Next: wire drift control to the timestamped capture source, measure sustained audio/video
+  it does not run the filter on four hours of PCM. `CaptureResampledFeeder` now observes the
+  source frame position and timestamp, applies its measured drift to the resampler, and feeds
+  bounded PCM16 blocks to the capture queue. Simulated 96 kHz float source packets traverse
+  this path into a 48 kHz AAC track and MP4 with no dropped queue frames.
+- Next: validate drift control on a real Windows input/output device and measure sustained audio/video
   alignment and filter behavior on representative long recordings.
 - Done when: rate conversions between 44.1 and 48 kHz meet a stated passband and alias bound, and
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.

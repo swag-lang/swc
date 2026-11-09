@@ -5,8 +5,9 @@ using Core, Core.Errors, Pixel, Video
 // The caller drives `captureAt` with monotonic microsecond timestamps. Missed slots repeat the
 // preceding frame; if the screen cannot be read, a black first frame or the last good frame
 // fills the slot and the source is reopened. Audio PCM16 can be added on zero through four
-// separate tracks. The caller creates audio queues against `captureOriginTick` after the first
-// accepted picture and uses the same monotonic clock to keep sound and video aligned.
+// separate tracks. The caller creates audio queues against `captureOriginTick` (microseconds)
+// or `captureOrigin100ns` (WASAPI) after the first accepted picture, using the same monotonic
+// clock to keep sound and video aligned.
 #[Swag.NoCopy]
 struct VideoCaptureSession
 {
@@ -14,6 +15,7 @@ struct VideoCaptureSession
     recording:     Mp4.SoftwareRecording
     pacer:         FramePacer
     picture:       Image
+    audioConfigs:  Array'Mp4.SoftwareAudioConfig
     originTick:    u64
     hasOrigin:     bool
     sourceFailures: u64
@@ -36,6 +38,7 @@ impl VideoCaptureSession
         result.pacer = try FramePacer.create(rate, 1_000_000, 90_000)
         result.recording = try Mp4.SoftwareRecording.createWithAudioTracks(
             path, width, height, 90_000, audioConfigs)
+        result.audioConfigs.add(audioConfigs)
         result.picture = Image.create(width, height, .BGRA8)
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)
         return result
@@ -82,6 +85,19 @@ impl VideoCaptureSession
 
     // Returns the first accepted capture tick for audio queues using a microsecond clock.
     mtd const captureOriginTick()->u64 => .originTick
+
+    // Returns the same origin in 100-nanosecond units for Windows WASAPI capture queues.
+    //
+    // Windows `Time.monotonicMicroseconds` and WASAPI timestamps use the same performance
+    // counter. Call this after `hasCaptureOrigin`; conversion loses at most one microsecond.
+    mtd const captureOrigin100ns()->u64 fail
+    {
+        if not .hasOrigin do
+            fail BadParameterError{"video capture has no first frame origin yet"}
+        if .originTick > Swag.U64.Max / 10 do
+            fail OverflowError{"video capture origin exceeds the WASAPI timestamp range"}
+        return .originTick * 10
+    }
 
     // Returns the number of written picture slots, including repeats.
     mtd const frameCount()->u64 => .recording.videoFrameCount()

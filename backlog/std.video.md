@@ -209,7 +209,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   exercises the SIMD group and scalar remainder in one row.
   A one-second synthetic 4K60 scrolling sequence with stereo AAC takes 2.07 seconds through
   software conversion, H.264 and fragmented MP4 on this machine. Real screen acquisition and
-  further H.264 compression still need measurement.
+  further H.264 compression still need measurement. Exact 4×4 luma and chroma DC/AC residuals
+  now compress changed macroblocks instead of falling back to raw I_PCM where possible, with
+  byte-exact round trips through `Video.Reader` and FFmpeg. A sparse chroma-change profile
+  encodes a 1080p picture in 12.7 ms at 65,382 bytes and a 4K picture in 51.0 ms at 263,353
+  bytes on this machine. The 4K profile is still about three times slower than a 60 fps frame
+  budget; changing textures and target bitrate remain unresolved.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: add quantized transform coding, rate control and motion search to the portable Swag
@@ -264,11 +269,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   verifies that the clock can still identify exactly 1024 priming samples, and rejects a
   timescale too coarse to do so. `SoftwareRecording.createVideoOnly` now writes a playable
   video track with no empty AAC track and no priming when sound is unavailable or disabled.
-  The writer does not yet author final-padding
-  metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
-  to build its frame table when opening a file.
+  On finalization, the writer now publishes standard edit lists from reserved `free` boxes;
+  `Video.Reader` applies AAC priming and trailing trim and reports the exact source frame count,
+  including partial final packets at 44.1 and 48 kHz. Completed fragment prefixes remain
+  readable before finalization. FFmpeg currently ignores edit lists in fragmented MP4 and
+  therefore exposes up to 1023 padded AAC samples at the end. The writer has no timed metadata
+  tracks; `Video.Reader` still scans fragments to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
-  Carry AAC priming and final-padding semantics in the recording API and container timeline.
+  Check final-padding semantics in other reference players and retain the resumable prefix.
   Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets
   and a timescale that does not accumulate rounding. Keep the current single-stream writer as a
   facade.

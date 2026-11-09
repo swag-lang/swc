@@ -111,17 +111,52 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
     Swag.require(not samePIntraPicture(&p3, &p4))
 }
 
-// QP 36 keeps the established inter path: quantized intra cannot be assumed
-// to anchor a flat neighbour at this coarser quantization step.
+// QP 36 also uses flat P intra when it is smaller than inter. A repeated raw
+// source and the decoded P picture must both retain the reconstructed P1.
 #test
 {
+    let path = videoTempPath("h264-quantized-p-intra-qp36", "mp4")
+    defer discard catch File.delete(path)
     var key, flat: Nv12Frame
     key.fillPIntraPattern(64, 64)
     flat.fillPIntraFlat(64, 64, 83, 117, 141)
     var encoder = expect H264.Encoder.create(64, 64, 60, 36, 2)
-    discard expect encoder.encode(&key, 0, 3_000)
-    let p = expect encoder.encode(&flat, 3_000, 3_000)
-    Swag.require(p.bytes.count == 2_118)
+    var writer = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000,
+                                                    encoder.decoderConfig())
+    expect writer.addPacket(expect encoder.encode(&key, 0, 3_000))
+    let first = expect encoder.encode(&flat, 3_000, 3_000)
+    Swag.require(first.bytes.count < 1_000)
+    expect writer.addPacket(first)
+    expect writer.flush()
+    var decodedSource: Nv12Frame
+    scope
+    {
+        var prefix = expect Reader.open(path)
+        var decoded: PlanarFrame
+        expect prefix.decodeFramePlanesInto(&decoded, 1)
+        decodedSource.setPIntraDecoded(&decoded)
+    }
+    let held = expect encoder.encode(&flat, 6_000, 3_000)
+    Swag.require(held.bytes.count <= 32)
+    expect writer.addPacket(held)
+    let decodedHeld = expect encoder.encode(&decodedSource, 9_000, 3_000)
+    Swag.require(decodedHeld.bytes.count <= 32)
+    expect writer.addPacket(decodedHeld)
+    expect writer.end()
+    var reader = expect Reader.open(path)
+    var p1, p2, p3: PlanarFrame
+    expect reader.decodeFramePlanesInto(&p1, 1)
+    expect reader.decodeFramePlanesInto(&p2, 2)
+    expect reader.decodeFramePlanesInto(&p3, 3)
+    Swag.require(samePIntraPicture(&p1, &p2))
+    Swag.require(samePIntraPicture(&p1, &p3))
+    var squaredError = 0'u64
+    for index in p1.luma.count
+    {
+        let delta = cast(s32, p1.luma[index]) - cast(s32, flat.luma()[index])
+        squaredError += cast(u64, delta * delta)
+    }
+    Swag.require(squaredError < p1.luma.count * 64)
 }
 
 // Cropped PCM edges and slice starts stay decodable next to quantized flat interiors.

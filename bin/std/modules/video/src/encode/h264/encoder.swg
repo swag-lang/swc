@@ -563,10 +563,10 @@ private impl Encoder
                             chromaNonZero[motionIndex * 8 + block] = 0
                     }
                 }
-                // This flat-source intra shortcut is measured at QP 28, where its
-                // decoded DC anchors the background for following macroblocks.
-                // Higher QPs may miss that anchor and retry across an entire frame.
-                if not key and .quantizationQp == 28 and flatSource and not flatDecoded
+                // The flat-source intra shortcut is validated at QP 28 and 36.
+                // Keep other QPs on the inter path until their reconstruction is tested.
+                if not key and (.quantizationQp == 28 or .quantizationQp == 36) and
+                   flatSource and not flatDecoded
                 {
                     // Source-flat blocks following lossy neighbours cannot use the empty
                     // intra form. Try the existing quantized DC predictor only when its

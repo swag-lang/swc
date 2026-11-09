@@ -12,6 +12,7 @@ private const VoiceLines    = 176'u64
 private const VoiceBands    = 23'u64
 private const FullLines     = 1_024'u64
 private const FullBands     = 49'u64
+private const MaximumBandBoost = 48's32
 
 // Selects the MDCT bandwidth of the software AAC encoder.
 enum Bandwidth
@@ -26,7 +27,8 @@ enum Bandwidth
 // Encodes interleaved PCM16 into bounded AAC-LC access units.
 //
 // The full profile encodes all 1024 MDCT lines; the voice profile keeps 176 lines, ending near
-// 4 kHz. Both use long sine windows and independent channels, without transient window switching.
+// 4 kHz. Both use long sine windows, independent channels and bounded per-band scalefactors,
+// without transient window switching.
 // Each call accepts exactly 1024 frames and replaces `packet` with one raw access unit. The
 // encoder holds the previous input block for AAC overlap; the caller supplies timestamps.
 #[Swag.NoCopy]
@@ -167,23 +169,36 @@ impl Encoder
             if largest > 0 do
                 gain = Math.clamp(cast(s32, Math.ceil(100.0 + 4.0 *
                                  Math.log2(largest / Math.pow(15.0'f64, 4.0'f64 / 3.0)))), 0, 255)
-            let factor = Math.pow(2.0, 0.25 * cast(f64, gain - 100))
             var quantized: [FullLines] s32
             var active: [FullBands] bool
+            var bandGain: [FullBands] s32
             let rateIndex = .sampleRate == 48_000 ? 3'u32 : 4'u32
             let offsets = swbLong(rateIndex)
-            for line in .lineCount
-            {
-                let value = spectrum[line]
-                let magnitude = Math.min(15's32, cast(s32, Math.round(Math.pow(Math.abs(value) / factor, 0.75))))
-                quantized[line] = value < 0 ? -magnitude : magnitude
-            }
+            // Keep each band's quiet components above the global quantization floor. AAC
+            // codes scalefactor differences in [-60, 60]; limiting the boost to 48 steps
+            // also bounds every jump between active bands without extra side information.
+            let minimumGain = Math.max(0's32, gain - MaximumBandBoost)
             for band in .bandCount
             {
-                for line in offsets[band] until offsets[band + 1] where quantized[line] != 0
+                var bandPeak = 0.0'f64
+                for line in offsets[band] until offsets[band + 1] do
+                    bandPeak = Math.max(bandPeak, Math.abs(spectrum[line]))
+                var selected = gain
+                // Ignore far-off leakage and numerical residue around a strong tone.
+                // A component 150x below the strongest band remains eligible.
+                if bandPeak >= largest / 512.0 and bandPeak > 0 do
+                    selected = Math.clamp(cast(s32, Math.ceil(100.0 + 4.0 *
+                               Math.log2(bandPeak / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
+                                          minimumGain, gain)
+                bandGain[band] = selected
+                let factor = Math.pow(2.0, 0.25 * cast(f64, selected - 100))
+                for line in offsets[band] until offsets[band + 1]
                 {
-                    active[band] = true
-                    break
+                    let value = spectrum[line]
+                    let magnitude = Math.min(15's32, cast(s32, Math.round(Math.pow(Math.abs(value) / factor, 0.75))))
+                    quantized[line] = value < 0 ? -magnitude : magnitude
+                    if magnitude do
+                        active[band] = true
                 }
             }
 
@@ -198,9 +213,12 @@ impl Encoder
                 .writeBits(active[band] ? 11 : 0, 4)
                 .writeBits(1, 5)
             }
+            var previousGain = gain
             for band in .bandCount where active[band]
             {
-                .writeBits(ScfCodes[60], ScfBits[60]) // No scalefactor difference.
+                let difference = cast(u64, 60 + bandGain[band] - previousGain)
+                .writeBits(ScfCodes[difference], ScfBits[difference])
+                previousGain = bandGain[band]
             }
             .writeBits(0, 1) // No pulse data.
             .writeBits(0, 1) // No TNS.

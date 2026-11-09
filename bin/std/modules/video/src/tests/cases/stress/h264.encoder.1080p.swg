@@ -109,6 +109,29 @@ private impl Nv12Frame
             }
         }
     }
+
+    mtd stressIrregularLumaChroma()
+    {
+        let width = cast(u64, .width)
+        let chroma = width * cast(u64, .height)
+        for mbY in cast(u64, .height) / 16
+        {
+            for mbX in width / 16
+            {
+                let luma = mbY * 16 * width + mbX * 16
+                for row in 16'u64
+                {
+                    for column in 16'u64
+                    {
+                        let offset = luma + row * width + column
+                        .bytes[offset] = cast(u8, (row * 17 + column * 31 + mbX * 7 + mbY * 13) & 255)
+                    }
+                }
+                let uv = chroma + mbY * 8 * width + mbX * 16
+                .bytes[uv] = cast(u8, cast(s32, .bytes[uv]) + 2)
+            }
+        }
+    }
 }
 
 // Measures a textured IDR, 16px scroll, unchanged picture, and flat color at 1080p.
@@ -375,6 +398,39 @@ private impl Nv12Frame
                    watch.elapsedMicroseconds())
     Swag.require(ac.bytes.count < keySize / 10)
     expect writer.addPacket(ac)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireStressPicture(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireStressPicture(&changed, &decoded)
+}
+
+// Dense luma/chroma changes measure the fallback cost on a changing 4K picture.
+#[Swag.TestTag("stress")]
+#test
+{
+    let path = videoTempPath("h264-encoder-irregular-4k", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderStressTiles(0, 3840, 2160)
+    var changed = expect encoderStressTiles(0, 3840, 2160)
+    changed.stressIrregularLumaChroma()
+    var encoder = expect H264.Encoder.create(3840, 2160)
+    var writer = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 1_500)
+    expect writer.addPacket(key)
+    var watch: Time.Stopwatch
+    watch.start()
+    let changedPacket = expect encoder.encode(&changed, 1_500, 1_500)
+    watch.stop()
+    Console.printf("H264 4K irregular change: % bytes, % us\n",
+                   changedPacket.bytes.count, watch.elapsedMicroseconds())
+    Swag.require(changedPacket.bytes.count > key.bytes.count / 100)
+    Swag.require(changedPacket.bytes.count < key.bytes.count * 2)
+    expect writer.addPacket(changedPacket)
     expect writer.end()
 
     var reader = expect Reader.open(path)

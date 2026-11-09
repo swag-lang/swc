@@ -257,13 +257,15 @@ whole recording loaded at once.
 - Evidence: video recording is a product goal of the universal capture. The `Video.Writer`
   facade still writes Motion JPEG in MP4 and AVI, plus Y4M. Separately, pure Swag H.264 and
   AAC-LC encoders now feed a resumable fragmented-MP4 writer with video and sound tracks;
-  `Video.Reader` and FFmpeg play their output. Synthetic static and scrolling 1080p60 sequences
-  encode faster than real time in Release. Swag Capture has no video-recording session or UI,
+  `Video.Reader` and FFmpeg play their output. `Video.Mp4.SoftwareRecording` now joins the
+  encoders, exact video frame slots, arbitrary PCM chunks, AAC priming and MP4 finalization.
+  Synthetic static and scrolling 1080p60 sequences encode faster than real time in Release.
+  Swag Capture has no video-recording session or UI,
   and `BitBlt` acquisition cannot sustain large areas at 60 frames per second.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
-  medium: Desktop Duplication acquisition (platform.portability.097), H.264 encoding
-  (std.video.015), and a fragmented MP4 master (std.video.016) read back by the existing H.264
-  decoder for the timeline and re-export.
+  medium using `Video.Mp4.SoftwareRecording`: Desktop Duplication acquisition
+  (platform.portability.097), pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
+  and readback through the existing H.264 decoder for the timeline and re-export.
   Long recordings need, beside the stream: a recording folder that may differ from the library,
   free-space watching that stops cleanly before the disk is full, optional automatic splitting by
   duration or size, and recovery when the source is lost (secure desktop, display change, GPU
@@ -277,6 +279,10 @@ whole recording loaded at once.
 
 ### app.capture.013 — Recordings cannot include audio
 
+- Evidence: `Audio.CaptureQueue` now reports PCM timing, gaps, overflow and source restoration
+  with bounded storage; software AAC and MP4 recording consume its output. A simulated
+  microphone outage produces audible sound, silence, then sound in a decoded MP4. A real
+  microphone or system-loopback device is not yet connected to Swag Capture.
 - Next: after app.capture.011, add the dock toggles: microphone with its level meter, system
   sound, or this application's sound only for a window target. Keep each source on its own track,
   timestamped on the performance counter and mixed only at export. Add a sound-only medium with a

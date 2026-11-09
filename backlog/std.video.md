@@ -205,7 +205,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   Parallel software BGRA8-to-NV12 conversion takes 2.58 ms per warmed 1920×1080 frame and
   9.49 ms per warmed 4K frame in Release, down from 6.57 and 26.76 ms on the same machine.
   A 4K varying-color parity test matches every output byte against the scalar BGR8 path.
-  Real screen acquisition and 4K60 still need end-to-end measurement.
+  A one-second synthetic 4K60 scrolling sequence with stereo AAC takes 2.07 seconds through
+  software conversion, H.264 and fragmented MP4 on this machine. Real screen acquisition and
+  further H.264 compression still need measurement.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: add quantized transform coding, rate control and motion search to the portable Swag
@@ -248,7 +250,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   intervals to key-frame packet ranges with a bounded fragment scan. Software H.264 and AAC
   packets now round-trip through this writer and `Video.Reader`, and FFmpeg plays the file. A
   test starts video one AAC priming packet after audio; `Video.Reader` trims exactly 1024 decoded
-  samples and aligns the audible signal. The writer does not yet author priming or final-padding
+  samples and aligns the audible signal. `Mp4.SoftwareRecording` now applies that video offset,
+  buffers arbitrary PCM chunks, and finalizes the H.264/AAC file; a simulated lost microphone
+  block round-trips as silence in the decoded MP4. The writer does not yet author final-padding
   metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
   to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.

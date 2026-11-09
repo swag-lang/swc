@@ -2,6 +2,23 @@
 
 using Core, Pixel
 
+#[Swag.Inline]
+private func copyX11BgraRow(input: const [*] u8, output: [*] u8, width: u64, opaque: Math.Simd.U32x4)
+{
+    for group in width / 4
+    {
+        let offset = group * 16
+        let pixels = cast #bit(Math.Simd.U32x4, Math.Simd.load(input + offset))
+        Math.Simd.store(output + offset, cast #bit(Math.Simd.U8x16, pixels | opaque))
+    }
+    for pixel in width % 4
+    {
+        let offset = (width / 4 * 4 + pixel) * 4
+        Memory.copy(output + offset, input + offset, 3)
+        output[offset + 3] = 255
+    }
+}
+
 // Owns an independent X11 connection for desktop capture and best-effort window queries.
 // The GUI event queue remains owned by Gui; capture never consumes its events.
 #[Swag.NoCopy]
@@ -524,22 +541,28 @@ impl X11Capture
            visual.red_mask == 0x00FF0000
         {
             let opaque = Math.Simd.splat(0xFF000000'u32)
-            for row in imageHeight
+            let outputBase = target.pixels.storage()
+            let outputStride = cast(u64, target.rowStride)
+            if imageWidth >= 3840 and imageHeight >= 2160
             {
-                let input  = source + row * stride
-                let output = target.pixels.storage() + (imageHeight - row - 1) * cast(u64, target.rowStride)
-                for group in imageWidth / 4
+                // Each band reads and writes disjoint rows of the shared image.
+                const Bands = 8'u64
+                parallel for |source, outputBase, stride, outputStride, imageHeight, imageWidth, opaque| band in Bands
                 {
-                    let offset = group * 16
-                    let pixels = cast #bit(Math.Simd.U32x4, Math.Simd.load(input + offset))
-                    Math.Simd.store(output + offset, cast #bit(Math.Simd.U8x16, pixels | opaque))
+                    let first = band * imageHeight / Bands
+                    let last  = (band + 1) * imageHeight / Bands
+                    for row in first until last do
+                        copyX11BgraRow(source + row * stride,
+                                       outputBase + (imageHeight - row - 1) * outputStride,
+                                       imageWidth, opaque)
                 }
-                for pixel in imageWidth % 4
-                {
-                    let offset = (imageWidth / 4 * 4 + pixel) * 4
-                    Memory.copy(output + offset, input + offset, 3)
-                    output[offset + 3] = 255
-                }
+            }
+            else
+            {
+                for row in imageHeight do
+                    copyX11BgraRow(source + row * stride,
+                                   outputBase + (imageHeight - row - 1) * outputStride,
+                                   imageWidth, opaque)
             }
             if drawCursor do
                 try .drawCursor(target, x, y)

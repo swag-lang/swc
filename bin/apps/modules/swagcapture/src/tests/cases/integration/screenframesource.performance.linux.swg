@@ -3,6 +3,24 @@
 
 using Swag, Core, Pixel
 
+private func paintBenchmarkWindow(window: *Env.Window, pixel: u32)
+{
+    let drawable = expect window.xcbDrawable()
+    let library  = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
+    Swag.require(library != null)
+    defer discard Linux.dlclose(unwrap library)
+    let attributes = expect X11Capture.symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
+    let clear      = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
+    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let connection = unwrap drawable.connection
+    let changed = check(connection, attributes(connection, drawable.window, 2, &pixel))
+    defer Linux.free(changed)
+    Swag.require(changed == null)
+    let cleared = check(connection, clear(connection, 0, drawable.window, 0, 0, 0, 0))
+    defer Linux.free(cleared)
+    Swag.require(cleared == null)
+}
+
 // Reports warmed-up frame acquisition on the active X11 server without image allocation.
 #[Swag.TestTag("integration.capture.x11")]
 #test
@@ -58,6 +76,18 @@ using Swag, Core, Pixel
     var capture = expect X11Capture.create()
     let width  = Math.min(3840's32, cast(s32, capture.screen.width_in_pixels))
     let height = Math.min(2160's32, cast(s32, capture.screen.height_in_pixels))
+    if width < 128 or height < 96 do
+        return
+    var top = expect Env.createWindow({identifier: "capture-parity-top", title: "Top capture parity",
+                                       width: 64, height: 48, stopLoopOnClose: false})
+    var bottom = expect Env.createWindow({identifier: "capture-parity-bottom", title: "Bottom capture parity",
+                                          width: 64, height: 48, stopLoopOnClose: false})
+    expect top.setPosition(10, 12)
+    expect bottom.setPosition(width - 80, height - 60)
+    expect top.show()
+    expect bottom.show()
+    paintBenchmarkWindow(&top, 0xFF0000)
+    paintBenchmarkWindow(&bottom, 0x0000FF)
     var fallback = expect ScreenFrameSource.create(false, 0, 0, width, height)
     fallback.capture.shmDisabled = true
     var shared = expect ScreenFrameSource.create(false, 0, 0, width, height)
@@ -67,6 +97,8 @@ using Swag, Core, Pixel
     expect shared.grabInto(&actual)
     Swag.require(expected.byteCount == actual.byteCount)
     Swag.require(Memory.compare(expected.pixels.storage(), actual.pixels.storage(), expected.byteCount) == 0)
+    Swag.require(actual.pixelColor(14, 16).argb == Argb.Red)
+    Swag.require(actual.pixelColor(width - 76, height - 56).argb == Argb.Blue)
     Console.printf("X11 MIT-SHM % by %: %\n", width, height, shared.capture.shmData != null ? "enabled" : "fallback")
 }
 

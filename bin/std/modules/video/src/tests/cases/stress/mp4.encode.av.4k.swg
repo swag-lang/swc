@@ -1,0 +1,100 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Swag, Core, Audio, Pixel
+
+// Measures one second of software 4K60 video with 16-pixel scrolling and stereo AAC.
+// Source pictures and samples are prepared before the clock starts.
+#[Swag.TestTag("stress")]
+#test
+{
+    const Width  = 3840
+    const Height = 2160
+    let path = videoTempPath("mp4-software-scroll-4k60", "mp4")
+    defer discard catch File.delete(path)
+    let first = Image.create(Width, Height, .BGRA8)
+    let moved = Image.create(Width, Height, .BGRA8)
+    let firstPixels = first.pixels.storage()
+    let movedPixels = moved.pixels.storage()
+    for y in Height
+    {
+        for x in Width
+        {
+            let offset = cast(u64, (y * Width + x) * 4)
+            let movedY = (y + 16) % Height
+            firstPixels[offset]     = cast(u8, (x * 7 + y * 3) & 255)
+            firstPixels[offset + 1] = cast(u8, (x * 5 + y * 11) & 255)
+            firstPixels[offset + 2] = cast(u8, (x * 13 + y * 2) & 255)
+            firstPixels[offset + 3] = 255
+            movedPixels[offset]     = cast(u8, (x * 7 + movedY * 3) & 255)
+            movedPixels[offset + 1] = cast(u8, (x * 5 + movedY * 11) & 255)
+            movedPixels[offset + 2] = cast(u8, (x * 13 + movedY * 2) & 255)
+            movedPixels[offset + 3] = 255
+        }
+    }
+    var samples: [2 * 1_024] s16
+    for index in 1_024'u64
+    {
+        samples[index * 2] = cast(s16, Math.round(8_000.0 *
+            Math.sin(Math.ConstF64.TwoPi * 1_000.0 * index / 48_000.0)))
+        samples[index * 2 + 1] = cast(s16, Math.round(6_000.0 *
+            Math.sin(Math.ConstF64.TwoPi * 1_500.0 * index / 48_000.0)))
+    }
+
+    var nv12: Nv12Frame
+    var video = expect H264.Encoder.create(Width, Height, keyInterval: 120)
+    var audio = expect Aac.StreamEncoder.create(48_000, 2)
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path, Width, Height, 90_000,
+                                                             video.decoderConfig(),
+                                                             Mp4.FragmentedAudioConfig{48_000, 2,
+                                                                                       audio.decoderConfig()})
+    var watch: Time.Stopwatch
+    watch.start()
+    var audioBlocks = 0'u64
+    for frame in 60'u64
+    {
+        if frame % 2 do
+            expect nv12.convertFrom(&moved)
+        else do
+            expect nv12.convertFrom(&first)
+        let packet = expect video.encode(&nv12, 1_920 + frame * 1_500, 1_500)
+        if frame > 0 do
+            Swag.require(packet.bytes.count < 1_000_000)
+        expect writer.addPacket(packet)
+        while audioBlocks < 47 and audioBlocks * 1_024 < (frame + 1) * 800
+        {
+            var encoded: Array'u8
+            Swag.require(expect audio.push(Swag.makeSlice(&samples[0], samples.count), &encoded) == 1_024)
+            expect writer.addAudioPacket(EncodedPacket{encoded.toSlice(), audio.lastPacketStartSample(),
+                                                       audio.lastPacketStartSample(), 1_024, true})
+            audioBlocks += 1
+        }
+    }
+    Swag.require(audioBlocks == 47)
+    var drain: Array'u8
+    Swag.require(expect audio.finish(&drain))
+    expect writer.addAudioPacket(EncodedPacket{drain.toSlice(), audio.lastPacketStartSample(),
+                                               audio.lastPacketStartSample(), 1_024, true})
+    Swag.require(not (expect audio.finish(&drain)))
+    expect writer.end()
+    watch.stop()
+    Console.printf("Software MP4 scrolling 4K60: % us for 60 video and % audio packets\n",
+                   watch.elapsedMicroseconds(), audio.packetCount())
+
+    let summary = expect Mp4.summarizeFragmentedRecording(path)
+    Swag.require(summary.video.packetCount == 60 and summary.audioTracks.count == 1)
+    Swag.require(summary.audioTracks[0].packetCount == 48 and not summary.hasIncompleteTail)
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 60 and reader.audioTrackCount() == 1)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 59)
+    Swag.require(Slice.equals(decoded.luma.toSlice(), nv12.luma()))
+    let uv = nv12.chroma()
+    for index in decoded.chromaB.count
+    {
+        Swag.require(decoded.chromaB[index] == uv[index * 2])
+        Swag.require(decoded.chromaR[index] == uv[index * 2 + 1])
+    }
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleFrameCount() == 47 * 1_024)
+}

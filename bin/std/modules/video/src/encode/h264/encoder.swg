@@ -570,16 +570,23 @@ private impl Encoder
 
                     if .quantizationQp
                     {
+                        var residualMotion = EncoderMotion{0, 0, true}
+                        if preferShiftedInterPrediction(frame.luma().buffer,
+                                                        .previous.storage(), .width, .height,
+                                                        mbX, mbY, -16, -8) do
+                            residualMotion = {-64, -32, true}
                         var quantized: EncoderQuantizedMb
-                        if .quantizeInterMb(frame, mbX, mbY, &quantized)
+                        if .quantizeInterMb(frame, mbX, mbY,
+                                            residualMotion.x / 4, residualMotion.y / 4,
+                                            &quantized)
                         {
                             let oldBytes = bits.bytes.count
                             let oldCurrent = bits.current
                             let oldUsed = bits.used
                             let oldQp = currentQp
-                            bits.unsigned(0) // P_L0_16x16 with zero motion.
-                            bits.signed(-prediction.x)
-                            bits.signed(-prediction.y)
+                            bits.unsigned(0) // P_L0_16x16 with the chosen integer motion.
+                            bits.signed(residualMotion.x - prediction.x)
+                            bits.signed(residualMotion.y - prediction.y)
                             let coded = .writeAcResidual(&bits, nonZero.toSlice(),
                                                          chromaNonZero.toSlice(), mbX, mbY,
                                                          quantized.lumaLevels.buffer,
@@ -595,7 +602,7 @@ private impl Encoder
                             if coded and written < 3_072
                             {
                                 .storeQuantizedMb(&quantized, mbX, mbY)
-                                motions[motionIndex] = {0, 0, true}
+                                motions[motionIndex] = residualMotion
                                 skipped = 0
                                 continue
                             }
@@ -822,17 +829,23 @@ private impl Encoder
         return true
     }
 
-    // Builds all sixteen luma and eight chroma coefficient blocks against the previous
+    // Builds all sixteen luma and eight chroma coefficient blocks against the shifted
     // decoded picture. Edge macroblocks retain the exact PCM path, which handles padding.
-    mtd const quantizeInterMb(frame: const *Nv12Frame, mbX, mbY: u32,
+    mtd const quantizeInterMb(frame: const *Nv12Frame, mbX, mbY: u32, dx, dy: s32,
                               result: *EncoderQuantizedMb)->bool
     {
         let width = cast(u64, .width)
         let height = cast(u64, .height)
         let x = cast(u64, mbX) * 16
         let y = cast(u64, mbY) * 16
-        if x + 16 > width or y + 16 > height do
+        let shiftedX = cast(s64, x) + cast(s64, dx)
+        let shiftedY = cast(s64, y) + cast(s64, dy)
+        if x + 16 > width or y + 16 > height or dx % 2 or dy % 2 or
+           shiftedX < 0 or shiftedY < 0 or shiftedX + 16 > cast(s64, width) or
+           shiftedY + 16 > cast(s64, height) do
             return false
+        let priorX = cast(u64, shiftedX)
+        let priorY = cast(u64, shiftedY)
 
         let currentY = frame.luma()
         let currentUv = frame.chroma()
@@ -847,8 +860,9 @@ private impl Encoder
             {
                 let block = by * 4 + bx
                 let offset = (y + by * 4) * width + x + bx * 4
+                let priorOffset = (priorY + by * 4) * width + priorX + bx * 4
                 var quantized: InterLuma4x4Result
-                quantizeInterLuma4x4(currentY.buffer + offset, previousY + offset,
+                quantizeInterLuma4x4(currentY.buffer + offset, previousY + priorOffset,
                                      width, width, .quantizationQp, &quantized)
                 for scan in 16'u64 do
                     result.lumaLevels[block * 16 + scan] = quantized.levels[scan]
@@ -867,11 +881,12 @@ private impl Encoder
         }
 
         let chromaOffset = y / 2 * width + x
+        let priorChromaOffset = priorY / 2 * width + priorX
         for plane in 2'u64
         {
             var quantized: InterChroma8x8Result
             quantizeInterChroma8x8(currentUv.buffer + chromaOffset + plane,
-                                   previousUv + chromaOffset + plane,
+                                   previousUv + priorChromaOffset + plane,
                                    width, width, .quantizationQp, 0, &quantized)
             for index in 4'u64 do
                 result.chromaDc[plane * 4 + index] = quantized.dc[index]

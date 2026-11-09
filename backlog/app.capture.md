@@ -232,8 +232,8 @@ whole recording loaded at once.
   test has no actual audio device. `VideoCaptureSession` accepts optional H.264 QP 0–51 and
   one through eight row-band slices, preserving exact QP 0 and one slice by default. On the
   same dynamic X11 4K60 scene, quantized QP 28 with four slices, motion residuals and
-  P-slice Intra16x16 coding of flat regions takes about 2.40 seconds for capture,
-  conversion, video encoding and MP4 and produces 4.16 MB (final-frame luma PSNR
+  P-slice Intra16x16 coding of flat regions takes 2.40–2.93 seconds across measured runs
+  for capture, conversion, video encoding and MP4 and produces 4.16 MB (final-frame luma PSNR
   48.41 dB). This P-intra candidate is currently limited to QP 28. QP 36 takes 3.55–3.73
   seconds and produces 10.06 MB (38.10 dB), following the previous path. Exact QP 0
   with four slices and one matching diagonal motion vector takes
@@ -241,13 +241,17 @@ whole recording loaded at once.
   4K60 target on this machine. `VideoCaptureSession` also
   checks the destination volume once per second, reserves 64 MiB by default, and finalizes
   the last playable MP4 prefix when free space falls below that threshold; an integration
-  test reopens its final video and AAC tracks after the simulated stop. Swag Capture has no
-  video-recording UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
+  test reopens its final video and AAC tracks after the simulated stop. The nine X11
+  integration tests passed before the last chroma shortcut; two later repeats stalled in
+  the generated test runner before reporting individual results, at three and one workers.
+  Their cause remains unisolated. Swag Capture has no video-recording UI. The persistent
+  Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.
-- Next: once app.capture.012 has proven the session, timeline and document, add video as a
-  medium using `Video.Mp4.SoftwareRecording`: measure the persistent GDI source on Windows and
-  use Desktop Duplication acquisition (platform.portability.097) only if the required cadence
+- Next: isolate the generated X11 test runner stall. Once app.capture.012 has proven the
+  session, timeline and document, add video as a medium using `Video.Mp4.SoftwareRecording`:
+  measure the persistent GDI source on Windows and use Desktop Duplication acquisition
+  (platform.portability.097) only if the required cadence
   cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
   and readback through the existing H.264 decoder for the timeline and re-export.
   Long recordings need, beside the stream: a recording folder that may differ from the library,

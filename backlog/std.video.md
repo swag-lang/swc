@@ -261,7 +261,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   whose lossy reconstructed borders prevent the empty intra form. A flat-source luma shortcut
   and a chroma DC shortcut keep the quantizer's output byte-identical. The chroma shortcut
   halves its isolated 200,000-call cost. The same X11 4K60 scene with four
-  slices now takes about 2.40 seconds for capture, conversion, H.264 and MP4, produces
+  slices takes 2.40–2.93 seconds across measured runs for capture, conversion, H.264 and MP4,
+  produces
   4.16 MB, and reaches 48.41 dB final-frame luma PSNR; FFmpeg decodes all 60 pictures.
   The largest previous P packet falls from 1.73 MB to 81 KB. QP 36 follows the prior path
   unchanged and still takes 3.55–3.73 seconds, 10.06 MB and 38.10 dB on this scene. The P-intra

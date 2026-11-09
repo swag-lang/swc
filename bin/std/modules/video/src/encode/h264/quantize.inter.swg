@@ -62,11 +62,37 @@ private func quantizeInterLuma4x4(source, prediction: const [*] u8,
             result.reconstructed[row * 4 + column] = pred[column]
     }
 
-    var scaled: [16] s16
-    result.nonZero = 0
     let qmod = cast(u64, qp % 6)
     let qdiv = qp / 6
     let qbits = 15 + qdiv
+    // A constant 4x4 residual has only a DC coefficient (16 times its delta).
+    // Keep the same quantizer and decoder inverse scale as the general path.
+    let rowDc = horizontal[0]
+    if horizontal[1] == 0 and horizontal[2] == 0 and horizontal[3] == 0 and
+       horizontal[4] == rowDc and horizontal[5] == 0 and horizontal[6] == 0 and horizontal[7] == 0 and
+       horizontal[8] == rowDc and horizontal[9] == 0 and horizontal[10] == 0 and horizontal[11] == 0 and
+       horizontal[12] == rowDc and horizontal[13] == 0 and horizontal[14] == 0 and horizontal[15] == 0
+    {
+        let coefficient = rowDc * 4
+        let magnitude = (cast(s64, Math.abs(coefficient)) *
+                         cast(s64, InterLuma4x4QuantFactor[qmod, 0]) +
+                         (1's64 << (qbits - 1))) >> qbits
+        let level = cast(s32, coefficient < 0 ? -magnitude : magnitude)
+        for index in 16'u64 do
+            result.levels[index] = 0
+        result.levels[0] = cast(s16, level)
+        result.nonZero = level ? 1 : 0
+        if level
+        {
+            let scale = cast(u32, Dequant4Scale[qmod * 3]) * 16 << qdiv
+            let dc = dequantLevel(level, scale, 4)
+            addDc4x4(result.reconstructed.buffer, 4, dc)
+        }
+        return
+    }
+
+    var scaled: [16] s16
+    result.nonZero = 0
     for column in 4'u64
     {
         let a0 = horizontal[column]
@@ -163,6 +189,23 @@ private func quantizeInterChroma8x8(source, prediction: const [*] u8,
             horizontal[row * 4 + 3] = s3 - 2 * s2
             for column in 4'u64 do
                 result.reconstructed[(by * 4 + row) * 8 + bx * 4 + column] = pred[column * 2]
+        }
+        // Screen color changes commonly leave a constant residual within each 4x4
+        // chroma block. Its forward transform has only DC; the shared 2x2 DC
+        // Hadamard below still handles different deltas in adjacent blocks.
+        let rowDc = horizontal[0]
+        if horizontal[1] == 0 and horizontal[2] == 0 and horizontal[3] == 0 and
+           horizontal[4] == rowDc and horizontal[5] == 0 and horizontal[6] == 0 and horizontal[7] == 0 and
+           horizontal[8] == rowDc and horizontal[9] == 0 and horizontal[10] == 0 and horizontal[11] == 0 and
+           horizontal[12] == rowDc and horizontal[13] == 0 and horizontal[14] == 0 and horizontal[15] == 0
+        {
+            rawDc[block] = rowDc * 4
+            for scan in 1'u64 until 16
+            {
+                result.ac[base + scan] = 0
+                scaled[base + scan] = 0
+            }
+            continue
         }
         for column in 4'u64
         {

@@ -75,3 +75,26 @@ using Swag, Core
     Swag.require(area.x == 4 and area.y == 10 and area.w == 26 and area.h == 10)
     Swag.require(Frames.Writer.changedArea(before, before).isEmpty())
 }
+
+// One hour at 20 FPS writes the index to disk and seeks through its mapped trailer.
+#[Swag.TestTag("capture.stress")]
+#test
+{
+    let path = Gui.Testing.tempFilePath("frames-hour-", ".frames")
+    defer catch File.delete(path)
+    let picture = Image.create(1, 1, .BGRA8)
+    var writer = expect Frames.Writer.create(path, 1, 1, .BGRA8)
+    for i in 72_000 do
+        expect writer.add(picture, cast(u64, i) * 50_000)
+    Swag.require(writer.frameCount() == 72_000)
+    expect writer.close(3_600_000_000)
+    Swag.require(not File.exists(writer.indexPath))
+
+    var reader = expect Frames.Reader.open(path)
+    Swag.require(reader.frameCount() == 72_000)
+    Swag.require(reader.index.isEmpty() and reader.mappedIndex.isOpen())
+    Swag.require(reader.frameAt(3_000_000_000) == 60_000)
+    Swag.require(reader.frameAt(3_599_999_999) == 71_999)
+    Swag.require(testSamePixels(expect reader.read(71_999), &picture))
+    Swag.require(testSamePixels(expect reader.read(20), &picture))
+}

@@ -58,6 +58,28 @@ internal func testEndRecording()
     Swag.require(File.exists(Capture.mediaPathOf(file)))
 }
 
+// Recording options choose the next take's cadence, limit and stored dimensions.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    f.main.captureOptions.recordRate         = .Fps20
+    f.main.captureOptions.recordMaxSeconds    = 60
+    f.main.captureOptions.recordMaxDimension  = 320
+    testEndRecordingAfter(20, cancel: false)
+    let capture = expect Recorder.record(f.main, {0, 0, 640, 480})
+    testEndRecording()
+    Swag.require(capture != null)
+
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer Memory.delete(capture)
+    Swag.require(capture.width == 320 and capture.height == 240)
+    Swag.require(capture.timeline.duration <= 60_000_000)
+}
+
 // A cancelled recording keeps nothing.
 #test
 {

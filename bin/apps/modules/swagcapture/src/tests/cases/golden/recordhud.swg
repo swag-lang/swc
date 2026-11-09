@@ -5,7 +5,7 @@ using Swag, Core, Pixel
 
 // Renders the pill of a recording that stopped after `recorded` microseconds of `limit` (zero for
 // none), on its own floating sheet, on a host in Encre or Papier.
-func testRenderRecordHud(dark: bool, recorded, limit: u64)->Image
+func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0)->Image
 {
     var host: Gui.Testing.HeadlessHost
     host.setup(400, 120)
@@ -19,8 +19,9 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64)->Image
     let recorder = Memory.new'Recorder()
     defer Memory.delete(recorder)
     recorder.state    = .Stopped
-    recorder.recorded = recorded
+    recorder.clock.recorded = recorded
     recorder.limit    = limit
+    recorder.dropped  = dropped
 
     // The same sheet the recorder opens, on the host's own application.
     let width    = RecordHud.widthFor(limit)
@@ -52,4 +53,12 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64)->Image
 {
     var image = testRenderRecordHud(dark: false, recorded: 3_727_000_000, limit: 0)
     Pixel.Testing.assertImageGolden(&image, "recordhud.unlimited")
+}
+
+// Missed frames remain visible while recording and have their own visual reference.
+#[Swag.TestTag("golden")]
+#test
+{
+    var image = testRenderRecordHud(dark: true, recorded: 7_000_000, limit: 30_000_000, dropped: 12)
+    Pixel.Testing.assertImageGolden(&image, "recordhud.dropped")
 }

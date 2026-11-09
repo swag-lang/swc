@@ -2,6 +2,24 @@
 
 using Core, Win32, Gdi32
 
+// DWM removes these owned floating controls from desktop captures while leaving them visible
+// to the person recording. The affinity is tied to the HWND and disappears with it.
+#[Foreign("user32", callconv: Swag.CallConv.C), Discardable]
+func SetWindowDisplayAffinity(hWnd: HWND, dwAffinity: DWORD)->BOOL
+
+#[Foreign("user32", callconv: Swag.CallConv.C), Discardable]
+func GetWindowDisplayAffinity(hWnd: HWND, pdwAffinity: *DWORD)->BOOL
+
+func excludeCaptureChrome(surface: *Surface)
+{
+    if surface.win32Handle() do
+        discard SetWindowDisplayAffinity(surface.win32Handle(), 0x11'u32) // WDA_EXCLUDEFROMCAPTURE
+}
+
+// Windows hides owned recording controls from BitBlt through display affinity.
+func captureRecordingFrame(drawCursor: bool, _: Math.Rectangle, _: *Surface?, x, y, w, h: s32)->Image fail
+    => try getScreenRectImage(drawCursor, x, y, w, h)
+
 // Restores the caller's DPI-awareness context when a capture operation ends.
 #[Swag.NoCopy]
 struct CapturePlatformScope
@@ -76,6 +94,7 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
     let root   = GetAncestor(window, GA_ROOT)
     if root do
         window = root
+    result.nativeWindow = cast(u64, window)
 
     var title: [1024] u16
     let titleLength = GetWindowTextW(window, &title[0], cast(s32, title.count))
@@ -105,6 +124,25 @@ func captureWindowInfo(hWnd: HWND)->CaptureWindowInfo
 
     result.executable  = Utf8.fromUtf16(Swag.makeSlice((path.toSlice()).buffer, cast(u64, pathLength)))
     result.application = Path.fileNameWithoutExtension(result.executable) orelse ""
+    return result
+}
+
+// Reads a live window frame and show state in physical screen pixels.
+func getCaptureWindowBounds(id: u64)->{rect: Math.Rectangle, visible: bool, exists: bool}
+{
+    var result: #returntype
+    if not id do
+        return result
+    let window = cast(HWND, id)
+    var frame: RECT
+    var placement: WINDOWPLACEMENT
+    placement.length = #sizeof(WINDOWPLACEMENT)
+    if not GetWindowRect(window, &frame) or not GetWindowPlacement(window, &placement) do
+        return result
+    result.rect = {frame.left, frame.top, frame.right - frame.left, frame.bottom - frame.top}
+    result.visible = IsWindowVisible(window) and placement.showCmd != SW_SHOWMINIMIZED and
+                     placement.showCmd != SW_SHOWMINNOACTIVE and placement.showCmd != SW_MINIMIZE
+    result.exists = not result.rect.isEmpty()
     return result
 }
 

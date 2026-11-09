@@ -683,8 +683,8 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     Pixel.Testing.assertImageGolden(&image, "inplace")
 }
 
-// A fresh zone made an animation waits for its recording: the kinds, the cursor and the countdown,
-// the sound out of reach and why, Record and the cross, in Papier.
+// A fresh zone made an animation waits for its recording: the kinds, cursor, countdown, cadence,
+// sound out of reach and why, Record and the cross, in Papier.
 #[Swag.TestTag("golden")]
 #test
 {

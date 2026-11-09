@@ -1451,6 +1451,18 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     g_CaptureMedia = .Picture
     editor.setMedia(.Picture)
     Swag.require(chips(editor) == 0)
+    var markerButton: *IconButton?
+    for item in editor.bar.items
+    {
+        if item.wnd is IconButton as button where button.flags.has(.Radio) and
+           enumFromUserData'InPlaceEditMode(button.userData) == .Marker
+        {
+            markerButton = button
+            break
+        }
+    }
+    host.clickWnd(unwrap markerButton)
+    Swag.require(editor.editMode == .Marker)
     let forms = editor.capture!.forms.count
     Swag.require(forms > 0)
 
@@ -1460,10 +1472,20 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     let at  = seg.segmentRect(1)
     var evt = Gui.MouseEvent{kind: .Pressed, button: .Left, surfacePos: {pos.x + at.horzCenter(), pos.y + at.vertCenter()}}
     seg.sendEvent(&evt)
+    Swag.require(g_CaptureMedia == .Picture and seg.hot == 1)
+    evt.kind = .Released
+    evt.surfacePos.x = pos.x - 10
+    seg.sendEvent(&evt)
+    Swag.require(g_CaptureMedia == .Picture and seg.hot == -1)
+    evt.kind = .Pressed
+    evt.surfacePos.x = pos.x + at.horzCenter()
+    seg.sendEvent(&evt)
+    evt.kind = .Released
+    seg.sendEvent(&evt)
     host.runFrames(1)
     host.finishAnimations()
     Swag.require(g_CaptureMedia == .Animation)
-    Swag.require(chips(editor) == 3)
+    Swag.require(chips(editor) == 4)
     Swag.require(editor.editMode == .Select and editor.newMain.editMode == .Selection)
     Swag.require(editor.capture.forms.count == forms)
 
@@ -1484,10 +1506,33 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     Swag.require(editor.source.captureOptions.captureCursor != cursor)
     editor.source.captureOptions.captureCursor = cursor
 
+    // The cadence is available at the zone, cycles through the offered rates, and feeds the
+    // option used by the next recording.
+    var rateChip: *OptionChip?
+    for item in editor.bar.items
+    {
+        if item.wnd is OptionChip as chip where chip.toolTip == appStrings().tip_AimRate
+        {
+            rateChip = chip
+            break
+        }
+    }
+    let rate = editor.source.captureOptions.recordRate
+    for 3
+    {
+        let expected = editor.source.captureOptions.recordRate.next()
+        host.clickWnd(unwrap rateChip)
+        host.pump()
+        Swag.require(editor.source.captureOptions.recordRate == expected)
+        Swag.require(rateChip.label == Format.toString(appStrings().ui_AimRate, expected.framesPerSecond()))
+    }
+    Swag.require(editor.source.captureOptions.recordRate == rate)
+
     // Tab gives the picture back, with its tools.
     var key = Gui.KeyEvent{kind: .Pressed, key: .Tab}
     editor.sendEvent(&key)
     Swag.require(g_CaptureMedia == .Picture and chips(editor) == 0)
+    Swag.require(editor.editMode == .Marker and editor.newMain.editMode == .Draw)
 
     // In an animation, Enter starts the recording of the zone.
     editor.setMedia(.Animation)
@@ -1521,8 +1566,10 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     editor.editWnd.editView.capture = null
     editor.capture = null
     editor.placeBar()
-    testEndRecordingAfter(5, cancel: false)
-    let capture = expect recordZone(editor.source, zone)
+    testEndRecordingAfter(20, cancel: false)
+    let area = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y,
+                              cast(f32, zone.width), cast(f32, zone.height)}
+    let capture = expect recordZone(editor.source, zone, CaptureTarget.create(desktopToScreenRect(area), 0))
     testEndRecording()
 
     let result = unwrap capture

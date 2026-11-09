@@ -664,6 +664,59 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.require(prop.getSelectedForm'FormCallout() == null)
 }
 
+// The timed inspector edits seconds as undoable form spans and restores the whole recording.
+#test
+{
+    var fixture: HeadlessFixture
+    fixture.setup()
+    defer fixture.shutdown()
+    let prop = testSetupPropWnd(&fixture)
+    let capture = fixture.capture
+    capture.media = .Animation
+    capture.timeline.duration = 300_000
+    let shape = testAddShape(capture, 10, 10, 40, 40)
+    capture.selection.add(0)
+    prop.selectionHasChanged()
+
+    var start: *EditBox?
+    var end: *EditBox?
+    var whole: *PushButton?
+    for item in prop.grid.items
+    {
+        let it = unwrap item
+        for child in it.line.children
+        {
+            if child is EditCtrl as ctrl
+            {
+                if it.typeValue.name == "time.start" do
+                    start = ctrl.edit
+                if it.typeValue.name == "time.end" do
+                    end = ctrl.edit
+            }
+            if child is PushButton as button
+            {
+                if it.typeValue.name == "time.whole" do
+                    whole = button
+            }
+        }
+    }
+    Swag.require(start and end and whole)
+
+    start.setText("0.15")
+    start.sigCommitted.call(start)
+    Swag.require(shape.timeStart == 150_000)
+    capture.undo()
+    Swag.require(shape.timeStart == 0)
+
+    end.setText("0.2")
+    end.sigCommitted.call(end)
+    Swag.require(shape.timeEnd == 200_000)
+    whole.sigPressed.call(whole)
+    Swag.require(shape.timeStart == 0 and shape.timeEnd == 0)
+    capture.undo()
+    Swag.require(shape.timeEnd == 200_000)
+}
+
 // A property editor is built for the kind that was selected, and the painters and handlers it
 // installs run again long after that: the panel is rebuilt from an event and a frame is not, so
 // by the time one of them fires the selection may be another kind entirely. They ask for the

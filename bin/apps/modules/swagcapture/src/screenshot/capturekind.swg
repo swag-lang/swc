@@ -17,6 +17,7 @@ struct KindSegments
     sigChosen: SigArray'func||(*KindSegments)     // Emitted after a click chooses another kind.
     chosen:    CaptureMedia     // The kind shown chosen.
     hot:       s32 = -1         // The kind under the pointer, or -1.
+    pressed:   s32 = -1         // The kind pressed; release elsewhere cancels the change.
 }
 
 impl IWnd for KindSegments
@@ -38,7 +39,20 @@ impl IWnd for KindSegments
             .invalidate()
 
         case .Pressed where evt.button == .Left and index >= 0:
-            let media = kindMedia(cast(u64, index))
+            .pressed = index
+            .hot = index
+            .captureMouse()
+            .invalidate()
+
+        case .Released where evt.button == .Left and .pressed >= 0:
+            let chosen = .pressed
+            .pressed = -1
+            .releaseMouse()
+            .hot = index
+            .invalidate()
+            if index != chosen do
+                return
+            let media = kindMedia(cast(u64, chosen))
             if media != .chosen
             {
                 .chosen = media

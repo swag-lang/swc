@@ -435,6 +435,7 @@ impl PropWnd
         // The sections read in the order of the pictures, whichever structure files them.
         .grid.orderCategories(["Text", "Shape", "Stroke", "Ends", "Effects"])
         .styleCategoryLabels()
+        .propTime()
         .propXY()
         .fitFieldLabelColumn()
 

@@ -220,6 +220,18 @@ impl X11Capture
         return result
     }
 
+    // Returns whether a window is mapped to the desktop; a minimized window is not viewable.
+    mtd windowIsViewable(window: u32)->bool
+    {
+        let connection = unwrap .connection
+        let attrs = .attributesReply(connection, .getAttributes(connection, window), null)
+        if not attrs do
+            return false
+        let visible = attrs.map_state == 2
+        Linux.free(attrs)
+        return visible
+    }
+
     mtd windowAt(ignore: u32, x, y: f32)->u32
     {
         let connection = unwrap .connection

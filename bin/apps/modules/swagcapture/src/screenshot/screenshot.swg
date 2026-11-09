@@ -17,6 +17,47 @@ struct CaptureWindowInfo
     executable:  String
     title:       String
     className:   String
+    nativeWindow: u64     // Live platform window, never stored with the capture.
+}
+
+// A screen rectangle and, when attached, its position inside a live window.
+struct CaptureTarget
+{
+    area:     Math.Rectangle     // Initial physical screen rectangle.
+    window:   u64                // Zero means the rectangle stays on the desktop.
+    offset:   Math.Point         // Area origin relative to the window frame.
+}
+
+impl CaptureTarget
+{
+    // Anchors `area` to the window if it still has a frame; otherwise keeps the screen area.
+    func create(area: Math.Rectangle, window: u64)->CaptureTarget
+    {
+        var result: #returntype
+        result.area = area
+        if window
+        {
+            let bounds = getCaptureWindowBounds(window)
+            if bounds.exists
+            {
+                result.window = window
+                result.offset = {area.x - bounds.rect.x, area.y - bounds.rect.y}
+            }
+        }
+        return result
+    }
+
+    // Returns the current area and whether an attached window is visible or gone.
+    mtd resolve()->{area: Math.Rectangle, visible: bool, exists: bool}
+    {
+        if not .window do
+            return {area: .area, visible: true, exists: true}
+        let bounds = getCaptureWindowBounds(.window)
+        if not bounds.exists do
+            return {area: .area, visible: false, exists: false}
+        return {area: {bounds.rect.x + .offset.x, bounds.rect.y + .offset.y,
+                       .area.width, .area.height}, visible: bounds.visible, exists: true}
+    }
 }
 
 var g_StartGrabX:     f32
@@ -31,6 +72,7 @@ var g_Exit:           bool
 var g_GrabDone:       bool
 var g_DesktopTexture: Texture
 var g_CaptureWindow:  CaptureWindowInfo
+var g_CaptureAnchored: bool
 
 // The cursor as it stood when the desktop was grabbed: a patch of the desktop with the cursor
 // drawn in, laid over the grabbed picture when the capture keeps the cursor, and the same pixels
@@ -136,13 +178,14 @@ func waitForCapture()->bool
 }
 
 // Grabs the desktop and covers it with the overlay where the reader picks the area to capture.
-// Returns the grabbed image and the overlay, or a null overlay when the reader cancels.
-func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
+// Returns the grabbed image, the selected target and the overlay; a null overlay means cancel.
+func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: CaptureTarget } fail
 {
     g_App.setGlobalHotKeysEnabled(false)
     defer g_App.setGlobalHotKeysEnabled()
 
     g_CaptureWindow = {}
+    g_CaptureAnchored = false
 
     var result: #returntype
 
@@ -186,12 +229,17 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
         sf.destroy()
         result.sf = null
     }
+    else
+    {
+        result.target = CaptureTarget.create(desktopToScreenRect(getGrabRect()),
+                                              g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
+    }
 
     return result
 }
 
 // Builds an in-place editor for the grabbed area, or crops it immediately when that mode is off.
-func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture? fail
+func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: CaptureTarget)->*Capture? fail
 {
     let grabRect = getGrabRect()
 
@@ -234,19 +282,24 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd)->*Capture
         return null
     }
     if g_CaptureMedia == .Animation do
-        return try recordZone(main, capture)
+        return try recordZone(main, capture, target)
     return capture
 }
 
 // Records the zone `zone` was taken from, where it now stands, and returns the new animation
 // capture, or null when nothing was kept. What was drawn on the zone annotates the whole
 // recording. `zone` is freed.
-func recordZone(main: *MainWnd, zone: *Capture)->*Capture? fail
+func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture? fail
 {
     defer Memory.delete(zone)
 
     let area   = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y, cast(f32, zone.width), cast(f32, zone.height)}
-    let result = try Recorder.record(main, desktopToScreenRect(area))
+    var target = chosen
+    let screenArea = desktopToScreenRect(area)
+    target.offset.x += screenArea.x - target.area.x
+    target.offset.y += screenArea.y - target.area.y
+    target.area = screenArea
+    let result = try Recorder.record(main, target)
     if not result do
         return null
 
@@ -255,18 +308,23 @@ func recordZone(main: *MainWnd, zone: *Capture)->*Capture? fail
     result.forms             = #move zone.forms
     result.nextStepIndex     = zone.nextStepIndex
     result.nextGroupId       = zone.nextGroupId
-    for form in result.forms do
+    let scale = cast(f32, result.width) / cast(f32, zone.width)
+    for form in result.forms
+    {
         form.capture = result
+        if scale < 1 do
+            form.scaleBaseForm(scale)
+    }
     return result
 }
 
 func captureRect(main: *MainWnd)->*Capture? fail
 {
     defer clearCursorPatch()
-    let {img, sf} = try performScreenCapture(main)
+    let {img, sf, target} = try performScreenCapture(main)
     if not sf do
         return null
-    return try performInPlaceEdit(img, sf, main)
+    return try performInPlaceEdit(img, sf, main, target)
 }
 
 // Sets the grab rectangle for a non-interactive capture mode.
@@ -288,6 +346,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
         if r.isEmpty() do
             return false
         g_CaptureWindow = window.info
+        g_CaptureAnchored = window.info.nativeWindow != 0
         g_StartGrabX    = r.x
         g_StartGrabY    = r.y
         g_EndGrabX      = r.right()
@@ -308,6 +367,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
         let rect       = getGrabRect()
         let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
         g_CaptureWindow = getCaptureWindowForRect(unwrap main.surface, screenRect)
+        g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0
 
     case .Area:
         return false
@@ -344,6 +404,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     g_ScreenWidth   = Env.getSystemMetric(.DesktopWidth)
     g_ScreenHeight  = Env.getSystemMetric(.DesktopHeight)
     g_CaptureWindow = {}
+    g_CaptureAnchored = false
 
     var capture: *Capture?
     if not setGrabBounds(main, captureMode, monitorIndex)
@@ -355,20 +416,21 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         let grabRect = getGrabRect()
         let wGrab    = Math.max(grabRect.width, 8)
         let hGrab    = Math.max(grabRect.height, 8)
+        let target   = CaptureTarget.create(desktopToScreenRect({grabRect.x, grabRect.y, wGrab, hGrab}),
+                                            g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
 
         if g_CaptureMedia == .Animation
         {
-            capture = try Recorder.record(main, desktopToScreenRect({grabRect.x, grabRect.y, wGrab, hGrab}))
+            capture = try Recorder.record(main, target)
         }
         else
         {
             // Grab bounds are desktop-relative; blit only that rectangle instead of
             // capturing the whole virtual desktop and cropping.
+            let area = target.resolve().area
             var image = try getScreenRectImage(main.captureOptions.captureCursor,
-                                               g_DesktopX + cast(s32, grabRect.x),
-                                               g_DesktopY + cast(s32, grabRect.y),
-                                               cast(s32, wGrab),
-                                               cast(s32, hGrab))
+                                               cast(s32, area.x), cast(s32, area.y),
+                                               cast(s32, area.width), cast(s32, area.height))
 
             with capture = Memory.new'Capture()
             {

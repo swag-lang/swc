@@ -605,6 +605,68 @@ impl PropWnd
         }
     }
 
+    // Seconds of the selected form's span, with an action that restores the whole recording.
+    mtd propTime()
+    {
+        let capture = .main.getCapture()
+        if not capture or not capture.isTimed() or capture.selection.count != 1 do
+            return
+
+        let form: *BaseForm = capture.forms[capture.selection[0]]
+        let duration = cast(f64, capture.timeline.duration) / 1_000_000
+        let section = .grid.addItem(Swag.TypeValue{name: "time.section"}, null, null,
+                                    .themeMetrics().inspector_SectionHeight, .None)
+        section.flags.add(.NoSeparator | .NoFocus)
+        SectionLabel.create(section.line, appStrings().ui_PropTime,
+                            {0, 0, 0, .themeMetrics().inspector_SectionHeight}).dockStyle = .Center
+
+        func addTime(prop: *PropWnd, label: string, time: u64, start: bool, duration: f64)
+        {
+            let item = prop.grid.addItem(Swag.TypeValue{name: start ? "time.start" : "time.end"},
+                                         null, null, prop.themeMetrics().control_InspectorHeight, .None)
+            item.flags.add(.NoSeparator)
+            let seconds = cast(f64, time) / 1_000_000
+            let edit = EditCtrl.create(item.line, label, Format.toString("%", seconds),
+                                       flags: .ReleaseFocusOnEnterOrEscape)
+            edit.dockStyle = .Center
+            edit.setLayoutMetrics(prop.themeMetrics().inspector_LabelWidth, 0,
+                                  prop.themeMetrics().inspector_LabelGap)
+            edit.edit.setFloatingPointRange(0, duration)
+            edit.edit.style.setFont(prop.theme().res.fontDefaultFs)
+            edit.edit.sigCommitted += func|prop, start|(ed)
+            {
+                if ed.revalidate() != .Valid do
+                    return
+                let {value, eat: _, ovf: _} = catch StrConv.parseF64(ed.text())
+                let capture = prop.main.getCapture()
+                if not capture or not capture.isTimed() or capture.selection.count != 1 do
+                    return
+                let microseconds = cast(u64, Math.round(value * 1_000_000))
+                capture.setSelectionSpanAt(start, time: microseconds)
+                prop.main.timeline?.invalidate()
+                prop.needRebuild = true
+            }
+        }
+
+        addTime(me, appStrings().ui_TimeStart, form.timeStart, true, duration)
+        addTime(me, appStrings().ui_TimeEnd, form.timeEnd ? form.timeEnd : capture.timeline.duration,
+                false, duration)
+
+        let item = .grid.addItem(Swag.TypeValue{name: "time.whole"}, null, null,
+                                 .themeMetrics().control_InspectorHeight, .None)
+        item.flags.add(.NoSeparator)
+        let button = PushButton.create(item.line, appStrings().act_ShowAlways,
+                                       {0, 0, 180, .themeMetrics().control_InspectorHeight}, form: .Flat)
+        button.dockStyle = .CenterKeepSizeVert
+        button.sigPressed += func|prop = me|(_)
+        {
+            prop.main.getCapture()?.clearSelectionSpan()
+            prop.main.timeline?.invalidate()
+            prop.needRebuild = true
+        }
+        .grid.endAppendRows()
+    }
+
     // The position strip: X, Y, W and H in one row at the end of the generated settings, each a
     // faint letter and a value in the fixed-width family. Box forms only; X and Y may be negative,
     // since a form may stand outside the capture.

@@ -219,7 +219,7 @@ ships; history lives in Git, not here.
   captures and measure file size on representative animations.
 - Done when: a screen recording with anti-aliased text exports without visible banding at a size
   comparable to the former encoder, and still frames keep their exact palette.
-- Related: app.capture.012, std.pixel.image.052
+- Related: std.pixel.image.052
 
 ### std.pixel.image.052 — No animated PNG encoding
 
@@ -229,6 +229,6 @@ ships; history lives in Git, not here.
   reusing the changed-rectangle reduction of std.pixel.image.051.
 - Done when: an animation written as APNG decodes back with identical pixels and timing, and
   viewers without APNG support show its first frame.
-- Related: std.pixel.image.051, app.capture.012
+- Related: std.pixel.image.051
 
 ---

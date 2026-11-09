@@ -4,6 +4,19 @@
 
 using Swag, Core
 
+// The native window accepts exclusion before it is used as recording chrome.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-affinity", title: "Capture affinity",
+                                          width: 64, height: 48, stopLoopOnClose: false})
+    expect window.show()
+    let native = cast(Win32.HWND, window.nativeRenderHandle())
+    Swag.require(SetWindowDisplayAffinity(native, 0x11'u32))
+    var affinity: Win32.DWORD
+    Swag.require(GetWindowDisplayAffinity(native, &affinity) and affinity == 0x11)
+}
+
 // Full-screen OS capture is tested without creating a Swag Capture library file:
 // sendToEditor=false keeps the result in the real clipboard only. The grab covers
 // the whole virtual desktop, so the check stops at clipboard presence: decoding a

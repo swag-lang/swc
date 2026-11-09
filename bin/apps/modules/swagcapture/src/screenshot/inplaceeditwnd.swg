@@ -66,6 +66,7 @@ struct InPlaceEditWnd
     late source:      *MainWnd     // The application window the capture was started from.
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
+    pictureMode:      InPlaceEditMode = .Arrow // Tool to restore after recording options.
     editColor:        Color = Argb.Red
     editColorHilight: Color = Argb.Yellow
     captureScale:     f32   = 1          // DPI scale of the monitor the capture sits on
@@ -270,6 +271,20 @@ impl InPlaceEditWnd
         }
 
         .bar.addItem(countdown)
+
+        with let rate = OptionChip.create(.bar, .theme().icon(.PlaybackSpeed),
+                                          Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), true)
+        {
+            .toolTip = texts.tip_AimRate
+            .sigPressed += func|editor = me|(chip)
+            {
+                let next = editor.source.captureOptions.recordRate.next()
+                editor.source.captureOptions.recordRate = next
+                chip.label = Format.toString(appStrings().ui_AimRate, next.framesPerSecond())
+                chip.invalidate()
+            }
+        }
+        .bar.addItem(rate)
         .bar.addSeparator()
         .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, inert: true))
 
@@ -294,8 +309,13 @@ impl InPlaceEditWnd
         if media == g_CaptureMedia do
             return
         g_CaptureMedia = media
-        if media == .Animation do
+        if media == .Animation
+        {
+            .pictureMode = .editMode
             .editMode = .Select
+        }
+        else do
+            .editMode = .pictureMode
         .fillBar()
         .configureMainWindowEditMode()
         .hintLine.destroy()

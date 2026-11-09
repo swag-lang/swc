@@ -1,3 +1,34 @@
+// Recording cadences offered by the capture options.
+enum AnimationRate
+{
+    Fps10
+    Fps15
+    Fps20
+}
+
+impl AnimationRate
+{
+    mtd next()->AnimationRate
+    {
+        switch #complete me
+        {
+        case .Fps10: return .Fps15
+        case .Fps15: return .Fps20
+        case .Fps20: return .Fps10
+        }
+    }
+
+    mtd framesPerSecond()->u64
+    {
+        switch #complete me
+        {
+        case .Fps10: return 10
+        case .Fps15: return 15
+        case .Fps20: return 20
+        }
+    }
+}
+
 // The capture settings shown in the options grid: what a screenshot includes, how long it waits,
 // and where the result goes.
 #[Swag.Using(Properties)]
@@ -26,6 +57,15 @@ struct CaptureOptions
 
     #[Description("Count down three seconds before a recording starts")]
     recordCountdown = false
+
+    #[Description("Record ten, fifteen or twenty frames each second")]
+    recordRate: AnimationRate = .Fps15
+
+    #[Description("Stop an animation after this many seconds"), SliderMinMax(1, 60), Unit("s")]
+    recordMaxSeconds: s32 = 30
+
+    #[Description("Limit the longest side of a recorded animation"), SliderMinMax(320, 3840), Unit("px")]
+    recordMaxDimension: s32 = 1920
 }
 
 // Languages the interface can present. `English` is the reference wording and the

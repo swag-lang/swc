@@ -26,6 +26,7 @@ struct RecordHud
     late stopButton:   *IconButton
     late cancelButton: *IconButton
     shownState:        RecorderState
+    shownTargetPause:  bool
     hasCommands:       bool     // The commands exist; the window is resized before they do.
 }
 
@@ -105,17 +106,28 @@ impl IWnd for RecordHud
             var rest = String.from(" / ")
             rest += Capture.clockText(limit)
             painter.drawString(x, top, rest, font, colors.faintText)
+            x += Painter.measureString(rest, font).width
+        }
+
+        if .recorder.dropped and not counting
+        {
+            x += RecordHudTextMargin
+            painter.drawString(x, top, Format.toString(appStrings().ui_DroppedCount, .recorder.dropped),
+                               font, colors.critical)
         }
 
         // The rule before the commands.
         let ruleX = .pauseButton.position.x - RecordHudButtonGap - 1
         painter.fillRect({ruleX, cy - RecordHudRuleHeight * 0.5, 1, RecordHudRuleHeight}, colors.line)
 
-        if .shownState != .recorder.state
+        if .shownState != .recorder.state or .shownTargetPause != .recorder.pausedForTarget
         {
             .shownState = .recorder.state
+            .shownTargetPause = .recorder.pausedForTarget
             .pauseButton.setIcon(.theme().icon(.recorder.state == .Paused ? .Play : .Pause))
-            .pauseButton.toolTip = .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
+            .pauseButton.toolTip = .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
+                                   .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
+            .pauseButton.enable(not .recorder.pausedForTarget)
         }
     }
 }
@@ -123,28 +135,15 @@ impl IWnd for RecordHud
 impl RecordHud
 {
     // Opens the pill of `recorder` beside the frame `frame`, in physical screen pixels, on a
-    // monitor of scale `scale`: under the frame, or over it, or inside the area when the screen
-    // has no room around it.
+    // monitor of scale `scale`: under the frame, over it, or beside it when vertical room is tight.
     func open(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->*RecordHud?
     {
         let logicalWidth = widthFor(recorder.limit)
-        let width        = Math.ceil(logicalWidth * scale)
-        let height       = Math.ceil(RecordHudHeight * scale)
-        let gap          = Math.ceil(RecordHudGap * scale)
-        let monitor      = Env.monitorForPoint({frame.horzCenter(), frame.vertCenter()}).physicalWorkArea
-
-        var place = Math.Rectangle{frame.right() - width, frame.bottom() + gap, width, height}
-        if place.bottom() > monitor.bottom() do
-            place.y = frame.y - gap - height
-        if place.y < monitor.y do
-            place.y = frame.bottom() - gap - height
-        place.x = Math.max(place.x, monitor.x)
+        let outer        = placement(recorder, frame, scale)
 
         // A sheet casts the floating shadow into a margin around its body: the window is the pill
         // grown by that margin. It is created where it stands, so it takes the scale of that
         // monitor from the start.
-        let margin  = Math.ceil(g_App.theme.floatingShadowMargin() * scale)
-        let outer   = Math.Rectangle{place.x - margin, place.y - margin, place.width + 2 * margin, place.height + 2 * margin}
         let surface = catch g_App.createSurface(cast(s32, outer.x), cast(s32, outer.y), cast(s32, logicalWidth), cast(s32, RecordHudHeight), .ToolWindow | .TopMost | .Sheet)
         {
             return null
@@ -162,6 +161,43 @@ impl RecordHud
         surface.show()
         surface.bringToFront()
         return result
+    }
+
+    // Moves the pill with an attached recording area.
+    mtd follow(frame: Math.Rectangle, scale: f32)
+    {
+        .surface?.setPosition(placement(.recorder, frame, scale))
+    }
+
+    // Places the pill beside the frame and inside the current monitor's work area.
+    private func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
+    {
+        let logicalWidth = widthFor(recorder.limit)
+        let width        = Math.ceil(logicalWidth * scale)
+        let height       = Math.ceil(RecordHudHeight * scale)
+        let gap          = Math.ceil(RecordHudGap * scale)
+        let monitor      = Env.monitorForPoint({frame.horzCenter(), frame.vertCenter()}).physicalWorkArea
+
+        var place = Math.Rectangle{frame.right() - width, frame.bottom() + gap, width, height}
+        if place.bottom() > monitor.bottom() do
+            place.y = frame.y - gap - height
+        if place.y < monitor.y
+        {
+            // A nearly full-height area has no vertical room. Try either side, keeping the
+            // controls clear of the recorded pixels even on an X11 root capture.
+            place.y = Math.clamp(frame.bottom() - height, monitor.y, monitor.bottom() - height)
+            place.x = frame.right() + gap
+            if place.right() > monitor.right() do
+                place.x = frame.x - gap - width
+        }
+        else do
+            place.x = Math.max(place.x, monitor.x)
+
+        // A sheet casts the floating shadow into a margin around its body: the window is the pill
+        // grown by that margin. It is created where it stands, so it takes the scale of that
+        // monitor from the start.
+        let margin  = Math.ceil(g_App.theme.floatingShadowMargin() * scale)
+        return {place.x - margin, place.y - margin, place.width + 2 * margin, place.height + 2 * margin}
     }
 
     // Creates the pill of `recorder` in `parent`, with its commands.
@@ -191,6 +227,9 @@ impl RecordHud
             widest += Capture.clockText(limit)
         }
 
+        widest += " "
+        widest += Format.toString(appStrings().ui_DroppedCount, 1200)
+
         let font     = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
         let commands = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
         return Math.ceil(RecordHudLeft + RecordHudRing + 2 * RecordHudTextMargin + Painter.measureString(widest, font).width + commands + RecordHudRight)
@@ -218,6 +257,8 @@ impl RecordHud
         .pauseButton = command(me, .theme().icon(.Pause), appStrings().tip_PauseRecording)
         .pauseButton.sigPressed += func|hud = me|(_)
         {
+            if hud.recorder.pausedForTarget do
+                return
             if hud.recorder.state == .Paused do
                 hud.recorder.resume()
             else do

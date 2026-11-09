@@ -1,8 +1,5 @@
 using Core, Pixel
 
-// What an animation recording may hold: an animated picture is meant to be short and light.
-const AnimationFramesPerSecond = 15'u64
-const AnimationMaxDuration     = 30_000_000'u64     // Microseconds.
 const RecordCountdown          = 3_000_000'u64      // Wait before the first frame when the option asks for it, in microseconds.
 
 // Thickness of the frame drawn around the recorded area, in logical units, and the air between
@@ -31,14 +28,17 @@ var g_Recorder: *Recorder?
 struct Recorder
 {
     late main:   *MainWnd
+    target:      CaptureTarget
     area:        Math.Rectangle     // Recorded area, in physical virtual-desktop pixels.
     source:      ScreenFrameSource
+    storedWidth: s32
+    storedHeight: s32
+    cadence:     u64           // Microseconds between attempted frames.
     file:        String             // Capture the frames belong to.
     writer:      Frames.Writer
     state:       RecorderState
     startsAt:    u64           // Monotonic time the countdown ends.
-    resumedAt:   u64           // Monotonic time the recording last started or resumed.
-    recorded:    u64           // Time recorded before the last resume, in microseconds.
+    clock:       RecordingClock // Session time shared by future video and audio tracks.
     nextFrame:   u64           // Recorded time of the next frame to grab.
     task:        Swag.Task     // Writes `pending` to the file.
     pending:     Image
@@ -48,6 +48,8 @@ struct Recorder
     hud:         *RecordHud?
     limit:       u64      // Longest recording, in microseconds; zero records until stopped.
     ownsEscape:  bool     // Escape is registered as the cancel hotkey of this recording.
+    pausedForTarget: bool // The attached window is temporarily not visible.
+    nextTargetCheck: u64
     edges:       Array'(*Surface)     // The frame around the area.
 }
 
@@ -56,20 +58,31 @@ impl Recorder
     // Records `area`, in physical virtual-desktop pixels, until the reader stops, cancels or the
     // limit is reached. Returns the new animation capture, or null when nothing was kept.
     func record(main: *MainWnd, area: Math.Rectangle)->*Capture? fail
+        => try record(main, CaptureTarget.create(area, 0))
+
+    // Records a fixed area or one attached to a live window.
+    func record(main: *MainWnd, target: CaptureTarget)->*Capture? fail
     {
         Swag.assert(not g_Recorder)
 
         // The recorder is reached by the command that stops it, from the frames run below.
         let recorder = Memory.new'Recorder()
         defer Memory.delete(recorder)
-        recorder.main   = main
-        recorder.area   = area
-        recorder.source = try ScreenFrameSource.create(main.captureOptions.captureCursor,
-                                                        cast(s32, area.x), cast(s32, area.y),
-                                                        cast(s32, area.width), cast(s32, area.height))
-        recorder.file   = Library.newFileName()
-        recorder.limit  = AnimationMaxDuration
-        recorder.writer = try Frames.Writer.create(Capture.mediaPathOf(recorder.file), cast(s32, area.width), cast(s32, area.height), .BGRA8)
+        recorder.main    = main
+        recorder.target  = target
+        recorder.area    = target.area
+        recorder.source  = try ScreenFrameSource.create(main.captureOptions.captureCursor,
+                                                         cast(s32, target.area.x), cast(s32, target.area.y),
+                                                         cast(s32, target.area.width), cast(s32, target.area.height))
+        recorder.file    = Library.newFileName()
+        recorder.limit   = cast(u64, Math.clamp(main.captureOptions.recordMaxSeconds, 1, 60)) * 1_000_000
+        recorder.cadence = 1_000_000 / main.captureOptions.recordRate.framesPerSecond()
+
+        let maxSide = Math.clamp(main.captureOptions.recordMaxDimension, 320, 3840)
+        let scale   = Math.min(1'f32, cast(f32, maxSide) / Math.max(target.area.width, target.area.height))
+        recorder.storedWidth  = Math.max(1, cast(s32, target.area.width * scale))
+        recorder.storedHeight = Math.max(1, cast(s32, target.area.height * scale))
+        recorder.writer = try Frames.Writer.create(Capture.mediaPathOf(recorder.file), recorder.storedWidth, recorder.storedHeight, .BGRA8)
         defer #fail discard catch File.delete(Capture.mediaPathOf(recorder.file))
 
         g_Recorder = recorder
@@ -86,8 +99,8 @@ impl Recorder
         }
         else
         {
-            recorder.state     = .Recording
-            recorder.resumedAt = now
+            recorder.state = .Recording
+            recorder.clock.startAt(now)
         }
 
         while recorder.state == .Counting or recorder.state == .Recording or recorder.state == .Paused
@@ -116,16 +129,15 @@ impl Recorder
             .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable, g_CaptureWindow.title, g_CaptureWindow.className)
         }
 
+        if recorder.dropped do
+            main.confirm(Format.toString(appStrings().ui_DroppedFrames, recorder.dropped))
+
         return result
     }
 
     // Returns the time recorded so far, pauses excluded, in microseconds.
     mtd const elapsed()->u64
-    {
-        if .state != .Recording do
-            return .recorded
-        return .recorded + (Time.monotonicMicroseconds() - .resumedAt)
-    }
+        => .clock.elapsedAt(Time.monotonicMicroseconds())
 
     // Returns the time left before the first frame, in microseconds; zero once the recording runs.
     mtd const countdownLeft()->u64
@@ -141,8 +153,8 @@ impl Recorder
     {
         if .state != .Recording do
             return
-        .recorded = .elapsed()
-        .state    = .Paused
+        .clock.pauseAt(Time.monotonicMicroseconds())
+        .state = .Paused
         .hud?.invalidate()
     }
 
@@ -151,8 +163,8 @@ impl Recorder
     {
         if .state != .Paused do
             return
-        .resumedAt = Time.monotonicMicroseconds()
-        .state     = .Recording
+        .clock.resumeAt(Time.monotonicMicroseconds())
+        .state = .Recording
         .hud?.invalidate()
     }
 
@@ -168,8 +180,8 @@ impl Recorder
 
         if .state != .Recording and .state != .Paused do
             return
-        .recorded = .elapsed()
-        .state    = .Stopped
+        .clock.pauseAt(Time.monotonicMicroseconds())
+        .state = .Stopped
     }
 
     // Ends the recording and keeps nothing.
@@ -184,8 +196,40 @@ impl Recorder
         .hud?.invalidate()
         if .state == .Counting and Time.monotonicMicroseconds() >= .startsAt
         {
-            .state     = .Recording
-            .resumedAt = Time.monotonicMicroseconds()
+            .state = .Recording
+            .clock.startAt(Time.monotonicMicroseconds())
+        }
+
+        if .target.window and Time.monotonicMicroseconds() >= .nextTargetCheck
+        {
+            .nextTargetCheck = Time.monotonicMicroseconds() + 50_000
+            let resolved = .target.resolve()
+            if not resolved.exists
+            {
+                .stop()
+                return
+            }
+            if not resolved.visible
+            {
+                if .state == .Recording
+                {
+                    .pause()
+                    .pausedForTarget = true
+                }
+                return
+            }
+            if .pausedForTarget
+            {
+                .pausedForTarget = false
+                .resume()
+            }
+            if resolved.area.x != .area.x or resolved.area.y != .area.y
+            {
+                .area = resolved.area
+                .source.x = cast(s32, .area.x)
+                .source.y = cast(s32, .area.y)
+                .moveChrome()
+            }
         }
 
         if .state != .Recording do
@@ -194,8 +238,9 @@ impl Recorder
         let time = .elapsed()
         if .limit and time >= .limit
         {
-            .recorded = .limit
-            .state    = .Stopped
+            .clock.recorded = .limit
+            .clock.running  = false
+            .state = .Stopped
             return
         }
 
@@ -209,7 +254,7 @@ impl Recorder
             return
 
         // A frame whose time passed while the interface was busy is not grabbed late.
-        let interval = 1_000_000 / AnimationFramesPerSecond
+        let interval = .cadence
         .nextFrame += interval
         while .nextFrame <= time
         {
@@ -223,7 +268,7 @@ impl Recorder
             return
         }
 
-        catch .source.grabInto(&.pending)
+        catch .grabFrame()
         {
             .dropped += 1
             catch .source.reopen()
@@ -233,9 +278,40 @@ impl Recorder
         .pendingTime = time
         .task.submit(func|recorder = me|()
         {
+            if recorder.pending.width != recorder.storedWidth or recorder.pending.height != recorder.storedHeight do
+                recorder.pending.resize(recorder.storedWidth, recorder.storedHeight, .Bilinear)
             catch recorder.writer.add(recorder.pending, recorder.pendingTime) do
                 recorder.writeFailed = true
         })
+    }
+
+    // Reuses the screen source except when an X11 control overlaps the root area. In that case
+    // the control is briefly unmapped for the read; Windows hides it through display affinity.
+    private mtd grabFrame() fail
+    {
+        #static if #os == Swag.TargetOs.Linux
+        {
+            let chrome = .hud?.surface
+            if chrome and chrome.position.intersects(.area)
+            {
+                .pending = try captureRecordingFrame(.main.captureOptions.captureCursor, .area,
+                                                     chrome, .source.x, .source.y,
+                                                     .source.width, .source.height)
+                return
+            }
+        }
+        try .source.grabInto(&.pending)
+    }
+
+    // Returns the frame geometry outside the current area, in physical screen pixels.
+    private mtd chromeGeometry()->{outer: Math.Rectangle, thick: f32, scale: f32}
+    {
+        let scale = Env.monitorForPoint({.area.horzCenter(), .area.vertCenter()}).scaleFactor
+        let thick = Math.ceil(RecordFrameWidth * scale)
+        let gap   = Math.ceil(RecordFrameGap * scale)
+        let side  = gap + thick
+        return {{.area.x - side, .area.y - side,
+                 .area.width + 2 * side, .area.height + 2 * side}, thick, scale}
     }
 
     // Shows the frame around the area and the recording pill beside it.
@@ -245,22 +321,37 @@ impl Recorder
         if g_App.surfaces.isEmpty() do
             return
 
-        let scale = Env.monitorForPoint({.area.horzCenter(), .area.vertCenter()}).scaleFactor
-        let thick = Math.ceil(RecordFrameWidth * scale)
-        let gap   = Math.ceil(RecordFrameGap * scale)
-        let side  = gap + thick
-
-        let outer = Math.Rectangle{.area.x - side, .area.y - side, .area.width + 2 * side, .area.height + 2 * side}
+        let {outer, thick, scale} = .chromeGeometry()
         .addEdge({outer.x, outer.y, outer.width, thick})
         .addEdge({outer.x, outer.bottom() - thick, outer.width, thick})
         .addEdge({outer.x, outer.y + thick, thick, outer.height - 2 * thick})
         .addEdge({outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick})
 
         .hud = RecordHud.open(me, outer, scale)
+        if let hud = .hud
+        {
+            if let surface = hud.surface do
+                excludeCaptureChrome(surface)
+        }
 
         // Escape abandons the recording from any application, for as long as it runs only.
         catch g_App.registerHotKey(.None, .Escape, ActionCapture.CancelRecording, .main)
         .ownsEscape = true
+    }
+
+    // Keeps the frame and controls beside an attached area when its window moves.
+    private mtd moveChrome()
+    {
+        if .edges.count != 4 do
+            return
+        let {outer, thick, scale} = .chromeGeometry()
+        let rects = [Math.Rectangle{outer.x, outer.y, outer.width, thick},
+                     Math.Rectangle{outer.x, outer.bottom() - thick, outer.width, thick},
+                     Math.Rectangle{outer.x, outer.y + thick, thick, outer.height - 2 * thick},
+                     Math.Rectangle{outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick}]
+        for edge, index in .edges do
+            edge[].setPosition(rects[index])
+        .hud?.follow(outer, scale)
     }
 
     // Removes the frame and the pill.
@@ -295,6 +386,7 @@ impl Recorder
         surface.setView(edge)
         surface.setPosition(rect)
         surface.show()
+        excludeCaptureChrome(surface)
         .edges.add(surface)
     }
 }

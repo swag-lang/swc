@@ -14,11 +14,10 @@ belongs in [compiler.core.md](compiler.core.md) and [language.design.md](languag
 Swag Capture is the universal capture, as Swag Scope is the universal viewer: one gesture aims at
 a screen, a window, an area or an area anchored to a window, one key chooses what is kept (picture,
 animation, video, sound, scrolling page), and the same editor annotates the result. A capture is a
-timeline; a picture is a timeline of zero length. The animated GIF is the first timed medium
-(app.capture.012): it carries the whole interaction and document change with short, bounded
-recordings, before video (app.capture.011) and sound (app.capture.013) add their encoders. The
-proof of concept records, plays, saves and copies animations; what remains of it is
-app.capture.029, app.capture.030, app.capture.012, app.capture.031 and app.capture.032.
+timeline; a picture is a timeline of zero length. The animated GIF is the first timed medium:
+it carries the whole interaction and document change with short, bounded recordings, before video
+(app.capture.011) and sound (app.capture.013) add their encoders. The proof of concept records, plays, saves and copies animations; native
+Windows verification of the recording-control exclusion remains in app.capture.030.
 
 Recordings of several hours are a requirement from the first timed medium on, even though the GIF
 itself stays short: the recorded media is an append-only file written while recording and only
@@ -169,36 +168,23 @@ whole recording loaded at once.
   app.capture.009 can bind a hotkey to it.
 - Related: app.capture.009
 
-### app.capture.029 — An area drawn inside a window does not follow it
+### app.capture.030 — Verify recording-control exclusion on Windows
 
-- Evidence: `Tab` on the overlay switches `g_CaptureMedia` between picture and animation, but the
-  overlay still crops into globals (`g_StartGrabX` and the others) and `g_CaptureWindow` keeps only
-  the identity of the window under the area, so a recording keeps screen coordinates.
-- Next: make the overlay return a capture target (monitor, window, free area, or area anchored to
-  a window as an offset in its frame, detached with `A`) instead of the grab globals, and hand it
-  to the picture and animation acquisitions.
-- Done when: every picture mode goes through the target, and an anchored area keeps its offset
-  when its window moves before or during a recording.
-- Related: app.capture.030, app.capture.009
-
-### app.capture.030 — The recording pill may be recorded, and an anchored recording does not follow its window
-
-- Evidence: `Recorder` in `src/record/recorder.swg` starts, pauses, resumes, stops and cancels
-  from the pill, from `Shift+PrintScreen` and from `Escape`. The pill and the frame are placed
-  outside the area, but over a full-screen area the pill lands inside it and is recorded, and an
-  anchored window is not followed (app.capture.029).
-- Next: exclude the frame and the pill from capture with `SetWindowDisplayAffinity`
-  (platform.portability.097), follow an anchored window, and pause while it is minimized.
-- Done when: a full-screen recording contains neither the frame nor the pill, and an anchored
-  recording follows its window and pauses while it is minimized.
-- Related: app.capture.029, platform.portability.097
+- Evidence: the recorder follows an anchored window and pauses when it is hidden; X11 excludes
+  a pill overlapping the area during root grabs, covered by an isolated-display test. Windows
+  applies `WDA_EXCLUDEFROMCAPTURE` to the pill and frame, but that native path has not been run
+  on a Windows desktop.
+- Next: run a native full-screen recording on Windows and assert its frames contain neither the
+  frame nor the pill, including a display where the pill overlaps the selected area.
+- Done when: the Windows recording test passes and the controls remain usable throughout it.
+- Related: platform.portability.097
 
 ### app.capture.038 — The bar of a fresh zone offers only picture and animation
 
 - Evidence: the bar of the in-place editor (`src/screenshot/inplaceeditwnd.swg`) starts with the
   kinds of capture (`KindSegments` in `src/screenshot/capturekind.swg`, ordered by `KindMedia`):
-  a picture keeps the tools and Copy, an animation shows the cursor, the countdown, the sound out
-  of reach and Record. Video, sound alone and scrolling capture are not listed, since the bar
+  a picture keeps the tools and Copy, an animation shows the cursor, countdown, frame rate,
+  sound out of reach and Record. Video, sound alone and scrolling capture are not listed, since the bar
   already holds about 790 logical pixels for a picture, and the theme has a speaker glyph but no
   microphone.
 - Next: add each kind to `KindMedia` when it can be taken, with its own options in the bar, and
@@ -208,40 +194,6 @@ whole recording loaded at once.
   shows both sources of sound for a kind that records them.
 - Related: app.capture.011, app.capture.013, app.capture.035
 
-### app.capture.012 — Animation recording limits are fixed and dropped frames are silent
-
-- Evidence: `Recorder` records at a constant 15 frames per second for at most 30 seconds
-  (`AnimationFramesPerSecond`, `AnimationMaxDuration`), counts dropped frames without showing them,
-  and keeps the full size of the area. The frame file writer keeps one index entry (24 bytes) per
-  frame, and no test has run the store for an hour.
-- Next: move the cadence (10, 15 or 20), the length (30 seconds by default, 60 at most) and a
-  maximum stored dimension into an options section, report dropped frames in the pill and after
-  the recording, and add a stress test that writes and seeks an hour of frames.
-- Done when: the options change the next recording, dropped frames are visible, and the hour-long
-  store test keeps memory flat and seeks in bounded time.
-- Related: app.capture.011, app.capture.030, std.pixel.image.051
-
-### app.capture.031 — The timeline cannot scale to hours
-
-- Evidence: `TimelineBar` plays, loops and seeks by dragging, and `ActionTimeline` drives it from
-  the keyboard (`Space`, `,` and `.`) and the lens; its track maps the whole duration at once.
-- Next: zoom around the playhead, markers, and thumbnails decoded for the visible range only.
-- Done when: a synthetic recording of several hours scrubs and zooms without decoding outside the
-  visible range, with a golden of the zoomed bar.
-- Related: app.capture.032, app.capture.014
-
-### app.capture.032 — A form's time span cannot be dragged or typed
-
-- Evidence: every form has `timeStart` and `timeEnd`, honoured by the canvas, hit testing, the
-  lasso and the export, and set from the playhead (`Shift+[`, `Shift+]`, the lens) as undoable
-  edits; the timeline draws the span of the selected form, but its ends cannot be dragged and the
-  inspector has no time section.
-- Next: make the ends of the span bar draggable on the timeline, and add a time section (start,
-  end, whole duration) to the inspector of a timed capture.
-- Done when: dragging an end or typing a time changes the span as one undo step, and goldens show
-  both.
-- Related: app.capture.031
-
 ### app.capture.014 — A passage cannot be cut out of the middle of a recording
 
 - Evidence: an animation keeps the part between an in point and an out point (`Capture.setTrim`,
@@ -250,7 +202,7 @@ whole recording loaded at once.
   and the export, as one undoable edit each; then the same for video.
 - Done when: an export leaves out exactly the cut ranges, the timing of what follows is joined, and
   the stored recording is unchanged.
-- Related: app.capture.031, app.capture.011, app.capture.037
+- Related: app.capture.011, app.capture.037
 
 ### app.capture.011 — No video recording
 
@@ -282,7 +234,8 @@ whole recording loaded at once.
   the last playable MP4 prefix when free space falls below that threshold; an integration
   test reopens its final video and AAC tracks after the simulated stop. Swag Capture has no
   video-recording UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
-  large-area cadence has not been measured on Windows hardware.
+  large-area cadence has not been measured on Windows hardware. The GIF recorder's
+  `RecordingClock` keeps monotonic session time with pauses removed.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
   medium using `Video.Mp4.SoftwareRecording`: measure the persistent GDI source on Windows and
   use Desktop Duplication acquisition (platform.portability.097) only if the required cadence
@@ -296,7 +249,7 @@ whole recording loaded at once.
   for an hour, produce playable MP4 files with memory independent of the duration and reported
   dropped frames; the recording continues across a lock screen, an elevation prompt and a display
   mode change; and the file stays playable after the process is killed mid-recording.
-- Related: app.capture.012, app.capture.013, app.capture.014, app.capture.034, app.capture.037,
+- Related: app.capture.013, app.capture.014, app.capture.034, app.capture.037,
   platform.portability.097, std.video.015, std.video.016
 
 ### app.capture.013 — Recordings cannot include audio
@@ -311,7 +264,8 @@ whole recording loaded at once.
   reopen the MP4 and check both decoded tracks before, during and after the gap, a bounded
   queue overflow, and live 96 kHz float source packets resampled into a 48 kHz MP4 track.
   The native backends have not been exercised with a Windows device or connected to Swag
-  Capture's UI.
+  Capture's UI. `RecordingClock` gives the GIF recorder a paused session timeline that a future
+  audio track can share; GIF capture has no audio source or track.
 - Next: after app.capture.011, add the dock toggles: microphone with its level meter, system
   sound, or this application's sound only for a window target. Keep each source on its own track,
   timestamped on the performance counter and mixed only at export. Add a sound-only medium with a
@@ -331,7 +285,7 @@ whole recording loaded at once.
   afterwards: hide, enlarge, smooth, mark clicks, zoom towards clicks.
 - Done when: one master exports with the cursor hidden, enlarged, or with clicks marked, in GIF
   and in MP4.
-- Related: app.capture.011, app.capture.012, platform.portability.097
+- Related: app.capture.011, platform.portability.097
 
 ### app.capture.035 — No scrolling capture
 
@@ -339,7 +293,7 @@ whole recording loaded at once.
   synthetic input, register their overlap, and stitch one tall picture capture.
 - Done when: long documents scrolled in a browser and in an editor stitch without seams or
   repeated rows, and an overlap that cannot be registered stops with a clear message.
-- Related: app.capture.029, app.capture.030
+- Related: app.capture.030
 
 ### app.capture.036 — No camera overlay
 
@@ -359,7 +313,7 @@ whole recording loaded at once.
 - Done when: a trimmed three-hour recording with a few annotations exports in a small fraction of
   its duration, the result plays seamlessly across copied and re-encoded segments, and the stored
   recording is unchanged.
-- Related: app.capture.011, app.capture.014, app.capture.032, std.video.017
+- Related: app.capture.011, app.capture.014, std.video.017
 
 ### app.capture.016 — No reusable capture layout templates
 

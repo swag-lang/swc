@@ -566,7 +566,7 @@ impl Undo
                 else
                 {
                     form.timeEnd = .spanTime
-                    if form.timeStart >= .spanTime do
+                    if .spanTime and form.timeStart >= .spanTime do
                         form.timeStart = 0
                 }
             }

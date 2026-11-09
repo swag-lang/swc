@@ -92,10 +92,17 @@ ui_MediaPicture        Photo
 ui_MediaAnimation      GIF
 ui_AimCursor           Curseur
 ui_AimCountdown        Compte à rebours
+ui_AimRate             % i/s
+tip_AimRate            Changer la cadence d'enregistrement
 ui_AimNoSound          Pas de son dans un GIF
+ui_AimAnchored         Suit la fenêtre
+ui_AimDetached         Zone fixe
 ui_AimRecord           Enregistrer
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
+ui_DroppedFrames       % images ont été perdues
+ui_DroppedCount        · % perdues
+tip_WaitingForWindow   En attente de la fenêtre
 msg_MissingFrames      Les images de cette animation sont introuvables ou ont été remplacées
 msg_FailedLoadFile     Impossible de charger le fichier : %
 msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
@@ -322,6 +329,7 @@ ui_PropStart           Début
 ui_PropEnd             Fin
 ui_PropDash            Tirets
 ui_PropPosition        Position
+ui_PropTime            Temps
 ui_PropSize            Taille
 ui_ResetSteps          Réinitialiser
 act_CaptureMonitor     Capturer l'écran %
@@ -397,6 +405,12 @@ prop_Delay                 Délai
 prop_DelayDesc             Définir le délai, en secondes, avant la capture
 prop_RecordCountdown       Compte à rebours
 prop_RecordCountdownDesc   Compter trois secondes avant le début d'un enregistrement
+prop_RecordRate            Cadence d'enregistrement
+prop_RecordRateDesc        Enregistrer dix, quinze ou vingt images par seconde
+prop_RecordMaxSeconds      Durée maximale d'enregistrement
+prop_RecordMaxSecondsDesc Arrêter l'animation après ce nombre de secondes
+prop_RecordMaxDimension    Taille maximale d'enregistrement
+prop_RecordMaxDimensionDesc Limiter le plus grand côté d'une animation enregistrée
 prop_ClipToSelection       Masquer hors sélection
 prop_ClipToSelectionDesc   Masquer tout ce qui sort de la zone de capture sélectionnée
 prop_ConfirmLinked         Confirmer l'écrasement
@@ -453,6 +467,8 @@ ui_PosX                X
 ui_PosY                Y
 ui_PosW                L
 ui_PosH                H
+ui_TimeStart           Début (s)
+ui_TimeEnd             Fin (s)
 hint_AllProperties     toutes les propriétés
 hint_ToolSelect        Cliquer un objet pour le choisir, glisser autour de plusieurs
 hint_ToolShape         Glisser pour tracer un rectangle ou une ellipse

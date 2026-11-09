@@ -29,6 +29,7 @@ struct CaptureRectWnd
     startGrab:     bool
     tryStartGrab:  bool
     autoGrab:      bool
+    detachWindow:  bool     // A keeps a selected area at screen coordinates.
     lerpGrab:      Math.Rectangle
     clickStartPos: Math.Point
 
@@ -50,6 +51,7 @@ impl IWnd for CaptureRectWnd
             g_EndGrabX      = r.right()
             g_EndGrabY      = r.bottom()
             g_CaptureWindow = window.info
+            g_CaptureAnchored = window.info.nativeWindow != 0 and not .detachWindow
         }
     }
 
@@ -61,6 +63,12 @@ impl IWnd for CaptureRectWnd
         // Tab changes what the capture keeps, before it is taken.
         if evt.kind == .Pressed and evt.key == .Tab and evt.modifiers == .None do
             g_CaptureMedia = g_CaptureMedia == .Picture ? .Animation : .Picture
+
+        if evt.kind == .Pressed and evt.key == .A and evt.modifiers == .None
+        {
+            .detachWindow = not .detachWindow
+            g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
+        }
 
         // Enter takes the zone on screen, as a click without a drag does.
         if evt.kind == .Pressed and
@@ -97,6 +105,7 @@ impl IWnd for CaptureRectWnd
                 g_StartGrabX, g_EndGrabX = physPosX
                 g_StartGrabY, g_EndGrabY = physPosY
                 g_CaptureWindow          = {}
+                g_CaptureAnchored        = false
                 .testAutoGrab()
                 .lerpGrab = getGrabRect()
                 .invalidate()
@@ -129,6 +138,7 @@ impl IWnd for CaptureRectWnd
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
                 g_CaptureWindow = getCaptureWindowForRect(unwrap .surface, screenRect)
+                g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
                 g_GrabDone      = true
                 g_Exit          = true
             }
@@ -277,7 +287,11 @@ impl CaptureRectWnd
         let media   = kindName(g_CaptureMedia)
         let text    = Format.toString("% · % × %", media, grabRect.width, grabRect.height)
         let key     = Format.toString("  %", Gui.strings().key_Tab)
-        let width   = Painter.measureString(text, font).width + Painter.measureString(key, font).width + 2 * AreaChipPadding
+        let anchor  = g_CaptureWindow.nativeWindow ?
+                      (g_CaptureAnchored ? appStrings().ui_AimAnchored : appStrings().ui_AimDetached) : ""
+        let anchorText = anchor.count ? Format.toString(" · %  A", anchor) : String{}
+        let width   = Painter.measureString(text, font).width + Painter.measureString(key, font).width +
+                      Painter.measureString(anchorText, font).width + 2 * AreaChipPadding
         let height  = font.height + AreaChipPadding
 
         var chip = Math.Rectangle{dstGrab.x, dstGrab.y - height - AreaChipGap, width, height}
@@ -289,6 +303,8 @@ impl CaptureRectWnd
         let x   = chip.x + AreaChipPadding
         painter.drawString(x, top, text, font, colors.text)
         painter.drawString(x + Painter.measureString(text, font).width, top, key, font, colors.faintText)
+        painter.drawString(x + Painter.measureString(text, font).width + Painter.measureString(key, font).width,
+                           top, anchorText, font, colors.faintText)
     }
 
     // Draws the pixels around the pointer enlarged in a round loupe beside it, on their grid, the

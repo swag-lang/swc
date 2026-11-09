@@ -28,6 +28,88 @@ func testProfileVersion(file: string)->u32
     return reader.manifest().profileVersion
 }
 
+// A long recording can zoom around a chosen time, pan, and seek inside the visible range without
+// decoding a frame elsewhere in the recording.
+#test
+{
+    var fixture: HeadlessFixture
+    fixture.setup()
+    defer fixture.shutdown()
+
+    let capture = Memory.new'Capture()
+    capture.file = testTempCapturePath()
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+
+    var pictures: [3] Pixel.Image
+    pictures[0] = testFramePicture(10, 0)
+    pictures[1] = testFramePicture(40, 8)
+    pictures[2] = testFramePicture(70, 16)
+    expect testWriteFrames(Capture.mediaPathOf(file), pictures, 7_200_000_000)
+    expect capture.adoptRecording()
+    fixture.editView.setCapture(capture)
+
+    let bar = TimelineBar.create(fixture.main, &fixture.gui.root)
+    bar.resize(800, TimelineHeight)
+    let track = bar.trackRect()
+    let center = track.horzCenter()
+    Swag.require(capture.timeline.duration == 21_600_000_000)
+    Swag.require(bar.timeAt(center) >= 10_400_000_000)
+
+    bar.zoomAt(center, 4)
+    Swag.require(bar.visibleDuration() == 5_400_000_000)
+    Swag.require(bar.viewStart > 0)
+    Swag.require(Math.abs(cast(s64, bar.timeAt(center)) - 10_800_000_000) < 10_000)
+
+    bar.pan(0.5)
+    Swag.require(bar.viewStart > 8_000_000_000)
+    bar.seek(track.right())
+    Swag.require(capture.playhead == 2)
+}
+
+// A selected form's start and end can be dragged on the timeline as separate undoable edits.
+#test
+{
+    var fixture: HeadlessFixture
+    fixture.setup()
+    defer fixture.shutdown()
+
+    let capture = testRecordedCapture()
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    fixture.editView.setCapture(capture)
+
+    let shape = testAddShape(capture, 4, 4, 20, 10)
+    shape.timeStart = 100_000
+    shape.timeEnd   = 200_000
+    capture.selection.add(0)
+
+    let bar = TimelineBar.create(fixture.main, &fixture.gui.root)
+    bar.resize(800, TimelineHeight)
+    let y = bar.trackRect().vertCenter() + 8
+    Swag.require(bar.edgeAt(bar.trackX(100_000), y) == .FormStart)
+    Swag.require(bar.edgeAt(bar.trackX(200_000), y) == .FormEnd)
+
+    bar.dragEdge = .FormStart
+    bar.dragFromStart = shape.timeStart
+    bar.dragFromEnd   = shape.timeEnd
+    bar.drag(bar.trackX(150_000))
+    bar.endEdgeDrag()
+    Swag.require(shape.timeStart == 150_000 and shape.timeEnd == 200_000)
+    capture.undo()
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 200_000)
+
+    bar.dragEdge = .FormEnd
+    bar.dragFromStart = shape.timeStart
+    bar.dragFromEnd   = shape.timeEnd
+    bar.drag(bar.trackX(300_000))
+    bar.endEdgeDrag()
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 0)
+    capture.undo()
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 200_000)
+}
+
 // A timed capture saves its forms and timeline without touching its frame file, loads back with
 // the frame at its playhead on the canvas, and reads as an animation in the library without
 // opening its frames.
@@ -266,6 +348,10 @@ func testProfileVersion(file: string)->u32
     Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 200_000)
     Swag.require(not capture.isFormShown(shape))
 
+    capture.setSelectionSpanAt(start: false, time: 300_000)
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 0)
+
+    capture.undo()
     capture.undo()
     capture.undo()
     Swag.require(shape.timeStart == 0 and shape.timeEnd == 0)

@@ -129,10 +129,17 @@ struct AppStrings
     ui_MediaAnimation:         string = "GIF"                         // An area capture kept as an animation, named on the aiming overlay.
     ui_AimCursor:              string = "Cursor"                      // Option of the aiming overlay keeping the cursor in the capture.
     ui_AimCountdown:           string = "Countdown"                   // Option of the aiming overlay counting down before a recording.
+    ui_AimRate:                string = "% fps"                       // Cadence shown on the recording bar.
+    tip_AimRate:               string = "Change recording frame rate" // Action of the cadence control.
     ui_AimNoSound:             string = "No sound in a GIF"           // Why the sound of a recording is out of reach on the aiming overlay.
+    ui_AimAnchored:            string = "Following window"           // An area moves with the selected window while recording.
+    ui_AimDetached:            string = "Fixed area"                 // An area stays at screen coordinates while recording.
     ui_AimRecord:              string = "Record"                      // Action of the aiming overlay starting a recording.
     msg_FailedCaptureScreen:   string = "Failed to capture the screen"
     msg_FailedRecordScreen:    string = "The recording could not be written"
+    ui_DroppedFrames:          string = "% frames were dropped"         // A toast after a recording whose cadence could not be kept.
+    ui_DroppedCount:           string = "· % missed"                   // A running count in the recording pill.
+    tip_WaitingForWindow:      string = "Waiting for window"          // Pause command while an attached window is hidden.
     msg_FailedLoadFile:        string = "Failed to load file: %"
     msg_FailedOpenLibrary:     string = "Cannot open the library folder"
     msg_FailedSaveMetadata:    string = "Cannot save capture metadata"
@@ -150,6 +157,7 @@ struct AppStrings
     ui_PropDash:               string = "Dash"               // Dash pattern of a stroke.
     ui_PropStyle:              string = "Style"              // Section of the glyph choices: the kind of a shape, its dashes, the ends of a line.
     ui_PropPosition:           string = "Position"           // Category of the position and size rows.
+    ui_PropTime:               string = "Time"               // Category of an animation form's visible span.
     ui_PropSize:               string = "Size"               // Size row of the position category.
     ui_ResetSteps:             string = "Reset"              // Restarts the numbered-step counter.
     ui_OneObject:              string = "1 object"           // Detail of the inspector title when one object is selected.
@@ -208,6 +216,8 @@ struct AppStrings
     ui_PosY:                      string = "Y"                                                             // Letter of the vertical position of an object.
     ui_PosW:                      string = "W"                                                             // Letter of the width of an object.
     ui_PosH:                      string = "H"                                                             // Letter of the height of an object.
+    ui_TimeStart:                 string = "Start (s)"                                                     // Beginning of a form's visible span, in seconds.
+    ui_TimeEnd:                   string = "End (s)"                                                       // End of a form's visible span, in seconds.
     hint_AllProperties:           string = "all properties"                                                // What the key of the folded inspector opens, on the hint line.
     hint_ToolSelect:              string = "Click an object to choose it, drag around several"             // Hint of the selection tool.
     hint_ToolShape:               string = "Drag to draw a rectangle or an ellipse"                        // Hint of the shape tool.
@@ -501,6 +511,12 @@ struct AppStrings
     prop_DelayDesc:            string = "Set the delay time, in seconds, before capturing"                   // Description of [[CaptureOptions.delay]].
     prop_RecordCountdown:      string = "Countdown"                                                          // Label of [[CaptureOptions.recordCountdown]].
     prop_RecordCountdownDesc:  string = "Count down three seconds before a recording starts"                 // Description of [[CaptureOptions.recordCountdown]].
+    prop_RecordRate:           string = "Recording Rate"
+    prop_RecordRateDesc:       string = "Record ten, fifteen or twenty frames each second"
+    prop_RecordMaxSeconds:     string = "Maximum Recording Length"
+    prop_RecordMaxSecondsDesc: string = "Stop an animation after this many seconds"
+    prop_RecordMaxDimension:   string = "Maximum Recording Size"
+    prop_RecordMaxDimensionDesc: string = "Limit the longest side of a recorded animation"
     prop_ClipToSelection:      string = "Clip To Selection"                                                  // Label of [[EditorOptions.clipToSelection]].
     prop_ClipToSelectionDesc:  string = "Mask everything outside the selected capture area"                  // Description of [[EditorOptions.clipToSelection]].
     prop_ConfirmLinked:        string = "Confirm Linked Overwrite"                                           // Label of [[EditorOptions.confirmLinkedOverwrite]].

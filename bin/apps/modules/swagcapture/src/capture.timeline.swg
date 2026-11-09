@@ -221,11 +221,18 @@ impl Capture
     // would end before it starts is opened on its other side.
     mtd setSelectionSpan(start: bool)
     {
+        .setSelectionSpanAt(start, .playheadTime())
+    }
+
+    // Places the selected forms' start or end at `time` as one undoable edit. Zero as an end
+    // means that the forms continue to the end of the recording.
+    mtd setSelectionSpanAt(start: bool, time: u64)
+    {
         if not .isTimed() or .selection.isEmpty() do
             return
         with let undo = .newUndo(.SetTimeSpan)
         {
-            .spanTime  = me.playheadTime()
+            .spanTime  = not start and time >= me.timeline.duration ? 0 : Math.min(time, me.timeline.duration)
             .spanStart = start
         }
 

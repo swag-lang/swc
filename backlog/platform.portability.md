@@ -1366,7 +1366,7 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Next: add Windows.Graphics.Capture (WinRT activation, a frame pool on Direct3D 11) as a window
   source behind platform.portability.097, without the capture border where the system allows it.
 - Done when: a window covered by another one, or partly off screen, records its own content.
-- Related: platform.portability.097, app.capture.029
+- Related: platform.portability.097
 
 ### platform.portability.099 — No Media Foundation bindings
 

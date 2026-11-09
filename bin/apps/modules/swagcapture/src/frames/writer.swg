@@ -2,8 +2,8 @@
 
 // Appends the frames of a recording to a frame file.
 //
-// The writer keeps one copy of the last frame, to find what the next one changed, and one index
-// entry per frame for the trailer; nothing else grows with the length of the recording. Frames
+// The writer keeps one copy of the last frame, to find what the next one changed. Its index is
+// spooled beside the media file and copied into the trailer at close, so memory stays flat. Frames
 // must be added in time order and all share the geometry and pixel format given at creation.
 // [[Frames.Writer.close]] writes the index and decides whether the file is complete, so its
 // failure must be handled.
@@ -15,7 +15,10 @@ struct Writer
     height:      s32
     pixelFormat: PixelFormat
     previous:    Image           // Last frame added, compared with the next one.
-    index:       Array'Entry     // One entry per record, written as the trailer.
+    indexPath:   String          // Temporary index spool, removed after the trailer is written.
+    indexSink:   ByteSink
+    count:       u64
+    lastTime:    u64
     lastKey:     u64             // Time of the last key record.
     deflate:     Compress.Deflate
     rows:        Array'u8     // Pixels of the area being written, top row first.
@@ -33,6 +36,10 @@ impl Writer
 
         var result: #returntype
         result.sink        = try ByteSink.createFile(fileName)
+        defer #fail discard catch File.delete(fileName)
+        result.indexPath   = String.from(fileName)
+        result.indexPath  += ".index.tmp"
+        result.indexSink   = try ByteSink.createFile(result.indexPath)
         result.width       = width
         result.height      = height
         result.pixelFormat = pixelFormat
@@ -47,7 +54,7 @@ impl Writer
     }
 
     // Returns the number of frames added so far.
-    mtd const frameCount()->u64 => .index.count
+    mtd const frameCount()->u64 => .count
 
     // Appends `frame`, shown from `time` microseconds after the start of the recording.
     //
@@ -57,9 +64,9 @@ impl Writer
     {
         Swag.assert(not .isClosed)
         Swag.assert(frame.width == .width and frame.height == .height and frame.pixelFormat == .pixelFormat)
-        Swag.assert(.index.isEmpty() or time >= .index.back().time)
+        Swag.assert(.count == 0 or time >= .lastTime)
 
-        let isKey      = .index.isEmpty() or time - .lastKey >= KeyInterval
+        let isKey      = .count == 0 or time - .lastKey >= KeyInterval
         let area: Area = isKey ? {0, 0, .width, .height} : changedArea(.previous, frame)
 
         var entry = Entry{offset: .sink.position(), time: time, kind: isKey ? .Key : .Delta}
@@ -90,7 +97,12 @@ impl Writer
 
         if isKey do
             .lastKey = time
-        .index.add(entry)
+        try .indexSink.writeLittleEndian(entry.offset)
+        try .indexSink.writeLittleEndian(entry.time)
+        try .indexSink.writeLittleEndian(cast(u32, entry.kind))
+        try .indexSink.writeLittleEndian(0'u32)
+        .count += 1
+        .lastTime = time
     }
 
     // Writes the index and the footer, the last frame being shown until `endTime`, and closes the
@@ -100,17 +112,21 @@ impl Writer
         if .isClosed do
             return
         .isClosed = true
+        try .indexSink.close()
+        defer discard catch File.delete(.indexPath)
+        var indexSource = try ByteSource.openFile(.indexPath)
+        defer indexSource.close()
 
         let indexOffset = .sink.position()
         try .sink.writeLittleEndian(IndexTag)
         try .sink.writeLittleEndian(0'u32)
-        try .sink.writeLittleEndian(cast(u64, .index.count))
-        for entry in .index
+        try .sink.writeLittleEndian(.count)
+        for .count
         {
-            try .sink.writeLittleEndian(entry.offset)
-            try .sink.writeLittleEndian(entry.time)
-            try .sink.writeLittleEndian(cast(u32, entry.kind))
-            try .sink.writeLittleEndian(0'u32)
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u64())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u64())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u32())
+            try .sink.writeLittleEndian(try indexSource.readLittleEndian'u32())
         }
 
         try .sink.writeLittleEndian(indexOffset)

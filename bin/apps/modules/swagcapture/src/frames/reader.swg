@@ -10,10 +10,13 @@
 struct Reader
 {
     source:       ByteSource
+    fileName:     String
     width:        s32
     height:       s32
     pixelFormat:  PixelFormat
-    index:        Array'Entry
+    index:        Array'Entry // Recovered files without a trailer are scanned into this index.
+    mappedIndex:  File.MappedRegion // Complete files keep their index in the file, not the heap.
+    mappedCount:  u64
     endTime:      u64       // Time the last frame stops being shown, in microseconds.
     isRecovered:  bool      // The trailer was missing and the index was rebuilt by a scan.
     picture:      Image     // The frame at `pictureIndex`, once one was read.
@@ -29,6 +32,7 @@ impl Reader
     func open(fileName: string)->Reader fail
     {
         var result: #returntype
+        result.fileName = fileName
         result.source = try ByteSource.openFile(fileName)
         if result.source.size() < HeaderSize do
             fail Errors.InvalidFormatError{}
@@ -46,7 +50,13 @@ impl Reader
 
         if not try result.readTrailer() do
             try result.scanRecords()
-        if result.index.isEmpty() do
+        // An interrupted writer may have left its temporary spool. The media itself recovers
+        // from complete records, and never needs that spool after it has been opened.
+        var stale = String.from(fileName)
+        stale += ".index.tmp"
+        if File.exists(stale) do
+            discard catch File.delete(stale)
+        if result.frameCount() == 0 do
             fail Errors.InvalidFormatError{}
 
         result.picture = Image.create(result.width, result.height, result.pixelFormat)
@@ -54,21 +64,40 @@ impl Reader
     }
 
     // Returns the number of frames in the file.
-    mtd const frameCount()->u64 => .index.count
+    mtd const frameCount()->u64 => .mappedIndex.isOpen() ? .mappedCount : .index.count
+
+    // Reads one trailer entry on demand. Recovered files use the scanned index.
+    private mtd const entryAt(frame: u64)->Entry
+    {
+        if not .mappedIndex.isOpen() do
+            return .index[frame]
+        Swag.assert(frame < .mappedCount)
+        let bytes = .mappedIndex.bytes()
+        let from = bytes.buffer + frame * IndexEntrySize
+        var result: Entry
+        var kind: u32
+        Memory.copy(&result.offset, from, 8)
+        Memory.copy(&result.time, from + 8, 8)
+        Memory.copy(&kind, from + 16, 4)
+        result.offset = Math.littleEndianToNative(result.offset)
+        result.time   = Math.littleEndianToNative(result.time)
+        result.kind   = Math.littleEndianToNative(kind) == cast(u32, FrameKind.Key) ? .Key : .Delta
+        return result
+    }
 
     // Returns the time frame `frame` is shown, in microseconds from the start.
-    mtd const timeOf(frame: u64)->u64 => .index[frame].time
+    mtd const timeOf(frame: u64)->u64 => .entryAt(frame).time
 
     // Returns the frame shown at `time` microseconds from the start.
     mtd const frameAt(time: u64)->u64
     {
         // The last frame whose time is not after `time`.
         var low  = 0'u64
-        var high = .index.count
+        var high = .frameCount()
         while high - low > 1
         {
             let middle = (low + high) / 2
-            if .index[middle].time <= time do
+            if .timeOf(middle) <= time do
                 low = middle
             else do
                 high = middle
@@ -80,15 +109,17 @@ impl Reader
     // Returns the picture of frame `frame`. The result is borrowed until the next read.
     mtd read(frame: u64)->const *Image fail
     {
-        Swag.assert(frame < .index.count)
+        Swag.assert(frame < .frameCount())
         if frame == .pictureIndex do
             return &.picture
 
         // Replay from the key record at or before the frame, unless the frame follows the
         // picture already decoded after that key.
         var key = frame
-        while .index[key].kind != .Key do
+        while key > 0 and .entryAt(key).kind != .Key do
             key -= 1
+        if .entryAt(key).kind != .Key do
+            fail Errors.InvalidFormatError{}
 
         let start = .pictureIndex != Swag.U64.Max and .pictureIndex >= key and .pictureIndex < frame ? .pictureIndex + 1 : key
         for record in start to frame do
@@ -101,11 +132,13 @@ impl Reader
     // Applies record `record` to the decoded picture.
     private mtd apply(record: u64) fail
     {
-        try .source.seek(.index[record].offset)
+        try .source.seek(.entryAt(record).offset)
         if try .source.readLittleEndian'u32() != RecordTag do
             fail Errors.InvalidFormatError{}
 
-        discard try .source.readLittleEndian'u32()
+        let kind = try frameKind(try .source.readLittleEndian'u32())
+        if kind != .entryAt(record).kind do
+            fail Errors.InvalidFormatError{}
         discard try .source.readLittleEndian'u64()
 
         var area: Area
@@ -156,16 +189,10 @@ impl Reader
         if count * IndexEntrySize != size - FooterSize - indexOffset - 16 do
             return false
 
-        .index.reserve(count)
-        for count
-        {
-            var entry: Entry
-            entry.offset = try .source.readLittleEndian'u64()
-            entry.time   = try .source.readLittleEndian'u64()
-            entry.kind   = try frameKind(try .source.readLittleEndian'u32())
-            discard try .source.readLittleEndian'u32()
-            .index.add(entry)
-        }
+        var mapped = try File.MappedFile.open(.fileName)
+        defer mapped.close()
+        .mappedIndex = try mapped.map(indexOffset + 16, count * IndexEntrySize)
+        .mappedCount = count
 
         .endTime = endTime
         return true

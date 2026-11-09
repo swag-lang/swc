@@ -254,9 +254,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   test starts video one AAC priming packet after audio; `Video.Reader` trims exactly 1024 decoded
   samples and aligns the audible signal. `Mp4.SoftwareRecording` now applies that video offset,
   buffers arbitrary PCM chunks, and finalizes the H.264/AAC file; a simulated lost microphone
-  block round-trips as silence in the decoded MP4. The facade can now encode two separate
-  microphone and system-sound tracks with aligned audible time zero; its test decodes both
-  channels from the saved file and verifies correlation with their distinct input tones.
+  block round-trips as silence in the decoded MP4. The facade can now encode up to four
+  separate sound tracks with aligned audible time zero; a two-track test decodes microphone
+  and system sound and verifies correlation with their distinct input tones. A one-second
+  1080p60 stress test with four sound tracks encodes 60 pictures and 192 AAC packets in
+  0.517 seconds in Release on the Linux test machine, and all four tracks reopen at the
+  expected sample position.
   The writer does not yet author final-padding
   metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
   to build its frame table when opening a file.

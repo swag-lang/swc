@@ -106,3 +106,20 @@ using Swag, Core, Core.Errors, Audio, Pixel
     expect recorder.addFrame(&image, expect pacer.slotAt(0))
     expect recorder.end()
 }
+
+// The recorder bounds its independently encoded sound-track count at four.
+#test
+{
+    let path = videoTempPath("mp4-software-track-limits", "mp4")
+    defer discard catch File.delete(path)
+    var rejected: Swag.Error
+    discard catch Mp4.SoftwareRecording.createWithAudioTracks(
+        path, 16, 16, 90_000, []) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    const TooMany: [5] Mp4.SoftwareAudioConfig = [{48_000, 1}, {48_000, 1},
+                                                  {48_000, 1}, {48_000, 1},
+                                                  {48_000, 1}]
+    discard catch Mp4.SoftwareRecording.createWithAudioTracks(
+        path, 16, 16, 90_000, Swag.makeSlice(&TooMany[0], TooMany.count)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+}

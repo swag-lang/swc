@@ -260,7 +260,10 @@ whole recording loaded at once.
   `Video.Reader` and FFmpeg play their output. `Video.Mp4.SoftwareRecording` now joins the
   encoders, exact video frame slots, arbitrary PCM chunks, AAC priming and MP4 finalization.
   Synthetic static and scrolling 1080p60 sequences encode faster than real time in Release.
-  Swag Capture has no video-recording session or UI,
+  A headless X11 integration test now grabs actual changing window pixels through
+  `ScreenFrameSource`, encodes three frames (including a repeated one) with synthetic PCM16 into
+  MP4, and reopens the H.264 pictures and AAC sound through `Video.Reader`. Swag Capture has no
+  video-recording session or UI,
   and `BitBlt` acquisition cannot sustain large areas at 60 frames per second.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
   medium using `Video.Mp4.SoftwareRecording`: Desktop Duplication acquisition
@@ -281,8 +284,10 @@ whole recording loaded at once.
 
 - Evidence: `Audio.CaptureQueue` now reports PCM timing, gaps, overflow and source restoration
   with bounded storage; software AAC and MP4 recording consume its output. A simulated
-  microphone outage produces audible sound, silence, then sound in a decoded MP4. A real
-  microphone or system-loopback device is not yet connected to Swag Capture.
+  microphone outage produces audible sound, silence, then sound in a decoded MP4. A native
+  WASAPI microphone backend has passed Windows semantic checks and simulated PCM conversion
+  tests, but has not been exercised with a Windows device or connected to Swag Capture. System
+  loopback is not implemented yet.
 - Next: after app.capture.011, add the dock toggles: microphone with its level meter, system
   sound, or this application's sound only for a window target. Keep each source on its own track,
   timestamped on the performance counter and mixed only at export. Add a sound-only medium with a

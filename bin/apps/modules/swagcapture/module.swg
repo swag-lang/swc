@@ -1,4 +1,5 @@
 #import("gui", location: "swag@std")
+#import("video", location: "swag@std")
 
 #static if not #hastag("Swag.AllocatorDiagnostics") and
            (#hastag("capture.track-memory") or #hastag("capture.electric-memory") or #hastag("capture.fill-memory"))

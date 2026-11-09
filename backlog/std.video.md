@@ -214,11 +214,23 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   byte-exact round trips through `Video.Reader` and FFmpeg. A sparse chroma-change profile
   encodes a 1080p picture in 12.7 ms at 65,382 bytes and a 4K picture in 51.0 ms at 263,353
   bytes on this machine. The 4K profile is still about three times slower than a 60 fps frame
-  budget; changing textures and target bitrate remain unresolved.
+  budget. A dense-changing 4K P picture now uses a cheap luma-delta classifier before
+  attempting expensive exact AC coding: Release encode time fell from about 295 ms to
+  71–75 ms, with a 0.46% larger packet. The other measured stress pictures kept their
+  packet sizes, and FFmpeg decoded both 4K pictures byte-exactly. This is still over four
+  times a 60 fps frame budget. The real X11 4K60 dynamic scene with stereo AAC took
+  2.47 seconds for capture, conversion, H.264 and MP4, producing a 99.17 MB file;
+  the earlier measurements of this scene were 2.23–2.75 seconds, so this optimization
+  does not establish a whole-pipeline gain for that scene. Private luma and chroma
+  inter quantization/reconstruction helpers now cover QP 0–51 with decoder-table parity,
+  but the live encoder still emits only exact pictures. Changing textures and target
+  bitrate remain unresolved.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
-- Next: add quantized transform coding, rate control and motion search to the portable Swag
-  encoder so changed blocks no longer require raw PCM samples. Measure the complete software
+- Next: connect the quantized inter helpers to the portable Swag encoder with a separate
+  reconstructed reference picture and a configurable QP; verify consecutive P pictures
+  through both `Video.Reader` and FFmpeg before adding rate control and improving motion
+  search. Measure the complete software
   capture and encoder path at 1080p60 and 4K60. Use a platform encoder only if the software path
   cannot meet the required capture profile; do not add an external codec library for a capability
   that can be implemented in Swag.

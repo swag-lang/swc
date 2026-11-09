@@ -1370,13 +1370,15 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.099 — No Media Foundation bindings
 
-- Evidence: H.264 and AAC encoding are provided by Windows through Media Foundation transforms,
-  including vendor hardware encoders, and nothing under `bin/` binds them.
-- Next: bind the subset needed for encoder transforms: enumeration with hardware preference,
-  media types, samples on Direct3D 11 surfaces, and the asynchronous event model of hardware
-  transforms. Report editions without media features explicitly.
-- Done when: an H.264 and an AAC transform can be found, configured and driven from Swag, with a
-  clear failure where they are absent.
+- Evidence: software H.264 and full-band AAC-LC encoders now exist in Swag without an external
+  codec dependency. Windows also offers Media Foundation transforms, including vendor hardware
+  encoders, but no binding is needed to produce a playable software recording. Current 4K I_PCM
+  performance does not yet prove whether a fully optimized software encoder can meet 4K60.
+- Next: measure realistic 4K60 capture after software H.264 transform coding, rate control and
+  conversion optimization. Bind only the native encoder subset if the required capture profile
+  cannot be met in software; report systems without those media features explicitly.
+- Done when: any required native path can be configured and driven from Swag with a clear failure
+  where unavailable, while software encoding remains usable without it.
 - Related: std.video.015, std.audio.015
 
 ### platform.portability.100 — No camera source

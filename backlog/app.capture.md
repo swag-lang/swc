@@ -254,9 +254,12 @@ whole recording loaded at once.
 
 ### app.capture.011 — No video recording
 
-- Evidence: video recording is a product goal of the universal capture. `Video.Writer` writes
-  only Motion JPEG in MP4 and AVI, plus Y4M, with no sound track, and `BitBlt` acquisition cannot
-  sustain large areas at 60 frames per second.
+- Evidence: video recording is a product goal of the universal capture. The `Video.Writer`
+  facade still writes Motion JPEG in MP4 and AVI, plus Y4M. Separately, pure Swag H.264 and
+  AAC-LC encoders now feed a resumable fragmented-MP4 writer with video and sound tracks;
+  `Video.Reader` and FFmpeg play their output. Synthetic static and scrolling 1080p60 sequences
+  encode faster than real time in Release. Swag Capture has no video-recording session or UI,
+  and `BitBlt` acquisition cannot sustain large areas at 60 frames per second.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
   medium: Desktop Duplication acquisition (platform.portability.097), H.264 encoding
   (std.video.015), and a fragmented MP4 master (std.video.016) read back by the existing H.264

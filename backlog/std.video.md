@@ -191,27 +191,31 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: `encode/` writes Motion JPEG in MP4 and AVI, plus Y4M. A borrowed encoded-packet
   contract and a fragmented MP4 writer now consume H.264 access units. `H264.AnnexBAccessUnit`
   converts Annex B encoder output and extracts `avcC`. `Video.Nv12Frame` converts packed RGB and
-  BGRA pictures to top-down BT.709 NV12. A portable Constrained Baseline encoder now emits
-  exact I_PCM macroblocks and P-skip for unchanged blocks; its packets round-trip through
-  the module and FFmpeg. On a synthetic 1080p sequence in Release on a four-core Linux
-  container, an IDR took 21.7 ms and 3.15 MB, a fully changed P picture 17.7 ms and
-  3.15 MB, and 60 static P pictures 198 ms total and 660 bytes. A fully changing
-  1080p60 recording would need roughly 189 MB/s before container overhead, so this
-  encoder is an interoperability foundation, not a production capture codec.
+  BGRA pictures to top-down BT.709 NV12. The portable Constrained Baseline encoder emits
+  exact I_PCM macroblocks, flat intra blocks, exact integer-pixel inter copies and P-skip;
+  its packets round-trip through the module and FFmpeg. In Release on the Linux test machine,
+  a textured 1080p IDR took 22.8 ms and 3.15 MB, a 16-pixel vertical scroll 5.0 ms and
+  97.6 KB, a static P picture 3.6 ms and 11 bytes, and a flat IDR 3.3 ms and 8.6 KB.
+  A two-second software BGRA-to-NV12, H.264, full-band stereo AAC and fragmented-MP4 test
+  with 120 static 1080p frames finished in 1.59 seconds; alternating two textured pictures
+  shifted by 16 pixels finished in 1.66 seconds. Arbitrary textured changes still
+  fall back to multi-megabyte I_PCM pictures; that path is not ready for production capture.
   `Video.FramePacer` maps monotonic arrivals to exact frame slots and reports skipped slots over
   long recordings without accumulating time rounding.
-  The current conversion is scalar; its throughput still needs a native encoder-path benchmark
-  and a SIMD or GPU path before it can serve real-time 1080p60 recording.
+  Parallel software BGRA8-to-NV12 conversion takes 2.58 ms per warmed 1920×1080 frame and
+  9.49 ms per warmed 4K frame in Release, down from 6.57 and 26.76 ms on the same machine.
+  A 4K varying-color parity test matches every output byte against the scalar BGR8 path.
+  Real screen acquisition and 4K60 still need end-to-end measurement.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
-- Next: add a Media Foundation encoder (platform.portability.099), hardware when present
-  and Windows' software encoder otherwise, fed NV12 surfaces. Add quantized transform
-  coding, rate control and motion search to the portable path so changed blocks no longer
-  require raw PCM samples. Measure the native NV12 conversion and encoder path at 1080p60
-  and 4K60.
-- Done when: a captured sequence encodes in real time at 1080p60 on the Media Foundation path,
-  the Swag encoder produces a stream that the module's decoder and a reference player both read,
-  and both paths report their rate control and dropped frames.
+- Next: add quantized transform coding, rate control and motion search to the portable Swag
+  encoder so changed blocks no longer require raw PCM samples. Measure the complete software
+  capture and encoder path at 1080p60 and 4K60. Use a platform encoder only if the software path
+  cannot meet the required capture profile; do not add an external codec library for a capability
+  that can be implemented in Swag.
+- Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful
+  bitrates, the module's decoder and a reference player both read them, and the recorder reports
+  rate control, encode latency and dropped frames.
 - Related: app.capture.011, std.video.016, platform.portability.099
 
 ### std.video.016 — Fragmented MP4 lacks multi-track recording and indexed playback
@@ -241,9 +245,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   indexed fragment beyond 4 GiB. `Video.Timebase` converts absolute timestamps between integer
   clocks without per-packet rounding drift; AAC cuts use it to map
   video boundaries to sample clocks. `Mp4.planVideoTimeRanges` maps requested decode-time
-  intervals to key-frame packet ranges with a bounded fragment scan. The writer has no timed metadata tracks;
-  `Video.Reader` still scans fragments to build its frame table when opening a file.
+  intervals to key-frame packet ranges with a bounded fragment scan. Software H.264 and AAC
+  packets now round-trip through this writer and `Video.Reader`, and FFmpeg plays the file. A
+  test starts video one AAC priming packet after audio; `Video.Reader` trims exactly 1024 decoded
+  samples and aligns the audible signal. The writer does not yet author priming or final-padding
+  metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
+  to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
+  Carry AAC priming and final-padding semantics in the recording API and container timeline.
   Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets
   and a timescale that does not accumulate rounding. Keep the current single-stream writer as a
   facade.

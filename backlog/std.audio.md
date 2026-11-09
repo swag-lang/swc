@@ -150,15 +150,20 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   after the per-voice filter boundary.
 - Related: platform.portability.064, std.audio.008, std.audio.009
 
-### std.audio.015 — No general AAC-LC sound encoder
+### std.audio.015 — AAC recording still needs precise timing and rate control
 
-- Evidence: `Wav.Writer` streams resumable PCM16 RIFF files. `Flac.Writer` streams native PCM16
-  FLAC for one to eight channels, with bit-exact decoder round trips, external FFmpeg playback,
-  bounded buffering, and a validated checkpoint for resume. `Aac.SilenceEncoder` produces real
-  AAC-LC silence packets for source interruptions, but cannot encode microphone samples.
-- Next: add a streaming encoder contract with timestamps and implement a bounded software
-  AAC-LC encoder in Swag for non-silent PCM, then connect its packets to MP4 (std.video.016).
-- Done when: AAC-LC packets from non-silent capture PCM mux into MP4 and play in reference players.
+- Evidence: `Wav.Writer` and `Flac.Writer` stream resumable PCM16 recordings. `Aac.Encoder`
+  now encodes mono/stereo 44.1/48 kHz PCM16 into AAC-LC in pure Swag, with full-band and voice
+  profiles; `Aac.StreamEncoder` accepts arbitrary input chunks, reports packet sample times,
+  pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.
+  The module and FFmpeg decode non-silent AAC inside fragmented MP4. In Release, full-band stereo
+  takes about 3.9 ms per 1024-frame packet and an encoder instance needs an 8 MiB basis table.
+  The decoded AAC stream has 1024 priming frames, and its final packet may carry padding.
+- Next: compensate AAC priming and final padding in the MP4 presentation timeline, then add
+  bounded target bitrate and short-window transient coding. Keep the software implementation
+  independent of external codec libraries.
+- Done when: a captured non-silent recording plays in the module and reference players with
+  video/audio sync within one video frame, including its start, end, source gaps and long runs.
 - Related: app.capture.013, std.video.016, platform.portability.099
 
 ### std.audio.016 — Resampler drift endurance not yet measured

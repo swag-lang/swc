@@ -9,6 +9,12 @@ struct X11Capture
 {
     library:              *void?
     fixesLibrary:         *void?
+    shmExtension:         Linux.xcb_extension_t
+    shmData:              *void?
+    shmSize:              u64
+    shmId:                s32
+    shmSegment:           u32
+    shmDisabled:          bool
     connection:           *void?
     screen:               Linux.xcb_screen_t
     screenPointer:        const *Linux.xcb_screen_t?
@@ -46,6 +52,7 @@ impl X11Capture
         result.library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         if not result.library do
             fail Swag.SystemError{"desktop capture cannot load libxcb.so.1"}
+        result.shmExtension.name = "MIT-SHM".buffer
         let library = result.library
         result.disconnect = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
         let connect         = try symbol'Linux.xcb_connect_fn(library, "xcb_connect")
@@ -88,6 +95,7 @@ impl X11Capture
 
     mtd opDrop()
     {
+        .releaseSharedMemory()
         if .connection do
             .disconnect(.connection)
         if .fixesLibrary do
@@ -281,6 +289,106 @@ impl X11Capture
         return result
     }
 
+    // libxcb fills the four-byte X11 header and routes the request through the
+    // MIT-SHM extension descriptor. Each wire request below is otherwise Swag data.
+    private mtd sharedRequest(wire: *void, size: u64, opcode: u8, isvoid, checked: bool)->u32
+    {
+        let send = cast(Linux.xcb_send_request_fn, unwrap Linux.dlsym(unwrap .library, "xcb_send_request".buffer))
+        var vectors: [2] Linux.xcb_iovec_t
+        vectors[0].base   = wire
+        vectors[0].length = size
+        vectors[1].length = (4 - size % 4) % 4
+        var descriptor: Linux.xcb_protocol_request_t
+        descriptor.count  = 2
+        descriptor.ext    = &.shmExtension
+        descriptor.opcode = opcode
+        descriptor.isvoid = isvoid ? 1 : 0
+        return send(unwrap .connection, checked ? 1 : 0, &vectors[0], &descriptor)
+    }
+
+    // Keep one segment across frames. A failed MIT-SHM attach disables the optional
+    // path for this connection, so remote X servers continue through GetImage.
+    private mtd ensureSharedMemory(width, height: s32)->bool
+    {
+        if .shmDisabled do
+            return false
+        let needed = cast(u64, width) * cast(u64, height) * 4
+        if .shmData and .shmSize >= needed do
+            return true
+        .releaseSharedMemory()
+        let library   = unwrap .library
+        let extension = cast(Linux.xcb_get_extension_data_fn, unwrap Linux.dlsym(library, "xcb_get_extension_data".buffer))
+        let available = extension(unwrap .connection, &.shmExtension)
+        if not available or not available.present
+        {
+            .disableSharedMemory()
+            return false
+        }
+
+        let id = Linux.shmget(0, needed, 0x380)
+        if id < 0
+        {
+            .disableSharedMemory()
+            return false
+        }
+        let address = Linux.shmat(id, null, 0)
+        if address == cast(*void, -1's64)
+        {
+            discard Linux.shmctl(id, 0, null)
+            .disableSharedMemory()
+            return false
+        }
+
+        let generate   = cast(Linux.xcb_generate_id_fn, unwrap Linux.dlsym(library, "xcb_generate_id".buffer))
+        let check      = cast(Linux.xcb_request_check_fn, unwrap Linux.dlsym(library, "xcb_request_check".buffer))
+        let connection = .connection
+        let segment    = generate(connection)
+        var wire: Linux.xcb_shm_attach_request_t
+        wire.segment = segment
+        wire.shmid   = cast(u32, id)
+        let sequence = .sharedRequest(&wire, #sizeof(wire), 1, true, true)
+        let error    = check(connection, {sequence})
+        if error
+        {
+            Linux.free(error)
+            discard Linux.shmdt(unwrap address)
+            discard Linux.shmctl(id, 0, null)
+            .disableSharedMemory()
+            return false
+        }
+
+        .shmData    = address
+        .shmSize    = needed
+        .shmId      = id
+        .shmSegment = segment
+        // The segment is reclaimed after both X11 and this process detach.
+        if Linux.shmctl(id, 0, null) != 0
+        {
+            .disableSharedMemory()
+            return false
+        }
+        return true
+    }
+
+    private mtd disableSharedMemory()
+    {
+        .releaseSharedMemory()
+        .shmDisabled = true
+    }
+
+    private mtd releaseSharedMemory()
+    {
+        if not .shmData do
+            return
+        var wire: Linux.xcb_shm_detach_request_t
+        wire.segment = .shmSegment
+        discard .sharedRequest(&wire, #sizeof(wire), 2, true, false)
+        discard Linux.shmdt(.shmData)
+        discard Linux.shmctl(.shmId, 0, null)
+        .shmData = null
+        .shmSize = 0
+    }
+
     // Reuses `target` storage across captures of the same rectangle.
     mtd imageInto(target: *Image, drawCursor: bool, x, y, width, height: s32) fail
     {
@@ -305,9 +413,45 @@ impl X11Capture
         let depthNext  = try symbol'Linux.xcb_depth_next_fn(library, "xcb_depth_next")
         let visuals    = try symbol'Linux.xcb_depth_visuals_iterator_fn(library, "xcb_depth_visuals_iterator")
         let visualNext = try symbol'Linux.xcb_visualtype_next_fn(library, "xcb_visualtype_next")
-        let captured   = reply(connection,
-                               get(connection, 2, .screen.root, cast(s16, x), cast(s16, y), cast(u16, width), cast(u16, height), Swag.U32.Max),
-                               null)
+        var captured: *Linux.xcb_get_image_reply_t?
+        var sharedSize: u64
+        var shared = .ensureSharedMemory(width, height)
+        if shared
+        {
+            var wire: Linux.xcb_shm_get_image_request_t
+            wire.drawable   = .screen.root
+            wire.x          = cast(s16, x)
+            wire.y          = cast(s16, y)
+            wire.width      = cast(u16, width)
+            wire.height     = cast(u16, height)
+            wire.plane_mask = Swag.U32.Max
+            wire.format     = 2
+            wire.segment    = .shmSegment
+            let sequence = .sharedRequest(&wire, #sizeof(wire), 4, false, true)
+            let wait = cast(Linux.xcb_wait_for_reply_fn, unwrap Linux.dlsym(library, "xcb_wait_for_reply".buffer))
+            let sharedReply = wait(connection, sequence, null)
+            var replySize: u32
+            if sharedReply do
+                Memory.copy(&replySize, &sharedReply.pad0[0], #sizeof(replySize))
+            if sharedReply and
+               sharedReply.depth == .screen.root_depth and
+               sharedReply.visual == .screen.root_visual and
+               replySize <= .shmSize
+            {
+                sharedSize = replySize
+                captured   = sharedReply
+            }
+            else
+            {
+                Linux.free(sharedReply)
+                .disableSharedMemory()
+                shared = false
+            }
+        }
+        if not shared do
+            captured = reply(connection,
+                             get(connection, 2, .screen.root, cast(s16, x), cast(s16, y), cast(u16, width), cast(u16, height), Swag.U32.Max),
+                             null)
         if not captured do
             fail Swag.SystemError{"X11 cannot read the requested desktop pixels"}
         defer Linux.free(captured)
@@ -348,7 +492,7 @@ impl X11Capture
             fail Errors.UnsupportedFormatError{"desktop capture needs a 16-, 24- or 32-bit X11 TrueColor visual"}
         let rowBits = cast(u64, width) * format.bits_per_pixel
         let stride  = ((rowBits + format.scanline_pad - 1) / format.scanline_pad) * (format.scanline_pad / 8)
-        let count   = dataLength(captured)
+        let count = shared ? cast(s64, sharedSize) : cast(s64, dataLength(captured))
         if count < 0 or cast(u64, count) < stride * cast(u64, height) do
             fail Swag.SystemError{"X11 returned an incomplete desktop image"}
 
@@ -367,7 +511,7 @@ impl X11Capture
 
         if target.width != width or target.height != height or target.pixelFormat != .BGRA8 do
             target[] = Image.create(width, height, .BGRA8)
-        let source = data(captured)
+        let source = shared ? cast([*] u8, unwrap .shmData) : data(captured)
         let bytes  = format.bits_per_pixel / 8
         let imageHeight = cast(u64, height)
         let imageWidth  = cast(u64, width)

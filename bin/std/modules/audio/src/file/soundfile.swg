@@ -412,7 +412,7 @@ impl SoundFile
             fail InvalidFormatError{"sound priming consumes every decoded frame"}
         if result.trailingTrim >= decodedFrames - result.leadingTrim do
             fail InvalidFormatError{"sound padding consumes every audible frame"}
-        if result.trailingTrim >= packets[packets.count - 1].sampleFrameCount do
+        if result.trailingTrim and result.trailingTrim >= packets[packets.count - 1].sampleFrameCount do
             fail BadParameterError{"sound padding consumes the final packet"}
 
         result.frameCount      = frameCount - result.leadingTrim - result.trailingTrim

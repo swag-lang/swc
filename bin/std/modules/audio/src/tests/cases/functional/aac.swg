@@ -142,6 +142,12 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
                                              decodedFrames, packets.toSlice(), Config,
                                              {trailingTrimFrames: 1_024}) as invalidPadding
     Swag.require(invalidPadding.value() is BadParameterError)
+    var withTerminal: Array'SoundPacket
+    withTerminal.add(packets.toSlice())
+    withTerminal.add({0, 1, 0})
+    let untrimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
+                                                       decodedFrames, withTerminal.toSlice(), Config)
+    Swag.require(untrimmed.sampleFrameCount() == decodedFrames)
     var all: Array's16
     expect full.decodePcm16(func|all = &all|(part: const [..] s16)->bool
     {

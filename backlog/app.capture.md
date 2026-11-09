@@ -266,12 +266,13 @@ whole recording loaded at once.
   UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.
-- Next: isolate the generated X11 test runner stall. Once app.capture.012 has proven the
-  session, timeline and document, add video as a medium using `Video.Mp4.SoftwareRecording`:
-  measure the persistent GDI source on Windows and use Desktop Duplication acquisition
-  (platform.portability.097) only if the required cadence
-  cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
-  and readback through the existing H.264 decoder for the timeline and re-export.
+- Next: isolate the generated X11 test runner stall. Add video to the capture media
+  model and recording controls, using `VideoCaptureSession` for capture and the existing
+  `Video.Mp4.SoftwareRecording` underneath. Extend the timeline, document and export to
+  read the fragmented MP4 through `Video.Reader`. Measure the persistent GDI source
+  on Windows and use Desktop Duplication acquisition (platform.portability.097) only if
+  the required cadence cannot be met. Keep the existing pacing, source-loss repeats
+  and fragmented MP4 master (std.video.016) when connecting the UI.
   Long recordings need, beside the stream: a recording folder that may differ from the library,
   a visible low-space stop reason and optional automatic splitting by
   duration or size, and recovery when the source is lost (secure desktop, display change, GPU

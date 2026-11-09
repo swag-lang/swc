@@ -136,38 +136,20 @@ private impl EncoderBits
         .bit(1) // total_zeros = 0 for totalCoeff = 1.
     }
 
-    // The 2x2 chroma DC block uses its own coeff_token and total_zeros tables.
-    mtd chromaSingleDc(level: s32)
-    {
-        let trailing = level == 1 or level == -1
-        let token = level == 0 ? 0'u64 : (trailing ? 5'u64 : 4'u64)
-        .bits(ChromaDcCoeffTokenBits[token], ChromaDcCoeffTokenLen[token])
-        if not level do
-            return
-        if trailing do
-            .bit(level < 0 ? 1 : 0)
-        else
-        {
-            let code = level > 0 ? level * 2 - 2 : -level * 2 - 1
-            let value = cast(u32, code - 2)
-            let prefix = value < 14 ? value : (value < 30 ? 14'u32 : 15'u32)
-            .bits(0, prefix)
-            .bit(1)
-            if prefix == 14 do
-                .bits(value - 14, 4)
-            elif prefix == 15 do
-                .bits(value - 30, 12)
-        }
-        .bits(ChromaDcTotalZerosBits[0], ChromaDcTotalZerosLen[0])
-    }
-
     // CAVLC for a quantized 4x4 block in zigzag order. Returns false only when
     // a level exceeds the bounded level-prefix form this encoder emits.
     mtd residual4(levels: const [*] s16, nC: u32)->bool
+        => .residual(levels, nC, 16, false)
+
+    // Chroma DC uses four coefficients and its own token/zero tables.
+    mtd chromaDc(levels: const [*] s16)->bool
+        => .residual(levels, 0, 4, true)
+
+    mtd residual(levels: const [*] s16, nC, maxCoeffs: u32, chromaDc: bool)->bool
     {
         var positions: [16] u32
         var total = 0'u32
-        for scan in 16'u32 where levels[scan] != 0
+        for scan in maxCoeffs where levels[scan] != 0
         {
             positions[total] = scan
             total += 1
@@ -180,10 +162,10 @@ private impl EncoderBits
         let table = nC < 2 ? 0'u64 : (nC < 4 ? 1'u64 : (nC < 8 ? 2'u64 : 3'u64))
         let token = cast(u64, total * 4 + trailing)
         let tokenOffset = table * 68 + token
-        let tokenLength = CoeffTokenLen[tokenOffset]
+        let tokenLength = chromaDc ? ChromaDcCoeffTokenLen[token] : CoeffTokenLen[tokenOffset]
         if not tokenLength do
             return false
-        .bits(CoeffTokenBits[tokenOffset], tokenLength)
+        .bits(chromaDc ? ChromaDcCoeffTokenBits[token] : CoeffTokenBits[tokenOffset], tokenLength)
         if not total do
             return true
 
@@ -235,10 +217,13 @@ private impl EncoderBits
         }
 
         let totalZeros = positions[total - 1] + 1 - total
-        if total < 16
+        if total < maxCoeffs
         {
-            let offset = cast(u64, (total - 1) * 16 + totalZeros)
-            .bits(TotalZerosBits[offset], TotalZerosLen[offset])
+            let offset = cast(u64, (total - 1) * maxCoeffs + totalZeros)
+            if chromaDc do
+                .bits(ChromaDcTotalZerosBits[offset], ChromaDcTotalZerosLen[offset])
+            else do
+                .bits(TotalZerosBits[offset], TotalZerosLen[offset])
         }
         var zerosLeft = totalZeros
         for index in total - 1
@@ -423,7 +408,7 @@ impl Encoder
                         continue
                     }
 
-                    var chromaLevels: [2] s32
+                    var chromaLevels: [8] s16
                     var chromaChanged = false
                     if .chromaDcResidual(frame, mbX, mbY, chromaLevels.buffer, &chromaChanged)
                     {
@@ -601,10 +586,10 @@ private impl Encoder
         return true
     }
 
-    // Accepts a flat per-plane chroma change if QP-0 DC dequantization reproduces it.
-    // Each plane then needs just its first coefficient in the 2x2 DC transform.
+    // Four flat 4x4 changes per plane are transformed as a 2x2 chroma DC block.
+    // Only levels whose inverse dequantization reproduces all source bytes are accepted.
     mtd const chromaDcResidual(frame: const *Nv12Frame, mbX, mbY: u32,
-                               levels: [*] s32, changed: *bool)->bool
+                               levels: [*] s16, changed: *bool)->bool
     {
         let x = cast(u64, mbX) * 16
         let y = cast(u64, mbY) * 16
@@ -617,22 +602,49 @@ private impl Encoder
         changed[] = false
         for plane in 2'u64
         {
-            let first = y / 2 * width + x + plane
-            let delta = cast(s32, current[first]) - cast(s32, .previous[previousOffset + first])
-            let level = delta * 64 / 5
-            if Math.abs(level) > 1_000 or (level * 5 + 32) >> 6 != delta do
-                return false
-            levels[plane] = level
-            if level != 0 do
-                changed[] = true
-            for row in 8'u64
+            var delta: [4] s32
+            for by in 2'u64
             {
-                let offset = (y / 2 + row) * width + x + plane
-                for column in 8'u64 where
-                    cast(s32, current[offset + column * 2]) -
-                    cast(s32, .previous[previousOffset + offset + column * 2]) != delta do
-                    return false
+                for bx in 2'u64
+                {
+                    let first = (y / 2 + by * 4) * width + x + bx * 8 + plane
+                    let block = by * 2 + bx
+                    delta[block] = cast(s32, current[first]) -
+                                   cast(s32, .previous[previousOffset + first])
+                    if delta[block] != 0 do
+                        changed[] = true
+                    for row in 4'u64
+                    {
+                        let offset = first + row * width
+                        for column in 4'u64 where
+                            cast(s32, current[offset + column * 2]) -
+                            cast(s32, .previous[previousOffset + offset + column * 2]) != delta[block] do
+                            return false
+                    }
+                }
             }
+            let d0 = delta[0]
+            let d1 = delta[1]
+            let d2 = delta[2]
+            let d3 = delta[3]
+            var transformed: [4] s32 = [d0 + d1 + d2 + d3, d0 - d1 + d2 - d3,
+                                         d0 + d1 - d2 - d3, d0 - d1 - d2 + d3]
+            for index in 4'u64
+            {
+                let level = transformed[index] * 16 / 5
+                if Math.abs(level) > 1_000 do
+                    return false
+                levels[plane * 4 + index] = cast(s16, level)
+            }
+            let q0 = cast(s32, levels[plane * 4])
+            let q1 = cast(s32, levels[plane * 4 + 1])
+            let q2 = cast(s32, levels[plane * 4 + 2])
+            let q3 = cast(s32, levels[plane * 4 + 3])
+            if ((q0 + q1 + q2 + q3) * 5 + 32) >> 6 != d0 or
+               ((q0 - q1 + q2 - q3) * 5 + 32) >> 6 != d1 or
+               ((q0 + q1 - q2 - q3) * 5 + 32) >> 6 != d2 or
+               ((q0 - q1 - q2 + q3) * 5 + 32) >> 6 != d3 do
+                return false
         }
         return true
     }
@@ -666,7 +678,7 @@ private impl Encoder
 
     mtd const writeAcResidual(bits: *EncoderBits, nonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s16, cbp: u32,
-                              chromaLevels: const [*] s32, chromaChanged: bool,
+                              chromaLevels: const [*] s16, chromaChanged: bool,
                               currentQp: s32)->bool
     {
         var code = 0'u32
@@ -699,8 +711,11 @@ private impl Encoder
         }
         if chromaChanged
         {
-            for plane in 2'u64 do
-                bits.chromaSingleDc(chromaLevels[plane])
+            for plane in 2'u64
+            {
+                let coded = bits.chromaDc(chromaLevels + plane * 4)
+                Swag.assert(coded)
+            }
         }
         return true
     }
@@ -784,7 +799,7 @@ private impl Encoder
 
     mtd const writeDcResidual(bits: *EncoderBits, nonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s32, cbp: u32,
-                              chromaLevels: const [*] s32, chromaChanged: bool,
+                              chromaLevels: const [*] s16, chromaChanged: bool,
                               currentQp: *s32)
     {
         var code = 0'u32
@@ -812,8 +827,11 @@ private impl Encoder
         }
         if chromaChanged
         {
-            for plane in 2'u64 do
-                bits.chromaSingleDc(chromaLevels[plane])
+            for plane in 2'u64
+            {
+                let coded = bits.chromaDc(chromaLevels + plane * 4)
+                Swag.assert(coded)
+            }
         }
     }
 

@@ -167,6 +167,30 @@ private impl Nv12Frame
         let start = cast(u64, .width) * cast(u64, .height)
         .bytes[start] += 1
     }
+
+    mtd encoderTintQuadrants()
+    {
+        let start = cast(u64, .width) * cast(u64, .height)
+        let uDelta: [4] s32 = [1, 0, -1, 2]
+        let vDelta: [4] s32 = [0, -1, 1, -2]
+        for by in 2'u64
+        {
+            for bx in 2'u64
+            {
+                let block = by * 2 + bx
+                for row in 4'u64
+                {
+                    for column in 4'u64
+                    {
+                        let offset = start + (by * 4 + row) * cast(u64, .width) +
+                                     (bx * 4 + column) * 2
+                        .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + uDelta[block])
+                        .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + vDelta[block])
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Flat per-plane chroma changes use one transformed DC coefficient per plane.
@@ -234,6 +258,37 @@ private impl Nv12Frame
     requireEncodedNv12(&mixed, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 2)
     requireEncodedNv12(&nonuniform, &decoded)
+}
+
+// All four chroma DC coefficients can be nonzero when color changes by 4x4 quadrant.
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-quadrants", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderFrame(16, 16)
+    var changed = expect encoderFrame(16, 16)
+    changed.encoderTintQuadrants()
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let quadrant = expect encoder.encode(&changed, 3_000, 3_000)
+    Swag.require(quadrant.bytes.count < key.bytes.count / 2)
+    expect writer.addPacket(quadrant)
+    let back = expect encoder.encode(&base, 6_000, 3_000)
+    Swag.require(back.bytes.count < key.bytes.count / 2)
+    expect writer.addPacket(back)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&changed, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&base, &decoded)
 }
 
 // PCM, unchanged P-skip, a changed edge macroblock, and a new IDR all round-trip exactly.

@@ -240,9 +240,19 @@ func getDesktopImage(drawCursor: bool)->Image fail
 // capture must not pay for the whole multi-monitor desktop.
 func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
 {
+    var result: Image
+    try getScreenRectImageInto(&result, drawCursor, x, y, w, h)
+    return result
+}
+
+// Keeps the caller's pixel allocation when consecutive grabs have the same dimensions.
+func getScreenRectImageInto(target: *Image, drawCursor: bool, x, y, w, h: s32) fail
+{
     #static if #command == Swag.CompilerCommand.Test
     {
-        return Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
+        if target.width != w or target.height != h or target.pixelFormat != .BGRA8 do
+            target[] = Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
+        return
     }
 
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
@@ -289,7 +299,7 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     // Flush the GDI command batch so the DIB memory is fully written before we read it.
     GdiFlush()
 
-    var result = Image.create(w, h, PixelFormat.BGRA8)
-    Memory.copy(result.pixels.storage(), unwrap bits, result.byteCount)
-    return result
+    if target.width != w or target.height != h or target.pixelFormat != .BGRA8 do
+        target[] = Image.create(w, h, .BGRA8)
+    Memory.copy(target.pixels.storage(), unwrap bits, target.byteCount)
 }

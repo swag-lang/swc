@@ -21,6 +21,16 @@ func paintCaptureWindow(window: *Env.Window, pixel: u32)
     Swag.require(cleared == null)
 }
 
+func openCaptureDescriptorCount()->u64
+{
+    let directory = unwrap Linux.opendir("/proc/self/fd".buffer)
+    defer discard Linux.closedir(directory)
+    var count = 0'u64
+    while Linux.readdir(directory) do
+        count += 1
+    return count
+}
+
 // An isolated X server has no window manager; publish the EWMH active-window property it owns.
 func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 {
@@ -97,8 +107,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     let error   = check(unwrap capture.connection, warp(capture.connection, 0, capture.screen.root, 0, 0, 0, 0, 40, 50))
     defer Linux.free(error)
     Swag.require(error == null)
-    let plain   = expect capture.image(false, 10, 20, 64, 64)
-    let cursor  = expect capture.image(true, 10, 20, 64, 64)
+    let plain = expect capture.image(false, 10, 20, 64, 64)
+    var source = expect ScreenFrameSource.create(true, 10, 20, 64, 64)
+    var cursor: Image
+    expect source.grabInto(&cursor)
     var changed = false
     for index in plain.pixels.count where plain.pixels[index] != cursor.pixels[index]
     {
@@ -108,6 +120,54 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 
     Swag.require(changed)
     Swag.require(cursor.pixelColor(0, 0).argb == Argb.Red)
+}
+
+// A persistent source reuses BGRA8 storage, recovers after a rejected grab and reconnects.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-source", title: "Frame source fixture", width: 64, height: 48, stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintCaptureWindow(&window, 0xFF0000)
+
+    var source = expect ScreenFrameSource.create(false, 10, 20, 64, 48)
+    var image: Image
+    expect source.grabInto(&image)
+    Swag.require(image.width == 64 and image.height == 48 and image.pixelFormat == .BGRA8)
+    Swag.require(image.pixelColor(4, 5).argb == Argb.Red)
+    let storage = image.pixels.storage()
+
+    paintCaptureWindow(&window, 0x0000FF)
+    expect source.grabInto(&image)
+    Swag.require(image.pixels.storage() == storage)
+    Swag.require(image.pixelColor(4, 5).argb == Argb.Blue)
+
+    source.x = -1
+    var rejected: Swag.Error
+    discard catch source.grabInto(&image) as rejected
+    Swag.require(rejected.value() is Errors.BadParameterError)
+    Swag.require(image.pixels.storage() == storage and image.pixelColor(4, 5).argb == Argb.Blue)
+    source.x = 10
+    expect source.reopen()
+    expect source.grabInto(&image)
+    Swag.require(image.pixels.storage() == storage and image.pixelColor(4, 5).argb == Argb.Blue)
+}
+
+// Opening and reconnecting a source must release its X11 sockets when it leaves scope.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    let before = openCaptureDescriptorCount()
+    for 3
+    {
+        scope
+        {
+            var source = expect ScreenFrameSource.create(false, 0, 0, 8, 8)
+            expect source.reopen()
+        }
+    }
+    Swag.require(openCaptureDescriptorCount() == before)
 }
 
 // The application command must carry real X11 pixels into the editor and its saved document.

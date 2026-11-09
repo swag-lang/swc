@@ -276,6 +276,14 @@ impl X11Capture
 
     mtd image(drawCursor: bool, x, y, width, height: s32)->Image fail
     {
+        var result: Image
+        try .imageInto(&result, drawCursor, x, y, width, height)
+        return result
+    }
+
+    // Reuses `target` storage across captures of the same rectangle.
+    mtd imageInto(target: *Image, drawCursor: bool, x, y, width, height: s32) fail
+    {
         let connection = unwrap .connection
         if x < 0 or
            y < 0 or
@@ -357,7 +365,8 @@ impl X11Capture
             return cast(u8, (cast(u64, shifted) * 255 + maximum / 2) / maximum)
         }
 
-        var result = Image.create(width, height, .BGRA8)
+        if target.width != width or target.height != height or target.pixelFormat != .BGRA8 do
+            target[] = Image.create(width, height, .BGRA8)
         let source = data(captured)
         let bytes  = format.bits_per_pixel / 8
         for row in cast(u64, height)
@@ -372,17 +381,16 @@ impl X11Capture
                     pixel |= cast(u32, source[offset + component]) << shift
                 }
 
-                let destination = (cast(u64, height) - row - 1) * cast(u64, result.rowStride) + column * 4
-                result.pixels[destination]     = channel(pixel, visual.blue_mask)
-                result.pixels[destination + 1] = channel(pixel, visual.green_mask)
-                result.pixels[destination + 2] = channel(pixel, visual.red_mask)
-                result.pixels[destination + 3] = 255
+                let destination = (cast(u64, height) - row - 1) * cast(u64, target.rowStride) + column * 4
+                target.pixels[destination]     = channel(pixel, visual.blue_mask)
+                target.pixels[destination + 1] = channel(pixel, visual.green_mask)
+                target.pixels[destination + 2] = channel(pixel, visual.red_mask)
+                target.pixels[destination + 3] = 255
             }
         }
 
         if drawCursor do
-            try .drawCursor(&result, x, y)
-        return result
+            try .drawCursor(target, x, y)
     }
 
     private mtd drawCursor(image: *Image, x, y: s32) fail

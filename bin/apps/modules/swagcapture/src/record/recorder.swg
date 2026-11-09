@@ -32,6 +32,7 @@ struct Recorder
 {
     late main:   *MainWnd
     area:        Math.Rectangle     // Recorded area, in physical virtual-desktop pixels.
+    source:      ScreenFrameSource
     file:        String             // Capture the frames belong to.
     writer:      Frames.Writer
     state:       RecorderState
@@ -63,6 +64,9 @@ impl Recorder
         defer Memory.delete(recorder)
         recorder.main   = main
         recorder.area   = area
+        recorder.source = try ScreenFrameSource.create(main.captureOptions.captureCursor,
+                                                        cast(s32, area.x), cast(s32, area.y),
+                                                        cast(s32, area.width), cast(s32, area.height))
         recorder.file   = Library.newFileName()
         recorder.limit  = AnimationMaxDuration
         recorder.writer = try Frames.Writer.create(Capture.mediaPathOf(recorder.file), cast(s32, area.width), cast(s32, area.height), .BGRA8)
@@ -219,13 +223,10 @@ impl Recorder
             return
         }
 
-        let x = cast(s32, .area.x)
-        let y = cast(s32, .area.y)
-        let w = cast(s32, .area.width)
-        let h = cast(s32, .area.height)
-        .pending = catch getScreenRectImage(.main.captureOptions.captureCursor, x, y, w, h)
+        catch .source.grabInto(&.pending)
         {
             .dropped += 1
+            catch .source.reopen()
             return
         }
 

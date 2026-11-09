@@ -219,19 +219,40 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   71–75 ms, with a 0.46% larger packet. The other measured stress pictures kept their
   packet sizes, and FFmpeg decoded both 4K pictures byte-exactly. This is still over four
   times a 60 fps frame budget. The real X11 4K60 dynamic scene with stereo AAC took
-  2.47 seconds for capture, conversion, H.264 and MP4, producing a 99.17 MB file;
+  2.47 seconds for capture, conversion, exact H.264 and MP4, producing a 99.17 MB file;
   the earlier measurements of this scene were 2.23–2.75 seconds, so this optimization
-  does not establish a whole-pipeline gain for that scene. Private luma and chroma
-  inter quantization/reconstruction helpers now cover QP 0–51 with decoder-table parity,
-  but the live encoder still emits only exact pictures. Changing textures and target
-  bitrate remain unresolved.
+  does not establish a whole-pipeline gain for that scene. The live encoder now accepts
+  fixed QP 0–51: QP 0 preserves the exact path, while P pictures at positive QP use
+  quantized luma/chroma residuals and a reconstructed reference. IDR pictures remain exact.
+  `Mp4.SoftwareRecording` forwards the optional QP through all three constructors, defaulting
+  to 0. A six-picture QP 28 recording reopens through `Video.Reader` and FFmpeg: IDR pictures
+  match QP 0, quantized P pictures differ, and a repeated picture decodes identically to its
+  predecessor. This 64×64 fixture shrank from 32,121 to 18,939 bytes.
+  On the Linux test machine, a textured 1080p P picture at QP 28 has a 522,924-byte median
+  packet and takes 50–63 ms; at QP 36 it has a 135,445-byte median packet and takes 39–48 ms.
+  The corresponding 4K P pictures take 200–229 ms at 1,920,587 bytes (QP 28), and
+  147–186 ms at 359,130 bytes (QP 36). Three-picture stress sequences round-trip through
+  `Video.Reader`; QP 28 luma PSNR stays above 36.17 dB and QP 36 above 31.49 dB on these
+  fixtures. Repeating unchanged raw input after a lossy P previously recoded residuals against
+  the reconstructed reference; the input cache now emits 11-byte P-skip packets for P2–P4,
+  lowering the 4K QP 28 median from 635,442 bytes/166.3 ms to 11 bytes/12.94 ms without
+  changing Reader output. FFmpeg also decodes the quantized four-picture H.264 probe.
+  On the same X11 4K60 dynamic scene with stereo AAC, fixed QP 28 took 10.274 seconds for
+  capture, conversion, H.264 and MP4 and produced 53.60 MB, versus the exact QP 0 baseline
+  of 2.47 seconds and 99.17 MB before the subsequent encoder optimizations. This profile
+  remains far above the 16.7 ms frame budget. One exact 4K IDR can still occupy about
+  12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
-- Next: connect the quantized inter helpers to the portable Swag encoder with a separate
-  reconstructed reference picture and a configurable QP; verify consecutive P pictures
-  through both `Video.Reader` and FFmpeg before adding rate control and improving motion
-  search. Measure the complete software
-  capture and encoder path at 1080p60 and 4K60. Use a platform encoder only if the software path
+- Next: measure the complete software capture and encoder path at 1080p60 and 4K60 after the
+  pending encoder optimizations. A pure-Swag rate controller could accept a target bitrate,
+  virtual buffer size and QP bounds, choose a QP per P picture, then use each packet's actual
+  bytes and encode duration to update buffer fullness and the next picture's QP. Expose those
+  per-frame measurements to the recorder so quality, latency and dropped frames can be reported
+  against the chosen target. Quantize intra/IDR pictures before promising a peak bitrate or
+  bounded buffer: their exact multi-megabyte packets dominate the current GOP floor. Improve
+  motion search and throughput, and verify changing screens and scene cuts through Reader and
+  FFmpeg. Use a platform encoder only if the software path
   cannot meet the required capture profile; do not add an external codec library for a capability
   that can be implemented in Swag.
 - Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful

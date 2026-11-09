@@ -104,10 +104,8 @@ private func quantizeIntraLuma16x16(source: const [*] u8, sourceStride: u64,
     let qmod = cast(u64, qp % 6)
     let qdiv = qp / 6
     let qbits = 15 + qdiv
-    var rawDc: [16] s32
-    var scaled: [16 * 16] s16
-    // A flat source has one identical forward 4x4 DC coefficient in each block.
-    // Retain the normative 4x4 DC Hadamard, quantizer and inverse below.
+    // A flat source has sixteen equal forward DC values, so the 4x4 Hadamard
+    // leaves only its first coefficient. The inverse also broadcasts one level.
     let sourceValue = source[0]
     var flatSource = true
     for row in 16'u64
@@ -122,18 +120,31 @@ private func quantizeIntraLuma16x16(source: const [*] u8, sourceStride: u64,
     }
     if flatSource
     {
-        let dc = 16 * (cast(s32, sourceValue) - predictor)
-        for block in 16'u64
-        {
-            rawDc[block] = dc
+        let coefficient = 256 * (cast(s32, sourceValue) - predictor)
+        let dcBits = qbits + 2
+        let magnitude = (cast(s64, Math.abs(coefficient)) *
+                         cast(s64, IntraLuma4x4QuantFactor[qmod, 0]) +
+                         (1's64 << (dcBits - 1))) >> dcBits
+        let level = cast(s16, coefficient < 0 ? -magnitude : magnitude)
+        result.dc[0] = level
+        for scan in 1'u64 until 16 do
+            result.dc[scan] = 0
+        for block in 16'u64 do
             result.nonZeroAc[block] = 0
-            for index in 16'u64 do
-                result.ac[block * 16 + index] = 0
-        }
+        for scan in 256'u64 do
+            result.ac[scan] = 0
+        let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
+        let dcValue = cast(s32, Math.clamp((cast(s64, level) * dcScale + 32) >> 6,
+                                           -32768, 32767))
+        let reconstructed = cast(u8, Math.clamp(predictor + ((dcValue + 32) >> 6),
+                                                 0, 255))
         for index in 256'u64 do
-            result.reconstructed[index] = cast(u8, predictor)
+            result.reconstructed[index] = reconstructed
+        return
     }
-    for by in 4'u64 where not flatSource
+    var rawDc: [16] s32
+    var scaled: [16 * 16] s16
+    for by in 4'u64
     {
         for bx in 4'u64
         {
@@ -226,11 +237,8 @@ private func quantizeIntraLuma16x16(source: const [*] u8, sourceStride: u64,
         scaled[block * 16] = cast(s16, Math.clamp(dcValue, -32768, 32767))
         let bx = block & 3
         let by = block >> 2
-        let output = result.reconstructed.buffer + by * 4 * 16 + bx * 4
-        if flatSource do
-            addDc4x4(output, 16, scaled[block * 16])
-        else do
-            addIdct4x4Scalar(output, 16, scaled.buffer + block * 16)
+        addIdct4x4Scalar(result.reconstructed.buffer + by * 4 * 16 + bx * 4,
+                         16, scaled.buffer + block * 16)
     }
 }
 

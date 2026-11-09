@@ -48,6 +48,25 @@ using Swag, Core
                         Swag.require(value == 0)
                     for value in result.nonZeroAc do
                         Swag.require(value == 0)
+                    var inverseDc: [16] s16
+                    inverseDc[0] = expected
+                    H264.hadamard4x4(inverseDc.buffer)
+                    let dcScale = cast(s64, H264.Dequant4Scale[qmod * 3]) *
+                                  16 << (qp / 6)
+                    var expectedPixels: [256] u8
+                    for &pixel in expectedPixels do
+                        pixel[] = predictor
+                    for block in 16'u64
+                    {
+                        let dcValue = (cast(s64, inverseDc[block]) * dcScale + 32) >> 6
+                        let scaled = cast(s32, Math.clamp(dcValue, -32768, 32767))
+                        let bx = block & 3
+                        let by = block >> 2
+                        H264.addDc4x4(expectedPixels.buffer + by * 4 * 16 + bx * 4,
+                                      16, scaled)
+                    }
+                    Swag.require(Memory.compare(result.reconstructed.buffer,
+                                                expectedPixels.buffer, 256) == 0)
                 }
             }
         }

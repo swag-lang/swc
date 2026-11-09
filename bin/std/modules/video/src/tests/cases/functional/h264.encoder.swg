@@ -151,6 +151,40 @@ func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
 
 private impl Nv12Frame
 {
+    mtd encoderAlternatingBlockDc(delta: s32)
+    {
+        let width = cast(u64, .width)
+        for by in 4'u64
+        {
+            for bx in 4'u64
+            {
+                let shift = (bx + by) & 1 ? -delta : delta
+                for row in 4'u64
+                {
+                    for column in 4'u64
+                    {
+                        let offset = (by * 4 + row) * width + bx * 4 + column
+                        .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + shift)
+                    }
+                }
+            }
+        }
+    }
+
+    mtd encoderCheckerboardAc(delta: s32)
+    {
+        let width = cast(u64, .width)
+        for row in cast(u64, .height)
+        {
+            for column in width
+            {
+                let offset = row * width + column
+                let shift = (row + column + row / 4 + column / 4) & 1 ? -delta : delta
+                .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + shift)
+            }
+        }
+    }
+
     mtd encoderTint(deltaU, deltaV: s32)
     {
         let start = cast(u64, .width) * cast(u64, .height)
@@ -402,6 +436,58 @@ private impl Nv12Frame
     requireEncodedNv12(&mixed, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 2)
     requireEncodedNv12(&base, &decoded)
+}
+
+// Strong but uniform 4x4 deltas must retain their compact DC residuals.
+#test
+{
+    let path = videoTempPath("h264-encoder-alternating-dc", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderSolidFrame(16, 16, 128, 128, 128)
+    var changed = expect encoderSolidFrame(16, 16, 128, 128, 128)
+    changed.encoderAlternatingBlockDc(80)
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let dc = expect encoder.encode(&changed, 3_000, 3_000)
+    Swag.require(dc.bytes.count < key.bytes.count)
+    expect writer.addPacket(dc)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&changed, &decoded)
+}
+
+// A repeated high-frequency 4x4 pattern can still be cheaper than I_PCM.
+#test
+{
+    let path = videoTempPath("h264-encoder-checkerboard-ac", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderSolidFrame(16, 16, 128, 128, 128)
+    var changed = expect encoderSolidFrame(16, 16, 128, 128, 128)
+    changed.encoderCheckerboardAc(80)
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let ac = expect encoder.encode(&changed, 3_000, 3_000)
+    Swag.require(ac.bytes.count < key.bytes.count)
+    expect writer.addPacket(ac)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&changed, &decoded)
 }
 
 // PCM, unchanged P-skip, a changed edge macroblock, and a new IDR all round-trip exactly.

@@ -416,86 +416,89 @@ impl Encoder
                         continue
                     }
 
-                    var chromaLevels: [8] s16
-                    var chromaAcLevels: [128] s16
-                    var chromaChanged = false
-                    var chromaCbp = 0'u32
-                    var chromaOkay = .chromaDcResidual(frame, mbX, mbY,
-                                                        chromaLevels.buffer, &chromaChanged)
-                    if chromaOkay and chromaChanged do
-                        chromaCbp = 1
-                    if not chromaOkay do
-                        chromaOkay = .chromaAcResidual(frame, mbX, mbY,
-                                                        chromaLevels.buffer, chromaAcLevels.buffer,
-                                                        &chromaCbp)
-                    if chromaOkay
+                    if not .denseResidualLikelyOversized(frame, mbX, mbY, firstDifferent)
                     {
-                        var levels: [16] s32
-                        var cbp = 0'u32
-                        if (firstDifferent >= 256 and chromaCbp != 0) or
-                           .dcResidual(frame, mbX, mbY, firstDifferent, levels.buffer, &cbp)
+                        var chromaLevels: [8] s16
+                        var chromaAcLevels: [128] s16
+                        var chromaChanged = false
+                        var chromaCbp = 0'u32
+                        var chromaOkay = .chromaDcResidual(frame, mbX, mbY,
+                                                            chromaLevels.buffer, &chromaChanged)
+                        if chromaOkay and chromaChanged do
+                            chromaCbp = 1
+                        if not chromaOkay do
+                            chromaOkay = .chromaAcResidual(frame, mbX, mbY,
+                                                            chromaLevels.buffer, chromaAcLevels.buffer,
+                                                            &chromaCbp)
+                        if chromaOkay
                         {
-                            let oldBytes = bits.bytes.count
-                            let oldCurrent = bits.current
-                            let oldUsed = bits.used
-                            let oldQp = currentQp
-                            bits.unsigned(0) // P_L0_16x16 with zero motion.
-                            bits.signed(-prediction.x)
-                            bits.signed(-prediction.y)
-                            let coded = .writeDcResidual(&bits, nonZero.toSlice(),
-                                                         chromaNonZero.toSlice(), mbX, mbY,
-                                                         levels.buffer, cbp, chromaLevels.buffer,
-                                                         chromaAcLevels.buffer, chromaCbp,
-                                                         &currentQp)
-                            let written = bits.bytes.count * 8 + bits.used -
-                                          (oldBytes * 8 + oldUsed)
-                            if coded and written < 3_072
+                            var levels: [16] s32
+                            var cbp = 0'u32
+                            if (firstDifferent >= 256 and chromaCbp != 0) or
+                               .dcResidual(frame, mbX, mbY, firstDifferent, levels.buffer, &cbp)
                             {
-                                motions[motionIndex] = {0, 0, true}
-                                skipped = 0
-                                continue
+                                let oldBytes = bits.bytes.count
+                                let oldCurrent = bits.current
+                                let oldUsed = bits.used
+                                let oldQp = currentQp
+                                bits.unsigned(0) // P_L0_16x16 with zero motion.
+                                bits.signed(-prediction.x)
+                                bits.signed(-prediction.y)
+                                let coded = .writeDcResidual(&bits, nonZero.toSlice(),
+                                                             chromaNonZero.toSlice(), mbX, mbY,
+                                                             levels.buffer, cbp, chromaLevels.buffer,
+                                                             chromaAcLevels.buffer, chromaCbp,
+                                                             &currentQp)
+                                let written = bits.bytes.count * 8 + bits.used -
+                                              (oldBytes * 8 + oldUsed)
+                                if coded and written < 3_072
+                                {
+                                    motions[motionIndex] = {0, 0, true}
+                                    skipped = 0
+                                    continue
+                                }
+                                bits.bytes.resize(oldBytes)
+                                bits.current = oldCurrent
+                                bits.used = oldUsed
+                                currentQp = oldQp
+                                for block in 16'u64 do
+                                    nonZero[motionIndex * 16 + block] = 0
+                                for block in 8'u64 do
+                                    chromaNonZero[motionIndex * 8 + block] = 0
                             }
-                            bits.bytes.resize(oldBytes)
-                            bits.current = oldCurrent
-                            bits.used = oldUsed
-                            currentQp = oldQp
-                            for block in 16'u64 do
-                                nonZero[motionIndex * 16 + block] = 0
-                            for block in 8'u64 do
-                                chromaNonZero[motionIndex * 8 + block] = 0
-                        }
 
-                        var acLevels: [256] s16
-                        if .acResidual(frame, mbX, mbY, acLevels.buffer, &cbp)
-                        {
-                            let oldBytes = bits.bytes.count
-                            let oldCurrent = bits.current
-                            let oldUsed = bits.used
-                            bits.unsigned(0) // P_L0_16x16 with zero motion.
-                            bits.signed(-prediction.x)
-                            bits.signed(-prediction.y)
-                            let coded = .writeAcResidual(&bits, nonZero.toSlice(),
-                                                         chromaNonZero.toSlice(), mbX, mbY,
-                                                         acLevels.buffer, cbp,
-                                                         chromaLevels.buffer,
-                                                         chromaAcLevels.buffer, chromaCbp,
-                                                         currentQp)
-                            let written = bits.bytes.count * 8 + bits.used -
-                                          (oldBytes * 8 + oldUsed)
-                            if coded and written < 3_072
+                            var acLevels: [256] s16
+                            if .acResidual(frame, mbX, mbY, acLevels.buffer, &cbp)
                             {
-                                currentQp = 0
-                                motions[motionIndex] = {0, 0, true}
-                                skipped = 0
-                                continue
+                                let oldBytes = bits.bytes.count
+                                let oldCurrent = bits.current
+                                let oldUsed = bits.used
+                                bits.unsigned(0) // P_L0_16x16 with zero motion.
+                                bits.signed(-prediction.x)
+                                bits.signed(-prediction.y)
+                                let coded = .writeAcResidual(&bits, nonZero.toSlice(),
+                                                             chromaNonZero.toSlice(), mbX, mbY,
+                                                             acLevels.buffer, cbp,
+                                                             chromaLevels.buffer,
+                                                             chromaAcLevels.buffer, chromaCbp,
+                                                             currentQp)
+                                let written = bits.bytes.count * 8 + bits.used -
+                                              (oldBytes * 8 + oldUsed)
+                                if coded and written < 3_072
+                                {
+                                    currentQp = 0
+                                    motions[motionIndex] = {0, 0, true}
+                                    skipped = 0
+                                    continue
+                                }
+                                bits.bytes.resize(oldBytes)
+                                bits.current = oldCurrent
+                                bits.used = oldUsed
+                                for block in 16'u64 do
+                                    nonZero[motionIndex * 16 + block] = 0
+                                for block in 8'u64 do
+                                    chromaNonZero[motionIndex * 8 + block] = 0
                             }
-                            bits.bytes.resize(oldBytes)
-                            bits.current = oldCurrent
-                            bits.used = oldUsed
-                            for block in 16'u64 do
-                                nonZero[motionIndex * 16 + block] = 0
-                            for block in 8'u64 do
-                                chromaNonZero[motionIndex * 8 + block] = 0
                         }
                     }
                 }
@@ -541,6 +544,51 @@ impl Encoder
 
 private impl Encoder
 {
+    // Dense, strongly varying deltas tend to cost more CAVLC bits than one
+    // exact I_PCM macroblock. Sample every luma 4x4 block only after motion
+    // search fails; uniform, periodic and sparse changes still reach residual
+    // coding. This heuristic can choose exact PCM without trying a smaller AC
+    // representation, so it preserves samples but does not minimize every packet.
+    mtd const denseResidualLikelyOversized(frame: const *Nv12Frame,
+                                            mbX, mbY, firstDifferent: u32)->bool
+    {
+        if firstDifferent >= 256 do
+            return false
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let width = cast(u64, .width)
+        if x + 16 > width or y + 16 > cast(u64, .height) do
+            return false
+        let current = frame.luma()
+        var changed = 0'u32
+        var varyingBlocks = 0'u32
+        var smallest = 256's32
+        var largest = -256's32
+        var smallestPair = 512's32
+        var largestPair = -512's32
+        for by in 4'u64
+        {
+            for bx in 4'u64
+            {
+                let offset = (y + by * 4) * width + x + bx * 4
+                let delta = cast(s32, current[offset]) - cast(s32, .previous[offset])
+                let nextDelta = cast(s32, current[offset + 1]) -
+                                cast(s32, .previous[offset + 1])
+                if delta != 0 do
+                    changed += 1
+                if Math.abs(nextDelta - delta) >= 16 do
+                    varyingBlocks += 1
+                smallest = Math.min(smallest, delta)
+                largest = Math.max(largest, delta)
+                let pair = delta + nextDelta
+                smallestPair = Math.min(smallestPair, pair)
+                largestPair = Math.max(largestPair, pair)
+            }
+        }
+        return changed >= 12 and varyingBlocks >= 8 and
+               largest - smallest >= 80 and largestPair - smallestPair >= 80
+    }
+
     // Forward 4x4 integer transform and QP-0 quantization for a luma block.
     // The candidate is accepted only if the decoder's inverse transform reproduces
     // every source sample exactly, so reference pictures remain byte-exact.

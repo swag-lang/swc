@@ -365,8 +365,9 @@ impl Encoder
             {
                 let motionIndex = cast(u64, mbY) * .mbWidth + mbX
                 let prediction = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY)
-                if not key and .unchanged(frame, mbX, mbY) and
-                   .skipMotionIsZero(motions.toSlice(), mbX, mbY)
+                var firstDifferent = 256'u32
+                let same = not key and .unchanged(frame, mbX, mbY, &firstDifferent)
+                if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY)
                 {
                     skipped += 1
                     motions[motionIndex] = {0, 0, true}
@@ -386,7 +387,7 @@ impl Encoder
                 if not key
                 {
                     var motion: EncoderMotion
-                    if .findMotion(frame, mbX, mbY, prediction, &motion)
+                    if .findMotion(frame, mbX, mbY, prediction, same, &motion)
                     {
                         bits.unsigned(0)             // P_L0_16x16.
                         bits.signed(motion.x - prediction.x)
@@ -399,7 +400,7 @@ impl Encoder
 
                     var levels: [16] s32
                     var cbp = 0'u32
-                    if .dcResidual(frame, mbX, mbY, levels.buffer, &cbp)
+                    if .dcResidual(frame, mbX, mbY, firstDifferent, levels.buffer, &cbp)
                     {
                         bits.unsigned(0) // P_L0_16x16 with zero motion.
                         bits.signed(-prediction.x)
@@ -642,14 +643,33 @@ private impl Encoder
     // reference. Inverse dequantization scales DC by ten, so a level is accepted
     // only when the decoder's rounded (level * 10) / 64 equals every input delta.
     mtd const dcResidual(frame: const *Nv12Frame, mbX, mbY: u32,
-                         levels: [*] s32, cbp: *u32)->bool
+                         firstDifferent: u32, levels: [*] s32, cbp: *u32)->bool
     {
+        // The first changed luma sample is already known from the skip test. A DC-only
+        // block needs one uniform delta, so reject an AC block before scanning chroma
+        // and the other luma blocks. A chroma-only change cannot use this path.
+        if firstDifferent >= 256 do
+            return false
         let x = cast(u64, mbX) * 16
         let y = cast(u64, mbY) * 16
         let width = cast(u64, .width)
         let height = cast(u64, .height)
         if x + 16 > width or y + 16 > height do
             return false
+        let luma = frame.luma()
+        let firstX = x + cast(u64, firstDifferent % 16)
+        let firstY = y + cast(u64, firstDifferent / 16)
+        let blockX = firstX & ~3'u64
+        let blockY = firstY & ~3'u64
+        let firstOffset = firstY * width + firstX
+        let firstDelta = cast(s32, luma[firstOffset]) - cast(s32, .previous[firstOffset])
+        for row in 4'u64
+        {
+            let offset = (blockY + row) * width + blockX
+            for column in 4'u64 where
+                cast(s32, luma[offset + column]) - cast(s32, .previous[offset + column]) != firstDelta do
+                return false
+        }
         let chroma = frame.chroma()
         let previousChroma = width * height
         for row in 8'u64
@@ -660,7 +680,6 @@ private impl Encoder
                 return false
         }
 
-        let luma = frame.luma()
         cbp[] = 0
         for by in 4'u64
         {
@@ -887,16 +906,18 @@ private impl Encoder
     }
 
     mtd const findMotion(frame: const *Nv12Frame, mbX, mbY: u32,
-                         prediction: EncoderMotion, result: *EncoderMotion)->bool
+                         prediction: EncoderMotion, same: bool, result: *EncoderMotion)->bool
     {
         if prediction.x % 4 == 0 and prediction.y % 4 == 0 and
            prediction.x % 8 == 0 and prediction.y % 8 == 0 and
-           .matchesMotion(frame, mbX, mbY, prediction.x / 4, prediction.y / 4)
+           ((prediction.x != 0 or prediction.y != 0 or same) and
+            .matchesMotion(frame, mbX, mbY, prediction.x / 4, prediction.y / 4))
         {
             result[] = {prediction.x, prediction.y, true}
             return true
         }
-        if .matchesMotion(frame, mbX, mbY, 0, 0)
+        if (prediction.x != 0 or prediction.y != 0) and same and
+           .matchesMotion(frame, mbX, mbY, 0, 0)
         {
             result[] = {0, 0, true}
             return true
@@ -996,7 +1017,8 @@ private impl Encoder
         .config.add(pictureNal)
     }
 
-    mtd const unchanged(frame: const *Nv12Frame, mbX, mbY: u32)->bool
+    mtd const unchanged(frame: const *Nv12Frame, mbX, mbY: u32,
+                        firstDifferent: *u32)->bool
     {
         if .previous.isEmpty() do
             return false
@@ -1004,6 +1026,34 @@ private impl Encoder
         let height = cast(u64, .height)
         let luma   = frame.luma()
         let uv     = frame.chroma()
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        if x + 16 <= width and y + 16 <= height
+        {
+            for row in 16'u64
+            {
+                let offset = (y + row) * width + x
+                if Memory.compare(luma.buffer + offset, .previous.storage() + offset, 16) != 0
+                {
+                    for column in 16'u64 where luma[offset + column] != .previous[offset + column]
+                    {
+                        firstDifferent[] = cast(u32, row * 16 + column)
+                        return false
+                    }
+                }
+            }
+            for row in 8'u64
+            {
+                let offset = (y / 2 + row) * width + x
+                if Memory.compare(uv.buffer + offset,
+                                  .previous.storage() + width * height + offset, 16) != 0
+                {
+                    firstDifferent[] = 256
+                    return false
+                }
+            }
+            return true
+        }
         for row in 16'u64
         {
             for column in 16'u64
@@ -1011,8 +1061,11 @@ private impl Encoder
                 let x = Math.min(cast(u64, mbX) * 16 + column, width - 1)
                 let y = Math.min(cast(u64, mbY) * 16 + row, height - 1)
                 let offset = y * width + x
-                if luma[offset] != .previous[offset] do
+                if luma[offset] != .previous[offset]
+                {
+                    firstDifferent[] = cast(u32, row * 16 + column)
                     return false
+                }
             }
         }
         for row in 8'u64
@@ -1023,8 +1076,11 @@ private impl Encoder
                 let y = Math.min(cast(u64, mbY) * 8 + row, height / 2 - 1)
                 let offset = y * width + x * 2
                 if uv[offset] != .previous[width * height + offset] or
-                   uv[offset + 1] != .previous[width * height + offset + 1] do
+                   uv[offset + 1] != .previous[width * height + offset + 1]
+                {
+                    firstDifferent[] = 256
                     return false
+                }
             }
         }
         return true

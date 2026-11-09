@@ -33,7 +33,7 @@ impl Capture
         if Path.equals(targetPath, sourcePath) do
             fail BadParameterError{"choose another file for the exported video"}
 
-        let frames = unwrap .frames
+        let frames = .frames
         let start  = .trimStart()
         let finish = .trimEnd()
         if finish <= start do

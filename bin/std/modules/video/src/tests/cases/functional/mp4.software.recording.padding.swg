@@ -108,3 +108,60 @@ func checkSoftwareAacTail(rate: u32, channels: u16) fail
         Swag.require(decoded.count == Expected[index] * Channels[index])
     }
 }
+
+// Resuming a finalized file removes its old edits before packets are appended.
+#test
+{
+    let path = videoTempPath("mp4-software-resume-edits", "mp4")
+    defer discard catch File.delete(path)
+    let image = videoGrayImage(16, 16, 90)
+    var recorder = expect Mp4.SoftwareRecording.create(path, 16, 16, 90_000, 48_000, 1)
+    let pacer = expect FramePacer.create(expect FrameRate.create(30, 1), 48_000, 90_000)
+    expect recorder.addFrame(&image, expect pacer.slotAt(0))
+    var source: [2_501] s16
+    expect recorder.addAudioFrames(Swag.makeSlice(&source[0], source.count))
+    expect recorder.end()
+    scope
+    {
+        var finalized = expect Reader.open(path)
+        Swag.require((unwrap finalized.audioTrack(0)).sampleFrameCount() == 2_501)
+    }
+
+    var resumed = expect Mp4.FragmentedWriter.resume(path)
+    Swag.require(resumed.videoPacketCount() == 1)
+    Swag.require(expect resumed.audioPacketCount(0) == 4)
+    scope
+    {
+        var prefix = expect Reader.open(path)
+        Swag.require((unwrap prefix.audioTrack(0)).sampleFrameCount() == 3_072)
+    }
+
+    var video = expect H264.Encoder.create(16, 16)
+    var nv12: Nv12Frame
+    expect nv12.convertFrom(&image)
+    let videoTime = resumed.videoEndTime()
+    expect resumed.addPacket(expect video.encode(&nv12, videoTime, 3_000))
+    var audio = expect Aac.StreamEncoder.create(48_000, 1)
+    var silence: [1_024] s16
+    var packet: Array'u8
+    Swag.require(expect audio.push(Swag.makeSlice(&silence[0], silence.count), &packet) == 1_024)
+    expect resumed.addAudioPacket(EncodedPacket{packet.toSlice(), 4_096, 4_096, 1_024, true})
+    expect resumed.end()
+    scope
+    {
+        var extended = expect Reader.open(path)
+        Swag.require(extended.frameCount() == 2)
+        Swag.require((unwrap extended.audioTrack(0)).sampleFrameCount() == 4_096)
+        var decodedFrame: PlanarFrame
+        expect extended.decodeFramePlanesInto(&decodedFrame, 1)
+        Swag.require(decodedFrame.width == 16 and decodedFrame.height == 16)
+    }
+
+    // A caller that knows the revised audible length may publish a fresh exact edit.
+    var republisher = expect Mp4.FragmentedWriter.resume(path)
+    const Revised: [1] u64 = [3_500]
+    expect republisher.setPresentationEdits(1_920, Swag.makeSlice(&Revised[0], 1))
+    expect republisher.end()
+    var revised = expect Reader.open(path)
+    Swag.require((unwrap revised.audioTrack(0)).sampleFrameCount() == 3_500)
+}

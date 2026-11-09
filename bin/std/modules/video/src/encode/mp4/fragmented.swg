@@ -192,7 +192,9 @@ impl FragmentedWriter
     // Resumes a stopped file produced by this writer after its last complete fragment.
     //
     // Complete video and AAC packets remain in place. An incomplete final box or an existing
-    // `mfra` index is removed; a new index is written at `end` when requested in `options`.
+    // `mfra` index is removed; completed presentation edits are reverted to reserved `free`
+    // boxes so newly appended packets cannot inherit a stale end time. A new index is written
+    // at `end` when requested in `options`.
     // The scan and optional key-frame spool use bounded memory. The file must stay unchanged
     // during the scan. At least one complete video fragment is required. Validation happens
     // before truncation; an I/O failure after truncation may leave a playable media prefix.
@@ -209,6 +211,8 @@ impl FragmentedWriter
             .width     = cast(u16, cursor.width())
             .height    = cast(u16, cursor.height())
             .timescale = cursor.timescale()
+            .movieTimescale = cursor.movieTimescale()
+            .videoEditOffset = cursor.videoEditOffset()
             .options   = options
             .config.add(cursor.avcConfig())
             .audioTracks.reserve(cursor.audioTrackCount())
@@ -219,6 +223,7 @@ impl FragmentedWriter
                 var track: FragmentedAudioTrack
                 track.sampleRate = audio.sampleRate
                 track.channels   = audio.channelCount
+                track.editOffset = cursor.audioEditOffset(index)
                 track.config.add(audio.decoderConfig)
                 .audioTracks.add(#move track)
             }
@@ -281,6 +286,10 @@ impl FragmentedWriter
         }
 
         result.sink = try ByteSink.openAppendFile(fileName)
+        if result.videoEditOffset do
+            try patchU32(&result.sink, result.videoEditOffset + 4, FreeBoxId)
+        for &track in result.audioTracks where track.editOffset do
+            try patchU32(&result.sink, track.editOffset + 4, FreeBoxId)
         return result
     }
 

@@ -17,6 +17,7 @@ const TrackId              = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
 const TrackHeaderId        = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
 const ParsedEditContainerId = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
 const ParsedEditListId      = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
+const ParsedFreeBoxId       = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
 const MediaDataId          = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
 const MediaId              = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
 const MediaHeaderId        = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
@@ -174,6 +175,7 @@ struct Track
     editMediaTime: s64
     editDuration:  u64
     hasSingleEdit: bool
+    editBoxOffset: u64
 }
 
 private impl Track
@@ -608,11 +610,23 @@ impl Track
     {
         while source.position() + BoxHeaderSize <= end
         {
+            let boxStart = source.position()
             let box = readBox(source, end)
             switch box.kind
             {
             case TrackHeaderId: .parseTrackHeader(source, box.end)
-            case ParsedEditContainerId: .parseEdits(source, box.end)
+            case ParsedEditContainerId:
+                .parseEdits(source, box.end)
+                if .hasSingleEdit and box.end - boxStart == 44 do
+                    .editBoxOffset = boxStart
+            case ParsedFreeBoxId:
+                if box.end - boxStart == 44
+                {
+                    let childSize = source.readBigEndian'u32()
+                    let childKind = source.readBigEndian'u32()
+                    if childSize == 36 and childKind == ParsedEditListId do
+                        .editBoxOffset = boxStart
+                }
             case MediaId:       .parseMedia(source, box.end)
             }
 

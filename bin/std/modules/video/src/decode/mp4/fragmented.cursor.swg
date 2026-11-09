@@ -113,6 +113,11 @@ impl FragmentedPacketCursor
     // Returns the video track's decode-time ticks per second.
     mtd const timescale()->u32 => .layout.track.timescale
 
+    // Offsets are nonzero only for the fixed-size final edit lists this writer can republish.
+    internal mtd const movieTimescale()->u32 => .layout.movieTimescale
+    internal mtd const videoEditOffset()->u64 => .layout.track.editBoxOffset
+    internal mtd const audioEditOffset(index: u64)->u64 => .layout.audioTracks[index].editBoxOffset
+
     // Borrows the AVC decoder configuration until the cursor closes.
     mtd const avcConfig()->const [..] u8 => .layout.track.videoConfig.toSlice()
 

@@ -26,24 +26,22 @@ func encoderStressPicture(shiftY: s32, flat: bool)->Nv12Frame fail
     return frame
 }
 
-func encoderStressTiles(bright: s32)->Nv12Frame fail
+func encoderStressTiles(bright: s32, width: s32 = 1920, height: s32 = 1080)->Nv12Frame fail
 {
-    const Width = 1920
-    const Height = 1080
     var rgb: Array'u8
-    rgb.resize(Width * Height * 3)
-    for y in Height
+    rgb.resize(width * height * 3)
+    for y in height
     {
-        for x in Width
+        for x in width
         {
             let value = cast(u8, 30 + ((x / 4 * 17 + y / 4 * 31) % 160) + bright)
-            let offset = cast(u64, (y * Width + x) * 3)
+            let offset = cast(u64, (y * width + x) * 3)
             rgb[offset] = value
             rgb[offset + 1] = value
             rgb[offset + 2] = value
         }
     }
-    let image = Image.create(Width, Height, .RGB8, rgb.toSlice())
+    let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var frame: Nv12Frame
     try frame.convertFrom(&image)
     return frame
@@ -95,6 +93,20 @@ private impl Nv12Frame
             let offset = start + index * 2
             .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + deltaU)
             .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + deltaV)
+        }
+    }
+
+    mtd stressSparseChroma(delta: s32)
+    {
+        let width = cast(u64, .width)
+        let start = width * cast(u64, .height)
+        for mbY in cast(u64, .height) / 16
+        {
+            for mbX in width / 16
+            {
+                let offset = start + mbY * 8 * width + mbX * 16
+                .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + delta)
+            }
         }
     }
 }
@@ -295,4 +307,80 @@ private impl Nv12Frame
         expect reader.decodeFramePlanesInto(&decoded, index)
         requireStressPicture(index == 1 ? &tinted : &base, &decoded)
     }
+}
+
+// Sparse chroma AC over textured luma is smaller than PCM and remains exact at 1080p.
+#[Swag.TestTag("stress")]
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-ac-1080p", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderStressTiles(0)
+    var changed = expect encoderStressTiles(0)
+    changed.stressSparseChroma(2)
+    var encoder = expect H264.Encoder.create(1920, 1080)
+    var writer = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000,
+                                                    encoder.decoderConfig())
+    var watch: Time.Stopwatch
+    watch.start()
+    let key = expect encoder.encode(&base, 0, 1_500)
+    watch.stop()
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+
+    watch.restart()
+    let ac = expect encoder.encode(&changed, 1_500, 1_500)
+    watch.stop()
+    Console.printf("H264 1080p chroma AC: % bytes, % us\n", ac.bytes.count,
+                   watch.elapsedMicroseconds())
+    Swag.require(ac.bytes.count < keySize / 10)
+    expect writer.addPacket(ac)
+    let back = expect encoder.encode(&base, 3_000, 1_500)
+    Swag.require(back.bytes.count < keySize / 10)
+    expect writer.addPacket(back)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    for index in 3'u64
+    {
+        expect reader.decodeFramePlanesInto(&decoded, index)
+        requireStressPicture(index == 1 ? &changed : &base, &decoded)
+    }
+}
+
+// The same chroma AC path is measured on a changing 4K picture.
+#[Swag.TestTag("stress")]
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-ac-4k", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderStressTiles(0, 3840, 2160)
+    var changed = expect encoderStressTiles(0, 3840, 2160)
+    changed.stressSparseChroma(2)
+    var encoder = expect H264.Encoder.create(3840, 2160)
+    var writer = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000,
+                                                    encoder.decoderConfig())
+    var watch: Time.Stopwatch
+    watch.start()
+    let key = expect encoder.encode(&base, 0, 1_500)
+    watch.stop()
+    let keySize = key.bytes.count
+    expect writer.addPacket(key)
+
+    watch.restart()
+    let ac = expect encoder.encode(&changed, 1_500, 1_500)
+    watch.stop()
+    Console.printf("H264 4K chroma AC: % bytes, % us\n", ac.bytes.count,
+                   watch.elapsedMicroseconds())
+    Swag.require(ac.bytes.count < keySize / 10)
+    expect writer.addPacket(ac)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireStressPicture(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireStressPicture(&changed, &decoded)
 }

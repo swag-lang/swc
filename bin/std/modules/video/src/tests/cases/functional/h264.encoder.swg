@@ -162,10 +162,23 @@ private impl Nv12Frame
         }
     }
 
-    mtd encoderChangeFirstChroma()
+    mtd encoderChangeFirstChroma(delta: s32 = 1)
     {
         let start = cast(u64, .width) * cast(u64, .height)
-        .bytes[start] += 1
+        .bytes[start] = cast(u8, cast(s32, .bytes[start]) + delta)
+    }
+
+    mtd encoderChangeEachMbChroma(delta: s32)
+    {
+        let start = cast(u64, .width) * cast(u64, .height)
+        for mbY in cast(u64, .height) / 16
+        {
+            for mbX in cast(u64, .width) / 16
+            {
+                let offset = start + mbY * 8 * cast(u64, .width) + mbX * 16
+                .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + delta)
+            }
+        }
     }
 
     mtd encoderTintQuadrants()
@@ -287,6 +300,106 @@ private impl Nv12Frame
     requireEncodedNv12(&base, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 1)
     requireEncodedNv12(&changed, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&base, &decoded)
+}
+
+// Isolated chroma changes use AC when their inverse transform is exact, and PCM otherwise.
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-ac-probe", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderFrame(16, 16)
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    for delta in 1'u32 until 9
+    {
+        var changed = expect encoderFrame(16, 16)
+        changed.encoderChangeFirstChroma(cast(s32, delta))
+        let packet = expect encoder.encode(&changed, cast(u64, delta * 2 - 1) * 3_000, 3_000)
+        if delta == 2 or delta == 3 or delta == 4 or delta == 6 or delta == 7 or delta == 8 do
+            Swag.require(packet.bytes.count < key.bytes.count / 2)
+        expect writer.addPacket(packet)
+        let back = expect encoder.encode(&base, cast(u64, delta * 2) * 3_000, 3_000)
+        expect writer.addPacket(back)
+    }
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    for index in 17'u64
+    {
+        expect reader.decodeFramePlanesInto(&decoded, index)
+        if index % 2 == 0 do
+            requireEncodedNv12(&base, &decoded)
+        else
+        {
+            var changed = expect encoderFrame(16, 16)
+            changed.encoderChangeFirstChroma(cast(s32, (index + 1) / 2))
+            requireEncodedNv12(&changed, &decoded)
+        }
+    }
+}
+
+// Neighboring AC-coded chroma blocks use their true CAVLC nonzero context across MBs.
+#test
+{
+    let path = videoTempPath("h264-encoder-chroma-ac-neighbors", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderFrame(32, 32)
+    var changed = expect encoderFrame(32, 32)
+    changed.encoderChangeEachMbChroma(2)
+    var encoder = expect H264.Encoder.create(32, 32)
+    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let partial = expect encoder.encode(&changed, 3_000, 3_000)
+    Swag.require(partial.bytes.count < key.bytes.count / 4)
+    expect writer.addPacket(partial)
+    let back = expect encoder.encode(&base, 6_000, 3_000)
+    Swag.require(back.bytes.count < key.bytes.count / 4)
+    expect writer.addPacket(back)
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&changed, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 2)
+    requireEncodedNv12(&base, &decoded)
+}
+
+// Luma and chroma AC coexist in one inter macroblock without changing the reference.
+#test
+{
+    let path = videoTempPath("h264-encoder-mixed-ac", "mp4")
+    defer discard catch File.delete(path)
+    let base = expect encoderGrayPixel(-1, -1)
+    var mixed = expect encoderGrayPixel(0, 0)
+    mixed.encoderChangeFirstChroma(2)
+    var encoder = expect H264.Encoder.create(16, 16)
+    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
+                                                    encoder.decoderConfig())
+    let key = expect encoder.encode(&base, 0, 3_000)
+    expect writer.addPacket(key)
+    let changed = expect encoder.encode(&mixed, 3_000, 3_000)
+    Swag.require(changed.bytes.count < key.bytes.count / 2)
+    expect writer.addPacket(changed)
+    expect writer.addPacket(expect encoder.encode(&base, 6_000, 3_000))
+    expect writer.end()
+
+    var reader = expect Reader.open(path)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    requireEncodedNv12(&base, &decoded)
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    requireEncodedNv12(&mixed, &decoded)
     expect reader.decodeFramePlanesInto(&decoded, 2)
     requireEncodedNv12(&base, &decoded)
 }

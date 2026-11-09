@@ -118,6 +118,8 @@ private func has4KDesktop()->bool fail
 // across its quadrants. Painting is timed separately from capture/encode/MP4.
 // Set SWAG_CAPTURE_4K_OUTPUT to a path inside the test workspace corpus to
 // retain the MP4 for an external FFmpeg probe.
+// SWAG_CAPTURE_4K_QP selects the optional quantized path; the default is exact.
+// SWAG_CAPTURE_4K_SLICES selects one through eight independently coded row bands.
 #[Swag.TestTag("stress.capture.x11.4k.dynamic")]
 #test
 {
@@ -163,6 +165,10 @@ private func has4KDesktop()->bool fail
     }
 
     let externalPath = Env.variable("SWAG_CAPTURE_4K_OUTPUT")
+    let qpText = Env.variable("SWAG_CAPTURE_4K_QP")
+    let slicesText = Env.variable("SWAG_CAPTURE_4K_SLICES")
+    let quantizationQp = qpText.isEmpty() ? 0'u32 : expect StrConv.toU32(qpText.toString())
+    let sliceCount = slicesText.isEmpty() ? 1'u32 : expect StrConv.toU32(slicesText.toString())
     let retained = not externalPath.isEmpty()
     let path = retained ? externalPath :
                Path.combine(Env.getSpecialDirectory(.Temp).toString(),
@@ -175,7 +181,8 @@ private func has4KDesktop()->bool fail
     let configs: [1] Mp4.SoftwareAudioConfig = [{48_000, 2, .Full}]
     var session = expect VideoCaptureSession.create(
         path, {0, 0, Width, Height}, expect FrameRate.create(60, 1), false,
-        Swag.makeSlice(&configs[0], configs.count))
+        Swag.makeSlice(&configs[0], configs.count),
+        quantizationQp: quantizationQp, sliceCount: sliceCount)
     var samples: [2 * 1_024] s16
     for frame in 1_024'u64
     {
@@ -235,6 +242,24 @@ private func has4KDesktop()->bool fail
     expect reader.decodeFramePlanesInto(&decoded, 0)
     Swag.require(decoded.width == Width and decoded.height == Height and
                  decoded.luma.count == cast(u64, Width) * Height)
+    if quantizationQp
+    {
+        expect reader.decodeFramePlanesInto(&decoded, 59)
+        Swag.require(decoded.width == Width and decoded.height == Height and
+                     decoded.luma.count == cast(u64, Width) * Height)
+        var expected: Nv12Frame
+        expect expected.convertFrom(&session.picture)
+        let sourceY = expected.luma()
+        var squaredError = 0'u64
+        for index in sourceY.count
+        {
+            let error = cast(s32, sourceY[index]) - cast(s32, decoded.luma[index])
+            squaredError += cast(u64, error * error)
+        }
+        let mse = cast(f64, squaredError) / cast(f64, sourceY.count)
+        let psnr = mse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / mse)
+        Console.printf("Dynamic X11 4K60 final-frame luma PSNR: % dB\n", psnr)
+    }
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == 47 * 1_024)
     var pcm: Array's16
@@ -244,7 +269,7 @@ private func has4KDesktop()->bool fail
         return true
     })
     Swag.require(pcm.count == 47 * 1_024 * 2)
-    Console.printf("Dynamic X11 4K60: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
-                   paintMicros, videoMicros, soundMicros, finalizeMicros,
+    Console.printf("Dynamic X11 4K60 QP %, slices %: paint % us, video capture+encode+MP4 % us, AAC % us, finalize % us, file % bytes at %\n",
+                   quantizationQp, sliceCount, paintMicros, videoMicros, soundMicros, finalizeMicros,
                    (expect File.info(path)).size, path)
 }

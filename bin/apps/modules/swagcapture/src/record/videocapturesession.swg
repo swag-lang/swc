@@ -39,9 +39,13 @@ impl VideoCaptureSession
     // `addAudioFrames`. The area must have positive even pixel dimensions supported by H.264.
     // At least `minimumFreeSpace` bytes must remain on the destination volume at creation and
     // at periodic checks while recording; the default reserve is 64 MiB.
+    // `quantizationQp` is 0 for exact pictures or 1 through 51 for quantized pictures.
+    // It does not select a target bitrate.
+    // `sliceCount` divides a picture into 1 to 8 independently coded row bands.
     func create(path: string, area: Math.Rectangle, rate: FrameRate, drawCursor: bool,
                 audioConfigs: const [..] Mp4.SoftwareAudioConfig = [],
-                minimumFreeSpace: u64 = 64 * 1_024 * 1_024)->VideoCaptureSession fail
+                minimumFreeSpace: u64 = 64 * 1_024 * 1_024,
+                quantizationQp: u32 = 0, sliceCount: u32 = 1)->VideoCaptureSession fail
     {
         let width = cast(s32, area.width)
         let height = cast(s32, area.height)
@@ -56,7 +60,8 @@ impl VideoCaptureSession
                                                       cast(s32, area.y), width, height)
         result.pacer = try FramePacer.create(rate, 1_000_000, 90_000)
         result.recording = try Mp4.SoftwareRecording.createWithAudioTracks(
-            path, width, height, 90_000, audioConfigs)
+            path, width, height, 90_000, audioConfigs,
+            quantizationQp: quantizationQp, sliceCount: sliceCount)
         result.audioConfigs.add(audioConfigs)
         result.picture = Image.create(width, height, .BGRA8)
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)

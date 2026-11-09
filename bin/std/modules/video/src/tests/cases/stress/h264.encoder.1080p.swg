@@ -440,3 +440,260 @@ private impl Nv12Frame
     expect reader.decodeFramePlanesInto(&decoded, 1)
     requireStressPicture(&changed, &decoded)
 }
+
+// A scene with moving screen texture and small colour changes exercises the
+// quantized P path without depending on a platform capture device.
+private impl Nv12Frame
+{
+    mtd qpStressTexture()
+    {
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        for y in height
+        {
+            for x in width
+            {
+                let offset = y * width + x
+                let delta = cast(s32, (x * 13 + y * 7 + (x / 5) * 11) % 25) - 12
+                let value = cast(s32, .bytes[offset]) + delta
+                .bytes[offset] = cast(u8, Math.max(16's32, Math.min(235's32, value)))
+            }
+        }
+        let chroma = width * height
+        for y in height / 2
+        {
+            for x in width / 2
+            {
+                let offset = chroma + y * width + x * 2
+                let delta = cast(s32, (x * 5 + y * 9) % 13) - 6
+                .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + delta)
+                .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) - delta)
+            }
+        }
+    }
+
+    mtd qpStressScroll(source: const *Nv12Frame)
+    {
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let luma = source.luma()
+        for y in height
+        {
+            let fromY = (y + 16) % height
+            for x in width do
+                .bytes[y * width + x] = luma[fromY * width + x]
+        }
+    }
+}
+
+private struct QpStressQuality
+{
+    yPsnr:  f64
+    uvPsnr: f64
+    maxY:   u32
+    maxUv:  u32
+}
+
+func qpStressQuality(reference: const *Nv12Frame, decoded: const *PlanarFrame)->QpStressQuality
+{
+    Swag.require(decoded.width == reference.width and decoded.height == reference.height)
+    let y = reference.luma()
+    let uv = reference.chroma()
+    var ySquared = 0'u64
+    var uvSquared = 0'u64
+    var maxY = 0'u32
+    var maxUv = 0'u32
+    for index in y.count
+    {
+        let error = Math.abs(cast(s32, y[index]) - cast(s32, decoded.luma[index]))
+        ySquared += cast(u64, error * error)
+        maxY = Math.max(maxY, cast(u32, error))
+    }
+    for index in decoded.chromaB.count
+    {
+        let errorU = Math.abs(cast(s32, uv[index * 2]) - cast(s32, decoded.chromaB[index]))
+        let errorV = Math.abs(cast(s32, uv[index * 2 + 1]) - cast(s32, decoded.chromaR[index]))
+        uvSquared += cast(u64, errorU * errorU + errorV * errorV)
+        maxUv = Math.max(maxUv, cast(u32, Math.max(errorU, errorV)))
+    }
+    let yMse = cast(f64, ySquared) / cast(f64, y.count)
+    let uvMse = cast(f64, uvSquared) / cast(f64, uv.count)
+    return {yMse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / yMse),
+            uvMse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / uvMse),
+            maxY, maxUv}
+}
+
+func qpStressMedian(a, b, c: u64)->u64
+    => a + b + c - Math.min(a, Math.min(b, c)) - Math.max(a, Math.max(b, c))
+
+func runQpStress(width, height: s32) fail
+{
+    let base = try encoderStressTiles(0, width, height)
+    var baselineBytes: [3] u64
+    var qp28TextureBytes = 0'u64
+    var qp28TextureY = 0.0'f64
+    for qpIndex in 3'u32
+    {
+        let qp = qpIndex == 0 ? 0'u32 : (qpIndex == 1 ? 28'u32 : 36'u32)
+        var idrTimes: [3] u64
+        for scene in 3'u32
+        {
+            var target = try encoderStressTiles(0, width, height)
+            if scene == 1 do
+                target.qpStressScroll(&base)
+            elif scene == 2 do
+                target.qpStressTexture()
+            let path = videoTempPath("h264-qp-stress", "mp4")
+            defer discard catch File.delete(path)
+            var encoder = try H264.Encoder.create(width, height, 60, qp)
+            var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000,
+                                                        encoder.decoderConfig())
+            var watch: Time.Stopwatch
+            watch.start()
+            let idr = try encoder.encode(&base, 0, 1_500)
+            watch.stop()
+            let idrMicros = watch.elapsedMicroseconds()
+            idrTimes[scene] = idrMicros
+            let idrBytes = idr.bytes.count
+            try writer.addPacket(idr)
+            var micros: [3] u64
+            var bytes: [3] u64
+            var timestamp = 1_500'u64
+            for repeat in 3'u64
+            {
+                watch.restart()
+                let packet = try encoder.encode(&target, timestamp, 1_500)
+                watch.stop()
+                micros[repeat] = watch.elapsedMicroseconds()
+                bytes[repeat] = packet.bytes.count
+                try writer.addPacket(packet)
+                timestamp += 1_500
+                if repeat < 2
+                {
+                    try writer.addPacket(try encoder.encode(&base, timestamp, 1_500))
+                    timestamp += 1_500
+                }
+            }
+            try writer.end()
+            let middleBytes = qpStressMedian(bytes[0], bytes[1], bytes[2])
+            let middleMicros = qpStressMedian(micros[0], micros[1], micros[2])
+            if qp == 0 do
+                baselineBytes[scene] = middleBytes
+            elif scene == 2 do
+                Swag.require(middleBytes < baselineBytes[scene])
+            var reader = try Reader.open(path)
+            var decoded: PlanarFrame
+            try reader.decodeFramePlanesInto(&decoded, 0)
+            requireStressPicture(&base, &decoded)
+            var minY = 99.0'f64
+            var minUv = 99.0'f64
+            var maxY = 0'u32
+            var maxUv = 0'u32
+            for repeat in 3'u64
+            {
+                try reader.decodeFramePlanesInto(&decoded, repeat * 2 + 1)
+                let quality = qpStressQuality(&target, &decoded)
+                minY = Math.min(minY, quality.yPsnr)
+                minUv = Math.min(minUv, quality.uvPsnr)
+                maxY = Math.max(maxY, quality.maxY)
+                maxUv = Math.max(maxUv, quality.maxUv)
+                if qp == 0 do
+                    requireStressPicture(&target, &decoded)
+                else do
+                    Swag.require(quality.yPsnr >= 18.0 and quality.uvPsnr >= 18.0)
+            }
+            if scene == 2 and qp == 28
+            {
+                qp28TextureBytes = middleBytes
+                qp28TextureY = minY
+                Swag.require(minY >= 32.0 and minUv >= 30.0)
+            }
+            elif scene == 2 and qp == 36
+            {
+                Swag.require(middleBytes < qp28TextureBytes and minY < qp28TextureY)
+                Swag.require(minY >= 27.0 and minUv >= 30.0)
+            }
+            let sceneName = scene == 0 ? "still" : (scene == 1 ? "scroll" : "texture")
+            let gopMbps = cast(f64, idrBytes + 59 * middleBytes) * 8.0 / 1_000_000.0
+            Console.printf("H264 QP % % by % %: IDR % bytes; P median % bytes/% us; GOP60 % Mb/s; PSNR Y/UV %/% dB; max error %/%\n",
+                           qp, width, height, sceneName, idrBytes, middleBytes,
+                           middleMicros, gopMbps, minY, minUv, maxY, maxUv)
+        }
+        Console.printf("H264 QP % % by % IDR median % us\n", qp, width, height,
+                       qpStressMedian(idrTimes[0], idrTimes[1], idrTimes[2]))
+    }
+}
+
+// Timing is diagnostic only; size, exact IDRs, and decoded quality are asserted.
+#[Swag.TestTag("stress")]
+#test
+{
+    expect runQpStress(1920, 1080)
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    expect runQpStress(3840, 2160)
+}
+
+// Repeated raw input after a lossy P picture exposes unnecessary residual work
+// when the encoder compares the input only with its reconstructed reference.
+func runQpRepeatedInput(width, height: s32) fail
+{
+    let base = try encoderStressTiles(0, width, height)
+    var source = try encoderStressTiles(0, width, height)
+    source.qpStressTexture()
+    for qp in 2'u32
+    {
+        let selectedQp = qp == 0 ? 28'u32 : 36'u32
+        let path = videoTempPath("h264-qp-repeat", "mp4")
+        defer discard catch File.delete(path)
+        var encoder = try H264.Encoder.create(width, height, 60, selectedQp)
+        var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000,
+                                                     encoder.decoderConfig())
+        try writer.addPacket(try encoder.encode(&base, 0, 1_500))
+        let first = try encoder.encode(&source, 1_500, 1_500)
+        let firstBytes = first.bytes.count
+        try writer.addPacket(first)
+        var repeatedBytes: [3] u64
+        var repeatedMicros: [3] u64
+        var watch: Time.Stopwatch
+        for repeat in 3'u64
+        {
+            watch.restart()
+            let packet = try encoder.encode(&source, (repeat + 2) * 1_500, 1_500)
+            watch.stop()
+            repeatedBytes[repeat] = packet.bytes.count
+            repeatedMicros[repeat] = watch.elapsedMicroseconds()
+            try writer.addPacket(packet)
+        }
+        try writer.end()
+        Console.printf("H264 QP % % by % repeated raw texture: first % bytes; P2-P4 median % bytes/% us\n",
+                       selectedQp, width, height, firstBytes,
+                       qpStressMedian(repeatedBytes[0], repeatedBytes[1], repeatedBytes[2]),
+                       qpStressMedian(repeatedMicros[0], repeatedMicros[1], repeatedMicros[2]))
+        var reader = try Reader.open(path)
+        var decoded: PlanarFrame
+        try reader.decodeFramePlanesInto(&decoded, 0)
+        requireStressPicture(&base, &decoded)
+        for frame in 1'u64 until 5
+        {
+            try reader.decodeFramePlanesInto(&decoded, frame)
+            let quality = qpStressQuality(&source, &decoded)
+            Swag.require(quality.yPsnr >= 27.0 and quality.uvPsnr >= 30.0)
+        }
+    }
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    expect runQpRepeatedInput(1920, 1080)
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    expect runQpRepeatedInput(3840, 2160)
+}

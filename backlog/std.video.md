@@ -202,9 +202,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   fall back to multi-megabyte I_PCM pictures; that path is not ready for production capture.
   `Video.FramePacer` maps monotonic arrivals to exact frame slots and reports skipped slots over
   long recordings without accumulating time rounding.
-  Parallel software BGRA8-to-NV12 conversion takes 2.58 ms per warmed 1920×1080 frame and
-  9.49 ms per warmed 4K frame in Release, down from 6.57 and 26.76 ms on the same machine.
-  A 4K varying-color parity test matches every output byte against the scalar BGR8 path.
+  Parallel software BGRA8-to-NV12 conversion with SIMD luma takes 1.285 ms per warmed
+  1920×1080 frame and 3.819 ms per warmed 4K frame in Release, down from 2.184 and
+  8.584 ms for the preceding parallel scalar path on the same fixtures. A 4K varying-color
+  parity test matches every output byte against the scalar BGR8 path; a six-pixel width also
+  exercises the SIMD group and scalar remainder in one row.
   A one-second synthetic 4K60 scrolling sequence with stereo AAC takes 2.07 seconds through
   software conversion, H.264 and fragmented MP4 on this machine. Real screen acquisition and
   further H.264 compression still need measurement.
@@ -252,7 +254,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   test starts video one AAC priming packet after audio; `Video.Reader` trims exactly 1024 decoded
   samples and aligns the audible signal. `Mp4.SoftwareRecording` now applies that video offset,
   buffers arbitrary PCM chunks, and finalizes the H.264/AAC file; a simulated lost microphone
-  block round-trips as silence in the decoded MP4. The writer does not yet author final-padding
+  block round-trips as silence in the decoded MP4. The facade can now encode two separate
+  microphone and system-sound tracks with aligned audible time zero; its test decodes both
+  channels from the saved file and verifies correlation with their distinct input tones.
+  The writer does not yet author final-padding
   metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
   to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.

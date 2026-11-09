@@ -7,6 +7,20 @@
 
 using Core, Core.Errors, Pixel, Audio
 
+// Configures one separately retained AAC-LC sound track in a software recording.
+struct SoftwareAudioConfig
+{
+    public sampleRate:   u32           // Input PCM16 frames per second; all tracks share one rate.
+    public channelCount: u16           // One or two interleaved input channels.
+    public bandwidth:    Aac.Bandwidth = .Full // Full or voice-band encoding.
+}
+
+private struct SoftwareAudioTrack
+{
+    encoder: Aac.StreamEncoder
+    packet:  Array'u8
+}
+
 // Records RGB pictures and PCM16 sound as a fragmented MP4 without codec libraries.
 //
 // The caller assigns video slots with [[Video.FramePacer]]. Every slot, including a repeated
@@ -14,7 +28,8 @@ using Core, Core.Errors, Pixel, Audio
 // complete-frame chunks. The first video packet begins one AAC priming packet after audio so
 // [[Video.Reader]] removes the encoder's 1024 delayed samples and aligns audible frame zero
 // with video frame zero. `end` drains the audio transform before finalizing the file. Internal
-// picture, PCM and packet storage stays bounded as the recording grows.
+// picture, PCM and packet storage stays bounded as the recording grows. Up to four independent
+// sound tracks share one sample rate; a capture source can be kept on each track for later mixing.
 #[Swag.NoCopy]
 #[Swag.Opaque]
 struct SoftwareRecording
@@ -23,9 +38,8 @@ struct SoftwareRecording
     {
         writer:        FragmentedWriter
         video:         H264.Encoder
-        audio:         Aac.StreamEncoder
+        tracks:        Array'SoftwareAudioTrack
         nv12:          Nv12Frame
-        audioPacket:   Array'u8
         videoOffset:   u64
         nextVideoTime: u64
         frameCount:    u64
@@ -46,16 +60,50 @@ impl SoftwareRecording
                 bandwidth: Aac.Bandwidth = .Full,
                 options: FragmentedOptions = {})->SoftwareRecording fail
     {
+        let configs: [1] SoftwareAudioConfig = [{audioRate, audioChannels, bandwidth}]
+        return try createWithAudioTracks(path, width, height, videoTimescale,
+                                         Swag.makeSlice(&configs[0], configs.count),
+                                         keyInterval, options)
+    }
+
+    // Creates a recorder with one through four separately encoded AAC-LC sound tracks.
+    //
+    // Every track must have the same 44.1 or 48 kHz sample rate so one video preroll aligns
+    // their AAC priming. Their channel counts and bandwidth profiles may differ. The writer
+    // copies decoder configurations and owns the output path.
+    func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32,
+                               audioConfigs: const [..] SoftwareAudioConfig,
+                               keyInterval: u32 = 60,
+                               options: FragmentedOptions = {})->SoftwareRecording fail
+    {
+        if not audioConfigs.count or audioConfigs.count > 4 do
+            fail BadParameterError{"software recording needs one to four audio tracks"}
         var result: #returntype
         result.video = try H264.Encoder.create(width, height, keyInterval)
-        result.audio = try Aac.StreamEncoder.create(audioRate, audioChannels, bandwidth)
+        result.tracks.reserve(audioConfigs.count)
+        for config in audioConfigs
+        {
+            if config.sampleRate != audioConfigs[0].sampleRate do
+                fail BadParameterError{"software recording audio tracks need one sample rate"}
+            var track: SoftwareAudioTrack
+            track.encoder = try Aac.StreamEncoder.create(config.sampleRate, config.channelCount,
+                                                         config.bandwidth)
+            result.tracks.add(#move track)
+        }
         let clock = try Timebase.create(videoTimescale)
-        result.videoOffset = try clock.convertFrom(result.audio.encoderDelayFrames(), audioRate)
-        result.writer = try FragmentedWriter.createWithAudio(path, width, height, videoTimescale,
-                                                             result.video.decoderConfig(),
-                                                             FragmentedAudioConfig{audioRate, audioChannels,
-                                                                                   result.audio.decoderConfig()},
-                                                             options)
+        result.videoOffset = try clock.convertFrom(result.tracks[0].encoder.encoderDelayFrames(),
+                                                   audioConfigs[0].sampleRate)
+        var mp4Configs: Array'FragmentedAudioConfig
+        for index in audioConfigs.count
+        {
+            let config = audioConfigs[index]
+            mp4Configs.add({config.sampleRate, config.channelCount,
+                            result.tracks[index].encoder.decoderConfig()})
+        }
+        result.writer = try FragmentedWriter.createWithAudioTracks(path, width, height,
+                                                                   videoTimescale,
+                                                                   result.video.decoderConfig(),
+                                                                   mp4Configs.toSlice(), options)
         return result
     }
 
@@ -68,11 +116,30 @@ impl SoftwareRecording
     // Returns the number of frame slots filled by repeating the previous picture.
     mtd const repeatedFrameCount()->u64 => .repeatedFrames
 
-    // Returns the number of source PCM16 frames consumed so far.
-    mtd const audioInputFrameCount()->u64 => .audio.inputFrameCount()
+    // Returns the number of independent AAC-LC sound tracks.
+    mtd const audioTrackCount()->u64 => .tracks.count
 
-    // Returns the number of AAC-LC packets submitted, including the final drain packet.
-    mtd const audioPacketCount()->u64 => .audio.packetCount()
+    // Returns the number of source PCM16 frames consumed by the first sound track.
+    mtd const audioInputFrameCount()->u64 => .tracks[0].encoder.inputFrameCount()
+
+    // Returns the number of AAC-LC packets submitted on the first track, including its drain.
+    mtd const audioPacketCount()->u64 => .tracks[0].encoder.packetCount()
+
+    // Returns source PCM16 frames consumed by the selected sound track.
+    mtd const audioInputFrameCountOf(trackIndex: u32)->u64 fail
+    {
+        if trackIndex >= .tracks.count do
+            fail BadParameterError{"software recording has no audio track at this index"}
+        return .tracks[trackIndex].encoder.inputFrameCount()
+    }
+
+    // Returns AAC-LC packets submitted on the selected track, including its drain packet.
+    mtd const audioPacketCountOf(trackIndex: u32)->u64 fail
+    {
+        if trackIndex >= .tracks.count do
+            fail BadParameterError{"software recording has no audio track at this index"}
+        return .tracks[trackIndex].encoder.packetCount()
+    }
 
     // Returns bytes written through completed MP4 fragments and the initialization movie.
     mtd const writtenByteCount()->u64 => .writer.writtenByteCount()
@@ -122,22 +189,26 @@ impl SoftwareRecording
     //
     // Input is consumed synchronously; the writer copies completed AAC packets before this
     // method returns. An invalid channel layout leaves the audio encoder unchanged.
-    mtd addAudioFrames(samples: const [..] s16) fail
+    mtd addAudioFrames(samples: const [..] s16, trackIndex: u32 = 0) fail
     {
         if .ended do
             fail BadParameterError{"cannot append to a finished software recording"}
-        let channels = .audio.channelCount()
+        if trackIndex >= .tracks.count do
+            fail BadParameterError{"software recording has no audio track at this index"}
+        let track = &.tracks[trackIndex]
+        let channels = track.encoder.channelCount()
         if samples.count % channels do
             fail BadParameterError{"software recording needs complete audio frames"}
         var cursor = 0'u64
         while cursor < samples.count
         {
-            let consumed = try .audio.push(samples[cursor until samples.count], &.audioPacket)
+            let consumed = try track.encoder.push(samples[cursor until samples.count], &track.packet)
             cursor += consumed * channels
-            if .audioPacket.count do
-                try .writer.addAudioPacket(EncodedPacket{.audioPacket.toSlice(),
-                                                         .audio.lastPacketStartSample(),
-                                                         .audio.lastPacketStartSample(), 1_024, true})
+            if track.packet.count do
+                try .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
+                                                         track.encoder.lastPacketStartSample(),
+                                                         track.encoder.lastPacketStartSample(),
+                                                         1_024, true}, trackIndex)
         }
     }
 
@@ -158,11 +229,16 @@ impl SoftwareRecording
             return
         if not .frameCount do
             fail BadParameterError{"software recording needs at least one video frame"}
-        while try .audio.finish(&.audioPacket)
+        for index in .tracks.count
         {
-            try .writer.addAudioPacket(EncodedPacket{.audioPacket.toSlice(),
-                                                     .audio.lastPacketStartSample(),
-                                                     .audio.lastPacketStartSample(), 1_024, true})
+            let track = &.tracks[index]
+            while try track.encoder.finish(&track.packet)
+            {
+                try .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
+                                                         track.encoder.lastPacketStartSample(),
+                                                         track.encoder.lastPacketStartSample(),
+                                                         1_024, true}, cast(u32, index))
+            }
         }
         try .writer.end()
         .ended = true

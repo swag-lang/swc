@@ -53,7 +53,8 @@ impl SoftwareRecording
     // Creates a software audiovisual recorder and writes the MP4 initialization movie.
     //
     // Video dimensions must be positive and even. The video timescale must express each
-    // intended frame duration. AAC accepts mono/stereo 44.1 or 48 kHz PCM16. The writer owns
+    // intended frame duration and distinguish AAC's 1024-frame priming boundary. AAC accepts
+    // mono/stereo 44.1 or 48 kHz PCM16. The writer owns
     // the output path; completed fragments stay playable after an interrupted process.
     func create(path: string, width, height: s32, videoTimescale: u32,
                 audioRate: u32, audioChannels: u16, keyInterval: u32 = 60,
@@ -91,8 +92,15 @@ impl SoftwareRecording
             result.tracks.add(#move track)
         }
         let clock = try Timebase.create(videoTimescale)
-        result.videoOffset = try clock.convertFrom(result.tracks[0].encoder.encoderDelayFrames(),
-                                                   audioConfigs[0].sampleRate)
+        let delay = result.tracks[0].encoder.encoderDelayFrames()
+        // A rounded offset can move video past the priming boundary: at 44.1 kHz and a
+        // 90 kHz video clock, 2090 ticks would make Reader remove 1025 samples. Choose the
+        // preceding tick and ensure it still maps to exactly `delay` trimmed samples.
+        result.videoOffset = cast(u64, delay) * clock.ticksPerSecond() /
+                             audioConfigs[0].sampleRate
+        if delay and result.videoOffset * audioConfigs[0].sampleRate <=
+                     cast(u64, delay - 1) * clock.ticksPerSecond() do
+            fail BadParameterError{"video timescale cannot express AAC priming to one sample"}
         var mp4Configs: Array'FragmentedAudioConfig
         for index in audioConfigs.count
         {

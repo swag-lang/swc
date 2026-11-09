@@ -123,3 +123,55 @@ using Swag, Core, Core.Errors, Audio, Pixel
         path, 16, 16, 90_000, Swag.makeSlice(&TooMany[0], TooMany.count)) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
+
+// The 44.1 kHz priming boundary is rounded down on a 90 kHz video clock, preserving 1024 samples.
+#test
+{
+    let path = videoTempPath("mp4-software-44100-preroll", "mp4")
+    defer discard catch File.delete(path)
+    var recorder = expect Mp4.SoftwareRecording.create(path, 16, 16, 90_000, 44_100, 1)
+    Swag.require(recorder.videoPrerollTicks() == 2_089)
+    let image = Image.create(16, 16, .BGRA8)
+    let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 44_100, 90_000)
+    for frame in 14'u64 do
+        expect recorder.addFrame(&image, expect pacer.slotAt(frame))
+    var signal: [10 * 1_024] s16
+    for frame in signal.count do
+        signal[frame] = cast(s16, Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                                 1_000.0 * frame / 44_100.0)))
+    expect recorder.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
+    expect recorder.end()
+    var reader = expect Reader.open(path)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleFrameCount() == signal.count)
+    Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000012)
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(decoded.count == signal.count)
+    var cross = 0.0'f64
+    var sourcePower = 0.0'f64
+    var decodedPower = 0.0'f64
+    for frame in 2_048 until 8_192
+    {
+        let source = cast(f64, signal[frame])
+        let actual = cast(f64, decoded[frame])
+        cross += source * actual
+        sourcePower += source * source
+        decodedPower += actual * actual
+    }
+    Swag.require(cross / Math.sqrt(sourcePower * decodedPower) > 0.9)
+}
+
+// A clock too coarse to identify a single AAC sample cannot promise synchronized playback.
+#test
+{
+    let path = videoTempPath("mp4-software-coarse-clock", "mp4")
+    defer discard catch File.delete(path)
+    var rejected: Swag.Error
+    discard catch Mp4.SoftwareRecording.create(path, 16, 16, 1, 44_100, 1) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+}

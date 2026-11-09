@@ -259,7 +259,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   and system sound and verifies correlation with their distinct input tones. A one-second
   1080p60 stress test with four sound tracks encodes 60 pictures and 192 AAC packets in
   0.517 seconds in Release on the Linux test machine, and all four tracks reopen at the
-  expected sample position.
+  expected sample position. A 44.1 kHz integration test found that rounding the 90 kHz video
+  preroll upward removed 1025 AAC samples; the facade now chooses the preceding video tick,
+  verifies that the clock can still identify exactly 1024 priming samples, and rejects a
+  timescale too coarse to do so.
   The writer does not yet author final-padding
   metadata automatically. It has no timed metadata tracks; `Video.Reader` still scans fragments
   to build its frame table when opening a file.

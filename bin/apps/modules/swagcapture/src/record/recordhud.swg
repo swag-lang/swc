@@ -127,7 +127,9 @@ impl IWnd for RecordHud
             .pauseButton.setIcon(.theme().icon(.recorder.state == .Paused ? .Play : .Pause))
             .pauseButton.toolTip = .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
                                    .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
-            .pauseButton.enable(not .recorder.pausedForTarget)
+            .pauseButton.enable(not .recorder.pausedForTarget and not .recorder.videoMode)
+            if .recorder.videoMode do
+                .pauseButton.toolTip = appStrings().tip_VideoPauseUnavailable
         }
     }
 }

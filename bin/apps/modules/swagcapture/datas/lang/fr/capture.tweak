@@ -56,10 +56,13 @@ ui_CaptureShortcuts    Raccourcis de capture
 ui_Desktop             Bureau
 ui_MyImages            Mes images
 ui_CommonImages        Images
+ui_MyVideos            Mes vidéos
+ui_CommonVideos        Vidéos
 dlg_TitleOptions       Options
 dlg_TitleDetails       Détails
 dlg_TitleLoadImage     Charger une image
 dlg_TitleSaveAsImage   Enregistrer comme image
+dlg_TitleSaveAsVideo   Enregistrer comme vidéo
 dlg_TitleChooseLibrary Choisir le dossier de la bibliothèque
 dlg_TitleBrowseFolder  Parcourir un dossier d'images
 dlg_TitleEditTags      Modifier les étiquettes
@@ -87,23 +90,32 @@ msg_FailedLocateLinked Impossible de localiser l'image liée
 msg_FailedSaveFile     Impossible d'enregistrer le fichier
 msg_FailedSaveCapture  Impossible d'enregistrer le fichier de capture : %
 msg_FailedRename       Impossible de renommer la capture
-msg_FailedCopyImage    Impossible de copier l'image
+msg_FailedCopyCapture  Impossible de copier la capture
 ui_MediaPicture        Photo
 ui_MediaAnimation      GIF
+ui_MediaVideo          Vidéo
+ui_Mp4Video            Vidéo MP4
+act_RecordVideo        Enregistrer une vidéo
 ui_AimCursor           Curseur
 ui_AimCountdown        Compte à rebours
 ui_AimRate             % i/s
 tip_AimRate            Changer la cadence d'enregistrement
 ui_AimNoSound          Pas de son dans un GIF
+ui_AimMicrophone       Microphone
+ui_AimSystemSound      Son du système
+ui_AimSoundUnavailable La capture du son nécessite Windows
 ui_AimAnchored         Suit la fenêtre
 ui_AimDetached         Zone fixe
 ui_AimRecord           Enregistrer
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
+msg_VideoStoppedForStorage Enregistrement arrêté car le disque est presque plein
+msg_VideoExportDifferentFile Choisissez un autre fichier pour la vidéo exportée. L'original appartient à cette capture.
+tip_VideoPauseUnavailable La pause n'est pas disponible pour la vidéo
 ui_DroppedFrames       % images ont été perdues
 ui_DroppedCount        · % perdues
 tip_WaitingForWindow   En attente de la fenêtre
-msg_MissingFrames      Les images de cette animation sont introuvables ou ont été remplacées
+msg_MissingFrames      Le média de cet enregistrement est introuvable ou a été remplacé
 msg_FailedLoadFile     Impossible de charger le fichier : %
 msg_FailedOpenLibrary  Impossible d'ouvrir le dossier de la bibliothèque
 msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
@@ -138,6 +150,8 @@ act_ClearInsideImage   Effacer l'intérieur de l'image
 act_CopyImage          Copier l'image
 act_CopyAnimation      Copier le GIF
 act_CopyAnimationToClipboard Copier l'animation comme fichier GIF
+act_CopyVideo          Copier la vidéo
+act_CopyVideoToClipboard Copier la vidéo comme fichier MP4
 act_CopyImageToClipboard Copier l'image dans le presse-papiers
 act_Copy               Copier
 act_Cut                Couper
@@ -189,7 +203,7 @@ act_FilterCaptures     Captures
 act_FilterScreenCaptures Captures d'écran
 act_FilterImportedCaptures Captures importées
 act_FilterImages       Images externes
-act_FilterAnimations   Animations
+act_FilterAnimations   Enregistrements
 act_FilterFavorites    Favoris uniquement
 act_FilterAnyRating    Toutes les notes
 act_FilterRating1      Au moins 1 étoile
@@ -247,6 +261,8 @@ act_RestoreOriginal    Restaurer l'original
 act_Restore            Restaurer
 act_SaveAsImage        Enregistrer comme image…
 act_SaveImage          Enregistrer l'image…
+act_SaveVideo          Enregistrer la vidéo…
+act_SaveAsVideo        Enregistrer comme vidéo…
 act_SaveAsLinkedImage  Enregistrer comme image liée…
 act_SelectAll          Sélectionner tous les objets
 act_SelectSimilar      Sélectionner les objets similaires

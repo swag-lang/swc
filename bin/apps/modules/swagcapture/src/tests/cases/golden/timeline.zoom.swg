@@ -45,8 +45,10 @@ using Swag, Core, Pixel
     Swag.require(bar.thumbReader != null and bar.thumbsReady)
     Swag.require(bar.thumbStart == bar.viewStart and bar.thumbSpan == bar.visibleDuration())
     let lastThumb = bar.thumbReader
-    Swag.require(lastThumb.timeOf(lastThumb.pictureIndex) >= bar.viewStart)
-    Swag.require(lastThumb.timeOf(lastThumb.pictureIndex) <= bar.viewStart + bar.visibleDuration())
+    let sampled = bar.viewStart + bar.visibleDuration() * (2 * TimelineThumbnails - 1) /
+                                 (2 * TimelineThumbnails)
+    let shown = lastThumb.timeOf(lastThumb.frameAt(sampled))
+    Swag.require(shown >= bar.viewStart and shown <= bar.viewStart + bar.visibleDuration())
     var image  = screen.cropped(bar.panel.surfaceRect())
     Pixel.Testing.assertImageGolden(&image, "timeline.zoom")
 }

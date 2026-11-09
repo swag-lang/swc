@@ -226,12 +226,12 @@ impl Voice
 
         let file = unwrap voice.file
 
-        var wfx: WAVEFORMATEXTENSIBLE
+        var wfx: XAudio2.WAVEFORMATEXTENSIBLE
         wfx.format.nChannels      = cast(u16, file.channelCount)
         wfx.format.nSamplesPerSec = file.sampleRate
         wfx.format.wBitsPerSample = cast(u16, file.bitsPerSample)
         wfx.format.wFormatTag     = FORMAT_EXTENSIBLE
-        wfx.format.cbSize         = #sizeof(WAVEFORMATEXTENSIBLE) - #sizeof(WAVEFORMATEX)
+        wfx.format.cbSize         = #sizeof(XAudio2.WAVEFORMATEXTENSIBLE) - #sizeof(XAudio2.WAVEFORMATEX)
         wfx.dwChannelMask         = file.waveSpeakerMask
 
         switch file.encoding
@@ -262,7 +262,7 @@ impl Voice
         let createSourceVoice = safeXAudio2.vtbl.createSourceVoice
         let hr = createSourceVoice(safeXAudio2,
                                    &handle,
-                                   cast(const *WAVEFORMATEX, &wfx.format),
+                                   cast(const *XAudio2.WAVEFORMATEX, &wfx.format),
                                    flags,
                                    XAUDIO2_DEFAULT_FREQ_RATIO,
                                    &g_Cb,

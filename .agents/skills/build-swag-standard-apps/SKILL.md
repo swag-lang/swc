@@ -403,7 +403,7 @@ capture file is damaged." is a message. "capture SCC has no document model chunk
   presenter maps it to a sentence from the table (Swag Vault's `ErrorKind` and `kindMessage`,
   Swag Scope's `Viewer.failureText`). Raise with `fail volumeError(.Corrupted)`.
 - **The technical part is a second line at most**, on a mono faint line under the sentence. In a
-  dialog the failure takes the critical dot before its title. In a form it takes a critical ring
+  dialog the failure takes the critical glyph before its title. In a form it takes a critical ring
   and a critical-dot line under the field. In passing, a failure is a toast with a critical dot.
 - **Developer diagnostics never reach a surface**, so they need no translation.
 

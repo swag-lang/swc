@@ -59,6 +59,9 @@ public struct PopupMenuItem
     submenuOpensLeft: bool       // Resolved opening side used by layout and painting.
     commandId:        String     // Owns a dynamically supplied identifier for as long as this item exists.
     note:             bool       // Readable information in a popup, never chosen.
+    widget:           *Wnd?      // Interactive child placed in this popup row.
+    dismissOnClick:   bool       // Whether a click in the child dismisses the popup.
+    widgetFullWidth:  bool       // Whether the child spans the popup content instead of the text column.
 }
 
 // Displays either a persistent menu bar or a modal popup menu.
@@ -97,6 +100,8 @@ public struct MenuCtrl
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
     popupHasMarkerColumn:    bool                   // Whether left-opening arrows own one shared leading column.
+    widgetUnderPointer:      *Wnd?                  // Hosted child currently receiving pointer movement.
+    widgetPointerPos:        Math.Point             // Last pointer position delivered to the hosted child.
 }
 
 public impl IWnd for MenuCtrl
@@ -361,6 +366,9 @@ public impl IWnd for MenuCtrl
                 icon.paint(painter, iconPos.x, opticalTop(.font(), textCenterY, icon.sizeY), colorText)
             }
 
+            if it.widget do
+                continue
+
             // A shortcut is a measure, so it is written in the fixed-width face, small and faint.
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
             {
@@ -409,6 +417,41 @@ public impl IWnd for MenuCtrl
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        let widgetItem = .widgetItemAt(evt.surfacePos)
+        var widgetTarget: *Wnd?
+        if widgetItem
+        {
+            let pos = .surfaceToLocal(evt.surfacePos)
+            let widget = unwrap widgetItem.widget
+            widgetTarget = widget.windowAt(pos.x, pos.y, includeDisabled: false)
+        }
+        .updateWidgetHover(widgetTarget, evt.surfacePos)
+        if widgetItem
+        {
+            .removeTimer()
+            .hotIdx      = Swag.U32.Max
+            .selectedIdx = Swag.U32.Max
+            .invalidate()
+
+            if widgetTarget
+            {
+                let originalTarget = evt.target
+                evt.target = widgetTarget
+                widgetTarget.processEvent(evt)
+                evt.target = originalTarget
+                // Icon buttons release their own capture after activation. Keep the modal
+                // menu in charge, while leaving a child popup's capture alone.
+                if widgetTarget is IconButton and not .bar and not .endModal and
+                   (.mouseCapture() == null or .mouseCapture() == widgetTarget) do
+                    .captureMouse()
+            }
+
+            if widgetItem.dismissOnClick and evt.kind == .Released and evt.button == .Left do
+                .setEndModal(null)
+            evt.accepted = true
+            return
+        }
+
         let hit = .hitTest(evt.surfacePos)
         if hit != .hotIdx
         {
@@ -502,6 +545,52 @@ public impl IWnd for MenuCtrl
                 .setEndModal(null)
             }
         }
+    }
+}
+
+private impl MenuCtrl
+{
+    // Finds a hosted child row under a surface point.
+    mtd widgetItemAt(surfacePos: Math.Point)->*PopupMenuItem?
+    {
+        let index = .hitTestPopup(surfacePos)
+        if index == Swag.U32.Max do
+            return null
+        let item = .items[index]
+        if item and item.widget do
+            return item
+        return null
+    }
+
+    // Gives hosted children their normal enter, move, and leave events while the popup owns capture.
+    mtd updateWidgetHover(widget: *Wnd?, surfacePos: Math.Point)
+    {
+        if widget == .widgetUnderPointer
+        {
+            .widgetPointerPos = surfacePos
+            return
+        }
+
+        if .widgetUnderPointer
+        {
+            var leave = MouseEvent{kind: .Leave, surfacePos: surfacePos}
+            leave.target = .widgetUnderPointer
+            .widgetUnderPointer.processEvent(&leave)
+        }
+
+        .widgetUnderPointer = widget
+        .widgetPointerPos   = surfacePos
+        if widget
+        {
+            var enter = MouseEvent{kind: .Enter, surfacePos: surfacePos}
+            enter.target = widget
+            widget.processEvent(&enter)
+        }
+    }
+
+    mtd clearWidgetHover()
+    {
+        .updateWidgetHover(null, .widgetPointerPos)
     }
 }
 
@@ -701,6 +790,7 @@ impl MenuCtrl
 
     mtd setEndModal(result: WndId?)
     {
+        .clearWidgetHover()
         var p = me
         while p.ownerMenu
         {
@@ -771,6 +861,8 @@ impl MenuCtrl
         for i in .items
         {
             let it  = unwrap i
+            if it.widget do
+                continue
             let evt = .sendComputeCommandStateEvent(it.id)
             if evt.updatedFields.has(.Disabled) do
                 it.disabled = evt.disabled
@@ -1020,6 +1112,15 @@ impl MenuCtrl
             if it.icon.isValid() do
                 .popupHasGlyphs = true
 
+            if it.widget
+            {
+                let sizeHint = it.widget.measure({})
+                it.size = Math.max(sizeHint.preferred.y, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
+                .position.width = Math.max(.position.width, sizeHint.preferred.x)
+                .position.height += it.size
+                continue
+            }
+
             // `menuPopup_ItemHeight` is the complete row pitch. The inter-entry air is
             // accounted for separately so the text box keeps only the remaining height.
             it.size = Math.max(rsf.font.regular!.height, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
@@ -1085,6 +1186,18 @@ impl MenuCtrl
         .position.height += .padding.w
         if .popupButtonOpensUp do
             .position.height += .getPopupBarAnchorHeight()
+
+        clientRect = .getPopupBodyRect()
+        clientRect.applyPadding(.padding)
+        for item in .items where item!.widget != null
+        {
+            let widget = unwrap item.widget
+            let leftInset = item.widgetFullWidth ? 0 : leadingWidth
+            let widgetX = clientRect.x + leftInset
+            let widgetW = clientRect.width - leftInset
+            widget.setPosition(Math.Rectangle{widgetX, item.pos, widgetW, item.size}, computeLayout: false)
+            widget.show()
+        }
     }
 }
 
@@ -1188,6 +1301,9 @@ public impl MenuCtrl
         Swag.assert(index < .items.count, "menu item index is out of range")
         .hideSubVisible()
         .removeTimer()
+        if .items[index]!.widget == .widgetUnderPointer do
+            .clearWidgetHover()
+        .items[index]!.widget?.hide()
         .items.deleteAt(index)
         .hotIdx      = Swag.U32.Max
         .selectedIdx = Swag.U32.Max
@@ -1202,6 +1318,9 @@ public impl MenuCtrl
             return
         .hideSubVisible()
         .removeTimer()
+        .clearWidgetHover()
+        for item in .items do
+            item!.widget?.hide()
         .items.clear()
         .hotIdx      = Swag.U32.Max
         .selectedIdx = Swag.U32.Max
@@ -1346,6 +1465,33 @@ public impl MenuCtrl
             .name.set(text)
             .note     = true
             .disabled = true
+        }
+
+        .items.add(item)
+        .dirtyLayout = true
+        return item
+    }
+
+    // Adds an interactive child as a popup row.
+    //
+    // `widget` must already be a direct child of this popup and remain alive while the row is
+    // registered. The menu measures it and normally positions it in the text column; set
+    // `fullWidth` for a centered toolbar spanning the popup content. Pointer events reach the
+    // child while the popup owns mouse capture, and the row is not an ordinary command selection.
+    // Removing the row hides the child but leaves it attached to the popup. Set `dismissOnClick`
+    // when a left-button release inside the child should close the popup.
+    #[Swag.Discardable]
+    mtd addWidget(widget: *Wnd, icon: Icon = {}, dismissOnClick = false, fullWidth = false)->*PopupMenuItem
+    {
+        Swag.assert(not .bar, "interactive rows belong in popup menus")
+        Swag.assert(widget != null and widget.parent == me, "the widget must be a direct child of this popup")
+
+        with let item = me.items.allocate()
+        {
+            .widget         = widget
+            .icon           = icon
+            .dismissOnClick = dismissOnClick
+            .widgetFullWidth = fullWidth
         }
 
         .items.add(item)

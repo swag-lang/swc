@@ -59,15 +59,15 @@ impl IActionUI for ActionFile
 
         case .SaveAsImage:
             evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
-            evt.name          = appStrings().act_SaveImage
-            evt.longName      = appStrings().act_SaveAsImage
-            evt.disabled      = not capture
+            evt.name          = capture and capture.media == .Video ? appStrings().act_SaveVideo : appStrings().act_SaveImage
+            evt.longName      = capture and capture.media == .Video ? appStrings().act_SaveAsVideo : appStrings().act_SaveAsImage
+            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing)
             evt.icon          = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_SaveAsLinkedImage
-            evt.disabled      = not capture
+            evt.disabled      = not capture or capture.isTimed()
             evt.icon          = main.theme().icon(.Export)
 
         case .OpenImage:
@@ -118,8 +118,13 @@ impl IActionUI for ActionFile
 
         case .CopyImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = appStrings().act_CopyImageToClipboard
-            evt.disabled      = not capture
+            if capture and capture.media == .Video do
+                evt.name = appStrings().act_CopyVideoToClipboard
+            elif capture and capture.media == .Animation do
+                evt.name = appStrings().act_CopyAnimationToClipboard
+            else do
+                evt.name = appStrings().act_CopyImageToClipboard
+            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing)
             evt.icon          = main.theme().icon(.Copy)
 
         case .CaptureFileLocation:
@@ -237,7 +242,7 @@ impl IActionUI for ActionFile
             {
                 catch capture.copyAll()
                 {
-                    MessageDlg.error(unwrap main.surface, appStrings().msg_FailedSaveFile, Swag.err)
+                    MessageDlg.error(unwrap main.surface, appStrings().msg_FailedCopyCapture, Swag.err)
                     return true
                 }
             }
@@ -520,17 +525,28 @@ impl MainWnd
     mtd getSaveAsImageName()->String
     {
         let capture = unwrap .getCapture()
+        var initialName = String.from(Path.fileNameWithoutExtension(capture.file) orelse "")
+        if capture.media == .Video do
+            initialName += "-export"
 
         with var opt: FileDlgOptions
         {
             .state = &me.fileDlgState
             .mode  = .CreateFile
-            .title = appStrings().dlg_TitleSaveAsImage
+            .title = capture.media == .Video ? appStrings().dlg_TitleSaveAsVideo : appStrings().dlg_TitleSaveAsImage
             .confirmButtonText = appStrings().dlg_BtnSave
             .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
-            .shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: appStrings().ui_MyImages})
-            .shortcuts.add({type: Env.SpecialDirectory.CommonPictures, name: appStrings().ui_CommonImages})
-            .initialName = Path.fileNameWithoutExtension(capture.file) orelse ""
+            .initialName = initialName
+        }
+        if capture.media == .Video
+        {
+            opt.shortcuts.add({type: Env.SpecialDirectory.UserVideos, name: appStrings().ui_MyVideos})
+            opt.shortcuts.add({type: Env.SpecialDirectory.CommonVideos, name: appStrings().ui_CommonVideos})
+        }
+        else
+        {
+            opt.shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: appStrings().ui_MyImages})
+            opt.shortcuts.add({type: Env.SpecialDirectory.CommonPictures, name: appStrings().ui_CommonImages})
         }
 
         // A capture already linked to an image keeps that format preselected, so saving
@@ -540,9 +556,20 @@ impl MainWnd
         if not Image.canSave(preferred) do
             preferred = ".png"
 
-        // An animation is written as an animated picture.
+        // An animation is written as an animated picture. A video is written as an MP4.
+        if capture.media == .Video
+        {
+            opt.filters.add({name: appStrings().ui_Mp4Video, extensions: ".mp4"})
+            let dialog = FileDlg.create(unwrap .surface, opt)
+            if .inPlaceEdit do
+                dialog.surface?.setTopMost()
+            if dialog.doModal() != Dialog.BtnOk do
+                return ""
+            return dialog.selectedPath()
+        }
+
         var formats = Image.encodableFormats()
-        if capture.isTimed()
+        if capture.media == .Animation
         {
             preferred = ".gif"
             for i in reversed(formats.count) where not formats[i].matches(preferred) do
@@ -561,8 +588,42 @@ impl MainWnd
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
-        let capture = unwrap .getCapture()
+        var capture = unwrap .getCapture()
+        var loaded: *Capture?
+        if .libraryMode
+        {
+            .flushCaptureSave(capture.file)
+            catch { loaded = try Capture.load(capture.file) }
+            {
+                MessageDlg.error(unwrap .surface, appStrings().msg_FailedSaveFile, Swag.err)
+                return
+            }
+            capture = unwrap loaded
+            capture.editView = .editWnd.editView
+        }
+        defer
+        {
+            if loaded do
+                Memory.delete(loaded)
+        }
+        if capture.media == .Video and Path.equals(fileName, Capture.mediaPathOf(capture.file, .Video))
+        {
+            MessageDlg.error(unwrap .surface, appStrings().msg_VideoExportDifferentFile)
+            return
+        }
         Cursor.activateWait()
+        if capture.media == .Video
+        {
+            catch capture.exportVideo(fileName)
+            {
+                MessageDlg.error(unwrap .surface, appStrings().msg_FailedSaveFile, Swag.err)
+                return
+            }
+
+            .confirmSaved(fileName)
+            return
+        }
+
         if capture.isTimed()
         {
             catch capture.exportAnimation(fileName)

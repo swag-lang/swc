@@ -892,6 +892,8 @@ impl MainWnd
                     main.libWnd.describeLens(results)
             })
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Record)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordVideo)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds)
             for idx in me.monitors.count do
@@ -941,13 +943,16 @@ impl MainWnd
         }
 
         let capture = results.addSection(appStrings().ui_MenuCapture)
-        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
+        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
 
-        let image = results.addSection(appStrings().ui_MenuImage)
+        let edited = .getCapture()
+        let mediaName = edited and edited.media == .Video ? appStrings().ui_MediaVideo :
+                        edited and edited.media == .Animation ? appStrings().ui_MediaAnimation :
+                        appStrings().ui_MenuImage
+        let image = results.addSection(mediaName)
         .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage])
 
-        // An animation offers its playback and the time span of the selected forms.
-        let edited = .getCapture()
+        // A recording offers playback and the time span of the selected forms.
         if edited and edited.isTimed()
         {
             let timeline = results.addSection(appStrings().lens_Timeline)

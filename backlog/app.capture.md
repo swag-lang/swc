@@ -179,17 +179,16 @@ whole recording loaded at once.
 - Done when: the Windows recording test passes and the controls remain usable throughout it.
 - Related: platform.portability.097
 
-### app.capture.038 — The bar of a fresh zone offers only picture and animation
+### app.capture.038 — The kind menu still needs sound-only and scrolling capture
 
-- Evidence: the bar of the in-place editor (`src/screenshot/inplaceeditwnd.swg`) starts with the
-  kinds of capture (`KindSegments` in `src/screenshot/capturekind.swg`, ordered by `KindMedia`):
-  a picture keeps the tools and Copy, an animation shows the cursor, countdown, frame rate,
-  sound out of reach and Record. Video, sound alone and scrolling capture are not listed, since the bar
-  already holds about 790 logical pixels for a picture, and the theme has a speaker glyph but no
-  microphone.
-- Next: add each kind to `KindMedia` when it can be taken, with its own options in the bar, and
-  keep the picture bar within a 1280-pixel logical screen when they come (fold the destinations
-  into one menu if needed); add microphone and speaker glyphs with app.capture.013.
+- Evidence: the in-place editor (`src/screenshot/inplaceeditwnd.swg`) now starts with one
+  fixed-width kind menu, ordered by `KindMedia` in `src/screenshot/capturekind.swg`. Picture
+  keeps its tools and Copy, GIF shows recording options with sound out of reach, and Video shows
+  separate microphone and system-sound switches. Tab cycles the same three kinds. The menu
+  leaves room for additional kinds without widening the bar. Sound alone and scrolling capture
+  are not yet available.
+- Next: add sound-only and scrolling capture to the kind menu when each can be taken, with its
+  own options in the bar; keep the picture bar within a 1280-pixel logical screen.
 - Done when: every kind Swag Capture can take is chosen from the bar of the zone, and the bar
   shows both sources of sound for a kind that records them.
 - Related: app.capture.011, app.capture.013, app.capture.035
@@ -262,15 +261,18 @@ whole recording loaded at once.
   `handleNal` for the first IDR and two after frame submission while a decode worker
   was active. The point moves with instrumentation, so no H.264 or runtime root
   cause is proven. All diagnostic edits were removed. The intermittent test-runner
-  or decode stall still needs isolation. Swag Capture has no video-recording
-  UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
+  or decode stall still needs isolation. Swag Capture now offers Video in the zone's kind menu and a Record Video
+  command. The recording controls create an MP4 beside the capture document; the editor and
+  library reopen its timeline. Save as Video copies an untouched recording, or renders its chosen
+  span and timed annotations into a new MP4 while retaining the separate sound tracks. Library
+  export writes MP4 for a video and GIF for an animation. Copy Video places the edited MP4 with
+  sound on the clipboard as a file, including from the library. Pause remains unavailable for
+  video. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.
-- Next: isolate the generated X11 test runner stall. Once app.capture.012 has proven the
-  session, timeline and document, add video as a medium using `Video.Mp4.SoftwareRecording`:
-  measure the persistent GDI source on Windows and use Desktop Duplication acquisition
-  (platform.portability.097) only if the required cadence
-  cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
+- Next: isolate the generated X11 test runner stall. Measure the persistent GDI source on
+  Windows and use Desktop Duplication acquisition (platform.portability.097) only if the required
+  cadence cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
   and readback through the existing H.264 decoder for the timeline and re-export.
   Long recordings need, beside the stream: a recording folder that may differ from the library,
   a visible low-space stop reason and optional automatic splitting by
@@ -294,13 +296,15 @@ whole recording loaded at once.
   simulated four-hour source gap without generating all its silence in one call. App tests
   reopen the MP4 and check both decoded tracks before, during and after the gap, a bounded
   queue overflow, and live 96 kHz float source packets resampled into a 48 kHz MP4 track.
-  The native backends have not been exercised with a Windows device or connected to Swag
-  Capture's UI. `RecordingClock` gives the GIF recorder a paused session timeline that a future
-  audio track can share; GIF capture has no audio source or track.
-- Next: after app.capture.011, add the dock toggles: microphone with its level meter, system
-  sound, or this application's sound only for a window target. Keep each source on its own track,
-  timestamped on the performance counter and mixed only at export. Add a sound-only medium with a
-  waveform timeline.
+  Swag Capture now connects the native microphone and system-output-loopback backends to two
+  separate tracks in its video recorder. The zone bar chooses each source independently; source
+  loss inserts silence while a retry opens it again. The native backends have not been exercised
+  with a Windows device. The editor timeline previews pictures without playing their sound.
+  GIF capture has no audio source or track.
+- Next: play the recorded tracks with the editor timeline, add a microphone level meter, an
+  application-only sound source for window targets, and post-recording track levels and mixing
+  on export. Add a sound-only medium with a waveform
+  timeline.
 - Done when: a recording with sound stays within one video frame of sync over four hours, each
   source's level can be changed after recording, unplugging and replugging a device mid-recording
   leaves silence on its track instead of ending the recording, recording without any audio device

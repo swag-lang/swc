@@ -427,9 +427,10 @@ impl EditView
             .main.captureHasChanged()
             .main.updateState()
 
-            // An animation whose frame file is gone opens empty: say why.
+            // A timed capture whose media is gone opens empty: say why.
             if c.isTimed() and c.mediaMissing do
-                .main.reportFailure(appStrings().msg_MissingFrames, Path.fileName(Capture.mediaPathOf(c.file)) orelse "")
+                .main.reportFailure(appStrings().msg_MissingFrames,
+                                    Path.fileName(Capture.mediaPathOf(c.file, c.media)) orelse "")
         }
 
         .invalidate()

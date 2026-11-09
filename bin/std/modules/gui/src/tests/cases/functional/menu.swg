@@ -240,6 +240,40 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     host.pump()
 }
 
+// A widget row sends a captured menu click to the button inside its layout.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Open", Menu_Open)
+
+    with let choices = StackLayoutCtrl.create(popup, .Left)
+    {
+        .fitToContent = true
+    }
+    let choice = IconButton.create(choices, {}, {0, 0, 48, 24}, flags: .Radio)
+    choice.setText("3 s")
+    popup.addWidget(choices)
+
+    var clicked: bool
+    host.app.sigFrame += func|host = &host, popup, choice, clicked = &clicked|(_)
+    {
+        if clicked[] do
+            return
+        clicked[] = true
+        Swag.require(host.capturedPopupMenu() == popup)
+        host.clickWnd(choice)
+        Swag.require(choice.isChecked)
+        Swag.require(not popup.isModalEnded())
+        Swag.require(host.capturedPopupMenu() == popup)
+        Swag.require(host.clickPopupMenuItem(Menu_Open))
+    }
+
+    let result = popup.doModal({40, 40}, autoDestroy: true)
+    Swag.require(clicked and result == Menu_Open)
+}
+
 // A modal menu's queued command keeps the identifier selected before its caller changes it.
 #test
 {

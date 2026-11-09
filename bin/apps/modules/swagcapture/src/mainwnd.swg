@@ -72,6 +72,9 @@ enum CaptureIcons
     RotateLeft          // RotateLeft action glyph.
     Snap                // Snap action glyph.
     InvertSelection     // InvertSelection action glyph.
+    Delay3              // Clock hand pointing to three for the three-second delay.
+    Delay5              // Clock hand pointing to five for the five-second delay.
+    Delay10             // Clock hand pointing to ten for the ten-second delay.
 }
 
 // The application icon document and the frames rasterized from it, shared by the main window
@@ -370,6 +373,7 @@ impl MainWnd
             .addSeparator()
             .addItem(ActionCapture.Area)
             .addItem(ActionCapture.Record)
+            .addItem(ActionCapture.RecordVideo)
             .addItem(ActionCapture.LastArea)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
@@ -482,9 +486,9 @@ impl MainWnd
         }
     }
 
-    // Renders a stored capture at full resolution and places it on the clipboard. Used
+    // Places a stored capture in its media format on the clipboard. Used
     // from the library, where the focused capture is only a lightweight preview: the
-    // complete file is loaded, composited through the editor's render context, and
+    // complete file is loaded, composed through the editor's render context, and
     // discarded without touching the active editor selection.
     mtd copyLibraryImage(file: String)
     {
@@ -495,10 +499,10 @@ impl MainWnd
             let loaded = try Capture.load(file)
             defer Memory.delete(loaded)
             loaded.editView = .editWnd.editView
-            Clipboard.addImage(loaded.toImage())
+            try loaded.copyAll()
         }
         {
-            MessageDlg.error(unwrap .surface, appStrings().msg_FailedCopyImage, Swag.err)
+            MessageDlg.error(unwrap .surface, appStrings().msg_FailedCopyCapture, Swag.err)
         }
     }
 
@@ -739,6 +743,7 @@ impl MainWnd
         {
             .addItem(ActionCapture.Area)
             .addItem(ActionCapture.Record)
+            .addItem(ActionCapture.RecordVideo)
             .addItem(ActionCapture.ActiveWnd)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.LastArea)
@@ -748,13 +753,59 @@ impl MainWnd
             .addItem(ActionCapture.CaptureCursor)
         }
 
-        with let delays = MenuCtrl.createPopup(me)
+        menu.addSeparator()
+
+        let currentDelay = main.captureOptions.delay
+        var isPreset = false
+        for choice in CaptureDelays where choice.seconds == currentDelay do
+            isPreset = true
+        if not isPreset do
+            menu.addNote(Format.toString(appStrings().act_DelayDuration, captureDelayName(currentDelay)))
+
+        let metrics = main.themeMetrics()
+        with let delayChoices = StackLayoutCtrl.create(menu, .HorizontalCenter)
         {
-            for id in CaptureDelayIds do
-                .addItem(id)
+            .backgroundStyle = .Transparent
+            .spacing         = metrics.menuPopup_SpaceLines
         }
 
-        menu.addPopup(appStrings().act_DelayBefore, delays, icon: .theme().icon(.HourGlass))
+        for choice in CaptureDelays
+        {
+            var glyph = CaptureIcons.Capture
+            switch choice.seconds
+            {
+            case 3:  glyph = .Delay3
+            case 5:  glyph = .Delay5
+            case 10: glyph = .Delay10
+            }
+            with let delayButton = IconButton.create(delayChoices,
+                                                     main.icon(glyph, metrics.menuPopup_IconSize),
+                                                     {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
+                                                     flags: .Radio)
+            {
+                .preferredSize.x = 0
+                .padding         = metrics.btnIcon_Padding * 0.5
+                .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+                .setText(Format.toString("% s", choice.seconds))
+                .setTextPosition(.Right)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .setChecked(choice.seconds == currentDelay)
+                .toolTip = captureDelayName(choice.seconds)
+            }
+
+            delayButton.sigCheckedChanged += func|toolbar = delayChoices, id = choice.id|(wnd)
+            {
+                let selected = assume cast(*IconButton, wnd)
+                for child in toolbar.children
+                {
+                    if child is IconButton as other do
+                        other.setChecked(other == selected)
+                }
+                selected.postCommandEvent(id)
+            }
+        }
+        menu.addWidget(delayChoices, fullWidth: true)
 
         discard menu.doModal(button, autoDestroy: true)
     }

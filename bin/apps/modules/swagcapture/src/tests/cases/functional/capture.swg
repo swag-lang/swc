@@ -24,25 +24,32 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testAddMonitor(main, 1)
 
     var inspected: bool
-    host.app.sigFrame += func|host = &host, inspected = &inspected|(_)
+    host.app.sigFrame += func|host = &host, main, inspected = &inspected|(_)
     {
         if inspected[] do
             return
         let menu = unwrap host.capturedPopupMenu()
-        Swag.require(menu.items.count == 10)
+        Swag.require(menu.items.count == 12)
         Swag.require(menu.items[0]!.id == ActionCapture.Area)
         Swag.require(menu.items[1]!.id == ActionCapture.Record)
-        Swag.require(menu.items[2]!.id == ActionCapture.ActiveWnd)
-        Swag.require(menu.items[3]!.id == ActionCapture.FullScreen)
-        Swag.require(menu.items[4]!.id == ActionCapture.LastArea)
-        Swag.require(menu.items[5]!.id == ActionCapture.screenId(0))
-        Swag.require(menu.items[6]!.id == ActionCapture.screenId(1))
-        Swag.require(menu.items[8]!.id == ActionCapture.CaptureCursor)
-        let delays = menu.items[9]!.popup
-        Swag.require(delays.items.count == 4)
-        Swag.require(delays.items[0]!.id == ActionCaptureDelay.Delay0)
-        Swag.require(delays.items[3]!.id == ActionCaptureDelay.Delay10)
+        Swag.require(menu.items[2]!.id == ActionCapture.RecordVideo)
+        Swag.require(menu.items[3]!.id == ActionCapture.ActiveWnd)
+        Swag.require(menu.items[4]!.id == ActionCapture.FullScreen)
+        Swag.require(menu.items[5]!.id == ActionCapture.LastArea)
+        Swag.require(menu.items[6]!.id == ActionCapture.screenId(0))
+        Swag.require(menu.items[7]!.id == ActionCapture.screenId(1))
+        Swag.require(menu.items[9]!.id == ActionCapture.CaptureCursor)
+        Swag.require(menu.items[10]!.separator)
+        Swag.require(menu.children.count == 1)
+        let delays = assume cast(*Gui.StackLayoutCtrl, menu.children[0])
+        Swag.require(delays.children.count == CaptureDelays.count)
+        let delay3 = assume cast(*Gui.IconButton, delays.children[1])
+        Swag.require(delay3.name.raw == "3 s" and delay3.checkIndicator == .Frame)
         inspected[] = true
+        host.clickWnd(delay3)
+        Swag.require(delay3.name.raw == "3 s" and delay3.isChecked)
+        Swag.require(host.capturedPopupMenu() == menu and not menu.isModalEnded())
+        Swag.require(main.captureOptions.delay == 3)
         Swag.require(host.dismissPopupMenu())
     }
 

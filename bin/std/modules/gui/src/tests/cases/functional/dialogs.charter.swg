@@ -167,7 +167,7 @@ func assertDialogCharter(dlg: *Dialog)
     host.pump()
 }
 
-// A failure leads its title with the critical dot, carries its technical detail on a mono line,
+// A failure leads its title with the critical glyph, carries its technical detail on a mono line,
 // and ends on one Close that Escape presses too, with no hint.
 #test
 {

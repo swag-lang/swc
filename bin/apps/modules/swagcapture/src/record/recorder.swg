@@ -1,4 +1,4 @@
-using Core, Pixel
+using Core, Pixel, Video
 
 const RecordCountdown          = 3_000_000'u64      // Wait before the first frame when the option asks for it, in microseconds.
 
@@ -36,6 +36,9 @@ struct Recorder
     cadence:     u64           // Microseconds between attempted frames.
     file:        String             // Capture the frames belong to.
     writer:      Frames.Writer
+    video:       VideoCaptureSession
+    videoAudio:  *VideoRecordingAudio?
+    videoMode:   bool
     state:       RecorderState
     startsAt:    u64           // Monotonic time the countdown ends.
     clock:       RecordingClock // Session time shared by future video and audio tracks.
@@ -44,6 +47,7 @@ struct Recorder
     pending:     Image
     pendingTime: u64
     writeFailed: bool     // Set by the task when the file could not be written.
+    recordError: Swag.Error // Retains a video or sound failure until the capture command reports it.
     dropped:     u32      // Frames not recorded because the previous one was still being written.
     hud:         *RecordHud?
     limit:       u64      // Longest recording, in microseconds; zero records until stopped.
@@ -135,6 +139,104 @@ impl Recorder
         return result
     }
 
+    // Records the selected area to an MP4 beside a new editable capture document.
+    func recordVideo(main: *MainWnd, target: CaptureTarget)->*Capture? fail
+    {
+        Swag.assert(not g_Recorder)
+        var fileToDiscard: String
+        defer
+        {
+            if not fileToDiscard.isEmpty() do
+                discard catch File.delete(fileToDiscard)
+        }
+        let recorder = Memory.new'Recorder()
+        defer Memory.delete(recorder)
+        defer
+        {
+            if recorder.videoAudio
+            {
+                recorder.videoAudio.close()
+                Memory.delete(recorder.videoAudio)
+                recorder.videoAudio = null
+            }
+        }
+        recorder.main      = main
+        recorder.target    = target
+        recorder.area      = target.area
+        recorder.videoMode = true
+        recorder.file = Library.newFileName()
+        fileToDiscard = Capture.mediaPathOf(recorder.file, .Video)
+        recorder.limit = 0
+
+        // H.264 needs even dimensions. The selection stays anchored at its chosen origin.
+        recorder.area.width  = Math.floor(recorder.area.width / 2) * 2
+        recorder.area.height = Math.floor(recorder.area.height / 2) * 2
+        if recorder.area.width < 2 or recorder.area.height < 2 do
+            fail Errors.InvalidFormatError{}
+
+        let options = &main.captureOptions
+        let configs = VideoRecordingAudio.configs(options.recordMicrophone, options.recordSystemSound)
+        recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
+                                                        try FrameRate.create(30, 1),
+                                                        options.captureCursor, configs.toSlice())
+
+        g_Recorder = recorder
+        defer g_Recorder = null
+        recorder.showChrome()
+        defer recorder.hideChrome()
+
+        let now = Time.monotonicMicroseconds()
+        if options.recordCountdown
+        {
+            recorder.state    = .Counting
+            recorder.startsAt = now + RecordCountdown
+        }
+        else
+        {
+            recorder.state = .Recording
+            recorder.clock.startAt(now)
+        }
+
+        while recorder.state == .Counting or recorder.state == .Recording or recorder.state == .Paused
+        {
+            g_App.runFrame()
+            recorder.advance()
+        }
+
+        if recorder.videoAudio do
+            recorder.videoAudio.close()
+        if recorder.state == .Cancelled do
+            return null
+        if recorder.writeFailed
+        {
+            try recorder.recordError.raise()
+            fail Errors.InvalidFormatError{}
+        }
+        if not recorder.video.frameCount()
+        {
+            if recorder.video.stoppedForLowStorage() do
+                main.confirm(appStrings().msg_VideoStoppedForStorage)
+            return null
+        }
+        if not recorder.video.stoppedForLowStorage() do
+            try recorder.video.end()
+        with let result = Memory.new'Capture()
+        {
+            .file = String.from(recorder.file)
+            try .adoptVideo()
+            .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable,
+                             g_CaptureWindow.title, g_CaptureWindow.className)
+        }
+        fileToDiscard.clear()
+        main.confirmSaved(Capture.mediaPathOf(recorder.file, .Video))
+        if recorder.video.stoppedForLowStorage() do
+            main.confirm(appStrings().msg_VideoStoppedForStorage)
+        if recorder.video.missedFrameSlotCount() do
+            main.confirm(Format.toString(appStrings().ui_DroppedFrames,
+                                         recorder.video.missedFrameSlotCount()))
+        return result
+    }
+
     // Returns the time recorded so far, pauses excluded, in microseconds.
     mtd const elapsed()->u64
         => .clock.elapsedAt(Time.monotonicMicroseconds())
@@ -151,6 +253,8 @@ impl Recorder
     // Suspends the recording; the time spent paused is not recorded.
     mtd pause()
     {
+        if .videoMode do
+            return
         if .state != .Recording do
             return
         .clock.pauseAt(Time.monotonicMicroseconds())
@@ -161,6 +265,8 @@ impl Recorder
     // Continues a paused recording.
     mtd resume()
     {
+        if .videoMode do
+            return
         if .state != .Paused do
             return
         .clock.resumeAt(Time.monotonicMicroseconds())
@@ -226,14 +332,33 @@ impl Recorder
             if resolved.area.x != .area.x or resolved.area.y != .area.y
             {
                 .area = resolved.area
-                .source.x = cast(s32, .area.x)
-                .source.y = cast(s32, .area.y)
+                if .videoMode
+                {
+                    .video.source.x = cast(s32, .area.x)
+                    .video.source.y = cast(s32, .area.y)
+                }
+                else
+                {
+                    .source.x = cast(s32, .area.x)
+                    .source.y = cast(s32, .area.y)
+                }
                 .moveChrome()
             }
         }
 
         if .state != .Recording do
             return
+
+        if .videoMode
+        {
+            catch .advanceVideo()
+            {
+                .writeFailed = true
+                .recordError.capture(Swag.err)
+                .stop()
+            }
+            return
+        }
 
         let time = .elapsed()
         if .limit and time >= .limit
@@ -283,6 +408,31 @@ impl Recorder
             catch recorder.writer.add(recorder.pending, recorder.pendingTime) do
                 recorder.writeFailed = true
         })
+    }
+
+    // Reads one video slot and transfers both enabled sound sources into their MP4 tracks.
+    private mtd advanceVideo() fail
+    {
+        discard catch .video.captureAt(Time.monotonicMicroseconds())
+        {
+            if .video.stoppedForLowStorage()
+            {
+                .stop()
+                return
+            }
+            fail Swag.err
+        }
+        .dropped = cast(u32, Math.min(.video.missedFrameSlotCount(), cast(u64, Swag.U32.Max)))
+        if not .videoAudio and .video.hasCaptureOrigin() and
+           (.main.captureOptions.recordMicrophone or .main.captureOptions.recordSystemSound)
+        {
+            .videoAudio = Memory.new'VideoRecordingAudio()
+            try .videoAudio.start(&.video, .main.captureOptions.recordMicrophone,
+                                   .main.captureOptions.recordSystemSound)
+        }
+        if .videoAudio do
+            try .videoAudio.pump()
+        .hud?.invalidate()
     }
 
     // Reuses the screen source except when an X11 control overlaps the root area. In that case

@@ -61,6 +61,12 @@ struct CaptureOptions
     #[Description("Record ten, fifteen or twenty frames each second")]
     recordRate: AnimationRate = .Fps15
 
+    #[Description("Record the microphone on its own video sound track")]
+    recordMicrophone = false
+
+    #[Description("Record system sound on its own video sound track")]
+    recordSystemSound = false
+
     #[Description("Stop an animation after this many seconds"), SliderMinMax(1, 60), Unit("s")]
     recordMaxSeconds: s32 = 30
 

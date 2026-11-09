@@ -62,7 +62,7 @@ impl IWnd for CaptureRectWnd
 
         // Tab changes what the capture keeps, before it is taken.
         if evt.kind == .Pressed and evt.key == .Tab and evt.modifiers == .None do
-            g_CaptureMedia = g_CaptureMedia == .Picture ? .Animation : .Picture
+            g_CaptureMedia = nextCaptureMedia(g_CaptureMedia)
 
         if evt.kind == .Pressed and evt.key == .A and evt.modifiers == .None
         {

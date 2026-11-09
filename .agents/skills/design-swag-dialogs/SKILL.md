@@ -60,7 +60,7 @@ A dialog never writes a spacing, a button size or a minimum width:
 | Narrowest a box opens | `MessageDlg.MinMessageWidth` | 440 |
 | Widest a message runs before it wraps | `MessageDlg.MaxMessageWidth` | 512 |
 | Title size | `dialog_TitleFontSize` | 17 |
-| Critical dot | `dialog_MarkSize` | 8 |
+| Status glyph | `dialog_MarkSize` | 24 |
 | About tile, product name | `dialog_TileSize`, `dialog_NameFontSize` | 52, 21 |
 
 Apart from that floor, a dialog sets no width and no height of its own: it sizes itself from its
@@ -86,13 +86,15 @@ in any language. Use a quiet text-ink difference, or give a long name its own li
 readable and non-interactive; preserve quotation marks that are part of the user's actual data.
 See [References inside messages](../../../backlog/design/README.md#references-inside-messages).
 
-## Severity Is One Dot
+## Give Important Messages A Status Glyph
 
-A failure puts an **8 px critical dot** before the title (`Dialog.setTitle(title, failure: true)`
-or `MessageDlgOptions.failure`). The technical detail goes on a **mono faint line** under the
+A failure puts a **critical glyph** before the title (`Dialog.setTitle(title, failure: true)`
+or `MessageDlgOptions.failure`). Questions use the Arc question glyph, information messages use
+the Arc information glyph, and `MessageDlg.confirm` defaults to the caution warning glyph.
+Callers can choose another through `MessageDlgOptions.mark`. The glyph is a single theme-colored
+outline; it has no tile or band. The technical detail goes on a **mono faint line** under the
 sentence (`MessageDlgOptions.detail`; `MessageDlg.error` puts a `Swag.SystemError`'s message
-there). That is the whole severity vocabulary: no icon tile, no coloured band, no three-colour
-icon. An information box or a question has no mark. See
+there). See
 [Tell A Reader What Went Wrong](../build-swag-standard-apps/SKILL.md#tell-a-reader-what-went-wrong-not-how).
 
 ## The Actions End The Body
@@ -136,8 +138,8 @@ hand-written coordinates.
 
 | Box | Composition |
 | --- | --- |
-| Message, question (`MessageDlg`) | Title, body sentence, actions |
-| Error (`MessageDlg.error`) | Critical dot and title, sentence, mono faint detail line, one Close |
+| Message, question (`MessageDlg`) | Status glyph and title when important, body sentence, actions |
+| Error (`MessageDlg.error`) | Critical glyph and title, sentence, mono faint detail line, one Close |
 | Prompt (`EditDlg.createSingleLine`) | Title, the field, faint help line, Cancel · primary |
 | Form (`FormDlg`) | Title, labels above fields, help, Cancel · primary |
 | File (`FileDlg`, `FileDlgMode`) | Title, places as text tabs, a path field that filters, rows, the bottom-left slot, Cancel · primary |

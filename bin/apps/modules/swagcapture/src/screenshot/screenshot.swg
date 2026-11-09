@@ -281,12 +281,12 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: C
         Memory.delete(capture)
         return null
     }
-    if g_CaptureMedia == .Animation do
+    if g_CaptureMedia != .Picture do
         return try recordZone(main, capture, target)
     return capture
 }
 
-// Records the zone `zone` was taken from, where it now stands, and returns the new animation
+// Records the zone `zone` was taken from, where it now stands, and returns the new timed
 // capture, or null when nothing was kept. What was drawn on the zone annotates the whole
 // recording. `zone` is freed.
 func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture? fail
@@ -299,7 +299,11 @@ func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture
     target.offset.x += screenArea.x - target.area.x
     target.offset.y += screenArea.y - target.area.y
     target.area = screenArea
-    let result = try Recorder.record(main, target)
+    var result: *Capture?
+    if g_CaptureMedia == .Video do
+        result = try Recorder.recordVideo(main, target)
+    else do
+        result = try Recorder.record(main, target)
     if not result do
         return null
 
@@ -419,7 +423,11 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         let target   = CaptureTarget.create(desktopToScreenRect({grabRect.x, grabRect.y, wGrab, hGrab}),
                                             g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
 
-        if g_CaptureMedia == .Animation
+        if g_CaptureMedia == .Video
+        {
+            capture = try Recorder.recordVideo(main, target)
+        }
+        elif g_CaptureMedia == .Animation
         {
             capture = try Recorder.record(main, target)
         }

@@ -66,8 +66,9 @@ The charter's Roles section is the rule. Implementation notes:
   fills, canvas handles, the changed-value dot, information notices.
 - **Three refusals.** Never put Voltage text on Papier. Never wash a row with Voltage. Never draw
   a Voltage rail or band.
-- **Status colours are not for emphasis.** A notice is a tinted ground of its tone, a 7 px dot,
-  and a bold first phrase. It has no border, no icon tile and no three-colour icon.
+- **Status colours carry meaning.** A notice is a tinted ground of its tone, a 7 px dot, and a
+  bold first phrase. A dialog may lead its title with one status glyph in the matching semantic
+  color. Neither uses a border, an icon tile or a three-colour icon.
 
 A control that needs a state the charter does not name takes the nearest role: chosen is Arc,
 acting is Voltage, unavailable is weaker. Only after that does it ask for a new colour.

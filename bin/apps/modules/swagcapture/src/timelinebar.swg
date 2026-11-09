@@ -29,7 +29,7 @@ struct TimelineBar
     viewStart:       u64     // First time visible on the track.
     zoom:            f32 = 1 // One shows the whole recording.
     viewCapture:     *Capture?
-    thumbReader:     *Frames.Reader?
+    thumbReader:     *TimedReader?
     thumbTextures:   [TimelineThumbnails] Texture
     thumbStart:      u64
     thumbSpan:       u64
@@ -273,8 +273,8 @@ impl TimelineBar
             return
         if not .thumbReader
         {
-            let reader = catch Frames.Reader.open(Capture.mediaPathOf(capture.file)) { return; }
-            .thumbReader = Memory.new'Frames.Reader()
+            let reader = catch TimedReader.open(Capture.mediaPathOf(capture.file, capture.media), capture.media) { return; }
+            .thumbReader = Memory.new'TimedReader()
             .thumbReader[] = #move reader
         }
         for &texture in .thumbTextures

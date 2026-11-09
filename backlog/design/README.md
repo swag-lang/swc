@@ -123,6 +123,7 @@ checked in both.
 | Button and field height | 32 (34 in dialogs, 28 in inspectors) |
 | List row | 30–32; condensed property row 26 |
 | Icon | 16 logical, outline, 1.4 stroke, round caps, in a dock too |
+| Dialog status glyph | 24 logical |
 | Dock cell | 30 |
 | Spacing | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 |
 | Reading column | ~900 for code, ~640 for prose |
@@ -551,8 +552,11 @@ A dialog is a floating sheet: surface, corner 12, floating shadow over a dimmed 
 28, gap 16. It has **no caption band and no close cross**: its title (17/650) is the first line
 of the body. The body text is 13.5/21 in soft. Actions sit at the bottom right inside the same
 surface, the primary rightmost; the bottom left stays empty, without an `Esc` hint: the Cancel button
-already says the box can be left. A failure puts an 8 px critical dot before the title and the technical detail
-on a mono faint line. Forms put labels above fields (12.5 soft). The file dialog shows places as
+already says the box can be left. An error leads with a critical glyph, a question with an Arc
+question glyph, and an important information message with an Arc information glyph. Confirmations
+default to a caution warning glyph. Each is one theme-colored outline,
+without a tile or band. An error's technical detail sits on a mono faint line. Forms put labels above
+fields (12.5 soft). The file dialog shows places as
 text tabs, a path field that filters, rows with mono dates and sizes, and the type filter as a
 quiet `▾` at the bottom left. About shows the application tile (52, corner 12), the name
 21/800, version and date in mono, the capability line, then links.

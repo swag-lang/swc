@@ -3,9 +3,8 @@ using Core, Pixel
 // Displays a titled message, an optional technical detail and extension, and caller-defined actions.
 //
 // The box is the composition of [[Gui.Dialog]]: its title is the first line of the body, the
-// message follows in the soft ink, and a failure carries the critical dot before its title and
-// its technical detail on a mono faint line under the message. There is no icon: the absence of
-// the dot is the information.
+// message follows in the soft ink, and status messages lead the title with a theme-colored glyph.
+// A failure also carries its technical detail on a mono faint line under the message.
 public struct MessageDlg
 {
     public
@@ -22,13 +21,24 @@ public struct MessageDlg
     }
 }
 
-// Configures the title, detail, alignment and post-creation customization of a [[Gui.MessageDlg]].
+// Selects the semantic glyph before a message title.
+public enum MessageDlgMark
+{
+    None            // No glyph for a custom message.
+    Information     // Arc information glyph.
+    Question        // Arc question glyph.
+    Warning         // Caution warning glyph.
+    Critical        // Critical failure glyph.
+}
+
+// Configures the title, status glyph, detail, alignment and customization of a [[Gui.MessageDlg]].
 public struct MessageDlgOptions
 {
     public
     {
         title:   string = ""     // Title of the box; empty keeps the helper's default.
-        failure: bool            // Whether the title reports a failure, led by the critical dot.
+        failure: bool            // Whether the title reports a failure, led by a critical glyph.
+        mark:   MessageDlgMark   // Status glyph; failure always keeps its critical glyph.
 
         // Technical detail set under the message on a mono faint line — an error code, the report
         // of the system — or empty for none. It is for whoever files the report, never a
@@ -55,6 +65,16 @@ public impl MessageDlg
 
         discard dlg.createSurface(from, 0, 0, cast(s32, MinMessageWidth), 300)
         dlg.setTitle(options.title, options.failure)
+        if not options.failure
+        {
+            switch options.mark
+            {
+            case .Information: dlg.setTitleMark(.Information)
+            case .Question:    dlg.setTitleMark(.Question)
+            case .Warning:     dlg.setTitleMark(.Warning)
+            case .Critical:    dlg.setTitleMark(.Critical)
+            }
+        }
 
         let body = dlg.createContentView()
         if options.detail.count
@@ -239,6 +259,8 @@ public impl MessageDlg
         var opt = options
         if not opt.title.count do
             opt.title = strings().dlg_InfoTitle
+        if opt.mark == .None do
+            opt.mark = .Information
 
         let dlg = create(from, message, opt)
         dlg.surface!.cancelButton = dlg.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
@@ -251,6 +273,8 @@ public impl MessageDlg
         var opt = options
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
+        if opt.mark == .None do
+            opt.mark = .Question
 
         with let dlg = create(from, message, opt)
         {
@@ -267,6 +291,8 @@ public impl MessageDlg
         var opt = options
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
+        if opt.mark == .None do
+            opt.mark = .Question
 
         with let dlg = create(from, message, opt)
         {
@@ -283,6 +309,8 @@ public impl MessageDlg
         var opt = options
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
+        if opt.mark == .None do
+            opt.mark = .Question
 
         with let dlg = create(from, message, opt)
         {
@@ -318,13 +346,15 @@ public impl MessageDlg
         var opt = options
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
+        if opt.mark == .None do
+            opt.mark = .Warning
 
         return yesNo(from, txt.toString(), defaultId, opt)
     }
 
     // Shows a modal error message with one Close action, which Escape presses as well.
     //
-    // The title carries the critical dot. The caller captures the error (`catch f() as err`) and
+    // The title carries the critical glyph. The caller captures the error (`catch f() as err`) and
     // hands it in; when it is a `Swag.SystemError`, its message is the technical detail, set on a
     // mono faint line under the sentence unless [[Gui.MessageDlgOptions.detail]] already names
     // one.

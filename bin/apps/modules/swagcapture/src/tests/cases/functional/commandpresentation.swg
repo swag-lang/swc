@@ -27,8 +27,10 @@ using Swag, Core
         Swag.require(menu.items[index]!.name.raw == name and menu.items[index]!.popup != null)
 
     let capture = menu.items[0]!.popup
-    let captureDirect = 1 + CaptureModeIds.count + main.monitors.count
+    let captureDirect = 3 + CaptureModeIds.count + main.monitors.count
     Swag.require(capture.items[0]!.id == ActionCapture.Area)
+    Swag.require(capture.items[1]!.id == ActionCapture.Record)
+    Swag.require(capture.items[2]!.id == ActionCapture.RecordVideo)
     Swag.require(capture.items[captureDirect]!.separator)
     var delay: *MenuCtrl?
     for item in capture.items where item and item.name.raw == appStrings().act_DelayBefore do

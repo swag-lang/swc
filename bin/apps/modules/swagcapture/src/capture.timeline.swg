@@ -34,10 +34,10 @@ impl Capture
     mtd const isTimed()->bool => .media != .Picture
 
     // Returns the path of the frame file that belongs to the capture file `file`.
-    func mediaPathOf(file: string)->String
+    func mediaPathOf(file: string, media: CaptureMedia = .Animation)->String
     {
         var name = String.from(Path.fileNameWithoutExtension(file) orelse "")
-        name += CaptureMediaExtension
+        name += media == .Video ? CaptureVideoExtension : CaptureMediaExtension
         return Path.combine(Path.directoryName(file), name)
     }
 
@@ -46,19 +46,34 @@ impl Capture
     func duplicateFiles(target, source: string) fail
     {
         try File.duplicate(target, source)
-        defer #fail discard catch File.delete(target)
+        defer #fail
+        {
+            for kind in [CaptureMedia.Animation, CaptureMedia.Video]
+            {
+                let path = mediaPathOf(target, kind)
+                if File.exists(path) do
+                    discard catch File.delete(path)
+            }
+            discard catch File.delete(target)
+        }
 
-        let media = mediaPathOf(source)
-        if File.exists(media) do
-            try File.duplicate(mediaPathOf(target), media)
+        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
+        {
+            let media = mediaPathOf(source, kind)
+            if File.exists(media) do
+                try File.duplicate(mediaPathOf(target, kind), media)
+        }
     }
 
     // Deletes the capture file `file` and its frame file.
     func deleteFiles(file: string) fail
     {
-        let media = mediaPathOf(file)
-        if File.exists(media) do
-            try File.delete(media)
+        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
+        {
+            let media = mediaPathOf(file, kind)
+            if File.exists(media) do
+                try File.delete(media)
+        }
         try File.delete(file)
     }
 
@@ -113,7 +128,7 @@ impl Capture
         .closeMedia()
 
         let path   = mediaPathOf(.file)
-        var frames = try Frames.Reader.open(path)
+        var frames = try TimedReader.open(path, .Animation)
 
         .media               = .Animation
         .timeline.frameCount = frames.frameCount()
@@ -128,6 +143,26 @@ impl Capture
         try .showFrame(0)
     }
 
+    // Makes a newly completed MP4 the editable timed media of this capture.
+    mtd adoptVideo() fail
+    {
+        .closeMedia()
+        let path = mediaPathOf(.file, .Video)
+        var frames = try TimedReader.open(path, .Video)
+        if not frames.frameCount() do
+            fail Errors.InvalidFormatError{}
+        .media               = .Video
+        .timeline.frameCount = frames.frameCount()
+        .timeline.duration   = frames.endTime
+        .timeline.mediaSize  = (try File.info(path)).size
+        .width, .widthOrg    = frames.width
+        .height, .heightOrg  = frames.height
+        .playhead            = 0
+        .mediaMissing        = false
+        .takeFrames(&frames)
+        try .showFrame(0)
+    }
+
     // Opens the frame file of a timed capture and shows the frame at the playhead. A file that is
     // missing, unreadable or was replaced since the recording marks the media missing.
     mtd openMedia()
@@ -135,12 +170,12 @@ impl Capture
         .closeMedia()
         .mediaMissing = true
 
-        let path = mediaPathOf(.file)
+        let path = mediaPathOf(.file, .media)
         let info = catch File.info(path) { return; }
         if info.size != .timeline.mediaSize do
             return
 
-        var frames = catch Frames.Reader.open(path) { return; }
+        var frames = catch TimedReader.open(path, .media) { return; }
         if frames.frameCount() != .timeline.frameCount or frames.frameCount() == 0 do
             return
 
@@ -326,9 +361,9 @@ impl Capture
     }
 
     // Keeps `frames` open as the frames of the capture.
-    private mtd takeFrames(frames: *Frames.Reader)
+    private mtd takeFrames(frames: *TimedReader)
     {
-        let owned = Memory.new'Frames.Reader()
+        let owned = Memory.new'TimedReader()
         owned[] = #move frames[]
         .frames = owned
     }

@@ -26,7 +26,7 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
 
         let suffix = light ? "paper" : "ink"
 
-        let question = MessageDlg.create(&host.surface, "Reload viewerchrome.swg? The reading position is kept.", {title: "The file changed on disk."})
+        let question = MessageDlg.create(&host.surface, "Reload viewerchrome.swg? The reading position is kept.", {title: "The file changed on disk.", mark: .Question})
         question.addButton("Reload", Dialog.BtnOk, true)
         question.addButton("Ignore", Dialog.BtnCancel)
         question.adaptSizeToMessage()
@@ -79,7 +79,7 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     }
 
     let suffix = light ? "paper" : "ink"
-    let dlg    = MessageDlg.create(&host.surface, "The file could not be found.\n\nRemove it from the file history?", {title: "File not found."})
+    let dlg    = MessageDlg.create(&host.surface, "The file could not be found.\n\nRemove it from the file history?", {title: "File not found.", mark: .Warning})
     dlg.addButton(strings().dlg_Yes, Dialog.BtnYes)
     let no = dlg.addButton(strings().dlg_No, Dialog.BtnNo, true)
     host.app.setFocusVisible(true)

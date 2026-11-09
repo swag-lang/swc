@@ -67,6 +67,7 @@ const CaptureFileExtension = ".scc"
 // trashing or restoring the capture carries them along and a save of the capture never rewrites
 // them.
 const CaptureMediaExtension = ".frames"
+const CaptureVideoExtension = ".mp4"
 
 // Profile written for a picture, which every earlier Swag Capture reads.
 const CapturePictureProfileVersion = 1'u32
@@ -93,6 +94,7 @@ enum CaptureMedia
 {
     Picture       // One picture.
     Animation     // A short silent recording, exported as an animated picture.
+    Video         // A screen recording with optional separate sound tracks.
 }
 
 // The time of a timed capture. Its frames are in the frame file beside the capture
@@ -234,7 +236,7 @@ struct Capture
     #[NoSerialize]
     {
         // Frames of a timed capture, open while it is edited, and the frame `backImg` shows.
-        frames:   *Frames.Reader?
+        frames:   *TimedReader?
         playhead: u64
 
         // The frame file of a timed capture is missing, unreadable or was replaced.

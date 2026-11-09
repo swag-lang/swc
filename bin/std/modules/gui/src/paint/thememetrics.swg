@@ -117,7 +117,7 @@ struct ThemeMetrics
         dialog_Padding:       f32 = 28     // Inset kept around the title, the body and the actions of a dialog.
         dialog_BtnPadding:    f32 = 8      // Gap between two actions of a dialog; twice it parts two pieces of its body.
         dialog_TitleFontSize: u32 = 17     // Size of the title that opens the body of a dialog.
-        dialog_MarkSize:      f32 = 8      // Diameter of the critical dot before the title of a failure.
+        dialog_MarkSize:      f32 = 24     // Side of a status glyph before the title of a message dialog.
         dialog_TileSize:      f32 = 52     // Side of the application tile that leads an about box.
         dialog_NameFontSize:  u32 = 21     // Size of the product name beside the tile of an about box.
 

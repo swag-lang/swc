@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Swag, Core
+using Swag, Core, Video
 
 // Frames left before the recording in progress ends, and whether it ends by a cancel.
 var g_TestFramesLeft:  u32
@@ -80,6 +80,64 @@ internal func testEndRecording()
     Swag.require(capture.timeline.duration <= 60_000_000)
 }
 
+// The video command writes a playable MP4, and its capture reopens with an indexed timeline.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+
+    let before = f.main.savedPaths.count
+    testEndRecordingAfter(20, cancel: false)
+    let capture = expect Recorder.recordVideo(f.main, CaptureTarget.create({0, 0, 64, 48}, 0))
+    testEndRecording()
+    let owned = unwrap capture
+    Swag.require(owned.media == .Video)
+    Swag.require(g_Recorder == null and f.main.savedPaths.count == before + 1)
+
+    let file = f.main.savedPaths[before]
+    let document = String.from(owned.file)
+    defer catch Capture.deleteFiles(document)
+    defer Memory.delete(owned)
+    Swag.require(File.exists(file))
+    Swag.require(owned.timeline.frameCount >= 1 and owned.frames != null)
+    var reader = expect Reader.open(file)
+    Swag.require(reader.frameCount() >= 1)
+    var picture: Pixel.Image
+    expect reader.decodeFrameInto(&picture, 0)
+    Swag.require(picture.width == 64 and picture.height == 48)
+    reader.close()
+
+    owned.changed = true
+    expect owned.save()
+    let loaded = expect Capture.load(document)
+    defer Memory.delete(loaded)
+    Swag.require(loaded.media == .Video and loaded.frames != null)
+    Swag.require(loaded.timeline.frameCount == owned.timeline.frameCount)
+    expect loaded.showFrame(0)
+    Swag.require(loaded.backImg.width == 64 and loaded.backImg.height == 48)
+
+    // The editor's save action offers the original MP4 as a playable standalone file.
+    f.capture.media = .Video
+    f.capture.file = String.from(document)
+    var state = Gui.Testing.commandState(ActionFile.SaveAsImage)
+    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &state))
+    Swag.require(state.longName == appStrings().act_SaveAsVideo)
+    state = Gui.Testing.commandState(ActionFile.SaveAsLinkedImage)
+    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsLinkedImage, &state))
+    Swag.require(state.disabled)
+    let exported = Gui.Testing.tempFilePath("capture-video-", ".mp4")
+    defer discard catch File.delete(exported)
+    f.main.doSaveAsImage(exported)
+    Swag.require(File.exists(exported))
+    let originalBytes = expect File.readAllBytes(file)
+    let exportedBytes = expect File.readAllBytes(exported)
+    Swag.require(Slice.equals(originalBytes.toSlice(), exportedBytes.toSlice()))
+    var copy = expect Reader.open(exported)
+    Swag.require(copy.frameCount() == owned.timeline.frameCount)
+    copy.close()
+}
+
 // A cancelled recording keeps nothing.
 #test
 {
@@ -94,6 +152,23 @@ internal func testEndRecording()
     Swag.require(capture == null)
 
     let after = expect Directory.enumerateFiles(Library.getFolder(), CaptureMediaExtension)
+    Swag.require(after.count == before.count)
+}
+
+// Cancelling a video removes its partial MP4 and does not create a capture document.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let before = expect Directory.enumerateFiles(Library.getFolder(), CaptureVideoExtension)
+    testEndRecordingAfter(5, cancel: true)
+    let capture = expect Recorder.recordVideo(f.main, CaptureTarget.create({0, 0, 64, 48}, 0))
+    testEndRecording()
+    Swag.require(capture == null)
+
+    let after = expect Directory.enumerateFiles(Library.getFolder(), CaptureVideoExtension)
     Swag.require(after.count == before.count)
 }
 

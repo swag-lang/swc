@@ -6,7 +6,9 @@ impl Capture
     mtd copyAll() fail
     {
         Cursor.activateWait()
-        if .isTimed() do
+        if .media == .Video do
+            try .copyVideo()
+        elif .isTimed() do
             try .copyAnimation()
         else do
             Clipboard.addImage(.toImage())

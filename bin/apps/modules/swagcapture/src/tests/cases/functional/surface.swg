@@ -1021,12 +1021,13 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         main.updateState()
         main.lens.open()
         let sections = &main.lens.results.sections
-        Swag.require(sections[0]!.entries.count == 5)
+        Swag.require(sections[0]!.entries.count == 6)
         Swag.require(sections[0]!.entries[0].id == ActionCapture.Area)
         Swag.require(sections[0]!.entries[1].id == ActionCapture.Record)
-        Swag.require(sections[0]!.entries[2].id == ActionCapture.LastArea)
-        Swag.require(sections[0]!.entries[3].id == ActionFile.OpenImage)
-        Swag.require(sections[0]!.entries[4].id == ActionGlobal.ShowLibrary)
+        Swag.require(sections[0]!.entries[2].id == ActionCapture.RecordVideo)
+        Swag.require(sections[0]!.entries[3].id == ActionCapture.LastArea)
+        Swag.require(sections[0]!.entries[4].id == ActionFile.OpenImage)
+        Swag.require(sections[0]!.entries[5].id == ActionGlobal.ShowLibrary)
         Swag.require(sections[1]!.entries.count == 2)
         Swag.require(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
         Swag.require(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
@@ -1415,7 +1416,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
 // The bar of a fresh zone starts with what the zone becomes. Choosing the animation fills it with
 // the options of the recording and Record, keeps what was drawn, and Enter then starts the
-// recording; Tab gives the picture and its tools back.
+// recording; Tab advances through video and then gives the picture and its tools back.
 #[Swag.TestTag("capture.interaction")]
 #test
 {
@@ -1427,17 +1428,6 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         g_Main?.libWnd.requestClose()
         host.shutdown()
         g_Main = null
-    }
-
-    func kinds(editor: *InPlaceEditWnd)->*KindSegments?
-    {
-        for item in editor.bar.items
-        {
-            if item.wnd is KindSegments as seg do
-                return seg
-        }
-
-        return null
     }
 
     func chips(editor: *InPlaceEditWnd)->u32
@@ -1466,25 +1456,25 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     let forms = editor.capture!.forms.count
     Swag.require(forms > 0)
 
-    // A click on the second kind makes the zone an animation.
-    let seg = unwrap kinds(editor)
-    var pos = seg.surfaceRect()
-    let at  = seg.segmentRect(1)
-    var evt = Gui.MouseEvent{kind: .Pressed, button: .Left, surfacePos: {pos.x + at.horzCenter(), pos.y + at.vertCenter()}}
-    seg.sendEvent(&evt)
-    Swag.require(g_CaptureMedia == .Picture and seg.hot == 1)
-    evt.kind = .Released
-    evt.surfacePos.x = pos.x - 10
-    seg.sendEvent(&evt)
-    Swag.require(g_CaptureMedia == .Picture and seg.hot == -1)
-    evt.kind = .Pressed
-    evt.surfacePos.x = pos.x + at.horzCenter()
-    seg.sendEvent(&evt)
-    evt.kind = .Released
-    seg.sendEvent(&evt)
+    // The fixed-width kind button opens a menu; choosing GIF keeps the annotations.
+    let kindWidth = (unwrap editor.kindButton).position.width
+    var chosen: bool
+    host.app.sigFrame += func|host = &host, chosen = &chosen|(_)
+    {
+        if chosen[] do
+            return
+        let menu = host.capturedPopupMenu()
+        Swag.require(menu and menu.items.count == KindMedia.count)
+        Swag.require(host.clickPopupMenuItem(kindMenuId(.Animation)))
+        chosen[] = true
+    }
+    host.clickWnd(editor.kindButton)
+    host.app.sigFrame.clear()
+    Swag.require(chosen)
     host.runFrames(1)
     host.finishAnimations()
     Swag.require(g_CaptureMedia == .Animation)
+    Swag.require(editor.kindButton.position.width == kindWidth)
     Swag.require(chips(editor) == 4)
     Swag.require(editor.editMode == .Select and editor.newMain.editMode == .Selection)
     Swag.require(editor.capture.forms.count == forms)
@@ -1528,8 +1518,36 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     }
     Swag.require(editor.source.captureOptions.recordRate == rate)
 
-    // Tab gives the picture back, with its tools.
+    // Tab offers video with independently chosen sound sources.
     var key = Gui.KeyEvent{kind: .Pressed, key: .Tab}
+    editor.sendEvent(&key)
+    Swag.require(g_CaptureMedia == .Video)
+    Swag.require(editor.kindButton.position.width == kindWidth)
+    #static if #os == Swag.TargetOs.Windows
+    {
+        Swag.require(chips(editor) == 4)
+        var microphone: *OptionChip?
+        var system: *OptionChip?
+        for item in editor.bar.items
+        {
+            if item.wnd is OptionChip as chip
+            {
+                if chip.label == appStrings().ui_AimMicrophone do
+                    microphone = chip
+                if chip.label == appStrings().ui_AimSystemSound do
+                    system = chip
+            }
+        }
+        Swag.require(microphone and system)
+        host.clickWnd(microphone)
+        host.clickWnd(system)
+        Swag.require(editor.source.captureOptions.recordMicrophone)
+        Swag.require(editor.source.captureOptions.recordSystemSound)
+        editor.source.captureOptions.recordMicrophone = false
+        editor.source.captureOptions.recordSystemSound = false
+    }
+
+    // Another Tab gives the picture back, with its tools.
     editor.sendEvent(&key)
     Swag.require(g_CaptureMedia == .Picture and chips(editor) == 0)
     Swag.require(editor.editMode == .Marker and editor.newMain.editMode == .Draw)
@@ -1579,6 +1597,42 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     Swag.require(result.media == .Animation and result.width == 440 and result.height == 240)
     Swag.require(result.forms.count == forms)
+    for form in result.forms do
+        Swag.require(form.capture == result)
+}
+
+// The same handoff preserves annotations drawn before choosing Video in the zone.
+#[Swag.TestTag("capture.interaction")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: true)
+    defer
+    {
+        g_CaptureMedia = .Picture
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    editor.setMedia(.Video)
+    let zone  = unwrap editor.capture
+    let forms = zone.forms.count
+    Swag.require(forms > 0)
+    editor.editWnd.editView.capture = null
+    editor.capture = null
+    editor.placeBar()
+    testEndRecordingAfter(20, cancel: false)
+    let area = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y,
+                              cast(f32, zone.width), cast(f32, zone.height)}
+    let capture = expect recordZone(editor.source, zone, CaptureTarget.create(desktopToScreenRect(area), 0))
+    testEndRecording()
+
+    let result = unwrap capture
+    let file   = String.from(result.file)
+    defer catch Capture.deleteFiles(file)
+    defer Memory.delete(result)
+    Swag.require(result.media == .Video and result.forms.count == forms)
     for form in result.forms do
         Swag.require(form.capture == result)
 }

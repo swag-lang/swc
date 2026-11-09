@@ -113,7 +113,8 @@ impl Library
         let base = Path.fileName(name) orelse ""
         var dst  = Path.combine(folder, base)
         var n    = 1
-        while File.exists(dst) or File.exists(Capture.mediaPathOf(dst))
+        while File.exists(dst) or File.exists(Capture.mediaPathOf(dst)) or
+              File.exists(Capture.mediaPathOf(dst, .Video))
         {
             // Build "<n>_<base>" without passing the name through a formatted `any` arg,
             // then combine (Path.combine wants a plain string, so convert the String).

@@ -79,9 +79,22 @@ impl IActionUI for ActionCopyPaste
 
         case .CopyAsImage:
             evt.updatedFields |= .Disabled | .Name | .LongName | .Icon
-            evt.disabled      = not capture
-            evt.name          = capture and capture.isTimed() ? appStrings().act_CopyAnimation : appStrings().act_CopyImage
-            evt.longName      = capture and capture.isTimed() ? appStrings().act_CopyAnimationToClipboard : appStrings().act_CopyImageToClipboard
+            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing)
+            if capture and capture.media == .Video
+            {
+                evt.name     = appStrings().act_CopyVideo
+                evt.longName = appStrings().act_CopyVideoToClipboard
+            }
+            elif capture and capture.media == .Animation
+            {
+                evt.name     = appStrings().act_CopyAnimation
+                evt.longName = appStrings().act_CopyAnimationToClipboard
+            }
+            else
+            {
+                evt.name     = appStrings().act_CopyImage
+                evt.longName = appStrings().act_CopyImageToClipboard
+            }
             evt.icon          = main.theme().icon(.Copy)
 
         case .Duplicate:
@@ -116,7 +129,7 @@ impl IActionUI for ActionCopyPaste
         case .CopyAsImage:
             catch capture.copyAll()
             {
-                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedSaveFile, Swag.err)
+                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedCopyCapture, Swag.err)
                 return true
             }
 

@@ -238,21 +238,32 @@ impl LibraryWnd
 
     mtd exportCapture(file: String, folder: String) fail
     {
-        // The exported image must include edits a background save is still writing.
+        // The exported media must include edits a background save is still writing.
         .main.flushCaptureSave(file)
 
         let capture = try Capture.load(file)
         defer Memory.delete(capture)
 
-        capture.editView = .main.editWnd.editView
-        var image = capture.toImage()
         var name  = String.from(Path.fileNameWithoutExtension(file) orelse "capture")
-        name += ".png"
-        let destination = Library.uniqueName(folder, name)
-        try image.save(destination)
+        capture.editView = .main.editWnd.editView
+        switch capture.media
+        {
+        case .Video:
+            name += ".mp4"
+            try capture.exportVideo(Library.uniqueName(folder, name))
+
+        case .Animation:
+            name += ".gif"
+            try capture.exportAnimation(Library.uniqueName(folder, name))
+
+        case .Picture:
+            name += ".png"
+            var image = capture.toImage()
+            try image.save(Library.uniqueName(folder, name))
+        }
     }
 
-    // Asks for a folder and writes every selected capture there as an image.
+    // Asks for a folder and writes each selected capture in its media format.
     // Moves the chosen captures to a folder the user picks: they leave the page, and the library
     // when the folder is outside it.
     mtd moveSelected()

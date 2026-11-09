@@ -675,12 +675,44 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    // One bar: the kinds of capture, the ten tools, the colour, the three destinations, Copy and
+    // One bar: the kind menu, the ten tools, the colour, the three destinations, Copy and
     // the cross.
     Swag.require(editor.bar.isLocallyVisible())
     Swag.require(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
     var image = host.render(editor)
     Pixel.Testing.assertImageGolden(&image, "inplace")
+}
+
+// A fresh zone names its current kind and offers the other kinds beneath one control in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: false)
+    defer
+    {
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.capturedPopupMenu() != null)
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "inplace.kind-menu")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    host.clickWnd(unwrap editor.kindButton)
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
 }
 
 // A fresh zone made an animation waits for its recording: the kinds, cursor, countdown, cadence,
@@ -704,6 +736,35 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     host.finishAnimations()
     var image = host.render(editor)
     Pixel.Testing.assertImageGolden(&image, "inplace.record")
+}
+
+// The video bar keeps the capture kinds, cursor, countdown and both sound sources beside Record.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let editor = testSetupInPlace(&host, dark: true)
+    defer
+    {
+        g_CaptureMedia = .Picture
+        g_Main?.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    editor.source.captureOptions.recordMicrophone = true
+    editor.setMedia(.Video)
+    host.runFrames(1)
+    host.finishAnimations()
+    var image = host.render(editor)
+    #static if #os == Swag.TargetOs.Windows
+    {
+        Pixel.Testing.assertImageGolden(&image, "inplace.video")
+    }
+    else
+    {
+        Pixel.Testing.assertImageGolden(&image, "inplace.video.linux")
+    }
 }
 
 // A callout whose words are typed in place: the field over its body, the hint of the tail, in

@@ -257,16 +257,49 @@ impl IWnd for LibraryView
                 .addItem(appStrings().act_EditTags, "capture.library.tags", icon: .theme().icon(.Edit))
                 .addItem(appStrings().act_FavoriteCapture, "capture.library.favorite", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.favorite)
 
-                with let rating = MenuCtrl.createPopup(menu, owner: me)
+                let metrics = .themeMetrics()
+                let ratingNames = [appStrings().act_NoRating,
+                                   appStrings().act_Rating1,
+                                   appStrings().act_Rating2,
+                                   appStrings().act_Rating3,
+                                   appStrings().act_Rating4,
+                                   appStrings().act_Rating5]
+                with let ratingChoices = StackLayoutCtrl.create(menu, .HorizontalCenter)
                 {
-                    .addItem(appStrings().act_NoRating, "capture.library.rating.0", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 0)
-                    .addItem(appStrings().act_Rating1, "capture.library.rating.1", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 1)
-                    .addItem(appStrings().act_Rating2, "capture.library.rating.2", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 2)
-                    .addItem(appStrings().act_Rating3, "capture.library.rating.3", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 3)
-                    .addItem(appStrings().act_Rating4, "capture.library.rating.4", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 4)
-                    .addItem(appStrings().act_Rating5, "capture.library.rating.5", icon: .theme().icon(.Star), checked: focusedCapture and focusedCapture.rating == 5)
-                    menu.addPopup(appStrings().act_Rating, rating, icon: .theme().icon(.Star))
+                    .backgroundStyle = .Transparent
+                    .spacing         = metrics.menuPopup_SpaceLines
                 }
+
+                for rating in 0 until ratingNames.count
+                {
+                    with let button = IconButton.create(ratingChoices,
+                                                        .theme().icon(.Star, metrics.menuPopup_IconSize),
+                                                        {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
+                                                        flags: .Radio)
+                    {
+                        .preferredSize.x = 0
+                        .padding         = metrics.btnIcon_Padding * 0.5
+                        .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+                        .setText(Format.toString("%", rating))
+                        .setTextPosition(.Right)
+                        .setForm(.RoundedRectangle)
+                        .setCheckIndicator(.Frame)
+                        .setChecked(focusedCapture and focusedCapture.rating == rating)
+                        .toolTip = ratingNames[rating]
+                    }
+
+                    button.sigCheckedChanged += func|toolbar = ratingChoices, rating|(wnd)
+                    {
+                        let selected = assume cast(*IconButton, wnd)
+                        for child in toolbar.children
+                        {
+                            if child is IconButton as other do
+                                other.setChecked(other == selected)
+                        }
+                        selected.postCommandEvent(Format.toString("capture.library.rating.%", rating))
+                    }
+                }
+                menu.addWidget(ratingChoices, fullWidth: true)
 
                 .addSeparator()
                 .addItem(ActionFile.DeleteCapture)

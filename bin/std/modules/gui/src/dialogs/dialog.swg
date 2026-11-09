@@ -26,7 +26,9 @@ struct Dialog
             buttons:        Array'(*PushButton)     // Buttons in insertion order.
             parentSurface:  *Surface?               // Surface that owns the modal dialog.
             title:          RichString              // Title set as the first line of the body, or empty for none.
-            failure:        bool                    // Whether the title reports a failure, marked by the critical dot.
+            failure:        bool                    // Whether the title reports a failure.
+            titleMark:      ThemeIcons            // Status glyph before the title, when present.
+            hasTitleMark:   bool                  // Whether the title has a status glyph.
             leadingControl: *Wnd?                   // Quiet control holding the bottom-left slot of the actions.
         }
     }
@@ -50,19 +52,24 @@ impl IWnd for Dialog
         let colors  = .themeColors()
         let pad     = metrics.dialog_Padding
 
-        // The title is the first line of the body. A failure leads it with the critical dot, set
-        // on the capitals of the line rather than on the middle of its box.
+        // The title is the first line of the body. The status glyph's visible mark is centered
+        // in its icon cell, so placing that cell on the capitals' optical center levels the two.
         if not .title.raw.isEmpty()
         {
             let font    = .titleFont()
             let centerY = pad + Math.ceil(font.height) * 0.5
             var x       = pad
-            if .failure
+            if .hasTitleMark
             {
-                let size = metrics.dialog_MarkSize
-                painter.setParams(.Antialiased)
-                painter.fillCircle(x + size * 0.5, centerY, size * 0.5, colors.critical)
-                x += size + metrics.dialog_BtnPadding
+                var icon = .theme().icon(.titleMark, metrics.dialog_MarkSize)
+                switch .titleMark
+                {
+                case .Critical: icon.color = colors.critical
+                case .Warning:  icon.color = colors.caution
+                default:        icon.color = colors.arc
+                }
+                icon.paint(painter, x, centerY - icon.sizeY * 0.5)
+                x += icon.sizeX + metrics.dialog_BtnPadding
             }
 
             // Cut with an ellipsis rather than run past the inset: a translated title is longer.
@@ -185,15 +192,26 @@ impl Dialog
     // Names the box: `title` is set as the first line of its body and on its surface.
     //
     // A title that reports a situation is a sentence; one that names the command the box carries
-    // out repeats that command's label. `failure` leads the title with the critical dot, which is
-    // the whole severity vocabulary of a box. `<p1>...</p>` gives a referenced name the theme's
+    // out repeats that command's label. `failure` leads the title with a critical glyph.
+    // `<p1>...</p>` gives a referenced name the theme's
     // soft text ink; formatting is omitted from the native window title.
     mtd setTitle(title: string, failure = false)
     {
         .title.set(title)
         .failure = failure
+        .hasTitleMark = false
+        if failure do
+            .setTitleMark(.Critical)
         .surface?.setTitle(RichString.plainText(title))
         .updateInset()
+        .invalidate()
+    }
+
+    // Leads the title with a status glyph tinted by its semantic theme color.
+    mtd setTitleMark(icon: ThemeIcons)
+    {
+        .titleMark    = icon
+        .hasTitleMark = true
         .invalidate()
     }
 

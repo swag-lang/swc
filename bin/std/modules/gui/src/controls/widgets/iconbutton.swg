@@ -179,8 +179,7 @@ impl IWnd for IconButton
             height += arrowSize + arrowMargin + metrics.btnIcon_SpacingArrowV
         }
 
-        let padding = 2 * metrics.btnIcon_Padding
-        return Math.Point{width + padding, height + padding}
+        return Math.Point{width + .padding.x + .padding.z, height + .padding.y + .padding.w}
     }
 
     mtd impl onHookEvent(evt: IEvent)
@@ -265,8 +264,7 @@ impl IWnd for IconButton
         // hovered state leaves under it, so a corner the two do not share is a corner where the
         // mark cuts across its own button: a square tool marked with a rounded hairline reads as
         // two controls stacked rather than as one that is picked.
-        let framedRadius = Math.max(subRectBk!.radius - 0.5, 0)
-        .focusRingRadius = subRectBk.radius
+        .focusRingRadius = subRectBk!.radius
 
         var paintFlags: PaintItemFlags = .None
         switch
@@ -347,9 +345,10 @@ impl IWnd for IconButton
                      .checkIndicator != .Ink
         if marked and .checkIndicator == .Frame
         {
-            var frame = clientRect
-            frame.inflate(-0.5)
-            bc.painter.drawRoundRect(frame, framedRadius, framedRadius, colorChecked, 1)
+            if .form == .RoundedRectangle do
+                theme.drawSubRect(bc.painter, clientRect, &rects.btnIcon_CheckedRing, colorChecked)
+            else do
+                bc.painter.drawRoundRect(clientRect, subRectBk.radius, subRectBk.radius, colorChecked, 1)
         }
         elif marked
         {

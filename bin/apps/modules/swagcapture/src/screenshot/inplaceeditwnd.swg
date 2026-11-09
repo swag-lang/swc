@@ -47,7 +47,7 @@ const RecordDotSize = 8.0
 // The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
 //
 // The desktop stays dimmed and the zone stands in full light, its edges still movable. One bar
-// hangs under the zone, and starts with what the zone becomes: a picture or an animation. For a
+// hangs under the zone, and starts with a menu naming what the zone becomes. For a
 // picture, the tools as glyphs, the colour, then where the capture goes — pinned on the screen,
 // to the editor, to a file — and Copy, the primary action. For an animation, the options of the
 // recording, the sound out of reach, and Record. The keys are at the foot.
@@ -63,6 +63,7 @@ struct InPlaceEditWnd
     }
 
     capture:          *Capture?
+    kindButton:       *IconButton?
     late source:      *MainWnd     // The application window the capture was started from.
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
@@ -170,15 +171,24 @@ impl InPlaceEditWnd
         let size    = metrics.menuPopup_IconSize
         .bar.clear()
 
-        with let kinds = KindSegments.create(.bar, g_CaptureMedia)
+        with let kinds = IconButton.createQuiet(.bar, menu: true)
         {
-            .sigChosen += func|editor = me|(seg) { editor.setMedia(seg.chosen) }
+            .resize(.position.width, metrics.miniBar_ButtonSize)
+            var width = 0.0
+            for media in KindMedia
+            {
+                .setQuietText(kindName(media))
+                width = Math.max(width, .position.width)
+            }
+            .setQuietText(kindName(g_CaptureMedia))
+            .resize(width, metrics.miniBar_ButtonSize)
+            .sigPressed += func|editor = me|(btn) { editor.showKindMenu(assume cast(*IconButton, btn)) }
         }
-
+        .kindButton = kinds
         .bar.addItem(kinds)
         .bar.addSeparator()
 
-        if g_CaptureMedia == .Animation
+        if g_CaptureMedia != .Picture
         {
             .fillRecordingBar()
             return
@@ -244,6 +254,23 @@ impl InPlaceEditWnd
         .updateEditMode()
     }
 
+    // Opens the kind list from the one fixed-width control at the start of the bar.
+    mtd showKindMenu(button: *IconButton)
+    {
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            for media in KindMedia do
+                .addItem(kindName(media), kindMenuId(media), checked: media == g_CaptureMedia)
+        }
+
+        let chosen = menu.doModal(button, autoDestroy: true)
+        for media in KindMedia where chosen == kindMenuId(media)
+        {
+            .setMedia(media)
+            return
+        }
+    }
+
     // The bar of a zone waiting to be recorded: the cursor and the countdown, the sound out of
     // reach and why, Record, and the cross.
     mtd fillRecordingBar()
@@ -272,21 +299,54 @@ impl InPlaceEditWnd
 
         .bar.addItem(countdown)
 
-        with let rate = OptionChip.create(.bar, .theme().icon(.PlaybackSpeed),
-                                          Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), true)
+        if g_CaptureMedia == .Animation
         {
-            .toolTip = texts.tip_AimRate
-            .sigPressed += func|editor = me|(chip)
+            with let rate = OptionChip.create(.bar, .theme().icon(.PlaybackSpeed),
+                                              Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), true)
             {
-                let next = editor.source.captureOptions.recordRate.next()
-                editor.source.captureOptions.recordRate = next
-                chip.label = Format.toString(appStrings().ui_AimRate, next.framesPerSecond())
-                chip.invalidate()
+                .toolTip = texts.tip_AimRate
+                .sigPressed += func|editor = me|(chip)
+                {
+                    let next = editor.source.captureOptions.recordRate.next()
+                    editor.source.captureOptions.recordRate = next
+                    chip.label = Format.toString(appStrings().ui_AimRate, next.framesPerSecond())
+                    chip.invalidate()
+                }
             }
+            .bar.addItem(rate)
         }
-        .bar.addItem(rate)
         .bar.addSeparator()
-        .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, inert: true))
+        if g_CaptureMedia == .Animation do
+            .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, inert: true))
+        else
+        {
+            #static if #os == Swag.TargetOs.Windows
+            {
+                with let microphone = OptionChip.create(.bar, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
+                {
+                    .sigPressed += func|editor = me|(chip)
+                    {
+                        editor.source.captureOptions.recordMicrophone = not editor.source.captureOptions.recordMicrophone
+                        chip.on = editor.source.captureOptions.recordMicrophone
+                        chip.invalidate()
+                    }
+                }
+                .bar.addItem(microphone)
+
+                with let system = OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
+                {
+                    .sigPressed += func|editor = me|(chip)
+                    {
+                        editor.source.captureOptions.recordSystemSound = not editor.source.captureOptions.recordSystemSound
+                        chip.on = editor.source.captureOptions.recordSystemSound
+                        chip.invalidate()
+                    }
+                }
+                .bar.addItem(system)
+            }
+            else do
+                .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, inert: true))
+        }
 
         let font        = .theme().createDefaultFont(metrics.defaultFontSize)
         let width       = Math.ceil(Painter.measureString(texts.ui_AimRecord, font).width + 2 * metrics.btnPush_TextMargin + RecordDotSize + OptionChipGap)
@@ -308,10 +368,12 @@ impl InPlaceEditWnd
     {
         if media == g_CaptureMedia do
             return
+        let previous = g_CaptureMedia
         g_CaptureMedia = media
-        if media == .Animation
+        if media != .Picture
         {
-            .pictureMode = .editMode
+            if previous == .Picture do
+                .pictureMode = .editMode
             .editMode = .Select
         }
         else do
@@ -348,7 +410,7 @@ impl InPlaceEditWnd
         let texts = appStrings()
         with .hintLine = HintLine.create(.editWnd.editView)
         {
-            if g_CaptureMedia == .Animation
+            if g_CaptureMedia != .Picture
             {
                 .addHint(strings().key_Enter, texts.hint_Record)
             }
@@ -358,7 +420,7 @@ impl InPlaceEditWnd
                 .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
             }
 
-            .addHint(strings().key_Tab, kindName(g_CaptureMedia == .Animation ? .Picture : .Animation))
+            .addHint(strings().key_Tab, kindName(nextCaptureMedia(g_CaptureMedia)))
             .addHint(strings().key_Escape, texts.hint_Cancel)
         }
     }
@@ -553,14 +615,14 @@ impl IWnd for InPlaceEditWnd
         if evt.kind != .Pressed do
             return
 
-        let recording = g_CaptureMedia == .Animation
+        let recording = g_CaptureMedia != .Picture
         switch
         {
         case evt.key == .Escape: exitWithResult(false)
         case evt.key == .Return and evt.modifiers == .None and recording:   .record()
         case evt.key == .Return and evt.modifiers == .None:                 .copy()
         case evt.key == .S and evt.modifiers == .Control and not recording: .save()
-        case evt.key == .Tab and evt.modifiers == .None:                    .setMedia(recording ? .Picture : .Animation)
+        case evt.key == .Tab and evt.modifiers == .None:                    .setMedia(nextCaptureMedia(g_CaptureMedia))
         default: return
         }
 

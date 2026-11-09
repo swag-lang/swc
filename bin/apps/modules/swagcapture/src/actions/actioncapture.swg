@@ -10,6 +10,7 @@ impl ActionCapture
     newCmdId("Repeat")
     newCmdId("Area")
     newCmdId("Record")
+    newCmdId("RecordVideo")
     newCmdId("CancelRecording")
     newCmdId("LastArea")
     newCmdId("FullScreen")
@@ -99,6 +100,11 @@ impl IActionUI for ActionCapture
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordAnimation
             evt.icon = main.theme().icon(g_Recorder ? .Stop : .Play)
 
+        case .RecordVideo:
+            evt.updatedFields |= .Name | .Icon
+            evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordVideo
+            evt.icon = main.theme().icon(g_Recorder ? .Stop : .Play)
+
         case .CancelRecording:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = appStrings().act_CancelRecording
@@ -178,7 +184,7 @@ impl IActionUI for ActionCapture
             main.sendCommandEvent(main.lastCaptureCommand())
             return true
 
-        case .Area, .Record, .LastArea, .FullScreen, .ActiveWnd:
+        case .Area, .Record, .RecordVideo, .LastArea, .FullScreen, .ActiveWnd:
             if not g_Recorder do
                 main.lastCapture = cxt.id
         }
@@ -193,6 +199,9 @@ impl IActionUI for ActionCapture
 
         case .Record:
             main.recordScreen()
+
+        case .RecordVideo:
+            main.recordVideoScreen()
 
         case .CancelRecording:
             if g_Recorder do
@@ -295,7 +304,7 @@ impl MainWnd
         if monitor != Swag.U64.Max do
             return ActionCapture.screenId(monitor)
 
-        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
+        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
             return id
         return ActionCapture.Area
     }
@@ -318,6 +327,19 @@ impl MainWnd
         }
 
         g_CaptureMedia = .Animation
+        catch screenShot(me, .Area) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
+    }
+
+    // Starts a screen recording with the selected video sound tracks.
+    mtd recordVideoScreen()
+    {
+        if g_Recorder
+        {
+            g_Recorder!.stop()
+            return
+        }
+
+        g_CaptureMedia = .Video
         catch screenShot(me, .Area) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
     }
 }

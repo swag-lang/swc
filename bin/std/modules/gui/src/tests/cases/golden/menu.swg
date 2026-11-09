@@ -56,6 +56,62 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
+// The same checked frame remains quiet around a rating choice in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(430, 150)
+    host.theme.setDark()
+    host.notify(.ThemeChanged)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Edit tags", Menu_Open, icon: host.theme.icon(.Edit, 16))
+    popup.addSeparator()
+
+    let metrics = host.root.themeMetrics()
+    with let choices = StackLayoutCtrl.create(popup, .Left)
+    {
+        .backgroundStyle = .Transparent
+        .spacing         = metrics.menuPopup_SpaceLines
+        .fitToContent    = true
+    }
+
+    for rating in 0 until 6
+    {
+        with let button = IconButton.create(choices,
+                                            host.theme.icon(.Star, metrics.menuPopup_IconSize),
+                                            {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
+                                            flags: .Radio)
+        {
+            .preferredSize.x = 0
+            .padding         = metrics.btnIcon_Padding * 0.5
+            .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+            .setText(Format.toString("%", rating))
+            .setTextPosition(.Right)
+            .setForm(.RoundedRectangle)
+            .setCheckIndicator(.Frame)
+            .setChecked(rating == 4)
+        }
+    }
+    popup.addWidget(choices)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.widget-choice.encre")
+        captured[] = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    discard popup.doModal({24, 20}, .TopLeft, autoDestroy: true)
+    Swag.require(captured)
+    host.pump()
+}
+
 // Menu marker color and submenu restraint are explicit visual contracts in the dark palette.
 #[Swag.TestTag("golden")]
 #test
@@ -68,6 +124,62 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 #test
 {
     assertMenuMarkerGolden(.Light, "menu.popup.markers.light")
+}
+
+// A compact widget choice keeps its Arc outline concentric with its selection ground.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 150)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("Capture Full Screen", Menu_Open, icon: host.theme.icon(.FullScreen, 16))
+    popup.addSeparator()
+
+    let metrics = host.root.themeMetrics()
+    with let choices = StackLayoutCtrl.create(popup, .Left)
+    {
+        .backgroundStyle = .Transparent
+        .spacing         = metrics.menuPopup_SpaceLines
+        .fitToContent    = true
+    }
+
+    for seconds in [0, 3, 5, 10]
+    {
+        with let button = IconButton.create(choices,
+                                            host.theme.icon(.HourGlass, metrics.menuPopup_IconSize),
+                                            {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
+                                            flags: .Radio)
+        {
+            .preferredSize.x = 0
+            .padding         = metrics.btnIcon_Padding * 0.5
+            .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+            .setText(Format.toString("% s", seconds))
+            .setTextPosition(.Right)
+            .setForm(.RoundedRectangle)
+            .setCheckIndicator(.Frame)
+            .setChecked(seconds == 3)
+        }
+    }
+    popup.addWidget(choices)
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        var image = host.render()
+        Pixel.Testing.assertImageGolden(&image, "menu.popup.widget-choice.paper")
+        captured[] = true
+        Swag.require(host.dismissPopupMenu())
+    }
+
+    discard popup.doModal({24, 20}, .TopLeft, autoDestroy: true)
+    Swag.require(captured)
+    host.pump()
 }
 
 // A section label lines up with row glyphs, at the leftmost aligned column of the popup.

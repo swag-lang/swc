@@ -234,9 +234,11 @@ whole recording loaded at once.
   same dynamic X11 4K60 scene, quantized QP 28 with four slices, motion residuals and
   P-slice Intra16x16 coding of flat regions took 2.40–2.93 seconds across earlier runs.
   A later portable flat-block row comparison reduced a paired run from 2.514 to 2.340
-  seconds for capture, conversion, video encoding and MP4 with a byte-identical 4.16 MB
-  recording (final-frame luma PSNR
-  48.41 dB). This P-intra candidate is currently limited to QP 28. QP 36 takes 3.55–3.73
+  seconds. Direct flat luma DC quantization moved one run to 2.289 seconds; a single-DC
+  CAVLC path then reduced a paired run with the same AAC from 2.301 to 2.229 seconds,
+  with a byte-identical MP4. The file is 4.159 MB after separate AAC section savings,
+  at 48.41 dB final-frame luma PSNR. This P-intra candidate is currently limited to
+  QP 28. QP 36 takes 3.55–3.73
   seconds and produces 10.06 MB (38.10 dB), following the previous path. Exact QP 0
   with four slices and one matching diagonal motion vector takes
   1.37–1.51 seconds and produces 7.78 MB. These modes remain slower than the one-second
@@ -252,9 +254,10 @@ whole recording loaded at once.
   fixture before decoding did not resolve it (5 of 24 timeouts). A temporary small-image
   reconstruction threshold did not resolve it (3 of 24 timeouts), but source inspection
   showed that this one-slice IDR already uses inline reconstruction, so that threshold
-  did not test the parallel band pipeline. A separate run stopped before the test body.
-  All diagnostic edits were removed. The intermittent test-runner or decode stall still
-  needs isolation. Swag Capture has no video-recording
+  did not test the parallel band pipeline. Limiting the tiny stream to one H.264 frame
+  lane also left 3 timeouts in 48 direct runs at two workers. A separate run stopped
+  before the test body. All diagnostic edits were removed. The intermittent test-runner
+  or decode stall still needs isolation. Swag Capture has no video-recording
   UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.

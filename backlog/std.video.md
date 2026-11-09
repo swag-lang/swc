@@ -264,7 +264,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   slices took 2.40–2.93 seconds across earlier measured runs for capture, conversion, H.264 and MP4.
   A portable row-comparison shortcut for complete flat macroblocks then reduced a paired
   run from 2.514 to 2.340 seconds with a byte-identical MP4; the Video suite passed
-  310/310 tests and FFmpeg decoded 60/60 pictures. The resulting file is 4.16 MB
+  310/310 tests and FFmpeg decoded 60/60 pictures. Direct quantization of the one
+  nonzero Intra16 luma DC coefficient then cut its flat-block microbenchmark by 35%
+  at QP 28 and 36 and moved one app run from 2.340 to 2.289 seconds with the same
+  size and PSNR. A single-DC CAVLC path for proved flat P Intra blocks then moved
+  a paired run from 2.301 to 2.229 seconds with the same AAC version and a
+  byte-identical MP4. The final file is 4.159 MB after separate AAC section savings
   and reaches 48.41 dB final-frame luma PSNR.
   The largest previous P packet falls from 1.73 MB to 81 KB. QP 36 follows the prior path
   unchanged and still takes 3.55–3.73 seconds, 10.06 MB and 38.10 dB on this scene. The P-intra

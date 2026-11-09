@@ -93,3 +93,92 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
                    openedAt - started, encodedAt - openedAt, readAt - encodedAt,
                    Time.monotonicMicroseconds() - readAt)
 }
+
+// The app session repeats missed slots and recovers from a failed screen read with AAC sound.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-video-session",
+                                          title: "Video session fixture",
+                                          width: 64, height: 48,
+                                          stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintVideoWindow(&window, 0xFF0000)
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("swag-capture-session-%.mp4", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    let configs: [1] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice}]
+    var session = expect VideoCaptureSession.create(
+        path, {10, 20, 64, 48}, expect FrameRate.create(60, 1), false,
+        Swag.makeSlice(&configs[0], configs.count))
+    Swag.require(not session.hasCaptureOrigin() and session.frameCount() == 0)
+    Swag.require(expect session.captureAt(1_000_000))
+    Swag.require(session.hasCaptureOrigin() and session.captureOriginTick() == 1_000_000)
+    Swag.require(not (expect session.captureAt(1_005_000)))
+    paintVideoWindow(&window, 0x0000FF)
+    Swag.require(expect session.captureAt(1_050_000))
+    Swag.require(session.frameCount() == 4 and session.repeatedFrameCount() == 2)
+    session.source.x = -1
+    Swag.require(not (expect session.captureAt(1_066_667)))
+    Swag.require(session.frameCount() == 5 and session.repeatedFrameCount() == 3)
+    Swag.require(session.sourceFailureCount() == 1)
+    session.source.x = 10
+    Swag.require(expect session.captureAt(1_083_334))
+    var signal: [1_024] s16
+    for frame in signal.count do
+        signal[frame] = cast(s16, Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                                 700.0 * frame / 48_000.0)))
+    expect session.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
+    expect session.end()
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 6 and reader.audioTrackCount() == 1)
+    Swag.require((unwrap reader.audioTrack(0)).sampleFrameCount() == signal.count)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    let red = decoded.luma[0]
+    expect reader.decodeFramePlanesInto(&decoded, 3)
+    let blue = decoded.luma[0]
+    Swag.require(red != blue)
+    for frame in 1'u64 until 3
+    {
+        expect reader.decodeFramePlanesInto(&decoded, frame)
+        Swag.require(decoded.luma[0] == red)
+    }
+    for frame in 4'u64 until 6
+    {
+        expect reader.decodeFramePlanesInto(&decoded, frame)
+        Swag.require(decoded.luma[0] == blue)
+    }
+}
+
+// A lost source before the first picture establishes a black frame and can still recover.
+#[Swag.TestTag("integration.capture.x11")]
+#test
+{
+    var window = expect Env.createWindow({identifier: "capture-video-first-loss",
+                                          title: "First frame loss fixture",
+                                          width: 64, height: 48,
+                                          stopLoopOnClose: false})
+    expect window.setPosition(10, 20)
+    expect window.show()
+    paintVideoWindow(&window, 0xFF0000)
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("swag-capture-first-loss-%.mp4", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    var session = expect VideoCaptureSession.create(
+        path, {10, 20, 64, 48}, expect FrameRate.create(60, 1), false)
+    session.source.x = -1
+    Swag.require(not (expect session.captureAt(100_000)))
+    Swag.require(session.frameCount() == 1 and session.sourceFailureCount() == 1)
+    session.source.x = 10
+    Swag.require(expect session.captureAt(116_667))
+    expect session.end()
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 2 and reader.audioTrackCount() == 0)
+    var decoded: PlanarFrame
+    expect reader.decodeFramePlanesInto(&decoded, 0)
+    let black = decoded.luma[0]
+    expect reader.decodeFramePlanesInto(&decoded, 1)
+    Swag.require(decoded.luma[0] != black)
+}

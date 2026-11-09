@@ -262,8 +262,15 @@ whole recording loaded at once.
   Synthetic static and scrolling 1080p60 sequences encode faster than real time in Release.
   A headless X11 integration test now grabs actual changing window pixels through
   `ScreenFrameSource`, encodes three frames (including a repeated one) with synthetic PCM16 into
-  MP4, and reopens the H.264 pictures and AAC sound through `Video.Reader`. Swag Capture has no
-  video-recording session or UI,
+  MP4, and reopens the H.264 pictures and AAC sound through `Video.Reader`.
+  `VideoCaptureSession` now keeps a screen source, exact frame pacer and MP4 writer alive; X11
+  tests cover sound input, repeated missed slots, source failure and recovery, and a black first
+  frame before a source returns. An opt-in 4K60 test on a static Xorg dummy screen measured
+  1.033–1.048 seconds for 60 screen grabs and encoded frames, with a 40,846-byte MP4;
+  adding 48 stereo AAC packets took 1.282 seconds total. `Video.Reader` reopened the file in
+  3.6 ms and decoded the last frame in 298 ms. This is a synthetic static scene just beyond
+  real time, and the output-sound test has no actual audio device. Swag Capture has no
+  video-recording UI,
   and `BitBlt` acquisition cannot sustain large areas at 60 frames per second.
 - Next: once app.capture.012 has proven the session, timeline and document, add video as a
   medium using `Video.Mp4.SoftwareRecording`: Desktop Duplication acquisition

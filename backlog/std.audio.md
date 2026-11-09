@@ -181,8 +181,9 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   exactly the 1,024-frame priming delay, with at most one PCM LSB of difference.
   Pre-attack energy over 512 frames is 32.99 dB below post-attack energy for an isolated
   impulse, but only 12.10 dB below for music plus impulse after subtracting the
-  music-only decode. Pre-attack energy extends at least 1,536 frames before the peak.
-  Subtraction also reflects context-dependent quantization.
+  music-only decode. The extra pre-attack RMS is 24.75 dB below the music alone;
+  pre-attack energy extends at least 1,536 frames before the peak. Subtraction also
+  reflects context-dependent quantization.
   The encoder currently uses only long AAC windows; transient pre-echo needs short-window
   coding and an A/B quality test before a regression bound is chosen.
   Tests cover irregular input chunks and packet boundaries. The decoded AAC stream has 1024

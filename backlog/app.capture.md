@@ -256,7 +256,11 @@ whole recording loaded at once.
   showed that this one-slice IDR already uses inline reconstruction, so that threshold
   did not test the parallel band pipeline. Limiting the tiny stream to one H.264 frame
   lane also left 3 timeouts in 48 direct runs at two workers. A separate run stopped
-  before the test body. All diagnostic edits were removed. The intermittent test-runner
+  before the test body. Deeper temporary markers gave 7 timeouts in 24 runs before
+  `prepareAccessUnit` finished; a second 24-run pass gave 3 timeouts, one inside
+  `handleNal` for the first IDR and two after frame submission while a decode worker
+  was active. The point moves with instrumentation, so no H.264 or runtime root
+  cause is proven. All diagnostic edits were removed. The intermittent test-runner
   or decode stall still needs isolation. Swag Capture has no video-recording
   UI. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
   large-area cadence has not been measured on Windows hardware. The GIF recorder's

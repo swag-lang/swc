@@ -60,11 +60,54 @@ func checkSoftwareAacTail(rate: u32, channels: u16) fail
     Swag.require(editCount == 2)
 }
 
+func checkSoftwareAacBoundary(rate: u32, frames: u64) fail
+{
+    let path = videoTempPath("mp4-software-aac-boundary", "mp4")
+    defer discard catch File.delete(path)
+    let image = videoGrayImage(16, 16, 96)
+    var recorder = try Mp4.SoftwareRecording.create(path, 16, 16, 90_000, rate, 1)
+    let pacer = try FramePacer.create(try FrameRate.create(30, 1), rate, 90_000)
+    try recorder.addFrame(&image, try pacer.slotAt(0))
+    var samples: Array's16
+    samples.resize(frames)
+    try recorder.addAudioFrames(samples.toSlice())
+    try recorder.flush()
+    scope
+    {
+        var prefix = try Reader.open(path)
+        Swag.require(prefix.frameCount() == 1)
+        var picture: PlanarFrame
+        try prefix.decodeFramePlanesInto(&picture, 0)
+        Swag.require(picture.width == 16 and picture.height == 16)
+    }
+    try recorder.end()
+    var reader = try Reader.open(path)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleFrameCount() == frames)
+    var decoded: Array's16
+    try sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(decoded.count == frames)
+}
+
 // Final AAC padding is omitted at 48 kHz and at the non-integral 44.1 kHz movie ratio.
 #test
 {
     expect checkSoftwareAacTail(48_000, 1)
     expect checkSoftwareAacTail(44_100, 2)
+}
+
+// One sample and the packet boundary stay exact on both supported capture clocks.
+#test
+{
+    const Rates: [2] u32 = [44_100, 48_000]
+    const Lengths: [3] u64 = [1, 1_024, 1_025]
+    for rate in Rates do
+        for frames in Lengths do
+            expect checkSoftwareAacBoundary(rate, frames)
 }
 
 // Independently drained microphone and system tracks keep their own final lengths.

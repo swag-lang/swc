@@ -32,6 +32,8 @@ private struct SoftwareAudioTrack
 // picture, PCM and packet storage stays bounded as the recording grows. Up to four independent
 // sound tracks share one sample rate; a capture source can be kept on each track for later mixing.
 // A video-only recording starts at video time zero and needs no audio device.
+// Video quantization parameter 0 preserves exact samples. Values 1 through 51 quantize P
+// pictures while IDR pictures remain exact; this fixed setting does not target a bitrate.
 #[Swag.NoCopy]
 #[Swag.Opaque]
 struct SoftwareRecording
@@ -56,10 +58,13 @@ impl SoftwareRecording
     //
     // Video dimensions must be positive and even, and the timescale must express each frame
     // duration. The resulting MP4 has one video track and no empty sound track.
+    // `quantizationQp` is 0 by default and accepts values through 51.
     func createVideoOnly(path: string, width, height: s32, videoTimescale: u32,
                          keyInterval: u32 = 60,
-                         options: FragmentedOptions = {})->SoftwareRecording fail
-        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval, options)
+                         options: FragmentedOptions = {},
+                         quantizationQp: u32 = 0)->SoftwareRecording fail
+        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval,
+                                     options, quantizationQp)
 
     // Creates a software audiovisual recorder and writes the MP4 initialization movie.
     //
@@ -67,15 +72,17 @@ impl SoftwareRecording
     // intended frame duration and distinguish AAC's 1024-frame priming boundary. AAC accepts
     // mono/stereo 44.1 or 48 kHz PCM16. The writer owns
     // the output path; completed fragments stay playable after an interrupted process.
+    // `quantizationQp` is 0 by default and accepts values through 51.
     func create(path: string, width, height: s32, videoTimescale: u32,
                 audioRate: u32, audioChannels: u16, keyInterval: u32 = 60,
                 bandwidth: Aac.Bandwidth = .Full,
-                options: FragmentedOptions = {})->SoftwareRecording fail
+                options: FragmentedOptions = {},
+                quantizationQp: u32 = 0)->SoftwareRecording fail
     {
         let configs: [1] SoftwareAudioConfig = [{audioRate, audioChannels, bandwidth}]
         return try createWithAudioTracks(path, width, height, videoTimescale,
                                          Swag.makeSlice(&configs[0], configs.count),
-                                         keyInterval, options)
+                                         keyInterval, options, quantizationQp)
     }
 
     // Creates a recorder with zero through four separately encoded AAC-LC sound tracks.
@@ -83,15 +90,17 @@ impl SoftwareRecording
     // Every track must have the same 44.1 or 48 kHz sample rate so one video preroll aligns
     // their AAC priming. Their channel counts and bandwidth profiles may differ. The writer
     // copies decoder configurations and owns the output path.
+    // `quantizationQp` is 0 by default and accepts values through 51.
     func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32,
                                audioConfigs: const [..] SoftwareAudioConfig,
                                keyInterval: u32 = 60,
-                               options: FragmentedOptions = {})->SoftwareRecording fail
+                               options: FragmentedOptions = {},
+                               quantizationQp: u32 = 0)->SoftwareRecording fail
     {
         if audioConfigs.count > 4 do
             fail BadParameterError{"software recording supports at most four audio tracks"}
         var result: #returntype
-        result.video = try H264.Encoder.create(width, height, keyInterval)
+        result.video = try H264.Encoder.create(width, height, keyInterval, quantizationQp)
         if not audioConfigs.count
         {
             result.writer = try FragmentedWriter.create(path, width, height, videoTimescale,

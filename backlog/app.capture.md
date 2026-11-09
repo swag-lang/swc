@@ -232,9 +232,9 @@ whole recording loaded at once.
   test has no actual audio device. `VideoCaptureSession` accepts optional H.264 QP 0–51 and
   one through eight row-band slices, preserving exact QP 0 and one slice by default. On the
   same dynamic X11 4K60 scene, quantized QP 28 with four slices, motion residuals and
-  P-slice Intra16x16 coding of flat regions takes 2.63–2.79 seconds for capture,
+  P-slice Intra16x16 coding of flat regions takes about 2.40 seconds for capture,
   conversion, video encoding and MP4 and produces 4.16 MB (final-frame luma PSNR
-  48.41 dB). This P-intra candidate is currently limited to QP 28. QP 36 takes 3.73
+  48.41 dB). This P-intra candidate is currently limited to QP 28. QP 36 takes 3.55–3.73
   seconds and produces 10.06 MB (38.10 dB), following the previous path. Exact QP 0
   with four slices and one matching diagonal motion vector takes
   1.37–1.51 seconds and produces 7.78 MB. These modes remain slower than the one-second

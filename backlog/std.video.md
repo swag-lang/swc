@@ -222,12 +222,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   2.47 seconds for capture, conversion, exact H.264 and MP4, producing a 99.17 MB file;
   the earlier measurements of this scene were 2.23–2.75 seconds, so this optimization
   does not establish a whole-pipeline gain for that scene. The live encoder now accepts
-  fixed QP 0–51: QP 0 preserves the exact path, while P pictures at positive QP use
-  quantized luma/chroma residuals and a reconstructed reference. IDR pictures remain exact.
-  `Mp4.SoftwareRecording` forwards the optional QP through all three constructors, defaulting
-  to 0. A six-picture QP 28 recording reopens through `Video.Reader` and FFmpeg: IDR pictures
-  match QP 0, quantized P pictures differ, and a repeated picture decodes identically to its
-  predecessor. This 64×64 fixture shrank from 32,121 to 18,939 bytes.
+  fixed QP 0–51: QP 0 preserves the exact path, while positive QP uses quantized luma/chroma
+  intra and inter residuals with reconstructed references. A candidate larger than PCM still
+  uses exact PCM. `Mp4.SoftwareRecording` forwards the optional QP and 1–8 parallel row-band
+  slices through all three constructors, defaulting to QP 0 and one slice. Six-picture
+  QP 0/28/36 recordings reopen through `Video.Reader` and FFmpeg; repeated pictures decode
+  identically to their predecessors. The 64×64 MP4 probe measured 32,121 / 10,391 / 7,552
+  bytes respectively.
   On the Linux test machine, a textured 1080p P picture at QP 28 has a 522,924-byte median
   packet and takes 50–63 ms; at QP 36 it has a 135,445-byte median packet and takes 39–48 ms.
   The corresponding 4K P pictures take 200–229 ms at 1,920,587 bytes (QP 28), and
@@ -237,22 +238,31 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   the reconstructed reference; the input cache now emits 11-byte P-skip packets for P2–P4,
   lowering the 4K QP 28 median from 635,442 bytes/166.3 ms to 11 bytes/12.94 ms without
   changing Reader output. FFmpeg also decodes the quantized four-picture H.264 probe.
-  On the same X11 4K60 dynamic scene with stereo AAC, fixed QP 28 took 10.274 seconds for
-  capture, conversion, H.264 and MP4 and produced 53.60 MB, versus the exact QP 0 baseline
-  of 2.47 seconds and 99.17 MB before the subsequent encoder optimizations. This profile
-  remains far above the 16.7 ms frame budget. One exact 4K IDR can still occupy about
-  12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
+  On the X11 4K60 dynamic scene with stereo AAC, fixed QP 28 initially took 10.27–11.05
+  seconds for capture, conversion, H.264 and MP4 and produced 53.60 MB. Uniform-DC and
+  CAVLC shortcuts plus four parallel slices bring this to about 4.17 seconds and 51.35 MB,
+  with 44.64 dB luma PSNR on the final picture. The same four-slice scene at exact QP 0
+  takes 1.69 seconds and 99.19 MB without diagonal motion copy, or 1.51 seconds and 7.78 MB
+  with the one matching (−16,−8) vector. That exact copy does not help QP 28 because its
+  reconstructed reference differs from the source; quantized motion residuals remain needed.
+  These profiles remain above the 16.7 ms per-picture budget. One exact 4K IDR can still
+  occupy about 12.5 MB; at 60-frame GOP spacing this alone implies roughly 100 Mb/s at 4K60.
+  Quantized intra reduces a 4K textured IDR to 336 KB at QP 36 in one fixture (39.44 dB
+  luma PSNR), but another fixture yields 2.21 MB (30.58 dB); both decode in FFmpeg. The
+  IDR also takes longer to encode than its PCM counterpart on both fixtures.
+  `H264.RateControl` now computes a fractional picture budget and bounded QP steps from
+  observed packet sizes, but it is internal and not connected to the recorder.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
-- Next: measure the complete software capture and encoder path at 1080p60 and 4K60 after the
-  pending encoder optimizations. A pure-Swag rate controller could accept a target bitrate,
-  virtual buffer size and QP bounds, choose a QP per P picture, then use each packet's actual
-  bytes and encode duration to update buffer fullness and the next picture's QP. Expose those
-  per-frame measurements to the recorder so quality, latency and dropped frames can be reported
-  against the chosen target. Quantize intra/IDR pictures before promising a peak bitrate or
-  bounded buffer: their exact multi-megabyte packets dominate the current GOP floor. Improve
-  motion search and throughput, and verify changing screens and scene cuts through Reader and
-  FFmpeg. Use a platform encoder only if the software path
+- Next: code motion residuals against a selected reconstructed reference area so quantized P
+  pictures can follow moving textures, then remeasure the complete 1080p60 and 4K60 paths.
+  Connect the pure-Swag rate controller only after the encoder can change QP per picture;
+  refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
+  or make packet submission transactional. Use each H.264 packet's bytes and duration for
+  feedback rather than `writtenByteCount`, which can lag unflushed fragments. Expose per-frame
+  bytes, QP, encode latency and dropped frames to the recorder. A virtual reservoir controls
+  an average, not a strict packet bound when even QP 51 falls back to PCM. Verify changing
+  screens and scene cuts through Reader and FFmpeg. Use a platform encoder only if the software path
   cannot meet the required capture profile; do not add an external codec library for a capability
   that can be implemented in Swag.
 - Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful

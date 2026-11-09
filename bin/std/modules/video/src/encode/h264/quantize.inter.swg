@@ -99,7 +99,8 @@ private func quantizeInterLuma4x4(source, prediction: const [*] u8,
             scaled[column * 4 + row] = dequantLevel(level, scale, 4)
         }
     }
-    addIdct4x4Scalar(result.reconstructed.buffer, 4, scaled.buffer)
+    if result.nonZero do
+        addIdct4x4Scalar(result.reconstructed.buffer, 4, scaled.buffer)
 }
 
 // One chroma plane of an inter 8x8 macroblock. AC levels are in the 4x4 zigzag order
@@ -223,6 +224,10 @@ private func quantizeInterChroma8x8(source, prediction: const [*] u8,
             result.cbp = 1
     }
 
+    // Every destination sample already contains its prediction. When all
+    // quantized coefficients vanish, the inverse transform adds only zeros.
+    if not result.cbp do
+        return
     var inverseDc = result.dc
     hadamard2x2(inverseDc.buffer)
     let dcScale = cast(s64, Dequant4Scale[qmod * 3]) * 16 << qdiv
@@ -230,6 +235,8 @@ private func quantizeInterChroma8x8(source, prediction: const [*] u8,
     {
         let dcValue = (cast(s64, inverseDc[block]) * dcScale) >> 5
         scaled[block * 16] = cast(s16, Math.clamp(dcValue, -32768, 32767))
+        if dcValue == 0 and not result.nonZeroAc[block] do
+            continue
         let bx = block & 1
         let by = block >> 1
         addIdct4x4Scalar(result.reconstructed.buffer + by * 4 * 8 + bx * 4,

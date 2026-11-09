@@ -697,3 +697,93 @@ func runQpRepeatedInput(width, height: s32) fail
 {
     expect runQpRepeatedInput(3840, 2160)
 }
+
+private impl Nv12Frame
+{
+    mtd qpStressUniformDelta()
+    {
+        let yCount = cast(u64, .width) * cast(u64, .height)
+        for index in yCount do
+            .bytes[index] += 5
+        for index in yCount / 4
+        {
+            .bytes[yCount + index * 2] += 3
+            .bytes[yCount + index * 2 + 1] -= 3
+        }
+    }
+}
+
+// Measures helper cost separately from motion search, CAVLC and reference copying.
+// The zero counts identify opportunities to skip inverse transforms safely.
+func qpStressHelperProfile(width, height: s32, qp: u32, uniform: bool) fail
+{
+    let reference = try encoderStressTiles(0, width, height)
+    var source = try encoderStressTiles(0, width, height)
+    if uniform do
+        source.qpStressUniformDelta()
+    else do
+        source.qpStressTexture()
+    let stride = cast(u64, width)
+    let sourceY = source.luma()
+    let referenceY = reference.luma()
+    let sourceUv = source.chroma()
+    let referenceUv = reference.chroma()
+    var watch: Time.Stopwatch
+    var zeroLuma = 0'u64
+    var zeroChroma = 0'u64
+    watch.start()
+    for mbY in cast(u64, height) / 16
+    {
+        for mbX in stride / 16
+        {
+            for by in 4'u64
+            {
+                for bx in 4'u64
+                {
+                    let offset = (mbY * 16 + by * 4) * stride + mbX * 16 + bx * 4
+                    var result: H264.InterLuma4x4Result
+                    H264.quantizeInterLuma4x4(sourceY.buffer + offset,
+                                              referenceY.buffer + offset,
+                                              stride, stride, qp, &result)
+                    if not result.nonZero do
+                        zeroLuma += 1
+                }
+            }
+        }
+    }
+    watch.stop()
+    let lumaMicros = watch.elapsedMicroseconds()
+    watch.restart()
+    for mbY in cast(u64, height) / 16
+    {
+        for mbX in stride / 16
+        {
+            let offset = mbY * 8 * stride + mbX * 16
+            for plane in 2'u64
+            {
+                var result: H264.InterChroma8x8Result
+                H264.quantizeInterChroma8x8(sourceUv.buffer + offset + plane,
+                                            referenceUv.buffer + offset + plane,
+                                            stride, stride, qp, 0, &result)
+                if not result.cbp do
+                    zeroChroma += 1
+            }
+        }
+    }
+    watch.stop()
+    let chromaMicros = watch.elapsedMicroseconds()
+    let mbCount = cast(u64, width) * cast(u64, height) / 256
+    Console.printf("H264 helper QP % % by % uniform %: luma % us, zero %/% blocks; chroma % us, zero %/% planes\n",
+                   qp, width, height, uniform, lumaMicros, zeroLuma, mbCount * 16,
+                   chromaMicros, zeroChroma, mbCount * 2)
+    Swag.require(zeroLuma <= mbCount * 16 and zeroChroma <= mbCount * 2)
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    expect qpStressHelperProfile(3840, 2160, 28, false)
+    expect qpStressHelperProfile(3840, 2160, 36, false)
+    expect qpStressHelperProfile(3840, 2160, 28, true)
+    expect qpStressHelperProfile(3840, 2160, 36, true)
+}

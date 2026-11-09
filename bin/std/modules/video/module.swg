@@ -80,8 +80,8 @@ Four codecs ship in the box:
   [[Video.H264.Encoder]] produces Constrained Baseline packets from those surfaces with flat
   intra blocks, exact inter copies for small screen movements, luma and chroma residuals,
   P-skip for unchanged blocks, and PCM fallback. QP zero retains exact output; an optional
-  positive QP quantizes P-picture residuals against a locally reconstructed reference.
-  Textured IDR pictures remain large because they use PCM, and fixed QP is not rate control.
+  positive QP quantizes both IDR and P-picture residuals against locally reconstructed
+  neighbours and references. The fixed QP is not rate control.
   [[Video.Mp4.SoftwareRecording]] joins RGB-to-NV12 conversion, software H.264 and AAC encoding,
   sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM
   chunks, AAC priming when audio is present, and fragmented MP4 finalization.

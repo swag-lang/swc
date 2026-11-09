@@ -154,7 +154,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
     }
 }
 
-// Quantized P slices reconstruct one reference and retain it across repeated raw input.
+// Quantized IDR and P slices reconstruct one reference and retain it across repeated raw input.
 #test
 {
     for count in [1'u32, 2, 4]
@@ -185,7 +185,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
         Swag.require(reader.frameCount() == 3)
         var decoded: PlanarFrame
         expect reader.decodeFramePlanesInto(&decoded, 0)
-        sliceTestExact(&first, &decoded)
+        Swag.require(decoded.width == first.width and decoded.height == first.height)
         expect reader.decodeFramePlanesInto(&decoded, 1)
         var reference: PlanarFrame = decoded
         expect reader.decodeFramePlanesInto(&decoded, 2)

@@ -1,6 +1,6 @@
 //! Format: H.264/AVC constrained-baseline encoder.
-//! Supported: Progressive NV12, flat intra blocks, exact quantized luma and chroma residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
-//! Not supported: Lossy residuals, rate control, B pictures, and real-time full-motion high-resolution capture.
+//! Supported: Progressive NV12, quantized intra and inter residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
+//! Not supported: Rate control, B pictures, and real-time full-motion high-resolution capture.
 //! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
@@ -29,6 +29,7 @@ private struct EncoderSlicePacket
 
 private struct EncoderQuantizedMb
 {
+    lumaDc:         [16] s16
     lumaLevels:     [256] s16
     chromaDc:       [8] s16
     chromaAc:       [128] s16
@@ -313,8 +314,8 @@ impl Encoder
     // The image may be cropped within its final macroblock. Dimensions are limited to
     // 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size.
     // The interval is 1 to 255 pictures. A new encoder starts with an IDR picture.
-    // `quantizationQp` is 0 for exact samples or 1 through 51 for quantized P residuals.
-    // IDR pictures remain exact; this fixed QP is not a target-bitrate controller.
+    // `quantizationQp` is 0 for exact samples or 1 through 51 for quantized intra and
+    // inter residuals. This fixed QP is not a target-bitrate controller.
     // `sliceCount` divides each picture into 1 to 8 complete macroblock-row bands.
     // The default single slice preserves the original bitstream.
     func create(width, height: s32, keyInterval: u32 = 60,
@@ -456,6 +457,9 @@ private impl Encoder
             motions.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight))
             for &value in motions do
                 value[] = {}
+        }
+        if not key or .quantizationQp
+        {
             nonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 16)
             for &value in nonZero do
                 value[] = 0
@@ -498,14 +502,56 @@ private impl Encoder
                 }
                 if not key do
                     bits.unsigned(skipped)
-                if (key or not .quantizationQp) and .flatIntra(frame, mbX, mbY, sliceStartY)
+                if .flatIntra(frame, mbX, mbY, sliceStartY) and
+                   (not .quantizationQp or
+                    .flatIntraBordersMatchReconstructed(frame, mbX, mbY, sliceStartY))
                 {
                     bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
                     bits.unsigned(0)           // Chroma DC prediction.
                     bits.signed(0)             // No QP change.
-                    .writeEmptyIntraDc(&bits, pcm.toSlice(), mbX, mbY, sliceStartY)
+                    if .quantizationQp
+                    {
+                        var empty: [16] s16
+                        discard bits.residual4(empty.buffer,
+                                               .lumaNc(nonZero.toSlice(), mbX, mbY,
+                                                       0, 0, sliceStartY))
+                    }
+                    else do
+                        .writeEmptyIntraDc(&bits, pcm.toSlice(), mbX, mbY, sliceStartY)
                     skipped = 0
                     continue
+                }
+                // The first MB of each IDR slice anchors a flat source to exact
+                // pixels. Otherwise one rounded DC value can make every following
+                // flat block miss the cheap empty-residual path.
+                if key and .quantizationQp and (mbX != 0 or mbY != sliceStartY)
+                {
+                    var quantized: EncoderQuantizedMb
+                    if .quantizeIntraMb(frame, mbX, mbY, sliceStartY, &quantized)
+                    {
+                        let oldBytes = bits.bytes.count
+                        let oldCurrent = bits.current
+                        let oldUsed = bits.used
+                        let oldQp = currentQp
+                        let coded = .writeQuantizedIntra(&bits, nonZero.toSlice(),
+                                                          chromaNonZero.toSlice(), mbX, mbY,
+                                                          &quantized, &currentQp, sliceStartY)
+                        let written = bits.bytes.count * 8 + bits.used -
+                                      (oldBytes * 8 + oldUsed)
+                        if coded and written < 3_072
+                        {
+                            .storeQuantizedMb(&quantized, mbX, mbY)
+                            continue
+                        }
+                        bits.bytes.resize(oldBytes)
+                        bits.current = oldCurrent
+                        bits.used = oldUsed
+                        currentQp = oldQp
+                        for block in 16'u64 do
+                            nonZero[motionIndex * 16 + block] = 0
+                        for block in 8'u64 do
+                            chromaNonZero[motionIndex * 8 + block] = 0
+                    }
                 }
                 if not key
                 {
@@ -652,7 +698,7 @@ private impl Encoder
                 bits.alignZero()
                 .writePcm(&bits, frame, mbX, mbY)
                 pcm[motionIndex] = true
-                if not key
+                if not key or .quantizationQp
                 {
                     for block in 16'u64 do
                         nonZero[motionIndex * 16 + block] = 16
@@ -721,6 +767,57 @@ private impl Encoder
             let at = uvStart + (y / 2 + row) * width + x
             Memory.copy(target + at, source + at, columns)
         }
+    }
+
+    // Builds one complete intra candidate against already accepted reconstructed neighbours.
+    // A cropped edge macroblock stays PCM because H.264 still requires a full transform grid.
+    mtd const quantizeIntraMb(frame: const *Nv12Frame, mbX, mbY, sliceStartY: u32,
+                              result: *EncoderQuantizedMb)->bool
+    {
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        if x + 16 > width or y + 16 > height do
+            return false
+        let source = frame.bytes.storage()
+        let reconstructed = .reconstructed.storage()
+        var luma: IntraLuma16x16Result
+        quantizeIntraLuma16x16(source + y * width + x, width,
+                              reconstructed, width, x, y, mbX > 0,
+                              mbY > sliceStartY, .quantizationQp, &luma)
+        result.lumaDc = luma.dc
+        result.lumaLevels = luma.ac
+        result.reconstructedY = luma.reconstructed
+        result.cbpLuma = luma.cbpLuma
+        result.cbpChroma = 0
+
+        let uvStart = width * height
+        let sourceUv = source + uvStart + y / 2 * width + x
+        let reconstructedUv = reconstructed + uvStart
+        for plane in 2'u64
+        {
+            var chroma: InterChroma8x8Result
+            quantizeIntraChroma8x8(sourceUv, width, reconstructedUv, width,
+                                   x, y, cast(u32, plane), mbX > 0,
+                                   mbY > sliceStartY, .quantizationQp, 0, &chroma)
+            for index in 4'u64 do
+                result.chromaDc[plane * 4 + index] = chroma.dc[index]
+            for block in 4'u64
+            {
+                for scan in 16'u64 do
+                    result.chromaAc[(plane * 4 + block) * 16 + scan] =
+                        chroma.ac[block * 16 + scan]
+            }
+            result.cbpChroma = Math.max(result.cbpChroma, cast(u32, chroma.cbp))
+            for row in 8'u64
+            {
+                for column in 8'u64 do
+                    result.reconstructedUv[row * 16 + column * 2 + plane] =
+                        chroma.reconstructed[row * 8 + column]
+            }
+        }
+        return true
     }
 
     // Builds all sixteen luma and eight chroma coefficient blocks against the previous
@@ -1329,6 +1426,46 @@ private impl Encoder
         return left + top
     }
 
+    // Intra_16x16 codes one luma DC block regardless of its coded block pattern.
+    // AC counts, rather than DC counts, form the neighbour contexts for later blocks.
+    mtd const writeQuantizedIntra(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
+                                  mbX, mbY: u32, result: *EncoderQuantizedMb,
+                                  currentQp: *s32, sliceStartY: u32)->bool
+    {
+        bits.unsigned(3 + result.cbpChroma * 4 + (result.cbpLuma == 0 ? 0'u32 : 12'u32))
+        bits.unsigned(0) // Intra chroma DC prediction.
+        bits.signed(cast(s32, .quantizationQp) - currentQp[])
+        currentQp[] = cast(s32, .quantizationQp)
+        if not bits.residual4(result.lumaDc.buffer,
+                              .lumaNc(nonZero, mbX, mbY, 0, 0, sliceStartY)) do
+            return false
+        if result.cbpLuma
+        {
+            for quad in 4'u32
+            {
+                for cell in 4'u32
+                {
+                    let bx = (quad & 1) * 2 + (cell & 1)
+                    let by = (quad >> 1) * 2 + (cell >> 1)
+                    let block = by * 4 + bx
+                    let levels = result.lumaLevels.buffer + block * 16
+                    if not bits.residual15(levels + 1,
+                                           .lumaNc(nonZero, mbX, mbY, bx, by,
+                                                   sliceStartY)) do
+                        return false
+                    let at = (cast(u64, mbY) * .mbWidth + mbX) * 16 + block
+                    var total = 0'u8
+                    for scan in 1'u64 until 16 where levels[scan] != 0 do
+                        total += 1
+                    nonZero[at] = total
+                }
+            }
+        }
+        return .writeChromaResidual(bits, chromaNonZero, mbX, mbY,
+                                    result.chromaDc.buffer, result.chromaAc.buffer,
+                                    result.cbpChroma, sliceStartY)
+    }
+
     mtd const writeChromaResidual(bits: *EncoderBits, nonZero: [..] u8,
                                   mbX, mbY: u32, dc: const [*] s16,
                                   ac: const [*] s16, cbp: u32, sliceStartY: u32)->bool
@@ -1445,6 +1582,48 @@ private impl Encoder
             {
                 let offset = Math.min(y / 2 + row, height / 2 - 1) * width + x - 2
                 if chroma[offset] != valueU or chroma[offset + 1] != valueV do
+                    return false
+            }
+        }
+        return true
+    }
+
+    // A source-flat block may follow a lossy neighbour. The empty DC syntax is exact
+    // only if the actual decoded boundary has the source's constant Y/Cb/Cr values.
+    mtd const flatIntraBordersMatchReconstructed(frame: const *Nv12Frame,
+                                                  mbX, mbY, sliceStartY: u32)->bool
+    {
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let source = frame.bytes.storage()
+        let reconstructed = .reconstructed.storage()
+        let valueY = source[y * width + x]
+        let uvStart = width * height
+        let valueU = source[uvStart + y / 2 * width + x]
+        let valueV = source[uvStart + y / 2 * width + x + 1]
+        if mbY > sliceStartY
+        {
+            for column in 16'u64 where
+                reconstructed[(y - 1) * width + Math.min(x + column, width - 1)] != valueY do
+                return false
+            for column in 8'u64
+            {
+                let at = uvStart + (y / 2 - 1) * width + Math.min(x + column * 2, width - 2)
+                if reconstructed[at] != valueU or reconstructed[at + 1] != valueV do
+                    return false
+            }
+        }
+        if mbX
+        {
+            for row in 16'u64 where
+                reconstructed[Math.min(y + row, height - 1) * width + x - 1] != valueY do
+                return false
+            for row in 8'u64
+            {
+                let at = uvStart + Math.min(y / 2 + row, height / 2 - 1) * width + x - 2
+                if reconstructed[at] != valueU or reconstructed[at + 1] != valueV do
                     return false
             }
         }

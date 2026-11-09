@@ -29,33 +29,37 @@ private func nv12Chroma(value: s32)->u8
 private func nv12BgraLuma(pixel: const [*] u8)->u8
     => cast #wrap(u8, 16 + (11_966 * cast(s32, pixel[2]) + 40_254 * cast(s32, pixel[1]) + 4_064 * cast(s32, pixel[0]) + 32_768) / 65_536)
 
+// One pair of luma rows and its chroma row can be converted independently.
+private func convertBgraNv12Band(source: const [*] u8, target: [*] u8, width, height, rowStride, lumaSize, blockY: u64)
+{
+    let topRow    = source + (height - 1 - blockY * 2) * rowStride
+    let bottomRow = topRow - rowStride
+    let topY      = target + blockY * 2 * width
+    let bottomY   = topY + width
+    let uvRow     = target + lumaSize + blockY * width
+    for blockX in width / 2
+    {
+        let top    = topRow + blockX * 8
+        let bottom = bottomRow + blockX * 8
+        let x      = blockX * 2
+        topY[x]        = nv12BgraLuma(top)
+        topY[x + 1]    = nv12BgraLuma(top + 4)
+        bottomY[x]     = nv12BgraLuma(bottom)
+        bottomY[x + 1] = nv12BgraLuma(bottom + 4)
+
+        let red   = cast(s32, top[2]) + cast(s32, top[6]) + cast(s32, bottom[2]) + cast(s32, bottom[6])
+        let green = cast(s32, top[1]) + cast(s32, top[5]) + cast(s32, bottom[1]) + cast(s32, bottom[5])
+        let blue  = cast(s32, top[0]) + cast(s32, top[4]) + cast(s32, bottom[0]) + cast(s32, bottom[4])
+        uvRow[x]     = nv12Chroma(-6_596 * red - 22_189 * green + 28_785 * blue)
+        uvRow[x + 1] = nv12Chroma(28_784 * red - 26_145 * green - 2_639 * blue)
+    }
+}
+
 // The screen readback path supplies BGRA8. Keep its channel positions constant in the hot loop.
 private func convertBgraToNv12(source: const [*] u8, target: [*] u8, width, height, rowStride, lumaSize: u64)
 {
-    for blockY in height / 2
-    {
-        let topRow    = source + (height - 1 - blockY * 2) * rowStride
-        let bottomRow = topRow - rowStride
-        let topY      = target + blockY * 2 * width
-        let bottomY   = topY + width
-        let uvRow     = target + lumaSize + blockY * width
-        for blockX in width / 2
-        {
-            let top    = topRow + blockX * 8
-            let bottom = bottomRow + blockX * 8
-            let x      = blockX * 2
-            topY[x]        = nv12BgraLuma(top)
-            topY[x + 1]    = nv12BgraLuma(top + 4)
-            bottomY[x]     = nv12BgraLuma(bottom)
-            bottomY[x + 1] = nv12BgraLuma(bottom + 4)
-
-            let red   = cast(s32, top[2]) + cast(s32, top[6]) + cast(s32, bottom[2]) + cast(s32, bottom[6])
-            let green = cast(s32, top[1]) + cast(s32, top[5]) + cast(s32, bottom[1]) + cast(s32, bottom[5])
-            let blue  = cast(s32, top[0]) + cast(s32, top[4]) + cast(s32, bottom[0]) + cast(s32, bottom[4])
-            uvRow[x]     = nv12Chroma(-6_596 * red - 22_189 * green + 28_785 * blue)
-            uvRow[x + 1] = nv12Chroma(28_784 * red - 26_145 * green - 2_639 * blue)
-        }
-    }
+    parallel for |source, target, width, height, rowStride, lumaSize| blockY in height / 2 do
+        convertBgraNv12Band(source, target, width, height, rowStride, lumaSize, blockY)
 }
 
 // Owns one tightly packed NV12 picture for a video encoder.

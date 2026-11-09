@@ -22,6 +22,17 @@ private struct EncoderMotion
     inter: bool
 }
 
+private struct EncoderQuantizedMb
+{
+    lumaLevels:     [256] s16
+    chromaDc:       [8] s16
+    chromaAc:       [128] s16
+    reconstructedY: [256] u8
+    reconstructedUv:[128] u8
+    cbpLuma:       u32
+    cbpChroma:     u32
+}
+
 private const MotionOffsets: [16, 2] s32 = [
     [0, -2], [0, 2], [0, -4], [0, 4], [0, -8], [0, 8],
     [0, -16], [0, 16], [0, -32], [0, 32],
@@ -274,11 +285,14 @@ struct Encoder
         config:         Array'u8
         packet:         Array'u8
         previous:       Array'u8
+        previousInput:  Array'u8
+        reconstructed:  Array'u8
         width:          s32
         height:         s32
         mbWidth:        u32
         mbHeight:       u32
         keyInterval:    u32
+        quantizationQp: u32
         frameNumber:    u32
         framesSinceKey: u32
         previousEnd:    u64
@@ -293,11 +307,15 @@ impl Encoder
     // The image may be cropped within its final macroblock. Dimensions are limited to
     // 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size.
     // The interval is 1 to 255 pictures. A new encoder starts with an IDR picture.
-    func create(width, height: s32, keyInterval: u32 = 60)->Encoder fail
+    // `quantizationQp` is 0 for exact samples or 1 through 51 for quantized P residuals.
+    // IDR pictures remain exact; this fixed QP is not a target-bitrate controller.
+    func create(width, height: s32, keyInterval: u32 = 60,
+                quantizationQp: u32 = 0)->Encoder fail
     {
         if width <= 0 or height <= 0 or width > 4096 or height > 4096 or
-           width % 2 or height % 2 or not keyInterval or keyInterval > 255 do
-            fail BadParameterError{"H.264 encoder needs even dimensions and an IDR interval of 1 to 255"}
+           width % 2 or height % 2 or not keyInterval or keyInterval > 255 or
+           quantizationQp > 51 do
+            fail BadParameterError{"H.264 encoder needs even dimensions, an IDR interval of 1 to 255 and QP of 0 to 51"}
         let mbWidth  = cast(u32, (width + 15) / 16)
         let mbHeight = cast(u32, (height + 15) / 16)
         if mbWidth * mbHeight > 36_864 do
@@ -310,6 +328,7 @@ impl Encoder
             .mbWidth     = mbWidth
             .mbHeight    = mbHeight
             .keyInterval = keyInterval
+            .quantizationQp = quantizationQp
         }
         result.buildConfig()
         return result
@@ -334,6 +353,11 @@ impl Encoder
             fail BadParameterError{"H.264 encoder packet timing is invalid"}
 
         let key = not .hasFrame or .framesSinceKey >= .keyInterval
+        if .quantizationQp
+        {
+            .reconstructed.clear()
+            .reconstructed.add(frame.bytes.toSlice())
+        }
         var bits: EncoderBits
         bits.unsigned(0)                     // first_mb_in_slice.
         bits.unsigned(key ? 2 : 0)           // I or P slice.
@@ -383,6 +407,25 @@ impl Encoder
             {
                 let motionIndex = cast(u64, mbY) * .mbWidth + mbX
                 let prediction = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY)
+                if not key and .quantizationQp and .unchangedInput(frame, mbX, mbY)
+                {
+                    // Repeating an input after a lossy picture must hold the decoded reference,
+                    // not spend another quantization pass or copy the raw source into it.
+                    if .skipMotionIsZero(motions.toSlice(), mbX, mbY) do
+                        skipped += 1
+                    else
+                    {
+                        bits.unsigned(skipped)
+                        bits.unsigned(0) // P_L0_16x16, explicit zero motion.
+                        bits.signed(-prediction.x)
+                        bits.signed(-prediction.y)
+                        bits.unsigned(0) // No residual, hence no mb_qp_delta.
+                        skipped = 0
+                    }
+                    .storePreviousMb(mbX, mbY)
+                    motions[motionIndex] = {0, 0, true}
+                    continue
+                }
                 var firstDifferent = 256'u32
                 let same = not key and .unchanged(frame, mbX, mbY, &firstDifferent)
                 if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY)
@@ -393,7 +436,7 @@ impl Encoder
                 }
                 if not key do
                     bits.unsigned(skipped)
-                if .flatIntra(frame, mbX, mbY)
+                if (key or not .quantizationQp) and .flatIntra(frame, mbX, mbY)
                 {
                     bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
                     bits.unsigned(0)           // Chroma DC prediction.
@@ -416,7 +459,47 @@ impl Encoder
                         continue
                     }
 
-                    if not .denseResidualLikelyOversized(frame, mbX, mbY, firstDifferent)
+                    if .quantizationQp
+                    {
+                        var quantized: EncoderQuantizedMb
+                        if .quantizeInterMb(frame, mbX, mbY, &quantized)
+                        {
+                            let oldBytes = bits.bytes.count
+                            let oldCurrent = bits.current
+                            let oldUsed = bits.used
+                            let oldQp = currentQp
+                            bits.unsigned(0) // P_L0_16x16 with zero motion.
+                            bits.signed(-prediction.x)
+                            bits.signed(-prediction.y)
+                            let coded = .writeAcResidual(&bits, nonZero.toSlice(),
+                                                         chromaNonZero.toSlice(), mbX, mbY,
+                                                         quantized.lumaLevels.buffer,
+                                                         quantized.cbpLuma,
+                                                         quantized.chromaDc.buffer,
+                                                         quantized.chromaAc.buffer,
+                                                         quantized.cbpChroma,
+                                                         &currentQp,
+                                                         cast(s32, .quantizationQp))
+                            let written = bits.bytes.count * 8 + bits.used -
+                                          (oldBytes * 8 + oldUsed)
+                            if coded and written < 3_072
+                            {
+                                .storeQuantizedMb(&quantized, mbX, mbY)
+                                motions[motionIndex] = {0, 0, true}
+                                skipped = 0
+                                continue
+                            }
+                            bits.bytes.resize(oldBytes)
+                            bits.current = oldCurrent
+                            bits.used = oldUsed
+                            currentQp = oldQp
+                            for block in 16'u64 do
+                                nonZero[motionIndex * 16 + block] = 0
+                            for block in 8'u64 do
+                                chromaNonZero[motionIndex * 8 + block] = 0
+                        }
+                    }
+                    elif not .denseResidualLikelyOversized(frame, mbX, mbY, firstDifferent)
                     {
                         var chromaLevels: [8] s16
                         var chromaAcLevels: [128] s16
@@ -473,6 +556,7 @@ impl Encoder
                                 let oldBytes = bits.bytes.count
                                 let oldCurrent = bits.current
                                 let oldUsed = bits.used
+                                let oldQp = currentQp
                                 bits.unsigned(0) // P_L0_16x16 with zero motion.
                                 bits.signed(-prediction.x)
                                 bits.signed(-prediction.y)
@@ -481,12 +565,11 @@ impl Encoder
                                                              acLevels.buffer, cbp,
                                                              chromaLevels.buffer,
                                                              chromaAcLevels.buffer, chromaCbp,
-                                                             currentQp)
+                                                             &currentQp, 0)
                                 let written = bits.bytes.count * 8 + bits.used -
                                               (oldBytes * 8 + oldUsed)
                                 if coded and written < 3_072
                                 {
-                                    currentQp = 0
                                     motions[motionIndex] = {0, 0, true}
                                     skipped = 0
                                     continue
@@ -494,6 +577,7 @@ impl Encoder
                                 bits.bytes.resize(oldBytes)
                                 bits.current = oldCurrent
                                 bits.used = oldUsed
+                                currentQp = oldQp
                                 for block in 16'u64 do
                                     nonZero[motionIndex * 16 + block] = 0
                                 for block in 8'u64 do
@@ -523,8 +607,17 @@ impl Encoder
         var packet: Array'u8
         appendEncoderNal(&packet, key ? 0x65 : 0x41, bits.bytes.toSlice())
         .packet   = #move packet
-        .previous.clear()
-        .previous.add(frame.bytes.toSlice())
+        if .quantizationQp
+        {
+            Core.swap(&.previous, &.reconstructed)
+            .previousInput.clear()
+            .previousInput.add(frame.bytes.toSlice())
+        }
+        else
+        {
+            .previous.clear()
+            .previous.add(frame.bytes.toSlice())
+        }
         .previousEnd = decodeTime + duration
         .hasFrame    = true
         if key
@@ -544,6 +637,147 @@ impl Encoder
 
 private impl Encoder
 {
+    // Tests the visible input samples, including a cropped edge macroblock. A previously
+    // quantized reference can differ from this input even when the screen has not changed.
+    mtd const unchangedInput(frame: const *Nv12Frame, mbX, mbY: u32)->bool
+    {
+        if .previousInput.count != frame.bytes.count do
+            return false
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let columns = Math.min(width - x, 16'u64)
+        let rows = Math.min(height - y, 16'u64)
+        let source = frame.bytes.storage()
+        let prior = .previousInput.storage()
+        for row in rows
+        {
+            let at = (y + row) * width + x
+            if Memory.compare(source + at, prior + at, columns) != 0 do
+                return false
+        }
+        let uvStart = width * height
+        for row in rows / 2
+        {
+            let at = uvStart + (y / 2 + row) * width + x
+            if Memory.compare(source + at, prior + at, columns) != 0 do
+                return false
+        }
+        return true
+    }
+
+    // A repeated source holds the prior decoded macroblock, never the raw input from
+    // which that lossy picture was made. Both buffers store tightly packed visible NV12.
+    mtd storePreviousMb(mbX, mbY: u32)
+    {
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let columns = Math.min(width - x, 16'u64)
+        let rows = Math.min(height - y, 16'u64)
+        let source = .previous.storage()
+        let target = .reconstructed.storage()
+        for row in rows
+        {
+            let at = (y + row) * width + x
+            Memory.copy(target + at, source + at, columns)
+        }
+        let uvStart = width * height
+        for row in rows / 2
+        {
+            let at = uvStart + (y / 2 + row) * width + x
+            Memory.copy(target + at, source + at, columns)
+        }
+    }
+
+    // Builds all sixteen luma and eight chroma coefficient blocks against the previous
+    // decoded picture. Edge macroblocks retain the exact PCM path, which handles padding.
+    mtd const quantizeInterMb(frame: const *Nv12Frame, mbX, mbY: u32,
+                              result: *EncoderQuantizedMb)->bool
+    {
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        if x + 16 > width or y + 16 > height do
+            return false
+
+        let currentY = frame.luma()
+        let currentUv = frame.chroma()
+        let previousY = .previous.storage()
+        let previousUv = previousY + width * height
+        result.cbpLuma = 0
+        result.cbpChroma = 0
+        for by in 4'u64
+        {
+            for bx in 4'u64
+            {
+                let block = by * 4 + bx
+                let offset = (y + by * 4) * width + x + bx * 4
+                var quantized: InterLuma4x4Result
+                quantizeInterLuma4x4(currentY.buffer + offset, previousY + offset,
+                                     width, width, .quantizationQp, &quantized)
+                for scan in 16'u64 do
+                    result.lumaLevels[block * 16 + scan] = quantized.levels[scan]
+                if quantized.nonZero do
+                    result.cbpLuma |= 1'u32 << cast(u32, by / 2 * 2 + bx / 2)
+                for row in 4'u64
+                {
+                    Memory.copy(result.reconstructedY.buffer + (by * 4 + row) * 16 + bx * 4,
+                                quantized.reconstructed.buffer + row * 4, 4)
+                }
+            }
+        }
+
+        let chromaOffset = y / 2 * width + x
+        for plane in 2'u64
+        {
+            var quantized: InterChroma8x8Result
+            quantizeInterChroma8x8(currentUv.buffer + chromaOffset + plane,
+                                   previousUv + chromaOffset + plane,
+                                   width, width, .quantizationQp, 0, &quantized)
+            for index in 4'u64 do
+                result.chromaDc[plane * 4 + index] = quantized.dc[index]
+            for block in 4'u64
+            {
+                for scan in 16'u64 do
+                    result.chromaAc[(plane * 4 + block) * 16 + scan] =
+                        quantized.ac[block * 16 + scan]
+            }
+            result.cbpChroma = Math.max(result.cbpChroma, cast(u32, quantized.cbp))
+            for row in 8'u64
+            {
+                for column in 8'u64 do
+                    result.reconstructedUv[row * 16 + column * 2 + plane] =
+                        quantized.reconstructed[row * 8 + column]
+            }
+        }
+        return true
+    }
+
+    // The candidate becomes the next reference only after its CAVLC syntax and size pass.
+    mtd storeQuantizedMb(result: *EncoderQuantizedMb, mbX, mbY: u32)
+    {
+        let width = cast(u64, .width)
+        let height = cast(u64, .height)
+        let x = cast(u64, mbX) * 16
+        let y = cast(u64, mbY) * 16
+        let destination = .reconstructed.storage()
+        for row in 16'u64
+        {
+            Memory.copy(destination + (y + row) * width + x,
+                        result.reconstructedY.buffer + row * 16, 16)
+        }
+        let uvStart = width * height + y / 2 * width + x
+        for row in 8'u64
+        {
+            Memory.copy(destination + uvStart + row * width,
+                        result.reconstructedUv.buffer + row * 16, 16)
+        }
+    }
+
     // Dense, strongly varying deltas tend to cost more CAVLC bits than one
     // exact I_PCM macroblock. Sample every luma 4x4 block only after motion
     // search fails; uniform, periodic and sparse changes still reach residual
@@ -928,7 +1162,7 @@ private impl Encoder
     mtd const writeAcResidual(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
                               mbX, mbY: u32, levels: const [*] s16, cbp: u32,
                               chromaLevels, chromaAcLevels: const [*] s16, chromaCbp: u32,
-                              currentQp: s32)->bool
+                              currentQp: *s32, targetQp: s32)->bool
     {
         var code = 0'u32
         let pattern = cbp | (chromaCbp << 4)
@@ -938,7 +1172,11 @@ private impl Encoder
             break
         }
         bits.unsigned(code)
-        bits.signed(-currentQp)
+        if pattern
+        {
+            bits.signed(targetQp - currentQp[])
+            currentQp[] = targetQp
+        }
 
         for quad in 4'u64 where cbp & (1'u32 << cast(u32, quad)) != 0
         {

@@ -78,9 +78,10 @@ Four codecs ship in the box:
   length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
   [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder.
   [[Video.H264.Encoder]] produces Constrained Baseline packets from those surfaces with flat
-  intra blocks, exact inter copies for small screen movements, exact DC residuals for uniform
-  4×4 luminance changes, P-skip for unchanged blocks, and PCM for remaining changes. Arbitrary
-  changes still yield large files at high resolution.
+  intra blocks, exact inter copies for small screen movements, luma and chroma residuals,
+  P-skip for unchanged blocks, and PCM fallback. QP zero retains exact output; an optional
+  positive QP quantizes P-picture residuals against a locally reconstructed reference.
+  Textured IDR pictures remain large because they use PCM, and fixed QP is not rate control.
   [[Video.Mp4.SoftwareRecording]] joins RGB-to-NV12 conversion, software H.264 and AAC encoding,
   sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM
   chunks, AAC priming when audio is present, and fragmented MP4 finalization.

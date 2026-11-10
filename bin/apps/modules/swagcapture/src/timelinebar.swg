@@ -214,12 +214,21 @@ impl IWnd for TimelineBar
         // Playback loops over the kept part, as the exported animation does.
         let frames = capture.frames
         var time   = .playFrom + (Time.monotonicMicroseconds() - .playStart)
+        if .audioVoiceCount and .audioVoices[0] and .audioReader
+        {
+            let sound = unwrap .audioReader.audioTrack(0)
+            let voice = unwrap .audioVoices[0]
+            let seconds = sound.timelineStartSeconds() + voice.playbackPositionSeconds()
+            if seconds > 0 do
+                time = cast(u64, seconds * 1_000_000)
+        }
+
         if time >= capture.trimEnd() or time < capture.trimStart()
         {
             .playFrom  = capture.trimStart()
-            .playStart = Time.monotonicMicroseconds()
             time       = .playFrom
             catch .startAudio(time)
+            .playStart = Time.monotonicMicroseconds()
         }
 
         let frame = frames.frameAt(time)
@@ -358,9 +367,9 @@ impl TimelineBar
         if not capture or not capture.frames do
             return
 
-        .playFrom  = capture.frames.timeOf(capture.playhead)
-        .playStart = Time.monotonicMicroseconds()
+        .playFrom = capture.frames.timeOf(capture.playhead)
         catch .startAudio(.playFrom)
+        .playStart = Time.monotonicMicroseconds()
         .playTimer = .addTimer(Time.Duration.fromSeconds(1.0 / 60))
         .playButton.setIcon(.theme().icon(.Pause))
         .playButton.toolTip = appStrings().tip_PauseAnimation

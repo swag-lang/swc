@@ -299,12 +299,13 @@ whole recording loaded at once.
   Swag Capture now connects the native microphone and system-output-loopback backends to two
   separate tracks in its video recorder. The zone bar chooses each source independently; source
   loss inserts silence while a retry opens it again. The native backends have not been exercised
-  with a Windows device. The editor timeline previews pictures without playing their sound.
+  with a Windows device. The editor timeline plays both recorded tracks and follows the first
+  track's audio clock; long-session sync and native-device playback still need verification.
   GIF capture has no audio source or track.
-- Next: play the recorded tracks with the editor timeline, add a microphone level meter, an
-  application-only sound source for window targets, and post-recording track levels and mixing
-  on export. Add a sound-only medium with a waveform
-  timeline.
+- Next: measure audio/video drift over a long recording and correct any drift beyond one frame;
+  then add a microphone level meter, an application-only sound source for window targets, and
+  post-recording track levels on export. Add a sound-only medium with a waveform timeline when
+  it supports a concrete capture workflow.
 - Done when: a recording with sound stays within one video frame of sync over four hours, each
   source's level can be changed after recording, unplugging and replugging a device mid-recording
   leaves silence on its track instead of ending the recording, recording without any audio device

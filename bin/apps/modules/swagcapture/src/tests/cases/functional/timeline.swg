@@ -28,6 +28,29 @@ func testProfileVersion(file: string)->u32
     return reader.manifest().profileVersion
 }
 
+// A newly drawn annotation on a timed capture begins at the frame being edited.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let capture = testRecordedCapture()
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    f.editView.setCapture(capture)
+    f.capture = capture
+    expect capture.showFrame(1)
+
+    f.main.editMode = .Shape
+    f.dragImage({10, 10}, {30, 25})
+
+    let shape = assume cast(*FormShape, capture.forms[0])
+    Swag.require(shape.timeStart == capture.playheadTime())
+    Swag.require(shape.timeStart > 0 and shape.timeEnd == 0)
+}
+
 // The secondary timeline menu collects playback, recording-range, and selected-form commands.
 #test
 {

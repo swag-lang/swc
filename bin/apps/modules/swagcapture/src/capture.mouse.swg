@@ -386,6 +386,11 @@ impl Capture
             let mode = editView.main.getEditMode()
             let itf  = editView.main.newFormFromModel(mode, clear: true)
             itf.setup(me)
+            if .isTimed()
+            {
+                let form: *BaseForm = itf
+                form.timeStart = .playheadTime()
+            }
             if editView.main.editMode == .PixSel do
                 itf.subKind = .PixSel
             let undo = .newUndo(.CreateForm)

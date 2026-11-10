@@ -44,6 +44,7 @@ using Swag, Core
 
     let shape = assume cast(*FormShape, f.capture.forms[0])
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 60, 40)
+    Swag.require(shape.timeStart == 0 and shape.timeEnd == 0)
     Swag.require(f.capture.canUndo())
 }
 

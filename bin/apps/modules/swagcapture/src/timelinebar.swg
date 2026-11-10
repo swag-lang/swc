@@ -1,4 +1,4 @@
-using Core, Pixel
+using Core, Pixel, Audio, Video
 
 // The timeline of a timed capture, on a floating panel under the canvas: play and pause, the time
 // at the playhead against the length, and a track the playhead is dragged along. A picture has
@@ -20,6 +20,11 @@ struct TimelineBar
     playTimer:       *Gui.Timer?
     playStart:       u64     // Monotonic time playback started, in microseconds.
     playFrom:        u64     // Capture time playback started from, in microseconds.
+    audioReader:     *Video.Reader?
+    audioVoices:     [2] (*Voice?)
+    audioVoiceCount: u32
+    audioPath:       String
+    ownsAudioEngine: bool
     isDragging:      bool
     dragEdge:        TimelineEdge     // The selected form edge being dragged, if any.
     dragFromStart:   u64     // Selected form's span when its end is dragged.
@@ -49,6 +54,7 @@ impl IWnd for TimelineBar
 {
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .disposeAudio()
         .clearThumbnails()
     }
 
@@ -213,6 +219,7 @@ impl IWnd for TimelineBar
             .playFrom  = capture.trimStart()
             .playStart = Time.monotonicMicroseconds()
             time       = .playFrom
+            catch .startAudio(time)
         }
 
         let frame = frames.frameAt(time)
@@ -353,6 +360,7 @@ impl TimelineBar
 
         .playFrom  = capture.frames.timeOf(capture.playhead)
         .playStart = Time.monotonicMicroseconds()
+        catch .startAudio(.playFrom)
         .playTimer = .addTimer(Time.Duration.fromSeconds(1.0 / 60))
         .playButton.setIcon(.theme().icon(.Pause))
         .playButton.toolTip = appStrings().tip_PauseAnimation
@@ -362,8 +370,106 @@ impl TimelineBar
     mtd stop()
     {
         .stopTimer(&.playTimer)
+        .stopAudio()
         .playButton.setIcon(.theme().icon(.Play))
         .playButton.toolTip = appStrings().tip_PlayAnimation
+    }
+
+    // Opens the source MP4 lazily and plays its audio tracks alongside the decoded frames.
+    // The reader owns the SoundFiles borrowed by the voices, so both stay alive for this bar's life.
+    private mtd startAudio(time: u64) fail
+    {
+        let capture = .capture()
+        if not capture or capture.media != .Video do
+            return
+
+        let path = Capture.mediaPathOf(capture.file, .Video)
+        if .audioReader and not Path.equals(.audioPath, path) do
+            .disposeAudio()
+
+        if not .audioReader
+        {
+            var reader = try Video.Reader.open(path)
+            if not reader.audioTrackCount() do
+                return
+
+            let stored = Memory.new'Video.Reader()
+            stored[] = #move reader
+            .audioReader = stored
+            .audioPath = path
+        }
+
+        let reader = .audioReader
+        if not reader or not reader.audioTrackCount() do
+            return
+
+        if not Audio.isEngineCreated()
+        {
+            try Audio.createEngine()
+            .ownsAudioEngine = true
+        }
+
+        if not .audioVoiceCount
+        {
+            .audioVoiceCount = cast(u32, Math.min(reader.audioTrackCount(), .audioVoices.count))
+            for index in .audioVoiceCount
+            {
+                let sound = unwrap reader.audioTrack(index)
+                .audioVoices[index] = try Voice.create(sound)
+            }
+        }
+
+        for index in .audioVoiceCount
+        {
+            let sound = unwrap reader.audioTrack(index)
+            let seconds = cast(f64, time) / 1_000_000 - sound.timelineStartSeconds()
+            let sample = seconds > 0 ? cast(u64, seconds * cast(f64, sound.sampleRateHz())) : 0
+            let voice = .audioVoices[index]
+            if voice
+            {
+                try voice.seekSampleFrame(sample)
+                try voice.play()
+            }
+        }
+    }
+
+    // Pauses audio while retaining the reader and voice for the next play command.
+    private mtd stopAudio()
+    {
+        for index in .audioVoiceCount
+        {
+            let voice = .audioVoices[index]
+            if voice do
+                catch voice.pause()
+        }
+    }
+
+    // Stops audio and closes the reader only when the timeline bar itself is destroyed.
+    private mtd disposeAudio()
+    {
+        for index in .audioVoiceCount
+        {
+            let voice = .audioVoices[index]
+            if voice
+            {
+                catch voice.stop()
+                voice.destroy()
+                .audioVoices[index] = null
+            }
+        }
+        .audioVoiceCount = 0
+
+        // Destroying an engine drains voices that borrow the reader's sound before the reader closes.
+        if .ownsAudioEngine do
+            Audio.destroyEngine()
+        if .audioReader
+        {
+            .audioReader.close()
+            Memory.delete(.audioReader)
+            .audioReader = null
+        }
+
+        .ownsAudioEngine = false
     }
 
     // Returns the duration visible on the track, in microseconds.

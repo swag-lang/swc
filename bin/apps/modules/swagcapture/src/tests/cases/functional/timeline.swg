@@ -202,7 +202,8 @@ func testProfileVersion(file: string)->u32
 
     let bar = TimelineBar.create(fixture.main, &fixture.gui.root)
     bar.resize(800, TimelineHeight)
-    let y = bar.trackRect().vertCenter() + 8
+    let track = bar.trackRect()
+    let y = track.y + track.height * 0.8
     Swag.require(bar.edgeAt(bar.trackX(100_000), y) == .FormStart)
     Swag.require(bar.edgeAt(bar.trackX(200_000), y) == .FormEnd)
 
@@ -530,21 +531,9 @@ func testProfileVersion(file: string)->u32
     Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
 
     capture.setTrim(50_000, 100_000)
-    bar.dragEdge    = .Start
-    bar.dragFromIn  = 50_000
-    bar.dragFromOut = 100_000
-    bar.drag(bar.trackX(250_000))
-    Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
-    bar.endEdgeDrag()
-    capture.undo()
-
-    bar.dragEdge    = .End
-    bar.dragFromIn  = 50_000
-    bar.dragFromOut = 100_000
-    bar.drag(bar.trackX(0))
-    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 50_001)
-    bar.endEdgeDrag()
-    capture.undo()
+    let railY = bar.trackRect().vertCenter()
+    Swag.require(bar.edgeAt(bar.trackX(capture.trimStart()), railY) == .None)
+    Swag.require(bar.edgeAt(bar.trackX(capture.trimEnd()), railY) == .None)
     Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 100_000)
 
     capture.undo()

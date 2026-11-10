@@ -21,9 +21,7 @@ struct TimelineBar
     playStart:       u64     // Monotonic time playback started, in microseconds.
     playFrom:        u64     // Capture time playback started from, in microseconds.
     isDragging:      bool
-    dragEdge:        TimelineEdge     // The end of the kept part being dragged, if any.
-    dragFromIn:      u64     // Kept part when the drag of an end started, restored for its undo.
-    dragFromOut:     u64
+    dragEdge:        TimelineEdge     // The selected form edge being dragged, if any.
     dragFromStart:   u64     // Selected form's span when its end is dragged.
     dragFromEnd:     u64
     viewStart:       u64     // First time visible on the track.
@@ -40,13 +38,11 @@ struct TimelineBar
 enum TimelineEdge
 {
     None      // The playhead.
-    Start     // The start of the kept part.
-    End       // The end of the kept part.
     FormStart // The selected form's first visible time.
     FormEnd   // The selected form's end.
 }
 
-// Distance at which a press takes an end of the kept part rather than the playhead.
+// Distance at which a press takes a selected form edge rather than the playhead.
 const TimelineEdgeReach = 6.0
 
 impl IWnd for TimelineBar
@@ -78,8 +74,8 @@ impl IWnd for TimelineBar
         let textX = TimelinePadding + TimelineButton + TimelinePadding
         painter.drawString(textX, font.opticalLineTop(client.vertCenter()), text, font, colors.softText)
 
-        // The track and the part already played in Arc. The recording outside the kept part is
-        // shaded across the whole track, so the usable passage reads as one continuous span.
+        // The kept part sits on a compact rail. Its bounds mark the trim, while the playhead
+        // shows progress through it; the recording outside it stays visibly muted.
         let track  = .trackRect()
         if .zoom > 1 do
             .prepareThumbnails(capture)
@@ -93,26 +89,41 @@ impl IWnd for TimelineBar
         let played = .trackX(time)
         let keepL  = .trackX(capture.trimStart())
         let keepR  = .trackX(capture.trimEnd())
-        painter.fillRoundRect({track.x, track.vertCenter() - 2, track.width, 4}, 2, 2, colors.raised)
+        let railHeight = track.height * 0.15
+        let railRadius = railHeight * 0.5
+        let railY      = track.y + track.height * 0.5
+        painter.fillRoundRect({track.x, railY - railRadius, track.width, railHeight}, railRadius, railRadius, colors.raised)
         let shownLeft  = Math.max(keepL, track.x)
         let shownRight = Math.min(Math.min(played, keepR), track.right())
         if shownRight > shownLeft do
-            painter.fillRoundRect({shownLeft, track.vertCenter() - 2, shownRight - shownLeft, 4}, 2, 2, colors.arc)
+            painter.fillRoundRect({shownLeft, railY - railRadius, shownRight - shownLeft, railHeight}, railRadius, railRadius, colors.arc)
         if capture.isTrimmed()
         {
             let shade      = colors.disabled.withAlpha(72)
             let beforeEnd  = Math.clamp(keepL, track.x, track.right())
             let afterStart = Math.clamp(keepR, track.x, track.right())
             if beforeEnd > track.x do
-                painter.fillRect({track.x, track.y, beforeEnd - track.x, track.height}, shade)
+                painter.fillRoundRect({track.x, railY - railRadius, beforeEnd - track.x, railHeight}, railRadius, railRadius, shade)
             if afterStart < track.right() do
-                painter.fillRect({afterStart, track.y, track.right() - afterStart, track.height}, shade)
+                painter.fillRoundRect({afterStart, railY - railRadius, track.right() - afterStart, railHeight}, railRadius, railRadius, shade)
         }
 
-        if played >= track.x and played <= track.right() do
-            painter.fillRoundRect({played - 1.5, track.y + 6, 3, track.height - 12}, 1.5, 1.5, colors.text)
+        for bound in [keepL, keepR] where bound >= track.x and bound <= track.right()
+        {
+            let boundWidth = railHeight / 3
+            painter.fillRoundRect({bound - boundWidth * 0.5, railY - railHeight, boundWidth, railHeight * 2},
+                                  boundWidth * 0.5, boundWidth * 0.5, colors.arc)
+        }
+        if played >= track.x and played <= track.right()
+        {
+            let playheadWidth = railHeight / 3
+            painter.fillRoundRect({played - playheadWidth * 0.5, track.y + track.height * 0.15,
+                                   playheadWidth, track.height * 0.5}, playheadWidth * 0.5,
+                                  playheadWidth * 0.5, colors.text)
+        }
 
-        // The time span of the first selected form, under the track.
+        // A selected form gets its own centered lane: a soft Arc segment with a fine Arc edge,
+        // distinct from the filled playback rail above it.
         if not capture.selection.isEmpty()
         {
             let form: *BaseForm = capture.forms[capture.selection[0]]
@@ -121,11 +132,18 @@ impl IWnd for TimelineBar
             let right  = Math.min(.trackX(finish), track.right())
             if right > left
             {
-                painter.fillRoundRect({left, track.vertCenter() + 7, Math.max(right - left, 3), 3}, 1.5, 1.5, colors.arc)
-                if left > track.x do
-                    painter.fillRect({left - 1, track.vertCenter() + 4, 2, 9}, colors.arc)
-                if right < track.right() do
-                    painter.fillRect({right - 1, track.vertCenter() + 4, 2, 9}, colors.arc)
+                let laneY      = track.y + track.height * 0.8
+                let laneHeight = track.height * 0.05
+                let spanHeight = track.height * 0.2
+                let spanWidth  = Math.min(Math.max(right - left, spanHeight), track.width)
+                let spanLeft   = Math.clamp((left + right - spanWidth) * 0.5, track.x, track.right() - spanWidth)
+                let lane: Math.Rectangle = {x: track.x, y: laneY - laneHeight * 0.5,
+                                            width: track.width, height: laneHeight}
+                let span: Math.Rectangle = {x: spanLeft, y: laneY - spanHeight * 0.5,
+                                            width: spanWidth, height: spanHeight}
+                painter.fillRoundRect(lane, laneHeight * 0.5, laneHeight * 0.5, colors.raised)
+                painter.fillRoundRect(span, spanHeight * 0.5, spanHeight * 0.5, colors.selection)
+                painter.drawRoundRect(span, spanHeight * 0.5, spanHeight * 0.5, colors.arc, metrics.separator_HairlineSize)
             }
         }
     }
@@ -154,8 +172,6 @@ impl IWnd for TimelineBar
             .dragEdge   = .edgeAt(position.x, position.y)
             if let capture = .capture()
             {
-                .dragFromIn  = capture.timeline.inPoint
-                .dragFromOut = capture.timeline.outPoint
                 if capture.selection.count == 1
                 {
                     let form: *BaseForm = capture.forms[capture.selection[0]]
@@ -417,12 +433,12 @@ impl TimelineBar
         }
     }
 
-    // Returns the end of the kept part a press at `x` takes, or none for the playhead.
+    // Returns a selected form edge a press takes, or none for the playhead.
     mtd edgeAt(x, y: f32)->TimelineEdge
     {
         let capture = unwrap .capture()
         let track = .trackRect()
-        if capture.selection.count == 1 and y >= track.vertCenter() + 4
+        if capture.selection.count == 1 and y >= track.y + track.height * 0.7
         {
             let form: *BaseForm = capture.forms[capture.selection[0]]
             let finish = form.timeEnd ? form.timeEnd : capture.timeline.duration
@@ -433,12 +449,6 @@ impl TimelineBar
             if right >= track.x and right <= track.right() and Math.abs(x - right) <= TimelineEdgeReach do
                 return .FormEnd
         }
-        if Math.abs(x - .trackX(capture.trimStart())) <= TimelineEdgeReach and
-           .trackX(capture.trimStart()) >= track.x and .trackX(capture.trimStart()) <= track.right() do
-            return .Start
-        if Math.abs(x - .trackX(capture.trimEnd())) <= TimelineEdgeReach and
-           .trackX(capture.trimEnd()) >= track.x and .trackX(capture.trimEnd()) <= track.right() do
-            return .End
         return .None
     }
 
@@ -449,20 +459,13 @@ impl TimelineBar
         if not capture or not capture.frames do
             return
 
-        // The ends follow the pointer without leaving an undo step at each move; the release
-        // makes the whole drag one step.
+        // A form edge follows the pointer without leaving an undo step at each move; the release
+        // makes the whole drag one step. Video trim bounds belong to the context menu.
         switch .dragEdge
         {
         case .None:
             .seek(x)
             return
-
-        case .Start:
-            capture.timeline.inPoint = Math.min(.timeAt(x), capture.trimEnd() - 1)
-
-        case .End:
-            let finish = Math.min(Math.max(.timeAt(x), capture.trimStart() + 1), capture.timeline.duration)
-            capture.timeline.outPoint = finish >= capture.timeline.duration ? 0 : finish
 
         case .FormStart:
             let form: *BaseForm = capture.forms[capture.selection[0]]
@@ -480,7 +483,7 @@ impl TimelineBar
         .invalidate()
     }
 
-    // Ends the drag of an end of the kept part as one undoable edit.
+    // Ends the drag of a selected form edge as one undoable edit.
     mtd endEdgeDrag()
     {
         let edge = .dragEdge
@@ -505,12 +508,6 @@ impl TimelineBar
             return
         }
 
-        let keptIn  = capture.timeline.inPoint
-        let keptOut = capture.timeline.outPoint
-        capture.timeline.inPoint  = .dragFromIn
-        capture.timeline.outPoint = .dragFromOut
-        capture.setTrim(keptIn, keptOut)
-        .invalidate()
     }
 
     // Moves the playhead to the frame shown at `x`, in local coordinates on the track.

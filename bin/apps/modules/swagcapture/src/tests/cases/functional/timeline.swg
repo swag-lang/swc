@@ -56,7 +56,7 @@ func testProfileVersion(file: string)->u32
 
     let bar = unwrap main.timeline
     var inspected: bool
-    host.app.sigFrame += func|host = &host, inspected = &inspected|(_)
+    host.app.sigFrame += func|host = &host, capture = capture, shape = shape, inspected = &inspected|(_)
     {
         if inspected[] do
             return
@@ -81,6 +81,40 @@ func testProfileVersion(file: string)->u32
             for right in index + 1 until iconItems.count do
                 Swag.require(menu.items[left]!.icon != menu.items[iconItems[right]]!.icon)
         }
+
+        expect capture.showFrame(0)
+        menu.updateState()
+        Swag.require(menu.items[1]!.disabled)
+        Swag.require(not menu.items[2]!.disabled)
+
+        expect capture.showFrame(2)
+        menu.updateState()
+        Swag.require(not menu.items[1]!.disabled)
+        Swag.require(menu.items[2]!.disabled)
+
+        capture.setTrim(50_000, 100_000)
+        menu.updateState()
+        Swag.require(menu.items[4]!.disabled)
+        Swag.require(not menu.items[5]!.disabled)
+
+        shape.timeEnd = 150_000
+        menu.updateState()
+        Swag.require(menu.items[8]!.disabled)
+        Swag.require(not menu.items[9]!.disabled)
+
+        shape.timeStart = 250_000
+        shape.timeEnd   = 0
+        menu.updateState()
+        Swag.require(not menu.items[8]!.disabled)
+        Swag.require(menu.items[9]!.disabled)
+
+        shape.timeStart = 50_000
+        shape.timeEnd   = 250_000
+        capture.setTrim(50_000, 250_000)
+        expect capture.showFrame(1)
+        menu.updateState()
+        Swag.require(not menu.items[4]!.disabled and not menu.items[5]!.disabled)
+        Swag.require(not menu.items[8]!.disabled and not menu.items[9]!.disabled)
         inspected[] = true
         Swag.require(host.clickPopupMenuItem(ActionTimeline.TrimStart))
     }
@@ -94,13 +128,12 @@ func testProfileVersion(file: string)->u32
     capture.setTrim(50_000, 100_000)
     expect capture.showFrame(0)
     main.sendCommandEvent(ActionTimeline.TrimEnd)
-    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 50_001)
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 100_000)
 
     capture.setTrim(50_000, 100_000)
     expect capture.showFrame(2)
     main.sendCommandEvent(ActionTimeline.TrimStart)
-    Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
-    capture.undo()
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 100_000)
 
     capture.setSelectionSpanAt(true, 300_000)
     Swag.require(shape.timeStart == 249_999 and shape.timeEnd == 250_000)

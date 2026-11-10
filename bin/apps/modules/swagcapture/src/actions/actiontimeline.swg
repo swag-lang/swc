@@ -27,6 +27,20 @@ impl IActionUI for ActionTimeline
         let capture  = main.getCapture()
         let timed    = capture and capture.isTimed() and capture.frames and not main.libraryMode
         let selected = timed and capture!.selection.count
+        let playhead = timed ? capture!.playheadTime() : 0
+        var canShowFrom  = selected
+        var canShowUntil = selected
+        if selected
+        {
+            let selectedCapture = unwrap capture
+            for index in selectedCapture.selection
+            {
+                let form: *BaseForm = selectedCapture.forms[index]
+                let finish = form.timeEnd ? form.timeEnd : selectedCapture.timeline.duration
+                canShowFrom  = canShowFrom and playhead < finish
+                canShowUntil = canShowUntil and playhead > form.timeStart
+            }
+        }
 
         evt.updatedFields |= .Name | .Icon | .Disabled
         switch cxt.id
@@ -40,22 +54,22 @@ impl IActionUI for ActionTimeline
         case .PrevFrame:
             evt.name     = appStrings().act_PreviousFrame
             evt.icon     = main.theme().icon(.SearchPrevious)
-            evt.disabled = not timed
+            evt.disabled = not timed or capture!.playhead == 0
 
         case .NextFrame:
             evt.name     = appStrings().act_NextFrame
             evt.icon     = main.theme().icon(.SearchNext)
-            evt.disabled = not timed
+            evt.disabled = not timed or capture!.playhead >= capture.timeline.frameCount - 1
 
         case .ShowFrom:
             evt.name     = appStrings().act_ShowFromHere
             evt.icon     = main.theme().icon(.SeekForward)
-            evt.disabled = not selected
+            evt.disabled = not canShowFrom
 
         case .ShowUntil:
             evt.name     = appStrings().act_ShowUntilHere
             evt.icon     = main.theme().icon(.SeekBackward)
-            evt.disabled = not selected
+            evt.disabled = not canShowUntil
 
         case .ShowAlways:
             evt.name     = appStrings().act_ShowAlways
@@ -65,12 +79,12 @@ impl IActionUI for ActionTimeline
         case .TrimStart:
             evt.name     = appStrings().act_TrimStart
             evt.icon     = main.icon(.TimelineStart)
-            evt.disabled = not timed
+            evt.disabled = not timed or playhead >= capture!.trimEnd()
 
         case .TrimEnd:
             evt.name     = appStrings().act_TrimEnd
             evt.icon     = main.icon(.TimelineEnd)
-            evt.disabled = not timed
+            evt.disabled = not timed or playhead <= capture!.trimStart()
 
         case .KeepAll:
             evt.name     = appStrings().act_KeepAll

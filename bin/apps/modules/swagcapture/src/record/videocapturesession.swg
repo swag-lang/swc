@@ -12,23 +12,31 @@ using Core, Core.Errors, Pixel, Video
 // queues against `captureOriginTick` (microseconds)
 // or `captureOrigin100ns` (WASAPI) after the first accepted picture, using the same monotonic
 // clock to keep sound and video aligned.
+// `startEncoder` enables a bounded asynchronous handoff before the first picture. Counters then
+// describe submitted slots; `flush` waits for their encoding and `end` joins the worker.
 #[Swag.NoCopy]
 struct VideoCaptureSession
 {
-    source:             ScreenFrameSource
-    recording:          Mp4.SoftwareRecording
-    pacer:              FramePacer
-    picture:            Image
-    audioConfigs:       Array'Mp4.SoftwareAudioConfig
-    outputDirectory:    String
-    originTick:         u64
-    nextVideoTime:      u64
-    missedSlots:        u64
-    nextSpaceCheckTick: u64
-    minimumFreeSpace:   u64
-    hasOrigin:          bool
-    lowStorageStop:     bool
-    sourceFailures:     u64
+    source:                   ScreenFrameSource
+    recording:                Mp4.SoftwareRecording
+    pacer:                    FramePacer
+    picture:                  Image
+    audioConfigs:             Array'Mp4.SoftwareAudioConfig
+    outputDirectory:          String
+    originTick:               u64
+    nextVideoTime:            u64
+    missedSlots:              u64
+    nextSpaceCheckTick:       u64
+    minimumFreeSpace:         u64
+    hasOrigin:                bool
+    lowStorageStop:           bool
+    sourceFailures:           u64
+    grabMicroseconds:         u64
+    producerWaitMicroseconds: u64
+    freshFrames:              u64
+    submittedFrames:          u64
+    submittedRepeats:         u64
+    encoder:                  VideoCaptureEncoder
 }
 
 impl VideoCaptureSession
@@ -119,32 +127,31 @@ impl VideoCaptureSession
 
         if slot.decodeTime != .nextVideoTime do
             fail BadParameterError{"video capture gap did not align with the next frame"}
-        let outputSlot = FrameSlot{.recording.videoFrameCount(), .nextVideoTime,
+        let outputSlot = FrameSlot{.submittedFrames, .nextVideoTime,
                                    slot.duration, 0}
+        let grabStart = Time.monotonicMicroseconds()
         catch .source.grabInto(&.picture)
         {
             .sourceFailures += 1
-            if not .recording.videoFrameCount() do
-                try .recording.addFrame(&.picture, outputSlot)
-            else do
-                try .recording.repeatLastFrame(outputSlot)
+            try .writeFrame(outputSlot, .submittedFrames != 0)
             .nextVideoTime += slot.duration
             discard catch .source.reopen()
             return false
         }
 
-        try .recording.addFrame(&.picture, outputSlot)
+        .grabMicroseconds += Time.monotonicMicroseconds() - grabStart
+        let encodeStart = Time.monotonicMicroseconds()
+        try .writeFrame(outputSlot, false)
+        .producerWaitMicroseconds += Time.monotonicMicroseconds() - encodeStart
+        .freshFrames   += 1
         .nextVideoTime += slot.duration
         return true
     }
 
     private mtd writeRepeatedPicture(duration: u32) fail
     {
-        let repeated = FrameSlot{.recording.videoFrameCount(), .nextVideoTime, duration, 0}
-        if not .recording.videoFrameCount() do
-            try .recording.addFrame(&.picture, repeated)
-        else do
-            try .recording.repeatLastFrame(repeated)
+        let repeated = FrameSlot{.submittedFrames, .nextVideoTime, duration, 0}
+        try .writeFrame(repeated, .submittedFrames != 0)
         .nextVideoTime += duration
     }
 
@@ -167,11 +174,11 @@ impl VideoCaptureSession
         return .originTick * 10
     }
 
-    // Returns the number of written picture slots, including repeats.
-    mtd const frameCount()->u64 => .recording.videoFrameCount()
+    // Returns accepted picture slots, including repeats; an asynchronous encoder may lag.
+    mtd const frameCount()->u64 => .submittedFrames
 
     // Returns the number of slots filled from a previous picture after a missed grab.
-    mtd const repeatedFrameCount()->u64 => .recording.repeatedFrameCount()
+    mtd const repeatedFrameCount()->u64 => .submittedRepeats
 
     // Returns real-time frame slots missed by screen acquisition, including condensed gaps.
     mtd const missedFrameSlotCount()->u64 => .missedSlots
@@ -187,8 +194,38 @@ impl VideoCaptureSession
         => try .recording.addAudioFrames(samples, trackIndex)
 
     // Makes completed fragments durable without ending the capture.
-    mtd flush() fail => try .recording.flush()
+    mtd flush() fail
+    {
+        try .encoder.waitIdle()
+        try .recording.flush()
+    }
 
     // Completes every audio track and closes the fragmented MP4 file.
-    mtd end() fail => try .recording.end()
+    mtd end() fail
+    {
+        try .encoder.finish()
+        try .recording.end()
+    }
+
+    mtd startEncoder() fail
+    {
+        if .submittedFrames or .encoder.enabled do
+            fail BadParameterError{"start the video capture encoder before submitting pictures"}
+        try .encoder.start(&.recording)
+    }
+
+    private mtd writeFrame(slot: FrameSlot, repeated: bool) fail
+    {
+        if .encoder.enabled do
+            try .encoder.add(&.picture, slot, repeated)
+        elif repeated do
+            try .recording.repeatLastFrame(slot)
+        else do
+            try .recording.addFrame(&.picture, slot)
+        .submittedFrames += 1
+        if repeated do
+            .submittedRepeats += 1
+    }
+
+    mtd opDrop() => .encoder.close()
 }

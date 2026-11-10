@@ -302,6 +302,17 @@ its temporary browser profile;
 remain in the printed temporary evidence directory, or the external directory passed with
 `--output`. This integration is opt-in and is not part of ordinary coverage.
 
+For a native 1080p performance check, supply `--width 1920 --height 1080 --media <movie.mp4>`
+and `--stall-ms 0 --max-missed-frames 2`. The source must itself be 1920 by 1080 and contain the
+440 Hz reference sound. The run reports fresh and repeated slots, readback and encoder work,
+queue wait, and sound losses; the missed-slot budget makes a throughput regression fail.
+Use `--devmode-compiler` to drive the same Release program with `swc.dm.exe`.
+`capture-web-source.py --input <1080p-movie> --output <external-source.mp4> --start 30`
+prepares an eight-second native-resolution excerpt and reference sound with PyAV and NumPy,
+using three codec threads. One reproducible source is Blender Foundation's
+[Sintel trailer](https://download.blender.org/durian/trailer/sintel_trailer-1080p.mp4).
+Download and generate this media outside the checkout; it is not shipped with the application.
+
 For module and application tests, `--test-file` and `--test-tag` select which tests execute; the complete
 owning module is still compiled. Module and application tests run with a twenty-minute `--run-timeout` unless one is given:
 the compiler's five-minute default suits one program, not a whole suite in one process. Standard module and application tests use native executables,

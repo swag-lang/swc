@@ -129,10 +129,12 @@ impl WebCaptureTone
 
     // Use the native window origin rather than the browser's reported screen position;
     // the fixture supplies its content insets, in physical pixels.
-    let x      = bounds.left + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
-    let y      = bounds.top + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
-    let width  = expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_WIDTH"))
-    let height = expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_HEIGHT"))
+    let x         = bounds.left + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
+    let y         = bounds.top + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
+    let width     = expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_WIDTH"))
+    let height    = expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_HEIGHT"))
+    let stallMs   = expect StrConv.toU32(Env.variable("SWAG_CAPTURE_WEB_STALL_MS"))
+    let maxMissed = expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_MAX_MISSED"))
     Console.println("Browser capture rectangle: ", x, ", ", y, " ", width, " x ", height)
 
     var journey: CaptureJourney
@@ -148,7 +150,7 @@ impl WebCaptureTone
     main.captureOptions.sendToEditor      = true
     var stage: u32
     var stalled = false
-    app.sigFrame += func|&journey, x, y, width, height, browser, stage = &stage, stalled = &stalled|(_)
+    app.sigFrame += func|&journey, x, y, width, height, browser, stallMs, maxMissed, stage = &stage, stalled = &stalled|(_)
     {
         Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "web recording timed out")
         if stage[] == 0
@@ -197,7 +199,7 @@ impl WebCaptureTone
             {
                 // A slow picture may stall the UI producer; the sound must remain continuous.
                 stalled[] = true
-                Threading.Thread.sleep(250'ms)
+                Threading.Thread.sleep(Time.Duration.fromMilliseconds(stallMs))
             }
 
             if recorder.elapsed() >= 6_000_000
@@ -206,7 +208,11 @@ impl WebCaptureTone
                              "system loopback must be active, not replaced with silent packets")
                 let audio: *VideoRecordingAudio = recorder.videoAudio
                 Console.println("Web recording: frames=", recorder.video.frameCount(), " duration_us=", recorder.elapsed(), " source_failures=", recorder.video.sourceFailureCount())
-                Console.println("Video missed slots=", recorder.video.missedFrameSlotCount(), " forced_ui_stall_ms=250")
+                Console.println("Video missed slots=", recorder.video.missedFrameSlotCount(), " forced_ui_stall_ms=", stallMs)
+                Console.println("Video work: fresh=", recorder.video.freshFrames, " grab_us=", recorder.video.grabMicroseconds, " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds), " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds), " producer_wait_us=", recorder.video.producerWaitMicroseconds, " runtime_workers=", Swag.workerCount())
+                if maxMissed >= 0 do
+                    Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
+                                 "recording exceeded the requested missed-frame budget")
                 scope
                 {
                     audio.encoderMutex.lock()

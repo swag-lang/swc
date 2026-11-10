@@ -4,6 +4,19 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.109 — Resolve the size of a captured library-menu rating
+
+- Evidence: on Windows, the DevMode compiler asserts in
+  `CodeGenFunctionHelpers::checkedTypeSizeInBytes` (`rawSize > 0`) while compiling
+  `LibraryView.IWnd.showItemMenu` in Swag Capture. The source is the valid closure
+  `func|toolbar = ratingChoices, rating|(wnd)` in `libraryview.swg`. Both
+  `--rebuild-module` and a complete dependency `--rebuild` reproduce it with three workers;
+  the Release compiler builds the application and runs its functional tests.
+- Next: reduce the enclosing rating iteration and closure, identify which capture has an
+  unresolved size, and fix its type/layout publication before native closure lowering.
+- Done when: the reduced capture and the complete application compile with DevMode assertions
+  enabled, without changing the menu source to evade the defect.
+
 ### compiler.core.107 — Reject invalid closure captures without a host exception
 
 - Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.

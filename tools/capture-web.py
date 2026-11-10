@@ -55,14 +55,26 @@ def main():
     parser.add_argument('--output', type=Path)
     parser.add_argument('--width', type=int, default=320)
     parser.add_argument('--height', type=int, default=180)
+    parser.add_argument('--media', type=Path, help='use an MP4 or WebM source with 440 Hz reference sound')
+    parser.add_argument('--stall-ms', type=int, default=250,
+                        help='inject an interface stall; zero measures normal recording')
+    parser.add_argument('--max-missed-frames', type=int,
+                        help='fail if recording misses more than this many frame slots')
     parser.add_argument('--devmode-compiler', action='store_true',
                         help='drive the Release application with swc.dm.exe')
     args = parser.parse_args()
     if args.width < 2 or args.height < 2 or args.width % 2 or args.height % 2:
         parser.error('capture dimensions must be positive even pixel counts')
+    if args.stall_ms < 0 or args.stall_ms > 1000:
+        parser.error('--stall-ms must be between zero and 1000')
+    if args.max_missed_frames is not None and args.max_missed_frames < 0:
+        parser.error('--max-missed-frames must be nonnegative')
     if sys.platform != 'win32':
         parser.error('this integration scenario requires Windows WASAPI loopback')
     repo = Path(__file__).resolve().parent.parent
+    media = args.media.resolve(strict=True) if args.media else repo / 'bin/apps/modules/swagcapture/src/tests/datas/webcapture.webm'
+    if media.suffix.lower() not in ('.mp4', '.webm'):
+        parser.error('--media must be an MP4 or WebM file')
     output = args.output.resolve() if args.output else Path(tempfile.mkdtemp(prefix='capture-web-'))
     if output == repo or repo in output.parents:
         parser.error('--output must be outside the checkout')
@@ -79,8 +91,8 @@ def main():
 
         def do_GET(self):
             if self.path == '/fixture.webm':
-                data = (repo / 'bin/apps/modules/swagcapture/src/tests/datas/webcapture.webm').read_bytes()
-                content_type = 'video/webm'
+                data = media.read_bytes()
+                content_type = 'video/mp4' if media.suffix.lower() == '.mp4' else 'video/webm'
             elif self.path == '/control':
                 data = json.dumps({'mute': (sandbox / 'mute-source').exists()}).encode()
                 content_type = 'application/json'
@@ -122,6 +134,8 @@ def main():
             if time.monotonic() > deadline:
                 raise RuntimeError(f'browser video did not become ready: {status}')
             time.sleep(.1)
+        if args.media and (status['width'], status['height']) != (args.width, args.height):
+            raise RuntimeError(f'native source dimensions must match the capture: {status}')
         command = [sys.executable, str(repo / 'tools/tool.py'), 'apps']
         if args.devmode_compiler:
             command.append('dm')
@@ -133,7 +147,9 @@ def main():
                    '--run-arg', 'swag.capture.native-screen=true']
         environment = dict(os.environ, SWAG_CAPTURE_WEB_INSET_X=str(status['insetX']),
                            SWAG_CAPTURE_WEB_INSET_Y=str(status['insetY']),
-                           SWAG_CAPTURE_WEB_WIDTH=str(args.width), SWAG_CAPTURE_WEB_HEIGHT=str(args.height))
+                           SWAG_CAPTURE_WEB_WIDTH=str(args.width), SWAG_CAPTURE_WEB_HEIGHT=str(args.height),
+                           SWAG_CAPTURE_WEB_STALL_MS=str(args.stall_ms),
+                           SWAG_CAPTURE_WEB_MAX_MISSED=str(args.max_missed_frames if args.max_missed_frames is not None else -1))
         print(f'Browser ready: {status}\nEvidence: {output}', flush=True)
         # Admission is repeated by this explicit host runner immediately before compiling/testing.
         check = repo / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'

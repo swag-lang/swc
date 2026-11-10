@@ -22,9 +22,9 @@ var g_Recorder: *Recorder?
 
 // One recording of a screen area into the frame file of a new capture.
 //
-// The area is grabbed on the interface thread at a fixed rate, while one task at a time writes
-// the previous frame to the file. A frame that arrives while the task is still writing is dropped
-// and counted, so a slow disk costs frames, never memory.
+// The area is grabbed on the interface thread. Video uses a bounded handoff to its encoder;
+// animation uses one writer task at a time. Late capture slots are counted and held pictures
+// preserve video timing. Both paths bound memory when encoding or storage falls behind.
 struct Recorder
 {
     late main:   *MainWnd
@@ -176,9 +176,12 @@ impl Recorder
 
         let options = &main.captureOptions
         let configs = VideoRecordingAudio.configs(options.recordMicrophone, options.recordSystemSound)
+        let rows = cast(u32, (cast(s32, recorder.area.height) + 15) / 16)
+        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), 4'u32, rows)
         recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
                                                         try FrameRate.create(30, 1),
-                                                        options.captureCursor, configs.toSlice())
+                                                        options.captureCursor, configs.toSlice(), sliceCount: slices)
+        try recorder.video.startEncoder()
 
         g_Recorder = recorder
         defer g_Recorder = null

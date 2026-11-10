@@ -200,6 +200,8 @@ impl Capture
     // timed capture.
     mtd const isFormShown(itf: IForm)->bool
     {
+        if .inPlaceEdit and g_CaptureMedia != .Picture do
+            return false
         if not .isTimed() do
             return true
         let form: *BaseForm = itf

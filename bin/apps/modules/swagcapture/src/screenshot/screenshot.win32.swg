@@ -288,9 +288,12 @@ func getScreenRectImageInto(target: *Image, drawCursor: bool, x, y, w, h: s32) f
 {
     #static if #command == Swag.CompilerCommand.Test
     {
-        if target.width != w or target.height != h or target.pixelFormat != .BGRA8 do
-            target[] = Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
-        return
+        if not Env.hasArgument("swag.capture.native-screen=true")
+        {
+            if target.width != w or target.height != h or target.pixelFormat != .BGRA8 do
+                target[] = Image.create(Math.max(w, 1), Math.max(h, 1), .BGRA8)
+            return
+        }
     }
 
     let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)

@@ -284,6 +284,24 @@ Use `-bc release` or `-bc devmode` to select a program configuration. `--debug`,
 `--test-file`, `--test-tag`, `--run-arg`, `--frames`, and other compiler options are forwarded.
 `scripts.bat smoke` recognizes a script's imports and setup, then runs its native executable
 with the smoke frame budget, isolation arguments, and executable timeout.
+
+`python tools/capture-web.py` runs the Windows browser/video/audio integration for Swag Capture
+on an interactive desktop with Chrome. Use `--browser <executable>` to select its installation.
+It serves the owned `webcapture.webm` fixture over loopback HTTP, records six seconds through
+the native selector and recording HUD, reopens the saved capture, and plays it in the editor.
+The browser is paused and muted before a second WASAPI loopback checks the editor's actual
+440 Hz output through a full playback loop and pause. Every MP4 picture is decoded and the
+native presentation bitmap is checked.
+This is an in-process application integration; external mouse hit testing is not covered.
+The runner explicitly enables real screen pixels (`swag.capture.native-screen=true`) and
+native audio output (`swag.audio.native-output=true`); ordinary tests retain their simulated
+desktop and silent engine. Files and settings stay sandboxed. The runner waits for the source
+tone to disappear from the measured output before checking replay. The runner owns and removes
+its temporary browser profile;
+`test.log`, `browser.json`, `sandbox/web.mp4`, decoded pictures and the editor screenshot
+remain in the printed temporary evidence directory, or the external directory passed with
+`--output`. This integration is opt-in and is not part of ordinary coverage.
+
 For module and application tests, `--test-file` and `--test-tag` select which tests execute; the complete
 owning module is still compiled. Module and application tests run with a twenty-minute `--run-timeout` unless one is given:
 the compiler's five-minute default suits one program, not a whole suite in one process. Standard module and application tests use native executables,

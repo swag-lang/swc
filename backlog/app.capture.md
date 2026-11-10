@@ -267,10 +267,17 @@ whole recording loaded at once.
   span and timed annotations into a new MP4 while retaining the separate sound tracks. Library
   export writes MP4 for a video and GIF for an animation. Copy Video places the edited MP4 with
   sound on the clipboard as a file, including from the library. Pause remains unavailable for
-  video. The persistent Win32 GDI `BitBlt` source passes semantic checks, but its
-  large-area cadence has not been measured on Windows hardware. The GIF recorder's
+  video. An opt-in Windows browser integration (`tools/capture-web.py`) exercises the persistent
+  GDI source, native system loopback, saved-library reopen, every H.264 picture, a full editor
+  playback loop and actual XAudio2 output. Its small web fixture does not establish large-area
+  cadence or long-session behavior on Windows hardware. The GIF recorder's
   `RecordingClock` keeps monotonic session time with pauses removed.
-- Next: isolate the generated X11 test runner stall. Measure the persistent GDI source on
+  `TimelineBar.onTimerEvent` decodes synchronously through `Capture.showFrame`; a sampled
+  random seek in a 1510x950 recording takes about 416 ms in a script probe, so a slow seek can
+  block input and presentation independently of codec correctness.
+- Next: measure Windows playback timer/decode delays;
+  compare a bounded asynchronous picture queue with Swag Scope's reader if decode blocks the
+  interface. Isolate the generated X11 test runner stall. Measure the persistent GDI source on
   Windows and use Desktop Duplication acquisition (platform.portability.097) only if the required
   cadence cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
   and readback through the existing H.264 decoder for the timeline and re-export.
@@ -298,9 +305,11 @@ whole recording loaded at once.
   queue overflow, and live 96 kHz float source packets resampled into a 48 kHz MP4 track.
   Swag Capture now connects the native microphone and system-output-loopback backends to two
   separate tracks in its video recorder. The zone bar chooses each source independently; source
-  loss inserts silence while a retry opens it again. The native backends have not been exercised
-  with a Windows device. The editor timeline plays both recorded tracks and follows the first
-  track's audio clock; long-session sync and native-device playback still need verification.
+  loss inserts silence while a retry opens it again. The opt-in Windows browser integration
+  verifies native system-output capture and editor playback by measuring a reference tone in a
+  second WASAPI loopback while the browser is muted. Microphone-device execution and
+  long-session sync still need verification. The editor timeline plays both recorded tracks
+  and follows the first track's audio clock.
   GIF capture has no audio source or track.
 - Next: measure audio/video drift over a long recording and correct any drift beyond one frame;
   then add a microphone level meter, an application-only sound source for window targets, and

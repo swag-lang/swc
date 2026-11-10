@@ -104,8 +104,11 @@ ui_AimNoSound          Pas de son dans un GIF
 ui_AimMicrophone       Microphone
 ui_AimSystemSound      Son du système
 ui_AimSoundUnavailable La capture du son nécessite Windows
-ui_AimAnchored         Suit la fenêtre
+ui_AimAnchored         Liée à %
+msg_RecordingPlaybackFailed Impossible de lire l’enregistrement.
+tip_AimAnchored        Suivre cette fenêtre quand elle se déplace. L’enregistrement libère la fenêtre pour que vous puissiez l’utiliser.
 ui_AimDetached         Zone fixe
+ui_AimPictureDraft     Annotations conservées pour Image
 ui_AimRecord           Enregistrer
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit

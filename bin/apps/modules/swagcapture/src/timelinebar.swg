@@ -25,6 +25,7 @@ struct TimelineBar
     audioVoiceCount: u32
     audioPath:       String
     ownsAudioEngine: bool
+    audioClockLast:   f64 = -1
     isDragging:      bool
     dragEdge:        TimelineEdge     // The selected form edge being dragged, if any.
     dragFromStart:   u64     // Selected form's span when its end is dragged.
@@ -213,14 +214,27 @@ impl IWnd for TimelineBar
 
         // Playback loops over the kept part, as the exported animation does.
         let frames = capture.frames
-        var time   = .playFrom + (Time.monotonicMicroseconds() - .playStart)
+        let now = Time.monotonicMicroseconds()
+        var time = .playFrom + (now - .playStart)
         if .audioVoiceCount and .audioVoices[0] and .audioReader
         {
             let sound = unwrap .audioReader.audioTrack(0)
             let voice = unwrap .audioVoices[0]
             let seconds = sound.timelineStartSeconds() + voice.playbackPositionSeconds()
-            if seconds > 0 do
-                time = cast(u64, seconds * 1_000_000)
+            // An ended or stalled audio cursor cannot stop the video clock. Only a new,
+            // audible position corrects drift; the monotonic clock advances between buffers.
+            if seconds >= 0 and seconds != .audioClockLast and
+               voice.playbackSampleFrame() < sound.sampleFrameCount()
+            {
+                .audioClockLast = seconds
+                let audioTime = cast(u64, seconds * 1_000_000)
+                if Math.abs(cast(f64, audioTime) - cast(f64, time)) > 80_000
+                {
+                    .playFrom = audioTime
+                    .playStart = now
+                    time = audioTime
+                }
+            }
         }
 
         if time >= capture.trimEnd() or time < capture.trimStart()
@@ -235,6 +249,11 @@ impl IWnd for TimelineBar
         if frame != capture.playhead
         {
             catch capture.showFrame(frame)
+            {
+                .stop()
+                .main.reportFailure(appStrings().msg_RecordingPlaybackFailed, Capture.clockText(time, tenths: true))
+                return
+            }
             .revealTime(frames.timeOf(frame))
             .invalidate()
         }
@@ -297,6 +316,11 @@ impl TimelineBar
         let current = .main.getCapture()
         if current != .viewCapture
         {
+            if .viewCapture
+            {
+                .stop()
+                .disposeAudio()
+            }
             .clearThumbnails()
             .viewCapture = current
             .viewStart   = 0
@@ -388,6 +412,7 @@ impl TimelineBar
     // The reader owns the SoundFiles borrowed by the voices, so both stay alive for this bar's life.
     private mtd startAudio(time: u64) fail
     {
+        .audioClockLast = -1
         let capture = .capture()
         if not capture or capture.media != .Video do
             return
@@ -637,7 +662,8 @@ impl TimelineBar
         catch capture.showFrame(frame)
         if .isPlaying()
         {
-            .playFrom  = frames.timeOf(frame)
+            .playFrom = frames.timeOf(frame)
+            catch .startAudio(.playFrom)
             .playStart = Time.monotonicMicroseconds()
         }
 

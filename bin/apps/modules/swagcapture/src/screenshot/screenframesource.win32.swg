@@ -87,8 +87,11 @@ impl ScreenFrameSource
     {
         #static if #command == Swag.CompilerCommand.Test
         {
-            try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
-            return
+            if not Env.hasArgument("swag.capture.native-screen=true")
+            {
+                try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
+                return
+            }
         }
 
         let awareness = SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)

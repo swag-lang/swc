@@ -1565,7 +1565,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     Swag.require(g_Exit and g_GrabDone)
 }
 
-// Recording a fresh zone hands what was drawn on it to the animation. The in-place editor still
+// Recording a fresh zone excludes the picture draft's annotations. The in-place editor still
 // receives frames while the recording runs, after its capture has left: it must not reach for it.
 #[Swag.TestTag("capture.interaction")]
 #test
@@ -1582,8 +1582,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     editor.setMedia(.Animation)
     let zone  = unwrap editor.capture
-    let forms = zone.forms.count
-    Swag.require(forms > 0)
+    Swag.require(zone.forms.count > 0)
 
     // As the grab does once Record is chosen: the view lets the zone go, and the zone is recorded.
     editor.editWnd.editView.capture = null
@@ -1601,12 +1600,10 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     defer Memory.delete(result)
 
     Swag.require(result.media == .Animation and result.width == 440 and result.height == 240)
-    Swag.require(result.forms.count == forms)
-    for form in result.forms do
-        Swag.require(form.capture == result)
+    Swag.require(result.forms.isEmpty())
 }
 
-// The same handoff preserves annotations drawn before choosing Video in the zone.
+// The video handoff also excludes annotations drawn in the picture draft.
 #[Swag.TestTag("capture.interaction")]
 #test
 {
@@ -1622,8 +1619,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     editor.setMedia(.Video)
     let zone  = unwrap editor.capture
-    let forms = zone.forms.count
-    Swag.require(forms > 0)
+    Swag.require(zone.forms.count > 0)
     editor.editWnd.editView.capture = null
     editor.capture = null
     editor.placeBar()
@@ -1637,9 +1633,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     let file   = String.from(result.file)
     defer catch Capture.deleteFiles(file)
     defer Memory.delete(result)
-    Swag.require(result.media == .Video and result.forms.count == forms)
-    for form in result.forms do
-        Swag.require(form.capture == result)
+    Swag.require(result.media == .Video and result.forms.isEmpty())
 }
 
 // The colour popover of the inspector stays open while the colour changes, by a swatch or by the

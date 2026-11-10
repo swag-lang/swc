@@ -64,6 +64,7 @@ struct InPlaceEditWnd
 
     capture:          *Capture?
     kindButton:       *IconButton?
+    linkButton:       *OptionChip?
     late source:      *MainWnd     // The application window the capture was started from.
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
@@ -123,6 +124,7 @@ impl InPlaceEditWnd
     {
         with let newMain = Wnd.create'MainWnd(main.parent, {})
         {
+            .registerAction'InPlaceRecordingActions()
             .registerActions()
             .registerShortcuts()
             .inPlaceEdit = true
@@ -215,6 +217,7 @@ impl InPlaceEditWnd
         let metrics = .themeMetrics()
         let size    = metrics.menuPopup_IconSize
         .bar.clear()
+        .updateLinkButton()
 
         if g_CaptureMedia != .Picture
         {
@@ -391,12 +394,20 @@ impl InPlaceEditWnd
         .bar.addButton(.theme().icon(.WndClose, metrics.menuPopup_IconSize), toolTip: texts.tip_InpClose).sigPressed += func(_) { exitWithResult(false) }
     }
 
-    // Makes the zone a picture or an animation, and fills the bar and the keys again for it. An
-    // animation keeps what was drawn, and the pointer only selects it.
+    // Changes the capture kind and its controls. A recording hides the picture draft without
+    // changing its annotations.
     mtd setMedia(media: CaptureMedia)
     {
         if media == g_CaptureMedia do
             return
+        .editWnd.editView.endTextEdit()
+        if let capture = .capture
+        {
+            capture.stopDrag(.editWnd.editView)
+            capture.selection.clear()
+            capture.hotForm = Swag.U64.Max
+            capture.drawSelRect = false
+        }
         let previous = g_CaptureMedia
         g_CaptureMedia = media
         if media != .Picture
@@ -413,6 +424,7 @@ impl InPlaceEditWnd
         .hintLine.destroy()
         .createHintLine()
         .placeBar()
+        .editWnd.editView.invalidate()
     }
 
     // Puts the cursor in the zone or takes it out, as the capture option says from now on.
@@ -442,6 +454,8 @@ impl InPlaceEditWnd
         {
             if g_CaptureMedia != .Picture
             {
+                if me.capture and not me.capture.forms.isEmpty() do
+                    .setReading(texts.ui_AimPictureDraft)
                 .addHint(strings().key_Enter, texts.hint_Record)
             }
             else
@@ -644,7 +658,61 @@ impl InPlaceEditWnd
         button.setPosition(Math.Rectangle{chip.x + pad * 0.5,
                                           chip.y + (chip.height - height) * 0.5,
                                           .kindButtonWidth, height})
+        if let link = .linkButton
+        {
+            var x = chip.right() + metrics.menuPopup_IconTextMargin
+            var y = chip.y + (chip.height - link.position.height) * 0.5
+            if x + link.position.width > view.clientRect().right()
+            {
+                x = Math.max(view.clientRect().x, chip.right() - link.position.width)
+                y = chip.y - link.position.height - metrics.menuPopup_IconTextMargin
+            }
+            link.move(x, y)
+        }
     }
+
+    // The source belongs beside the dimensions; recording options keep their own compact bar.
+    mtd updateLinkButton()
+    {
+        if not .linkButton and g_CaptureWindow.nativeWindow
+        {
+            with .linkButton = OptionChip.create(.editWnd.editView, .theme().icon(.Link), captureTargetLabel(), g_CaptureAnchored)
+            {
+                .toolTip = Format.toString("%\n%", g_CaptureWindow.title, appStrings().tip_AimAnchored)
+                .resize(.position.width, .themeMetrics().quiet_Height)
+                .sigPressed += func(chip)
+                {
+                    g_CaptureAnchored = not g_CaptureAnchored
+                    chip.on = g_CaptureAnchored
+                    chip.label = captureTargetLabel()
+                    chip.invalidate()
+                }
+            }
+        }
+        if let link = .linkButton do
+            link.show(g_CaptureMedia != .Picture and g_CaptureWindow.nativeWindow != 0)
+    }
+}
+
+// Preparation of a recording permits zone geometry only, including through keyboard commands.
+struct InPlaceRecordingActions {}
+
+impl IActionUI for InPlaceRecordingActions
+{
+    mtd impl accept(cxt: ActionContext)->bool
+    {
+        // Kind choices remain available while annotation commands are out of reach.
+        for media in KindMedia where cxt.id == kindMenuId(media) do
+            return false
+        return mainWndOf(cxt).inPlaceEdit and g_CaptureMedia != .Picture
+    }
+    mtd impl update(_: ActionContext, evt: *CommandStateEvent)->bool
+    {
+        evt.disabled = true
+        evt.updatedFields |= .Disabled
+        return true
+    }
+    mtd impl execute(_: ActionContext)->bool => true
 }
 
 impl IWnd for InPlaceEditWnd

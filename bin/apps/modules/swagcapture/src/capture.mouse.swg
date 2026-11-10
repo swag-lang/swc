@@ -86,6 +86,11 @@ impl Capture
         localPos.x -= captureRect.x
         localPos.y -= captureRect.y
 
+        // Recording preparation exposes the rectangle alone. Tool shortcuts and modifier
+        // drags must not reach the image annotation paths, even outside the selected zone.
+        if .inPlaceEdit and g_CaptureMedia != .Picture do
+            return .gizmo.mouse(view, localPos, evt)
+
         if .mouseMode == .None and .mouseHover(view, localPos, evt) do
             return true
         if .hotForm != Swag.U64.Max do

@@ -74,6 +74,17 @@ var g_DesktopTexture: Texture
 var g_CaptureWindow:  CaptureWindowInfo
 var g_CaptureAnchored: bool
 
+// Names the application the selected zone follows, with its window title as fallback.
+func captureTargetLabel()->String
+{
+    if not g_CaptureAnchored do
+        return String.from(appStrings().ui_AimDetached)
+    let name = g_CaptureWindow.title.isEmpty() ? g_CaptureWindow.application : g_CaptureWindow.title
+    let font = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
+    let fitted = Painter.elideString(name, font, 180)
+    return Format.toString(appStrings().ui_AimAnchored, fitted)
+}
+
 // The cursor as it stood when the desktop was grabbed: a patch of the desktop with the cursor
 // drawn in, laid over the grabbed picture when the capture keeps the cursor, and the same pixels
 // without it, which take it out again. The overlay shows it or not as the option changes.
@@ -287,8 +298,8 @@ func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: C
 }
 
 // Records the zone `zone` was taken from, where it now stands, and returns the new timed
-// capture, or null when nothing was kept. What was drawn on the zone annotates the whole
-// recording. `zone` is freed.
+// capture, or null when nothing was kept. Picture annotations do not enter the recording.
+// `zone` is freed.
 func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture? fail
 {
     defer Memory.delete(zone)
@@ -299,6 +310,9 @@ func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture
     target.offset.x += screenArea.x - target.area.x
     target.offset.y += screenArea.y - target.area.y
     target.area = screenArea
+    // The preparation bar can change the attachment after the rectangle was selected.
+    if g_CaptureWindow.nativeWindow do
+        target = CaptureTarget.create(screenArea, g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
     var result: *Capture?
     if g_CaptureMedia == .Video do
         result = try Recorder.recordVideo(main, target)
@@ -307,18 +321,8 @@ func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture
     if not result do
         return null
 
-    zone.selection.clear()
-    zone.gizmo.sigHasChanged = null
-    result.forms             = #move zone.forms
-    result.nextStepIndex     = zone.nextStepIndex
-    result.nextGroupId       = zone.nextGroupId
-    let scale = cast(f32, result.width) / cast(f32, zone.width)
-    for form in result.forms
-    {
-        form.capture = result
-        if scale < 1 do
-            form.scaleBaseForm(scale)
-    }
+    // The picture draft stays intact while choosing a medium, but its annotations are not
+    // part of a screen recording. The zone owns and releases them after recording ends.
     return result
 }
 

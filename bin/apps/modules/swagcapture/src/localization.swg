@@ -103,6 +103,7 @@ struct AppStrings
     msg_FailedLocateCapture:   string = "Failed to locate capture file"
     msg_FailedLocateLinked:    string = "Failed to locate linked image"
     msg_MissingFrames:         string = "The recording media is missing or was replaced"
+    msg_RecordingPlaybackFailed: string = "The recording could not be played."
     msg_FailedSaveFile:        string = "Failed to save file"
     msg_FailedSaveCapture:     string = "Failed to save capture file: %"
     msg_FailedRename:          string = "Failed to rename capture"
@@ -140,8 +141,10 @@ struct AppStrings
     ui_AimMicrophone:          string = "Microphone"                  // Separate microphone track in a video recording.
     ui_AimSystemSound:         string = "System sound"                // Separate system-output track in a video recording.
     ui_AimSoundUnavailable:    string = "Sound capture needs Windows" // Platform limitation of native sound capture.
-    ui_AimAnchored:            string = "Following window"           // An area moves with the selected window while recording.
+    ui_AimAnchored:            string = "Linked to %"                // The selected application follows the placeholder.
+    tip_AimAnchored:           string = "Follow this window when it moves. Recording releases the window so you can use it."
     ui_AimDetached:            string = "Fixed area"                 // An area stays at screen coordinates while recording.
+    ui_AimPictureDraft:        string = "Annotations kept for Picture"
     ui_AimRecord:              string = "Record"                      // Action of the aiming overlay starting a recording.
     msg_FailedCaptureScreen:   string = "Failed to capture the screen"
     msg_FailedRecordScreen:    string = "The recording could not be written"

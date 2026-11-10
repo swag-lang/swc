@@ -484,6 +484,14 @@ impl Recorder
                 excludeCaptureChrome(surface)
         }
 
+        // The selection overlay is gone. Give keyboard input back to the recorded window;
+        // only the border strips and the controls remain above it.
+        #static if #os == Swag.TargetOs.Windows
+        {
+            if .target.window do
+                discard Win32.SetForegroundWindow(cast(Win32.HWND, .target.window))
+        }
+
         // Escape abandons the recording from any application, for as long as it runs only.
         catch g_App.registerHotKey(.None, .Escape, ActionCapture.CancelRecording, .main)
         .ownsEscape = true

@@ -8,15 +8,17 @@ var g_Driver: Driver
 // [[Audio.Bus]]. `kind` selects the native or headless backend. Pair a
 // successful call with [[Audio.destroyEngine]] after all voices and buses have
 // been released.
+// Sandboxed runs use [[Audio.DriverKind.NoSound]] unless explicitly launched with
+// `--run-arg swag.audio.native-output=true` for a native audio integration test.
 public func createEngine(kind: DriverKind = .Default) fail
 {
     if g_Driver.isCreated do
         fail BadParameterError{"audio engine is already created"}
 
-    // A sandboxed run never opens the machine's audio device. Nobody wants a test suite or a
-    // smoke run making noise, and the device is a shared resource like any other.
+    // Ordinary tests and smokes stay silent. A device integration runner must opt in explicitly;
+    // filesystem and settings isolation still apply to that run.
     var resolved = kind
-    if Env.isSandboxed() do
+    if Env.isSandboxed() and not Env.hasArgument("swag.audio.native-output=true") do
         resolved = .NoSound
 
     try g_Driver.create(resolved)

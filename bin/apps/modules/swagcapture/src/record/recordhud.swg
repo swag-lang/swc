@@ -118,6 +118,11 @@ impl IWnd for RecordHud
 
         // The rule before the commands.
         let ruleX = .pauseButton.position.x - RecordHudButtonGap - 1
+        let target = captureTargetLabel()
+        let targetFont = .theme().createDefaultFontFs(.themeMetrics().defaultFontSize - 1)
+        let targetWidth = Painter.measureString(target, targetFont).width
+        painter.drawString(ruleX - RecordHudTextMargin - targetWidth,
+                           targetFont.opticalLineTop(cy), target, targetFont, colors.softText)
         painter.fillRect({ruleX, cy - RecordHudRuleHeight * 0.5, 1, RecordHudRuleHeight}, colors.line)
 
         if .shownState != .recorder.state or .shownTargetPause != .recorder.pausedForTarget
@@ -140,7 +145,7 @@ impl RecordHud
     // monitor of scale `scale`: under the frame, over it, or beside it when vertical room is tight.
     func open(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->*RecordHud?
     {
-        let logicalWidth = widthFor(recorder.limit)
+        let logicalWidth = widthFor(recorder.limit, captureTargetLabel())
         let outer        = placement(recorder, frame, scale)
 
         // A sheet casts the floating shadow into a margin around its body: the window is the pill
@@ -174,7 +179,7 @@ impl RecordHud
     // Places the pill beside the frame and inside the current monitor's work area.
     private func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
     {
-        let logicalWidth = widthFor(recorder.limit)
+        let logicalWidth = widthFor(recorder.limit, captureTargetLabel())
         let width        = Math.ceil(logicalWidth * scale)
         let height       = Math.ceil(RecordHudHeight * scale)
         let gap          = Math.ceil(RecordHudGap * scale)
@@ -208,6 +213,7 @@ impl RecordHud
         with let result = Wnd.create'RecordHud(parent)
         {
             .recorder        = recorder
+            .toolTip         = g_CaptureWindow.title
             .backgroundStyle = .Transparent
             .createCommands()
         }
@@ -220,7 +226,7 @@ impl RecordHud
 
     // Returns the logical width of a pill whose recording has `limit` microseconds at most, zero
     // for none: room for the longest time it can show, so the pill never changes size.
-    func widthFor(limit: u64)->f32
+    func widthFor(limit: u64, targetLabel: string = "")->f32
     {
         var widest = limit ? Capture.clockText(limit) : String.from("0:00:00")
         if limit
@@ -234,7 +240,8 @@ impl RecordHud
 
         let font     = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
         let commands = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
-        return Math.ceil(RecordHudLeft + RecordHudRing + 2 * RecordHudTextMargin + Painter.measureString(widest, font).width + commands + RecordHudRight)
+        let targetWidth = Painter.measureString(targetLabel, font).width
+        return Math.ceil(RecordHudLeft + RecordHudRing + 3 * RecordHudTextMargin + Painter.measureString(widest, font).width + targetWidth + commands + RecordHudRight)
     }
 
     // Creates the commands of the recording; [[RecordHud.onResizeEvent]] places them.

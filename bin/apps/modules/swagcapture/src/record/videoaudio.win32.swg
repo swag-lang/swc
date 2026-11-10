@@ -131,19 +131,27 @@ impl VideoRecordingAudio
     {
         if .hasMicrophone
         {
+            discard catch .microphone.pump()
             .microphone.close()
             .hasMicrophone = false
         }
-        if .wantsMicrophone do
-            discard catch .microphonePump.pump()
+        // The live pump is deliberately bounded. At stop, drain every retained block, including
+        // the resampler tail, before finalizing AAC; one live budget could leave audible data out.
+        if .wantsMicrophone
+        {
+            while (catch .microphonePump.pump(65_536)) != 0 {}
+        }
         .wantsMicrophone = false
         if .hasSystem
         {
+            discard catch .system.pump()
             .system.close()
             .hasSystem = false
         }
-        if .wantsSystem do
-            discard catch .systemPump.pump()
+        if .wantsSystem
+        {
+            while (catch .systemPump.pump(65_536)) != 0 {}
+        }
         .wantsSystem = false
     }
 

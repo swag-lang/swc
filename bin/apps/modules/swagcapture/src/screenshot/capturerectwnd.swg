@@ -288,7 +288,7 @@ impl CaptureRectWnd
         let text    = Format.toString("% · % × %", media, grabRect.width, grabRect.height)
         let key     = Format.toString("  %", Gui.strings().key_Tab)
         let anchor  = g_CaptureWindow.nativeWindow ?
-                      (g_CaptureAnchored ? appStrings().ui_AimAnchored : appStrings().ui_AimDetached) : ""
+                      captureTargetLabel() : String{}
         let anchorText = anchor.count ? Format.toString(" · %  A", anchor) : String{}
         let width   = Painter.measureString(text, font).width + Painter.measureString(key, font).width +
                       Painter.measureString(anchorText, font).width + 2 * AreaChipPadding

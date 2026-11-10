@@ -519,7 +519,9 @@ private impl Encoder
                     bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
                     bits.unsigned(0)           // Chroma DC prediction.
                     bits.signed(0)             // No QP change.
-                    if .quantizationQp
+                    // P pictures can have inter residuals beside a flat intra block even
+                    // in exact mode. Their coefficient counts select its DC token table.
+                    if .quantizationQp or not key
                     {
                         var empty: [16] s16
                         discard bits.residual4(empty.buffer,

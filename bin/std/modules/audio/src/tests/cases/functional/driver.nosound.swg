@@ -12,6 +12,16 @@ func audioStartNoSoundEngine()
     Swag.require(g_Driver.kind == .NoSound)
 }
 
+// Ordinary sandboxed applications stay silent even when asking for the default native driver.
+#test
+{
+    Swag.require(Env.isSandboxed())
+    Swag.require(not Env.hasArgument("swag.audio.native-output=true"))
+    expect createEngine()
+    defer destroyEngine()
+    Swag.require(activeDriverKind() == .NoSound)
+}
+
 #test
 {
     Swag.require(not isEngineCreated())

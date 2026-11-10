@@ -217,17 +217,19 @@ namespace
         for (uint32_t tokIndex = startTokRef.get(); tokIndex <= snippetEndTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
             updateModuleApiDelimiterBalance(balance, srcView.token(TokenRef(tokIndex)).id);
 
-        if (balance.empty())
-            return;
-
-        for (uint32_t tokIndex = snippetEndTokRef.get() + 1; tokIndex < srcView.tokens().size(); ++tokIndex)
+        for (uint32_t tokIndex = snippetEndTokRef.get() + 1; !balance.empty() && tokIndex < srcView.tokens().size(); ++tokIndex)
         {
             const Token& token = srcView.token(TokenRef(tokIndex));
             updateModuleApiDelimiterBalance(balance, token.id);
             ioEndOffset = srcView.tokenByteEnd(token);
-            if (balance.empty())
-                return;
+            snippetEndTokRef = TokenRef(tokIndex);
         }
+
+        // Function-type fallibility is a flag, not a child of its AST range. Keep the
+        // trailing modifier after balancing its parameters or visiting its return type.
+        const uint32_t nextIndex = snippetEndTokRef.get() + 1;
+        if (nextIndex < srcView.tokens().size() && srcView.token(TokenRef(nextIndex)).id == TokenId::KwdFail)
+            ioEndOffset = srcView.tokenByteEnd(srcView.token(TokenRef(nextIndex)));
     }
 
     struct ModuleApiStripRange

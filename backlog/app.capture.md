@@ -170,14 +170,15 @@ whole recording loaded at once.
 
 ### app.capture.030 — Verify recording-control exclusion on Windows
 
-- Evidence: the recorder follows an anchored window and pauses when it is hidden; X11 excludes
-  a pill overlapping the area during root grabs, covered by an isolated-display test. Windows
-  applies `WDA_EXCLUDEFROMCAPTURE` to the pill and frame, but that native path has not been run
-  on a Windows desktop.
+- Evidence: X11 excludes a pill overlapping the area during root grabs, covered by an isolated
+  display test. Windows applies `WDA_EXCLUDEFROMCAPTURE` to the pill and frame; the native browser
+  integration exercises that recording path, but does not force chrome overlap or assert its
+  removal from the captured pixels. Video target visibility and sound servicing remain
+  app.capture.011/app.capture.013.
 - Next: run a native full-screen recording on Windows and assert its frames contain neither the
   frame nor the pill, including a display where the pill overlaps the selected area.
 - Done when: the Windows recording test passes and the controls remain usable throughout it.
-- Related: platform.portability.097
+- Related: app.capture.011, app.capture.013, platform.portability.097
 
 ### app.capture.038 — The kind menu still needs sound-only and scrolling capture
 
@@ -203,123 +204,75 @@ whole recording loaded at once.
   the stored recording is unchanged.
 - Related: app.capture.011, app.capture.037
 
-### app.capture.011 — No video recording
+### app.capture.011 — Make two-hour video recordings reliable
 
-- Evidence: video recording is a product goal of the universal capture. The `Video.Writer`
-  facade still writes Motion JPEG in MP4 and AVI, plus Y4M. Separately, pure Swag H.264 and
-  AAC-LC encoders now feed a resumable fragmented-MP4 writer with video and sound tracks;
-  `Video.Reader` and FFmpeg play their output. `Video.Mp4.SoftwareRecording` now joins the
-  encoders, exact video frame slots, arbitrary PCM chunks, AAC priming and MP4 finalization.
-  Synthetic static and scrolling 1080p60 sequences encode faster than real time in Release.
-  A headless X11 integration test now grabs actual changing window pixels through
-  `ScreenFrameSource`, encodes three frames (including a repeated one) with synthetic PCM16 into
-  MP4, and reopens the H.264 pictures and AAC sound through `Video.Reader`.
-  `VideoCaptureSession` now keeps a screen source, exact frame pacer and MP4 writer alive; X11
-  tests cover sound input, repeated missed slots, source failure and recovery, and a black first
-  frame before a source returns. A four-hour video interruption now uses one held MP4 picture
-  instead of encoding 863,999 repeated frames; the reader seeks within its exact long duration.
-  The X11 source uses native MIT-SHM through the existing XCB
-  connection and reuses frame storage. Parallel 4K BGRA conversion improved acquisition from
-  6.1–6.3 to 4.7–5.1 ms per image with full color parity; 1080p remains about 1.2 ms on its
-  sequential path. An opt-in 4K60 test on a static Xorg dummy screen measured
-  1.033–1.048 seconds for 60 screen grabs and encoded frames, with a 40,846-byte MP4;
-  adding 48 stereo AAC packets took 1.282 seconds total. `Video.Reader` reopened the file in
-  3.6 ms and decoded the last frame in 298 ms. This is a synthetic static scene just beyond
-  real time. A separate X11 4K60 changing-screen test with AAC takes 2.75 seconds for 60
-  capture/convert/encode/write operations (45.8 ms per image), plus 0.21 seconds for AAC, and
-  produces a 99.2 MB MP4. `Video.Reader`, FFprobe and FFmpeg read both tracks; the output-sound
-  test has no actual audio device. `VideoCaptureSession` accepts optional H.264 QP 0–51 and
-  one through eight row-band slices, preserving exact QP 0 and one slice by default. On the
-  same dynamic X11 4K60 scene, quantized QP 28 with four slices, motion residuals and
-  P-slice Intra16x16 coding of flat regions took 2.40–2.93 seconds across earlier runs.
-  A later portable flat-block row comparison reduced a paired run from 2.514 to 2.340
-  seconds. Direct flat luma DC quantization moved one run to 2.289 seconds; a single-DC
-  CAVLC path then reduced a paired run with the same AAC from 2.301 to 2.229 seconds,
-  with a byte-identical MP4. The file is 4.159 MB after separate AAC section savings,
-  at 48.41 dB final-frame luma PSNR. Flat P Intra now also supports QP 36: a current
-  app run took 2.214 seconds, 3,180,677 bytes and 40.26 dB, compared with
-  3.55–3.73 seconds, 10.06 MB and 38.10 dB on the earlier path. Reader and FFmpeg
-  decode the 60 pictures and AAC. Exact QP 0
-  with four slices and one matching diagonal motion vector takes
-  1.37–1.51 seconds and produces 7.78 MB. These modes remain slower than the one-second
-  4K60 target on this machine. `VideoCaptureSession` also
-  checks the destination volume once per second, reserves 64 MiB by default, and finalizes
-  the last playable MP4 prefix when free space falls below that threshold; an integration
-  test reopens its final video and AAC tracks after the simulated stop. The nine X11
-  integration tests passed before the last chroma shortcut; two later repeats stalled in
-  the first generated X11 test at three and one workers. Temporary trace prints narrowed
-  repeated direct-run timeouts to just before or within `Reader.decodeFramePlanesInto`:
-  at two runtime workers, 4 of 12 and then 5 of 24 runs stopped between `Reader.open`
-  and the first decoded picture, while 12 of 12 at one worker passed. Closing the X11
-  fixture before decoding did not resolve it (5 of 24 timeouts). A temporary small-image
-  reconstruction threshold did not resolve it (3 of 24 timeouts), but source inspection
-  showed that this one-slice IDR already uses inline reconstruction, so that threshold
-  did not test the parallel band pipeline. Limiting the tiny stream to one H.264 frame
-  lane also left 3 timeouts in 48 direct runs at two workers. A separate run stopped
-  before the test body. Deeper temporary markers gave 7 timeouts in 24 runs before
-  `prepareAccessUnit` finished; a second 24-run pass gave 3 timeouts, one inside
-  `handleNal` for the first IDR and two after frame submission while a decode worker
-  was active. The point moves with instrumentation, so no H.264 or runtime root
-  cause is proven. All diagnostic edits were removed. The intermittent test-runner
-  or decode stall still needs isolation. Swag Capture now offers Video in the zone's kind menu and a Record Video
-  command. The recording controls create an MP4 beside the capture document; the editor and
-  library reopen its timeline. Save as Video copies an untouched recording, or renders its chosen
-  span and timed annotations into a new MP4 while retaining the separate sound tracks. Library
-  export writes MP4 for a video and GIF for an animation. Copy Video places the edited MP4 with
-  sound on the clipboard as a file, including from the library. Pause remains unavailable for
-  video. An opt-in Windows browser integration (`tools/capture-web.py`) exercises the persistent
-  GDI source, native system loopback, saved-library reopen, every H.264 picture, a full editor
-  playback loop and actual XAudio2 output. Its small web fixture does not establish large-area
-  cadence or long-session behavior on Windows hardware. The GIF recorder's
-  `RecordingClock` keeps monotonic session time with pauses removed.
-  `TimelineBar.onTimerEvent` decodes synchronously through `Capture.showFrame`; a sampled
-  random seek in a 1510x950 recording takes about 416 ms in a script probe, so a slow seek can
-  block input and presentation independently of codec correctness.
-- Next: measure Windows playback timer/decode delays;
-  compare a bounded asynchronous picture queue with Swag Scope's reader if decode blocks the
-  interface. Isolate the generated X11 test runner stall. Measure the persistent GDI source on
-  Windows and use Desktop Duplication acquisition (platform.portability.097) only if the required
-  cadence cannot be met, with pacing/repeated lost frames, a fragmented MP4 master (std.video.016),
-  and readback through the existing H.264 decoder for the timeline and re-export.
-  Long recordings need, beside the stream: a recording folder that may differ from the library,
-  a visible low-space stop reason and optional automatic splitting by
-  duration or size, and recovery when the source is lost (secure desktop, display change, GPU
-  reset) by repeating the last frame and reacquiring instead of ending the recording.
-- Done when: a four-hour recording of a 1080p monitor at 60 frames per second, and a 4K one at 60
-  for an hour, produce playable MP4 files with memory independent of the duration and reported
-  dropped frames; the recording continues across a lock screen, an elevation prompt and a display
-  mode change; and the file stays playable after the process is killed mid-recording.
-- Related: app.capture.013, app.capture.014, app.capture.034, app.capture.037,
-  platform.portability.097, std.video.015, std.video.016
+- Evidence: `Recorder.recordVideo` has no duration limit and streams H.264/AAC into fragmented
+  MP4 while recording. The writer bounds picture, PCM and packet storage; retaining an untouched
+  recording needs a file copy rather than a final encode. `tools/capture-web.py` verifies actual
+  Windows browser pixels, native system sound, saved-library reopen, every picture and a full
+  editor playback loop with measured XAudio2 output. Its six-second 320x180 fixture establishes
+  neither 1080p throughput nor two-hour endurance or synchronization.
+  The application fixes video capture at 30 fps and uses software H.264 with exact QP 0, one
+  slice and no target bitrate. Screen acquisition, video encoding and audio pumping run on the
+  interface thread. Storage use and interface stalls therefore need representative measurements.
+  `recordVideo` deletes `fileToDiscard` on failure until adoption succeeds, even when completed
+  MP4 fragments already exist. A stopped process can leave a playable orphan MP4, but library
+  enumeration does not discover it without its capture document and the app has no recovery flow.
+  `VideoCaptureSession` inherits one video/AAC packet per fragment and no final random-access
+  index. Two hours at 30 fps with one 48 kHz audio track means about 554,000 fragment headers.
+  `Video.Reader` scans headers and builds sample tables when opening; the editor decodes on the
+  interface thread. A sampled random seek in a 1510x950 recording takes about 416 ms.
+  The low-space path checks once per second with a 64 MiB reserve and can finalize a prefix;
+  sudden disk errors, source loss and process termination have not been verified as one native
+  application lifecycle. Intermittent generated X11 test stalls remain unisolated around startup,
+  H.264 access-unit preparation and decode workers; instrumentation changes their location.
+- Next: first retain completed media on recording/finalization/adoption errors and make an orphan
+  MP4 recoverable as a capture; only explicit cancellation should discard useful media. Add a
+  focused fault-injection test and a separate-process termination/reopen scenario.
+  Then measure a moving 1080p30 browser source with audio, select a bounded recording-quality
+  policy, and keep acquisition/encoding and audio servicing from blocking each other or input.
+  Group fragments within a stated recovery-loss budget, emit the final key-frame index and use
+  it for fast opening/seeking through std.video.016. Preserve the resumable media prefix.
+  Add an explicit two-hour native endurance runner with a visible time code and synchronized
+  sound markers; sample drift, RSS, CPU, byte rate, free space, actual/repeated pictures and queue
+  losses at the beginning, middle and end. Its checks must include recording stop, reopen, seeking
+  near the end and playback. A short fixture loop and simulated timestamps are not that proof.
+  Define the destination separately from the library, report a low-space stop visibly, and verify
+  source/window loss and restoration without losing usable video or stopping sound servicing.
+- Done when: a real two-hour 1080p30 browser recording with system sound remains responsive,
+  keeps recording memory bounded, has no unreported losses, meets the drift bound in app.capture.013,
+  stops without a whole-recording encode, and opens/seeks/plays promptly. Disk failure or process
+  termination leaves the completed prefix recoverable. Higher-resolution/cadence encoder goals
+  remain in std.video.015; native control-exclusion coverage remains app.capture.030.
+- Related: app.capture.013, app.capture.030, app.capture.037, std.video.015, std.video.016,
+  platform.portability.097
 
-### app.capture.013 — Recordings cannot include audio
+### app.capture.013 — Keep recorded sound available and synchronized over long sessions
 
-- Evidence: `Audio.CaptureQueue` now reports PCM timing, gaps, overflow and source restoration
-  with bounded storage; software AAC and MP4 recording consume its output. A simulated
-  microphone outage produces audible sound, silence, then sound in a decoded MP4. Native
-  WASAPI microphone and system-output-loopback backends pass Windows semantic checks and
-  simulated PCM conversion, loss, idle-silence and clock-drift tests. `VideoAudioPump` transfers
-  two independent capture queues to separate MP4 tracks in bounded chunks, including a
-  simulated four-hour source gap without generating all its silence in one call. App tests
-  reopen the MP4 and check both decoded tracks before, during and after the gap, a bounded
-  queue overflow, and live 96 kHz float source packets resampled into a 48 kHz MP4 track.
-  Swag Capture now connects the native microphone and system-output-loopback backends to two
-  separate tracks in its video recorder. The zone bar chooses each source independently; source
-  loss inserts silence while a retry opens it again. The opt-in Windows browser integration
-  verifies native system-output capture and editor playback by measuring a reference tone in a
-  second WASAPI loopback while the browser is muted. Microphone-device execution and
-  long-session sync still need verification. The editor timeline plays both recorded tracks
-  and follows the first track's audio clock.
-  GIF capture has no audio source or track.
-- Next: measure audio/video drift over a long recording and correct any drift beyond one frame;
-  then add a microphone level meter, an application-only sound source for window targets, and
-  post-recording track levels on export. Add a sound-only medium with a waveform timeline when
-  it supports a concrete capture workflow.
-- Done when: a recording with sound stays within one video frame of sync over four hours, each
-  source's level can be changed after recording, unplugging and replugging a device mid-recording
-  leaves silence on its track instead of ending the recording, recording without any audio device
-  still works, and a sound-only capture exports a playable file.
-- Related: std.audio.011, std.audio.013, std.audio.015, std.audio.016, app.capture.011
+- Evidence: microphone and system-output loopback feed separate 48 kHz AAC tracks through bounded
+  timestamped queues and drift-correcting resampling. Source loss inserts silence while retrying;
+  native system-output recording and editor output are covered by the short Windows browser
+  integration. Microphone-device execution, sustained drift and device changes remain unverified.
+  The capture queue retains eight blocks of at most 1024 frames (about 171 ms at 48 kHz).
+  Audio pumping shares the interface thread with video encoding. Device-open/pump failures are
+  caught for recovery without a visible source-health indication, so a selected sound source can
+  silently contribute silence. `Recorder.advance` also returns before pumping audio when an
+  attached window is hidden; video pause/resume are no-ops. This case has no native regression.
+  The existing resampler stress checks isolate four-hour clock arithmetic and synthetic drift;
+  the browser's constant tone proves sound presence, not long-term audiovisual alignment.
+- Next: keep audio capture/draining active independently of window visibility and video work,
+  report unavailable/lost sources and expose a compact signal/health reading beside the capture.
+  Verify a microphone and system sound together, endpoint changes and unplug/replug on Windows.
+  Use synchronized visual flashes and sound markers in the two-hour runner from app.capture.011
+  to measure alignment throughout recording and after seek/export, including the first and last
+  audible samples. Correct drift against the common session clock rather than hiding it in playback.
+- Done when: a two-hour native recording keeps each available sound source within one video frame
+  of its visual markers, with bounded queues and reported source loss. Hiding/restoring the target
+  and changing an audio device preserve the usable recording and its timeline. Retain four-hour
+  drift coverage in std.audio.016. Sound-only capture and post-recording track controls are separate
+  product work and do not gate reliable video recording.
+- Related: std.audio.011, std.audio.013, std.audio.015, std.audio.016, app.capture.011,
+  app.capture.038
 
 ### app.capture.034 — The cursor is burned into the recorded pixels
 
@@ -348,17 +301,24 @@ whole recording loaded at once.
   be moved or hidden after recording.
 - Related: app.capture.011, platform.portability.100
 
-### app.capture.037 — Exporting a long recording re-encodes all of it
+### app.capture.037 — Make export conversion explicit and cancellable
 
-- Evidence: trimming, cutting and annotating an hours-long recording would otherwise re-encode
-  every frame, which costs about as long as the recording.
-- Next: export by packet copy (std.video.017) wherever nothing changes the pixels, and re-encode
-  only the groups of pictures that a cut point, an annotation span, the cursor track or a crop
-  touches, with matching encoder parameters.
-- Done when: a trimmed three-hour recording with a few annotations exports in a small fraction of
-  its duration, the result plays seamlessly across copied and re-encoded segments, and the stored
-  recording is unchanged.
-- Related: app.capture.011, app.capture.014, std.video.017
+- Evidence: compatible native H.264 trims now preserve compressed interiors and AAC packets,
+  encoding only the dependent head and timed annotation spans through their next original IDR.
+  The maintained two-hour fixture exercises that path through the native editor. Geometry changes,
+  incompatible imported AVC and non-frame-aligned cuts still fall back to full H.264/AAC conversion
+  synchronously. The app does not explain that slower path or expose cancellation, output quality,
+  encoder or cadence choices. Codec/FPS conversion choices are not implemented. FFmpeg decodes
+  every retained picture but exposes final AAC padding ignored by the native reader.
+- Next: expose a small export choice that distinguishes preserving the source from conversion,
+  with progress and cancellation for slow work. Keep the recording and existing destination intact
+  on cancellation. Offer only supported encoder/quality/cadence combinations and retain the source
+  cadence by default. Resolve the final AAC-padding interoperability in std.video.016 before
+  promising sample-exact external playback. Add realistic large-payload fixture measurements and
+  memory observations; the compact two-hour fixture proves timestamp/packet scale, not 1080p I/O.
+- Done when: a user can predict whether an export copies or converts, stop a slow export safely,
+  and choose supported conversion settings without turning the capture editor into a montage tool.
+- Related: app.capture.011, app.capture.014, std.video.016, std.video.017, std.audio.015
 
 ### app.capture.016 — No reusable capture layout templates
 

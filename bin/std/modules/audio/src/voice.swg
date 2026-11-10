@@ -253,16 +253,7 @@ public impl Voice
         if file.usesPacketCodec() and target < file.frameCount
         {
             let decodedTarget = target + file.leadingTrim
-            var low  = 0'u64
-            var high = file.packetStarts.count
-            while low + 1 < high
-            {
-                let middle = low + (high - low) / 2
-                if file.packetStarts[middle] <= decodedTarget do
-                    low = middle
-                else do
-                    high = middle
-            }
+            let low = file.packetAtDecodedFrame(decodedTarget)
 
             // Transform codecs overlap adjacent blocks. Decode one preroll packet and discard it
             // so a random seek has the same samples as uninterrupted playback.

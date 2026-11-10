@@ -3,6 +3,36 @@
 
 using Swag, Core.Errors
 
+// Patching a small pending container header must not force a positional file write or flush.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("bytesink_pending_patch.bin")
+    defer discard catch File.delete(path)
+    var sink = expect ByteSink.createFile(path)
+    expect sink.writeText("header payload")
+    expect sink.patch(0, cast(const [..] u8, "HEADER"))
+    Swag.require(sink.pendingCount == 14 and expect sink.stream.size() == 0)
+    Swag.require(sink.position() == 14)
+    expect sink.writeText(" tail")
+    expect sink.close()
+    Swag.require(expect File.readAllText(path) == "HEADER payload tail")
+}
+
+// A patch spanning committed and pending bytes flushes safely and leaves appending at the end.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("bytesink_straddling_patch.bin")
+    defer discard catch File.delete(path)
+    var sink = expect ByteSink.createFile(path)
+    expect sink.writeText("old head")
+    expect sink.flush()
+    expect sink.writeText("new tail")
+    expect sink.patch(4, cast(const [..] u8, "HEADNEW"))
+    expect sink.writeText(" end")
+    expect sink.close()
+    Swag.require(expect File.readAllText(path) == "old HEADNEW tail end")
+}
+
 // Returns a payload larger than the write window, filled with a pattern a misplaced write breaks.
 func sinkLargePayload()->Array'u8
 {

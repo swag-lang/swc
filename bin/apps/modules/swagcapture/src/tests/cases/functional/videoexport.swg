@@ -19,13 +19,13 @@ using Swag, Core, Gui, Pixel, Video
         f.capture.closeMedia()
         discard catch Capture.deleteFiles(document)
     }
+
     defer discard catch File.delete(exported)
 
     let picture = Image.create(64, 48, .BGRA8)
     picture.fill(Argb.White)
     let configs: [2] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice}, {48_000, 2, .Full}]
-    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(
-        source, 64, 48, 1_000_000, Swag.makeSlice(&configs[0], configs.count))
+    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(source, 64, 48, 1_000_000, Swag.makeSlice(&configs[0], configs.count))
     for frame in 3'u64 do
         expect recorder.addFrame(&picture, FrameSlot{frame, frame * 100_000, 100_000, 0})
 
@@ -48,6 +48,7 @@ using Swag, Core, Gui, Pixel, Video
     discard catch f.capture.exportVideo(source) as overwrite
     Swag.require(overwrite.value() != null and File.exists(source))
     let timeline = TimelineBar.create(f.main, &f.gui.root)
+    timeline.panel.setPosition({0, 0, 800, TimelineHeight})
     timeline.resize(800, TimelineHeight)
     timeline.zoomAt(timeline.trackRect().horzCenter(), 2)
     var timelineImage = f.gui.render(timeline)
@@ -86,7 +87,7 @@ using Swag, Core, Gui, Pixel, Video
     expect library.exportCapture(document, folder)
     var name = String.from(Path.fileNameWithoutExtension(document) orelse "capture")
     name += ".mp4"
-    let libraryVideo = Path.combine(folder, name)
+    let libraryVideo  = Path.combine(folder, name)
     var libraryReader = expect Reader.open(libraryVideo)
     Swag.require(libraryReader.frameCount() == 2 and libraryReader.audioTrackCount() == 2)
     libraryReader.close()
@@ -106,6 +107,7 @@ using Swag, Core, Gui, Pixel, Video
         Clipboard.clear()
         discard catch File.delete(copied[0])
     }
+
     var clipboardVideo = expect Reader.open(copied[0])
     Swag.require(clipboardVideo.frameCount() == 2 and clipboardVideo.audioTrackCount() == 2)
     clipboardVideo.close()

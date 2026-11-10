@@ -43,6 +43,19 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.032 — Restore native test recovery after a terminal expect
+
+- Evidence: on Windows, `swc.dm unittest --dev-full --num-cores 3` fails
+  `Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery` and
+  `Compiler_ExplicitExpectTerminatesThroughInlineExpansion`. The generated executable reports
+  the intended first-test error and one failed test, but never reaches the following recovery
+  test's completion marker. The fixtures live in `Test.Compiler.Failure.cpp`; they compile
+  standalone native test programs, independently of module API publication.
+- Next: reduce one fixture and trace terminal `expect`, the returning panic hook, and the native
+  test-runner boundary. Establish whether the runtime should recover or the tests assume an
+  obsolete contract. Preserve captured-error cleanup and local-context restoration either way.
+- Done when: both fixtures pass with the documented panic/test-recovery contract on Windows.
+
 ### compiler.safety.031 — Preserve inline-string views across interface calls
 
 - Evidence: `Core.Log.print` produced fourteen zero bytes when it passed a local `String`'s

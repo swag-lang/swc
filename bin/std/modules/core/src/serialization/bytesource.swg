@@ -44,11 +44,12 @@ impl ByteSource
     // Opens `fileName` for streaming reads.
     //
     // The file stays open until the source is closed, and it must remain available and
-    // unchanged until then.
-    func openFile(fileName: string)->ByteSource fail
+    // unchanged until then. `share` controls access by other handles; allowing a writer does
+    // not relax this lifetime rule. Pause it while inspecting a flushed file prefix.
+    func openFile(fileName: string, share: File.FileShare = .Read)->ByteSource fail
     {
         var result: #returntype
-        result.stream   = try File.openRead(fileName)
+        result.stream   = try File.open(fileName, .Open, .Read, share)
         result.length   = try result.stream.size()
         result.fileName = fileName
         result.isFile   = true

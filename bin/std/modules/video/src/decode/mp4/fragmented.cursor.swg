@@ -114,9 +114,29 @@ impl FragmentedPacketCursor
     mtd const timescale()->u32 => .layout.track.timescale
 
     // Offsets are nonzero only for the fixed-size final edit lists this writer can republish.
-    internal mtd const movieTimescale()->u32 => .layout.movieTimescale
+    internal mtd const movieTimescale()->u32  => .layout.movieTimescale
     internal mtd const videoEditOffset()->u64 => .layout.track.editBoxOffset
     internal mtd const audioEditOffset(index: u64)->u64 => .layout.audioTracks[index].editBoxOffset
+
+    // Copies a single audible AAC range and returns false when the source has no supported edit.
+    //
+    // The range uses decoded audio sample frames. Packet-copy tools must preserve this offset
+    // when trimming an already edited recording, rather than exposing its retained decode preroll.
+    // A miss leaves `range` unchanged. An out-of-range track index fails.
+    mtd const tryAudioPresentationRange(index: u64, range: *AudioPresentationRange)->bool fail
+    {
+        if index >= .layout.audioTracks.count do
+            fail BadParameterError{"fragmented MP4 audio track is outside the movie"}
+        let track = &.layout.audioTracks[index]
+        if not track.hasSingleEdit or not .layout.movieTimescale or track.editMediaTime < 0 do
+            return false
+        if track.editDuration > Swag.U64.Max / track.sampleRate do
+            fail OverflowError{"fragmented MP4 audio presentation duration overflows"}
+        let scaled = track.editDuration * track.sampleRate
+        let count  = scaled / .layout.movieTimescale + cast(u64, scaled % .layout.movieTimescale != 0)
+        range[] = {cast(u64, track.editMediaTime), count}
+        return true
+    }
 
     // Borrows the AVC decoder configuration until the cursor closes.
     mtd const avcConfig()->const [..] u8 => .layout.track.videoConfig.toSlice()

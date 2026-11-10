@@ -22,9 +22,9 @@ private const SoundMediaHeaderId                = fourCc('s'u32, 'm'u32, 'h'u32,
 private const MovieFragmentRandomAccessId       = fourCc('m'u32, 'f'u32, 'r'u32, 'a'u32)
 private const TrackFragmentRandomAccessId       = fourCc('t'u32, 'f'u32, 'r'u32, 'a'u32)
 private const MovieFragmentRandomAccessOffsetId = fourCc('m'u32, 'f'u32, 'r'u32, 'o'u32)
-private const EditContainerId                    = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
-private const EditListId                         = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
-private const FreeBoxId                          = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
+private const EditContainerId                   = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
+private const EditListId                        = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
+private const FreeBoxId                         = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
 
 private struct BufferedPacket
 {
@@ -62,6 +62,17 @@ struct FragmentedAudioConfig
     public decoderConfig: const [..] u8 = []     // Borrowed AAC-LC AudioSpecificConfig.
 }
 
+// Selects the audible part of one decoded AAC track, in its sample-rate clock.
+//
+// Encoded packets may retain preceding transform history and a padded final packet. These
+// samples remain in the file but are omitted from the track's presentation edit. The end must
+// lie within its last encoded packet; extra trailing packets must be removed before publication.
+struct AudioPresentationRange
+{
+    public firstSample: u64     // First decoded sample frame to present, on the track's media clock.
+    public sampleCount: u64     // Audible sample frames; zero requires an empty track.
+}
+
 private struct FragmentedAudioTrack
 {
     config:         Array'u8
@@ -94,25 +105,25 @@ struct FragmentedWriter
 {
     private
     {
-        sink:           ByteSink
-        indexStream:    File.FileStream
-        indexPath:      String
-        indexCount:     u32
-        config:         Array'u8
-        audioTracks:    Array'FragmentedAudioTrack
-        pendingPackets: Array'BufferedPacket
-        pendingData:    Array'u8
-        options:        FragmentedOptions
-        width:          u16
-        height:         u16
-        timescale:      u32
-        movieTimescale: u32
+        sink:            ByteSink
+        indexStream:     File.FileStream
+        indexPath:       String
+        indexCount:      u32
+        config:          Array'u8
+        audioTracks:     Array'FragmentedAudioTrack
+        pendingPackets:  Array'BufferedPacket
+        pendingData:     Array'u8
+        options:         FragmentedOptions
+        width:           u16
+        height:          u16
+        timescale:       u32
+        movieTimescale:  u32
         videoEditOffset: u64
-        sequence:       u32
-        videoPackets:   u64
-        nextDecodeTime: u64
-        hasPackets:     bool
-        isEnded:        bool
+        sequence:        u32
+        videoPackets:    u64
+        nextDecodeTime:  u64
+        hasPackets:      bool
+        isEnded:         bool
     }
 }
 
@@ -208,12 +219,12 @@ impl FragmentedWriter
 
         with var result: #returntype
         {
-            .width     = cast(u16, cursor.width())
-            .height    = cast(u16, cursor.height())
-            .timescale = cursor.timescale()
-            .movieTimescale = cursor.movieTimescale()
+            .width           = cast(u16, cursor.width())
+            .height          = cast(u16, cursor.height())
+            .timescale       = cursor.timescale()
+            .movieTimescale  = cursor.movieTimescale()
             .videoEditOffset = cursor.videoEditOffset()
-            .options   = options
+            .options         = options
             .config.add(cursor.avcConfig())
             .audioTracks.reserve(cursor.audioTrackCount())
             for index in cursor.audioTrackCount()
@@ -285,7 +296,7 @@ impl FragmentedWriter
             file.close()
         }
 
-        result.sink = try ByteSink.openAppendFile(fileName)
+        result.sink = try ByteSink.openAppendFile(fileName, .Read)
         if result.videoEditOffset do
             try patchU32(&result.sink, result.videoEditOffset + 4, FreeBoxId)
         for &track in result.audioTracks where track.editOffset do
@@ -425,13 +436,15 @@ impl FragmentedWriter
     // Invalid counts fail without changing the presentation ranges.
     mtd setPresentationEdits(videoMediaStart: u64, audioFrameCounts: const [..] u64) fail
     {
-        if .isEnded or not .movieTimescale or not .videoEditOffset or
+        if .isEnded or
+           not .movieTimescale or
+           not .videoEditOffset or
            audioFrameCounts.count != .audioTracks.count or
            videoMediaStart >= .nextDecodeTime do
             fail BadParameterError{"fragmented MP4 presentation edits do not match its tracks"}
         for index in audioFrameCounts.count
         {
-            let track = &.audioTracks[index]
+            let track  = &.audioTracks[index]
             let frames = audioFrameCounts[index]
             if frames > Swag.U64.Max / .movieTimescale or
                (not frames and track.hasPackets) do
@@ -445,23 +458,55 @@ impl FragmentedWriter
                     fail BadParameterError{"fragmented MP4 audio edit needs one priming packet and less than one padding packet"}
             }
         }
+
+        var ranges: Array'AudioPresentationRange
+        for count in audioFrameCounts do
+            ranges.add({1_024, count})
+        try .setPresentationEdits(videoMediaStart, ranges.toSlice())
+    }
+
+    // Publishes audio trims with caller-selected decode preroll and exact audible lengths.
+    //
+    // `videoMediaStart` is in video ticks. Each range uses its audio track's sample-rate clock
+    // and must fit submitted packets with less than one packet of trailing padding. This flushes
+    // and patches edits before `end`; packet bytes
+    // stay unchanged. Use this overload for packet-copy cuts that retain AAC transform history.
+    mtd setPresentationEdits(videoMediaStart: u64, audioRanges: const [..] AudioPresentationRange) fail
+    {
+        if .isEnded or
+           not .movieTimescale or
+           not .videoEditOffset or
+           audioRanges.count != .audioTracks.count or
+           videoMediaStart >= .nextDecodeTime do
+            fail BadParameterError{"fragmented MP4 presentation edits do not match its tracks"}
+        for range, index in audioRanges
+        {
+            let track = &.audioTracks[index]
+            if range.firstSample > cast(u64, Swag.S64.Max) or
+               range.sampleCount > Swag.U64.Max / .movieTimescale or
+               (not range.sampleCount and track.hasPackets) or
+               (range.sampleCount and (not track.hasPackets or range.firstSample >= track.nextTime or range.sampleCount > track.nextTime - range.firstSample or track.nextTime - range.firstSample - range.sampleCount >= 1_024)) do
+                fail BadParameterError{"fragmented MP4 audio presentation range exceeds its decoded packets"}
+        }
+
         if .nextDecodeTime - videoMediaStart > Swag.U64.Max / .movieTimescale do
             fail OverflowError{"fragmented MP4 video presentation duration overflows"}
 
         try .flush()
         let videoDuration = (.nextDecodeTime - videoMediaStart) * .movieTimescale / .timescale
         try .publishEdit(.videoEditOffset, videoDuration, videoMediaStart)
-        for index in audioFrameCounts.count
+        for range, index in audioRanges
         {
-            let frames = audioFrameCounts[index]
-            if not frames do
+            if not range.sampleCount do
                 continue
             let track = &.audioTracks[index]
+
             // The movie clock is at least as fine as this sample clock. Flooring here and
             // ceiling the inverse in Reader recovers `frames` exactly, including 44.1 kHz.
-            let duration = frames * .movieTimescale / track.sampleRate
-            try .publishEdit(track.editOffset, duration, 1_024)
+            let duration = range.sampleCount * .movieTimescale / track.sampleRate
+            try .publishEdit(track.editOffset, duration, range.firstSample)
         }
+
         try .sink.flush()
     }
 
@@ -578,7 +623,7 @@ private impl FragmentedWriter
 
         with var result: #returntype
         {
-            .sink = try ByteSink.createFile(fileName)
+            .sink = try ByteSink.createFile(fileName, .Read)
             if options.writeRandomAccessIndex
             {
                 .indexPath = Path.combine(Env.getSpecialDirectory(.Temp),
@@ -586,11 +631,11 @@ private impl FragmentedWriter
                 .indexStream = try File.open(.indexPath.toString(), .CreateNew, .ReadWrite, .Zero)
             }
 
-            .width     = cast(u16, width)
-            .height    = cast(u16, height)
-            .timescale = timescale
+            .width          = cast(u16, width)
+            .height         = cast(u16, height)
+            .timescale      = timescale
             .movieTimescale = timescale
-            .options   = options
+            .options        = options
             .config.add(avcConfig)
             .audioTracks.reserve(audioTracks.count)
             for audio in audioTracks
@@ -717,7 +762,7 @@ private impl FragmentedWriter
     mtd writeEditPlaceholder()->u64 fail
     {
         let start = beginBox(&.sink, FreeBoxId)
-        let list = beginBox(&.sink, EditListId)
+        let list  = beginBox(&.sink, EditListId)
         writeFullBox(&.sink, 1, 0)
         writeU32(&.sink, 1)
         writeU64(&.sink, 0)

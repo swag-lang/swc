@@ -36,11 +36,13 @@ impl ByteSink
     const WindowSize = 64 * 1024'u64
 
     // Creates `fileName`, replacing any existing file.
-    func createFile(fileName: string)->ByteSink fail
+    //
+    // `share` controls access by other handles; the default keeps exclusive ownership.
+    func createFile(fileName: string, share: File.FileShare = .Zero)->ByteSink fail
     {
         with var result: #returntype
         {
-            .stream   = try File.openWrite(fileName)
+            .stream   = try File.open(fileName, .Create, .Write, share)
             .fileName = fileName
             .isFile   = true
         }
@@ -52,11 +54,12 @@ impl ByteSink
     //
     // `position` and `patch` use absolute file offsets, including the bytes already present.
     // The file is left untouched until a write or patch succeeds; a missing file is an error.
-    func openAppendFile(fileName: string)->ByteSink fail
+    // `share` controls access by other handles; the default keeps exclusive ownership.
+    func openAppendFile(fileName: string, share: File.FileShare = .Zero)->ByteSink fail
     {
         with var result: #returntype
         {
-            .stream  = try File.open(fileName, .Open, .ReadWrite, .Zero)
+            .stream  = try File.open(fileName, .Open, .ReadWrite, share)
             .written = try .stream.size()
             try .stream.seek(.Begin, .written)
             .fileName = fileName
@@ -191,8 +194,17 @@ impl ByteSink
             return
         }
 
-        // The window can still hold bytes covering the patched range, so what is buffered reaches
-        // the file first; the patch would otherwise be overwritten by the next flush.
+        // Container headers are usually still in the write window. Patch them in place instead
+        // of turning each box size into a flush, positional write and seek back to the end.
+        let pendingStart = .written - .pendingCount
+        if offset >= pendingStart
+        {
+            Memory.copy(.pending.storage() + offset - pendingStart, bytes.buffer, count)
+            return
+        }
+
+        // An older or straddling patch reaches the file. Flush first so pending bytes cannot
+        // overwrite its new contents later, then restore the append cursor.
         try .flush()
         try .stream.writeAllAt(offset, bytes)
         try .stream.seek(.Begin, .written)

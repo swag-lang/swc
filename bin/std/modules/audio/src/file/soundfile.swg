@@ -189,6 +189,23 @@ impl SoundFile
     // Returns whether indexed packets need the compressed packet codec.
     internal mtd const usesPacketCodec()->bool => isPacketEncoding(.encoding) and not .packets.isEmpty()
 
+    // The packet table is sorted by decoded-frame start; callers clamp before looking up.
+    internal mtd const packetAtDecodedFrame(frame: u64)->u64
+    {
+        var low  = 0'u64
+        var high = .packetStarts.count
+        while low + 1 < high
+        {
+            let middle = low + (high - low) / 2
+            if .packetStarts[middle] <= frame do
+                low = middle
+            else do
+                high = middle
+        }
+
+        return low
+    }
+
     // Returns the number of indexed packets or chunks in this source.
     mtd const packetCount()->u64 => .packets.count
 
@@ -378,7 +395,7 @@ impl SoundFile
             }
         }
 
-        result.leadingTrim = options.leadingTrimFrames
+        result.leadingTrim  = options.leadingTrimFrames
         result.trailingTrim = options.trailingTrimFrames
         result.packets.reserve(packets.count)
         result.packetStarts.reserve(packets.count)

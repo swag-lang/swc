@@ -1455,6 +1455,9 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_EmptyFunctionAliasesKeepDelimiters)
 alias Empty = func()
 alias Closure = func||()
 alias Nested = func(func())
+alias Fallible = func||(value: s32) fail
+alias FallibleResult = func()->s32 fail
+alias EmptyFallible = func() fail
 const Following = 42
 )"));
     const std::vector<Utf8> exportArgs = {"sema", "--module", Utf8(module), "--module-namespace", "Callbacks", "--artifact-kind", "export", "--export-api-dir", Utf8(api), "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
@@ -1475,6 +1478,15 @@ const Following = 42
     empty()
     closure()
     nested(func() {})
+}
+func fallible() fail
+{
+    let callback: Callbacks.Fallible = func(_: s32) fail {}
+    let result: Callbacks.FallibleResult = func()->s32 fail { return 1 }
+    let empty: Callbacks.EmptyFallible = func() fail {}
+    try callback(1)
+    discard try result()
+    try empty()
 }
 #assert(Callbacks.Following == 42)
 )"));

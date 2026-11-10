@@ -355,11 +355,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   On finalization, the writer now publishes standard edit lists from reserved `free` boxes;
   `Video.Reader` applies AAC priming and trailing trim and reports the exact source frame count,
   including partial final packets at 44.1 and 48 kHz. Completed fragment prefixes remain
-  readable before finalization. FFmpeg currently ignores edit lists in fragmented MP4 and
-  therefore exposes up to 1023 padded AAC samples at the end. The writer has no timed metadata
+  readable before finalization. FFmpeg applies leading AAC edits but still exposes up to 1023
+  padded samples at the end of fragmented MP4. Independent PyAV decoding of the two-hour fixture's
+  89-picture tail returns 142976 samples instead of 142400 after a packet-copy trim; full software
+  conversion returns 143360. Native decoding returns exactly 142400 in both cases. The writer has no timed metadata
   tracks; `Video.Reader` still scans fragments to build its frame table when opening a file.
 - Next: add timed metadata tracks with interleaving, and extend `Video.Reader` to those tracks.
-  Check final-padding semantics in other reference players and retain the resumable prefix.
+  Make finalized AAC end boundaries portable to reference players, checking a final nonfragmented
+  publication/index or packet discard metadata rather than changing the user's selected picture range.
+  Retain the resumable prefix and byte-identical compressed interiors.
   Use the final key-frame index for fast seeks without scanning a long file. Keep 64-bit offsets
   and a timescale that does not accumulate rounding. Keep the current single-stream writer as a
   facade.
@@ -378,10 +382,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   on key frames using two progressive fragment-header passes and bounded memory. `Mp4.copyRanges`
   also uses those passes to join AAC-LC tracks, with cumulative rounding to whole AAC
   packets; a six-join test keeps the audio within half a packet of video time at every join.
-  Both replace the output only after it is complete. AAC cuts remain packet-granular, and the
-  writer has no timed metadata track.
-- Next: add timed metadata to the packet path when available, and support sample-exact AAC cuts
-  when the output can carry edit lists or an audio re-encode at the boundaries.
+  Both replace the output only after it is complete. `trimSoftwareRecording` additionally performs
+  a single frame-exact cut with sample-exact AAC presentation edits in the native reader, preserving
+  transform preroll and existing edits across repeated cuts. The multi-range join APIs still use
+  packet-granular AAC, and the writer has no timed metadata track.
+- Next: add timed metadata to the packet path when available, and extend exact audible edits to
+  multi-range joins without accumulating rounding or exposing each retained preroll passage.
 - Done when: a recording cut into kept ranges on key frames produces a file whose packets are
   byte-identical to the source's, with continuous timestamps and sound in sync across each join.
 - Related: std.video.016, app.capture.037

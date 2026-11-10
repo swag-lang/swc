@@ -1,6 +1,6 @@
 //! Format: Sequential sound-file decoding.
-//! Supported: PCM and indexed compressed sources converted to bounded interleaved PCM16 chunks.
-//! Not supported: Channel remixing, sample-rate conversion, seeking, and retaining callback slices.
+//! Supported: Bounded PCM16 decoding and sample-frame ranges, with direct PCM/AAC positioning.
+//! Not supported: Channel remixing, sample-rate conversion, and retaining callback slices.
 //! Role: This file owns device-independent decoding for analysis and export consumers.
 //
 #global public
@@ -23,14 +23,35 @@ impl SoundFile
     // The delivered frame count matches [[Audio.SoundFile.sampleFrameCount]]. PCM sources are converted
     // without requiring an audio engine. `consumer` borrows each bounded chunk only until it
     // returns; returning `false` cancels the remaining work without failure.
-    mtd const decodePcm16(consumer: SoundPcm16Consumer) fail
+    mtd const decodePcm16(consumer: SoundPcm16Consumer)->void fail
+        => try .decodePcm16(0, .frameCount, consumer)
+
+    // Decodes a selected audible sample-frame range to bounded interleaved PCM16 chunks.
+    //
+    // `firstFrame` and `frameCount` exclude codec priming and padding and must fit
+    // [[Audio.SoundFile.sampleFrameCount]]. An empty range makes no callback. PCM seeks directly;
+    // indexed AAC starts one transform-preroll packet before the selected packet. Other packet
+    // codecs decode their preceding history for correctness. No audio engine is needed.
+    //
+    // ```swag
+    // try sound.decodePcm16(48_000, 96_000, func(part: const [..] s16)->bool
+    // {
+    //     Core.Console.println(part.count)
+    //     return true
+    // })
+    // ```
+    mtd const decodePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
         if not .availableFields.has(.Data) or not .channelCount do
             fail BadParameterError{"sound file has no audio data"}
+        if firstFrame > .frameCount or frameCount > .frameCount - firstFrame do
+            fail BadParameterError{"sound decode range is outside its audible sample frames"}
+        if not frameCount do
+            return
 
         if .usesPacketCodec()
         {
-            try .decodePacketPcm16(consumer)
+            try .decodePacketPcm16(firstFrame, frameCount, consumer)
             return
         }
 
@@ -52,12 +73,13 @@ impl SoundFile
         discard try decoder.initialize(&empty, 0)
 
         let bytesPerFrame = bytesPerSample * .channelCount
-        var byteOffset: u64
-        var decoded:    Array's16
-        while byteOffset < .dataSize
+        var byteOffset    = firstFrame * bytesPerFrame
+        let byteEnd       = byteOffset + frameCount * bytesPerFrame
+        var decoded: Array's16
+        while byteOffset < byteEnd
         {
             // Keep reads on complete interleaved frames.
-            var wantedBytes = Math.min(SoundDecodeReadSize, .dataSize - byteOffset)
+            var wantedBytes = Math.min(SoundDecodeReadSize, byteEnd - byteOffset)
             wantedBytes -= wantedBytes % bytesPerFrame
             if not wantedBytes do
                 break
@@ -79,7 +101,7 @@ impl SoundFile
 
 private impl SoundFile
 {
-    mtd const decodePacketPcm16(consumer: SoundPcm16Consumer) fail
+    mtd const decodePacketPcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
     {
         let descriptor = findPacketCodec(.encoding)
         if not descriptor do
@@ -101,11 +123,20 @@ private impl SoundFile
         var source        = try ByteSource.openFile(.path.toString())
         var packetBytes:  Array'u8
         var decodedBytes: Array'u8
-        var discardFrames = .leadingTrim
-        var remainingFrames = .frameCount
-
-        for packet in .packets
+        var firstPacket   = 0'u64
+        let decodedTarget = .leadingTrim + firstFrame
+        if .encoding == .AacLc
         {
+            let containing = .packetAtDecodedFrame(decodedTarget)
+            firstPacket = containing ? containing - 1 : 0
+        }
+
+        var discardFrames   = decodedTarget - .packetStarts[firstPacket]
+        var remainingFrames = frameCount
+
+        for index in firstPacket until .packets.count
+        {
+            let packet = .packets[index]
             let decodedByteCount = cast(u64, packet.sampleFrameCount) * .channelCount * #sizeof(s16)
             if decodedBytes.count != decodedByteCount do
                 decodedBytes.resize(decodedByteCount)
@@ -136,11 +167,13 @@ private impl SoundFile
             let sampleCount = producedBytes / #sizeof(s16)
             if firstSample < sampleCount and remainingFrames
             {
-                let samples = cast(const [*] s16, decodedBytes.storage())
+                let samples    = cast(const [*] s16, decodedBytes.storage())
                 let lastSample = firstSample + Math.min(remainingFrames,
-                                                       (sampleCount - firstSample) / .channelCount) * .channelCount
+                                                        (sampleCount - firstSample) / .channelCount) * .channelCount
                 remainingFrames -= (lastSample - firstSample) / .channelCount
                 if not consumer(samples[firstSample until lastSample]) do
+                    return
+                if not remainingFrames do
                     return
             }
         }

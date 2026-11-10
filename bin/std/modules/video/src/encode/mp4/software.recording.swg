@@ -10,9 +10,9 @@ using Core, Core.Errors, Pixel, Audio
 // Configures one separately retained AAC-LC sound track in a software recording.
 struct SoftwareAudioConfig
 {
-    public sampleRate:   u32           // Input PCM16 frames per second; all tracks share one rate.
-    public channelCount: u16           // One or two interleaved input channels.
-    public bandwidth:    Aac.Bandwidth = .Full // Full or voice-band encoding.
+    public sampleRate:   u32     // Input PCM16 frames per second; all tracks share one rate.
+    public channelCount: u16     // One or two interleaved input channels.
+    public bandwidth:    Aac.Bandwidth = .Full     // Full or voice-band encoding.
 }
 
 private struct SoftwareAudioTrack
@@ -35,21 +35,25 @@ private struct SoftwareAudioTrack
 // Video quantization parameter 0 preserves exact samples. Values 1 through 51 may quantize
 // textured IDR and P pictures; this fixed setting does not target a bitrate.
 // Each picture may use one through eight H.264 slices, up to its macroblock-row count.
+// One video producer and one producer per audio track may encode concurrently. Container writes
+// are serialized after encoding. Create and finish the recording with all producers stopped;
+// query each encoder's counters only from its producer or after joining it.
 #[Swag.NoCopy]
 #[Swag.Opaque]
 struct SoftwareRecording
 {
     private
     {
-        writer:        FragmentedWriter
-        video:         H264.Encoder
-        tracks:        Array'SoftwareAudioTrack
-        nv12:          Nv12Frame
-        videoOffset:   u64
-        nextVideoTime: u64
-        frameCount:    u64
+        writer:         FragmentedWriter
+        muxMutex:       Swag.Mutex
+        video:          H264.Encoder
+        tracks:         Array'SoftwareAudioTrack
+        nv12:           Nv12Frame
+        videoOffset:    u64
+        nextVideoTime:  u64
+        frameCount:     u64
         repeatedFrames: u64
-        ended:         bool
+        ended:          bool
     }
 }
 
@@ -62,13 +66,8 @@ impl SoftwareRecording
     // `quantizationQp` defaults to exact mode at 0, accepts values through 51, and can make
     // textured IDR and P pictures lossy. `sliceCount` defaults to one and accepts up to eight
     // complete macroblock-row bands.
-    func createVideoOnly(path: string, width, height: s32, videoTimescale: u32,
-                         keyInterval: u32 = 60,
-                         options: FragmentedOptions = {},
-                         quantizationQp: u32 = 0,
-                         sliceCount: u32 = 1)->SoftwareRecording fail
-        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval,
-                                     options, quantizationQp, sliceCount)
+    func createVideoOnly(path: string, width, height: s32, videoTimescale: u32, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1)->SoftwareRecording fail
+        => try createWithAudioTracks(path, width, height, videoTimescale, [], keyInterval, options, quantizationQp, sliceCount)
 
     // Creates a software audiovisual recorder and writes the MP4 initialization movie.
     //
@@ -79,17 +78,10 @@ impl SoftwareRecording
     // `quantizationQp` defaults to exact mode at 0, accepts values through 51, and can make
     // textured IDR and P pictures lossy. `sliceCount` defaults to one and accepts up to eight
     // complete macroblock-row bands.
-    func create(path: string, width, height: s32, videoTimescale: u32,
-                audioRate: u32, audioChannels: u16, keyInterval: u32 = 60,
-                bandwidth: Aac.Bandwidth = .Full,
-                options: FragmentedOptions = {},
-                quantizationQp: u32 = 0,
-                sliceCount: u32 = 1)->SoftwareRecording fail
+    func create(path: string, width, height: s32, videoTimescale: u32, audioRate: u32, audioChannels: u16, keyInterval: u32 = 60, bandwidth: Aac.Bandwidth = .Full, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1)->SoftwareRecording fail
     {
         let configs: [1] SoftwareAudioConfig = [{audioRate, audioChannels, bandwidth}]
-        return try createWithAudioTracks(path, width, height, videoTimescale,
-                                         Swag.makeSlice(&configs[0], configs.count),
-                                         keyInterval, options, quantizationQp, sliceCount)
+        return try createWithAudioTracks(path, width, height, videoTimescale, Swag.makeSlice(&configs[0], configs.count), keyInterval, options, quantizationQp, sliceCount)
     }
 
     // Creates a recorder with zero through four separately encoded AAC-LC sound tracks.
@@ -100,43 +92,39 @@ impl SoftwareRecording
     // `quantizationQp` defaults to exact mode at 0, accepts values through 51, and can make
     // textured IDR and P pictures lossy. `sliceCount` defaults to one and accepts up to eight
     // complete macroblock-row bands.
-    func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32,
-                               audioConfigs: const [..] SoftwareAudioConfig,
-                               keyInterval: u32 = 60,
-                               options: FragmentedOptions = {},
-                               quantizationQp: u32 = 0,
-                               sliceCount: u32 = 1)->SoftwareRecording fail
+    func createWithAudioTracks(path: string, width, height: s32, videoTimescale: u32, audioConfigs: const [..] SoftwareAudioConfig, keyInterval: u32 = 60, options: FragmentedOptions = {}, quantizationQp: u32 = 0, sliceCount: u32 = 1)->SoftwareRecording fail
     {
         if audioConfigs.count > 4 do
             fail BadParameterError{"software recording supports at most four audio tracks"}
         var result: #returntype
-        result.video = try H264.Encoder.create(width, height, keyInterval,
-                                               quantizationQp, sliceCount)
+        result.video = try H264.Encoder.create(width, height, keyInterval, quantizationQp, sliceCount)
         if not audioConfigs.count
         {
-            result.writer = try FragmentedWriter.create(path, width, height, videoTimescale,
-                                                        result.video.decoderConfig(), options)
+            result.writer = try FragmentedWriter.create(path, width, height, videoTimescale, result.video.decoderConfig(), options)
             return result
         }
+
         result.tracks.reserve(audioConfigs.count)
         for config in audioConfigs
         {
             if config.sampleRate != audioConfigs[0].sampleRate do
                 fail BadParameterError{"software recording audio tracks need one sample rate"}
             var track: SoftwareAudioTrack
-            track.encoder = try Aac.StreamEncoder.create(config.sampleRate, config.channelCount,
-                                                         config.bandwidth)
+            track.encoder = try Aac.StreamEncoder.create(config.sampleRate, config.channelCount, config.bandwidth)
             result.tracks.add(#move track)
         }
+
         let clock = try Timebase.create(videoTimescale)
         let delay = result.tracks[0].encoder.encoderDelayFrames()
+
         // A rounded offset can move video past the priming boundary: at 44.1 kHz and a
         // 90 kHz video clock, 2090 ticks would make Reader remove 1025 samples. Choose the
         // preceding tick and ensure it still maps to exactly `delay` trimmed samples.
         result.videoOffset = cast(u64, delay) * clock.ticksPerSecond() /
                              audioConfigs[0].sampleRate
-        if delay and result.videoOffset * audioConfigs[0].sampleRate <=
-                     cast(u64, delay - 1) * clock.ticksPerSecond() do
+        if delay and
+           result.videoOffset * audioConfigs[0].sampleRate <=
+           cast(u64, delay - 1) * clock.ticksPerSecond() do
             fail BadParameterError{"video timescale cannot express AAC priming to one sample"}
         var mp4Configs: Array'FragmentedAudioConfig
         for index in audioConfigs.count
@@ -145,10 +133,8 @@ impl SoftwareRecording
             mp4Configs.add({config.sampleRate, config.channelCount,
                             result.tracks[index].encoder.decoderConfig()})
         }
-        result.writer = try FragmentedWriter.createWithAudioTracks(path, width, height,
-                                                                   videoTimescale,
-                                                                   result.video.decoderConfig(),
-                                                                   mp4Configs.toSlice(), options)
+
+        result.writer = try FragmentedWriter.createWithAudioTracks(path, width, height, videoTimescale, result.video.decoderConfig(), mp4Configs.toSlice(), options)
         return result
     }
 
@@ -166,11 +152,11 @@ impl SoftwareRecording
 
     // Returns source PCM16 frames consumed by the first track, or zero without audio.
     mtd const audioInputFrameCount()->u64 => .tracks.count ?
-        .tracks[0].encoder.inputFrameCount() : 0
+                                             .tracks[0].encoder.inputFrameCount() : 0
 
     // Returns AAC-LC packets on the first track, or zero without audio.
     mtd const audioPacketCount()->u64 => .tracks.count ?
-        .tracks[0].encoder.packetCount() : 0
+                                         .tracks[0].encoder.packetCount() : 0
 
     // Returns source PCM16 frames consumed by the selected sound track.
     mtd const audioInputFrameCountOf(trackIndex: u32)->u64 fail
@@ -189,7 +175,12 @@ impl SoftwareRecording
     }
 
     // Returns bytes written through completed MP4 fragments and the initialization movie.
-    mtd const writtenByteCount()->u64 => .writer.writtenByteCount()
+    mtd writtenByteCount()->u64
+    {
+        .muxMutex.lock()
+        defer .muxMutex.unlock()
+        return .writer.writtenByteCount()
+    }
 
     // Converts and appends one video picture at the next exact frame slot.
     //
@@ -207,8 +198,10 @@ impl SoftwareRecording
             fail OverflowError{"software recording video time overflows"}
         try .nv12.convertFrom(image)
         let packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
+        .muxMutex.lock()
+        defer .muxMutex.unlock()
         try .writer.addPacket(packet)
-        .frameCount += 1
+        .frameCount    += 1
         .nextVideoTime = slot.decodeTime + slot.duration
     }
 
@@ -226,10 +219,12 @@ impl SoftwareRecording
            slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
             fail OverflowError{"software recording video time overflows"}
         let packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
+        .muxMutex.lock()
+        defer .muxMutex.unlock()
         try .writer.addPacket(packet)
-        .frameCount += 1
+        .frameCount     += 1
         .repeatedFrames += 1
-        .nextVideoTime = slot.decodeTime + slot.duration
+        .nextVideoTime  = slot.decodeTime + slot.duration
     }
 
     // Encodes any number of complete interleaved PCM16 source frames into AAC packets.
@@ -242,7 +237,7 @@ impl SoftwareRecording
             fail BadParameterError{"cannot append to a finished software recording"}
         if trackIndex >= .tracks.count do
             fail BadParameterError{"software recording has no audio track at this index"}
-        let track = &.tracks[trackIndex]
+        let track    = &.tracks[trackIndex]
         let channels = track.encoder.channelCount()
         if samples.count % channels do
             fail BadParameterError{"software recording needs complete audio frames"}
@@ -251,17 +246,24 @@ impl SoftwareRecording
         {
             let consumed = try track.encoder.push(samples[cursor until samples.count], &track.packet)
             cursor += consumed * channels
-            if track.packet.count do
+            if track.packet.count
+            {
+                .muxMutex.lock()
+                defer .muxMutex.unlock()
                 try .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
                                                          track.encoder.lastPacketStartSample(),
                                                          track.encoder.lastPacketStartSample(),
-                                                         1_024, true}, trackIndex)
+                                                         1_024, true},
+                                           trackIndex)
+            }
         }
     }
 
     // Flushes completed fragments so an interrupted process leaves a playable media prefix.
     mtd flush() fail
     {
+        .muxMutex.lock()
+        defer .muxMutex.unlock()
         try .writer.flush()
     }
 
@@ -284,9 +286,11 @@ impl SoftwareRecording
                 try .writer.addAudioPacket(EncodedPacket{track.packet.toSlice(),
                                                          track.encoder.lastPacketStartSample(),
                                                          track.encoder.lastPacketStartSample(),
-                                                         1_024, true}, cast(u32, index))
+                                                         1_024, true},
+                                           cast(u32, index))
             }
         }
+
         if .tracks.count
         {
             var frameCounts: Array'u64
@@ -294,6 +298,7 @@ impl SoftwareRecording
                 frameCounts.add(track.encoder.inputFrameCount())
             try .writer.setPresentationEdits(.videoOffset, frameCounts.toSlice())
         }
+
         try .writer.end()
         .ended = true
     }

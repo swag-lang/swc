@@ -67,6 +67,9 @@ const CaptureFileExtension = ".scc"
 // trashing or restoring the capture carries them along and a save of the capture never rewrites
 // them.
 const CaptureMediaExtension = ".frames"
+
+// New video stems start with `video-`; legacy exact-stem MP4 files remain readable. Distinct
+// stems keep players from auto-loading a capture's SCC document as Scenarist Closed Captions.
 const CaptureVideoExtension = ".mp4"
 
 // Profile written for a picture, which every earlier Swag Capture reads.

@@ -6,8 +6,8 @@ using Core, Core.Errors, Pixel, Video
 // repeat each frame slot; long gaps use a held picture with a long duration, so a suspended
 // recorder does not encode hours of identical frames. If the screen cannot be read, a black
 // first frame or the last good frame fills the slot and the source is reopened. The session
-// checks destination free space once
-// per second and finalizes a playable prefix before the configured reserve is exhausted.
+// checks destination free space once per second and stops before the configured reserve is
+// exhausted. Stop audio producers, then call `end` to finalize the playable prefix.
 // Audio PCM16 can be added on zero through four separate tracks. The caller creates audio
 // queues against `captureOriginTick` (microseconds)
 // or `captureOrigin100ns` (WASAPI) after the first accepted picture, using the same monotonic
@@ -15,20 +15,20 @@ using Core, Core.Errors, Pixel, Video
 #[Swag.NoCopy]
 struct VideoCaptureSession
 {
-    source:        ScreenFrameSource
-    recording:     Mp4.SoftwareRecording
-    pacer:         FramePacer
-    picture:       Image
-    audioConfigs:  Array'Mp4.SoftwareAudioConfig
-    outputDirectory: String
-    originTick:    u64
-    nextVideoTime: u64
-    missedSlots: u64
+    source:             ScreenFrameSource
+    recording:          Mp4.SoftwareRecording
+    pacer:              FramePacer
+    picture:            Image
+    audioConfigs:       Array'Mp4.SoftwareAudioConfig
+    outputDirectory:    String
+    originTick:         u64
+    nextVideoTime:      u64
+    missedSlots:        u64
     nextSpaceCheckTick: u64
-    minimumFreeSpace:  u64
-    hasOrigin:     bool
-    lowStorageStop: bool
-    sourceFailures: u64
+    minimumFreeSpace:   u64
+    hasOrigin:          bool
+    lowStorageStop:     bool
+    sourceFailures:     u64
 }
 
 impl VideoCaptureSession
@@ -42,26 +42,20 @@ impl VideoCaptureSession
     // `quantizationQp` is 0 for exact pictures or 1 through 51 for quantized pictures.
     // It does not select a target bitrate.
     // `sliceCount` divides a picture into 1 to 8 independently coded row bands.
-    func create(path: string, area: Math.Rectangle, rate: FrameRate, drawCursor: bool,
-                audioConfigs: const [..] Mp4.SoftwareAudioConfig = [],
-                minimumFreeSpace: u64 = 64 * 1_024 * 1_024,
-                quantizationQp: u32 = 0, sliceCount: u32 = 1)->VideoCaptureSession fail
+    func create(path: string, area: Math.Rectangle, rate: FrameRate, drawCursor: bool, audioConfigs: const [..] Mp4.SoftwareAudioConfig = [], minimumFreeSpace: u64 = 64 * 1_024 * 1_024, quantizationQp: u32 = 0, sliceCount: u32 = 1)->VideoCaptureSession fail
     {
-        let width = cast(s32, area.width)
-        let height = cast(s32, area.height)
-        let absolutePath = try Path.absolute(path)
+        let width           = cast(s32, area.width)
+        let height          = cast(s32, area.height)
+        let absolutePath    = try Path.absolute(path)
         let outputDirectory = unwrap Path.directoryName(absolutePath.toString())
         if (try Directory.freeSpace(outputDirectory)) < minimumFreeSpace do
             fail Swag.SystemError{"video capture destination has insufficient free space"}
         var result: #returntype
-        result.outputDirectory = outputDirectory
+        result.outputDirectory  = outputDirectory
         result.minimumFreeSpace = minimumFreeSpace
-        result.source = try ScreenFrameSource.create(drawCursor, cast(s32, area.x),
-                                                      cast(s32, area.y), width, height)
-        result.pacer = try FramePacer.create(rate, 1_000_000, 90_000)
-        result.recording = try Mp4.SoftwareRecording.createWithAudioTracks(
-            path, width, height, 90_000, audioConfigs,
-            quantizationQp: quantizationQp, sliceCount: sliceCount)
+        result.source           = try ScreenFrameSource.create(drawCursor, cast(s32, area.x), cast(s32, area.y), width, height)
+        result.pacer            = try FramePacer.create(rate, 1_000_000, 90_000)
+        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, width, height, 90_000, audioConfigs, quantizationQp: quantizationQp, sliceCount: sliceCount)
         result.audioConfigs.add(audioConfigs)
         result.picture = Image.create(width, height, .BGRA8)
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)
@@ -85,17 +79,18 @@ impl VideoCaptureSession
             if (try Directory.freeSpace(.outputDirectory.toString())) < .minimumFreeSpace
             {
                 .lowStorageStop = true
-                if .recording.videoFrameCount() do
-                    try .recording.end()
                 fail Swag.SystemError{"video capture stopped because the destination has little free space"}
             }
+
             .nextSpaceCheckTick = tick > Swag.U64.Max - 1_000_000 ? Swag.U64.Max : tick + 1_000_000
         }
+
         if not .hasOrigin
         {
             .originTick = tick
-            .hasOrigin = true
+            .hasOrigin  = true
         }
+
         if slot.decodeTime < .nextVideoTime do
             fail BadParameterError{"video capture pacer moved behind the encoded timeline"}
         if slot.skippedFrames > Swag.U64.Max - .missedSlots do
@@ -115,11 +110,13 @@ impl VideoCaptureSession
             // sample duration is u32, so very long gaps are split into bounded chunks.
             while .nextVideoTime < slot.decodeTime
             {
-                let duration = cast(u32, Math.min(slot.decodeTime - .nextVideoTime,
-                                                   cast(u64, Swag.U32.Max)))
+                let duration = cast(u32,
+                                    Math.min(slot.decodeTime - .nextVideoTime,
+                                             cast(u64, Swag.U32.Max)))
                 try .writeRepeatedPicture(duration)
             }
         }
+
         if slot.decodeTime != .nextVideoTime do
             fail BadParameterError{"video capture gap did not align with the next frame"}
         let outputSlot = FrameSlot{.recording.videoFrameCount(), .nextVideoTime,
@@ -135,6 +132,7 @@ impl VideoCaptureSession
             discard catch .source.reopen()
             return false
         }
+
         try .recording.addFrame(&.picture, outputSlot)
         .nextVideoTime += slot.duration
         return true
@@ -181,7 +179,7 @@ impl VideoCaptureSession
     // Returns the number of screen-source grabs that failed.
     mtd const sourceFailureCount()->u64 => .sourceFailures
 
-    // Returns true when the session finalized its playable prefix before disk space ran out.
+    // Returns true when the session stopped for storage; stop audio producers before `end`.
     mtd const stoppedForLowStorage()->bool => .lowStorageStop
 
     // Appends complete interleaved PCM16 frames to a selected sound track.

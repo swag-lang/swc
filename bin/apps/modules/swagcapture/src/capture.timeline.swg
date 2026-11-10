@@ -33,11 +33,24 @@ impl Capture
     // Returns whether the capture has a duration, rather than one picture.
     mtd const isTimed()->bool => .media != .Picture
 
-    // Returns the path of the frame file that belongs to the capture file `file`.
+    // Returns the timed media path, accepting legacy videos with the document's exact stem.
+    // New video names differ from SCC documents so players do not load them as SCC captions.
     func mediaPathOf(file: string, media: CaptureMedia = .Animation)->String
     {
         var name = String.from(Path.fileNameWithoutExtension(file) orelse "")
-        name += media == .Video ? CaptureVideoExtension : CaptureMediaExtension
+        if media == .Video
+        {
+            name += CaptureVideoExtension
+            let current = Path.combine(Path.directoryName(file), Format.toString("video-%", name))
+            if File.exists(current) do
+                return current
+            let legacy = Path.combine(Path.directoryName(file), name)
+            if File.exists(legacy) do
+                return legacy
+            return current
+        }
+
+        name += CaptureMediaExtension
         return Path.combine(Path.directoryName(file), name)
     }
 
@@ -54,6 +67,7 @@ impl Capture
                 if File.exists(path) do
                     discard catch File.delete(path)
             }
+
             discard catch File.delete(target)
         }
 
@@ -74,6 +88,7 @@ impl Capture
             if File.exists(media) do
                 try File.delete(media)
         }
+
         try File.delete(file)
     }
 
@@ -147,7 +162,7 @@ impl Capture
     mtd adoptVideo() fail
     {
         .closeMedia()
-        let path = mediaPathOf(.file, .Video)
+        let path   = mediaPathOf(.file, .Video)
         var frames = try TimedReader.open(path, .Video)
         if not frames.frameCount() do
             fail Errors.InvalidFormatError{}
@@ -232,8 +247,8 @@ impl Capture
         if duration == 0 do
             return
 
-        let finish = outPoint == 0 or outPoint >= duration ? duration : Math.max(outPoint, 1)
-        let start  = Math.min(inPoint, finish - 1)
+        let finish        = outPoint == 0 or outPoint >= duration ? duration : Math.max(outPoint, 1)
+        let start         = Math.min(inPoint, finish - 1)
         let trimmedFinish = finish >= duration ? 0 : finish
         if start == .timeline.inPoint and trimmedFinish == .timeline.outPoint do
             return

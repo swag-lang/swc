@@ -3,10 +3,76 @@
 
 using Core, Gui, Pixel, Video, Audio
 
+// The output probe must service WASAPI independently of the editor's picture decoding.
+#[Swag.NoCopy]
+struct WebCaptureOutputProbe
+{
+    worker: Threading.Thread
+    ready:  Sync.Event
+    mutex:  Swag.Mutex
+    error:  Swag.Error
+}
+
+impl WebCaptureOutputProbe
+{
+    mtd start(queue: *CaptureQueue) fail
+    {
+        .ready.init(false)
+        let collect = func|probe = me, queue|(thread: const *Threading.Thread)
+        {
+            var signaled = false
+            defer if not signaled do
+                probe.ready.signal()
+            catch
+            {
+                var index: Win32.DWORD
+                let name = Utf16.toZeroTerminated("Audio")
+                let task = try Win32.AvSetMmThreadCharacteristicsW(name.buffer, &index)
+                defer discard catch Win32.AvRevertMmThreadCharacteristics(task)
+                var source = try CaptureOutputLoopback.openDefault(queue)
+                defer source.close()
+                probe.ready.signal()
+                signaled = true
+                while not thread.requestEnd.isRaised() do
+                    discard try source.pump(5)
+                discard try source.pump()
+            }
+            {
+                probe.mutex.lock()
+                defer probe.mutex.unlock()
+                probe.error.capture(Swag.err)
+            }
+        }
+
+        try .worker.init(collect)
+        expect .worker.start()
+        .ready.wait()
+        try .check()
+    }
+
+    mtd check() fail
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        try .error.raise()
+    }
+
+    mtd close()
+    {
+        if .worker.isValid()
+        {
+            .worker.safeForceEnd()
+            .worker.wait()
+        }
+    }
+
+    mtd opDrop() => .close()
+}
+
 // Measure the browser's distinctive tone, rather than accepting an arbitrary nonempty track.
 struct WebCaptureTone
 {
-    frames: u64
+    frames:       u64
     power, real, imaginary, tonePower: f64
     windowFrames: u32
 }
@@ -18,24 +84,26 @@ impl WebCaptureTone
         for frame in samples.count / channels
         {
             let sample = cast(f64, samples[frame * channels])
-            let phase = Math.ConstF64.TwoPi * 440 * (offset + frame) / rate
-            .power += sample * sample
-            .real += sample * Math.cos(phase)
-            .imaginary += sample * Math.sin(phase)
-            .frames += 1
+            let phase  = Math.ConstF64.TwoPi * 440 * (offset + frame) / rate
+            .power        += sample * sample
+            .real         += sample * Math.cos(phase)
+            .imaginary    += sample * Math.sin(phase)
+            .frames       += 1
             .windowFrames += 1
+
             // A looping browser clip can reset its tone phase. Measure energy in 100 ms
             // windows so a phase discontinuity cannot cancel several seconds of valid sound.
             if .windowFrames == rate / 10
             {
-                .tonePower += 2 * (.real * .real + .imaginary * .imaginary) / .windowFrames
+                .tonePower        += 2 * (.real * .real + .imaginary * .imaginary) / .windowFrames
                 .real, .imaginary = 0
-                .windowFrames = 0
+                .windowFrames     = 0
             }
         }
     }
 
     mtd const rms()->f64 => .frames ? Math.sqrt(.power / .frames) : 0
+
     mtd const toneFraction()->f64
     {
         let tail = .windowFrames ? 2 * (.real * .real + .imaginary * .imaginary) / .windowFrames : 0
@@ -54,29 +122,33 @@ impl WebCaptureTone
     Swag.require(Env.hasArgument("swag.capture.native-screen=true"),
                  "this integration requires actual desktop pixels")
     let evidence = Env.sandboxRoot()
-    let browser = Win32.FindWindowA(null, "Swag Capture Web AV Probe".buffer)
+    let browser  = Win32.FindWindowA(null, "Swag Capture Web AV Probe".buffer)
     Swag.require(browser != null, "the owned browser fixture window is missing")
     var bounds: Win32.RECT
     Swag.require(Win32.GetWindowRect(browser, &bounds))
+
     // Use the native window origin rather than the browser's reported screen position;
     // the fixture supplies its content insets, in physical pixels.
-    let x = bounds.left + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
-    let y = bounds.top + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
-    Console.println("Browser capture rectangle: ", x, ", ", y, " 320 x 180")
+    let x      = bounds.left + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
+    let y      = bounds.top + expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
+    let width  = expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_WIDTH"))
+    let height = expect StrConv.toF32(Env.variable("SWAG_CAPTURE_WEB_HEIGHT"))
+    Console.println("Browser capture rectangle: ", x, ", ", y, " ", width, " x ", height)
 
     var journey: CaptureJourney
     journey.setup()
     let main = journey.main
-    let app = journey.app
-    main.captureOptions.recordCountdown = false
-    main.captureOptions.captureCursor = false
+    let app  = journey.app
+    main.captureOptions.recordCountdown   = false
+    main.captureOptions.captureCursor     = false
     main.captureOptions.recordSystemSound = true
-    main.captureOptions.recordMicrophone = false
-    main.captureOptions.inPlaceEdit = true
-    main.captureOptions.hideEditorBefore = true
-    main.captureOptions.sendToEditor = true
+    main.captureOptions.recordMicrophone  = false
+    main.captureOptions.inPlaceEdit       = true
+    main.captureOptions.hideEditorBefore  = true
+    main.captureOptions.sendToEditor      = true
     var stage: u32
-    app.sigFrame += func|&journey, x, y, browser, stage = &stage|(_)
+    var stalled = false
+    app.sigFrame += func|&journey, x, y, width, height, browser, stage = &stage, stalled = &stalled|(_)
     {
         Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "web recording timed out")
         if stage[] == 0
@@ -85,12 +157,14 @@ impl WebCaptureTone
             {
                 if surface.view() is CaptureRectWnd as overlay
                 {
-                    let scale = overlay.deviceScale()
-                    let first = Math.Point{(x - g_DesktopX) / scale, (y - g_DesktopY) / scale}
+                    let scale   = overlay.deviceScale()
+                    let first   = Math.Point{(x - g_DesktopX) / scale, (y - g_DesktopY) / scale}
                     var pointer = MouseEvent{kind: .Pressed, button: .Left, surfacePos: first}
                     overlay.sendEvent(&pointer)
                     pointer.kind = .Move
-                    pointer.surfacePos = first + Math.Point{320 / scale, 180 / scale}
+
+                    // Keep the last physical pixel through a fractional DPI round trip.
+                    pointer.surfacePos = first + Math.Point{(width + 0.25) / scale, (height + 0.25) / scale}
                     overlay.sendEvent(&pointer)
                     pointer.kind = .Released
                     overlay.sendEvent(&pointer)
@@ -119,13 +193,39 @@ impl WebCaptureTone
         elif stage[] == 2 and g_Recorder
         {
             let recorder = unwrap g_Recorder
+            if not stalled[] and recorder.elapsed() >= 2_000_000
+            {
+                // A slow picture may stall the UI producer; the sound must remain continuous.
+                stalled[] = true
+                Threading.Thread.sleep(250'ms)
+            }
+
             if recorder.elapsed() >= 6_000_000
             {
-                Swag.require(recorder.videoAudio and recorder.videoAudio.hasSystem,
+                Swag.require(recorder.videoAudio and recorder.videoAudio.systemIsActive(),
                              "system loopback must be active, not replaced with silent packets")
-                Console.println("Web recording: frames=", recorder.video.frameCount(),
-                                " duration_us=", recorder.elapsed(),
-                                " source_failures=", recorder.video.sourceFailureCount())
+                let audio: *VideoRecordingAudio = recorder.videoAudio
+                Console.println("Web recording: frames=", recorder.video.frameCount(), " duration_us=", recorder.elapsed(), " source_failures=", recorder.video.sourceFailureCount())
+                Console.println("Video missed slots=", recorder.video.missedFrameSlotCount(), " forced_ui_stall_ms=250")
+                scope
+                {
+                    audio.encoderMutex.lock()
+                    defer audio.encoderMutex.unlock()
+                    Console.println("System sound queue: dropped_blocks=",
+                                    audio.systemQueue.droppedBlockCount(),
+                                    " dropped_frames=",
+                                    audio.systemQueue.droppedFrameCount(),
+                                    " synthetic_frames=",
+                                    audio.systemPump.syntheticFrameCount(),
+                                    " interruptions=",
+                                    audio.systemPump.sourceInterruptionCount())
+                    Swag.require(audio.systemQueue.droppedFrameCount() == 0, "video work must not overflow the sound queue")
+                    Swag.require(audio.systemPump.syntheticFrameCount() < 9_600,
+                                 "sound gaps must remain bounded to source startup, including during a slow picture")
+                    Swag.require(audio.systemPump.sourceInterruptionCount() <= 1,
+                                 "video work must not repeatedly interrupt the native sound source")
+                }
+
                 Swag.require(recorder.video.sourceFailureCount() == 0 and recorder.video.source.memoryDC != null)
                 stage[] = 3
                 let hud = unwrap recorder.hud
@@ -133,24 +233,28 @@ impl WebCaptureTone
             }
         }
     }
+
+    // Keep the fixture browser exposed before selection; the native journey window otherwise
+    // overlaps a large browser area and can become the window selected by the rectangle.
+    journey.surface.hide()
     main.sendCommandEvent(ActionCapture.RecordVideo)
     app.runFrame()
     app.sigFrame.clear()
     Swag.require(stage == 3 and g_Recorder == null and app.surfaces.count == 1)
 
     let capture = unwrap main.editWnd.getCapture()
-    Swag.require(capture.media == .Video and capture.width == 320 and capture.height == 180)
+    Console.println("Captured dimensions: ", capture.width, " x ", capture.height)
+    Swag.require(capture.media == .Video and capture.width == width and capture.height == height)
     var document = String.from(capture.file)
-    let media = Capture.mediaPathOf(document, .Video)
-    let bytes = expect File.readAllBytes(media)
+    let media    = Capture.mediaPathOf(document, .Video)
+    let bytes    = expect File.readAllBytes(media)
     discard expect File.writeAllBytes(Path.combine(evidence, "web.mp4"), bytes.toSlice())
     var reader = expect Video.Reader.open(media)
     Swag.require(reader.frameCount() >= 150 and reader.durationInSeconds() >= 5.9)
     Swag.require(reader.audioTrackCount() == 1)
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleRateHz() == 48_000 and sound.numChannels() == 2)
-    Console.println("MP4 durations: video=", reader.durationInSeconds(),
-                    " audio=", sound.durationInSeconds(), " audio_start=", sound.timelineStartSeconds())
+    Console.println("MP4 durations: video=", reader.durationInSeconds(), " audio=", sound.durationInSeconds(), " audio_start=", sound.timelineStartSeconds())
     Swag.require(Math.abs(sound.durationInSeconds() - reader.durationInSeconds()) < 0.15,
                  "audio and video durations must agree")
 
@@ -160,13 +264,12 @@ impl WebCaptureTone
         recordedTone.add(pcm, sound.numChannels(), sound.sampleRateHz(), recordedTone.frames)
         return true
     })
-    Console.println("Recorded audio: frames=", recordedTone.frames, " rms=", recordedTone.rms(),
-                    " tone_fraction=", recordedTone.toneFraction())
-    Swag.require(recordedTone.rms() > 300 and recordedTone.toneFraction() > 0.25,
+    Console.println("Recorded audio: frames=", recordedTone.frames, " rms=", recordedTone.rms(), " tone_fraction=", recordedTone.toneFraction())
+    Swag.require(recordedTone.rms() > 300 and recordedTone.toneFraction() > 0.90,
                  "MP4 must contain the browser's 440 Hz audio")
 
-    var picture: Image
-    var changes: u64
+    var picture:  Image
+    var changes:  u64
     var previous: u32
     for index in reader.frameCount()
     {
@@ -178,6 +281,7 @@ impl WebCaptureTone
         if index == 0 or index + 1 == reader.frameCount() do
             expect picture.save(Path.combine(evidence, Format.toString("frame-%.png", index).toString()))
     }
+
     Console.println("Decoded every frame: count=", reader.frameCount(), " changed=", changes)
     Swag.require(changes > reader.frameCount() / 2, "browser video must move throughout the recording")
 
@@ -189,17 +293,17 @@ impl WebCaptureTone
         let opened = main.editWnd.getCapture()
         return not main.libraryMode and opened and opened.file == document and main.timeline != null
     })
-    let opened = unwrap main.editWnd.getCapture()
+    let opened   = unwrap main.editWnd.getCapture()
     let timeline = unwrap main.timeline
     discard expect File.writeAllText(Path.combine(evidence, "mute-source"), "mute")
     journey.waitFor("browser paused and muted", func|evidence|()->bool
-        => File.exists(Path.combine(evidence, "source-silent")))
+                    => File.exists(Path.combine(evidence, "source-silent")))
 
-    var queue = expect CaptureQueue.create(48_000, 2, Time.monotonicMicroseconds() * 10, 10_000_000,
-                                           slots: 64)
-    var loopback = expect CaptureOutputLoopback.openDefault(&queue)
+    var queue = expect CaptureQueue.create(48_000, 2, Time.monotonicMicroseconds() * 10, 10_000_000, slots: 64)
+    var loopback: WebCaptureOutputProbe
+    expect loopback.start(&queue)
     defer loopback.close()
-    var pcm: Array's16
+    var pcm:   Array's16
     var block: CaptureBlock
     var baseline, quietWindow: WebCaptureTone
     let quietStart = Time.monotonicMicroseconds()
@@ -209,7 +313,7 @@ impl WebCaptureTone
         app.runFrame()
         Swag.require(Time.monotonicMicroseconds() - quietStart < 4_000_000,
                      "browser audio did not drain after pause and mute")
-        discard expect loopback.pump()
+        expect loopback.check()
         while queue.pop(&pcm, &block)
         {
             lastPacketAt = Time.monotonicMicroseconds()
@@ -222,26 +326,28 @@ impl WebCaptureTone
                 quietWindow = WebCaptureTone{}
             }
         }
+
         if Time.monotonicMicroseconds() - lastPacketAt > 250_000 do
             baseline = WebCaptureTone{}
     }
+
     let baselineToneRms = baseline.rms() * Math.sqrt(baseline.toneFraction())
-    Console.println("Browser muted, output baseline rms=", baseline.rms(),
-                    " tone_fraction=", baseline.toneFraction(), " tone_rms=", baselineToneRms)
+    Console.println("Browser muted, output baseline rms=", baseline.rms(), " tone_fraction=", baseline.toneFraction(), " tone_rms=", baselineToneRms)
     Swag.require(baselineToneRms < 300,
                  "the browser's reference tone must be absent before editor playback")
     timeline.playButton.sigPressed.call(timeline.playButton)
     defer timeline.stop()
     Swag.require(Audio.activeDriverKind() == .XAudio2 and timeline.audioVoices[0] != null,
                  "editor must use the real native audio device")
-    let voice = unwrap timeline.audioVoices[0]
-    let frames = unwrap opened.frames
+    let voice           = unwrap timeline.audioVoices[0]
+    let frames          = unwrap opened.frames
     var replayTone: WebCaptureTone
     var maxAudioFrame, maxPicture: u64
     var checkpoint: bool
-    var wrapped: bool
+    var wrapped:    bool
     var previousPicture = opened.playhead
-    let playStart = Time.monotonicMicroseconds()
+    let playStart       = Time.monotonicMicroseconds()
+
     // The editor intentionally loops. Observe a full pass and its wrap, then pause through
     // the actual transport button; waiting for an automatic stop would never finish.
     while not wrapped
@@ -249,13 +355,13 @@ impl WebCaptureTone
         app.runFrame()
         Swag.require(journey.watch.elapsedMilliseconds() < 38_000, "web playback timed out")
         Swag.require(timeline.isPlaying(), "editor playback stopped before completing the clip")
-        discard expect loopback.pump()
+        expect loopback.check()
         while queue.pop(&pcm, &block) do
             replayTone.add(pcm.toSlice(), 2, 48_000, block.startSample)
         maxAudioFrame = Math.max(maxAudioFrame, voice.playbackSampleFrame())
-        maxPicture = Math.max(maxPicture, opened.playhead)
-        wrapped = opened.playhead < previousPicture and
-                  frames.timeOf(maxPicture) + 200_000 >= frames.endTime
+        maxPicture    = Math.max(maxPicture, opened.playhead)
+        wrapped       = opened.playhead < previousPicture and
+                        frames.timeOf(maxPicture) + 200_000 >= frames.endTime
         previousPicture = opened.playhead
         if not checkpoint and frames.timeOf(opened.playhead) >= 2_000_000
         {
@@ -263,21 +369,21 @@ impl WebCaptureTone
             if checkpoint
             {
                 app.renderer.setCurrentContext(journey.surface.renderingContext())
-                let screenshot = app.renderer.readRenderTarget(&journey.surface.rt, 0, 0,
-                    journey.surface.rt.colorBuffer.width, journey.surface.rt.colorBuffer.height)
+                let screenshot = app.renderer.readRenderTarget(&journey.surface.rt, 0, 0, journey.surface.rt.colorBuffer.width, journey.surface.rt.colorBuffer.height)
                 expect screenshot.save(Path.combine(evidence, "editor-playing.png"))
             }
         }
     }
+
     let playedUs = Time.monotonicMicroseconds() - playStart
     timeline.playButton.sigPressed.call(timeline.playButton)
     Swag.require(not timeline.isPlaying())
-    Console.println("Editor replay: picture=", maxPicture, " audio_frame=", maxAudioFrame,
-                    " elapsed_us=", playedUs, " rms=", replayTone.rms(),
-                    " tone_fraction=", replayTone.toneFraction(), " presentation=", checkpoint)
+    Console.println("Editor replay: picture=", maxPicture, " audio_frame=", maxAudioFrame, " elapsed_us=", playedUs, " rms=", replayTone.rms(), " tone_fraction=", replayTone.toneFraction(), " presentation=", checkpoint)
+    Console.println("Replay probe dropped frames=", queue.droppedFrameCount())
+    Swag.require(queue.droppedFrameCount() == 0, "the independent output probe must retain the replayed sound")
     Swag.require(checkpoint and wrapped)
     Swag.require(maxAudioFrame >= 5 * 48_000 and playedUs >= 5_500_000)
-    Swag.require(replayTone.rms() > 300 and replayTone.toneFraction() > 0.25,
+    Swag.require(replayTone.rms() > 300 and replayTone.toneFraction() > 0.85,
                  "system output must contain the editor's replayed tone while the browser is muted")
     Swag.require(replayTone.rms() * Math.sqrt(replayTone.toneFraction()) > Math.max(300, baselineToneRms * 4),
                  "editor output must introduce the reference tone above the measured background")

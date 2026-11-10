@@ -50,7 +50,7 @@ private func mdctAssertMatchesDefinition(n: u32)
     }
 
     if worst > scale * 1e-4 do
-        Swag.print("mdct ", n, ": worst ", worst, " against a scale of ", scale, "\n")
+        Swag.print("mdct ", n, ": worst ", worst, " against a scale of ", scale, "\r\n")
     Swag.require(worst <= scale * 1e-4)
 }
 
@@ -59,4 +59,36 @@ private func mdctAssertMatchesDefinition(n: u32)
     mdctAssertMatchesDefinition(64)
     mdctAssertMatchesDefinition(256)
     mdctAssertMatchesDefinition(2048)
+}
+
+// The forward transform agrees with its defining cosine sum, including broadband input.
+#test
+{
+    for n in [64'u32, 256, 2_048]
+    {
+        var random: Random.Generator
+        random.seedU32(985 + n)
+        var input, actual: Array'f32
+        input.resize(n)
+        actual.resize(n / 2)
+        for index in n do
+            input[index] = cast(f32, cast(f64, random.nextU32()) / 4_294_967_296.0 * 2 - 1)
+        var transform = Mdct.create(n)
+        transform.forward(input.storage(), actual.storage())
+        var worst, scale: f64
+        for bin in n / 2
+        {
+            var expected = 0.0'f64
+            for sample in n
+            {
+                let angle = Math.ConstF64.TwoPi / n * (sample + 0.5 + n / 4.0) * (bin + 0.5)
+                expected += input[sample] * Math.cos(angle)
+            }
+
+            worst = Math.max(worst, Math.abs(actual[bin] - expected))
+            scale = Math.max(scale, Math.abs(expected))
+        }
+
+        Swag.require(worst < scale * 0.0001)
+    }
 }

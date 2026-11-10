@@ -11,4 +11,5 @@ impl VideoRecordingAudio
     mtd start(_: *VideoCaptureSession, _: bool, _: bool) fail {}
     mtd pump() fail {}
     mtd close() {}
+    mtd finish() fail {}
 }

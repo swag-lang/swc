@@ -53,7 +53,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--browser')
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--width', type=int, default=320)
+    parser.add_argument('--height', type=int, default=180)
+    parser.add_argument('--devmode-compiler', action='store_true',
+                        help='drive the Release application with swc.dm.exe')
     args = parser.parse_args()
+    if args.width < 2 or args.height < 2 or args.width % 2 or args.height % 2:
+        parser.error('capture dimensions must be positive even pixel counts')
     if sys.platform != 'win32':
         parser.error('this integration scenario requires Windows WASAPI loopback')
     repo = Path(__file__).resolve().parent.parent
@@ -79,7 +85,8 @@ def main():
                 data = json.dumps({'mute': (sandbox / 'mute-source').exists()}).encode()
                 content_type = 'application/json'
             else:
-                data = PAGE.encode()
+                data = PAGE.replace('width:320px;height:180px',
+                                    f'width:{args.width}px;height:{args.height}px').encode()
                 content_type = 'text/html'
             self.send_response(200)
             self.send_header('Content-Type', content_type)
@@ -105,7 +112,7 @@ def main():
         '--autoplay-policy=no-user-gesture-required', '--force-device-scale-factor=1',
         '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
         '--disable-backgrounding-occluded-windows',
-        '--window-position=1400,100', '--window-size=600,500',
+        '--window-position=100,80', f'--window-size={max(600, args.width + 80)},{max(500, args.height + 150)}',
         f'--app=http://127.0.0.1:{server.server_port}/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         deadline = time.monotonic() + 25
@@ -115,14 +122,18 @@ def main():
             if time.monotonic() > deadline:
                 raise RuntimeError(f'browser video did not become ready: {status}')
             time.sleep(.1)
-        command = [sys.executable, str(repo / 'tools/tool.py'), 'apps', 'test', 'swagcapture',
+        command = [sys.executable, str(repo / 'tools/tool.py'), 'apps']
+        if args.devmode_compiler:
+            command.append('dm')
+        command += ['test', 'swagcapture',
                    '-bc', 'release', '--test-file', 'webcapture.win32.swg',
                    '--test-tag', 'integration.capture.web', '--run-timeout', '60',
                    '--run-arg', f'swag.sandbox={sandbox}',
                    '--run-arg', 'swag.audio.native-output=true',
                    '--run-arg', 'swag.capture.native-screen=true']
         environment = dict(os.environ, SWAG_CAPTURE_WEB_INSET_X=str(status['insetX']),
-                           SWAG_CAPTURE_WEB_INSET_Y=str(status['insetY']))
+                           SWAG_CAPTURE_WEB_INSET_Y=str(status['insetY']),
+                           SWAG_CAPTURE_WEB_WIDTH=str(args.width), SWAG_CAPTURE_WEB_HEIGHT=str(args.height))
         print(f'Browser ready: {status}\nEvidence: {output}', flush=True)
         # Admission is repeated by this explicit host runner immediately before compiling/testing.
         check = repo / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'

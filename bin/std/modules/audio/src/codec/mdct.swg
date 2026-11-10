@@ -1,11 +1,11 @@
-//! Format: Inverse modified discrete cosine transform.
+//! Format: Forward and inverse modified discrete cosine transforms.
 //! Supported: Power-of-two lengths from sixteen up, computed through a quarter-length complex FFT.
-//! Not supported: Forward transforms, and the composite lengths a CELT frame uses.
+//! Not supported: The composite lengths a CELT frame uses.
 //! Role: This file owns the lapped transform the transform codecs share and the tables it needs.
 //
 using Core, Core.Math
 
-// One inverse MDCT of a fixed length, holding the tables it needs.
+// One MDCT of a fixed length, holding the tables and bounded scratch it needs.
 //
 // The transform reconstructs `n` time samples from `n / 2` spectral coefficients as the sum
 // `y[i] = Σ X[k] cos(2π / n · (i + 1/2 + n/4) · (k + 1/2))`, with no scale factor of its own: a
@@ -89,33 +89,7 @@ impl Mdct
             im[index] = second * c - first * s
         }
 
-        var length = 2'u32
-        while length <= m
-        {
-            let halfLength = length / 2
-            let stride     = m / length
-            var start      = 0'u32
-            while start < m
-            {
-                for j in halfLength
-                {
-                    let wr = .fftCos[j * stride]
-                    let wi = -.fftSin[j * stride]
-                    let a  = start + j
-                    let b  = a + halfLength
-                    let tr = re[b] * wr - im[b] * wi
-                    let ti = re[b] * wi + im[b] * wr
-                    re[b] = re[a] - tr
-                    im[b] = im[a] - ti
-                    re[a] += tr
-                    im[a] += ti
-                }
-
-                start += length
-            }
-
-            length *= 2
-        }
+        .fft(-1)
 
         // Rotate the FFT output by the same twiddle, then unfold its real and imaginary parts
         // onto the four quarters of the time signal.
@@ -140,6 +114,98 @@ impl Mdct
             output[2 * m + 2 * k + 1] = -re[quarter - 1 - k]
             output[3 * m + 2 * k]     = -re[k]
             output[3 * m + 2 * k + 1] = im[m - 1 - k]
+        }
+    }
+
+    // Writes `n / 2` spectral coefficients from `n` already-windowed input samples.
+    //
+    // This is the transpose of `inverse`, with no normalization. It computes the defining
+    // cosine sum in O(n log n), using the same quarter-length FFT and rotations.
+    mtd forward(input: const [*] f32, spectrum: [*] f32)
+    {
+        let m       = .n / 4
+        let quarter = m / 2
+        let re      = .real.storage()
+        let im      = .imaginary.storage()
+        for k in m do
+            re[k], im[k] = 0
+        for k in quarter
+        {
+            re[quarter + k]     += input[2 * k]
+            im[quarter - 1 - k] -= input[2 * k + 1]
+            im[k]               += input[m + 2 * k]
+            re[m - 1 - k]       -= input[m + 2 * k + 1]
+            im[quarter + k]     += input[2 * m + 2 * k]
+            re[quarter - 1 - k] -= input[2 * m + 2 * k + 1]
+            re[k]               -= input[3 * m + 2 * k]
+            im[m - 1 - k]       += input[3 * m + 2 * k + 1]
+        }
+
+        for k in m
+        {
+            let c = .twiddleCos[k]
+            let s = .twiddleSin[k]
+            let r = re[k] * c - im[k] * s
+            let i = im[k] * c + re[k] * s
+            re[k] = r
+            im[k] = i
+        }
+
+        for k in m
+        {
+            let other = .reverse[k]
+            if other > k
+            {
+                let r = re[k]
+                let i = im[k]
+                re[k]     = re[other]
+                im[k]     = im[other]
+                re[other] = r
+                im[other] = i
+            }
+        }
+
+        .fft(1)
+        for k in m
+        {
+            let c = .twiddleCos[k]
+            let s = .twiddleSin[k]
+            spectrum[2 * k] = re[k] * c - im[k] * s
+            spectrum[.n / 2 - 1 - 2 * k] = im[k] * c + re[k] * s
+        }
+    }
+
+    private mtd fft(sign: f32)
+    {
+        let m      = .n / 4
+        let re     = .real.storage()
+        let im     = .imaginary.storage()
+        var length = 2'u32
+        while length <= m
+        {
+            let halfLength = length / 2
+            let stride     = m / length
+            var start      = 0'u32
+            while start < m
+            {
+                for j in halfLength
+                {
+                    let wr = .fftCos[j * stride]
+                    let wi = sign * .fftSin[j * stride]
+                    let a  = start + j
+                    let b  = a + halfLength
+                    let tr = re[b] * wr - im[b] * wi
+                    let ti = re[b] * wi + im[b] * wr
+                    re[b] = re[a] - tr
+                    im[b] = im[a] - ti
+                    re[a] += tr
+                    im[a] += ti
+                }
+
+                start += length
+            }
+
+            length *= 2
         }
     }
 }

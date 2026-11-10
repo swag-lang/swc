@@ -43,6 +43,22 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
+### compiler.safety.033 — Preserve an owned local selected by a conditional return
+
+- Evidence: a Windows Release native reproducer constructs two `String` paths with
+  `Path.combine`, returns the first in an early `if File.exists(current)`, then returns
+  `File.exists(legacy) ? legacy : current`. When neither path exists, the returned `current`
+  has freed-storage bytes at its beginning. A following `Format.toString` allocation makes the
+  corruption observable through `Path.equals`. The same shape in Capture's `mediaPathOf`
+  produced an invalid filename; explicit branch returns preserve both paths. A simpler
+  conditional between two formatted strings does not reproduce it.
+- Next: reduce the interaction between the early named-local return, conditional selection and
+  local cleanup; compare generated moves and drops. Add guarded and Release native regressions
+  for both selected owners, then fix ownership lowering rather than teaching branch expansion
+  as a requirement.
+- Done when: both paths return valid independently owned strings after further allocations,
+  without leaks or double release, with both compiler executables.
+
 ### compiler.safety.032 — Restore native test recovery after a terminal expect
 
 - Evidence: on Windows, `swc.dm unittest --dev-full --num-cores 3` fails

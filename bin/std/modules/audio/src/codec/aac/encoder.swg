@@ -7,11 +7,11 @@
 
 using Core, Core.Errors
 
-private const EncoderFrames = 1_024'u64
-private const VoiceLines    = 176'u64
-private const VoiceBands    = 23'u64
-private const FullLines     = 1_024'u64
-private const FullBands     = 49'u64
+private const EncoderFrames    = 1_024'u64
+private const VoiceLines       = 176'u64
+private const VoiceBands       = 23'u64
+private const FullLines        = 1_024'u64
+private const FullBands        = 49'u64
 private const MaximumBandBoost = 48's32
 
 internal struct EncoderSectionCode
@@ -26,7 +26,7 @@ internal func planEncoderSections(active: const [..] bool,
 {
     Swag.assert(codes.count >= active.count * 2)
     var count = 0'u32
-    var band = 0'u64
+    var band  = 0'u64
     while band < active.count
     {
         let book = active[band] ? 11'u32 : 0'u32
@@ -34,18 +34,20 @@ internal func planEncoderSections(active: const [..] bool,
         while next < active.count and active[next] == active[band] do
             next += 1
         codes[count] = {book, 4}
-        count += 1
+        count        += 1
         var length = next - band
         while length >= 31
         {
             codes[count] = {31, 5}
-            count += 1
-            length -= 31
+            count        += 1
+            length       -= 31
         }
+
         codes[count] = {cast(u32, length), 5}
-        count += 1
-        band = next
+        count        += 1
+        band         = next
     }
+
     return count
 }
 
@@ -53,10 +55,10 @@ internal func planEncoderSections(active: const [..] bool,
 enum Bandwidth
 {
     // Encodes all 1024 spectral lines up to the Nyquist frequency.
-    Full,
+    Full
 
     // Keeps 176 lines for speech and smaller packets, ending near 4 kHz.
-    Voice,
+    Voice
 }
 
 // Encodes interleaved PCM16 into bounded AAC-LC access units.
@@ -71,7 +73,8 @@ struct Encoder
 {
     private
     {
-        basis:      Array'f32
+        transform:  Mdct
+        window:     [2 * EncoderFrames] f32
         previous:   [2, 1_024] s16
         silent:     SilenceEncoder
         config:     [2] u8
@@ -93,32 +96,15 @@ impl Encoder
         if sampleRate != 44_100 and sampleRate != 48_000 do
             fail BadParameterError{"AAC software encoder supports 44.1 and 48 kHz"}
         var result: #returntype
-        result.channels = channels
+        result.channels   = channels
         result.sampleRate = sampleRate
-        result.lineCount = bandwidth == .Voice ? VoiceLines : FullLines
-        result.bandCount = bandwidth == .Voice ? VoiceBands : FullBands
-        result.silent = silence
+        result.lineCount  = bandwidth == .Voice ? VoiceLines : FullLines
+        result.bandCount  = bandwidth == .Voice ? VoiceBands : FullBands
+        result.silent     = silence
         Memory.copy(&result.config[0], silence.decoderConfig().buffer, 2)
-        result.basis.resize(result.lineCount * 2 * EncoderFrames)
-        var window: [2 * EncoderFrames] f64
+        result.transform = Mdct.create(2 * cast(u32, EncoderFrames))
         for sample in 2 * EncoderFrames do
-            window[sample] = Math.sin(Math.ConstF64.Pi / (2 * EncoderFrames) * (cast(f64, sample) + 0.5))
-        for line in result.lineCount
-        {
-            let delta = Math.ConstF64.Pi / EncoderFrames * (cast(f64, line) + 0.5)
-            let stepCos = Math.cos(delta)
-            let stepSin = Math.sin(delta)
-            let start = delta * (0.5 + EncoderFrames / 2)
-            var cosine = Math.cos(start)
-            var sine = Math.sin(start)
-            for sample in 2 * EncoderFrames
-            {
-                result.basis[line * 2 * EncoderFrames + sample] = cast(f32, cosine * window[sample])
-                let nextCosine = cosine * stepCos - sine * stepSin
-                sine = sine * stepCos + cosine * stepSin
-                cosine = nextCosine
-            }
-        }
+            result.window[sample] = cast(f32, Math.sin(Math.ConstF64.Pi / (2 * EncoderFrames) * (cast(f64, sample) + 0.5)))
         return result
     }
 
@@ -152,6 +138,7 @@ impl Encoder
             allZero = false
             break
         }
+
         if allZero
         {
             for channel in .channels
@@ -161,54 +148,64 @@ impl Encoder
                     allZero = false
                     break
                 }
+
                 if not allZero do
                     break
             }
         }
+
         if allZero
         {
             packet.add(.silent.packet())
             return
         }
+
         .output.clear()
         .bitCount = 0
         if .channels == 2
         {
-            .writeBits(1, 3) // Channel pair element.
-            .writeBits(0, 4) // Element tag.
-            .writeBits(0, 1) // Independent channel windows.
+            .writeBits(1, 3)     // Channel pair element.
+            .writeBits(0, 4)     // Element tag.
+            .writeBits(0, 1)     // Independent channel windows.
         }
         else
         {
-            .writeBits(0, 3) // Single channel element.
+            .writeBits(0, 3)     // Single channel element.
             .writeBits(0, 4)
         }
 
         for channel in .channels
         {
+            var windowed: [2 * EncoderFrames] f32
+            for sample in EncoderFrames
+            {
+                windowed[sample] = .previous[channel, sample] * .window[sample]
+                windowed[EncoderFrames + sample] = samples[sample * .channels + channel] * .window[EncoderFrames + sample]
+            }
+
+            var transformed: [FullLines] f32
+            .transform.forward(&windowed[0], &transformed[0])
             var spectrum: [FullLines] f64
             var largest = 0.0'f64
             for line in .lineCount
             {
-                var value = 0.0'f64
-                let row = line * 2 * EncoderFrames
-                for sample in EncoderFrames do
-                    value += .previous[channel, sample] * .basis[row + sample]
-                for sample in EncoderFrames do
-                    value += samples[sample * .channels + channel] * .basis[row + EncoderFrames + sample]
-                spectrum[line] = value * 2.0
-                largest = Math.max(largest, Math.abs(spectrum[line]))
+                spectrum[line] = cast(f64, transformed[line]) * 2.0
+                largest        = Math.max(largest, Math.abs(spectrum[line]))
             }
 
             var gain = 100's32
             if largest > 0 do
-                gain = Math.clamp(cast(s32, Math.ceil(100.0 + 4.0 *
-                                 Math.log2(largest / Math.pow(15.0'f64, 4.0'f64 / 3.0)))), 0, 255)
+                gain = Math.clamp(cast(s32,
+                                       Math.ceil(100.0 + 4.0 *
+                                                 Math.log2(largest / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
+                                  0,
+                                  255)
             var quantized: [FullLines] s32
-            var active: [FullBands] bool
-            var bandGain: [FullBands] s32
+            var active:    [FullBands] bool
+            var bandGain:  [FullBands] s32
             let rateIndex = .sampleRate == 48_000 ? 3'u32 : 4'u32
-            let offsets = swbLong(rateIndex)
+            let offsets   = swbLong(rateIndex)
+
             // Keep each band's quiet components above the global quantization floor. AAC
             // codes scalefactor differences in [-60, 60]; limiting the boost to 48 steps
             // also bounds every jump between active bands without extra side information.
@@ -219,17 +216,20 @@ impl Encoder
                 for line in offsets[band] until offsets[band + 1] do
                     bandPeak = Math.max(bandPeak, Math.abs(spectrum[line]))
                 var selected = gain
+
                 // Ignore far-off leakage and numerical residue around a strong tone.
                 // A component 150x below the strongest band remains eligible.
                 if bandPeak >= largest / 512.0 and bandPeak > 0 do
-                    selected = Math.clamp(cast(s32, Math.ceil(100.0 + 4.0 *
-                               Math.log2(bandPeak / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
-                                          minimumGain, gain)
+                    selected = Math.clamp(cast(s32,
+                                               Math.ceil(100.0 + 4.0 *
+                                                         Math.log2(bandPeak / Math.pow(15.0'f64, 4.0'f64 / 3.0)))),
+                                          minimumGain,
+                                          gain)
                 bandGain[band] = selected
                 let factor = Math.pow(2.0, 0.25 * cast(f64, selected - 100))
                 for line in offsets[band] until offsets[band + 1]
                 {
-                    let value = spectrum[line]
+                    let value     = spectrum[line]
                     let magnitude = Math.min(15's32, cast(s32, Math.round(Math.pow(Math.abs(value) / factor, 0.75))))
                     quantized[line] = value < 0 ? -magnitude : magnitude
                     if magnitude do
@@ -238,11 +238,11 @@ impl Encoder
             }
 
             .writeBits(cast(u32, gain), 8)
-            .writeBits(0, 1) // Reserved ICS bit.
-            .writeBits(0, 2) // ONLY_LONG_SEQUENCE.
-            .writeBits(0, 1) // Sine window.
+            .writeBits(0, 1)     // Reserved ICS bit.
+            .writeBits(0, 2)     // ONLY_LONG_SEQUENCE.
+            .writeBits(0, 1)     // Sine window.
             .writeBits(cast(u32, .bandCount), 6)
-            .writeBits(0, 1) // No predictor.
+            .writeBits(0, 1)     // No predictor.
             var sectionCodes: [2 * FullBands] EncoderSectionCode
             let sectionCount = planEncoderSections(Swag.makeSlice(&active[0], .bandCount),
                                                    Swag.makeSlice(&sectionCodes[0], sectionCodes.count))
@@ -255,10 +255,11 @@ impl Encoder
                 .writeBits(ScfCodes[difference], ScfBits[difference])
                 previousGain = bandGain[band]
             }
-            .writeBits(0, 1) // No pulse data.
-            .writeBits(0, 1) // No TNS.
-            .writeBits(0, 1) // No gain control.
-            let bits = specBits(10)
+
+            .writeBits(0, 1)     // No pulse data.
+            .writeBits(0, 1)     // No TNS.
+            .writeBits(0, 1)     // No gain control.
+            let bits  = specBits(10)
             let codes = specCodes(10)
             for band in .bandCount where active[band]
             {
@@ -269,15 +270,19 @@ impl Encoder
                     let second = quantized[line + 1]
                     let symbol = cast(u64, Math.abs(first) * 17 + Math.abs(second))
                     .writeBits(codes[symbol], bits[symbol])
-                    if first do .writeBits(first < 0 ? 1 : 0, 1)
-                    if second do .writeBits(second < 0 ? 1 : 0, 1)
+                    if first do
+                        .writeBits(first < 0 ? 1 : 0, 1)
+                    if second do
+                        .writeBits(second < 0 ? 1 : 0, 1)
                     line += 2
                 }
             }
+
             for sample in EncoderFrames do
                 .previous[channel, sample] = samples[sample * .channels + channel]
         }
-        .writeBits(7, 3) // End element.
+
+        .writeBits(7, 3)     // End element.
         packet.add(.output.toSlice())
     }
 }
@@ -290,8 +295,9 @@ private impl Encoder
         {
             if .bitCount == .output.count * 8 do
                 .output.add(0'u8)
-            .output[.bitCount >> 3] |= cast(u8, ((value >> (count - index - 1)) & 1) <<
-                                                  (7 - cast(u32, .bitCount & 7)))
+            .output[.bitCount >> 3] |= cast(u8,
+                                            ((value >> (count - index - 1)) & 1) <<
+                                            (7 - cast(u32, .bitCount & 7)))
             .bitCount += 1
         }
     }

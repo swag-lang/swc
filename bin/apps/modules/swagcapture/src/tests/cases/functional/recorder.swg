@@ -120,6 +120,7 @@ internal func testEndRecording()
     // The editor's save action offers the original MP4 as a playable standalone file.
     f.capture.media = .Video
     f.capture.file = String.from(document)
+    expect f.capture.adoptVideo()
     var state = Gui.Testing.commandState(ActionFile.SaveAsImage)
     Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsImage, &state))
     Swag.require(state.longName == appStrings().act_SaveAsVideo)

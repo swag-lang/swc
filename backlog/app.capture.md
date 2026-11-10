@@ -210,11 +210,14 @@ whole recording loaded at once.
   MP4 while recording. The writer bounds picture, PCM and packet storage; retaining an untouched
   recording needs a file copy rather than a final encode. `tools/capture-web.py` verifies actual
   Windows browser pixels, native system sound, saved-library reopen, every picture and a full
-  editor playback loop with measured XAudio2 output. Its six-second 320x180 fixture establishes
-  neither 1080p throughput nor two-hour endurance or synchronization.
+  editor playback loop with measured XAudio2 output. Its six-second browser fixture is scaled to
+  a 1002x766 capture and injects a 250 ms interface stall. This establishes neither moving 1080p
+  throughput nor two-hour endurance or synchronization.
   The application fixes video capture at 30 fps and uses software H.264 with exact QP 0, one
-  slice and no target bitrate. Screen acquisition, video encoding and audio pumping run on the
-  interface thread. Storage use and interface stalls therefore need representative measurements.
+  slice and no target bitrate. Screen acquisition and video encoding run on the interface thread;
+  WASAPI servicing and AAC encoding have separate bounded workers, with multimedia scheduling
+  for the native source. Storage use, remaining video stalls and source losses under sustained
+  machine load still need representative measurements.
   `recordVideo` deletes `fileToDiscard` on failure until adoption succeeds, even when completed
   MP4 fragments already exist. A stopped process can leave a playable orphan MP4, but library
   enumeration does not discover it without its capture document and the app has no recovery flow.

@@ -204,7 +204,7 @@ impl Recorder
         }
 
         if recorder.videoAudio do
-            recorder.videoAudio.close()
+            try recorder.videoAudio.finish()
         if recorder.state == .Cancelled do
             return null
         if recorder.writeFailed
@@ -218,8 +218,7 @@ impl Recorder
                 main.confirm(appStrings().msg_VideoStoppedForStorage)
             return null
         }
-        if not recorder.video.stoppedForLowStorage() do
-            try recorder.video.end()
+        try recorder.video.end()
         with let result = Memory.new'Capture()
         {
             .file = String.from(recorder.file)

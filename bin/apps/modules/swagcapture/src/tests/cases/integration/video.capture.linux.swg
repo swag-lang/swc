@@ -424,6 +424,7 @@ private func paintVideoWindow(window: *Env.Window, pixel: u32)
     discard catch session.captureAt(16_667) as stopped
     Swag.require(stopped.value() is Swag.SystemError)
     Swag.require(session.stoppedForLowStorage() and session.frameCount() == 1)
+    expect session.end()
     var reader = expect Reader.open(path)
     Swag.require(reader.frameCount() == 1 and reader.audioTrackCount() == 1 and
                  (unwrap reader.audioTrack(0)).sampleFrameCount() == 512)

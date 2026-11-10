@@ -490,6 +490,51 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     host.pump()
 }
 
+// Automatic placement uses one side for every child, chosen for the widest submenu.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 220)
+
+    let narrow = MenuCtrl.createPopup(&host.root)
+    narrow.addItem("Open", Menu_Open)
+    let wide = MenuCtrl.createPopup(&host.root)
+    wide.addItem("A child command too wide to fit on the right side of its parent menu", Menu_Open)
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    let narrowItem = popup.addPopup("Narrow", narrow)
+    let wideItem   = popup.addPopup("Wide", wide)
+
+    var stage: u32
+    host.app.sigFrame += func|host = &host, popup, narrow, narrowItem, wideItem, stage = &stage|(_)
+    {
+        if stage[] == 0
+        {
+            Swag.require(narrowItem.submenuOpensLeft)
+            Swag.require(wideItem.submenuOpensLeft)
+            let narrowWidth = narrow.position.width
+            let rightEdge   = popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize
+            let margin      = popup.themeMetrics().menuPopup_WindowMargin
+            Swag.require(rightEdge + narrowWidth <= host.root.position.width - margin)
+
+            let submenuOpened = host.openPopupSubMenu("Narrow")
+            Swag.require(submenuOpened)
+            Swag.require(narrow.position.right() <= rightEdge + 0.5)
+            Swag.require(host.dismissPopupMenu())
+            stage[] = 1
+        }
+        elif stage[] == 1
+        {
+            Swag.require(host.dismissPopupMenu())
+            stage[] = 2
+        }
+    }
+
+    discard popup.doModal({350, 40}, .TopLeft, autoDestroy: true)
+    Swag.require(stage == 2)
+    host.pump()
+}
+
 // A caller can keep child menus and their markers on the left even when the right side also fits.
 #test
 {

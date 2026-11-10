@@ -99,7 +99,6 @@ public struct MenuCtrl
     popupButtonOpensUp:      bool                   // Whether an anchored menu opens above its button.
     ignoreNextRelease:       bool                   // Whether to ignore the release that opened the popup.
     popupHasGlyphs:          bool                   // Whether visible popup entries need the shared glyph column.
-    popupHasMarkerColumn:    bool                   // Whether left-opening arrows own one shared leading column.
     widgetUnderPointer:      *Wnd?                  // Hosted child currently receiving pointer movement.
     widgetPointerPos:        Math.Point             // Last pointer position delivered to the hosted child.
 }
@@ -245,16 +244,11 @@ public impl IWnd for MenuCtrl
             }
 
             // A heading starts with the leftmost signs of its rows: glyphs when present, or
-            // wording otherwise. It does not drift into the text column after the glyphs.
+            // wording otherwise. Submenu markers stay at the trailing edge in either direction.
             if it.label
             {
                 labelPos.x += metrics.menuPopup_IconMargin
                 labelPos.width -= metrics.menuPopup_IconMargin
-                if .popupHasGlyphs and .popupHasMarkerColumn
-                {
-                    labelPos.x += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-                    labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-                }
                 SectionLabel.paint(me, painter, labelPos, it.name.raw)
                 continue
             }
@@ -284,45 +278,14 @@ public impl IWnd for MenuCtrl
             var iconPos = labelPos
             iconPos.x += metrics.menuPopup_IconMargin
 
-            // When left-opening arrows are the only leading signs of this popup, they own one
-            // shared minimal column: every wording then starts at the same place whether or not
-            // its row carries the arrow, instead of the arrowed rows drifting to the right.
             var submenuMarkerX: f32
-            if .popupHasMarkerColumn
-            {
-                submenuMarkerX = iconPos.x
-                iconPos.x      += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-                labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
-            }
-
             labelPos.moveLeft(.popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconTextMargin + metrics.menuPopup_IconSize : metrics.menuPopup_IconMargin)
             labelPos.width -= metrics.menuPopup_IconSize
 
-            // A left-opening submenu uses the shared glyph column when the row has no glyph of
-            // its own. Reserving another column after the marker left a conspicuous hole before
-            // the wording. A row that genuinely has both a marker and a glyph still keeps both.
             if it.popup != null
             {
-                if it.submenuOpensLeft and not .popupHasMarkerColumn
-                {
-                    submenuMarkerX = iconPos.x
-                    if not .popupHasGlyphs or it.icon.isValid()
-                    {
-                        iconPos.x += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-                        labelPos.moveLeft(metrics.chevron_Size + metrics.menuPopup_IconTextMargin)
-                    }
-                }
-                elif not it.submenuOpensLeft
-                {
-                    labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
-
-                    // The chevron belongs to the trailing edge, not to the text column. The
-                    // popup padding already supplies its outer air; keeping an extra icon-width
-                    // reserve after it made the marker float conspicuously toward the wording.
-                    // Let the chevron enter half the leading icon margin so its optical edge sits
-                    // a little nearer the popup outline without crowding it.
-                    submenuMarkerX = clientRect.right() - metrics.chevron_Size + metrics.menuPopup_IconMargin * 0.5
-                }
+                labelPos.width -= metrics.chevron_Size + metrics.menuPopup_IconTextMargin
+                submenuMarkerX = clientRect.right() - metrics.chevron_Size + metrics.menuPopup_IconMargin * 0.5
             }
 
             // Text
@@ -963,7 +926,6 @@ impl MenuCtrl
         let subPos        = sub.position
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * sdw
         let openLeft      = parentTopLeft.x - subPos.width + 2 * sdw
-        hotItem.submenuOpensLeft = .shouldOpenSubmenuLeft(surfaceRect, subPos.width)
         var pt = Math.Point{hotItem.submenuOpensLeft ? openLeft : openRight, parentTopLeft.y + hotItem.pos - .padding.y - sdw}
 
         // Keep the complete submenu inside the window when possible, with the same outer air as
@@ -1163,13 +1125,6 @@ impl MenuCtrl
 
         let leadingWidth = .popupHasGlyphs ? metrics.menuPopup_IconMargin + metrics.menuPopup_IconSize + metrics.menuPopup_IconTextMargin : metrics.menuPopup_IconMargin
         .position.width += metrics.menuPopup_IconSize + leadingWidth
-
-        // With no glyph column to share, a popup whose submenus deliberately open on the left
-        // aligns everything on one arrow column instead; the column has to be paid for once,
-        // since the rows without an arrow reserved nothing for it.
-        .popupHasMarkerColumn = hasSubmenuRows and .submenuDirection == .Left and not .popupHasGlyphs
-        if .popupHasMarkerColumn do
-            .position.width += metrics.chevron_Size + metrics.menuPopup_IconTextMargin
 
         if .hasPopupBarAnchor() and not .paintByFrame
         {
@@ -1565,8 +1520,6 @@ public impl MenuCtrl
             {
                 let lead = .popupHasGlyphs ? .themeMetrics().menuPopup_IconMargin + .themeMetrics().menuPopup_IconSize + .themeMetrics().menuPopup_IconTextMargin : .themeMetrics().menuPopup_IconMargin
                 left = button.menuAnchorTextLeft(anchor) - .padding.x - lead
-                if .popupHasMarkerColumn do
-                    left -= .themeMetrics().chevron_Size + .themeMetrics().menuPopup_IconTextMargin
             }
 
             let bounds    = .parent.clientRect()

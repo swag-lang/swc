@@ -38,6 +38,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addPopup("More choices", sub)
     popup.addItem("Unavailable option", "Menu.Disabled", disabled: true, checked: true)
     popup.addRadioItem("Unavailable choice", "Menu.DisabledRadio", disabled: true, checked: true).icon = host.theme.icon(.PlayOnce, 16)
+    popup.setSubmenuDirection(.Left)
 
     var captured: bool
     host.app.sigFrame += func|host = &host, golden, captured = &captured|(_)
@@ -363,8 +364,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// A left-opening submenu marker replaces the unused glyph on its row, even when another row
-// makes the popup keep a shared glyph column.
+// A left-opening submenu keeps its marker at the trailing edge when another row gives the popup
+// a shared glyph column.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -396,9 +397,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.pump()
 }
 
-// A popup without any visible item glyph whose submenus open on the left reserves one shared
-// arrow column, so the wording of every row starts at the same place whether or not its row
-// carries the arrow.
+// Opening submenus on the left keeps their markers on the trailing edge without adding a leading
+// arrow column to the popup.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -423,10 +423,10 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     iconPopup.setSubmenuDirection(.Left)
     iconPopup.computeLayoutPopup()
 
-    // The shared arrow column is paid for once by the whole popup, so the no-glyph popup ends
-    // up wider than the glyph one by the chevron column minus the glyph column it replaces.
+    // The icon popup pays for its shared glyph column; the submenu marker stays in the trailing
+    // column either way.
     let metrics = popup.themeMetrics()
-    Swag.require(Math.abs(popup.position.width - iconPopup.position.width - (metrics.chevron_Size - metrics.menuPopup_IconSize)) < 0.01)
+    Swag.require(Math.abs(iconPopup.position.width - popup.position.width - metrics.menuPopup_IconSize - metrics.menuPopup_IconTextMargin) < 0.01)
 
     var checked: bool
     host.app.sigFrame += func|host = &host, checked = &checked|(_)

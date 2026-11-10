@@ -895,9 +895,9 @@ impl MainWnd
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Record)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordVideo)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
-            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds)
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds, menuSection: 1)
             for idx in me.monitors.count do
-                .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
+                .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx), menuSection: 1)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds, menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
             .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)

@@ -139,8 +139,8 @@ act_NextFrame          Image suivante
 act_ShowFromHere       Afficher à partir d'ici
 act_ShowUntilHere      Afficher jusqu'ici
 act_ShowAlways         Afficher tout le temps
-act_TrimStart          Commencer ici
-act_TrimEnd            Finir ici
+act_TrimStart          Définir le début de la vidéo ici
+act_TrimEnd            Définir la fin de la vidéo ici
 act_KeepAll            Garder tout l'enregistrement
 act_CaptureFullScreen  Capturer l'écran entier
 act_CaptureLastArea    Capturer la dernière zone
@@ -301,6 +301,7 @@ act_AlignMiddle        Milieu
 act_AlignBottom        Bas
 tip_PlayAnimation      Lire
 tip_PauseAnimation     Pause
+tip_TimelineContext    Clic droit pour les actions de la timeline
 tip_PauseRecording     Pause
 tip_ResumeRecording    Reprendre
 tip_StopRecording      Arrêter et garder

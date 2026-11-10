@@ -213,6 +213,7 @@ struct AppStrings
     act_ResetSteps:               string = "Reset Step Numbers"                                            // Restarts the numbering of the step markers at 1.
     tip_PlayAnimation:            string = "Play"                                                          // Command of the timeline of an animation.
     tip_PauseAnimation:           string = "Pause"                                                         // Command of the timeline of an animation.
+    tip_TimelineContext:          string = "Right-click for timeline actions"                              // Opens the timeline's context menu.
     tip_PauseRecording:           string = "Pause"                                                         // Command of the recording pill.
     tip_ResumeRecording:          string = "Resume"                                                        // Command of the recording pill.
     tip_StopRecording:            string = "Stop and keep"                                                 // Command of the recording pill.
@@ -262,8 +263,8 @@ struct AppStrings
     act_ShowFromHere:             string = "Show From Here"               // The selected forms appear at the playhead.
     act_ShowUntilHere:            string = "Show Until Here"              // The selected forms disappear at the playhead.
     act_ShowAlways:               string = "Show All the Time"            // The selected forms show for the whole animation.
-    act_TrimStart:                string = "Start Here"                   // The kept part of an animation starts at the playhead.
-    act_TrimEnd:                  string = "End Here"                     // The kept part of an animation ends at the playhead.
+    act_TrimStart:                string = "Set Video Start Here"         // The kept part of a recording starts at the playhead.
+    act_TrimEnd:                  string = "Set Video End Here"           // The kept part of a recording ends at the playhead.
     act_KeepAll:                  string = "Keep the Whole Recording"     // Undoes the trimming of an animation.
     act_CancelRecording:          string = "Cancel the Recording"         // Abandons the recording in progress.
     act_CaptureFullScreen:        string = "Capture Full Screen"

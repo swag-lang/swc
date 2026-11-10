@@ -76,6 +76,8 @@ enum CaptureIcons
     Delay5              // Clock hand pointing to five for the five-second delay.
     Delay10             // Clock hand pointing to ten for the ten-second delay.
     Video               // Video camera.
+    TimelineStart       // Start boundary and the retained timeline after it.
+    TimelineEnd         // End boundary and the retained timeline before it.
 }
 
 // The application icon document and the frames rasterized from it, shared by the main window

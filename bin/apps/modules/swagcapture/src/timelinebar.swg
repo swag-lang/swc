@@ -78,8 +78,8 @@ impl IWnd for TimelineBar
         let textX = TimelinePadding + TimelineButton + TimelinePadding
         painter.drawString(textX, font.opticalLineTop(client.vertCenter()), text, font, colors.softText)
 
-        // The track, the part already played in Arc, and the playhead. The parts trimmed away keep
-        // the ground of the track and lose the Arc; brackets mark the kept part.
+        // The track and the part already played in Arc. The recording outside the kept part is
+        // shaded across the whole track, so the usable passage reads as one continuous span.
         let track  = .trackRect()
         if .zoom > 1 do
             .prepareThumbnails(capture)
@@ -100,18 +100,13 @@ impl IWnd for TimelineBar
             painter.fillRoundRect({shownLeft, track.vertCenter() - 2, shownRight - shownLeft, 4}, 2, 2, colors.arc)
         if capture.isTrimmed()
         {
-            if keepL >= track.x and keepL <= track.right()
-            {
-                painter.fillRect({keepL - 1, track.y + 9, 2, track.height - 18}, colors.arc)
-                painter.fillRect({keepL - 1, track.y + 9, 5, 2}, colors.arc)
-                painter.fillRect({keepL - 1, track.bottom() - 11, 5, 2}, colors.arc)
-            }
-            if keepR >= track.x and keepR <= track.right()
-            {
-                painter.fillRect({keepR - 1, track.y + 9, 2, track.height - 18}, colors.arc)
-                painter.fillRect({keepR - 4, track.y + 9, 5, 2}, colors.arc)
-                painter.fillRect({keepR - 4, track.bottom() - 11, 5, 2}, colors.arc)
-            }
+            let shade      = colors.disabled.withAlpha(72)
+            let beforeEnd  = Math.clamp(keepL, track.x, track.right())
+            let afterStart = Math.clamp(keepR, track.x, track.right())
+            if beforeEnd > track.x do
+                painter.fillRect({track.x, track.y, beforeEnd - track.x, track.height}, shade)
+            if afterStart < track.right() do
+                painter.fillRect({afterStart, track.y, track.right() - afterStart, track.height}, shade)
         }
 
         if played >= track.x and played <= track.right() do
@@ -140,6 +135,10 @@ impl IWnd for TimelineBar
         let position = .surfaceToLocal(evt.surfacePos)
         switch evt.kind
         {
+        case .Pressed where evt.button == .Right:
+            .showActions(evt.surfacePos)
+            evt.accepted = true
+
         case .Wheel where .trackRect().contains(position):
             if evt.modifiers & .Shift
             {
@@ -225,6 +224,7 @@ impl TimelineBar
             .panel           = panel
             .backgroundStyle = .Transparent
             .dockStyle       = .Center
+            .toolTip         = appStrings().tip_TimelineContext
         }
 
         with result.playButton = IconButton.create(result, result.theme().icon(.Play), {TimelinePadding, (TimelineHeight - TimelineButton) * 0.5, TimelineButton, TimelineButton}, flags: .Flat)
@@ -234,6 +234,29 @@ impl TimelineBar
         }
 
         return result
+    }
+
+    // Opens the timeline commands at the pointer that requested its context menu.
+    mtd showActions(surfacePos: Math.Point)
+    {
+        let main = .main
+        with let menu = MenuCtrl.createPopup(main, owner: main)
+        {
+            .addItem(ActionTimeline.Play)
+            .addItem(ActionTimeline.PrevFrame)
+            .addItem(ActionTimeline.NextFrame)
+            .addSeparator()
+            .addItem(ActionTimeline.TrimStart)
+            .addItem(ActionTimeline.TrimEnd)
+            .addItem(ActionTimeline.KeepAll)
+            .addSeparator()
+            .addItem(ActionTimeline.ShowFrom)
+            .addItem(ActionTimeline.ShowUntil)
+            .addItem(ActionTimeline.ShowAlways)
+        }
+
+        menu.updateState()
+        discard menu.doModal(surfacePos, PopupPosition.TopLeft, autoDestroy: true)
     }
 
     // Returns the capture the bar shows the time of.
@@ -435,20 +458,22 @@ impl TimelineBar
             return
 
         case .Start:
-            capture.timeline.inPoint = Math.min(.timeAt(x), capture.trimEnd())
+            capture.timeline.inPoint = Math.min(.timeAt(x), capture.trimEnd() - 1)
 
         case .End:
-            let finish = Math.max(.timeAt(x), capture.trimStart() + 1)
+            let finish = Math.min(Math.max(.timeAt(x), capture.trimStart() + 1), capture.timeline.duration)
             capture.timeline.outPoint = finish >= capture.timeline.duration ? 0 : finish
 
         case .FormStart:
             let form: *BaseForm = capture.forms[capture.selection[0]]
             let finish = form.timeEnd ? form.timeEnd : capture.timeline.duration
-            form.timeStart = Math.min(.timeAt(x), finish - 1)
+            form.timeStart = Math.min(.timeAt(x), Math.min(finish, capture.timeline.duration) - 1)
 
         case .FormEnd:
             let form: *BaseForm = capture.forms[capture.selection[0]]
-            let finish = Math.max(.timeAt(x), form.timeStart + 1)
+            let start  = Math.min(form.timeStart, capture.timeline.duration - 1)
+            let finish = Math.min(Math.max(.timeAt(x), start + 1), capture.timeline.duration)
+            form.timeStart = start
             form.timeEnd = finish >= capture.timeline.duration ? 0 : finish
         }
 

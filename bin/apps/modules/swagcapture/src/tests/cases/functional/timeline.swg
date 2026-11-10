@@ -28,6 +28,88 @@ func testProfileVersion(file: string)->u32
     return reader.manifest().profileVersion
 }
 
+// The secondary timeline menu collects playback, recording-range, and selected-form commands.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let capture = testRecordedCapture()
+    let file    = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    main.editWnd.editView.setCapture(capture)
+
+    let shape = testAddArrow(capture, 4, 4, 20, 10)
+    shape.timeStart = 50_000
+    shape.timeEnd   = 250_000
+    capture.selection.add(0)
+    capture.setTrim(50_000, 250_000)
+    expect capture.showFrame(1)
+    main.updateState()
+
+    let bar = unwrap main.timeline
+    var inspected: bool
+    host.app.sigFrame += func|host = &host, inspected = &inspected|(_)
+    {
+        if inspected[] do
+            return
+
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.require(menu.items.count == 11)
+        Swag.require(menu.items[0]!.id == ActionTimeline.Play)
+        Swag.require(menu.items[1]!.id == ActionTimeline.PrevFrame)
+        Swag.require(menu.items[2]!.id == ActionTimeline.NextFrame)
+        Swag.require(menu.items[3]!.separator)
+        Swag.require(menu.items[4]!.id == ActionTimeline.TrimStart and not menu.items[4]!.disabled)
+        Swag.require(menu.items[5]!.id == ActionTimeline.TrimEnd and not menu.items[5]!.disabled)
+        Swag.require(menu.items[6]!.id == ActionTimeline.KeepAll and not menu.items[6]!.disabled)
+        Swag.require(menu.items[7]!.separator)
+        Swag.require(menu.items[8]!.id == ActionTimeline.ShowFrom and not menu.items[8]!.disabled)
+        Swag.require(menu.items[9]!.id == ActionTimeline.ShowUntil and not menu.items[9]!.disabled)
+        Swag.require(menu.items[10]!.id == ActionTimeline.ShowAlways and not menu.items[10]!.disabled)
+        let iconItems = [0, 1, 2, 4, 5, 6, 8, 9, 10]
+        for left, index in iconItems
+        {
+            Swag.require(menu.items[left]!.icon.isValid())
+            for right in index + 1 until iconItems.count do
+                Swag.require(menu.items[left]!.icon != menu.items[iconItems[right]]!.icon)
+        }
+        inspected[] = true
+        Swag.require(host.clickPopupMenuItem(ActionTimeline.TrimStart))
+    }
+
+    host.click(bar.localToSurface(bar.trackRect().center()), button: .Right)
+    host.app.sigFrame.clear()
+    Swag.require(inspected)
+    host.pump()
+    Swag.require(capture.trimStart() == capture.playheadTime())
+
+    capture.setTrim(50_000, 100_000)
+    expect capture.showFrame(0)
+    main.sendCommandEvent(ActionTimeline.TrimEnd)
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 50_001)
+
+    capture.setTrim(50_000, 100_000)
+    expect capture.showFrame(2)
+    main.sendCommandEvent(ActionTimeline.TrimStart)
+    Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
+    capture.undo()
+
+    capture.setSelectionSpanAt(true, 300_000)
+    Swag.require(shape.timeStart == 249_999 and shape.timeEnd == 250_000)
+    capture.undo()
+    capture.setSelectionSpanAt(false, 40_000)
+    Swag.require(shape.timeStart == 50_000 and shape.timeEnd == 50_001)
+    capture.undo()
+}
+
 // A long recording can zoom around a chosen time, pan, and seek inside the visible range without
 // decoding a frame elsewhere in the recording.
 #test
@@ -108,6 +190,22 @@ func testProfileVersion(file: string)->u32
     Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 0)
     capture.undo()
     Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 200_000)
+
+    bar.dragEdge      = .FormStart
+    bar.dragFromStart = shape.timeStart
+    bar.dragFromEnd   = shape.timeEnd
+    bar.drag(bar.trackX(250_000))
+    Swag.require(shape.timeStart == 199_999 and shape.timeEnd == 200_000)
+    bar.endEdgeDrag()
+    capture.undo()
+
+    bar.dragEdge      = .FormEnd
+    bar.dragFromStart = shape.timeStart
+    bar.dragFromEnd   = shape.timeEnd
+    bar.drag(bar.trackX(50_000))
+    Swag.require(shape.timeStart == 100_000 and shape.timeEnd == 100_001)
+    bar.endEdgeDrag()
+    capture.undo()
 }
 
 // A timed capture saves its forms and timeline without touching its frame file, loads back with
@@ -372,6 +470,8 @@ func testProfileVersion(file: string)->u32
     defer capture.closeMedia()
     f.editView.setCapture(capture)
     f.capture = capture
+    let bar = TimelineBar.create(f.main, &f.gui.root)
+    bar.resize(800, TimelineHeight)
 
     capture.setTrim(50_000, 250_000)
     Swag.require(capture.isTrimmed())
@@ -393,6 +493,31 @@ func testProfileVersion(file: string)->u32
     capture.setTrim(50_000, 300_000)
     Swag.require(capture.timeline.outPoint == 0 and capture.trimEnd() == 300_000)
 
+    capture.setTrim(300_000, 100_000)
+    Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
+
+    capture.setTrim(50_000, 100_000)
+    bar.dragEdge    = .Start
+    bar.dragFromIn  = 50_000
+    bar.dragFromOut = 100_000
+    bar.drag(bar.trackX(250_000))
+    Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
+    bar.endEdgeDrag()
+    capture.undo()
+
+    bar.dragEdge    = .End
+    bar.dragFromIn  = 50_000
+    bar.dragFromOut = 100_000
+    bar.drag(bar.trackX(0))
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 50_001)
+    bar.endEdgeDrag()
+    capture.undo()
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 100_000)
+
+    capture.undo()
+    Swag.require(capture.trimStart() == 99_999 and capture.trimEnd() == 100_000)
+    capture.undo()
+    Swag.require(capture.trimStart() == 50_000 and capture.trimEnd() == 300_000)
     capture.undo()
     capture.undo()
     Swag.require(not capture.isTrimmed())

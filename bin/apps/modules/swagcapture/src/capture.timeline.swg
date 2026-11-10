@@ -219,22 +219,27 @@ impl Capture
     // Returns whether the capture keeps less than its whole recording.
     mtd const isTrimmed()->bool => .timeline.inPoint != 0 or .timeline.outPoint != 0
 
-    // Keeps the part of the recording from `inPoint` until `outPoint`, in microseconds, as one
-    // undoable edit. An `outPoint` of zero, or at the end, keeps the recording to its end.
+    // Keeps a non-empty part of the recording from `inPoint` until `outPoint`, in microseconds,
+    // as one undoable edit. An `outPoint` of zero, or at the end, keeps it to its end.
     mtd setTrim(inPoint, outPoint: u64)
     {
         if not .isTimed() do
             return
 
-        let finish = outPoint == 0 or outPoint >= .timeline.duration ? 0 : outPoint
-        let start  = Math.min(inPoint, finish ? finish : .timeline.duration)
-        if start == .timeline.inPoint and finish == .timeline.outPoint do
+        let duration = .timeline.duration
+        if duration == 0 do
+            return
+
+        let finish = outPoint == 0 or outPoint >= duration ? duration : Math.max(outPoint, 1)
+        let start  = Math.min(inPoint, finish - 1)
+        let trimmedFinish = finish >= duration ? 0 : finish
+        if start == .timeline.inPoint and trimmedFinish == .timeline.outPoint do
             return
 
         with let undo = .newUndo(.SetTrim)
         {
             .trimIn  = start
-            .trimOut = finish
+            .trimOut = trimmedFinish
         }
 
         .pushUndo(undo)
@@ -252,8 +257,8 @@ impl Capture
         try .showFrame(cast(u64, target))
     }
 
-    // Makes the selected forms start, or end, at the playhead, as one undoable edit. A span that
-    // would end before it starts is opened on its other side.
+    // Makes the selected forms start, or end, at the playhead, as one undoable edit. A boundary
+    // that would cross the other one stops one microsecond before or after it.
     mtd setSelectionSpan(start: bool)
     {
         .setSelectionSpanAt(start, .playheadTime())
@@ -267,7 +272,7 @@ impl Capture
             return
         with let undo = .newUndo(.SetTimeSpan)
         {
-            .spanTime  = not start and time >= me.timeline.duration ? 0 : Math.min(time, me.timeline.duration)
+            .spanTime  = Math.min(time, me.timeline.duration)
             .spanStart = start
         }
 

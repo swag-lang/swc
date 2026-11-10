@@ -553,21 +553,27 @@ impl Undo
         case .SetTimeSpan:
             foreachSelected'BaseForm(capture, .selection)
             {
+                let duration = capture.timeline.duration
+                if duration == 0 do
+                    continue
+
                 if .spanClear
                 {
                     form.timeStart, form.timeEnd = 0
                 }
                 elif .spanStart
                 {
-                    form.timeStart = .spanTime
-                    if form.timeEnd != 0 and form.timeEnd <= .spanTime do
+                    let finish = form.timeEnd != 0 ? Math.min(form.timeEnd, duration) : duration
+                    form.timeStart = Math.min(.spanTime, finish - 1)
+                    if form.timeEnd >= duration do
                         form.timeEnd = 0
                 }
                 else
                 {
-                    form.timeEnd = .spanTime
-                    if .spanTime and form.timeStart >= .spanTime do
-                        form.timeStart = 0
+                    let start  = Math.min(form.timeStart, duration - 1)
+                    let finish = Math.max(.spanTime, start + 1)
+                    form.timeStart = start
+                    form.timeEnd   = finish >= duration ? 0 : finish
                 }
             }
 

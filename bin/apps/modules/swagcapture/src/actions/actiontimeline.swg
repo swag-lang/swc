@@ -39,42 +39,42 @@ impl IActionUI for ActionTimeline
 
         case .PrevFrame:
             evt.name     = appStrings().act_PreviousFrame
-            evt.icon     = main.theme().icon(.ChevronLeft)
+            evt.icon     = main.theme().icon(.SearchPrevious)
             evt.disabled = not timed
 
         case .NextFrame:
             evt.name     = appStrings().act_NextFrame
-            evt.icon     = main.theme().icon(.ChevronRight)
+            evt.icon     = main.theme().icon(.SearchNext)
             evt.disabled = not timed
 
         case .ShowFrom:
             evt.name     = appStrings().act_ShowFromHere
-            evt.icon     = main.theme().icon(.ChevronRight)
+            evt.icon     = main.theme().icon(.SeekForward)
             evt.disabled = not selected
 
         case .ShowUntil:
             evt.name     = appStrings().act_ShowUntilHere
-            evt.icon     = main.theme().icon(.ChevronLeft)
+            evt.icon     = main.theme().icon(.SeekBackward)
             evt.disabled = not selected
 
         case .ShowAlways:
             evt.name     = appStrings().act_ShowAlways
-            evt.icon     = main.theme().icon(.Play)
+            evt.icon     = main.theme().icon(.Eye)
             evt.disabled = not selected
 
         case .TrimStart:
             evt.name     = appStrings().act_TrimStart
-            evt.icon     = main.theme().icon(.ChevronRight)
+            evt.icon     = main.icon(.TimelineStart)
             evt.disabled = not timed
 
         case .TrimEnd:
             evt.name     = appStrings().act_TrimEnd
-            evt.icon     = main.theme().icon(.ChevronLeft)
+            evt.icon     = main.icon(.TimelineEnd)
             evt.disabled = not timed
 
         case .KeepAll:
             evt.name     = appStrings().act_KeepAll
-            evt.icon     = main.theme().icon(.Play)
+            evt.icon     = main.theme().icon(.History)
             evt.disabled = not timed or not capture!.isTrimmed()
         }
 
@@ -114,11 +114,14 @@ impl IActionUI for ActionTimeline
             main.timeline?.invalidate()
 
         case .TrimStart:
-            capture.setTrim(capture.playheadTime(), capture.timeline.outPoint)
+            let latestStart = capture.trimEnd() - 1
+            capture.setTrim(Math.min(capture.playheadTime(), latestStart), capture.timeline.outPoint)
             main.timeline?.invalidate()
 
         case .TrimEnd:
-            capture.setTrim(capture.timeline.inPoint, capture.playheadTime())
+            let earliestEnd = capture.trimStart() + 1
+            let finish      = Math.min(Math.max(capture.playheadTime(), earliestEnd), capture.timeline.duration)
+            capture.setTrim(capture.timeline.inPoint, finish)
             main.timeline?.invalidate()
 
         case .KeepAll:

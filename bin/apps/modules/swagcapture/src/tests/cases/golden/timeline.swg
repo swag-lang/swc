@@ -33,10 +33,12 @@ using Swag, Core, Pixel
 
     main.editWnd.editView.setCapture(capture)
 
-    // A selected arrow shown from the second frame on: its span lies under the track.
+    // A selected arrow and a shortened recording share the track with their time spans.
     let arrow = testAddArrow(capture, 8, 40, 30, 14)
-    arrow.timeStart = 400_000
+    arrow.timeStart = 50_000
+    arrow.timeEnd   = 300_000
     capture.selection.add(0)
+    capture.setTrim(100_000, 300_000)
 
     // The recent strip marks the animation with its length; a picture beside it has no mark.
     var picture = Image.create(320, 200, .BGRA8)
@@ -60,4 +62,63 @@ using Swag, Core, Pixel
 
     var image = host.render(main)
     Pixel.Testing.assertImageGolden(&image, "edit.timeline")
+}
+
+// The timeline's additional commands are anchored at the far end of the bar and group its edits.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    var pictures: [3] Image
+    pictures[0] = testFramePicture(10, 0)
+    pictures[1] = testFramePicture(40, 8)
+    pictures[2] = testFramePicture(70, 16)
+
+    let capture = Memory.new'Capture()
+    capture.file = testTempCapturePath()
+    let file = String.from(capture.file)
+    defer catch Capture.deleteFiles(file)
+    defer capture.closeMedia()
+    expect testWriteFrames(Capture.mediaPathOf(file), pictures, 400_000)
+    expect capture.adoptRecording()
+    expect capture.showFrame(1)
+    main.editWnd.editView.setCapture(capture)
+
+    let arrow = testAddArrow(capture, 8, 40, 30, 14)
+    arrow.timeStart = 50_000
+    arrow.timeEnd   = 300_000
+    capture.selection.add(0)
+    capture.setTrim(100_000, 300_000)
+    main.applyLayout()
+    main.updateState()
+    host.finishAnimations()
+
+    let bar = unwrap main.timeline
+    var captured: bool
+    host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+
+        let menu = unwrap host.capturedPopupMenu()
+        Swag.require(menu.items[3]!.separator and menu.items[7]!.separator)
+        host.finishAnimations()
+        var image = host.render(main)
+        Pixel.Testing.assertImageGolden(&image, "edit.timeline.actions.papier")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    host.click(bar.localToSurface(bar.trackRect().center()), button: .Right)
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
 }

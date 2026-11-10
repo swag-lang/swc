@@ -1,7 +1,7 @@
-using Core, Pixel
+using Core, Gui, Pixel
 
-// The controls the bar of a fresh zone adds to its tools: the kinds of capture the zone can become,
-// and the options of a recording, after the charter picture of the aiming overlay.
+// Capture kinds and their compact choices in the in-place overlay, after the charter picture of
+// the aiming overlay.
 const OptionChipInset  = 9.0      // Air on each side of the content of an option.
 const OptionChipIcon   = 16.0     // Side of the glyph of an option.
 const OptionChipGap    = 8.0      // Air between the glyph of an option and its words.
@@ -25,6 +25,18 @@ func kindName(media: CaptureMedia)->string
     case .Picture:   return appStrings().ui_MediaPicture
     case .Animation: return appStrings().ui_MediaAnimation
     case .Video:     return appStrings().ui_MediaVideo
+    }
+}
+
+// Returns the glyph that identifies a capture kind in its menu and on the zone.
+func kindIcon(main: *MainWnd, theme: *Theme, media: CaptureMedia)->Icon
+{
+    let size = theme.metrics.menuPopup_IconSize
+    switch #complete media
+    {
+    case .Picture:   return main.icon(.Image, size)
+    case .Animation: return theme.icon(.Play, size)
+    case .Video:     return main.icon(.Video, size)
     }
 }
 

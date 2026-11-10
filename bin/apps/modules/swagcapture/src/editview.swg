@@ -19,6 +19,7 @@ struct EditView
     late main:   *MainWnd
     late scroll: *ScrollWnd
     capture:     *Capture?
+    inPlaceKindButton: *IconButton?
     zoom:        f32  = 1
     viewMargin:  f32  = 32
     firstPaint:  bool = true
@@ -267,10 +268,28 @@ impl EditView
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
         let text    = Format.toString("% × %", capture.width, capture.height)
         let pad     = metrics.hintLine_KeyGap
-        let chip    = Math.Rectangle{zone.x, zone.y - font.height - pad - metrics.miniBar_Padding, Painter.measureString(text, font).width + 2 * pad, font.height + pad}
+        let textWidth = Painter.measureString(text, font).width
+        let chip      = .inPlaceSizeChipRect(zone, textWidth, font.height, pad)
+        var textX   = chip.x + pad
+        if .inPlaceKindButton
+        {
+            textX += .inPlaceKindButton.position.width + metrics.menuPopup_IconTextMargin + pad * 0.5
+        }
         painter.setParams(.Antialiased)
         painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
-        painter.drawString(chip.x + pad, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+        painter.drawString(textX, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+    }
+
+    // Gives the dimensions and kind control one chip at the capture's top edge.
+    mtd inPlaceSizeChipRect(zone: Math.Rectangle, textWidth, textHeight, pad: f32)->Math.Rectangle
+    {
+        let metrics = .themeMetrics()
+        let buttonWidth = .inPlaceKindButton ? .inPlaceKindButton.position.width : 0.0
+        let leading = buttonWidth > 0 ? buttonWidth + metrics.menuPopup_IconTextMargin + pad * 0.5 : 0.0
+        let width  = leading + textWidth + 2 * pad
+        let bounds = .clientRect()
+        let x = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
+        return {x, zone.y - textHeight - pad - metrics.miniBar_Padding, width, textHeight + pad}
     }
 
     // Returns where the capture is painted in the view at the current zoom: centered, or at the

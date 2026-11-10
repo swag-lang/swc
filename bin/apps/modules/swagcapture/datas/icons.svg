@@ -7,7 +7,7 @@
      application rasterizes this document on demand at any requested icon size and scale and
      tints it at draw time, so everything is white. RatingStar and SquareFill are filled on
      purpose: a rating point and a fill swatch. -->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 168">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
   <g id="Shape" transform="translate(0 0) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
     <path d="M7 9.35A3.5 3.5 0 1 1 9.35 7"/>
     <rect x="7" y="7" width="6.5" height="6.5" rx="1.5"/>
@@ -221,5 +221,9 @@
   <g id="Delay10" transform="translate(168 144) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="8" cy="8.5" r="4.75"/>
     <path d="M6.5 2.75h3M8 2.75v1M8 8.5l-2.7-1.6"/>
+  </g>
+  <g id="Video" transform="translate(0 168) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2.5" y="4" width="8" height="8" rx="1.5"/>
+    <path d="M10.5 6.2l3.5-2v7.6l-3.5-2z"/>
   </g>
 </svg>

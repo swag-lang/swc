@@ -675,15 +675,15 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    // One bar: the kind menu, the ten tools, the colour, the three destinations, Copy and
-    // the cross.
+    // The kind joins the size chip above the zone; the bar holds the ten tools, colour,
+    // destinations, Copy and the cross.
     Swag.require(editor.bar.isLocallyVisible())
     Swag.require(editor.bar.position.y >= editor.editWnd.editView.getCaptureRect().bottom())
     var image = host.render(editor)
     Pixel.Testing.assertImageGolden(&image, "inplace")
 }
 
-// A fresh zone names its current kind and offers the other kinds beneath one control in Papier.
+// A fresh zone shows its kind beside the dimensions and offers the other icon-marked kinds in Papier.
 #[Swag.TestTag("golden")]
 #test
 {

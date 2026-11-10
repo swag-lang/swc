@@ -46,8 +46,8 @@ const RecordDotSize = 8.0
 
 // The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
 //
-// The desktop stays dimmed and the zone stands in full light, its edges still movable. One bar
-// hangs under the zone, and starts with a menu naming what the zone becomes. For a
+// The desktop stays dimmed and the zone stands in full light, its edges still movable. The kind
+// menu joins the size reading in a chip above the zone. One bar hangs under the zone. For a
 // picture, the tools as glyphs, the colour, then where the capture goes — pinned on the screen,
 // to the editor, to a file — and Copy, the primary action. For an animation, the options of the
 // recording, the sound out of reach, and Record. The keys are at the foot.
@@ -72,6 +72,7 @@ struct InPlaceEditWnd
     editColorHilight: Color = Argb.Yellow
     captureScale:     f32   = 1          // DPI scale of the monitor the capture sits on
     barRoom:          Math.Rectangle     // Captured monitor in overlay-local logical units.
+    kindButtonWidth:  f32                // Stable width for the three translated kind names.
 }
 
 // Returns the DPI scale of the monitor the captured area sits on.
@@ -158,10 +159,54 @@ impl InPlaceEditWnd
     mtd createBar()
     {
         .bar = MiniBar.create(.editWnd.editView)
+        .createKindButton()
         .fillBar()
     }
 
-    // Fills the bar for what the zone becomes: the kinds, then, for a picture, the tools, the
+    // Keeps the selected kind beside the size chip, above the captured zone.
+    mtd createKindButton()
+    {
+        let metrics = .themeMetrics()
+        let main    = .source
+        var width = 0'f32
+        with let button = IconButton.createQuiet(.editWnd.editView, menu: true)
+        {
+            .setIcon(kindIcon(main, .theme(), g_CaptureMedia))
+            .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+
+            for media in KindMedia
+            {
+                .setQuietText(kindName(media))
+                width = Math.max(width, .position.width)
+            }
+
+            .setQuietText(kindName(g_CaptureMedia))
+            .resize(width, metrics.quiet_Height)
+            .sigPressed += func|editor = me|(btn) { editor.showKindMenu(assume cast(*IconButton, btn)) }
+        }
+
+        .kindButton = button
+        .kindButtonWidth = width
+        .editWnd.editView.inPlaceKindButton = button
+        .updateKindButton()
+    }
+
+    // Keeps the label and glyph in step with the selected kind without changing the chip width.
+    mtd updateKindButton()
+    {
+        let metrics = .themeMetrics()
+        let width   = .kindButtonWidth
+        let main    = .source
+        with let button = unwrap .kindButton
+        {
+            .setIcon(kindIcon(main, .theme(), g_CaptureMedia))
+            .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+            .setQuietText(kindName(g_CaptureMedia))
+            .resize(width, metrics.quiet_Height)
+        }
+    }
+
+    // Fills the bar for what the zone becomes: for a picture, the tools, the
     // colour, the destinations in words and Copy; for an animation, the options of the recording,
     // the sound and Record; and the faint cross that leaves without keeping anything.
     mtd fillBar()
@@ -170,23 +215,6 @@ impl InPlaceEditWnd
         let metrics = .themeMetrics()
         let size    = metrics.menuPopup_IconSize
         .bar.clear()
-
-        with let kinds = IconButton.createQuiet(.bar, menu: true)
-        {
-            .resize(.position.width, metrics.miniBar_ButtonSize)
-            var width = 0.0
-            for media in KindMedia
-            {
-                .setQuietText(kindName(media))
-                width = Math.max(width, .position.width)
-            }
-            .setQuietText(kindName(g_CaptureMedia))
-            .resize(width, metrics.miniBar_ButtonSize)
-            .sigPressed += func|editor = me|(btn) { editor.showKindMenu(assume cast(*IconButton, btn)) }
-        }
-        .kindButton = kinds
-        .bar.addItem(kinds)
-        .bar.addSeparator()
 
         if g_CaptureMedia != .Picture
         {
@@ -254,13 +282,14 @@ impl InPlaceEditWnd
         .updateEditMode()
     }
 
-    // Opens the kind list from the one fixed-width control at the start of the bar.
+    // Opens the kind list from the control beside the size chip.
     mtd showKindMenu(button: *IconButton)
     {
+        let main = .source
         with let menu = MenuCtrl.createPopup(me)
         {
             for media in KindMedia do
-                .addItem(kindName(media), kindMenuId(media), checked: media == g_CaptureMedia)
+                .addItem(kindName(media), kindMenuId(media), kindIcon(main, .theme(), media), checked: media == g_CaptureMedia)
         }
 
         let chosen = menu.doModal(button, autoDestroy: true)
@@ -379,6 +408,7 @@ impl InPlaceEditWnd
         else do
             .editMode = .pictureMode
         .fillBar()
+        .updateKindButton()
         .configureMainWindowEditMode()
         .hintLine.destroy()
         .createHintLine()
@@ -595,7 +625,25 @@ impl InPlaceEditWnd
             return
         var room = .barRoom
         room.intersect(view.clientRect())
+        .placeKindButton()
         .bar.showNear(view.getCaptureRect(), below: true, room: room)
+    }
+
+    // Aligns the kind button with the size reading in the same chip above the captured zone.
+    mtd placeKindButton()
+    {
+        let view = .editWnd.editView
+        let capture = unwrap view.capture
+        let metrics = .themeMetrics()
+        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+        let pad     = metrics.hintLine_KeyGap
+        let text    = Format.toString("% × %", capture.width, capture.height)
+        let chip    = view.inPlaceSizeChipRect(view.getCaptureRect(), Painter.measureString(text, font).width, font.height, pad)
+        let height  = Math.min(chip.height, metrics.quiet_Height)
+        let button = unwrap .kindButton
+        button.setPosition(Math.Rectangle{chip.x + pad * 0.5,
+                                          chip.y + (chip.height - height) * 0.5,
+                                          .kindButtonWidth, height})
     }
 }
 

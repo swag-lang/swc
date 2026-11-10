@@ -98,12 +98,12 @@ impl IActionUI for ActionCapture
         case .Record:
             evt.updatedFields |= .Name | .Icon
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordAnimation
-            evt.icon = main.theme().icon(g_Recorder ? .Stop : .Play)
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Animation)
 
         case .RecordVideo:
             evt.updatedFields |= .Name | .Icon
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordVideo
-            evt.icon = main.theme().icon(g_Recorder ? .Stop : .Play)
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
 
         case .CancelRecording:
             evt.updatedFields |= .Name | .Icon | .Disabled

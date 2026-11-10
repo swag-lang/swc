@@ -1414,9 +1414,9 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     Swag.require(view.zoom == 2)
 }
 
-// The bar of a fresh zone starts with what the zone becomes. Choosing the animation fills it with
-// the options of the recording and Record, keeps what was drawn, and Enter then starts the
-// recording; Tab advances through video and then gives the picture and its tools back.
+// The kind beside the size chip opens the choices. Choosing the animation fills the bar with the
+// recording options and Record, keeps what was drawn, and Enter then starts the recording; Tab
+// advances through video and then gives the picture and its tools back.
 #[Swag.TestTag("capture.interaction")]
 #test
 {
@@ -1441,6 +1441,9 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     g_CaptureMedia = .Picture
     editor.setMedia(.Picture)
     Swag.require(chips(editor) == 0)
+    let kindButton = unwrap editor.kindButton
+    Swag.require(kindButton.parent == editor.editWnd.editView)
+    Swag.require(kindButton.position.bottom() < editor.editWnd.editView.getCaptureRect().y)
     var markerButton: *IconButton?
     for item in editor.bar.items
     {
@@ -1457,7 +1460,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     Swag.require(forms > 0)
 
     // The fixed-width kind button opens a menu; choosing GIF keeps the annotations.
-    let kindWidth = (unwrap editor.kindButton).position.width
+    let kindWidth = kindButton.position.width
     var chosen: bool
     host.app.sigFrame += func|host = &host, chosen = &chosen|(_)
     {
@@ -1465,6 +1468,8 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
             return
         let menu = host.capturedPopupMenu()
         Swag.require(menu and menu.items.count == KindMedia.count)
+        for item in menu.items do
+            Swag.require(item!.icon.isValid())
         Swag.require(host.clickPopupMenuItem(kindMenuId(.Animation)))
         chosen[] = true
     }

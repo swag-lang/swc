@@ -21,7 +21,7 @@ using Swag, Core
     host.finishAnimations()
 
     var captured: bool
-    host.app.sigFrame += func|host = &host, main, captured = &captured|(_)
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
     {
         if captured[] do
             return

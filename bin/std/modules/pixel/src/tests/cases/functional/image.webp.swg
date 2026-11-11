@@ -139,6 +139,16 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.require(Image.canSave("image.webp"))
 }
 
+// Formats outside the encoder's RGB/BGR layouts are rejected explicitly.
+#test
+{
+    var image = Image.create(1, 1, .Gray8)
+    image.pixels.storage()[0] = 128'u8
+    var errorOutcome: Swag.Error
+    catch { discard try image.encodeToBytes("unsupported.webp") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Lossless encoding preserves every channel and the image row orientation.
 #test
 {

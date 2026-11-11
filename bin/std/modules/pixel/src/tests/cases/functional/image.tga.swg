@@ -816,6 +816,27 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.require(err29 != null)
 }
 
+// Error: row interleaving modes are unsupported and cannot be decoded as sequential rows.
+#test
+{
+    var cb: ConcatBuffer
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0x40'u8, 1'u16, 3'u16)
+    cb.addNative(1'u8)
+    cb.addNative(2'u8)
+    cb.addNative(3'u8)
+    cb.addNative(4'u8)
+    cb.addNative(5'u8)
+    cb.addNative(6'u8)
+    cb.addNative(7'u8)
+    cb.addNative(8'u8)
+    cb.addNative(9'u8)
+
+    var img: Image
+    var interlaceErrorOutcome: Swag.Error
+    catch { img = try Image.decode("interleaved.tga", nnBytes(cb.toSlice()), {}) } as interlaceErrorOutcome
+    Swag.require(interlaceErrorOutcome.value() != null)
+}
+
 // Encode full SIMD blocks and tails from RGB/RGBA into TGA's BGR/BGRA order.
 #test
 {

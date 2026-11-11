@@ -413,6 +413,8 @@ internal impl IImageDecoder for Decoder
             fail InvalidFormatError{"invalid dimensions"}
         if header.colorMapType != 0 and header.colorMapType != 1 do
             fail UnsupportedFormatError{"unsupported palette"}
+        if (header.descriptorByte & 0xC0) != 0 do
+            fail UnsupportedFormatError{"unsupported interleave mode"}
 
         let pixelBytes = try sourcePixelBytes(header)
         try checkBuffer(dataof, last, header.idLength)

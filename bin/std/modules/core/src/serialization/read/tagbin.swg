@@ -757,11 +757,17 @@ private impl TagBin
         {
             let wantedSchema = wireSchema(.expectedRootType)
             if streamSchema != wantedSchema do
-                fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]", streamSchema, wantedSchema))}
+                fail SerializationError{
+                    Errors.mkString(Format.toString("document schema is [[%]], but the requested type needs [[%]]",
+                                                    streamSchema,
+                                                    wantedSchema))}
         }
         elif not .schema.isEmpty() and streamSchema != .schema
         {
-            fail SerializationError{Errors.mkString(Format.toString("document schema is [[%]], but the reader needs [[%]]", streamSchema, .schema))}
+            fail SerializationError{
+                Errors.mkString(Format.toString("document schema is [[%]], but the reader needs [[%]]",
+                                                streamSchema,
+                                                .schema))}
         }
 
         let flags = try .stream.readNative'Write.TagBinHeaderFlags()

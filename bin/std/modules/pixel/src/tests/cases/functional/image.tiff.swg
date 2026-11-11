@@ -709,6 +709,39 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.pixels.buffer[9] == 99'u8)
 }
 
+// Encode 8-bit grayscale using TIFF's single-sample BlackIsZero representation.
+#test
+{
+    var src    = Image.create(3, 1, .Gray8)
+    let pixels = src.pixels.storage()
+    pixels[0] = 17'u8
+    pixels[1] = 91'u8
+    pixels[2] = 233'u8
+
+    let cb  = expect src.encode("memory.tiff")
+    let img = expect decodeTiff(nnBytes(cb.toSlice()))
+    Swag.require(img.pixelFormat == .BGR8)
+    let decoded = unwrap img.pixels.buffer
+    Swag.require(decoded[0] == 17'u8 and decoded[1] == 17'u8 and decoded[2] == 17'u8)
+    Swag.require(decoded[3] == 91'u8 and decoded[4] == 91'u8 and decoded[5] == 91'u8)
+    Swag.require(decoded[6] == 233'u8 and decoded[7] == 233'u8 and decoded[8] == 233'u8)
+
+    var unsupported = Image.create(1, 1, .GrayAlpha8)
+    var errorOutcome: Swag.Error
+    catch { discard try unsupported.encodeToBytes("unsupported.tiff") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+// A truncated public pixel array is rejected before TIFF row conversion.
+#test
+{
+    var src = Image.create(1, 1, .RGB8)
+    src.pixels.count = 0
+    var errorOutcome: Swag.Error
+    catch { discard try src.encodeToBytes("truncated.tiff") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode an RGBA8 image: alpha survives the round-trip.
 #test
 {

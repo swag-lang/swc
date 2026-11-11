@@ -87,13 +87,23 @@ internal impl IImageEncoder for Encoder
             userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
-        if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do
+        if image.width <= 0 or
+           image.height <= 0 or
+           not image.isValid() or
+           image.pixels.count != image.byteCount do
             fail InvalidFormatError{"invalid image"}
+        if image.pixelFormat != .Gray8 and
+           image.pixelFormat != .RGB8 and
+           image.pixelFormat != .BGR8 and
+           image.pixelFormat != .RGBA8 and
+           image.pixelFormat != .BGRA8 do
+            fail UnsupportedFormatError{"unsupported pixel format"}
 
-        let width    = image.width
-        let height   = image.height
-        let hasAlpha = image.pixelFormat.hasAlpha()
-        let samples  = hasAlpha ? 4'u32 : 3'u32
+        let width     = image.width
+        let height    = image.height
+        let hasAlpha  = image.pixelFormat.hasAlpha()
+        let samples   = cast(u32, image.pixelFormat.channels())
+        let grayscale = image.pixelFormat == .Gray8
 
         let rowBytes   = cast(u64, width) * samples
         let rawDataLen = rowBytes * cast(u64, height)
@@ -106,12 +116,15 @@ internal impl IImageEncoder for Encoder
         for fileY in height
         {
             let srcY = height - fileY - 1
-            var psrc = image.pixels.buffer + cast(u64, srcY) * image.rowStride
+            var psrc = cast(const [*] u8, image.pixels.storage()) + cast(u64, srcY) * image.rowStride
 
             for width
             {
                 switch image.pixelFormat
                 {
+                case .Gray8:
+                    rawData.add(psrc[0])
+
                 case .RGB8:
                     rawData.add(psrc[0])
                     rawData.add(psrc[1])
@@ -185,9 +198,9 @@ internal impl IImageEncoder for Encoder
         result.addNative(cast(u16, numEntries))
         addEntry(result, TAG_IMAGE_WIDTH, TYPE_LONG, 1, cast(u32, width))
         addEntry(result, TAG_IMAGE_LENGTH, TYPE_LONG, 1, cast(u32, height))
-        addEntry(result, TAG_BITS_PER_SAMPLE, TYPE_SHORT, samples, cast(u32, bpsOffset))
+        addEntry(result, TAG_BITS_PER_SAMPLE, TYPE_SHORT, samples, samples == 1 ? 8'u32 : cast(u32, bpsOffset))
         addEntry(result, TAG_COMPRESSION, TYPE_SHORT, 1, compressionTag)
-        addEntry(result, TAG_PHOTOMETRIC, TYPE_SHORT, 1, PHOTO_RGB)
+        addEntry(result, TAG_PHOTOMETRIC, TYPE_SHORT, 1, grayscale ? PHOTO_BLACK_IS_ZERO : PHOTO_RGB)
         addEntry(result, TAG_STRIP_OFFSETS, TYPE_LONG, 1, 8)
         addEntry(result, TAG_SAMPLES_PER_PIXEL, TYPE_SHORT, 1, samples)
         addEntry(result, TAG_ROWS_PER_STRIP, TYPE_LONG, 1, cast(u32, height))

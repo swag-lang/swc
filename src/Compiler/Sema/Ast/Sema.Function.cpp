@@ -1528,7 +1528,9 @@ namespace
 
             uint32_t storageSize  = static_cast<uint32_t>(typeInfo.sizeOf(ctx));
             uint32_t storageAlign = typeInfo.alignOf(ctx);
-            if (captureByRef || typeInfo.isAnyVariadic())
+            // Unsized scalars use a 64-bit runtime register, including loop indices. Their
+            // compile-time size is zero, but a by-value capture needs a distinct eight-byte cell.
+            if (captureByRef || typeInfo.isAnyVariadic() || typeInfo.isScalarUnsized())
             {
                 storageSize  = sizeof(void*);
                 storageAlign = alignof(void*);

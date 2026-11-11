@@ -120,7 +120,7 @@ private impl SoundFile
         }
 
         try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
-        var source        = try ByteSource.openFile(.path.toString())
+        var source        = try ByteSource.openFile(.path.toString(), .ReadWrite)
         var packetBytes:  Array'u8
         var decodedBytes: Array'u8
         var firstPacket   = 0'u64

@@ -233,7 +233,7 @@ impl SoundFile
         result.resize(wanted)
         if not .packets.isEmpty()
         {
-            var source        = try ByteSource.openFile(.path.toString())
+            var source        = try ByteSource.openFile(.path.toString(), .ReadWrite)
             var logicalStart  = 0'u64
             var logicalOffset = offset
             var written       = 0'u64
@@ -266,7 +266,7 @@ impl SoundFile
             return result
         }
 
-        var source = try ByteSource.openFile(.path.toString())
+        var source = try ByteSource.openFile(.path.toString(), .ReadWrite)
         try source.seek(.dataOffset + offset)
         let read = try source.read(result.toSlice())
         result.resize(read)
@@ -361,7 +361,7 @@ impl SoundFile
         if packetEncodingNeedsConfig(encoding) and not decoderConfig.count do
             fail BadParameterError{"packetized sound needs decoder configuration"}
 
-        var stream     = try File.openRead(path)
+        var stream     = try File.open(path, .Open, .Read, .ReadWrite)
         let sourceSize = try stream.size()
 
         with var result: #returntype
@@ -469,7 +469,7 @@ impl SoundFile
         if not packets.count do
             fail BadParameterError{"packetized PCM needs source chunks"}
         let bytesPerFrame = cast(u64, channels) * cast(u64, (bitsPerSample / 8))
-        var stream        = try File.openRead(path)
+        var stream        = try File.open(path, .Open, .Read, .ReadWrite)
         let sourceSize    = try stream.size()
 
         with var result: #returntype

@@ -52,7 +52,7 @@ impl Writer
 
         with var result: #returntype
         {
-            .sink       = try ByteSink.createFile(fileName)
+            .sink       = try ByteSink.createFile(fileName, .Read)
             .channels   = channels
             .sampleRate = sampleRate
             .checksum.reset()
@@ -173,7 +173,7 @@ impl Writer
         }
 
         var result: #returntype
-        result.sink          = try ByteSink.openAppendFile(fileName)
+        result.sink          = try ByteSink.openAppendFile(fileName, .Read)
         result.checksum      = checksum
         result.sampleRate    = sampleRateHz
         result.channels      = cast(u16, channelCount)

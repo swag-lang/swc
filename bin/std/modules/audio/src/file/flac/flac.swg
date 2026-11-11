@@ -250,7 +250,7 @@ private func readFrameIndex(source: *ByteSource, firstFrame, mediaEnd: u64, pack
 // FLAC track it carries.
 internal func openFile(path: string)->SoundFile fail
 {
-    var source   = try ByteSource.openFile(path)
+    var source   = try ByteSource.openFile(path, .ReadWrite)
     let prologue = try readPrologue(&source)
 
     var packets: Array'SoundPacket

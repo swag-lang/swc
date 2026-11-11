@@ -255,7 +255,7 @@ struct ThemeMetrics
         scrollBar_HitSize:    f32 = 16     // Width of the pointer target, expanded toward the view.
         scrollBar_EdgeInset:  f32 = 8      // Clear space at the window edge for native resizing.
         scrollBar_HoverSize:  f32 = 12     // Thickness while the pointer is over a scroll bar.
-        scrollBar_BoxPadding: f32 = 1      // Air between a scroll bar thumb and its track.
+        scrollBar_BoxPadding: f32 = 2      // Air between a scroll bar thumb and its track.
         scrollBar_BoxMinSize: f32 = 20     // Shortest a scroll bar thumb gets.
         scrollBar_RestPresence: f32 = 0.72 // Visibility of a thumb after pointer motion stops.
 

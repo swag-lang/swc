@@ -1125,13 +1125,13 @@ private impl Panel
     // the chip does; the lens does this for a chip it offers.
     mtd showChip(chip: *IconButton, build: OptionSheet.Builder)
     {
-        .pointerMoved()
         .showChoices(chip, build)
     }
 
     // Opens one page of the options, joined to the chip that names it.
     mtd showChoices(chip: *IconButton, build: OptionSheet.Builder)
     {
+        .pointerMoved()
         let sheet = OptionSheet.View.create(chip, build, owner: me)
         .optionsOpen = true
         sheet.doModal(chip, autoDestroy: true)

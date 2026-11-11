@@ -7,6 +7,8 @@ using Swag, Core, Pixel
 // none), on its own floating sheet, on a host in Encre or Papier.
 func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0)->Image
 {
+    g_CaptureWindow   = {}
+    g_CaptureAnchored = false
     var host: Gui.Testing.HeadlessHost
     host.setup(400, 120)
     host.bindApplication(&g_App)
@@ -24,7 +26,7 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0)->Im
     recorder.dropped  = dropped
 
     // The same sheet the recorder opens, on the host's own application.
-    let width    = RecordHud.widthFor(limit)
+    let width    = RecordHud.widthFor(limit, captureTargetLabel())
     let surface  = expect host.app.createSurface(0, 0, cast(s32, width), cast(s32, RecordHudHeight), .ToolWindow | .TopMost | .Sheet)
     with let hud = RecordHud.create(surface.wnd, recorder)
     {

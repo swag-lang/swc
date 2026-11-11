@@ -511,7 +511,19 @@ namespace
                 break;
 
             if (result != Result::Pause)
+            {
+                // An expected source diagnostic is suppressed by verification, so it leaves
+                // the error count unchanged. These corpus tests deliberately exercise a
+                // failing JIT call and can continue to the next independent test.
+                if (result == Result::Error && callErrorKind == JITCallErrorKind::HardwareException &&
+                    Stats::getNumErrors() == errorsBefore)
+                {
+                    if (outAbandoned)
+                        *outAbandoned = false;
+                    return true;
+                }
                 return false;
+            }
 
             Sema::waitDone(ctx, ctx.compiler().jobClientId());
             if (Stats::getNumErrors() != errorsBefore)

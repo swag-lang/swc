@@ -36,6 +36,9 @@ alias LARGE_INTEGER          = s64
 alias ULARGE_INTEGER         = u64
 alias DWORD64                = u64
 alias ULONG64                = u64
+
+const LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR = 0x00000100'u32
+const LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000'u32
 alias PLONG                  = *LONG?
 alias LONG_PTR               = s64
 alias CHAR                   = u8
@@ -586,6 +589,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 #[Foreign("kernel32", callconv: Swag.CallConv.C)]
 {
     func LoadLibraryW(lpLibFileName: LPCWSTR)->HMODULE
+    func LoadLibraryExW(lpLibFileName: LPCWSTR, hFile: HANDLE, dwFlags: DWORD)->HMODULE
     func FreeLibrary(hLibModule: HMODULE)->BOOL
     func OpenProcess(dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwProcessId: DWORD)->HANDLE
     func QueryFullProcessImageNameW(hProcess: HANDLE, dwFlags: DWORD, lpExeName: LPWSTR, lpdwSize: LPDWORD)->BOOL

@@ -279,7 +279,7 @@ def execute(stages, environment, *, keep_going=False):
                                 stdout=subprocess.PIPE if stage.expected_output or stage.forbidden_output else None)
         stage_failure = 0
         if stage.expected_output or stage.forbidden_output:
-            output = result.stdout.decode('utf-8', errors='replace')
+            output = result.stdout.decode('utf-8', errors='replace').replace('\r\n', '\n')
             if hasattr(sys.stdout, 'buffer'):
                 sys.stdout.buffer.write(result.stdout)
                 sys.stdout.buffer.flush()

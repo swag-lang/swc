@@ -60,6 +60,8 @@ impl HeadlessFixture
     mtd setup(width = 900.0, height = 700.0, registerHeadlessCommands = false)
     {
         testUseScratchLibrary()
+        g_CaptureWindow   = {}
+        g_CaptureAnchored = false
 
         .gui.setup(width, height)
         .gui.bindApplication(&g_App)
@@ -126,6 +128,10 @@ impl HeadlessFixture
     {
         .gui.shutdown()
         g_Main = null
+        // bindApplication lends the headless renderer and style to the global app.
+        // Release those borrowed references before a native journey uses g_App.
+        Swag.drop(&g_App, 1)
+        Swag.init(&g_App, 1)
     }
 }
 

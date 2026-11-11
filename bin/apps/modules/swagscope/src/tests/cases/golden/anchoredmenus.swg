@@ -198,6 +198,7 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     let view   = assume cast(*Film.Panel, window.currentView)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
+    view.veilsHeld = true
     pinVideoFrame(view, 5)
     view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
     host.moveMouse(view.timeline.surfaceRect().center())

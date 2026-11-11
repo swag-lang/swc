@@ -109,6 +109,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     let trackWidth = timeline.width - 16
     host.moveMouse(Math.Point{trackX + trackWidth * 0.6, timeline.vertCenter()})
     host.moveMouse(Math.Point{trackX + trackWidth * 0.62, timeline.vertCenter()})
+    view.veilsHeld = true
     host.settleAnimations(window, 4)
     var hover = host.render(&host.surfaceWnd)
     assertVideoRendererGolden(&hover, "viewer.video.hover.ink")

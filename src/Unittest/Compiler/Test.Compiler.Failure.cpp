@@ -563,7 +563,7 @@ func {}(status: s32)
 SWC_TEST_END()
 #endif
 
-SWC_FILESYSTEM_TEST_BEGIN(Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery)
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_NativePanicReleasesCapturedErrorsBeforeStop)
 {
     const RecoveryTestDirectory directory;
     for (const bool switchContext : {false, true})
@@ -571,15 +571,17 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_NativePanicReleasesCapturedErrorsBeforeRecove
         std::string source = "#global private\n";
         source += switchContext ? "const SwitchContext = true\n" : "const SwitchContext = false\n";
         source += R"SWAG(
-var recoveryDrops: [16] Swag.AtomicValue'u32
 var recoveryGeneration: u32
-var recoveryContext: *Swag.Context?
 
 struct RecoveryError { generation: u32 }
 impl RecoveryError
 {
     mtd opPostCopy() { .generation += 1 }
-    mtd opDrop() { recoveryDrops[.generation].add(1) }
+    mtd opDrop()
+    {
+        if .generation == recoveryGeneration do
+            Swag.print("captured error recovery drop\n")
+    }
 }
 
 func failRecoveryError() fail
@@ -597,7 +599,6 @@ func failRecoveryPanic() fail
 {
     let previous = Swag.getContext()
     defer Swag.setContext(previous)
-    recoveryContext = previous
     var local: Swag.Context
     if SwitchContext
     {
@@ -615,27 +616,19 @@ func failRecoveryPanic() fail
     }
 }
 
-#test
-{
-    let context = Swag.getContext()
-    Swag.assert(context == recoveryContext)
-    Swag.assert(context.errorCaptures == null)
-    Swag.assert(context.errorIndex == 0 and context.hasError == 0 and context.curError == null)
-    Swag.assert(recoveryDrops[recoveryGeneration].load() == 1)
-    catch failRecoveryError() { Swag.assert((Swag.err is RecoveryError)) }
-    Swag.print("captured error recovery completed\n")
-}
 )SWAG";
         const fs::path caseDirectory = directory.path() / (switchContext ? "local_context" : "runner_context");
         const fs::path sourcePath    = caseDirectory / "recovery.swg";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
-        // The first panic is intentional. The second native test must run on a clean context,
-        // observe the captured payload's destruction, and handle a new error normally.
+        // The panic must release captured errors and publish a failed tally before the native
+        // process stops. Running another test after an abandoned frame is unsafe.
         std::string output;
         uint32_t    failedTests = 0;
         if (runNativeFailure(ctx, output, failedTests, sourcePath, "devmode") != Result::Continue ||
             output.find("intentional first-test panic with a live captured error") == std::string::npos ||
-            output.find("captured error recovery completed") == std::string::npos ||
+            output.find("captured error recovery drop") == std::string::npos ||
+            output.find("captured error recovery drop", output.find("captured error recovery drop") + 1) != std::string::npos ||
+            output.find("[swag.test] executed=1 failed=1") == std::string::npos ||
             failedTests != 1 ||
             output.find("hardware exception") != std::string::npos)
         {
@@ -686,7 +679,7 @@ func hook(message: string?, location: Swag.SourceCodeLocation)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExplicitExpectTerminatesThroughInlineExpansion)
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExplicitExpectStopsThroughInlineExpansion)
 {
     const RecoveryTestDirectory directory;
     for (const bool injection : {false, true})
@@ -711,7 +704,6 @@ func injectStatement(statement: #code) { #inject(statement) }
         source += R"SWAG(
     Swag.print("explicit expect resumed\n")
 }
-#test { Swag.print("explicit expect recovery completed\n") }
 )SWAG";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
         std::string output;
@@ -719,7 +711,7 @@ func injectStatement(statement: #code) { #inject(statement) }
         if (runNativeFailure(ctx, output, failedTests, sourcePath, "release") != Result::Continue ||
             output.find("terminal explicit expect") == std::string::npos ||
             output.find("explicit expect resumed") != std::string::npos ||
-            output.find("explicit expect recovery completed") == std::string::npos ||
+            output.find("[swag.test] executed=1 failed=1") == std::string::npos ||
             failedTests != 1 ||
             output.find("hardware exception") != std::string::npos)
         {

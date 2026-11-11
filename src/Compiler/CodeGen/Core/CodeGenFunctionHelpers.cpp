@@ -799,6 +799,9 @@ CodeGenNodePayload CodeGenFunctionHelpers::materializeFunctionParameter(CodeGen&
 
 uint32_t CodeGenFunctionHelpers::checkedTypeSizeInBytes(CodeGen& codeGen, const TypeInfo& typeInfo)
 {
+    if (typeInfo.isScalarUnsized())
+        return sizeof(uint64_t);
+
     const uint64_t rawSize = typeInfo.sizeOf(codeGen.ctx());
     SWC_ASSERT(rawSize > 0 && rawSize <= std::numeric_limits<uint32_t>::max());
     return static_cast<uint32_t>(rawSize);

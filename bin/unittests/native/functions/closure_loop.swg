@@ -1,5 +1,18 @@
 #global private
 
+// An untyped range still gives a captured iteration value concrete storage.
+#test
+{
+    var callbacks: [3] ((func||()->s64)?) = cast((func||()->s64)?, null)
+    let base: s32 = 10
+    for index in 0 until callbacks.count do
+        callbacks[index] = func|index, base|()->s64 { return index + base }
+
+    Swag.require(callbacks[0]!() == 10)
+    Swag.require(callbacks[1]!() == 11)
+    Swag.require(callbacks[2]!() == 12)
+}
+
 // Closure created in a loop captures by value correctly
 #test
 {

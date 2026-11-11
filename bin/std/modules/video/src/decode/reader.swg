@@ -235,7 +235,7 @@ impl Reader
     func open(fileName: string, pictureOnly: bool = false)->Reader fail
     {
         var result: #returntype
-        result.source = try ByteSource.openFile(fileName)
+        result.source = try ByteSource.openFile(fileName, .ReadWrite)
         try result.start(fileName, pictureOnly)
         return result
     }

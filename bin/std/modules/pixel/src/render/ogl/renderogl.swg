@@ -2389,20 +2389,10 @@ impl RenderOgl
 
         glBindBuffer(GL_ARRAY_BUFFER, .vertexbuffer)
 
-        // The vertex buffer is fully rebuilt and re-uploaded every frame, so hint
-        // GL_STREAM_DRAW (write once, draw once) instead of GL_STATIC_DRAW. Orphan
-        // the previous storage first so the driver can hand back fresh memory rather
-        // than blocking until the in-flight draw releases the old buffer.
-        //
-        // The orphan is what the null does; the fill is a sub-data write into the storage it
-        // just handed back. Filling with a second 'glBufferData' would allocate the whole
-        // buffer a second time instead, which on a document of strokes is tens of megabytes
-        // of driver allocation per frame for nothing.
+        // The vertex stream is rebuilt for every frame. Allocate and upload it in one call;
+        // GL_STREAM_DRAW describes its one-upload, one-draw lifetime.
         let byteSize = dc.vertexBuffer.count * #sizeof(VertexLayout)
-        glBufferData(GL_ARRAY_BUFFER, byteSize, null, GL_STREAM_DRAW)
-        if glGetError() != GL_NO_ERROR do
-            fail RenderResourceError{"OpenGL cannot allocate the vertex stream"}
-        glBufferSubData(GL_ARRAY_BUFFER, 0, byteSize, dc.vertexBuffer.buffer)
+        glBufferData(GL_ARRAY_BUFFER, byteSize, dc.vertexBuffer.buffer, GL_STREAM_DRAW)
         if glGetError() != GL_NO_ERROR do
             fail RenderResourceError{"OpenGL cannot upload the vertex stream"}
 

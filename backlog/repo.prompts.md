@@ -144,14 +144,17 @@ before adding a new, actionable issue. Update an existing entry only when new ev
 next action while it remains unresolved; delete it when complete, disproved, or no longer wanted.
 Never use backlog entries as this campaign's log.
 
-You are running a repository-wide health reset on swc: execute the complete validation ladder,
-fix every failure it exposes at its root, and leave a clean, current, all-green baseline.
-Code failures always come first; documentation, backlog, and hygiene follow once the code is green.
+You are running a repository-wide health reset on swc: diagnose failures with the ladder, fix
+them at their root, prepare the final tree, then execute one complete ladder and leave a clean,
+current, all-green baseline.
+Code failures always come first; documentation, backlog, and hygiene follow once focused checks
+show the code is green.
 
 Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
 other skill only when the work enters its scope. Follow the machine-load admission rules before
 every build and test, cap every compiler at three workers (`--num-cores 3` on the compiler and on
-the tool), and use the checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
+the tool, allowing a lower limit required by a stage), and use the checkout-local compilers
+(`bin\swc.exe`, `bin\swc.dm.exe`). Keep
 `SWC_BUILD_NUM` unchanged.
 
 START ON MASTER, FROM A CLEAN STATE - ONCE
@@ -172,7 +175,7 @@ Then, once, before anything else:
 This clean start is the only one. After a fix, build incrementally (`/t:Build`) only the compiler
 the fix affects; never rebuild from scratch or clean the workspaces again mid-campaign.
 
-RUN THE LADDER, STOP AT THE FIRST FAILURE
+FINAL EXHAUSTIVE LADDER — RUN ONCE AFTER THE FINISHING STEPS BELOW
 
   1. `tools\build.bat dm -bc release`, then repeat with `-bc devmode`.
   2. `tools\tests.bat dm -bc release`, then repeat with `-bc devmode`; run
@@ -182,25 +185,27 @@ RUN THE LADDER, STOP AT THE FIRST FAILURE
      compiler, with each program configuration selected explicitly.
   4. `tools\vsix.bat` - package the VSCode extension and inspect the result.
 
-VALIDATE IN BATCHES; DO NOT REPEAT GREEN WORK
+DIAGNOSE AND FIX IN BATCHES; DO NOT REPEAT GREEN WORK
 
-- Keep successful gate results as evidence. A later failure does not invalidate an earlier green
-  step; never restart the ladder just because a later step failed.
-- When a campaign stops at its first failing input, gather failures from the remaining independent
-  inputs in that same stage before editing. Use a single continuation sweep over the stage's
-  remaining files/modules/configurations, and collect all diagnostics. Do not rerun inputs already
-  proven green. If the runner cannot continue after a failure, invoke only the unvisited siblings.
-- Fix the complete failure set from that stage as one coherent batch. Run focused checks for the
-  changed inputs together, then rerun the failed gate once. If that gate passes, continue forward;
-  do not rerun earlier gates unless the fix changes something they consume.
-- After every fix, run its smallest reproducer, then resume at the earliest affected gate. Restart
-  from step 1 only for compiler, runtime, standard-library, or repository-tool changes that alter
-  an earlier gate's inputs or behavior. Test, golden, fixture, documentation, and application-local
-  fixes resume at their failed gate. Avoid rerunning an entire campaign when a documented
-  file/module filter covers the changed inputs.
-- If a compiler change is found downstream, add the regression at the compiler boundary, rebuild
-  only the affected compiler incrementally, and restart at step 1 once for the retained compiler
-  batch. Do not repeat that full sequence for each test or consumer exposed by the same root cause.
+- Start walking the ladder to discover failures, stopping at the first failing input. From that
+  stage, run the unvisited independent files, modules or configurations once to collect its full
+  failure set. Do not repeat green inputs to gather diagnostics. Fix that set as one coherent batch.
+- Between fixes, use the smallest reproducer and the narrowest build and test that cover the
+  changed behavior. A compiler fix gets an incremental MSBuild `/t:Build` of each affected
+  compiler, an isolated cache or forced rebuild for its affected artifacts, its owning compiler
+  suite and a focused consumer. A standard-module fix gets its module and affected consumers. A
+  launcher fix gets its own unit tests and the exact failing command. A test, fixture, golden or
+  application-local fix gets its owning test file or module. Do not restart the full ladder here.
+- Keep a gate result with the compiler binary, program configuration, scope and source inputs that
+  produced it. A later edit invalidates only results that consume those inputs; a change in a
+  compiler or standard module does not, by itself, call for repeating every unrelated suite.
+- Once the retained code fixes are stable and the finishing steps below are complete, run the
+  exhaustive ladder above once. If a final gate fails, fix its root and rerun that gate plus any
+  later or earlier gates that consume the changed inputs. Do not restart at step 1 by category
+  alone. The final ladder still verifies both compiler executables and both program configurations.
+- For an intermittent failure, use a bounded, focused reproducer with diagnostic capture. Do not
+  loop an entire application suite to wait for chance. If the failure remains unexplained, keep
+  it open and report the reset as incomplete; a green retry is not a repair.
 
 FIX, DO NOT EXPLAIN AWAY
 
@@ -211,9 +216,9 @@ downstream, a C++ test for an internal seam), update the documentation the fix t
 by removing its nondeterminism. Never disable or weaken a test, broaden a timeout, or promote a
 golden that was not reviewed and proved correct.
 
-THEN FINISH THE REPOSITORY
+PREPARE THE FINAL TREE BEFORE THE EXHAUSTIVE LADDER
 
-Once the ladder is green (a newly exposed code failure takes priority again at any point):
+Once focused code checks are green (a newly exposed code failure takes priority again at any point):
   1. Format: `tools\format.bat dm`, and clang-format every project-owned `.cpp`,
      `.h`, `.inc` under `src/` (not vendored mimalloc). A second pass of both must change nothing;
      review the diff.

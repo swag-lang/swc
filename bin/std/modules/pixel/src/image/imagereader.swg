@@ -151,8 +151,13 @@ impl ImageReader
                     let behind    = readPixelValue(target, .canvas.pixelFormat)
                     let remainder = behind.a * (1 - value.a)
                     let alpha     = value.a + remainder
-                    if alpha > 0 do
-                        value = PixelValue{(value.r * value.a + behind.r * remainder) / alpha, (value.g * value.a + behind.g * remainder) / alpha, (value.b * value.a + behind.b * remainder) / alpha, alpha}
+                    if alpha > 0
+                    {
+                        let red   = (value.r * value.a + behind.r * remainder) / alpha
+                        let green = (value.g * value.a + behind.g * remainder) / alpha
+                        let blue  = (value.b * value.a + behind.b * remainder) / alpha
+                        value = PixelValue{red, green, blue, alpha}
+                    }
                     else do
                         value = {0, 0, 0, 0}
                 }

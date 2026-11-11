@@ -34,24 +34,34 @@ using Swag, Core, Gui
     var preview = f.gui.renderSurface(surface)
     Swag.require(preview.isValid())
     Swag.require(hud.pauseButton.isEnabled() and not hud.stopButton.isLocallyVisible())
-    Swag.require(hud.prepOptions.count == 4)
-    let wasCursor = f.main.captureOptions.captureCursor
-    let cursor = hud.prepOptions[0]
-    let chipCenter = Math.Point{cursor[].position.width * 0.5,
-                                cursor[].position.height * 0.5}
-    let chipPoint = cursor[].localToSurface(chipCenter)
-    let screenPoint = Math.Point{surface.position.x + chipPoint.x * surface.dpiScale,
-                                 surface.position.y + chipPoint.y * surface.dpiScale}
-    Console.println("HUD hit: body=", hud.surfaceRect(), " chip=", cursor[].surfaceRect(),
-                    " point=", screenPoint, " target=", f.gui.mouseTargetAt(screenPoint) == cursor)
-    Swag.require(f.gui.mouseTargetAt(screenPoint) == cursor,
-                 "recording options must receive pointer events through the surface")
-    f.gui.click(screenPoint)
-    Swag.require(f.main.captureOptions.captureCursor != wasCursor)
+    #static if #os == Swag.TargetOs.Windows do
+        Swag.require(hud.prepOptions.count == 4)
+    else do
+        Swag.require(hud.prepOptions.count == 3 and not hud.prepOptions[2].isEnabled())
+    let options = &f.main.captureOptions
+    let before = [options.captureCursor, options.recordCountdown,
+                  options.recordMicrophone, options.recordSystemSound]
+    for button, index in hud.prepOptions where button.isEnabled()
+    {
+        let center = Math.Point{button[].position.width * 0.5, button[].position.height * 0.5}
+        let local  = button[].localToSurface(center)
+        let screen = Math.Point{surface.position.x + local.x * surface.dpiScale,
+                                surface.position.y + local.y * surface.dpiScale}
+        Swag.require(button[].focusPolicy == .Tab and button[].flags.has(.Toggle),
+                     "recording options must use focusable toggle buttons")
+        Swag.require(f.gui.mouseTargetAt(screen) == button,
+                     "recording options must receive pointer events through the surface")
+        f.gui.click(screen)
+        Swag.require(button[].isChecked != before[index])
+    }
+    Swag.require(options.captureCursor != before[0] and options.recordCountdown != before[1])
+    #static if #os == Swag.TargetOs.Windows do
+        Swag.require(options.recordMicrophone != before[2] and options.recordSystemSound != before[3])
     hud.pauseButton.sigPressed.call(hud.pauseButton)
     Swag.require(recorder.recordRequested)
 
     recorder.state = .Recording
+    hud.refresh()
     preview = f.gui.renderSurface(surface)
     Swag.require(preview.isValid())
     Swag.require(hud.stopButton.isLocallyVisible() and not hud.pauseButton.isEnabled())

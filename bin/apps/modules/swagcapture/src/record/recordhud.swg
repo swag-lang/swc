@@ -1,16 +1,11 @@
 using Core, Pixel
 
-// The recording pill, after the charter picture: a ring that fills towards the limit around the
-// recording dot, the time recorded and the limit in the fixed-width family, a rule, then pause,
-// stop and cancel. A recording without a limit shows the time alone, and its ring turns once a
-// minute. The pill stands beside the frame, outside the recorded area.
+// The recording controls stand beside the frame, outside the recorded area. Their readouts,
+// progress and choices use GUI widgets so one theme and event model owns the whole bar.
 const RecordHudHeight     = 40.0     // Logical height of the pill.
-const RecordHudLeft       = 7.0      // Air before the ring.
+const RecordHudLeft       = 7.0      // Air before the recording mark.
 const RecordHudRight      = 6.0      // Air after the last command.
-const RecordHudRing       = 26.0     // Side of the square the ring is drawn in.
-const RecordHudRingRadius = 10.5     // Radius of the ring.
-const RecordHudRingWidth  = 2.5      // Weight of the ring.
-const RecordHudDotRadius  = 4.5      // Radius of the recording dot.
+const RecordHudMark       = 26.0     // Side of the recording mark's cell.
 const RecordHudTextMargin = 8.0      // Air on each side of the time.
 const RecordHudRuleHeight = 20.0     // Height of the rule before the commands.
 const RecordHudButton     = 28.0     // Side of one command.
@@ -25,14 +20,32 @@ struct RecordHud
     late pauseButton:  *IconButton
     late stopButton:   *IconButton
     late cancelButton: *IconButton
+    late recordMark:   *Label
+    late timeLabel:    *Label
+    late limitLabel:   *Label
+    late droppedLabel: *Label
+    late targetLabel:  *Label
+    late progress:     *ProgressBar
+    late separator:    *Separator
     shownState:        RecorderState = .Stopped
     shownTargetPause:  bool
+    hasShownState:     bool
     hasCommands:       bool     // The commands exist; the window is resized before they do.
-    prepOptions:       Array'(*OptionChip) // Choices shown only before a video starts.
+    prepOptions:       Array'(*IconButton) // Choices shown only before a video starts.
 }
 
 impl IWnd for RecordHud
 {
+    mtd impl onThemeEvent(evt: *ThemeEvent)
+    {
+        .wnd.IWnd.onThemeEvent(evt)
+        if not .hasCommands do
+            return
+        .droppedLabel.setTextColor(.themeColors().critical)
+        .hasShownState = false
+        .refresh()
+    }
+
     // The commands stand against the right edge of the pill, whatever size its monitor gives it.
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
@@ -51,6 +64,8 @@ impl IWnd for RecordHud
             right -= RecordHudButtonGap
         }
 
+        .layoutReadout()
+
         if preparing
         {
             var x = RecordHudLeft
@@ -63,100 +78,6 @@ impl IWnd for RecordHud
         }
     }
 
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        if not .hasCommands do
-            return
-
-        let painter = evt.paintContext.painter
-        let colors  = .themeColors()
-        let client  = .clientRect()
-        let preparing = .recorder.state == .Preparing
-        let elapsed = .recorder.elapsed()
-        let limit   = .recorder.limit
-
-        // The ground of a floating surface; the sheet rounds its corners and casts its shadow.
-        painter.fillRect(client, colors.surface)
-        painter.setParams(.Antialiased)
-
-        // The ring fills towards the limit; without one, it turns once a minute. During the
-        // countdown, it empties towards the first frame.
-        let cx       = RecordHudLeft + RecordHudRing * 0.5
-        let cy       = preparing ? RecordHudHeight * 0.5 : client.vertCenter()
-        let counting = .recorder.state == .Counting
-        let left     = .recorder.countdownLeft()
-        var fraction = limit ? Math.min(cast(f32, elapsed) / cast(f32, limit), 1) : cast(f32, elapsed % 60_000_000) / 60_000_000
-        if counting do
-            fraction = cast(f32, left) / cast(f32, RecordCountdown)
-        painter.drawCircle(cx, cy, RecordHudRingRadius, colors.raised, RecordHudRingWidth)
-        if fraction > 0 do
-            painter.drawArc(cx, cy, RecordHudRingRadius, Math.Angle.fromDegrees(0), Math.Angle.fromDegrees(360 * fraction), colors.arc, RecordHudRingWidth)
-
-        // A paused recording keeps its dot, without the colour of a recording.
-        let dotColor = preparing or .recorder.state == .Paused or counting ? colors.faintText : colors.critical
-        painter.fillCircle(cx, cy, RecordHudDotRadius, dotColor)
-
-        // The time recorded, then the limit, fainter.
-        let font = timeFont(me)
-        let top  = font.opticalLineTop(cy)
-        var x    = RecordHudLeft + RecordHudRing + RecordHudTextMargin
-        if preparing
-        {
-            painter.drawString(x, top, appStrings().ui_AimReady, font, colors.text)
-        }
-        elif counting
-        {
-            // The whole seconds left, counted down to the first frame.
-            let seconds = (left + 999_999) / 1_000_000
-            var shown   = String.from("-")
-            shown += Capture.clockText(seconds * 1_000_000)
-            painter.drawString(x, top, shown, font, colors.text)
-        }
-        else
-        {
-            let shown = Capture.clockText(elapsed)
-            painter.drawString(x, top, shown, font, colors.text)
-            x += Painter.measureString(shown, font).width
-        }
-
-        if limit and not counting
-        {
-            var rest = String.from(" / ")
-            rest += Capture.clockText(limit)
-            painter.drawString(x, top, rest, font, colors.faintText)
-            x += Painter.measureString(rest, font).width
-        }
-
-        if .recorder.dropped and not counting
-        {
-            x += RecordHudTextMargin
-            painter.drawString(x, top, Format.toString(appStrings().ui_DroppedCount, .recorder.dropped),
-                               font, colors.critical)
-        }
-
-        // The rule before the commands.
-        let ruleX = .pauseButton.position.x - RecordHudButtonGap - 1
-        let target = captureTargetLabel()
-        let targetFont = .theme().createDefaultFontFs(.themeMetrics().defaultFontSize - 1)
-        let targetWidth = Painter.measureString(target, targetFont).width
-        painter.drawString(ruleX - RecordHudTextMargin - targetWidth,
-                           targetFont.opticalLineTop(cy), target, targetFont, colors.softText)
-        painter.fillRect({ruleX, cy - RecordHudRuleHeight * 0.5, 1, RecordHudRuleHeight}, colors.line)
-
-        if .shownState != .recorder.state or .shownTargetPause != .recorder.pausedForTarget
-        {
-            .shownState = .recorder.state
-            .shownTargetPause = .recorder.pausedForTarget
-            .pauseButton.setIcon(.theme().icon(preparing or .recorder.state == .Paused ? .Play : .Pause))
-            .pauseButton.toolTip = preparing ? appStrings().ui_AimRecord :
-                                   .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
-                                   .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
-            .pauseButton.enable(preparing or (not .recorder.pausedForTarget and not .recorder.videoMode))
-            .stopButton.show(not preparing)
-            if .recorder.videoMode and not preparing do
-                .pauseButton.toolTip = appStrings().tip_VideoPauseUnavailable
-        }
-    }
 }
 
 impl RecordHud
@@ -246,10 +167,13 @@ impl RecordHud
         {
             .recorder        = recorder
             .toolTip         = g_CaptureWindow.title
-            .backgroundStyle = .Transparent
+            .backgroundStyle = .Surface
             .createCommands()
+            .createReadout()
             if recorder.state == .Preparing do
                 .createPrepOptions()
+            .hasCommands = true
+            .refresh()
         }
 
         return result
@@ -278,19 +202,17 @@ impl RecordHud
         let readyWidth = Painter.measureString(appStrings().ui_AimReady, font).width
         let contentWidth = preparing ? Math.max(Painter.measureString(widest, font).width, readyWidth) :
                            Painter.measureString(widest, font).width
-        let normalWidth = RecordHudLeft + RecordHudRing + 3 * RecordHudTextMargin + contentWidth +
+        let normalWidth = RecordHudLeft + RecordHudMark + 3 * RecordHudTextMargin + contentWidth +
                           targetWidth + commands + RecordHudRight
         if not preparing do
             return Math.ceil(normalWidth)
 
         let texts = appStrings()
         let labels = [texts.ui_AimCursor, texts.ui_AimCountdown, texts.ui_AimMicrophone, texts.ui_AimSystemSound]
-        let optionFont = g_App.theme.createDefaultFont(g_App.theme.metrics.defaultFontSize)
         var optionsWidth = RecordHudLeft + RecordHudRight
         for label in labels
         {
-            optionsWidth += 2 * OptionChipInset + OptionChipIcon + OptionChipGap +
-                            Painter.measureString(label, optionFont).width + g_App.theme.metrics.miniBar_Padding
+            optionsWidth += recordOptionWidth(g_App.theme, label) + g_App.theme.metrics.miniBar_Padding
         }
         return Math.ceil(Math.max(normalWidth, optionsWidth))
     }
@@ -330,7 +252,121 @@ impl RecordHud
                 hud.recorder.pause()
         }
 
-        .hasCommands = true
+    }
+
+    // The readout is composed from the same labels, progress and separator as other GUI views.
+    private mtd createReadout()
+    {
+        let font = timeFont(me)
+        with .recordMark = Label.create(me, "")
+        {
+            .setIcon(.theme().icon(.Dot, .themeMetrics().menuPopup_IconSize))
+        }
+        with .timeLabel = Label.create(me, "")
+        {
+            .style.setFont(font, .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+        with .limitLabel = Label.create(me, "", flags: .SecondaryText)
+        {
+            .style.setFont(font, .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+        with .droppedLabel = Label.create(me, "")
+        {
+            .style.setFont(font, .Regular)
+            .setTextAlignment(.Left, .Center)
+            .setTextColor(.themeColors().critical)
+        }
+        with .targetLabel = Label.create(me, captureTargetLabel(), flags: .SecondaryText)
+        {
+            .style.setFont(font, .Regular)
+            .setTextAlignment(.Left, .Center)
+        }
+        .progress  = ProgressBar.create(me)
+        .separator = Separator.create(me, .Left)
+        .separator.dockStyle = .None
+    }
+
+    // Keep labels at their measured width while the timer and dropped-frame count change.
+    private mtd layoutReadout()
+    {
+        let preparing = .recorder.state == .Preparing
+        let cy        = preparing ? RecordHudHeight * 0.5 : .clientRect().vertCenter()
+        let font      = timeFont(me)
+        let rowTop    = cy - RecordHudHeight * 0.5
+        let textX     = RecordHudLeft + RecordHudMark + RecordHudTextMargin
+        let timeWidth = Painter.measureString(.timeLabel.text(), font).width
+        let limitWidth = Painter.measureString(.limitLabel.text(), font).width
+        let targetWidth = Painter.measureString(.targetLabel.text(), font).width
+        let ruleX     = .pauseButton.position.x - RecordHudButtonGap - .themeMetrics().separator_HairlineSize
+
+        .recordMark.setPosition({RecordHudLeft, cy - RecordHudMark * 0.5, RecordHudMark, RecordHudMark})
+        .timeLabel.setPosition({textX, rowTop, timeWidth, RecordHudHeight})
+        .limitLabel.setPosition({textX + timeWidth, rowTop, limitWidth, RecordHudHeight})
+        .droppedLabel.setPosition({textX + timeWidth + limitWidth + RecordHudTextMargin, rowTop,
+                                   Painter.measureString(.droppedLabel.text(), font).width, RecordHudHeight})
+        .targetLabel.setPosition({ruleX - RecordHudTextMargin - targetWidth, rowTop, targetWidth, RecordHudHeight})
+        .separator.setPosition({ruleX, cy - RecordHudRuleHeight * 0.5,
+                                .themeMetrics().separator_HairlineSize, RecordHudRuleHeight})
+        .progress.setPosition({textX, rowTop + RecordHudHeight - .themeMetrics().progressBar_Height,
+                               Math.max(timeWidth + limitWidth, RecordHudMark), .themeMetrics().progressBar_Height})
+    }
+
+    // Synchronize widget state with the recorder after each capture or state transition.
+    mtd refresh()
+    {
+        let preparing = .recorder.state == .Preparing
+        let counting  = .recorder.state == .Counting
+        let elapsed   = .recorder.elapsed()
+        let limit     = .recorder.limit
+        let left      = .recorder.countdownLeft()
+
+        var shown = preparing ? String.from(appStrings().ui_AimReady) : Capture.clockText(elapsed)
+        if counting
+        {
+            let seconds = (left + 999_999) / 1_000_000
+            shown = "-"
+            shown += Capture.clockText(seconds * 1_000_000)
+        }
+        var limitText: String
+        if limit and not counting
+        {
+            limitText = " / "
+            limitText += Capture.clockText(limit)
+        }
+        var droppedText: String
+        if .recorder.dropped and not counting do
+            droppedText = Format.toString(appStrings().ui_DroppedCount, .recorder.dropped)
+        let targetText = captureTargetLabel()
+        let needsLayout = .timeLabel.text() != shown or .limitLabel.text() != limitText or
+                          .droppedLabel.text() != droppedText or .targetLabel.text() != targetText
+        .timeLabel.setText(shown)
+        .limitLabel.setText(limitText)
+        .droppedLabel.setText(droppedText)
+        .targetLabel.setText(targetText)
+
+        .progress.show((limit != 0 or counting) and not preparing)
+        .progress.setValue(counting ? cast(f32, left) / cast(f32, RecordCountdown) :
+                           limit ? cast(f32, elapsed) / cast(f32, limit) : 0)
+        if not .hasShownState or .shownState != .recorder.state or .shownTargetPause != .recorder.pausedForTarget
+        {
+            .shownState       = .recorder.state
+            .shownTargetPause = .recorder.pausedForTarget
+            .hasShownState    = true
+            .recordMark.setIconColor(preparing or counting or .recorder.state == .Paused ?
+                                      .themeColors().faintText : .themeColors().critical)
+            .pauseButton.setIcon(.theme().icon(preparing or .recorder.state == .Paused ? .Play : .Pause))
+            .pauseButton.toolTip = preparing ? appStrings().ui_AimRecord :
+                                   .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
+                                   .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
+            .pauseButton.enable(preparing or (not .recorder.pausedForTarget and not .recorder.videoMode))
+            .stopButton.show(not preparing)
+            if .recorder.videoMode and not preparing do
+                .pauseButton.toolTip = appStrings().tip_VideoPauseUnavailable
+        }
+        if needsLayout do
+            .layoutReadout()
     }
 
     // Keeps capture inputs beside the live target until the recording is started.
@@ -338,53 +374,33 @@ impl RecordHud
     {
         let options = &.recorder.main.captureOptions
         let texts   = appStrings()
-        with let cursor = OptionChip.create(me, .recorder.main.icon(.Select), texts.ui_AimCursor, options.captureCursor)
+        with let cursor = createRecordOption(me, .recorder.main.icon(.Select), texts.ui_AimCursor, options.captureCursor)
         {
-            .sigPressed += func|options|(chip)
-            {
-                options.captureCursor = not options.captureCursor
-                chip.on = options.captureCursor
-                chip.invalidate()
-            }
+            .sigCheckedChanged += func|options, cursor|(_) { options.captureCursor = cursor.isChecked }
         }
         .prepOptions.add(cursor)
 
-        with let countdown = OptionChip.create(me, .theme().icon(.HourGlass), texts.ui_AimCountdown, options.recordCountdown)
+        with let countdown = createRecordOption(me, .theme().icon(.HourGlass), texts.ui_AimCountdown, options.recordCountdown)
         {
-            .sigPressed += func|options|(chip)
-            {
-                options.recordCountdown = not options.recordCountdown
-                chip.on = options.recordCountdown
-                chip.invalidate()
-            }
+            .sigCheckedChanged += func|options, countdown|(_) { options.recordCountdown = countdown.isChecked }
         }
         .prepOptions.add(countdown)
 
         #static if #os == Swag.TargetOs.Windows
         {
-            with let microphone = OptionChip.create(me, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
+            with let microphone = createRecordOption(me, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
             {
-                .sigPressed += func|options|(chip)
-                {
-                    options.recordMicrophone = not options.recordMicrophone
-                    chip.on = options.recordMicrophone
-                    chip.invalidate()
-                }
+                .sigCheckedChanged += func|options, microphone|(_) { options.recordMicrophone = microphone.isChecked }
             }
             .prepOptions.add(microphone)
 
-            with let system = OptionChip.create(me, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
+            with let system = createRecordOption(me, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
             {
-                .sigPressed += func|options|(chip)
-                {
-                    options.recordSystemSound = not options.recordSystemSound
-                    chip.on = options.recordSystemSound
-                    chip.invalidate()
-                }
+                .sigCheckedChanged += func|options, system|(_) { options.recordSystemSound = system.isChecked }
             }
             .prepOptions.add(system)
         }
         else do
-            .prepOptions.add(OptionChip.create(me, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, inert: true))
+            .prepOptions.add(createRecordOption(me, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
     }
 }

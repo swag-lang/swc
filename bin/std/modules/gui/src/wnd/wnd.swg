@@ -41,6 +41,7 @@ enum BackgroundStyle
 {
     Transparent          // Leaves the background transparent.
     Window               // Uses the standard top-level window background.
+    Surface              // Uses the ground of a floating sheet or other floating control surface.
     Dialog               // Uses the dialog content background.
     View                 // Uses the document or content-view background.
     Panel                // Uses the raised window ground with the theme's standalone-panel geometry.
@@ -1038,6 +1039,7 @@ impl Wnd
         {
         case .Application:      painter.fillRect(.position, theme.colors.ground)
         case .Window:           painter.fillRect(.position, theme.colors.wnd_Bk)
+        case .Surface:          painter.fillRect(.position, theme.colors.surface)
         case .Panel:            theme.drawSubRect(painter, .position, &theme.rects.panel_Bk, .themeColors().wnd_Bk)
         case .Dialog:           painter.fillRect(.position, theme.colors.dlg_Bk)
         case .View:             painter.fillRect(.position, theme.colors.view_Bk)

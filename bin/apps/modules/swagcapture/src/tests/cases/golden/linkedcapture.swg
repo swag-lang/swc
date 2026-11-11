@@ -27,9 +27,9 @@ using Swag, Core, Gui, Pixel
     let attachment = unwrap editor.linkButton
     Swag.require(attachment.parent != editor.bar)
     host.clickWnd(attachment)
-    Swag.require(not g_CaptureAnchored and not attachment.on and attachment.label == appStrings().ui_AimDetached)
+    Swag.require(not g_CaptureAnchored and not attachment.isChecked and attachment.name.raw.toString() == appStrings().ui_AimDetached)
     host.clickWnd(attachment)
-    Swag.require(g_CaptureAnchored and attachment.on and attachment.label == captureTargetLabel())
+    Swag.require(g_CaptureAnchored and attachment.isChecked and attachment.name.raw.toString() == captureTargetLabel())
     host.finishAnimations()
     var image = host.render(editor)
     Pixel.Testing.assertImageGolden(&image, "inplace.linked-animation")

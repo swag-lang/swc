@@ -1434,17 +1434,20 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         g_Main = null
     }
 
-    func chips(editor: *InPlaceEditWnd)->u32
+    func optionButtons(editor: *InPlaceEditWnd)->u32
     {
         var count = 0'u32
-        for item in editor.bar.items where item.wnd is OptionChip do
-            count += 1
+        for item in editor.bar.items
+        {
+            if item.wnd is IconButton as button where button.textPosition == .Right and button.icon.isValid() do
+                count += 1
+        }
         return count
     }
 
     g_CaptureMedia = .Picture
     editor.setMedia(.Picture)
-    Swag.require(chips(editor) == 0)
+    Swag.require(optionButtons(editor) == 0)
     let kindButton = unwrap editor.kindButton
     Swag.require(kindButton.parent == editor.editWnd.editView)
     Swag.require(kindButton.position.bottom() < editor.editWnd.editView.getCaptureRect().y)
@@ -1484,15 +1487,15 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     host.finishAnimations()
     Swag.require(g_CaptureMedia == .Animation)
     Swag.require(editor.kindButton.position.width == kindWidth)
-    Swag.require(chips(editor) == 4)
+    Swag.require(optionButtons(editor) == 4)
     Swag.require(editor.editMode == .Select and editor.newMain.editMode == .Selection)
     Swag.require(editor.capture.forms.count == forms)
 
     // The cursor option changes the capture setting.
-    var cursorChip: *OptionChip?
+    var cursorChip: *IconButton?
     for item in editor.bar.items
     {
-        if item.wnd is OptionChip as chip where not chip.inert
+        if item.wnd is IconButton as chip where chip.textPosition == .Right and chip.flags.has(.Toggle) and chip.isEnabled()
         {
             cursorChip = chip
             break
@@ -1507,10 +1510,10 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     // The cadence is available at the zone, cycles through the offered rates, and feeds the
     // option used by the next recording.
-    var rateChip: *OptionChip?
+    var rateChip: *IconButton?
     for item in editor.bar.items
     {
-        if item.wnd is OptionChip as chip where chip.toolTip == appStrings().tip_AimRate
+        if item.wnd is IconButton as chip where chip.toolTip == appStrings().tip_AimRate
         {
             rateChip = chip
             break
@@ -1523,7 +1526,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         host.clickWnd(unwrap rateChip)
         host.pump()
         Swag.require(editor.source.captureOptions.recordRate == expected)
-        Swag.require(rateChip.label == Format.toString(appStrings().ui_AimRate, expected.framesPerSecond()))
+        Swag.require(rateChip.name.raw.toString() == Format.toString(appStrings().ui_AimRate, expected.framesPerSecond()))
     }
     Swag.require(editor.source.captureOptions.recordRate == rate)
 

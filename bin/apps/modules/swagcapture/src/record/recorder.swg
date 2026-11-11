@@ -297,7 +297,7 @@ impl Recorder
             return
         .clock.pauseAt(Time.monotonicMicroseconds())
         .state = .Paused
-        .hud?.invalidate()
+        .hud?.refresh()
     }
 
     // Continues a paused recording.
@@ -309,7 +309,7 @@ impl Recorder
             return
         .clock.resumeAt(Time.monotonicMicroseconds())
         .state = .Recording
-        .hud?.invalidate()
+        .hud?.refresh()
     }
 
     // Ends the recording and keeps it.
@@ -343,7 +343,7 @@ impl Recorder
     // Grabs the next frame when its time has come, and ends the recording at its limit.
     private mtd advance()
     {
-        .hud?.invalidate()
+        .hud?.refresh()
         if .state == .Counting and Time.monotonicMicroseconds() >= .startsAt
         {
             .state = .Recording
@@ -487,7 +487,7 @@ impl Recorder
         }
         if .videoAudio do
             try .videoAudio.pump()
-        .hud?.invalidate()
+        .hud?.refresh()
     }
 
     // Reuses the screen source except when an X11 control overlaps the root area. In that case

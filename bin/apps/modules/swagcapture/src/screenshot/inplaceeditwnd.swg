@@ -64,7 +64,7 @@ struct InPlaceEditWnd
 
     capture:          *Capture?
     kindButton:       *IconButton?
-    linkButton:       *OptionChip?
+    linkButton:       *IconButton?
     late source:      *MainWnd     // The application window the capture was started from.
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
@@ -311,77 +311,60 @@ impl InPlaceEditWnd
         let metrics = .themeMetrics()
         let options = &.source.captureOptions
 
-        with let cursor = OptionChip.create(.bar, .source.icon(.Select), texts.ui_AimCursor, options.captureCursor)
+        with let cursor = createRecordOption(.bar, .source.icon(.Select), texts.ui_AimCursor, options.captureCursor)
         {
-            .sigPressed += func|editor = me|(btn) { editor.setCursorShown(not editor.source.captureOptions.captureCursor, btn) }
+            .sigCheckedChanged += func|editor = me, cursor|(_) { editor.setCursorShown(cursor.isChecked, cursor) }
         }
 
         .bar.addItem(cursor)
 
-        with let countdown = OptionChip.create(.bar, .theme().icon(.HourGlass), texts.ui_AimCountdown, options.recordCountdown)
+        with let countdown = createRecordOption(.bar, .theme().icon(.HourGlass), texts.ui_AimCountdown, options.recordCountdown)
         {
-            .sigPressed += func|editor = me|(btn)
-            {
-                let chip = btn
-                editor.source.captureOptions.recordCountdown = not editor.source.captureOptions.recordCountdown
-                chip.on = editor.source.captureOptions.recordCountdown
-                chip.invalidate()
-            }
+            .sigCheckedChanged += func|editor = me, countdown|(_) { editor.source.captureOptions.recordCountdown = countdown.isChecked }
         }
 
         .bar.addItem(countdown)
 
         if g_CaptureMedia == .Animation
         {
-            with let rate = OptionChip.create(.bar, .theme().icon(.PlaybackSpeed),
-                                              Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), true)
+            with let rate = createRecordOption(.bar, .theme().icon(.PlaybackSpeed),
+                                               Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), false, toggle: false)
             {
                 .toolTip = texts.tip_AimRate
-                .sigPressed += func|editor = me|(chip)
+                .sigPressed += func|editor = me, rate|(_)
                 {
                     let next = editor.source.captureOptions.recordRate.next()
                     editor.source.captureOptions.recordRate = next
-                    chip.label = Format.toString(appStrings().ui_AimRate, next.framesPerSecond())
-                    chip.invalidate()
+                    rate.setText(Format.toString(appStrings().ui_AimRate, next.framesPerSecond()))
                 }
             }
             .bar.addItem(rate)
         }
         .bar.addSeparator()
         if g_CaptureMedia == .Animation do
-            .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, inert: true))
+            .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, enabled: false))
         else
         {
             #static if #os == Swag.TargetOs.Windows
             {
-                with let microphone = OptionChip.create(.bar, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
+                with let microphone = createRecordOption(.bar, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
                 {
-                    .sigPressed += func|editor = me|(chip)
-                    {
-                        editor.source.captureOptions.recordMicrophone = not editor.source.captureOptions.recordMicrophone
-                        chip.on = editor.source.captureOptions.recordMicrophone
-                        chip.invalidate()
-                    }
+                    .sigCheckedChanged += func|editor = me, microphone|(_) { editor.source.captureOptions.recordMicrophone = microphone.isChecked }
                 }
                 .bar.addItem(microphone)
 
-                with let system = OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
+                with let system = createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
                 {
-                    .sigPressed += func|editor = me|(chip)
-                    {
-                        editor.source.captureOptions.recordSystemSound = not editor.source.captureOptions.recordSystemSound
-                        chip.on = editor.source.captureOptions.recordSystemSound
-                        chip.invalidate()
-                    }
+                    .sigCheckedChanged += func|editor = me, system|(_) { editor.source.captureOptions.recordSystemSound = system.isChecked }
                 }
                 .bar.addItem(system)
             }
             else do
-                .bar.addItem(OptionChip.create(.bar, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, inert: true))
+                .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
         }
 
         let font        = .theme().createDefaultFont(metrics.defaultFontSize)
-        let width       = Math.ceil(Painter.measureString(texts.ui_AimRecord, font).width + 2 * metrics.btnPush_TextMargin + RecordDotSize + OptionChipGap)
+        let width       = Math.ceil(Painter.measureString(texts.ui_AimRecord, font).width + 2 * metrics.btnPush_TextMargin + RecordDotSize + metrics.btnIcon_SpacingTextH)
         with let record = PushButton.create(.bar, texts.ui_AimRecord, {0, 0, width, metrics.miniBar_ButtonSize}, form: .Strong)
         {
             // The dot of a recording, small beside the word.
@@ -436,11 +419,10 @@ impl InPlaceEditWnd
     }
 
     // Puts the cursor in the zone or takes it out, as the capture option says from now on.
-    mtd setCursorShown(shown: bool, chip: *OptionChip)
+    mtd setCursorShown(shown: bool, chip: *IconButton)
     {
         .source.captureOptions.captureCursor = shown
-        chip.on = shown
-        chip.invalidate()
+        chip.setChecked(shown)
 
         let capture = unwrap .capture
         setCursorIn(&capture.backImg, shown)
@@ -684,16 +666,15 @@ impl InPlaceEditWnd
     {
         if not .linkButton and g_CaptureWindow.nativeWindow
         {
-            with .linkButton = OptionChip.create(.editWnd.editView, .theme().icon(.Link), captureTargetLabel(), g_CaptureAnchored)
+            with .linkButton = createRecordOption(.editWnd.editView, .theme().icon(.Link), captureTargetLabel(), g_CaptureAnchored)
             {
                 .toolTip = Format.toString("%\n%", g_CaptureWindow.title, appStrings().tip_AimAnchored)
                 .resize(.position.width, .themeMetrics().quiet_Height)
-                .sigPressed += func(chip)
+                .sigCheckedChanged += func|editor = me|(_)
                 {
-                    g_CaptureAnchored = not g_CaptureAnchored
-                    chip.on = g_CaptureAnchored
-                    chip.label = captureTargetLabel()
-                    chip.invalidate()
+                    let link = unwrap editor.linkButton
+                    g_CaptureAnchored = link.isChecked
+                    link.setText(captureTargetLabel())
                 }
             }
         }

@@ -22,6 +22,13 @@ func createSandboxTestDirectoryLink(link, target: string)->bool
     }
 }
 
+func sandboxTestOutsidePath()->String
+{
+    let sandboxParent = unwrap Path.directoryName(Env.sandboxRoot())
+    let name = Format.toString("outside-sandbox-%", Guid64.random())
+    return Path.combine(sandboxParent, name.toString())
+}
+
 // Containment, not prefix matching. 'sandboxed' starts with 'sandbox' but is not inside it,
 // and that difference is the whole value of the check.
 #test
@@ -80,14 +87,15 @@ func createSandboxTestDirectoryLink(link, target: string)->bool
     let root = Env.sandboxRoot()
     Swag.require(root.count != 0)
 
-    let inside = Path.combine(root, "guarded.txt")
+    let inside  = Path.combine(root, "guarded.txt")
+    let outside = sandboxTestOutsidePath()
     expect Env.guardWrite(inside.toString())
 
     var errOutcome: Swag.Error
-    catch Env.guardWrite("C:/Windows/System32/nope.txt") as errOutcome
+    catch Env.guardWrite(outside.toString()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
-    Swag.require(not Env.isInsideSandbox("C:/Windows/System32/nope.txt"))
+    Swag.require(not Env.isInsideSandbox(outside.toString()))
 }
 
 // The corpus is the one place outside the sandbox a run may write. 'swc test' grants the module
@@ -104,9 +112,10 @@ func createSandboxTestDirectoryLink(link, target: string)->bool
     let inside = Path.combine(corpus, "corpus-write.txt")
     expect Env.guardWrite(inside.toString())
 
-    Swag.require(not Env.isInsideCorpus("C:/Windows/System32/nope.txt"))
+    let outside = sandboxTestOutsidePath()
+    Swag.require(not Env.isInsideCorpus(outside.toString()))
     var errOutcome: Swag.Error
-    catch Env.guardWrite("C:/Windows/System32/nope.txt") as errOutcome
+    catch Env.guardWrite(outside.toString()) as errOutcome
     let err = errOutcome.value()
     Swag.require(err != null)
 }
@@ -243,7 +252,8 @@ func createSandboxTestDirectoryLink(link, target: string)->bool
     if not Env.isSandboxed() do
         return
 
-    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "sandbox-write.txt")
+    let path    = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "sandbox-write.txt")
+    let outside = sandboxTestOutsidePath()
     defer discard catch File.delete(path.toString())
 
     let payload: [4] u8 = [1, 2, 3, 4]
@@ -251,10 +261,10 @@ func createSandboxTestDirectoryLink(link, target: string)->bool
     Swag.require(File.exists(path.toString()))
 
     var errOutcome: Swag.Error
-    discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as errOutcome
+    discard catch File.writeAllBytes(outside.toString(), payload) as errOutcome
     let err = errOutcome.value()
-    Swag.require(err != null)
-    Swag.require(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
+    Swag.require(err is Errors.SandboxError)
+    Swag.require(not File.exists(outside.toString()))
 }
 
 // A directory link cannot redirect an allowed sandbox write into the granted corpus.

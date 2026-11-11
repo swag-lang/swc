@@ -343,3 +343,47 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(spaceCount == 1)
     Swag.require(text.chunks.count == 3)
 }
+
+// Rich-text chunk boundaries keep the tracking a shaped run applies between glyphs.
+#test
+{
+    var cache: FontCache
+    let font = makeShapingTestFont(&cache)
+
+    var format: RichStringFormat
+    format.font.regular  = font
+    format.vertAlignment = .OpticalCenter
+    format.flags         |= .Ellipsis
+    format.letterSpacing = 1.5
+
+    var text: RichString = "IN THIS FILE · 3"
+    text.compute()
+    Painter.computeLayout({0, 0, 1000, 80}, &text, format)
+
+    for &chunk, index in text.chunks
+    {
+        Swag.require(chunk.visible)
+        if not index do
+            continue
+
+        let previous = &text.chunks[index - 1]
+        let gap      = chunk.pos.x - previous.pos.x - previous.boundRect.width
+        Swag.require(Math.isEqualEpsilon(gap, format.letterSpacing, 0.01))
+    }
+
+    const NarrowWidth = 120.0'f32
+    Painter.computeLayout({0, 0, NarrowWidth, 80}, &text, format)
+    Swag.require(text.boundRect.width <= NarrowWidth)
+
+    var endsWithEllipsis = false
+    for &chunk in text.chunks where chunk.visible do
+        endsWithEllipsis = chunk.shaped.glyphs.back().glyphIndex == font.glyphIndex('\u2026'rune)
+    Swag.require(endsWithEllipsis)
+
+    const WrapWidth = 100.0'f32
+    format.flags = .WordWrap
+    Painter.computeLayout({0, 0, WrapWidth, 400}, &text, format)
+    Swag.require(text.boundRect.width <= WrapWidth)
+    for &chunk in text.chunks where not chunk.isSpace do
+        Swag.require(chunk.visible)
+}

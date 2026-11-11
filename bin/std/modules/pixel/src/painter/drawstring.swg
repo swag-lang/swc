@@ -966,6 +966,14 @@ impl Painter
             }
         }
 
+        // Each chunk is shaped as its own run, whose first glyph has no leading tracking.
+        func chunkSpacing(index, lineStart: s32, letterSpacing: f32)->f32 => index > lineStart ? letterSpacing : 0.0
+
+        func chunkAdvance(width: f32, index, lineStart: s32, letterSpacing: f32)->f32
+        {
+            return width + chunkSpacing(index, lineStart, letterSpacing)
+        }
+
         // Divide in lines
         var lines: Array'OneLine
         var line:  OneLine
@@ -1022,7 +1030,7 @@ impl Painter
                 if format.horzAlignment == .Justify do
                     curW += line.whiteSpaces
 
-                if curW + c.boundRect.width > pos.width
+                if curW + chunkAdvance(c.boundRect.width, cast(s32, idx), startLine, format.letterSpacing) > pos.width
                 {
                     // Rewind to the first chunk of the word being accumulated when an earlier
                     // word already holds the line, so the whole word moves down together. A word
@@ -1036,10 +1044,13 @@ impl Painter
                             wordLine.start       = startLine
                             wordLine.end         = wordStart - 1
                             wordLine.countSpaces -= 1
+                            let space        = &text.chunks[wordStart - 1]
+                            let spaceAdvance = chunkAdvance(space.boundRect.width, wordStart - 1, startLine, format.letterSpacing)
                             if format.horzAlignment != .Justify do
-                                wordLine.measure.width -= text.chunks[wordStart - 1].boundRect.width
+                                wordLine.measure.width -= spaceAdvance
                             else do
-                                wordLine.whiteSpaces -= text.chunks[wordStart - 1].boundRect.width
+                                wordLine.measure.width -= chunkSpacing(wordStart - 1, startLine, format.letterSpacing)
+                            wordLine.whiteSpaces -= space.boundRect.width
 
                             wordLine.height = Math.max(defaultLineHeight, wordLine.fontAscent - wordLine.fontDescent)
                             if format.minLineHeight > 0 do
@@ -1054,7 +1065,7 @@ impl Painter
                         for w in startLine to cast(s32, idx)
                         {
                             let wc = &text.chunks[w]
-                            line.measure.width   += wc.boundRect.width
+                            line.measure.width   += chunkAdvance(wc.boundRect.width, w, startLine, format.letterSpacing)
                             line.measure.ascent  = Math.max(line.measure.ascent, wc.shaped.metrics.ascent)
                             line.measure.descent = Math.max(line.measure.descent, wc.shaped.metrics.descent)
                             line.measure.height  = Math.max(line.measure.height, wc.shaped.metrics.height)
@@ -1105,13 +1116,14 @@ impl Painter
             {
                 line.countSpaces += 1
                 if format.horzAlignment != .Justify do
-                    line.measure.width += ms.width
+                    line.measure.width += chunkAdvance(ms.width, cast(s32, idx), startLine, format.letterSpacing)
                 else do
-                    line.whiteSpaces += ms.width
+                    line.measure.width += chunkSpacing(cast(s32, idx), startLine, format.letterSpacing)
+                line.whiteSpaces += ms.width
             }
             else
             {
-                line.measure.width += ms.width
+                line.measure.width += chunkAdvance(ms.width, cast(s32, idx), startLine, format.letterSpacing)
             }
 
             line.measure.ascent  = Math.max(line.measure.ascent, ms.ascent)
@@ -1171,7 +1183,7 @@ impl Painter
                 var cut = -1's32
                 for idx in l.start until l.end
                 {
-                    let w = text.chunks[idx].boundRect.width
+                    let w = chunkAdvance(text.chunks[idx].boundRect.width, idx, l.start, format.letterSpacing)
                     if accum + w > pos.width
                     {
                         cut = idx
@@ -1191,7 +1203,7 @@ impl Painter
                     cut   = l.end - 1
                     accum = 0
                     for idx in l.start until cut do
-                        accum += text.chunks[idx].boundRect.width
+                        accum += chunkAdvance(text.chunks[idx].boundRect.width, idx, l.start, format.letterSpacing)
                 }
 
                 // Back off while what is left cannot even hold the mark, so a cut landing just
@@ -1211,11 +1223,12 @@ impl Painter
                     }
 
                     cut   -= 1
-                    accum -= text.chunks[cut].boundRect.width
+                    accum -= chunkAdvance(text.chunks[cut].boundRect.width, cut, l.start, format.letterSpacing)
                 }
 
-                let c        = &text.chunks[cut]
-                let fitBytes = fitShapedPrefix(&c.shaped, room, deviceScale)
+                let c           = &text.chunks[cut]
+                let leadSpacing = chunkSpacing(cut, l.start, format.letterSpacing)
+                let fitBytes    = fitShapedPrefix(&c.shaped, Math.max(room - leadSpacing, 0), deviceScale)
 
                 var trimmed = String.from(fitBytes == Swag.U64.Max ? c.slice : Swag.makeString(c.slice.buffer, fitBytes))
                 trimmed += mark
@@ -1227,7 +1240,7 @@ impl Painter
                 c.boundRect.width = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
 
                 l.end = cut + 1
-                l.measure.width = accum + c.boundRect.width
+                l.measure.width = accum + leadSpacing + c.boundRect.width
             }
         }
 
@@ -1288,6 +1301,7 @@ impl Painter
                 {
                     let c = &text.chunks[idx]
                     c.visible = true
+                    x1        += chunkSpacing(idx, l.start, format.letterSpacing)
                     c.pos.x   = x1
                     c.pos.y   = y1 + (l.fontAscent - c.font.ascent)
 

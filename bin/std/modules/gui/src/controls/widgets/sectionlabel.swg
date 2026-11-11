@@ -48,8 +48,7 @@ impl SectionLabel
         let font    = wnd.theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
         let text    = String.toUpper(label, .Unicode)
 
-        // The tracking belongs to the shaped run: a rich-text layout with letter spacing drops the
-        // spaces between words (see std.pixel.033).
+        // One shaped run keeps tracking continuous across spaces between words.
         var shaped = Painter.shapeRun(text, font, letterSpacing: metrics.sectionLabel_LetterSpacing)
         painter.pushClippingRect(rect)
         painter.drawShapedRun(rect.x, font.opticalLineTop(rect.vertCenter()), &shaped, font, Brush.createSolid(wnd.themeColors().faintText))

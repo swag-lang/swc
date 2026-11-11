@@ -260,6 +260,8 @@ func vp8DecodeFrameHeader(decoder: *Vp8Decoder, source: const [..] u8) fail
 
     decoder.header.version       = (data[0] >> 1) & 7
     decoder.header.firstPartSize = (cast(u32, data[0]) >> 5) | (cast(u32, data[1]) << 3) | (cast(u32, data[2]) << 11)
+    if decoder.header.version > 3 do
+        fail UnsupportedFormatError{"WebP VP8 frame uses a reserved version"}
     if data[3] != 0x9D or data[4] != 0x01 or data[5] != 0x2A do
         fail InvalidFormatError{"WebP VP8 frame does not start with the key-frame code"}
 

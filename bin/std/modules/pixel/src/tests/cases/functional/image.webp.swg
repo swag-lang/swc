@@ -248,6 +248,38 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.require(err7 != null)
 }
 
+#test
+{
+    var bytes = expect File.readAllBytes(getTestDataPath("blue-purple-pink.lossy.webp"))
+    var cursor:      u64 = 12
+    var frameOffset: u64
+    while cursor + 8 <= bytes.count
+    {
+        if bytes[cursor + 0] == 'V' and
+           bytes[cursor + 1] == 'P' and
+           bytes[cursor + 2] == '8' and
+           bytes[cursor + 3] == ' '
+        {
+            frameOffset = cursor + 8
+            break
+        }
+
+        let size = cast(u64, bytes[cursor + 4]) |
+                   (cast(u64, bytes[cursor + 5]) << 8) |
+                   (cast(u64, bytes[cursor + 6]) << 16) |
+                   (cast(u64, bytes[cursor + 7]) << 24)
+        cursor += 8 + size + (size & 1)
+    }
+
+    Swag.require(frameOffset > 0)
+    bytes[frameOffset] = (bytes[frameOffset] & 0xF1) | 0x08
+
+    var image: Image
+    var versionErrorOutcome: Swag.Error
+    catch { image = try Image.decode("reserved-version.webp", bytes.toSlice()) } as versionErrorOutcome
+    Swag.require(versionErrorOutcome.value() != null)
+}
+
 // Decode a VP8 fixture and compare it with the official split-plane YCbCr golden image.
 #test
 {

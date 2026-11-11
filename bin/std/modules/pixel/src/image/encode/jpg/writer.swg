@@ -5,7 +5,7 @@
 //
 #global namespace Jpg
 
-using Core
+using Core, Core.Errors
 
 impl Encoder
 {
@@ -65,8 +65,18 @@ impl Encoder
         }
     }
 
-    mtd writeMetadata(image: const *Image)
+    mtd writeMetadata(image: const *Image) fail
     {
+        for md in image.metadata
+        {
+            if md.signature > 15 do
+                fail UnsupportedFormatError{"JPEG metadata signatures must be from 0 through 15"}
+            if md.tag.count > 65_532 do
+                fail UnsupportedFormatError{"JPEG metadata tag and value exceed the segment size limit"}
+            if md.value.count > 65_532 - md.tag.count do
+                fail UnsupportedFormatError{"JPEG metadata tag and value exceed the segment size limit"}
+        }
+
         for md in image.metadata
         {
             .writeWord(0xFFE0'u16 + cast(u16, md.signature))

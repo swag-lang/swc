@@ -334,7 +334,7 @@ internal impl IImageEncoder for Encoder
 
         .writeWord(0xFFD8)     // SOI
 
-        .writeMetadata(&image)
+        try .writeMetadata(&image)
         .writeDQTinfo()
         .writeSOF0info(&image)
         .writeDHTinfo()

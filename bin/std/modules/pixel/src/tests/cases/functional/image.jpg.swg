@@ -237,6 +237,29 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     }
 }
 
+#test
+{
+    var image = Image.create(1, 1, .BGR8)
+    var record: ImageMetadata
+    record.signature = 0
+    record.tag.resize(65_533)
+    image.metadata.add(record)
+
+    var encoded:      ConcatBuffer
+    var errorOutcome: Swag.Error
+    catch { encoded = try image.encode("oversized-metadata.jpg") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    record.signature = 16
+    record.tag       = "Vendor"
+    record.value     = "metadata"
+    image.metadata.clear()
+    image.metadata.add(record)
+    errorOutcome = {}
+    catch { encoded = try image.encode("invalid-metadata-signature.jpg") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Invalid and truncated buffers should fail without producing an image.
 #test
 {

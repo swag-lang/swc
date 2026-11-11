@@ -175,7 +175,10 @@ impl Vector4
         let scale = Math.max(Math.abs(.x), Math.abs(.y), Math.abs(.z), Math.abs(.w))
         if scale == 0 do
             return 0'f32
-        return scale * sqrt(((.x / scale) * (.x / scale)) + ((.y / scale) * (.y / scale)) + ((.z / scale) * (.z / scale)) + ((.w / scale) * (.w / scale)))
+        return scale * sqrt(((.x / scale) * (.x / scale)) +
+                            ((.y / scale) * (.y / scale)) +
+                            ((.z / scale) * (.z / scale)) +
+                            ((.w / scale) * (.w / scale)))
     }
 
     // Returns the squared length of the vector.

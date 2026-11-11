@@ -290,7 +290,9 @@ internal impl IImageEncoder for Encoder
                         image.pixelFormat == .RGBA16
         if not supported do
             fail UnsupportedFormatError{"unsupported pixel format"}
-        if image.width == 0 or image.height == 0 do
+        if not image.isValid() or image.pixels.count != image.byteCount do
+            fail InvalidFormatError{"invalid image"}
+        if image.width <= 0 or image.height <= 0 do
             fail UnsupportedFormatError{"unsupported size"}
 
         .swapRB = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8

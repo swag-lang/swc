@@ -18,6 +18,22 @@ using Swag, Core
     Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
+// Released or truncated public pixel storage is rejected before PNG row traversal.
+#test
+{
+    var released = Image.create(1, 1, .RGBA8)
+    released.pixels.free()
+    var errorOutcome: Swag.Error
+    catch { discard try released.encodeToBytes("released.png") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    var truncated = Image.create(1, 1, .RGBA8)
+    truncated.pixels.count = 0
+    errorOutcome = {}
+    catch { discard try truncated.encodeToBytes("truncated.png") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
 {
     let color = img.pixelColor(x, img.height - yFromBottom - 1)

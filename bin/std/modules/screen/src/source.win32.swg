@@ -2,6 +2,32 @@
 
 using Core, Core.Errors, Pixel, Win32
 
+#[Swag.Inline]
+internal func copyMappedBgraRows(destinationBottomRow: [*] u8, destinationStride: u64,
+                                 sourceTopRow: const [*] u8, sourceStride: u64,
+                                 rowBytes: u64, rowCount: u64)
+{
+    if rowBytes * rowCount < 8 * 1_048_576
+    {
+        for row in rowCount do
+            Memory.copy(destinationBottomRow - row * destinationStride,
+                        sourceTopRow + row * sourceStride, rowBytes)
+        return
+    }
+
+    let rowsPerChunk = Math.max(1'u64, 1_048_576 / rowBytes)
+    let chunkCount = (rowCount + rowsPerChunk - 1) / rowsPerChunk
+    parallel for |destinationBottomRow, destinationStride, sourceTopRow,
+                  sourceStride, rowBytes, rowCount, rowsPerChunk| chunk in chunkCount
+    {
+        let first = chunk * rowsPerChunk
+        let last = Math.min(rowCount, first + rowsPerChunk)
+        for row in first until last do
+            Memory.copy(destinationBottomRow - row * destinationStride,
+                        sourceTopRow + row * sourceStride, rowBytes)
+    }
+}
+
 private struct ChangedBounds
 {
     known:   bool
@@ -22,10 +48,10 @@ struct NativeSource
     duplication:  *IDXGIOutputDuplication?
     staging:      *ID3D11Texture2D?
     outputBounds: RECT
-    last:         Image
     hasLast:      bool
     dirtyRects:   Array'RECT
     moveRects:    Array'DXGI_OUTDUPL_MOVE_RECT
+    updatedBounds: RECT
     metrics:      SourceMetrics
 }
 
@@ -178,11 +204,11 @@ impl NativeSource
         return result
     }
 
-    mtd grabInto(target: *Image, preserveOnTimeout: bool = false,
-                 destinationX: u64 = 0, destinationBottom: u64 = 0,
-                 composed: bool = false)->bool fail
+    mtd grabInto(target: *Image, destinationX: u64, destinationBottom: u64)->bool fail
     {
+        .updatedBounds = RECT{}
         let duplication = unwrap .duplication
+        let firstFrame = not .hasLast
         var info: DXGI_OUTDUPL_FRAME_INFO
         var resource: *IDXGIResource?
         let acquireStart = Time.monotonicMicroseconds()
@@ -194,10 +220,6 @@ impl NativeSource
             .metrics.unchangedFrames += 1
             if not .hasLast do
                 fail SystemError{"screen capture did not provide an initial frame"}
-            let outputStart = Time.monotonicMicroseconds()
-            if not preserveOnTimeout and not composed do
-                target[] = .last
-            .metrics.outputMicroseconds += Time.monotonicMicroseconds() - outputStart
             return false
         }
         if status < 0 do
@@ -208,12 +230,7 @@ impl NativeSource
         if info.LastPresentTime == 0 and .hasLast
         {
             .metrics.unchangedFrames += 1
-            // A pointer-only update does not change desktop pixels. Swag Capture
-            // composites the current pointer separately after this readback.
-            let outputStart = Time.monotonicMicroseconds()
-            if not preserveOnTimeout and not composed do
-                target[] = .last
-            .metrics.outputMicroseconds += Time.monotonicMicroseconds() - outputStart
+            // A pointer-only update does not change desktop pixels.
             return false
         }
         .metrics.acquiredFrames += 1
@@ -238,8 +255,6 @@ impl NativeSource
                 if not changed.changed
                 {
                     .metrics.unchangedFrames += 1
-                    if not preserveOnTimeout and not composed do
-                        target[] = .last
                     return false
                 }
                 copyLeft = cast(u32, changed.bounds.left)
@@ -277,27 +292,24 @@ impl NativeSource
         .metrics.readbackMicroseconds += Time.monotonicMicroseconds() - readbackStart
         defer context.lpVtbl.Unmap(context, cast(*ID3D11Resource, cast(*void, staging)), 0)
 
-        if not composed and (.last.width != .options.width or .last.height != .options.height or .last.pixelFormat != .BGRA8) do
-            .last = Image.create(.options.width, .options.height, .BGRA8)
         let rowBytes = cast(u64, copyRight - copyLeft) * 4
         let source = cast(const [*] u8, unwrap mapped.pData)
-        let destination = composed ? target.pixels.storage() : .last.pixels.storage()
-        let destinationStride = composed ? cast(u64, target.rowStride) : cast(u64, .last.rowStride)
+        let destination = target.pixels.storage()
+        let destinationStride = cast(u64, target.rowStride)
+        let sourceTopRow = source + cast(u64, copyTop) * mapped.RowPitch + copyLeft * 4
+        let destinationBottomRow = destination +
+                                   (destinationBottom + cast(u64, .options.height) - 1 - copyTop) * destinationStride +
+                                   (destinationX + copyLeft) * 4
         let copyStart = Time.monotonicMicroseconds()
-        for row in cast(u64, copyTop) until cast(u64, copyBottom)
-        {
-            Memory.copy(destination + (destinationBottom + cast(u64, .options.height) - 1 - row) * destinationStride +
-                        (destinationX + copyLeft) * 4,
-                        source + row * mapped.RowPitch + copyLeft * 4, rowBytes)
-        }
+        copyMappedBgraRows(destinationBottomRow, destinationStride,
+                           sourceTopRow, cast(u64, mapped.RowPitch), rowBytes,
+                           cast(u64, copyBottom - copyTop))
         .metrics.copyMicroseconds += Time.monotonicMicroseconds() - copyStart
         .metrics.copiedPixels += cast(u64, copyRight - copyLeft) * (copyBottom - copyTop)
+        .updatedBounds = RECT{cast(s32, copyLeft), cast(s32, copyTop),
+                              cast(s32, copyRight), cast(s32, copyBottom)}
         .hasLast = true
-        let outputStart = Time.monotonicMicroseconds()
-        if not composed do
-            target[] = .last
-        .metrics.outputMicroseconds += Time.monotonicMicroseconds() - outputStart
-        return info.LastPresentTime != 0
+        return firstFrame or info.LastPresentTime != 0
     }
 
     mtd reopen() fail

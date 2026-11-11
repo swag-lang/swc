@@ -4,6 +4,29 @@
 
 using Core, Pixel
 
+// A single output reuses its composed frame and updates a stable caller image.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    let monitors = Env.getMonitors()
+    if not monitors.count do
+        return
+    let bounds = monitors[0].physicalBounds
+    var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
+                                     cast(s32, bounds.width), cast(s32, bounds.height), false})
+    var image: Image
+    Swag.require(expect source.grabInto(&image, copyUnchanged: false,
+                                        updateChangedOnly: true))
+    for 12
+    {
+        discard expect source.grabInto(&image, copyUnchanged: false,
+                                       updateChangedOnly: true)
+        Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(),
+                                    image.byteCount) == 0,
+                     "incremental output differs from the composed monitor")
+    }
+}
+
 // One source composes the overlapping strip from adjacent physical monitors.
 #[Swag.TestTag("integration.host.windows")]
 #test
@@ -47,7 +70,19 @@ using Core, Pixel
         return
     var source = expect Source.open({x, y, width, height, false})
     var image: Image
-    discard expect source.grabInto(&image)
+    Swag.require(expect source.grabInto(&image, copyUnchanged: false,
+                                        updateChangedOnly: true))
     Swag.require(image.width == width and image.height == height)
     Swag.require(image.pixelFormat == .BGRA8)
+    if source.sources.count > 1
+    {
+        for 12
+        {
+            discard expect source.grabInto(&image, copyUnchanged: false,
+                                           updateChangedOnly: true)
+            Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(),
+                                        image.byteCount) == 0,
+                         "incremental output differs from the composed desktop")
+        }
+    }
 }

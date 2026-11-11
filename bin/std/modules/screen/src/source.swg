@@ -2,6 +2,25 @@
 
 using Core, Core.Errors, Pixel
 
+#[Swag.Inline]
+internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCount: u64)
+{
+    if byteCount < 8 * 1_048_576
+    {
+        Memory.copy(destination, source, byteCount)
+        return
+    }
+
+    let chunkSize = 1_048_576'u64
+    let chunkCount = (byteCount + chunkSize - 1) / chunkSize
+    parallel for |destination, source, byteCount, chunkSize| chunk in chunkCount
+    {
+        let offset = chunk * chunkSize
+        Memory.copy(destination + offset, source + offset,
+                    Math.min(chunkSize, byteCount - offset))
+    }
+}
+
 // One physical desktop area to capture; dimensions must be positive.
 struct SourceOptions
 {
@@ -20,8 +39,8 @@ struct SourceMetrics
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
     public readbackMicroseconds: u64 // Time until native pixels become CPU-readable.
     public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
-    public outputMicroseconds:   u64 // Time copying cached pixels to the caller.
-    public composeMicroseconds:  u64 // Time joining outputs and filling the caller's image.
+    public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
+    public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
     public partialFrames:        u64 // Frames read through a region smaller than the selected output.
     public copiedPixels:         u64 // Pixels copied from mapped native storage, including full frames.
 }
@@ -41,6 +60,9 @@ struct Source
         pictures: Array'Image
         composed: Image
         composeMicroseconds: u64
+        mirroredImage:        u64
+        mirroredStorage:      u64
+        mirrorReady:          bool
     }
 }
 
@@ -105,15 +127,22 @@ impl Source
     // False means the desktop pixels did not change; it is not a source failure.
     // By default the previous picture is copied to `target`. Set `copyUnchanged` to false
     // when the caller will reuse its previous encoded picture instead; on a false return,
-    // `target` is then left untouched. The target remains owned by the caller.
-    mtd grabInto(target: *Image, copyUnchanged: bool = true)->bool fail
+    // `target` is then left untouched. With `updateChangedOnly` and `copyUnchanged` false,
+    // successive grabs into the same unmodified target may update only changed regions after
+    // the first complete frame. Replacing or resizing the target causes a complete copy.
+    // The target remains owned by the caller.
+    mtd grabInto(target: *Image, copyUnchanged: bool = true,
+                 updateChangedOnly: bool = false)->bool fail
     {
-        if .sources.count == 1
+        #static if #os == Swag.TargetOs.Linux
         {
-            let native = .sources[0]
-            if native.options.x == .options.x and native.options.y == .options.y and
-               native.options.width == .options.width and native.options.height == .options.height do
-                return try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
+            if .sources.count == 1
+            {
+                let native = .sources[0]
+                if native.options.x == .options.x and native.options.y == .options.y and
+                   native.options.width == .options.width and native.options.height == .options.height do
+                    return try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
+            }
         }
         let first = .composed.width != .options.width or .composed.height != .options.height or
                     .composed.pixelFormat != .BGRA8
@@ -122,6 +151,17 @@ impl Source
             .composed = Image.create(.options.width, .options.height, .BGRA8)
             Memory.set(.composed.pixels.storage(), 0, .composed.byteCount)
         }
+        let incremental = updateChangedOnly and not copyUnchanged
+        var mirroring = false
+        #static if #os == Swag.TargetOs.Windows
+        {
+            mirroring = incremental and .mirrorReady and not first and
+                        target.width == .options.width and target.height == .options.height and
+                        target.pixelFormat == .BGRA8 and
+                        cast(u64, target) == .mirroredImage and
+                        cast(u64, target.pixels.storage()) == .mirroredStorage
+        }
+        .mirrorReady = false
         var fresh = false
         for index in .sources.count
         {
@@ -130,7 +170,23 @@ impl Source
             let bottom = cast(u64, .options.height - (source.options.y - .options.y) - source.options.height)
             #static if #os == Swag.TargetOs.Windows
             {
-                fresh = (try source.grabInto(&.composed, true, x, bottom, true)) or fresh
+                let changed = try source.grabInto(&.composed, x, bottom)
+                fresh = changed or fresh
+                if mirroring and changed
+                {
+                    let bounds = source.updatedBounds
+                    let rowBytes = cast(u64, bounds.right - bounds.left) * 4
+                    let left = x + cast(u64, bounds.left)
+                    let stride = cast(u64, target.rowStride)
+                    let composeStart = Time.monotonicMicroseconds()
+                    for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
+                    {
+                        let offset = (bottom + cast(u64, source.options.height) - 1 - row) * stride + left * 4
+                        Memory.copy(target.pixels.storage() + offset,
+                                    .composed.pixels.storage() + offset, rowBytes)
+                    }
+                    .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
+                }
             }
             else
             {
@@ -149,30 +205,29 @@ impl Source
                 .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
             }
         }
-        if not fresh and not copyUnchanged do
+        if not fresh and not copyUnchanged
+        {
+            .mirrorReady = mirroring
             return false
+        }
+        if mirroring
+        {
+            .mirrorReady = true
+            return fresh
+        }
         if target.width != .options.width or target.height != .options.height or target.pixelFormat != .BGRA8 do
             target[] = Image.create(.options.width, .options.height, .BGRA8)
         let composeStart = Time.monotonicMicroseconds()
         let destination = target.pixels.storage()
         let source = .composed.pixels.storage()
-        let byteCount = target.byteCount
-        if byteCount < 8 * 1_048_576
-        {
-            Memory.copy(destination, source, byteCount)
-        }
-        else
-        {
-            let chunkSize = 1_048_576'u64
-            let chunkCount = (byteCount + chunkSize - 1) / chunkSize
-            parallel for |destination, source, byteCount, chunkSize| chunk in chunkCount
-            {
-                let offset = chunk * chunkSize
-                Memory.copy(destination + offset, source + offset,
-                            Math.min(chunkSize, byteCount - offset))
-            }
-        }
+        copyFrameBytes(destination, source, target.byteCount)
         .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
+        if incremental
+        {
+            .mirroredImage = cast(u64, target)
+            .mirroredStorage = cast(u64, target.pixels.storage())
+            .mirrorReady = true
+        }
         return fresh
     }
 

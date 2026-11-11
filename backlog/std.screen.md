@@ -42,7 +42,19 @@ continues to own media frames and codecs, not desktop access.
   reads, copied 140.8 million pixels and missed one of 90 slots. On this device, partially
   updating the staging texture for a 1920x1080 crop increased readback time, so smaller selections
   retain a full staging copy; one six-second crop run decoded 179 frames, replayed sound and missed
-  one slot. These short samples and changing desktop content do not establish sustained cadence.
+  one slot. The virtual-desktop source can now mirror only changed regions into the recorder's
+  stable capture image, while retaining its own composed cache. A three-second run with 170 DXGI
+  frames spent 115 ms in composition and 564 ms in the complete screen grab, decoding 90 output
+  frames with five missed slots. An earlier run with a complete composed-image copy spent 911 ms
+  in composition alone. The workloads differed, and missed slots varied between runs. These short
+  samples and changing desktop content do not establish sustained cadence. The Windows backend now
+  writes both single-output and multi-output frames into one owned composed cache. Large
+  cache-to-caller copies use parallel blocks: a 7680x2168 byte-for-byte test took 78 ms for 16
+  frames versus 200 ms with serial copying on Windows. A Linux run took 140 versus 150 ms for the
+  same case. Large pitched DXGI readbacks use parallel row groups, retaining the serial path for
+  smaller regions; a synthetic 7680x2168 pitched readback took 68 versus 143 ms for 16 frames,
+  with exact output. These are CPU copy measurements, not end-to-end readback timings. The first
+  acquired DXGI frame now counts as fresh even when it carries only pointer metadata.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous

@@ -85,7 +85,10 @@ func __hostWorkPressure()->Swag.WorkPressure
         let frequency = __LinuxRT.sysconf(2)     // _SC_CLK_TCK
         if valid and frequency > 0 and __LinuxRT.clock_gettime(2, &process) == 0
         {
-            result.processTicks = cast(u64, process.seconds) * cast(u64, frequency) + cast(u64, process.nanoseconds) * cast(u64, frequency) / 1_000_000_000
+            let ticksPerSecond    = cast(u64, frequency)
+            let wholeSecondsTicks = cast(u64, process.seconds) * ticksPerSecond
+            let subsecondTicks    = cast(u64, process.nanoseconds) * ticksPerSecond / 1_000_000_000
+            result.processTicks = wholeSecondsTicks + subsecondTicks
             result.cpuValid = true
         }
     }

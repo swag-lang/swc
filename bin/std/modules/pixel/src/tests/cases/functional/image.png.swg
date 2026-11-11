@@ -886,6 +886,25 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(errorOutcome.value() != null)
 }
 
+#test
+{
+    const Palette: [3] u8 = [10, 20, 30]
+    const RawRow:  [2] u8 = [0, 3]
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 1, 1, 8, 3)
+    addPngChunk(&encoded, "PLTE", Palette)
+    addPngImageData(&encoded, RawRow)
+    addPngChunk(&encoded, "IEND", "")
+
+    let bytes = encoded.toArray()
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("palette-index-out-of-range.png", nnBytes(bytes.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Reject structural errors before reading pixels or indexing palette data.
 #test
 {

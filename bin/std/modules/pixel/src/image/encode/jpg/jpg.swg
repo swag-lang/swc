@@ -93,7 +93,8 @@ private
     // The entropy coder produces one byte at a time, and appending each of them to a
     // `ConcatBuffer` costs more than the coding itself; staging turns that into one append
     // per full buffer.
-    const OutBufSize = 4096
+    const OutBufSize        = 4096
+    const MaxImageDimension = 65_528
 
     const ZigZag: [?] u8 = [
         0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30,
@@ -310,6 +311,9 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
+        if image.width > MaxImageDimension or image.height > MaxImageDimension do
+            fail UnsupportedFormatError{"JPEG encoder dimensions cannot exceed 65528 pixels"}
+
         var opt: EncodeOptions
         if options.buffer != null
         {

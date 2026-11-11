@@ -338,6 +338,20 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(errorOutcome.value() != null)
 }
 
+#test
+{
+    let wideImage = Image.create(65_536, 1, .BGR8)
+    var encoded:      ConcatBuffer
+    var errorOutcome: Swag.Error
+    catch { encoded = try wideImage.encode("too-wide.jpg") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    let tallImage = Image.create(1, 65_536, .BGR8)
+    errorOutcome = {}
+    catch { encoded = try tallImage.encode("too-tall.jpg") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode BGR8 and round-trip through the JPEG decoder.
 #test
 {

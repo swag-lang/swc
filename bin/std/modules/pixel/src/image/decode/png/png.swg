@@ -511,9 +511,15 @@ impl Decoder
         }
 
         .outChannels = outputFormat.channels()
-        result.init(cast(s32, .header.width), cast(s32, .header.height), outputFormat)
+        let imageWidth  = cast(s32, .header.width)
+        let imageHeight = cast(s32, .header.height)
+        try .decOptions.checkImage(imageWidth, imageHeight, outputFormat)
+        let decodedBytes = cast(u64, .header.width) * .header.height * cast(u64, outputFormat.bitsPerPixel() / 8)
+        if decodedBytes > 0x7FFFFFFF do
+            fail UnsupportedFormatError{"PNG image needs more than 2 GiB of decoded pixel memory"}
+
+        result.init(imageWidth, imageHeight, outputFormat)
         result.metadata = #move metadata
-        try .decOptions.checkImage(result.width, result.height, outputFormat)
         for &frame in .animation.frames do
             frame.pixelFormat = outputFormat
 

@@ -860,6 +860,32 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     return result.toArray()
 }
 
+#test
+{
+    const Transparency: [6] u8 = [0, 1, 0, 2, 0, 3]
+    const RawRow:       [7] u8 = [0, 0, 0, 0, 0, 0, 0]
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 300_000_000, 1, 16, 2)
+    addPngChunk(&encoded, "tRNS", Transparency)
+    addPngImageData(&encoded, RawRow)
+    addPngChunk(&encoded, "IEND", "")
+    let bytes = encoded.toArray()
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("wide-transparent.png", nnBytes(bytes.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    var options: DecodeOptions
+    options.maxPixels       = 0
+    options.maxDecodedBytes = 0
+    errorOutcome            = {}
+    catch { image = try Image.decode("wide-transparent.png", nnBytes(bytes.toSlice()), options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Reject structural errors before reading pixels or indexing palette data.
 #test
 {

@@ -53,7 +53,7 @@ func ktx2Roundtrip(source: Image)->Image
 {
     var source = Image.create(3, 2, .RGB16)
     source.clear()
-    let encoded = expect source.encode("probe.ktx2")
+    var encoded = expect source.encode("probe.ktx2")
     var options: DecodeOptions
     options.decodePixels = false
     let header = expect Image.decode("probe.ktx2", nnBytes(encoded.toSlice()), options)
@@ -62,9 +62,23 @@ func ktx2Roundtrip(source: Image)->Image
                  header.pixelFormat == .RGB16 and
                  not header.isValid())
 
-    const Invalid: [12] u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    encoded.makeLinear()
+    var bytes = unwrap encoded.toSlice()
+    cast(*u32, bytes.buffer + 20)[] = 400_000_000
+
+    var image:        Image
     var errorOutcome: Swag.Error
+    catch { image = try Image.decode("oversized.ktx2", bytes) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    options.maxPixels       = 0
+    options.maxDecodedBytes = 0
+    errorOutcome            = {}
+    catch { image = try Image.decode("oversized.ktx2", bytes, options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    const Invalid: [12] u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    errorOutcome = {}
     discard catch Image.decode("bad.ktx2", Invalid) as errorOutcome
-    let error = errorOutcome.value()
-    Swag.require(error != null)
+    Swag.require(errorOutcome.value() != null)
 }

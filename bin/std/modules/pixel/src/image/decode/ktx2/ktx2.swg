@@ -160,9 +160,15 @@ impl Decoder
         let flags     = buffer[cast(u64, dfdOffset) + 15]
         let alphaMode = (flags & 1) != 0 and format.hasAlpha() ? AlphaMode.Premultiplied : AlphaMode.Straight
 
+        let decodedWidth  = cast(s32, width)
+        let decodedHeight = cast(s32, height)
+        try options.checkImage(decodedWidth, decodedHeight, format)
+        let rowBytes = cast(u64, width) * cast(u64, format.bitsPerPixel() / 8)
+        if rowBytes > cast(u64, Swag.S32.Max) do
+            fail UnsupportedFormatError{"KTX2 image row exceeds the pixel limits"}
+
         var result: #returntype
-        result.init(cast(s32, width), cast(s32, height), format, alphaMode)
-        try options.checkImage(result.width, result.height, format)
+        result.init(decodedWidth, decodedHeight, format, alphaMode)
 
         let levelEntry  = HeaderSize + cast(u64, levelIndex) * 24
         let levelOffset = readU64(buffer.buffer + levelEntry)

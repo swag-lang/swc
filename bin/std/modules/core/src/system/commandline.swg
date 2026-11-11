@@ -343,7 +343,13 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
             if not collectedValues.isEmpty()
             {
-                catch { discard try StrConv.parseValue(destination, typeField, collectedValues.toString()) } { fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))} }
+                catch
+                {
+                    discard try StrConv.parseValue(destination, typeField, collectedValues.toString())
+                }
+                {
+                    fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))}
+                }
             }
         }
         else

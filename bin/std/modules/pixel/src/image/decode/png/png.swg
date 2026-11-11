@@ -123,6 +123,29 @@ impl Decoder
 {
     func safeDatas(chunk: DecodeChunk)->const [..] u8 => cast(const [..] u8, unwrap chunk.datas)
 
+    mtd getExpectedDecompressedSize()->u64
+    {
+        if .header.interlaceMethod == .None do
+            return (.getStrideIn(.header.width) + 1) * .header.height
+
+        var result: u64
+        for pass in 7
+        {
+            let originX = cast(u64, Adam7OrigX[pass])
+            let originY = cast(u64, Adam7OrigY[pass])
+            if .header.width <= originX or .header.height <= originY do
+                continue
+
+            let spacingX = cast(u64, Adam7SpacingX[pass])
+            let spacingY = cast(u64, Adam7SpacingY[pass])
+            let width    = (.header.width - originX + spacingX - 1) / spacingX
+            let height   = (.header.height - originY + spacingY - 1) / spacingY
+            result += (.getStrideIn(cast(u32, width)) + 1) * height
+        }
+
+        return result
+    }
+
     mtd safeTRNSData()->const [..] u8 => cast(const [..] u8, unwrap .chunkTRNS.datas)
 
     mtd safeDstPixels()->[*] u8 => unwrap .dstPixels
@@ -551,8 +574,10 @@ impl Decoder
 
         // deflate content; hint the expected decompressed size to avoid realloc churn
         var dec: Compress.ZLib
-        let hintSize = (.getStrideIn(.header.width) + 1) * .header.height
+        let hintSize = .getExpectedDecompressedSize()
         .dcmpBuf = try dec.decompress(iDataBuf.toSlice(), hintSize)
+        if .dcmpBuf.count != hintSize do
+            fail InvalidFormatError{"invalid PNG decompressed scanline size"}
 
         // defilter content
         if not .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels()) do

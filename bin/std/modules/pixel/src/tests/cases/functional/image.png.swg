@@ -647,7 +647,7 @@ func addPngSignature(result: *ConcatBuffer)
     result.addBytes(signature)
 }
 
-func addPngHeader(result: *ConcatBuffer, width, height: u32, bitDepth, colorType: u8)
+func addPngHeader(result: *ConcatBuffer, width, height: u32, bitDepth, colorType: u8, interlaced = false)
 {
     var ihdr: ConcatBuffer
     addPngU32Be(&ihdr, width)
@@ -656,7 +656,7 @@ func addPngHeader(result: *ConcatBuffer, width, height: u32, bitDepth, colorType
     ihdr.addNative(colorType)
     ihdr.addNative(0'u8)
     ihdr.addNative(0'u8)
-    ihdr.addNative(0'u8)
+    ihdr.addNative(interlaced ? 1'u8 : 0'u8)
     addPngChunk(result, "IHDR", nnBytes(ihdr.toSlice()))
 }
 
@@ -927,6 +927,21 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     truncatedChecksum.addBytes("IDAT")
     truncatedChecksum.addNative(0'u8)
     assertPngDecodeFails("truncated-checksum.png", &truncatedChecksum)
+
+    var shortScanline: ConcatBuffer
+    addPngSignature(&shortScanline)
+    addPngHeader(&shortScanline, 1, 1, 8, 2)
+    const shortRgbRow: [1] u8 = [0]
+    addPngImageData(&shortScanline, shortRgbRow)
+    addPngChunk(&shortScanline, "IEND", "")
+    assertPngDecodeFails("short-scanline.png", &shortScanline)
+
+    var shortAdam7: ConcatBuffer
+    addPngSignature(&shortAdam7)
+    addPngHeader(&shortAdam7, 1, 1, 8, 2, true)
+    addPngImageData(&shortAdam7, shortRgbRow)
+    addPngChunk(&shortAdam7, "IEND", "")
+    assertPngDecodeFails("short-adam7.png", &shortAdam7)
 
     var hugeImage: ConcatBuffer
     addPngSignature(&hugeImage)

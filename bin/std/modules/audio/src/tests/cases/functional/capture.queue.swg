@@ -130,7 +130,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(rejected.value() is BadParameterError)
     discard catch CaptureQueue.create(1_000, 1, 0, 1_000, blockFrames: 4_097) as rejected
     Swag.require(rejected.value() is BadParameterError)
-    discard catch CaptureQueue.create(1_000, 1, 0, 1_000, slots: 65) as rejected
+    discard catch CaptureQueue.create(1_000, 1, 0, 1_000, slots: 257) as rejected
     Swag.require(rejected.value() is BadParameterError)
     discard catch CaptureQueue.create(0, 1, 0, 1_000) as rejected
     Swag.require(rejected.value() is BadParameterError)
@@ -170,7 +170,7 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
 // A producer callback and recorder may use the ring concurrently without torn blocks.
 #test
 {
-    var queue = expect CaptureQueue.create(1_000, 1, 0, 1_000, blockFrames: 16, slots: 64, tolerance: 0)
+    var queue = expect CaptureQueue.create(1_000, 1, 0, 1_000, blockFrames: 16, slots: 256, tolerance: 0)
     var source = CaptureConcurrentSource{queue: &queue}
     var thread: Threading.Thread
     discard expect thread.init(&produceCaptureBlocks, &source)

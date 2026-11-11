@@ -5,29 +5,32 @@ using Swag, Core, Pixel
 
 // Renders the pill of a recording that stopped after `recorded` microseconds of `limit` (zero for
 // none), on its own floating sheet, on a host in Encre or Papier.
-func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0)->Image
+func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
+                         state = RecorderState.Stopped)->Image
 {
     g_CaptureWindow   = {}
     g_CaptureAnchored = false
-    var host: Gui.Testing.HeadlessHost
-    host.setup(400, 120)
-    host.bindApplication(&g_App)
-    defer host.shutdown()
+    var f: HeadlessFixture
+    f.setup(400, 120)
+    defer f.shutdown()
     if dark do
-        host.theme.setDark()
+        f.gui.theme.setDark()
     else do
-        host.theme.setLight()
+        f.gui.theme.setLight()
 
     let recorder = Memory.new'Recorder()
     defer Memory.delete(recorder)
-    recorder.state    = .Stopped
+    recorder.main = f.main
+    recorder.state    = state
+    recorder.videoMode = state == .Preparing
     recorder.clock.recorded = recorded
     recorder.limit    = limit
     recorder.dropped  = dropped
 
     // The same sheet the recorder opens, on the host's own application.
-    let width    = RecordHud.widthFor(limit, captureTargetLabel())
-    let surface  = expect host.app.createSurface(0, 0, cast(s32, width), cast(s32, RecordHudHeight), .ToolWindow | .TopMost | .Sheet)
+    let width    = RecordHud.widthFor(limit, captureTargetLabel(), state == .Preparing)
+    let height   = cast(s32, RecordHudHeight + (state == .Preparing ? f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding : 0))
+    let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
     with let hud = RecordHud.create(surface.wnd, recorder)
     {
         .dockStyle = .Center
@@ -36,9 +39,17 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0)->Im
     surface.minSize = {}
     surface.setView(hud)
     surface.wnd.applyLayout()
-    var image = host.renderSurface(surface)
+    var image = f.gui.renderSurface(surface)
     surface.destroy()
     return image
+}
+
+// The video preparation asks for Record while the live target remains usable.
+#[Swag.TestTag("golden")]
+#test
+{
+    var image = testRenderRecordHud(dark: false, recorded: 0, limit: 0, state: .Preparing)
+    Pixel.Testing.assertImageGolden(&image, "recordhud.ready")
 }
 
 // A limited recording: the ring fills towards the limit, the limit follows the time.

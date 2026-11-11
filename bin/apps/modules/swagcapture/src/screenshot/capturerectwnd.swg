@@ -1,17 +1,5 @@
 using Core, Pixel
 
-// Ease-out one component of the auto-selection rectangle toward its target. Advancing
-// a fraction of the remaining distance each frame makes long jumps (e.g. moving from
-// one monitor to another) close quickly while decelerating smoothly near the target.
-// A minimum step keeps short moves responsive and guarantees the animation settles.
-func easeGrab(current, target: f32)->f32
-{
-    let factor  = 0.35'f32
-    let minStep = 16.0'f32
-    let step    = Math.max(Math.abs(target - current) * factor, minStep)
-    return Math.moveTowards(current, target, step)
-}
-
 // The area overlay: the chosen zone at full brightness with a 1 px Voltage edge, its
 // size in a mono chip, and, while a zone is dragged, a pixel loupe with a Voltage crosshair.
 const AreaChipPadding = 8.0      // Air inside the size chip and the loupe reading.
@@ -28,9 +16,9 @@ struct CaptureRectWnd
     late main:     *MainWnd
     startGrab:     bool
     tryStartGrab:  bool
-    autoGrab:      bool
+    autoGrab:      bool     // W temporarily previews the window under the pointer.
     detachWindow:  bool     // A keeps a selected area at screen coordinates.
-    lerpGrab:      Math.Rectangle
+    attachArea:    bool     // A opts a manually drawn area into following its window.
     clickStartPos: Math.Point
 
     // Where the pointer is, in logical units, for the loupe.
@@ -53,6 +41,13 @@ impl IWnd for CaptureRectWnd
             g_CaptureWindow = window.info
             g_CaptureAnchored = window.info.nativeWindow != 0 and not .detachWindow
         }
+        else
+        {
+            g_StartGrabX, g_EndGrabX = 0
+            g_StartGrabY, g_EndGrabY = 0
+            g_CaptureWindow = {}
+            g_CaptureAnchored = false
+        }
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -64,10 +59,30 @@ impl IWnd for CaptureRectWnd
         if evt.kind == .Pressed and evt.key == .Tab and evt.modifiers == .None do
             g_CaptureMedia = nextCaptureMedia(g_CaptureMedia)
 
+        if evt.kind == .Pressed and evt.key == .W and evt.modifiers == .None and not .startGrab
+        {
+            .autoGrab = true
+            .testAutoGrab()
+        }
+
+        if evt.kind == .Released and evt.key == .W and evt.modifiers == .None and not .startGrab
+        {
+            .autoGrab = false
+            g_StartGrabX, g_EndGrabX = 0
+            g_StartGrabY, g_EndGrabY = 0
+            g_CaptureWindow = {}
+            g_CaptureAnchored = false
+        }
+
         if evt.kind == .Pressed and evt.key == .A and evt.modifiers == .None
         {
-            .detachWindow = not .detachWindow
-            g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
+            if .autoGrab
+            {
+                .detachWindow = not .detachWindow
+                g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
+            }
+            else do
+                .attachArea = not .attachArea
         }
 
         // Enter takes the zone on screen, as a click without a drag does.
@@ -101,13 +116,11 @@ impl IWnd for CaptureRectWnd
                 // accept the auto-detected zone, and the pointer can start a new drag.
                 .startGrab               = false
                 .tryStartGrab            = false
-                .autoGrab                = true
+                .autoGrab                = false
                 g_StartGrabX, g_EndGrabX = physPosX
                 g_StartGrabY, g_EndGrabY = physPosY
                 g_CaptureWindow          = {}
                 g_CaptureAnchored        = false
-                .testAutoGrab()
-                .lerpGrab = getGrabRect()
                 .invalidate()
             }
             else
@@ -123,9 +136,9 @@ impl IWnd for CaptureRectWnd
         case .Released where evt.button == .Left:
 
             // If we're still in tryStartGrab mode (didn't move mouse significantly)
-            if .tryStartGrab
+            if .tryStartGrab and .autoGrab and not getGrabRect().isEmpty()
             {
-                // A click without a drag accepts the auto-detected rectangle.
+                // A click accepts the window only while W is held.
                 g_GrabDone = true
                 g_Exit     = true
             }
@@ -138,10 +151,11 @@ impl IWnd for CaptureRectWnd
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
                 g_CaptureWindow = getCaptureWindowForRect(unwrap .surface, screenRect)
-                g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
+                g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and .attachArea
                 g_GrabDone      = true
                 g_Exit          = true
             }
+            .tryStartGrab = false
 
         case .Move where .tryStartGrab:
 
@@ -153,6 +167,8 @@ impl IWnd for CaptureRectWnd
                 .tryStartGrab = false
                 .startGrab    = true
                 .autoGrab     = false
+                g_CaptureWindow = {}
+                g_CaptureAnchored = false
 
                 // Anchor the manual rectangle at the original press location.
                 g_StartGrabX = .clickStartPos.x
@@ -169,10 +185,10 @@ impl IWnd for CaptureRectWnd
 
         case .Move:
 
-            // Track the window under the pointer until a manual drag begins.
-            if not .startGrab
+            // A held W previews the exact window boundary, without moving a rectangle
+            // around the desktop during ordinary area selection.
+            if .autoGrab and not .startGrab
             {
-                .autoGrab = true
                 .testAutoGrab()
                 .invalidate()
             }
@@ -181,25 +197,7 @@ impl IWnd for CaptureRectWnd
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        var grabRect = getGrabRect()
-
-        // Smooth auto-grab changes between frames; manual selection follows the pointer.
-        if .autoGrab and not .startGrab
-        {
-            .lerpGrab.x      = easeGrab(.lerpGrab.x, grabRect.x)
-            .lerpGrab.y      = easeGrab(.lerpGrab.y, grabRect.y)
-            .lerpGrab.width  = easeGrab(.lerpGrab.width, grabRect.width)
-            .lerpGrab.height = easeGrab(.lerpGrab.height, grabRect.height)
-            var roundRect = .lerpGrab
-            roundRect.round()
-            if not grabRect.isEqualEpsilon(roundRect) do
-                .invalidate()
-            grabRect = roundRect
-        }
-        else
-        {
-            .lerpGrab = grabRect
-        }
+        let grabRect = getGrabRect()
 
         let painter = evt.paintContext.painter
         painter.setInterpolationMode(.Linear)
@@ -243,7 +241,8 @@ impl IWnd for CaptureRectWnd
         // pixels about to be captured.
         let colors = .themeColors()
         painter.setParams(.Antialiased)
-        painter.drawRect(dstGrab, colors.signature, 1)
+        if not grabRect.isEmpty() do
+            painter.drawRect(dstGrab, colors.signature, 1)
 
         // Crosshair guides - only in manual grab mode. The cursor sits on the dragged
         // corner, so split each line around the selection instead of running it along
@@ -272,6 +271,19 @@ impl IWnd for CaptureRectWnd
 
 impl CaptureRectWnd
 {
+    // The keys stand on floating ground because the frozen desktop can be any picture.
+    mtd createHints()
+    {
+        with let hint = HintLine.create(me)
+        {
+            .setGrounded(true)
+            .addHint("W", appStrings().hint_AimWindow)
+            .addHint("A", appStrings().hint_AimAttach)
+            .addHint(Gui.strings().key_Tab, appStrings().hint_AimFormat)
+            .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
+        }
+    }
+
     // Writes what the capture keeps and the size of the zone, in physical desktop pixels — the size
     // of the captured image — in a mono chip standing on the top edge of the zone, or inside it
     // when the screen has no room above. The key that changes what is kept follows, fainter: the

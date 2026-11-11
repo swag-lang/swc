@@ -16,6 +16,16 @@ struct ScreenFrameSource
     bitmap:     HBITMAP
     oldBitmap:  HGDIOBJ
     pixels:     *void?
+    accelerated: *Screen.Source?
+    triedAccelerated: bool
+    acceleratedX: s32
+    acceleratedY: s32
+    fresh:        bool
+    dcMicroseconds:    u64
+    blitMicroseconds:  u64
+    flushMicroseconds: u64
+    copyMicroseconds:  u64
+    cursorMicroseconds: u64
 }
 
 impl ScreenFrameSource
@@ -35,6 +45,12 @@ impl ScreenFrameSource
 
     private mtd closeNative()
     {
+        if .accelerated
+        {
+            Memory.delete(.accelerated)
+            .accelerated = null
+        }
+        .triedAccelerated = false
         if .memoryDC and .oldBitmap do
             discard SelectObject(.memoryDC, .oldBitmap)
         if .bitmap do
@@ -83,14 +99,61 @@ impl ScreenFrameSource
     mtd opDrop() => .closeNative()
 
     // Writes bottom-up BGRA8 into `target`, retaining both pixel and GDI storage.
-    mtd grabInto(target: *Image) fail
+    mtd grabInto(target: *Image, copyUnchanged: bool = true) fail
     {
+        .fresh = true
         #static if #command == Swag.CompilerCommand.Test
         {
             if not Env.hasArgument("swag.capture.native-screen=true")
             {
                 try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
                 return
+            }
+        }
+
+        if .accelerated and (.x != .acceleratedX or .y != .acceleratedY)
+        {
+            Memory.delete(.accelerated)
+            .accelerated = null
+            .triedAccelerated = false
+        }
+        if not .triedAccelerated
+        {
+            .triedAccelerated = true
+            catch
+            {
+                .accelerated = Memory.new'Screen.Source()
+                .accelerated[] = try Screen.Source.open({.x, .y, .width, .height, false})
+                .acceleratedX = .x
+                .acceleratedY = .y
+            }
+            {
+                if .accelerated
+                {
+                    Memory.delete(.accelerated)
+                    .accelerated = null
+                }
+            }
+        }
+        if .accelerated
+        {
+            catch
+            {
+                .fresh = try .accelerated.grabInto(target,
+                                                   copyUnchanged: copyUnchanged or .drawCursor)
+                if .drawCursor
+                {
+                    let cursorStart = Time.monotonicMicroseconds()
+                    .drawCursorOnImage(target)
+                    .cursorMicroseconds += Time.monotonicMicroseconds() - cursorStart
+                    .fresh = true
+                }
+                return
+            }
+            {
+                // A desktop switch can invalidate duplication. This frame uses GDI;
+                // the next one retries after the source is reopened.
+                discard catch .accelerated.reopen()
             }
         }
 
@@ -104,8 +167,10 @@ impl ScreenFrameSource
 
         // Refresh the desktop DC per grab: it belongs to this thread and can change
         // across a desktop switch, while the selected memory DC and DIB remain reusable.
+        let dcStart = Time.monotonicMicroseconds()
         let desktopWnd = GetDesktopWindow()
         let desktopDC  = GetDC(desktopWnd)
+        .dcMicroseconds += Time.monotonicMicroseconds() - dcStart
         if not desktopDC
         {
             .closeNative()
@@ -113,25 +178,88 @@ impl ScreenFrameSource
             return
         }
         defer discard ReleaseDC(desktopWnd, desktopDC)
+        let blitStart = Time.monotonicMicroseconds()
         catch BitBlt(.memoryDC, 0, 0, .width, .height, desktopDC, .x, .y, SRCCOPY | CAPTUREBLT)
         {
             .closeNative()
             try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
             return
         }
+        .blitMicroseconds += Time.monotonicMicroseconds() - blitStart
         if .drawCursor do
             drawCursorInto(.memoryDC, .x, .y)
+        let flushStart = Time.monotonicMicroseconds()
         if not GdiFlush()
         {
             .closeNative()
             try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
             return
         }
+        .flushMicroseconds += Time.monotonicMicroseconds() - flushStart
         if target.width != .width or target.height != .height or target.pixelFormat != .BGRA8 do
             target[] = Image.create(.width, .height, .BGRA8)
+        let copyStart = Time.monotonicMicroseconds()
         Memory.copy(target.pixels.storage(), unwrap .pixels, target.byteCount)
+        .copyMicroseconds += Time.monotonicMicroseconds() - copyStart
+    }
+
+    // The pointer is drawn onto the DXGI readback without a desktop BitBlt.
+    private mtd drawCursorOnImage(target: *Image)
+    {
+        var cursor: CURSORINFO
+        cursor.cbSize = #sizeof(CURSORINFO)
+        if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING) or not cursor.hCursor do
+            return
+        let icon = cast(HICON, cursor.hCursor)
+        var info: ICONINFO
+        catch GetIconInfo(icon, &info) { return; }
+        defer
+        {
+            if info.hbmMask do
+                catch DeleteObject(cast(info.hbmMask))
+            if info.hbmColor do
+                catch DeleteObject(cast(info.hbmColor))
+        }
+        var bitmap: BITMAP
+        let iconBitmap = info.hbmColor ? info.hbmColor : info.hbmMask
+        catch GetObjectW(cast(HANDLE, iconBitmap), #sizeof(BITMAP), cast(*void, &bitmap)) { return; }
+        let iconHeight = info.hbmColor ? bitmap.bmHeight : bitmap.bmHeight / 2
+        let left = Math.max(0's32, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot))
+        let top = Math.max(0's32, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot))
+        let right = Math.min(.width, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot) + bitmap.bmWidth)
+        let bottom = Math.min(.height, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot) + iconHeight)
+        if right <= left or bottom <= top do
+            return
+        if not .memoryDC and not .openNative() do
+            return
+        let source = target.pixels.storage()
+        let overlay = assume cast([*] u8, .pixels)
+        let rowBytes = cast(u64, .width) * 4
+        let copyBytes = cast(u64, right - left) * 4
+        for row in cast(u64, bottom - top)
+        {
+            let y = top + cast(s32, row)
+            let offset = (cast(u64, .height - 1 - y) * rowBytes) + cast(u64, left) * 4
+            Memory.copy(overlay + offset, source + offset, copyBytes)
+        }
+        let iconX = cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot)
+        let iconY = cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot)
+        DrawIconEx(.memoryDC, iconX, iconY, icon, 0, 0, 0, null, DI_NORMAL)
+        if GdiFlush()
+        {
+            for row in cast(u64, bottom - top)
+            {
+                let y = top + cast(s32, row)
+                let offset = (cast(u64, .height - 1 - y) * rowBytes) + cast(u64, left) * 4
+                Memory.copy(source + offset, overlay + offset, copyBytes)
+            }
+        }
     }
 
     // A display change invalidates the cached GDI objects; the next grab recreates them.
-    mtd reopen() fail => .closeNative()
+    mtd reopen() fail
+    {
+        .closeNative()
+        .triedAccelerated = false
+    }
 }

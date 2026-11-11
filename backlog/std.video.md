@@ -291,6 +291,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   IDR also takes longer to encode than its PCM counterpart on both fixtures.
   `H264.RateControl` now computes a fractional picture budget and bounded QP steps from
   observed packet sizes, but it is internal and not connected to the recorder.
+  `H264.Encoder.repeatPrevious` now writes a P-skip picture for an explicitly held frame,
+  while still writing an IDR at the configured interval. In a Release 3840×2160 probe,
+  a held picture took about 5 µs and 11–53 bytes with one or four slices, versus
+  31–57 ms for the changing P picture; Reader decoded the held picture identically
+  in exact and quantized tests. This saves work for missed capture slots, not for
+  fresh pictures that happen to be visually unchanged. The encoder now compares fresh
+  input with its preceding source picture before macroblock analysis. In a Release
+  3840×2160 probe, a fresh but identical picture took 1.2–1.6 ms and emitted the same
+  11–53-byte P-skip packet, while the changing P picture took 39–73 ms.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
 - Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of

@@ -1345,11 +1345,11 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.097 — No GPU screen acquisition
 
 - Evidence: Swag Capture grabs the screen with `BitBlt` and `CAPTUREBLT` into a DIB
-  (`screenshot.win32.swg`), whose cost grows with the area and which paints the cursor into the
+  (`screenframesource.win32.swg`), whose cost grows with the area and which paints the cursor into the
   pixels; there are no Direct3D 11 or DXGI bindings under `bin/`. `DwmGetWindowAttribute` and
   `SetWindowDisplayAffinity` are not bound either.
-- Next: decide the owning module (a `screen` module proposed, under `design-swag-bin-modules`),
-  then bind Direct3D 11 and DXGI and expose Desktop Duplication: GPU frames with changed and
+- Next: implement the `std/screen` source contract in std.screen.001, then bind Direct3D 11 and
+  DXGI and expose Desktop Duplication: GPU frames with changed and
   moved rectangles, performance-counter timestamps, pointer shape and position apart, crop, scale
   and NV12 conversion on the GPU, and capture across several monitors. Move the still-picture
   `BitBlt` and X11 paths behind the same source. Bind the window bounds and display affinity
@@ -1359,14 +1359,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Done when: a 4K monitor is acquired at 60 frames per second with low CPU, frames carry changed
   rectangles and timestamps, the pointer is delivered separately from the pixels, and acquisition
   resumes by itself after a lock screen, an elevation prompt and a display mode change.
-- Related: app.capture.011, app.capture.034, platform.portability.098
+- Related: app.capture.011, app.capture.034, platform.portability.098, std.screen.002
 
 ### platform.portability.098 — An occluded window cannot be captured
 
 - Next: add Windows.Graphics.Capture (WinRT activation, a frame pool on Direct3D 11) as a window
   source behind platform.portability.097, without the capture border where the system allows it.
 - Done when: a window covered by another one, or partly off screen, records its own content.
-- Related: platform.portability.097
+- Related: platform.portability.097, std.screen.002
 
 ### platform.portability.099 — No Media Foundation bindings
 
@@ -1401,5 +1401,6 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   std.audio.013.
 - Done when: a Linux session records an animation, then a window with its sound, under X11 and
   under Wayland.
-- Related: platform.portability.097, std.audio.011, std.audio.013, std.gui.063
+- Related: platform.portability.097, std.audio.011, std.audio.013, std.gui.063,
+  std.screen.003
 

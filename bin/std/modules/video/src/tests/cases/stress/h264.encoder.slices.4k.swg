@@ -51,10 +51,22 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
         let pMicros = watch.elapsedMicroseconds()
         let pBytes = p.bytes.count
         expect writer.addPacket(p)
+        watch.restart()
+        let staticPicture = expect encoder.encode(&changed, 6_000, 3_000)
+        watch.stop()
+        let staticMicros = watch.elapsedMicroseconds()
+        let staticBytes = staticPicture.bytes.count
+        expect writer.addPacket(staticPicture)
+        watch.restart()
+        let held = expect encoder.repeatPrevious(9_000, 3_000)
+        watch.stop()
+        let heldMicros = watch.elapsedMicroseconds()
+        let heldBytes = held.bytes.count
+        expect writer.addPacket(held)
         expect writer.end()
 
         var reader = expect Reader.open(path)
-        Swag.require(reader.frameCount() == 2)
+        Swag.require(reader.frameCount() == 4)
         var decoded: PlanarFrame
         watch.restart()
         expect reader.decodeFramePlanesInto(&decoded, 0)
@@ -64,9 +76,23 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
         expect reader.decodeFramePlanesInto(&decoded, 1)
         watch.stop()
         let decodePMicros = watch.elapsedMicroseconds()
+        var staticDecoded: PlanarFrame
+        expect reader.decodeFramePlanesInto(&staticDecoded, 2)
+        var heldPicture: PlanarFrame
+        watch.restart()
+        expect reader.decodeFramePlanesInto(&heldPicture, 3)
+        watch.stop()
+        let decodeHeldMicros = watch.elapsedMicroseconds()
         Swag.require(decoded.width == 3840 and decoded.height == 2160)
-        Console.printf("H264 4K % slices: IDR % us/% bytes, P % us/% bytes, Reader IDR % us/P % us\n",
+        Swag.require(Slice.equals(decoded.luma.toSlice(), staticDecoded.luma.toSlice()))
+        Swag.require(Slice.equals(decoded.chromaB.toSlice(), staticDecoded.chromaB.toSlice()))
+        Swag.require(Slice.equals(decoded.chromaR.toSlice(), staticDecoded.chromaR.toSlice()))
+        Swag.require(Slice.equals(decoded.luma.toSlice(), heldPicture.luma.toSlice()))
+        Swag.require(Slice.equals(decoded.chromaB.toSlice(), heldPicture.chromaB.toSlice()))
+        Swag.require(Slice.equals(decoded.chromaR.toSlice(), heldPicture.chromaR.toSlice()))
+        Console.printf("H264 4K % slices: IDR % us/% bytes, P % us/% bytes, static % us/% bytes, held % us/% bytes, Reader IDR % us/P % us/held % us\n",
                        count, idrMicros, idrBytes, pMicros, pBytes,
-                       decodeIdrMicros, decodePMicros)
+                       staticMicros, staticBytes, heldMicros, heldBytes,
+                       decodeIdrMicros, decodePMicros, decodeHeldMicros)
     }
 }

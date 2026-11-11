@@ -3,6 +3,24 @@
 
 using Core, Pixel, Video, Audio
 
+// A late producer submits one held frame for a medium gap and catches up promptly.
+#[Swag.TestTag("integration.capture.pacer")]
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("swag-capture-gap-%.mp4", Guid64.random()).toString())
+    defer discard catch File.delete(path)
+    var session = expect VideoCaptureSession.create(path, {0, 0, 64, 48},
+                                                     expect FrameRate.create(30, 1), false)
+    Swag.require(expect session.captureAt(1_000_000))
+    Swag.require(expect session.captureAt(1_333_334))
+    Swag.require(session.missedFrameSlotCount() == 9)
+    Swag.require(session.repeatedFrameCount() == 1 and session.frameCount() == 3)
+    expect session.end()
+    var reader = expect Reader.open(path)
+    Swag.require(reader.frameCount() == 3 and reader.durationInSeconds() > 0.35)
+}
+
 private func paintVideoWindow(window: *Env.Window, pixel: u32)
 {
     let drawable = expect window.xcbDrawable()

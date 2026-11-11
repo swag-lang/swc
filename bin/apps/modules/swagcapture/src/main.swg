@@ -1,4 +1,4 @@
-#global using Core, Pixel, Gui
+#global using Core, Pixel, Gui, Screen
 
 var g_App: Application
 

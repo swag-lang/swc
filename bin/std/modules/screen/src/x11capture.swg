@@ -1,4 +1,5 @@
 #global if #os == Swag.TargetOs.Linux
+#global public
 
 using Core, Pixel
 
@@ -38,7 +39,7 @@ private struct XfixesCursorRequest
 
 // Owns an independent X11 connection for desktop capture and best-effort window queries.
 // The GUI event queue remains owned by Gui; capture never consumes its events.
-#[Swag.NoCopy]
+#[Swag.NoDoc, Swag.NoCopy]
 struct X11Capture
 {
     library:              *void?
@@ -73,6 +74,16 @@ struct X11Capture
 
 impl X11Capture
 {
+    mtd const desktopWidth()->u16 => .screen.width_in_pixels
+    mtd const desktopHeight()->u16 => .screen.height_in_pixels
+    mtd const rootWindow()->u32 => .screen.root
+    mtd const rootDepth()->u8 => .screen.root_depth
+    mtd const nativeLibrary()->*void? => .library
+    mtd const nativeConnection()->*void? => .connection
+    mtd const cursorExtensionReady()->bool => .fixesReady
+    mtd const usesSharedMemory()->bool => .shmData != null
+    mtd const sharedMemorySize()->u64 => .shmSize
+
     func(T) symbol(library: *void, name: string)->T fail
     {
         let address = Linux.dlsym(library, name.buffer)
@@ -138,10 +149,11 @@ impl X11Capture
             discard Linux.dlclose(.library)
     }
 
-    mtd atom(name: string)->u32
+    mtd atom(name: string, create: bool = false)->u32
     {
         let connection = unwrap .connection
-        let reply      = .internReply(connection, .intern(connection, 1, cast(u16, name.count), name.buffer), null)
+        let reply      = .internReply(connection, .intern(connection, create ? 0'u8 : 1'u8,
+                                                        cast(u16, name.count), name.buffer), null)
         if not reply do
             return 0
         defer Linux.free(reply)
@@ -420,7 +432,7 @@ impl X11Capture
         return true
     }
 
-    private mtd disableSharedMemory()
+    mtd disableSharedMemory()
     {
         .releaseSharedMemory()
         .shmDisabled = true

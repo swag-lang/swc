@@ -326,8 +326,13 @@ impl Capture
     // Shows frame `frame` on the canvas.
     mtd showFrame(frame: u64) fail
     {
-        let picture = try .frames!.read(frame)
-        .backImg      = picture[]
+        if .media == .Video do
+            try .frames!.readVideoInto(&.backImg, frame)
+        else
+        {
+            let picture = try .frames!.read(frame)
+            .backImg = picture[]
+        }
         .playhead     = frame
         .dirtyBackImg = true
         .editView?.invalidate()

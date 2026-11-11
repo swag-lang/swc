@@ -892,12 +892,16 @@ impl MainWnd
                     main.libWnd.describeLens(results)
             })
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Area, func()->string => appStrings().search_Capture)
-            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Record)
-            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordVideo)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.DoIt, inMenu: false)
-            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds, menuSection: 1)
+            .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureModeIds)
             for idx in me.monitors.count do
-                .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx), menuSection: 1)
+                .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordVideo, menuSection: 1)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordFullScreen, menuSection: 1)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordActiveWindow, menuSection: 1)
+            for idx in me.monitors.count do
+                .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.recordScreenId(idx), menuSection: 1)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.Record, menuSection: 2)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds, menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
             .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
@@ -943,7 +947,7 @@ impl MainWnd
         }
 
         let capture = results.addSection(appStrings().ui_MenuCapture)
-        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
+        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
 
         let edited = .getCapture()
         let mediaName = edited and edited.media == .Video ? appStrings().ui_MediaVideo :

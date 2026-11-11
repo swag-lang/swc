@@ -6,6 +6,7 @@ using Swag, Core, Video
 // Frames left before the recording in progress ends, and whether it ends by a cancel.
 var g_TestFramesLeft:  u32
 var g_TestCancelAtEnd: bool
+var g_TestSawPreparation: bool
 
 // Ends the recording in progress once `frames` frames have run. The caller clears the frame
 // callbacks of the application with [[testEndRecording]].
@@ -23,6 +24,28 @@ internal func testEndRecordingAfter(frames: u32, cancel: bool)
         if g_TestCancelAtEnd do
             g_Recorder!.cancel()
         else do
+            g_Recorder!.stop()
+    }
+}
+
+// Starts a video from its live preparation, then ends it after a few frame callbacks.
+internal func testStartAndEndVideoAfter(frames: u32)
+{
+    g_TestFramesLeft     = frames
+    g_TestSawPreparation = false
+    g_App.sigFrame += func(_)
+    {
+        if not g_Recorder do
+            return
+        if g_Recorder!.state == .Preparing
+        {
+            g_TestSawPreparation = true
+            g_Recorder!.recordRequested = true
+            return
+        }
+        if g_TestFramesLeft do
+            g_TestFramesLeft -= 1
+        if not g_TestFramesLeft do
             g_Recorder!.stop()
     }
 }
@@ -154,6 +177,27 @@ internal func testEndRecording()
 
     let after = expect Directory.enumerateFiles(Library.getFolder(), CaptureMediaExtension)
     Swag.require(after.count == before.count)
+}
+
+// The video preparation waits for Record, then creates an MP4 from the live target.
+#[Swag.TestTag("record.preparation")]
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+
+    testStartAndEndVideoAfter(20)
+
+    let capture = expect Recorder.recordVideo(f.main, CaptureTarget.create({0, 0, 64, 48}, 0), prepare: true)
+    testEndRecording()
+    Swag.require(g_TestSawPreparation and not g_TestFramesLeft)
+    let owned = unwrap capture
+    Swag.require(owned.media == .Video and owned.timeline.frameCount >= 1)
+    let file = String.from(owned.file)
+    defer catch Capture.deleteFiles(file)
+    defer Memory.delete(owned)
+    Swag.require(File.exists(Capture.mediaPathOf(file, .Video)))
 }
 
 // Cancelling a video removes its partial MP4 and does not create a capture document.

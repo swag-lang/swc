@@ -218,7 +218,7 @@ impl SoftwareRecording
         if slot.decodeTime > Swag.U64.Max - .videoOffset or
            slot.duration > Swag.U64.Max - slot.decodeTime - .videoOffset do
             fail OverflowError{"software recording video time overflows"}
-        let packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
+        let packet = try .video.repeatPrevious(slot.decodeTime + .videoOffset, slot.duration)
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .writer.addPacket(packet)

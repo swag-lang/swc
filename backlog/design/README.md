@@ -721,7 +721,7 @@ the screen to its work.
 
 - The editor shows the capture on the ground, a dock of tools at the left, a mini-bar next to the
   selection and the inspector at the right (foldable). Its compact task controls stand in the top
-  strip, with no band of their own: capture and the library after the command glyph, where work
+  strip, with no band of their own: capture, a compact Video action and the library after the command glyph, where work
   comes in; Save Image… and Copy Image, the editor's one primary action, before the window
   buttons, where it goes out; the title centred between the two. The library leaves the output
   out. The picture's own resize handles show only while the pointer is near its edges, so at rest
@@ -730,12 +730,20 @@ the screen to its work.
   zoom readings at the foot of the editor are quiet menu anchors: size opens image-size commands
   and zoom opens zoom, actual-size and fit commands. These menus reuse the commands already in
   the lens.
-- The capture control starts an area capture directly; its adjacent chevron opens the capture
-  modes and the delay and cursor choices before the screen is read. Area capture shows the screen
-  dimmed except the chosen zone, a 1 px Voltage edge, its size in a mono chip, and a pixel loupe
-  with a Voltage crosshair. The keys at the foot stand on the floating ground, since the frozen
-  screen can be any picture. Right click while drawing abandons the rectangle and lets the reader
-  draw another; Escape leaves the capture.
+- The capture control starts an image area capture directly, and the adjacent Video action starts
+  a video area capture. The chevron groups image targets, video targets and GIF, then offers delay
+  and cursor choices. Both formats can target the whole desktop, one monitor, an active window or
+  a drawn area. Area selection shows the desktop dimmed, with no roaming rectangle at rest. A
+  drag reveals the chosen zone at full brightness, its 1 px Voltage edge, a mono size chip and a
+  pixel loupe. Hold W to preview the exact window under the pointer and click to choose it; A
+  opts a drawn area into following its window. The keys at the foot stand on floating ground,
+  since the frozen screen can be any picture. Right click while drawing abandons the rectangle
+  and lets the reader draw another; Escape leaves the capture.
+- After a video area is chosen, the selection overlay leaves. A narrow frame and a preparation
+  pill remain over the live desktop, so the target window can be used before Record. A fixed area
+  stays at screen coordinates; a window chosen with W follows that window. The pill shows which
+  behavior is active. Screen and monitor video commands start directly, with the configured
+  countdown. The recording pill stays outside the captured pixels when possible.
 - Editing in place, right after a capture: the desktop stays dimmed and the captured zone
   stands in full light with a white hairline edge, its size in a mono chip and Arc handles that
   still move its edges. The annotations are drawn on it directly. One floating bar hangs under

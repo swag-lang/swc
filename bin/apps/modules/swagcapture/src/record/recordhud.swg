@@ -25,9 +25,10 @@ struct RecordHud
     late pauseButton:  *IconButton
     late stopButton:   *IconButton
     late cancelButton: *IconButton
-    shownState:        RecorderState
+    shownState:        RecorderState = .Stopped
     shownTargetPause:  bool
     hasCommands:       bool     // The commands exist; the window is resized before they do.
+    prepOptions:       Array'(*OptionChip) // Choices shown only before a video starts.
 }
 
 impl IWnd for RecordHud
@@ -40,13 +41,25 @@ impl IWnd for RecordHud
             return
 
         let client = .clientRect()
-        let top    = client.vertCenter() - RecordHudButton * 0.5
+        let preparing = .recorder.state == .Preparing
+        let top    = (preparing ? RecordHudHeight * 0.5 : client.vertCenter()) - RecordHudButton * 0.5
         var right  = client.right() - RecordHudRight
         for button in [.cancelButton, .stopButton, .pauseButton]
         {
             right -= RecordHudButton
             button.setPosition(Math.Rectangle{right, top, RecordHudButton, RecordHudButton})
             right -= RecordHudButtonGap
+        }
+
+        if preparing
+        {
+            var x = RecordHudLeft
+            let rowTop = RecordHudHeight + (client.height - RecordHudHeight - .themeMetrics().miniBar_ButtonSize) * 0.5
+            for option in .prepOptions
+            {
+                option[].move(x, rowTop)
+                x += option[].position.width + .themeMetrics().miniBar_Padding
+            }
         }
     }
 
@@ -58,6 +71,7 @@ impl IWnd for RecordHud
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         let client  = .clientRect()
+        let preparing = .recorder.state == .Preparing
         let elapsed = .recorder.elapsed()
         let limit   = .recorder.limit
 
@@ -68,7 +82,7 @@ impl IWnd for RecordHud
         // The ring fills towards the limit; without one, it turns once a minute. During the
         // countdown, it empties towards the first frame.
         let cx       = RecordHudLeft + RecordHudRing * 0.5
-        let cy       = client.vertCenter()
+        let cy       = preparing ? RecordHudHeight * 0.5 : client.vertCenter()
         let counting = .recorder.state == .Counting
         let left     = .recorder.countdownLeft()
         var fraction = limit ? Math.min(cast(f32, elapsed) / cast(f32, limit), 1) : cast(f32, elapsed % 60_000_000) / 60_000_000
@@ -79,14 +93,18 @@ impl IWnd for RecordHud
             painter.drawArc(cx, cy, RecordHudRingRadius, Math.Angle.fromDegrees(0), Math.Angle.fromDegrees(360 * fraction), colors.arc, RecordHudRingWidth)
 
         // A paused recording keeps its dot, without the colour of a recording.
-        let dotColor = .recorder.state == .Paused or counting ? colors.faintText : colors.critical
+        let dotColor = preparing or .recorder.state == .Paused or counting ? colors.faintText : colors.critical
         painter.fillCircle(cx, cy, RecordHudDotRadius, dotColor)
 
         // The time recorded, then the limit, fainter.
         let font = timeFont(me)
         let top  = font.opticalLineTop(cy)
         var x    = RecordHudLeft + RecordHudRing + RecordHudTextMargin
-        if counting
+        if preparing
+        {
+            painter.drawString(x, top, appStrings().ui_AimReady, font, colors.text)
+        }
+        elif counting
         {
             // The whole seconds left, counted down to the first frame.
             let seconds = (left + 999_999) / 1_000_000
@@ -129,11 +147,13 @@ impl IWnd for RecordHud
         {
             .shownState = .recorder.state
             .shownTargetPause = .recorder.pausedForTarget
-            .pauseButton.setIcon(.theme().icon(.recorder.state == .Paused ? .Play : .Pause))
-            .pauseButton.toolTip = .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
+            .pauseButton.setIcon(.theme().icon(preparing or .recorder.state == .Paused ? .Play : .Pause))
+            .pauseButton.toolTip = preparing ? appStrings().ui_AimRecord :
+                                   .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
                                    .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
-            .pauseButton.enable(not .recorder.pausedForTarget and not .recorder.videoMode)
-            if .recorder.videoMode do
+            .pauseButton.enable(preparing or (not .recorder.pausedForTarget and not .recorder.videoMode))
+            .stopButton.show(not preparing)
+            if .recorder.videoMode and not preparing do
                 .pauseButton.toolTip = appStrings().tip_VideoPauseUnavailable
         }
     }
@@ -145,13 +165,15 @@ impl RecordHud
     // monitor of scale `scale`: under the frame, over it, or beside it when vertical room is tight.
     func open(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->*RecordHud?
     {
-        let logicalWidth = widthFor(recorder.limit, captureTargetLabel())
+        let preparing = recorder.state == .Preparing
+        let logicalWidth = widthFor(recorder.limit, captureTargetLabel(), preparing)
+        let logicalHeight = preparing ? RecordHudHeight + recorder.main.themeMetrics().miniBar_ButtonSize + recorder.main.themeMetrics().miniBar_Padding : RecordHudHeight
         let outer        = placement(recorder, frame, scale)
 
         // A sheet casts the floating shadow into a margin around its body: the window is the pill
         // grown by that margin. It is created where it stands, so it takes the scale of that
         // monitor from the start.
-        let surface = catch g_App.createSurface(cast(s32, outer.x), cast(s32, outer.y), cast(s32, logicalWidth), cast(s32, RecordHudHeight), .ToolWindow | .TopMost | .Sheet)
+        let surface = catch g_App.createSurface(cast(s32, outer.x), cast(s32, outer.y), cast(s32, logicalWidth), cast(s32, logicalHeight), .ToolWindow | .TopMost | .Sheet)
         {
             return null
         }
@@ -176,12 +198,14 @@ impl RecordHud
         .surface?.setPosition(placement(.recorder, frame, scale))
     }
 
-    // Places the pill beside the frame and inside the current monitor's work area.
+    // Places the pill beside the frame, or inside the monitor when the frame fills it.
     private func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
     {
-        let logicalWidth = widthFor(recorder.limit, captureTargetLabel())
+        let preparing    = recorder.state == .Preparing
+        let logicalWidth = widthFor(recorder.limit, captureTargetLabel(), preparing)
         let width        = Math.ceil(logicalWidth * scale)
-        let height       = Math.ceil(RecordHudHeight * scale)
+        let logicalHeight = preparing ? RecordHudHeight + g_App.theme.metrics.miniBar_ButtonSize + g_App.theme.metrics.miniBar_Padding : RecordHudHeight
+        let height       = Math.ceil(logicalHeight * scale)
         let gap          = Math.ceil(RecordHudGap * scale)
         let monitor      = Env.monitorForPoint({frame.horzCenter(), frame.vertCenter()}).physicalWorkArea
 
@@ -200,6 +224,14 @@ impl RecordHud
         else do
             place.x = Math.max(place.x, monitor.x)
 
+        // A whole-screen recording leaves no outside edge for the pill. On Windows the
+        // recording surface's display affinity excludes this control from the video.
+        if place.x < monitor.x or place.right() > monitor.right()
+        {
+            place.x = monitor.right() - width - gap
+            place.y = monitor.y + gap
+        }
+
         // A sheet casts the floating shadow into a margin around its body: the window is the pill
         // grown by that margin. It is created where it stands, so it takes the scale of that
         // monitor from the start.
@@ -216,6 +248,8 @@ impl RecordHud
             .toolTip         = g_CaptureWindow.title
             .backgroundStyle = .Transparent
             .createCommands()
+            if recorder.state == .Preparing do
+                .createPrepOptions()
         }
 
         return result
@@ -226,7 +260,7 @@ impl RecordHud
 
     // Returns the logical width of a pill whose recording has `limit` microseconds at most, zero
     // for none: room for the longest time it can show, so the pill never changes size.
-    func widthFor(limit: u64, targetLabel: string = "")->f32
+    func widthFor(limit: u64, targetLabel: string = "", preparing: bool = false)->f32
     {
         var widest = limit ? Capture.clockText(limit) : String.from("0:00:00")
         if limit
@@ -241,7 +275,24 @@ impl RecordHud
         let font     = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
         let commands = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
         let targetWidth = Painter.measureString(targetLabel, font).width
-        return Math.ceil(RecordHudLeft + RecordHudRing + 3 * RecordHudTextMargin + Painter.measureString(widest, font).width + targetWidth + commands + RecordHudRight)
+        let readyWidth = Painter.measureString(appStrings().ui_AimReady, font).width
+        let contentWidth = preparing ? Math.max(Painter.measureString(widest, font).width, readyWidth) :
+                           Painter.measureString(widest, font).width
+        let normalWidth = RecordHudLeft + RecordHudRing + 3 * RecordHudTextMargin + contentWidth +
+                          targetWidth + commands + RecordHudRight
+        if not preparing do
+            return Math.ceil(normalWidth)
+
+        let texts = appStrings()
+        let labels = [texts.ui_AimCursor, texts.ui_AimCountdown, texts.ui_AimMicrophone, texts.ui_AimSystemSound]
+        let optionFont = g_App.theme.createDefaultFont(g_App.theme.metrics.defaultFontSize)
+        var optionsWidth = RecordHudLeft + RecordHudRight
+        for label in labels
+        {
+            optionsWidth += 2 * OptionChipInset + OptionChipIcon + OptionChipGap +
+                            Painter.measureString(label, optionFont).width + g_App.theme.metrics.miniBar_Padding
+        }
+        return Math.ceil(Math.max(normalWidth, optionsWidth))
     }
 
     // Creates the commands of the recording; [[RecordHud.onResizeEvent]] places them.
@@ -266,6 +317,11 @@ impl RecordHud
         .pauseButton = command(me, .theme().icon(.Pause), appStrings().tip_PauseRecording)
         .pauseButton.sigPressed += func|hud = me|(_)
         {
+            if hud.recorder.state == .Preparing
+            {
+                hud.recorder.recordRequested = true
+                return
+            }
             if hud.recorder.pausedForTarget do
                 return
             if hud.recorder.state == .Paused do
@@ -275,5 +331,60 @@ impl RecordHud
         }
 
         .hasCommands = true
+    }
+
+    // Keeps capture inputs beside the live target until the recording is started.
+    private mtd createPrepOptions()
+    {
+        let options = &.recorder.main.captureOptions
+        let texts   = appStrings()
+        with let cursor = OptionChip.create(me, .recorder.main.icon(.Select), texts.ui_AimCursor, options.captureCursor)
+        {
+            .sigPressed += func|options|(chip)
+            {
+                options.captureCursor = not options.captureCursor
+                chip.on = options.captureCursor
+                chip.invalidate()
+            }
+        }
+        .prepOptions.add(cursor)
+
+        with let countdown = OptionChip.create(me, .theme().icon(.HourGlass), texts.ui_AimCountdown, options.recordCountdown)
+        {
+            .sigPressed += func|options|(chip)
+            {
+                options.recordCountdown = not options.recordCountdown
+                chip.on = options.recordCountdown
+                chip.invalidate()
+            }
+        }
+        .prepOptions.add(countdown)
+
+        #static if #os == Swag.TargetOs.Windows
+        {
+            with let microphone = OptionChip.create(me, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)
+            {
+                .sigPressed += func|options|(chip)
+                {
+                    options.recordMicrophone = not options.recordMicrophone
+                    chip.on = options.recordMicrophone
+                    chip.invalidate()
+                }
+            }
+            .prepOptions.add(microphone)
+
+            with let system = OptionChip.create(me, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
+            {
+                .sigPressed += func|options|(chip)
+                {
+                    options.recordSystemSound = not options.recordSystemSound
+                    chip.on = options.recordSystemSound
+                    chip.invalidate()
+                }
+            }
+            .prepOptions.add(system)
+        }
+        else do
+            .prepOptions.add(OptionChip.create(me, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, inert: true))
     }
 }

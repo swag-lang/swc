@@ -14,7 +14,7 @@ private func checkedDynamicX11(connection: *void, check: Linux.xcb_request_check
 private func has4KDesktop()->bool fail
 {
     var capture = try X11Capture.create()
-    return capture.screen.width_in_pixels >= 3840 and capture.screen.height_in_pixels >= 2160
+    return capture.desktopWidth() >= 3840 and capture.desktopHeight() >= 2160
 }
 
 // Measures one second of real 4K X11 acquisition, conversion, H.264 and fragmented MP4.
@@ -127,10 +127,10 @@ private func has4KDesktop()->bool fail
     const Height = 2160
     const Tile = 512'u64
     var x11 = expect X11Capture.create()
-    if x11.screen.width_in_pixels < Width or x11.screen.height_in_pixels < Height do
+    if x11.desktopWidth() < Width or x11.desktopHeight() < Height do
         return
-    let library = unwrap x11.library
-    let connection = unwrap x11.connection
+    let library = unwrap x11.nativeLibrary()
+    let connection = unwrap x11.nativeConnection()
     let generate = expect X11Capture.symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")
     let createGc = expect X11Capture.symbol'Linux.xcb_create_gc_checked_fn(library, "xcb_create_gc_checked")
     let freeGc = expect X11Capture.symbol'Linux.xcb_free_gc_checked_fn(library, "xcb_free_gc_checked")
@@ -140,12 +140,12 @@ private func has4KDesktop()->bool fail
     let clear = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
     let check = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
     let gc = generate(connection)
-    checkedDynamicX11(connection, check, createGc(connection, gc, x11.screen.root, 0, null))
+    checkedDynamicX11(connection, check, createGc(connection, gc, x11.rootWindow(), 0, null))
     defer
     {
         var black: u32
-        Linux.free(check(connection, change(connection, x11.screen.root, 2, &black)))
-        Linux.free(check(connection, clear(connection, 0, x11.screen.root, 0, 0, 0, 0)))
+        Linux.free(check(connection, change(connection, x11.rootWindow(), 2, &black)))
+        Linux.free(check(connection, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0)))
         Linux.free(check(connection, freeGc(connection, gc)))
     }
 
@@ -203,16 +203,16 @@ private func has4KDesktop()->bool fail
         let green = cast(u32, (frame * 3) % 64)
         let blue = cast(u32, (frame * 7) % 64)
         let background = red << 16 | green << 8 | blue
-        checkedDynamicX11(connection, check, change(connection, x11.screen.root, 2, &background))
-        checkedDynamicX11(connection, check, clear(connection, 0, x11.screen.root, 0, 0, 0, 0))
+        checkedDynamicX11(connection, check, change(connection, x11.rootWindow(), 2, &background))
+        checkedDynamicX11(connection, check, clear(connection, 0, x11.rootWindow(), 0, 0, 0, 0))
         for quadrant in 4'u64
         {
             let destinationX = cast(s16, (quadrant % 2) * 1_920 + 32 + frame * 16)
             let destinationY = cast(s16, (quadrant / 2) * 1_080 + 32 + frame * 8)
             checkedDynamicX11(connection, check,
-                              put(connection, 2, x11.screen.root, gc,
+                              put(connection, 2, x11.rootWindow(), gc,
                                   cast(u16, Tile), cast(u16, Tile), destinationX, destinationY,
-                                  0, x11.screen.root_depth, cast(u32, tile.count), tile.storage()))
+                                  0, x11.rootDepth(), cast(u32, tile.count), tile.storage()))
         }
         paintMicros += Time.monotonicMicroseconds() - paintStart
 

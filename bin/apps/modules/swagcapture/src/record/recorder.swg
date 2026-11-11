@@ -1,6 +1,7 @@
 using Core, Pixel, Video
 
 const RecordCountdown          = 3_000_000'u64      // Wait before the first frame when the option asks for it, in microseconds.
+const VideoCaptureFramesPerSecond = 30'u32
 
 // Thickness of the frame drawn around the recorded area, in logical units, and the air between
 // the frame and the area: the frame stands outside, so it never appears in the frames.
@@ -15,6 +16,7 @@ enum RecorderState
     Paused
     Stopped       // Ended by the reader or by its limit: the frames become a capture.
     Cancelled     // Abandoned: nothing is kept.
+    Preparing    // The chosen area is visible on the live desktop, awaiting Record.
 }
 
 // The recording in progress, ended by the command that started it.
@@ -22,9 +24,10 @@ var g_Recorder: *Recorder?
 
 // One recording of a screen area into the frame file of a new capture.
 //
-// The area is grabbed on the interface thread. Video uses a bounded handoff to its encoder;
-// animation uses one writer task at a time. Late capture slots are counted and held pictures
-// preserve video timing. Both paths bound memory when encoding or storage falls behind.
+// Video reads the screen on its own thread and hands pictures to a bounded encoder queue;
+// animation grabs on the interface thread and uses one writer task at a time. Late slots are
+// counted, and held pictures preserve video timing. Both paths bound memory when encoding or
+// storage falls behind.
 struct Recorder
 {
     late main:   *MainWnd
@@ -37,6 +40,7 @@ struct Recorder
     file:        String             // Capture the frames belong to.
     writer:      Frames.Writer
     video:       VideoCaptureSession
+    videoProducer: VideoCaptureProducer
     videoAudio:  *VideoRecordingAudio?
     videoMode:   bool
     state:       RecorderState
@@ -52,7 +56,9 @@ struct Recorder
     hud:         *RecordHud?
     limit:       u64      // Longest recording, in microseconds; zero records until stopped.
     ownsEscape:  bool     // Escape is registered as the cancel hotkey of this recording.
+    ownsStop:    bool     // Ctrl Shift F10 stops a full-screen recording from any window.
     pausedForTarget: bool // The attached window is temporarily not visible.
+    recordRequested: bool // The preparation pill has asked to start the video.
     nextTargetCheck: u64
     edges:       Array'(*Surface)     // The frame around the area.
 }
@@ -140,7 +146,7 @@ impl Recorder
     }
 
     // Records the selected area to an MP4 beside a new editable capture document.
-    func recordVideo(main: *MainWnd, target: CaptureTarget)->*Capture? fail
+    func recordVideo(main: *MainWnd, target: CaptureTarget, prepare: bool = false)->*Capture? fail
     {
         Swag.assert(not g_Recorder)
         var fileToDiscard: String
@@ -174,19 +180,37 @@ impl Recorder
         if recorder.area.width < 2 or recorder.area.height < 2 do
             fail Errors.InvalidFormatError{}
 
+        g_Recorder = recorder
+        defer g_Recorder = null
+        defer recorder.hideChrome()
+        defer recorder.videoProducer.close()
+
+        // Only the narrow frame and its controls remain over the live desktop. The reader
+        // can use the chosen window and start when it is ready.
+        if prepare
+        {
+            recorder.state = .Preparing
+            recorder.showChrome()
+            while recorder.state == .Preparing and not recorder.recordRequested do
+                g_App.runFrame()
+            if recorder.state == .Cancelled do
+                return null
+
+            recorder.hud?.surface?.destroy()
+            recorder.hud = null
+        }
+
         let options = &main.captureOptions
         let configs = VideoRecordingAudio.configs(options.recordMicrophone, options.recordSystemSound)
         let rows = cast(u32, (cast(s32, recorder.area.height) + 15) / 16)
         let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), 4'u32, rows)
         recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
-                                                        try FrameRate.create(30, 1),
+                                                        try FrameRate.create(VideoCaptureFramesPerSecond, 1),
                                                         options.captureCursor, configs.toSlice(), sliceCount: slices)
         try recorder.video.startEncoder()
 
-        g_Recorder = recorder
-        defer g_Recorder = null
-        recorder.showChrome()
-        defer recorder.hideChrome()
+        if not prepare do
+            recorder.showChrome()
 
         let now = Time.monotonicMicroseconds()
         if options.recordCountdown
@@ -200,12 +224,24 @@ impl Recorder
             recorder.clock.startAt(now)
         }
 
+        if prepare and not g_App.surfaces.isEmpty()
+        {
+            let chrome = recorder.chromeGeometry()
+            recorder.hud = RecordHud.open(recorder, chrome.outer, chrome.scale)
+            if let surface = recorder.hud?.surface do
+                excludeCaptureChrome(surface)
+            recorder.hideOverlappingVideoHud()
+        }
+
         while recorder.state == .Counting or recorder.state == .Recording or recorder.state == .Paused
         {
             g_App.runFrame()
             recorder.advance()
         }
 
+        recorder.videoProducer.close()
+        if recorder.state != .Cancelled and not recorder.video.stoppedForLowStorage() do
+            try recorder.videoProducer.raiseError()
         if recorder.videoAudio do
             try recorder.videoAudio.finish()
         if recorder.state == .Cancelled do
@@ -279,6 +315,12 @@ impl Recorder
     // Ends the recording and keeps it.
     mtd stop()
     {
+        if .state == .Preparing
+        {
+            .recordRequested = true
+            return
+        }
+
         // Nothing was recorded during the countdown: there is nothing to keep.
         if .state == .Counting
         {
@@ -323,6 +365,8 @@ impl Recorder
                 {
                     .pause()
                     .pausedForTarget = true
+                    if .videoMode do
+                        .videoProducer.setPaused(true)
                 }
                 return
             }
@@ -330,14 +374,21 @@ impl Recorder
             {
                 .pausedForTarget = false
                 .resume()
+                if .videoMode do
+                    .videoProducer.setPaused(false)
             }
             if resolved.area.x != .area.x or resolved.area.y != .area.y
             {
                 .area = resolved.area
                 if .videoMode
                 {
-                    .video.source.x = cast(s32, .area.x)
-                    .video.source.y = cast(s32, .area.y)
+                    if .videoProducer.worker.isValid() do
+                        .videoProducer.setPosition(cast(s32, .area.x), cast(s32, .area.y))
+                    else
+                    {
+                        .video.source.x = cast(s32, .area.x)
+                        .video.source.y = cast(s32, .area.y)
+                    }
                 }
                 else
                 {
@@ -415,17 +466,19 @@ impl Recorder
     // Reads one video slot and transfers both enabled sound sources into their MP4 tracks.
     private mtd advanceVideo() fail
     {
-        discard catch .video.captureAt(Time.monotonicMicroseconds())
+        if not .videoProducer.worker.isValid()
         {
-            if .video.stoppedForLowStorage()
-            {
-                .stop()
-                return
-            }
-            fail Swag.err
+            try .videoProducer.start(&.video, VideoCaptureFramesPerSecond)
+            while not .videoProducer.hasOrigin() and not .videoProducer.hasFailed() do
+                Threading.Thread.sleep(1'ms)
         }
-        .dropped = cast(u32, Math.min(.video.missedFrameSlotCount(), cast(u64, Swag.U32.Max)))
-        if not .videoAudio and .video.hasCaptureOrigin() and
+        if .videoProducer.hasFailed()
+        {
+            .stop()
+            return
+        }
+        .dropped = cast(u32, Math.min(.videoProducer.missedFrameSlotCount(), cast(u64, Swag.U32.Max)))
+        if not .videoAudio and .videoProducer.hasOrigin() and
            (.main.captureOptions.recordMicrophone or .main.captureOptions.recordSystemSound)
         {
             .videoAudio = Memory.new'VideoRecordingAudio()
@@ -480,6 +533,8 @@ impl Recorder
         .addEdge({outer.right() - thick, outer.y + thick, thick, outer.height - 2 * thick})
 
         .hud = RecordHud.open(me, outer, scale)
+        if .state != .Preparing do
+            .hideOverlappingVideoHud()
         if let hud = .hud
         {
             if let surface = hud.surface do
@@ -497,6 +552,25 @@ impl Recorder
         // Escape abandons the recording from any application, for as long as it runs only.
         catch g_App.registerHotKey(.None, .Escape, ActionCapture.CancelRecording, .main)
         .ownsEscape = true
+        if .videoMode
+        {
+            catch g_App.registerHotKey(.CtrlShift, .F10, ActionCapture.RecordVideo, .main)
+            .ownsStop = true
+        }
+    }
+
+    // Keeps the preparation action visible, then leaves an overlapping X11 control out of
+    // the recorded pixels. The tray and Ctrl Shift F10 can stop the video afterwards.
+    private mtd hideOverlappingVideoHud()
+    {
+        #static if #os == Swag.TargetOs.Linux
+        {
+            if .videoMode and .hud and .hud.surface and .hud.surface.position.intersects(.area)
+            {
+                .hud.surface.destroy()
+                .hud = null
+            }
+        }
     }
 
     // Keeps the frame and controls beside an attached area when its window moves.
@@ -520,6 +594,9 @@ impl Recorder
         if .ownsEscape do
             discard g_App.unregisterHotKey(.None, .Escape)
         .ownsEscape = false
+        if .ownsStop do
+            discard g_App.unregisterHotKey(.CtrlShift, .F10)
+        .ownsStop = false
 
         for edge in .edges do
             edge[].destroy()

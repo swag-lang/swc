@@ -1,9 +1,28 @@
 using Core, Core.Errors, Pixel, Video
 
+// Copies nearest-neighbour BGRA pixels between bottom-up, tightly packed images.
+internal func reduceBgraNearest(source: const *Image, destination: *Image,
+                                sourceColumns: const [*] u32)
+{
+    let input = cast(const [*] u32, source.pixels.storage())
+    let output = cast([*] u32, destination.pixels.storage())
+    let inputWidth = cast(u64, source.width)
+    let outputWidth = cast(u64, destination.width)
+    let inputHeight = cast(u64, source.height)
+    let outputHeight = cast(u64, destination.height)
+    parallel for |input, output, sourceColumns, inputWidth, outputWidth, inputHeight, outputHeight| row in outputHeight
+    {
+        let inputRow = input + (row * inputHeight / outputHeight) * inputWidth
+        let outputRow = output + row * outputWidth
+        for column in outputWidth do
+            outputRow[column] = inputRow[sourceColumns[column]]
+    }
+}
+
 // Keeps one screen source, frame pacer and software MP4 writer alive for a recording.
 //
 // The caller drives `captureAt` with monotonic microsecond timestamps. Short missed intervals
-// repeat each frame slot; long gaps use a held picture with a long duration, so a suspended
+// repeat each frame slot; longer gaps use a held picture with a long duration, so a suspended
 // recorder does not encode hours of identical frames. If the screen cannot be read, a black
 // first frame or the last good frame fills the slot and the source is reopened. The session
 // checks destination free space once per second and stops before the configured reserve is
@@ -21,6 +40,11 @@ struct VideoCaptureSession
     recording:                Mp4.SoftwareRecording
     pacer:                    FramePacer
     picture:                  Image
+    sourcePicture:            Image
+    sourceColumns:            Array'u32
+    scaled:                   bool
+    outputWidth:              s32
+    outputHeight:             s32
     audioConfigs:             Array'Mp4.SoftwareAudioConfig
     outputDirectory:          String
     originTick:               u64
@@ -32,6 +56,7 @@ struct VideoCaptureSession
     lowStorageStop:           bool
     sourceFailures:           u64
     grabMicroseconds:         u64
+    scaleMicroseconds:        u64
     producerWaitMicroseconds: u64
     freshFrames:              u64
     submittedFrames:          u64
@@ -44,7 +69,8 @@ impl VideoCaptureSession
     // Opens an MP4 recording of a physical desktop rectangle at the requested frame rate.
     //
     // `audioConfigs` may be empty for video-only capture; otherwise sound arrives later through
-    // `addAudioFrames`. The area must have positive even pixel dimensions supported by H.264.
+    // `addAudioFrames`. The area must have positive even pixel dimensions. Areas wider or
+    // taller than 4096 pixels are captured in full and reduced proportionally for H.264.
     // At least `minimumFreeSpace` bytes must remain on the destination volume at creation and
     // at periodic checks while recording; the default reserve is 64 MiB.
     // `quantizationQp` is 0 for exact pictures or 1 through 51 for quantized pictures.
@@ -54,6 +80,11 @@ impl VideoCaptureSession
     {
         let width           = cast(s32, area.width)
         let height          = cast(s32, area.height)
+        let maxSide         = Math.max(width, height)
+        let outputWidth     = maxSide > 4096 ?
+                              Math.max(2, cast(s32, Math.floor(cast(f64, width) * 4096 / maxSide / 2)) * 2) : width
+        let outputHeight    = maxSide > 4096 ?
+                              Math.max(2, cast(s32, Math.floor(cast(f64, height) * 4096 / maxSide / 2)) * 2) : height
         let absolutePath    = try Path.absolute(path)
         let outputDirectory = unwrap Path.directoryName(absolutePath.toString())
         if (try Directory.freeSpace(outputDirectory)) < minimumFreeSpace do
@@ -63,18 +94,36 @@ impl VideoCaptureSession
         result.minimumFreeSpace = minimumFreeSpace
         result.source           = try ScreenFrameSource.create(drawCursor, cast(s32, area.x), cast(s32, area.y), width, height)
         result.pacer            = try FramePacer.create(rate, 1_000_000, 90_000)
-        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, width, height, 90_000, audioConfigs, quantizationQp: quantizationQp, sliceCount: sliceCount)
+        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, quantizationQp: quantizationQp, sliceCount: sliceCount)
         result.audioConfigs.add(audioConfigs)
-        result.picture = Image.create(width, height, .BGRA8)
+        result.picture = Image.create(outputWidth, outputHeight, .BGRA8)
+        result.scaled = outputWidth != width or outputHeight != height
+        result.outputWidth = outputWidth
+        result.outputHeight = outputHeight
+        if result.scaled
+        {
+            result.sourcePicture = Image.create(width, height, .BGRA8)
+            result.sourceColumns.resize(cast(u64, outputWidth))
+            for column in cast(u64, outputWidth) do
+                result.sourceColumns[column] = cast(u32, column * cast(u64, width) / cast(u64, outputWidth))
+        }
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)
         return result
+    }
+
+    private mtd reducePicture()
+    {
+        if .picture.width != .outputWidth or .picture.height != .outputHeight or
+           .picture.pixelFormat != .BGRA8 do
+            .picture = Image.create(.outputWidth, .outputHeight, .BGRA8)
+        reduceBgraNearest(&.sourcePicture, &.picture, .sourceColumns.storage())
     }
 
     // Captures at most one fresh picture at `tick`, filling every missed frame slot.
     //
     // Returns true only when a fresh screen image was accepted. A repeated or black frame is
     // still written when capture fails; a timestamp inside the current slot writes nothing.
-    // Up to 120 missed slots remain individual frames; longer intervals become held samples.
+    // Up to four missed slots remain individual frames; longer intervals become held samples.
     mtd captureAt(tick: u64)->bool fail
     {
         if .lowStorageStop do
@@ -104,7 +153,7 @@ impl VideoCaptureSession
         if slot.skippedFrames > Swag.U64.Max - .missedSlots do
             fail OverflowError{"video capture missed-slot counter overflows"}
         .missedSlots += slot.skippedFrames
-        if slot.skippedFrames <= 120
+        if slot.skippedFrames <= 4
         {
             for index in slot.index - slot.skippedFrames until slot.index
             {
@@ -130,7 +179,8 @@ impl VideoCaptureSession
         let outputSlot = FrameSlot{.submittedFrames, .nextVideoTime,
                                    slot.duration, 0}
         let grabStart = Time.monotonicMicroseconds()
-        catch .source.grabInto(&.picture)
+        let grabTarget = .scaled ? &.sourcePicture : &.picture
+        catch .source.grabInto(grabTarget, copyUnchanged: false)
         {
             .sourceFailures += 1
             try .writeFrame(outputSlot, .submittedFrames != 0)
@@ -140,6 +190,18 @@ impl VideoCaptureSession
         }
 
         .grabMicroseconds += Time.monotonicMicroseconds() - grabStart
+        if not .source.fresh and .submittedFrames
+        {
+            try .writeFrame(outputSlot, true)
+            .nextVideoTime += slot.duration
+            return false
+        }
+        if .scaled
+        {
+            let scaleStart = Time.monotonicMicroseconds()
+            .reducePicture()
+            .scaleMicroseconds += Time.monotonicMicroseconds() - scaleStart
+        }
         let encodeStart = Time.monotonicMicroseconds()
         try .writeFrame(outputSlot, false)
         .producerWaitMicroseconds += Time.monotonicMicroseconds() - encodeStart

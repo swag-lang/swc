@@ -64,6 +64,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [std.gui.pdf.md](std.gui.pdf.md) | PDF engine and view in `std/gui` |
 | [std.pixel.image.md](std.pixel.image.md) | Image codecs and SVG decoding in `std/pixel` |
 | [std.pixel.md](std.pixel.md) | `std/pixel` |
+| [std.screen.md](std.screen.md) | `std/screen` live acquisition |
 | [std.truetype.md](std.truetype.md) | `std/truetype` |
 | [std.video.md](std.video.md) | `std/video` |
 

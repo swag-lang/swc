@@ -400,6 +400,14 @@ impl InPlaceEditWnd
     {
         if media == g_CaptureMedia do
             return
+        if media == .Video
+        {
+            // Leave the frozen picture draft before offering video controls. The recording
+            // preparation then shows the actual desktop inside the chosen frame.
+            g_CaptureMedia = .Video
+            exitWithResult(true)
+            return
+        }
         .editWnd.editView.endTextEdit()
         if let capture = .capture
         {

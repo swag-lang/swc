@@ -60,9 +60,11 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
     var nextCode = LZW_FIRST_CODE
     var oldCode  = Swag.U32.Max
 
-    while output < expected
+    while true
     {
         let code = try reader.read(width)
+        if code == LZW_EOI_CODE do
+            break
         if code == LZW_CLEAR_CODE
         {
             width    = 9
@@ -71,8 +73,8 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
             continue
         }
 
-        if code == LZW_EOI_CODE do
-            break
+        if output >= expected do
+            fail InvalidFormatError{"invalid lzw stream"}
 
         if oldCode == Swag.U32.Max
         {

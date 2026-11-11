@@ -84,27 +84,29 @@ public impl Image
             }
 
             var context = {mode: selectedChannels, valueMode: value, color: color / 255.0}
-            .transformLogicalPixels(&context)
+            .visitPixels(&context)
             {
-                let params = cast(const *#decltype(context), unwrap userData)[]
+                let params  = cast(const *#decltype(context), unwrap userData)[]
+                var logical = readLogicalPixelValue(pix, image.pixelFormat, image.alphaMode)
                 var channelValue: f32
                 switch #complete params.valueMode
                 {
                 case .Color:   channelValue = params.color
-                case .MinRGB:  channelValue = Math.min(value.r, value.g, value.b)
-                case .MaxRGB:  channelValue = Math.max(value.r, value.g, value.b)
-                case .MeanRGB: channelValue = (value.r + value.g + value.b) / 3
-                case .Alpha:   channelValue = value.a
+                case .MinRGB:  channelValue = Math.min(logical.r, logical.g, logical.b)
+                case .MaxRGB:  channelValue = Math.max(logical.r, logical.g, logical.b)
+                case .MeanRGB: channelValue = (logical.r + logical.g + logical.b) / 3
+                case .Alpha:   channelValue = logical.a
                 }
 
                 if params.mode & .Red do
-                    value.r = channelValue
+                    logical.r = channelValue
                 if params.mode & .Green do
-                    value.g = channelValue
+                    logical.g = channelValue
                 if params.mode & .Blue do
-                    value.b = channelValue
+                    logical.b = channelValue
                 if params.mode & .Alpha do
-                    value.a = channelValue
+                    logical.a = channelValue
+                writeLogicalPixelValue(pix, image.pixelFormat, image.alphaMode, logical)
             }
 
             return

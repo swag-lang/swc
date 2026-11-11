@@ -100,15 +100,12 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
 
     expected = simdTailSeed(width, Height, pf)
     image    = Image.create(width, Height, pf, expected.toSlice())
-    if pf == .BGR8 or pf == .BGRA8
+    for pixel in cast(u64, (width * Height))
     {
-        for pixel in cast(u64, (width * Height))
-        {
-            let offset = pixel * bytesPerPixel
-            expected[offset]     = 73
-            expected[offset + 1] = 73
-            expected[offset + 2] = 73
-        }
+        let offset = pixel * bytesPerPixel
+        expected[offset]     = 73
+        expected[offset + 1] = 73
+        expected[offset + 2] = 73
     }
 
     image.setChannel(.RGB, .Color, 73)

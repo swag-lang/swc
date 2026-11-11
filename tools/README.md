@@ -94,10 +94,15 @@ use Xvfb/Openbox/Picom as described below.
 python3 tools/linux-build.py --build-dir /absolute/path/outside/checkout --configuration devmode
 ```
 
+On local computers, the builder admits work from current shared CPU and memory pressure. In a
+managed cloud workspace, add `--skip-machine-load-admission`; local-machine load thresholds do not
+apply there.
+
 This incremental GNU Make build reuses the compiler source inventory in `swc.vcxproj` and selects
 Linux OS leaves. It requires GCC 14 or later, supports `--configuration release`, `--cxx`, and
-`--jobs 1` through `--jobs 3`, and checks machine load before invoking Make. Objects, dependency
-files, the precompiled header and the executable remain under the supplied build directory.
+`--jobs 1` through `--jobs 3`, and checks local machine load before invoking Make. Objects,
+dependency files, the precompiled header and the executable remain under the supplied build
+directory.
 DevMode and Release compilers build on Linux x86-64. The target defaults to the compiler host:
 Linux selects the System V C ABI; `--os linux` and `--os windows` override that choice. JIT execution, ELF
 executables, GNU static archives and shared modules are available, including transitive imports
@@ -149,6 +154,9 @@ python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --
 python3 tools/linux-tests.py native --compiler /absolute/build/devmode/swc.dm --file-filter global_cache_line_alignment.swg
 ```
 
+On local computers, each test stage waits for shared-machine admission. In a managed cloud
+workspace, add `--skip-machine-load-admission` to skip this local-only check.
+
 To run the complete campaign, provide both compiler executables. The C++ stage uses DevMode;
 all other stages use the selected main compiler (Release is recommended for applications):
 
@@ -168,11 +176,11 @@ fixture and receives its absolute path. The script fixture checks its expected o
 The launcher stages this checkout's sources, runtime, fixtures and compilers in a new external
 folder. It isolates caches with `TMPDIR` and caps compiler/runtime workers at three.
 Campaigns reuse dependencies only within that fresh snapshot; focused selections force rebuilds.
-When admission requests a wait, the launcher can release its inactive artifact file cache without
-deleting files or weakening the CPU and memory thresholds.
-Each compiler invocation has a fresh load-admission check and a 900-second timeout
-(`--timeout` overrides it). Timeout cleanup stops the owned process tree, including native
-tests that create separate sessions.
+When local admission requests a wait, the launcher can release its inactive artifact file cache
+without deleting files or weakening the CPU and memory thresholds. On local computers, each
+compiler invocation has a fresh load-admission check and a 900-second timeout
+(`--timeout` overrides it). Timeout cleanup stops the owned process tree, including native tests
+that create separate sessions.
 Sources, caches, one log per stage, `plan.json` and `report.json` remain in the printed directory
 on success or failure. `--output-dir` must not exist and must be outside the checkout. Without
 it, a new temporary directory is retained. `--keep-going` continues independent stages after
@@ -231,13 +239,16 @@ python3 tools/linux-host.py --configuration devmode
 python3 tools/linux-host.py --configuration release
 ```
 
+On local computers, the host launcher checks load before each build and test. In a managed cloud
+workspace, pass `--skip-machine-load-admission`.
+
 This focused Linux x86-64 boundary builds the implemented C++ host services
 adapters with a C++23 compiler and library (GCC 14 or later), then runs their native tests.
 Use `--cxx /path/to/compiler` to select the compiler. The current baseline is glibc 2.36 and
 Linux 5.9 with pidfds, subreapers and `close_range` permitted. Python 3, procfs, and cgroup v2 are needed
-for machine-load admission; the launcher checks independently before building and testing and
-stops with exit code 2 when the machine needs to wait. Compilation is sequential. Builds and
-fixtures use a temporary directory outside the checkout and are removed on completion.
+for local-machine load admission; the launcher checks independently before building and testing
+and stops with exit code 2 when the local machine needs to wait. Compilation is sequential. Builds
+and fixtures use a temporary directory outside the checkout and are removed on completion.
 
 The tests cover executable-page publication and patching, page protection, concurrent proximity
 allocations, arena exhaustion, release, mapped-cache lifetime across replacement and unlink,
@@ -381,7 +392,8 @@ tools\coverage.bat -DevMode -Suite full
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
 Each workspace reports elapsed wall time including compilation. Shared-machine admission rules
-still apply. Integration tests for native windows, application journeys, networks and drivers
+apply on local computers; managed cloud workspaces use the Linux skip-admission option. Integration
+tests for native windows, application journeys, networks and drivers
 keep their explicit launchers; `full` is not the compiler or privileged integration campaign.
 
 `HeadlessHost` uses GPU hosts by default. `-Renderer cpu` opts into CPU rendering for CI or cloud

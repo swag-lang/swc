@@ -17,7 +17,7 @@ orchestration, documentation, and formatting. The consumer workspaces live in [b
 runtime, standard modules, examples, applications, and language-reference tests.
 
 Use [tools/README.md](tools/README.md) for the authoritative tool syntax and focused commands.
-Build/test guidance and shared-machine load admission rules are in the two skills named below;
+Build/test guidance and local-machine load admission rules are in the two skills named below;
 prefer a focused command for the changed behavior over the full campaign in `tools/tests.bat`.
 For routine `bin/std` development feedback, use `tools/coverage.bat -DevMode` (`fast` by default),
 narrowed with `-Workspace` and `-Module` as needed. For `bin/apps` iteration, use `swc.exe` by
@@ -45,9 +45,11 @@ validating changed compiler behavior against artifacts from an older binary.
 Before changing code, tests, examples, or build files, read and follow
 [modify-swag-codebase](.agents/skills/modify-swag-codebase/SKILL.md).
 
-Before compiling `swc` or `swc.dm`, or running any project test, read and follow the
-CPU and memory admission rules in that skill, including when working from a different worktree.
-Builds and tests may overlap only while the shared machine has enough measured headroom.
+Before compiling `swc` or `swc.dm`, or running any project test on a local computer, read and
+follow the CPU and memory admission rules in that skill, including when working from a different
+worktree. They do not apply to managed cloud workspaces; use the Linux launchers' cloud bypass
+option there. Local builds and tests may overlap only while the shared machine has enough measured
+headroom.
 
 Before selecting or running builds, tests, configurations, consumers, smokes, or golden checks,
 also read and follow

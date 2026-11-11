@@ -30,6 +30,8 @@ def main():
     parser.add_argument('--cxx', default='c++', help='GCC 14 or later with C++23 library support')
     parser.add_argument('--jobs', type=int, choices=range(1, 4), default=3)
     parser.add_argument('--keep-going', action='store_true', help='compile independent sources after an error; the build still fails')
+    parser.add_argument('--skip-machine-load-admission', action='store_true',
+                        help='skip local-machine admission in a managed cloud workspace')
     args = parser.parse_args()
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
         parser.error('the compiler host must be Linux x86-64')
@@ -88,7 +90,8 @@ def main():
               '-include ' + ' '.join(make_path(obj.with_suffix('.d')) for obj in objects)]
     makefile = build / 'Makefile'
     write_changed(makefile, '\n'.join(rules) + '\n')
-    subprocess.run([sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')], check=True)
+    if not args.skip_machine_load_admission:
+        subprocess.run([sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')], check=True)
     # Ignore inherited make jobserver/options so this command honors its explicit worker cap.
     environment = os.environ.copy()
     environment.pop('MAKEFLAGS', None)

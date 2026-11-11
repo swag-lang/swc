@@ -10,9 +10,10 @@ campaign mechanically from changed paths and do not run every configuration by h
 full campaigns provide periodic breadth; change validation provides precise evidence.
 
 Follow the machine-load admission rules in
-[modify-swag-codebase](../modify-swag-codebase/SKILL.md) before starting each build or test
-command. Builds and tests may run concurrently only when a fresh CPU and memory check admits the
-additional work.
+[modify-swag-codebase](../modify-swag-codebase/SKILL.md) before each build or test run on a local
+computer. In a managed cloud workspace, use the Linux helper's `--skip-machine-load-admission`
+option and do not wait on local-machine thresholds. The local concurrency rule does not apply to
+isolated cloud builds and tests.
 
 Also follow its Swag compiler CPU bound: every validation command driven by `swc.exe` or
 `swc.dm.exe` uses at most three workers through `--num-cores 3`. This does not limit native C++
@@ -210,7 +211,8 @@ across modules uses the workspace suite.
   Keep the real windows, compositor, and event loop in the test boundary. Keep functional,
   golden, external integration and stress tests in their respective `cases/<type>/` directories;
   keep application journeys in `cases/journeys/` and desktop input journeys in `cases/desktop/`. Filenames
-  end in `.swg` without a type suffix. Tags select execution and do not replace load admission.
+  end in `.swg` without a type suffix. Tags select execution and do not replace local-machine load
+  admission.
 - Smoke only the changed example or script when its value is that the real program starts.
 - Test one reference page with `--file-filter` when it is self-contained. Test the complete
   reference for syntax changes, shared reference infrastructure, or cross-page declarations.

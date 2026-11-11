@@ -12,6 +12,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--cxx', default='c++', help='C++23 compiler (GCC 14 or later)')
     parser.add_argument('--configuration', choices=('devmode', 'release'), default='devmode')
+    parser.add_argument('--skip-machine-load-admission', action='store_true',
+                        help='skip local-machine admission in a managed cloud workspace')
     args = parser.parse_args()
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
         parser.error('the host tests only support Linux x86-64')
@@ -57,27 +59,32 @@ def main():
         module_directory.mkdir()
         flags = ['-O0', '-g', '-DSWC_DEV_MODE=1'] if args.configuration == 'devmode' else ['-O2', '-DNDEBUG']
         cpu_reject = scratch / 'cpu-reject'
-        subprocess.run(admission, check=True)
+        check_admission(admission, args.skip_machine_load_admission)
         subprocess.run([args.cxx, '-O2', '-march=x86-64-v3', '-I', str(root / 'src'),
                         str(root / 'src/Main/HostCpuGuard.cpp'),
                         str(root / 'src/Unittest/Support/Host.CpuReject.Linux.cpp'),
                         '-Wl,--wrap=__cpu_indicator_init', '-o', str(cpu_reject)], cwd=scratch, check=True)
-        subprocess.run(admission, check=True)
+        check_admission(admission, args.skip_machine_load_admission)
         rejected = subprocess.run([str(cpu_reject)], cwd=scratch, capture_output=True, timeout=10)
         if rejected.returncode != 4 or b'swc needs a CPU with AVX2' not in rejected.stderr:
             raise RuntimeError(f'CPU rejection failed before initialization: {rejected.returncode}, {rejected.stderr!r}')
         print('PASS unsupported CPU rejected before C++ initialization', flush=True)
-        subprocess.run(admission, check=True)
+        check_admission(admission, args.skip_machine_load_admission)
         subprocess.run([args.cxx, '-shared', '-fPIC', str(root / 'src/Unittest/Support/Host.Module.Linux.cpp'),
                         '-o', str(module_directory / 'libswc_host_test.so')], cwd=scratch, check=True)
-        subprocess.run(admission, check=True)
+        check_admission(admission, args.skip_machine_load_admission)
         print(f'building Linux host tests ({args.configuration})', flush=True)
         subprocess.run([args.cxx, '-std=c++23', '-pthread', '-Wall', '-Wextra', '-Werror',
                         *flags, '-I', str(root / 'src'), *map(str, sources), '-rdynamic', '-ldl', '-o', str(binary)],
                        cwd=scratch, check=True)
-        subprocess.run(admission, check=True)
+        check_admission(admission, args.skip_machine_load_admission)
         subprocess.run([str(binary)], cwd=scratch, check=True, timeout=40)
     return 0
+
+
+def check_admission(command, skip):
+    if not skip:
+        subprocess.run(command, check=True)
 
 
 if __name__ == '__main__':

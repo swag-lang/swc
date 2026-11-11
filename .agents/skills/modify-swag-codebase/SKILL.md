@@ -1,6 +1,6 @@
 ---
 name: modify-swag-codebase
-description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and load-aware build and test admission.
+description: Modify, refactor, fix, test, and validate the Swag compiler repository. Use whenever changing C++ compiler sources, Swag language features, unit tests, examples, build scripts, or other code in this repository; it enforces root-cause fixes, project C++ rules, test placement, and local-machine load admission.
 ---
 
 # Modify The Swag Codebase
@@ -52,16 +52,17 @@ folder and in `git worktree list`, and remove them easily.
 Once a branch is merged or abandoned, remove its worktree with `git worktree remove` and delete
 its branch. Do not leave a worktree or a branch behind when the work it holds is finished.
 
-## Admit Agent Builds And Tests By Machine Load
+## Admit Builds And Tests By Load On Local Computers
 
-All AI agents and worktrees share one machine. Compiler builds and project tests launched by AI
-agents, including Codex and Claude, may overlap in any combination: build with build, test with
-test, or build with test. Admit each new command from the machine's current CPU and memory
-headroom, not from a global build or test slot. A different worktree does not provide different
-resources.
+Use machine-load admission only when builds or tests run on a local computer shared with the user
+or other local processes. Apply it across all local worktrees; a different worktree does not
+provide different resources. Do not run this check or wait for its thresholds in a managed cloud
+workspace. Cloud builds and tests use their own execution environment; invoke the Linux helpers
+with `--skip-machine-load-admission` there. This option is for managed cloud work only; local
+computer runs must keep admission enabled.
 
-Before invoking MSBuild or another command that rebuilds `swc` or `swc.dm`, and before every
-project test command, run:
+Before invoking MSBuild or another command that rebuilds `swc` or `swc.dm` on a local computer,
+and before every local project test command, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1
@@ -75,7 +76,8 @@ python3 .agents/skills/modify-swag-codebase/scripts/check-machine-load.py
 
 It uses the same sampling window and thresholds, also accounting for visible cgroup CPU and
 memory limits. Exit codes are 0 for `ready`, 2 for `wait`, and 1 when measurement is unavailable.
-The Linux host-test launcher runs this check separately before its build and test commands.
+The Linux host-test launcher runs this check separately before its build and test commands unless
+`--skip-machine-load-admission` is supplied for a managed cloud run.
 
 The check samples CPU instead of trusting an instantaneous reading. It reports `ready` only when
 average CPU use is at most 65%, available physical memory is at least both 8 GiB and 25% of
@@ -87,13 +89,14 @@ admission thresholds, not targets for a running machine.
 - Check every additional command independently. After starting work, allow at least one complete
   sampling window for its load to become visible before using a new check to admit more work. Do
   not launch a batch of parallel commands from one result.
-- A `wait` result means do not start more build or test work. Wait in short intervals, keep the
-  user informed during a long wait, and rerun the check until it reports `ready`.
+- On a local computer, a `wait` result means do not start more build or test work. Wait in short
+  intervals, keep the user informed during a long wait, and rerun the check until it reports
+  `ready`.
 - Existing agent, IDE, user-shell, and system processes all count toward measured pressure. Process
   ownership matters only for control: never terminate, suspend, reprioritize, or otherwise
   interfere with another agent's, an IDE's, or the user's processes to create headroom.
-- When a command is known to need unusually high memory, raise the check's memory thresholds for
-  that command. Never lower the defaults or evade a `wait` result by changing configuration,
+- When a local command is known to need unusually high memory, raise the check's memory thresholds
+  for that command. Never lower the defaults or evade a `wait` result by changing configuration,
   executable, shell, output directory, or worktree.
 - When parallel validation exposes a problem, stop only commands launched by the current agent
   whose remaining results would be invalid or misleading, then investigate or report the first
@@ -112,11 +115,12 @@ When building `swc` with MSVC, bound native compilation at each parallelism laye
   pass `/cgthreads1` through the inherited `CL` environment variable to reduce that internal
   concurrency. Preserve any existing `CL` options when adding it. This only limits those compiler
   phases, not every thread or process in the build.
-- MSBuild `/m:P` and C++ `/MP:C` are separate limits. When several projects compile concurrently,
-  their process limits can multiply. For an admitted build with average CPU at most 35%, at least
+- MSBuild `/m:P` and C++ `/MP:C` are separate limits. On a local computer, process limits can
+  multiply when several projects compile concurrently. For an admitted build with average CPU at
+  most 35%, at least
   12 GiB of free physical memory, and at least 8 GiB of commit headroom, allow up to eight
-  concurrent C++ compilations. Otherwise use at most three. Recheck load before each build;
-  these are starting conditions, not permission to overlap another command without admission.
+  concurrent C++ compilations. Otherwise use at most three. Recheck local load before each build;
+  these are starting conditions, not permission to overlap another local command without admission.
 - For the current one-project `swc.sln`, use `/m:1` with `/p:SwcCompileJobs=8` when the higher
   headroom threshold holds, or `/p:SwcCompileJobs=3` otherwise. Keep `CL` at `/cgthreads1`.
   The project defaults to eight jobs; set `SWC_COMPILE_JOBS=3` for its invocation when
@@ -125,8 +129,8 @@ When building `swc` with MSVC, bound native compilation at each parallelism laye
 
 Never invoke `tools/release.bat`. It is an owner-only interactive entry point. Release disables
 whole-program optimization and LTCG to keep iteration practical. An agent builds it only when the
-validation rules require it or the user explicitly requests it, after load admission, and through
-direct MSBuild with native parallelism bounded as above.
+validation rules require it or the user explicitly requests it, after local load admission when
+applicable, and through direct MSBuild with native parallelism bounded as above.
 
 - Apply the cap to both checkout-local executables: `bin\swc.exe` and
   `bin\swc.dm.exe`.

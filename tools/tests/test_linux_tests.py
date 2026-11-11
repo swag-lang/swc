@@ -90,10 +90,17 @@ class LinuxCampaignTests(unittest.TestCase):
         self.assertGreater(stage.command.index('--test-jit'), stage.command.index('--no-test-jit'))
         self.assertNotIn('--no-test-native', stage.command)
 
-    def run_stage(self, code, timeout=5, admission=None, **options):
+    def run_stage(self, code, timeout=5, admission='default', **options):
         stage = RUNNER['Stage']('probe', [sys.executable, '-c', code], **options)
         with redirect_stdout(io.StringIO()):
-            return RUNNER['run_stage'](stage, self.root, {}, timeout, admission or [sys.executable, '-c', 'pass'])
+            if admission == 'default':
+                admission = [sys.executable, '-c', 'pass']
+            return RUNNER['run_stage'](stage, self.root, {}, timeout, admission)
+
+    def test_cloud_stage_can_skip_local_machine_admission(self):
+        with patch.object(RUNNER['subprocess'], 'run', side_effect=AssertionError('admission ran')):
+            result = self.run_stage('print("cloud stage")', admission=None)
+        self.assertEqual(result['status'], 'passed')
 
     @unittest.skipUnless(sys.platform == "linux", "Linux process-tree cleanup")
     def test_timeout_stops_detached_native_child(self):

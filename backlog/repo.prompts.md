@@ -73,7 +73,8 @@ do not rebuild or retest after each edit or failed hypothesis. Inspect the diff 
 batch, then build only the executable needed for that behavior, if one changed, and run the
 smallest focused check that can catch its regression. Rebuild sooner only when the next edit
 depends on current compiler output, generated code, a crash, or a diagnostic. Reverted trials need
-no validation. Follow validate-swag-changes and machine-load admission for every build or test.
+no validation. Follow validate-swag-changes and machine-load admission for every build or test on
+a local computer. Managed cloud workspaces are exempt from local-machine admission.
 
 Commit each retained, focused-validated batch in its worktree. Integrate the first validated code
 batch into local `master` promptly, then integrate coherent groups at most every four to six
@@ -150,8 +151,8 @@ Code failures always come first; documentation, backlog, and hygiene follow once
 
 Read AGENTS.md, modify-swag-codebase, and validate-swag-changes before the first build. Read any
 other skill only when the work enters its scope. Follow the machine-load admission rules before
-every build and test, cap every compiler at three workers (`--num-cores 3` on the compiler and on
-the tool), and use the checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
+every local build and test, cap every compiler at three workers (`--num-cores 3` on the compiler and
+on the tool), and use the checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
 `SWC_BUILD_NUM` unchanged.
 
 START ON MASTER, FROM A CLEAN STATE - ONCE

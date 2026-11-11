@@ -136,19 +136,20 @@ def run_stage(stage, scratch, environment, timeout, admission):
     log = scratch / 'logs' / (stage.name + '.log')
     print(f'RUN {stage.name} (log: {log})', flush=True)
     released_cache = False
-    while True:
-        status = subprocess.run(admission, check=False).returncode
-        if status == 0:
-            break
-        if status != 2:
-            raise RuntimeError('cannot measure build and test admission')
-        if not released_cache:
-            # Staging large fixtures and prior stages can fill a memory-limited cgroup with
-            # reclaimable file pages. No stage is running here; release only our own cache.
-            release_artifact_cache(scratch)
-            released_cache = True
-        print('Waiting for build and test admission.', flush=True)
-        time.sleep(5)
+    if admission is not None:
+        while True:
+            status = subprocess.run(admission, check=False).returncode
+            if status == 0:
+                break
+            if status != 2:
+                raise RuntimeError('cannot measure build and test admission')
+            if not released_cache:
+                # Staging large fixtures and prior stages can fill a memory-limited cgroup with
+                # reclaimable file pages. No stage is running here; release only our own cache.
+                release_artifact_cache(scratch)
+                released_cache = True
+            print('Waiting for build and test admission.', flush=True)
+            time.sleep(5)
     start = time.monotonic()
     state = 'passed'
     with log.open('wb') as output:
@@ -192,6 +193,8 @@ def main():
     parser.add_argument('--test-tag', action='append', default=[])
     parser.add_argument('--timeout', type=int, default=900, help='seconds per compiler invocation (default: 900)')
     parser.add_argument('--output-dir', type=Path, help='new external directory for sources, caches, logs and report; retained after the run')
+    parser.add_argument('--skip-machine-load-admission', action='store_true',
+                        help='skip local-machine admission in a managed cloud workspace')
     parser.add_argument('--keep-going', action='store_true', help='continue independent stages after an error')
     parser.add_argument('--dry-run', action='store_true', help='stage inputs and write the command plan without executing tests')
     args = parser.parse_args()
@@ -252,7 +255,8 @@ def main():
     if args.dry_run:
         print(f'Planned {len(stages)} stages; no tests executed.', flush=True)
         return 0
-    admission = [sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')]
+    admission = None if args.skip_machine_load_admission else [
+        sys.executable, str(root / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.py')]
     results = []
     passed = set()
     for stage in stages:

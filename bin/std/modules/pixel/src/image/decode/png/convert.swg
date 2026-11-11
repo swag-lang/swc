@@ -19,9 +19,6 @@ const ExpandRgbTransparency   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5
 // Building the packed table breaks even at 512 pixels on the supported x64 baseline.
 const PackedPaletteThreshold = 512'u64
 
-// Keep tiny icon decode on the lower-overhead path; large images amortize packed expansion.
-const PackedGrayscaleThreshold = 4096'u64
-
 // A transparency lookup table pays for itself from 512 grayscale pixels.
 const PackedGrayscaleTransparencyThreshold = 512'u64
 
@@ -269,15 +266,7 @@ impl Decoder
     mtd convertGrayscaleRgb(result: *Image)
     {
         let pixelCount = cast(u64, result.width) * result.height
-        if pixelCount < PackedGrayscaleThreshold
-        {
-            var src = .safeDstPixels()
-            Memory.copy(result.pixels.storage(), src, pixelCount)
-
-            return
-        }
-
-        var src = .safeDstPixels()
+        let src        = .safeDstPixels()
         Memory.copy(result.pixels.storage(), src, pixelCount)
     }
 

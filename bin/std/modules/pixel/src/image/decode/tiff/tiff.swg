@@ -287,9 +287,13 @@ impl Decoder
             pf = .RGBA8
         }
 
+        let bytesPerPixel = pf.bitsPerPixel() / 8
+        if width > cast(u32, Swag.S32.Max) / bytesPerPixel do
+            fail UnsupportedFormatError{"TIFF image row exceeds the image limits"}
+        try options.checkImage(cast(s32, width), cast(s32, height), pf)
+
         var result: #returntype
         result.init(cast(s32, width), cast(s32, height), pf)
-        try options.checkImage(result.width, result.height, pf)
 
         if not options.decodePixels do
             return result

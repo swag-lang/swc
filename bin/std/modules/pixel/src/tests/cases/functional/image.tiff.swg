@@ -481,6 +481,22 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(not img.isValid())
 }
 
+#test
+{
+    const PixelData: [1] u8 = [0]
+    let buf = buildTiff(true, 600_000_000, 1, 4, 2, 1, 1, 8, PixelData, null, false)
+
+    var options: DecodeOptions
+    options.maxPixels       = 0
+    options.maxDecodedBytes = 0
+    options.decodePixels    = false
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try decodeTiff(nnBytes(buf.toSlice()), options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Error: bad byte-order signature.
 #test
 {

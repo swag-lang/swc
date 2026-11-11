@@ -85,6 +85,20 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 
 #test
 {
+    var bytes = psdHeader(4, 600_000_000, 1, 8, 3)
+    var options: DecodeOptions
+    options.maxPixels       = 0
+    options.maxDecodedBytes = 0
+    options.decodePixels    = false
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("wide-row.psd", nnBytes(bytes.toSlice()), options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+#test
+{
     var bytes = psdHeader(2, 1, 1, 16, 1)
     psdAddU16(&bytes, 0)
     psdAddU16(&bytes, 0x2468)

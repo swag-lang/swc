@@ -167,9 +167,13 @@ internal impl IImageDecoder for Decoder
             fail UnsupportedFormatError{"PSD color mode is not RGB or grayscale"}
         }
 
+        let bytesPerPixel = format.bitsPerPixel() / 8
+        if width > cast(u32, Swag.S32.Max) / bytesPerPixel do
+            fail UnsupportedFormatError{"PSD image row exceeds the image limits"}
+        try options.checkImage(cast(s32, width), cast(s32, height), format)
+
         var result: #returntype
         result.init(cast(s32, width), cast(s32, height), format)
-        try options.checkImage(result.width, result.height, format)
         if not options.decodePixels do
             return result
 

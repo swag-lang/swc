@@ -79,8 +79,13 @@ internal impl IImageDecoder for Decoder
         if cast(u64, width) * cast(u64, height) > Swag.U64.Max / channels do
             fail UnsupportedFormatError{"QOI image is too large"}
 
+        let pixelFormat: PixelFormat = channels == 4 ? .RGBA8 : .RGB8
+        if width > cast(u32, Swag.S32.Max) / channels do
+            fail UnsupportedFormatError{"QOI image row exceeds the image limits"}
+        try options.checkImage(cast(s32, width), cast(s32, height), pixelFormat)
+
         var result: #returntype
-        result.init(cast(s32, width), cast(s32, height), channels == 4 ? .RGBA8 : .RGB8)
+        result.init(cast(s32, width), cast(s32, height), pixelFormat)
         if not options.decodePixels do
             return result
 

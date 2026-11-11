@@ -86,6 +86,21 @@ using Swag, Core
     Swag.require(not image.isValid())
 }
 
+// Header-only probes must reject dimensions that cannot fit an Image row before initialization.
+#test
+{
+    const Bytes: [23] u8 = ['q', 'o', 'i', 'f', 0x2F, 0x6A, 0xE3, 0x00, 0, 0, 0, 1, 3, 0, 0xC0, 0, 0, 0, 0, 0, 0, 0, 1]
+    var options: DecodeOptions
+    options.maxPixels       = 0
+    options.maxDecodedBytes = 0
+    options.decodePixels    = false
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("wide-row.qoi", Bytes, options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Malformed headers, truncated chunks, oversized runs, and missing end markers fail cleanly.
 #test
 {

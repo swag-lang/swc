@@ -352,7 +352,7 @@ impl Part
                 fail UnsupportedFormatError{"OpenEXR chunk exceeds the decoded byte limit"}
             var unpacked: Array'u8
             var pixels = buffer[chunkOffset + 8 until chunkOffset + 8 + packedSize]
-            if .compression and packedSize != expected
+            if .compression
             {
                 var zlib: Compress.ZLib
                 unpacked = try zlib.decompress(pixels, expected)

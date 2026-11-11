@@ -3,6 +3,69 @@
 
 using Swag, Core
 
+func exrAddU32(result: *ConcatBuffer, value: u32)
+{
+    result.addNative(cast(u8, (value & 0xFF)))
+    result.addNative(cast(u8, ((value >> 8) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 16) & 0xFF)))
+    result.addNative(cast(u8, ((value >> 24) & 0xFF)))
+}
+
+func exrAddU64(result: *ConcatBuffer, value: u64)
+{
+    exrAddU32(result, cast(u32, (value & 0xFFFF_FFFF)))
+    exrAddU32(result, cast(u32, (value >> 32)))
+}
+
+func exrAddText(result: *ConcatBuffer, value: string)
+{
+    result.addBytes(value)
+    result.addNative(0'u8)
+}
+
+func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [..] u8)
+{
+    exrAddText(result, name)
+    exrAddText(result, type)
+    exrAddU32(result, cast(u32, payload.count))
+    result.addBytes(payload)
+}
+
+func exrInvalidZipFixture()->ConcatBuffer
+{
+    var channels: ConcatBuffer
+    exrAddText(&channels, "Y")
+    exrAddU32(&channels, 1)     // HALF channel.
+    exrAddU32(&channels, 0)
+    exrAddU32(&channels, 1)
+    exrAddU32(&channels, 1)
+    channels.addNative(0'u8)
+
+    var compression: [1] u8 = [2]     // ZIPS.
+    var dataWindow:  ConcatBuffer
+    exrAddU32(&dataWindow, 0)
+    exrAddU32(&dataWindow, 0)
+    exrAddU32(&dataWindow, 3)
+    exrAddU32(&dataWindow, 0)
+
+    var header: ConcatBuffer
+    exrAddAttribute(&header, "channels", "chlist", unwrap channels.toSlice())
+    exrAddAttribute(&header, "compression", "compression", compression)
+    exrAddAttribute(&header, "dataWindow", "box2i", unwrap dataWindow.toSlice())
+    header.addNative(0'u8)
+
+    var result: ConcatBuffer
+    exrAddU32(&result, Exr.Magic)
+    exrAddU32(&result, 2)
+    result.addBytes(unwrap header.toSlice())
+    exrAddU64(&result, result.count() + 8)
+    exrAddU32(&result, 0)     // First scanline.
+    exrAddU32(&result, 8)     // Same as the decoded 4xHALF row size.
+    for 8 do
+        result.addNative(0xFF'u8)     // Not a valid ZLIB stream.
+    return result
+}
+
 #test
 {
     var source  = Image.create(3, 2, .RGBF16)
@@ -123,4 +186,13 @@ using Swag, Core
     discard catch Image.decode("bad.exr", Invalid) as errorOutcome
     let error = errorOutcome.value()
     Swag.require(error != null)
+}
+
+#test
+{
+    let bytes = exrInvalidZipFixture()
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("invalid.zip.exr", nnBytes(bytes.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
 }

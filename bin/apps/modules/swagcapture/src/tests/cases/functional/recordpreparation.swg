@@ -28,6 +28,7 @@ using Swag, Core, Gui
     defer surface.destroy()
     surface.minSize = {}
     surface.setView(hud)
+    surface.show()
     surface.wnd.applyLayout()
 
     var preview = f.gui.renderSurface(surface)
@@ -36,7 +37,16 @@ using Swag, Core, Gui
     Swag.require(hud.prepOptions.count == 4)
     let wasCursor = f.main.captureOptions.captureCursor
     let cursor = hud.prepOptions[0]
-    cursor[].sigPressed.call(cursor)
+    let chipCenter = Math.Point{cursor[].position.width * 0.5,
+                                cursor[].position.height * 0.5}
+    let chipPoint = cursor[].localToSurface(chipCenter)
+    let screenPoint = Math.Point{surface.position.x + chipPoint.x * surface.dpiScale,
+                                 surface.position.y + chipPoint.y * surface.dpiScale}
+    Console.println("HUD hit: body=", hud.surfaceRect(), " chip=", cursor[].surfaceRect(),
+                    " point=", screenPoint, " target=", f.gui.mouseTargetAt(screenPoint) == cursor)
+    Swag.require(f.gui.mouseTargetAt(screenPoint) == cursor,
+                 "recording options must receive pointer events through the surface")
+    f.gui.click(screenPoint)
     Swag.require(f.main.captureOptions.captureCursor != wasCursor)
     hud.pauseButton.sigPressed.call(hud.pauseButton)
     Swag.require(recorder.recordRequested)

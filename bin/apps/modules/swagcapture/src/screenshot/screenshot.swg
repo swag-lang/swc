@@ -413,6 +413,10 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     var platformScope = beginCapturePlatformScope()
     defer platformScope.close()
 
+    // A capture started by its key finds the hub or the icon's menu still on screen: neither
+    // belongs in the desktop pixels.
+    main.residentPanel?.close()
+
     // Keep the editor out of the desktop pixels unless the option says otherwise.
     let surface   = unwrap main.surface
     let wasHidden = surface.isHidden

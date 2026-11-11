@@ -139,6 +139,9 @@ struct MainWnd
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
 
+    // The hub or the menu of the notification-area icon, while one is on screen.
+    residentPanel: *ResidentPanel?
+
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
     miniBarForm:       *BaseForm?              // The form the mini-bar was filled for, whose face, size and style it shows.
@@ -196,19 +199,15 @@ impl IWnd for MainWnd
     {
         switch evt.kind
         {
+        // Activating the icon opens what the application starts on; the hub stands in for
+        // starting on nothing.
         case .TrayIcon:
-            if evt.trayAction == .Activate
-            {
-                with let surface = unwrap .surface
-                {
-                    .show()
-                    .bringToFront()
-                }
-            }
-            elif evt.trayAction == .ContextMenu
-            {
-                .popupTrayMenu()
-            }
+            if evt.trayAction == .ContextMenu do
+                ResidentPanel.open(me, .Menu)
+            elif evt.trayAction == .Activate and .editorOptions.startup == .Editor do
+                .showWindow()
+            elif evt.trayAction == .Activate do
+                ResidentPanel.open(me, .Hub)
 
         case .CustomMessage:
             if evt.messageId == OpenImageMessage and Clipboard.hasString() do
@@ -273,13 +272,7 @@ impl IWnd for MainWnd
         switch evt.kind
         {
         case .Init:
-
-            // Restore placement while the window is hidden. Recent-document loading
-            // starts on a deferred event-loop turn after the initial surface is shown.
-            .firstShow = false
-            catch g_App.loadState()
-            .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
-            .recentWnd.scheduleLoadRecent()
+            .restoreState()
             evt.accepted = true
 
         case .Show:
@@ -364,61 +357,35 @@ impl IWnd for MainWnd
 
 impl MainWnd
 {
-    // Opens the notification-area menu at the pointer, on a top-most surface of its own: the
-    // main window may be hidden when the tray icon is clicked.
-    mtd popupTrayMenu()
+    // Restores the saved state, once: the options, the placement of the window and the recent
+    // captures.
+    //
+    // The first show of the window asks for it; an application that starts behind its hub or its
+    // notification-area icon asks for it itself, because its options say what it starts on and
+    // its window may not be shown for a long time.
+    mtd restoreState()
     {
-        let sf = expect .app().createSurface(500, 400, 300, 300, .ToolWindow | .TopMost)
+        if not .firstShow do
+            return
 
-        with let menu = Wnd.create'MenuCtrl(sf.wnd.view)
+        // Recent captures load on deferred event-loop turns, so a start is never held by them.
+        .firstShow = false
+        catch g_App.loadState()
+        .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
+        .recentWnd.scheduleLoadRecent()
+    }
+
+    // Puts the window on screen, in front of the others.
+    mtd showWindow()
+    {
+        with let surface = unwrap .surface
         {
-            .addItem(ActionGlobal.ShowEditor)
-            .addSeparator()
-            .addItem(ActionCapture.Area)
-            .addItem(ActionCapture.LastArea)
-            .addItem(ActionCapture.FullScreen)
-            .addItem(ActionCapture.ActiveWnd)
-
-            for idx in me.monitors.count do
-                .addItem(ActionCapture.screenId(idx))
-
-            .addSeparator()
-            .addItem(ActionCapture.RecordVideo)
-            .addItem(ActionCapture.RecordFullScreen)
-            .addItem(ActionCapture.RecordActiveWindow)
-            for idx in me.monitors.count do
-                .addItem(ActionCapture.recordScreenId(idx))
-
-            .addSeparator()
-            .addItem(ActionCapture.Record)
-
-            .addSeparator()
-            .addItem(ActionGlobal.Exit)
-            .owner = me
-            .setFramePainting(true)
-            .dockStyle = .Center
-            .padding   = 10
-            .updateState()
-            .computeLayoutPopup()
+            if .isMinimized do
+                .showNormal()
+            else do
+                .show()
+            .bringToFront()
         }
-
-        // The menu layout is logical; the surface rectangle is physical screen pixels.
-        let pt         = Input.mousePosition()
-        let shadowSize = .themeMetrics().surfaceWnd_ShadowSize
-        menu.position.width  += 2 * shadowSize
-        menu.position.height += 2 * shadowSize
-        sf.setPosition(Math.Rectangle{pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
-        sf.constrainPositionToScreen()
-        sf.wnd.view.backgroundStyle = .Window
-
-        sf.show()
-        sf.bringToFront()
-        while not menu.isModalEnded() do
-            .app().runFrame()
-        sf.hide()
-        if menu.modalResult() do
-            .postCommandEvent(menu.modalResult())
-        sf.destroy()
     }
 
     // Migrates values whose historical default would otherwise pin an old visual choice
@@ -772,7 +739,17 @@ impl MainWnd
         }
 
         menu.addSeparator()
+        .addDelayChoices(menu)
+        discard menu.doModal(button, autoDestroy: true)
+    }
 
+    // Ends `menu` with the waits before a capture, as one centred row of exclusive choices.
+    //
+    // A wait typed in the options that is none of the choices is named above them. The choices
+    // post their command to this window, whatever surface the menu stands on.
+    mtd addDelayChoices(menu: *MenuCtrl)
+    {
+        let main         = me
         let currentDelay = main.captureOptions.delay
         var isPreset = false
         for choice in CaptureDelays where choice.seconds == currentDelay do
@@ -812,7 +789,7 @@ impl MainWnd
                 .toolTip = captureDelayName(choice.seconds)
             }
 
-            delayButton.sigCheckedChanged += func|toolbar = delayChoices, id = choice.id|(wnd)
+            delayButton.sigCheckedChanged += func|main, toolbar = delayChoices, id = choice.id|(wnd)
             {
                 let selected = assume cast(*IconButton, wnd)
                 for child in toolbar.children
@@ -820,12 +797,10 @@ impl MainWnd
                     if child is IconButton as other do
                         other.setChecked(other == selected)
                 }
-                selected.postCommandEvent(id)
+                main.postCommandEvent(id)
             }
         }
         menu.addWidget(delayChoices, fullWidth: true)
-
-        discard menu.doModal(button, autoDestroy: true)
     }
 
     // Explains which desktop capture keys were unavailable at startup, beside Capture itself.

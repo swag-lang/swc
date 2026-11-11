@@ -467,6 +467,22 @@ func testFramePicture(seed: u8, squareX: s32)->Image
     return result
 }
 
+// Opens the resident panel of `kind` on a surface of its own, fitted to its list, as the
+// application does; without the watch that would act on a choice by itself.
+func testOpenResidentPanel(host: *Gui.Testing.HeadlessHost, main: *MainWnd, kind: ResidentPanelKind)->*ResidentPanel
+{
+    let surface = expect host.app.createSurface(0, 0, 300, 300, .ToolWindow | .TopMost)
+    let panel   = ResidentPanel.create(surface.wnd, main, kind)
+    panel.floating = true
+
+    // A short list is smaller than the default minimum size of a surface.
+    surface.minSize = {}
+    surface.setView(panel)
+    panel.place({})
+    surface.wnd.applyLayout()
+    return panel
+}
+
 func testSamePixels(a, b: const *Image)->bool => a.byteCount == b.byteCount and Memory.compare(a.pixels.storage(), b.pixels.storage(), a.byteCount) == 0
 
 // Writes `pictures` to the frame file `path`, `step` microseconds apart.

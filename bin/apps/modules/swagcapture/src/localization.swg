@@ -68,6 +68,7 @@ struct AppStrings
     ui_Frozen:                 string = "Selection frozen"            // Persistent status in the editor strip; clicking it releases the forms.
     ui_ShortcutsUnavailable:   string = "Shortcuts unavailable"       // Persistent status beside Capture when a global key is taken.
     ui_CaptureShortcuts:       string = "Capture shortcuts"           // Heading above the unavailable key names.
+    ui_HubRecord:              string = "Record"                      // Section of the hub listing what records the screen.
     ui_Desktop:                string = "Desktop"
     ui_MyImages:               string = "My Images"
     ui_CommonImages:           string = "Images"
@@ -414,6 +415,7 @@ struct AppStrings
     act_SmartFill:                string = "Smart Fill"
     act_SmartMove:                string = "Smart Move"
     act_ShowEditor:               string = "Show Editor"
+    act_ShowHub:                  string = "Show Hub"                     // Opens the floating list of captures to take.
     act_Similarity:               string = "Similarity"
     act_SmallView:                string = "Small View"
     act_SmallerFirst:             string = "Smaller First"
@@ -551,6 +553,11 @@ struct AppStrings
     prop_ConfirmLinkedDesc:    string = "Require confirmation before overwriting a capture-linked image"     // Description of [[EditorOptions.confirmLinkedOverwrite]].
     prop_HideOnClose:          string = "Hide On Close"                                                      // Label of [[EditorOptions.hideOnClose]].
     prop_HideOnCloseDesc:      string = "Minimize the editor instead of closing it"                          // Description of [[EditorOptions.hideOnClose]].
+    prop_Startup:              string = "Startup"                                                            // Label of [[EditorOptions.startup]].
+    prop_StartupDesc:          string = "Choose what opens when Swag Capture starts"                         // Description of [[EditorOptions.startup]].
+    prop_StartupHub:           string = "Hub"                                                                // [[StartupMode.Hub]].
+    prop_StartupTray:          string = "Notification Area"                                                  // [[StartupMode.Tray]].
+    prop_StartupEditor:        string = "Editor"                                                             // [[StartupMode.Editor]].
     prop_EditBackColor:        string = "Edit Back Color"                                                    // Label of [[EditorOptions.editBackColor]].
     prop_EditBackColorDesc:    string = "Specify the background color of the capture editing window"         // Description of [[EditorOptions.editBackColor]].
 }

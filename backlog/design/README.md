@@ -730,6 +730,18 @@ the screen to its work.
   zoom readings at the foot of the editor are quiet menu anchors: size opens image-size commands
   and zoom opens zoom, actual-size and fit commands. These menus reuse the commands already in
   the lens.
+- Swag Capture is resident: it keeps an icon in the notification area and its window may stay
+  hidden. It starts on the hub by default, and the options choose between the hub, the icon
+  alone and the editor; activating the icon opens the same thing, the hub standing in for the
+  icon alone. The hub is a floating list in the upper middle of the screen, on a surface of its
+  own: what to capture and what to record under their section labels, each with its key, the
+  last captures as one row of pictures that open in the editor, then the editor, the library,
+  the options and the way out. It has no accent: nothing in it acts before a choice. The menu
+  of the icon stands at the pointer and carries every capture command, picture then video, a
+  monitor of its own only when there are several, then the cursor choice and the waits as one
+  row of exclusive choices. While a recording runs, both offer to stop or abandon it instead of
+  starting another capture. Either leaves on a choice, on `Esc`, and when another application
+  takes the desktop; a capture started by its key takes it off the screen first.
 - The capture control starts an image area capture directly, and the adjacent Video action starts
   a video area capture. The chevron groups image targets, video targets and GIF, then offers delay
   and cursor choices. Both formats can target the whole desktop, one monitor, an active window or

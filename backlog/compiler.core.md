@@ -4,6 +4,20 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.110 — An inferred duration constant is refused as a cast from `s32` to `s32`
+
+- Evidence: `const WatchPeriod = 30'ms` inside `impl ResidentPanel` of Swag Capture
+  (`src/residentpanel.swg`) was rejected by the Release compiler with
+  `error: cannot cast from 's32' to 's32'`, the span on `30'ms`. Spelling the type,
+  `const WatchPeriod: Time.Duration = 30'ms`, compiles, as do the suffixed literals passed to a
+  `Time.Duration` parameter (`.addTimer(1'ms)`). The message names the same type on both sides
+  and says nothing about the suffix or the missing target type.
+- Next: reduce to a standalone `sema` input with a suffixed literal in an inferred `const`, at
+  file scope and inside an `impl`; decide whether the inferred form is valid, then either infer
+  the suffix's type or report that the literal needs a typed destination.
+- Done when: the reduced input compiles, or is rejected by a diagnostic that names the suffix
+  and the fix, with the fixture in `bin/unittests/sema`.
+
 ### compiler.core.109 — Resolve the size of a captured library-menu rating
 
 - Evidence: on Windows, the DevMode compiler asserts in

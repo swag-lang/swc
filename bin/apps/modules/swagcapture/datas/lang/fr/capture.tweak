@@ -53,6 +53,7 @@ ui_AnchorVertical      Ancrage vertical
 ui_Frozen              Sélection figée
 ui_ShortcutsUnavailable Raccourcis indisponibles
 ui_CaptureShortcuts    Raccourcis de capture
+ui_HubRecord           Enregistrer
 ui_Desktop             Bureau
 ui_MyImages            Mes images
 ui_CommonImages        Images
@@ -289,6 +290,7 @@ act_Shape              Forme
 act_SmartFill          Remplissage intelligent
 act_SmartMove          Déplacement intelligent
 act_ShowEditor         Afficher l'éditeur
+act_ShowHub            Afficher le hub
 act_Similarity         Similarité
 act_SmallView          Petites vignettes
 act_SmallerFirst       Plus petites d'abord
@@ -445,6 +447,11 @@ prop_ConfirmLinked         Confirmer l'écrasement
 prop_ConfirmLinkedDesc     Demander confirmation avant d'écraser une image liée à une capture
 prop_HideOnClose           Réduire à la fermeture
 prop_HideOnCloseDesc       Réduire l'éditeur au lieu de le fermer
+prop_Startup               Démarrage
+prop_StartupDesc           Choisir ce qui s'ouvre au démarrage de Swag Capture
+prop_StartupHub            Hub
+prop_StartupTray           Zone de notification
+prop_StartupEditor         Éditeur
 prop_EditBackColor         Couleur de fond
 prop_EditBackColorDesc     Couleur de fond de la fenêtre d'édition de la capture
 ui_OneObject           1 objet

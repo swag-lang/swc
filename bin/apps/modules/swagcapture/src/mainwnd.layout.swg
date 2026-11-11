@@ -927,6 +927,7 @@ impl MainWnd
             .addCommand(func()->string => appStrings().ui_MenuView, ActionView.Clip, inMenu: false)
             .addCommand(func()->string => strings().lens_Application, ActionOptions.Options)
             .addCommand(func()->string => strings().lens_Application, ActionGlobal.Minimize, inMenu: false)
+            .addCommand(func()->string => strings().lens_Application, ActionGlobal.ShowHub, inMenu: false)
         }
 
         .appearanceButton.addToLens(.lens)

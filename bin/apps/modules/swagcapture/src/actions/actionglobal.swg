@@ -1,6 +1,7 @@
 using Gui
 
-// The application commands that switch between the library and the editor, minimize, and exit.
+// The application commands that switch between the library and the editor, open the hub,
+// minimize, and exit.
 struct ActionGlobal {}
 
 impl ActionGlobal
@@ -9,6 +10,7 @@ impl ActionGlobal
     newCmdId("Exit")
     newCmdId("Minimize")
     newCmdId("ShowEditor")
+    newCmdId("ShowHub")
 }
 
 impl IActionUI for ActionGlobal
@@ -25,6 +27,11 @@ impl IActionUI for ActionGlobal
             evt.updatedFields |= .Name | .Icon
             evt.name = appStrings().act_ShowEditor
             evt.icon = main.theme().icon(.Edit)
+
+        case .ShowHub:
+            evt.updatedFields |= .Name | .Icon
+            evt.name = appStrings().act_ShowHub
+            evt.icon = main.icon(.Capture)
 
         case .ShowLibrary:
             evt.updatedFields |= .Name | .Checked | .Icon
@@ -53,11 +60,10 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            with let surface = unwrap main.surface
-            {
-                .show()
-                .bringToFront()
-            }
+            main.showWindow()
+
+        case .ShowHub:
+            ResidentPanel.open(main, .Hub)
 
         case .ShowLibrary:
             main.swapLibraryMode()

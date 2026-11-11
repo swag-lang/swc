@@ -86,6 +86,20 @@ enum EditorLanguage
     French
 }
 
+// What Swag Capture puts on screen when it starts, and when its notification-area icon is
+// activated.
+//
+// The order is the stored one, as for [[EditorLanguage]].
+enum StartupMode
+{
+    Hub        // The floating list of captures to take, with the recent ones.
+
+    #[Properties.Name("Notification Area")]
+    Tray       // Nothing: the application waits behind its notification-area icon.
+
+    Editor     // The editor, on the last capture.
+}
+
 // The editor settings shown in the options grid, plus the theme and language the menus choose.
 #[Swag.Using(Properties)]
 struct EditorOptions
@@ -98,6 +112,9 @@ struct EditorOptions
 
     #[Description("Minimize the editor instead of closing it")]
     hideOnClose = true
+
+    #[Description("Choose what opens when Swag Capture starts")]
+    startup: StartupMode = .Hub
 
     #[Hidden]
     theme: AppearanceTheme = .Dark

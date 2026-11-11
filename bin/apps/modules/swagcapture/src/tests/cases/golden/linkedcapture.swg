@@ -3,7 +3,7 @@
 
 using Swag, Core, Gui, Pixel
 
-// The recording preparation names the application and offers a visible attachment switch.
+// The animation preparation names the application and offers a visible attachment switch.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -23,7 +23,7 @@ using Swag, Core, Gui, Pixel
 
     g_CaptureWindow = {application: "brave", title: "Video sample — Brave", nativeWindow: 42}
     g_CaptureAnchored = true
-    editor.setMedia(.Video)
+    editor.setMedia(.Animation)
     let attachment = unwrap editor.linkButton
     Swag.require(attachment.parent != editor.bar)
     host.clickWnd(attachment)
@@ -32,5 +32,5 @@ using Swag, Core, Gui, Pixel
     Swag.require(g_CaptureAnchored and attachment.on and attachment.label == captureTargetLabel())
     host.finishAnimations()
     var image = host.render(editor)
-    Pixel.Testing.assertImageGolden(&image, "inplace.linked-video")
+    Pixel.Testing.assertImageGolden(&image, "inplace.linked-animation")
 }

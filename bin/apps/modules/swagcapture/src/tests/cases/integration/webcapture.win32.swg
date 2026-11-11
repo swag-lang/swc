@@ -142,7 +142,7 @@ impl WebCaptureTone
     let main = journey.main
     let app  = journey.app
     main.captureOptions.recordCountdown   = false
-    main.captureOptions.captureCursor     = false
+    main.captureOptions.captureCursor     = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
     main.captureOptions.recordSystemSound = true
     main.captureOptions.recordMicrophone  = false
     main.captureOptions.inPlaceEdit       = true
@@ -159,6 +159,8 @@ impl WebCaptureTone
             {
                 if surface.view() is CaptureRectWnd as overlay
                 {
+                    var attach = KeyEvent{kind: .Pressed, key: .A, modifiers: .None}
+                    overlay.sendEvent(&attach)
                     let scale   = overlay.deviceScale()
                     let first   = Math.Point{(x - g_DesktopX) / scale, (y - g_DesktopY) / scale}
                     var pointer = MouseEvent{kind: .Pressed, button: .Left, surfacePos: first}
@@ -179,17 +181,16 @@ impl WebCaptureTone
         }
         elif stage[] == 1
         {
-            for surface in journey.app.surfaces
+            if g_Recorder
             {
-                if surface.view() is InPlaceEditWnd as editor
-                {
-                    Swag.require(editor.linkButton != null, "the window link must be visible")
-                    var key = KeyEvent{kind: .Pressed, key: .Return, modifiers: .None}
-                    stage[] = 2
-                    editor.sendEvent(&key)
-                    Swag.require(key.accepted)
-                    return
-                }
+                let recorder = unwrap g_Recorder
+                Swag.require(recorder.state == .Preparing and recorder.target.window == cast(u64, browser),
+                             "the live preparation must follow the chosen browser window")
+                let hud = unwrap recorder.hud
+                stage[] = 2
+                hud.pauseButton.sigPressed.call(hud.pauseButton)
+                Swag.require(recorder.recordRequested)
+                return
             }
         }
         elif stage[] == 2 and g_Recorder
@@ -204,12 +205,31 @@ impl WebCaptureTone
 
             if recorder.elapsed() >= 6_000_000
             {
+                // Stop the screen reader before inspecting its counters from this thread.
+                recorder.videoProducer.close()
                 Swag.require(recorder.videoAudio and recorder.videoAudio.systemIsActive(),
                              "system loopback must be active, not replaced with silent packets")
                 let audio: *VideoRecordingAudio = recorder.videoAudio
                 Console.println("Web recording: frames=", recorder.video.frameCount(), " duration_us=", recorder.elapsed(), " source_failures=", recorder.video.sourceFailureCount())
                 Console.println("Video missed slots=", recorder.video.missedFrameSlotCount(), " forced_ui_stall_ms=", stallMs)
                 Console.println("Video work: fresh=", recorder.video.freshFrames, " grab_us=", recorder.video.grabMicroseconds, " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds), " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds), " producer_wait_us=", recorder.video.producerWaitMicroseconds, " runtime_workers=", Swag.workerCount())
+                Console.println("Screen read: dc_us=", recorder.video.source.dcMicroseconds,
+                                " blit_us=", recorder.video.source.blitMicroseconds,
+                                " flush_us=", recorder.video.source.flushMicroseconds,
+                                " copy_us=", recorder.video.source.copyMicroseconds,
+                                " cursor_us=", recorder.video.source.cursorMicroseconds)
+                Console.println("Screen backend: dxgi=", recorder.video.source.accelerated != null)
+                if let accelerated = recorder.video.source.accelerated
+                {
+                    let metrics = accelerated.metrics()
+                    Console.println("DXGI work: acquired=", metrics.acquiredFrames,
+                                    " unchanged=", metrics.unchangedFrames,
+                                    " acquire_us=", metrics.acquireMicroseconds,
+                                    " readback_us=", metrics.readbackMicroseconds,
+                                    " copy_us=", metrics.copyMicroseconds,
+                                    " output_us=", metrics.outputMicroseconds,
+                                    " compose_us=", metrics.composeMicroseconds)
+                }
                 if maxMissed >= 0 do
                     Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
                                  "recording exceeded the requested missed-frame budget")
@@ -232,7 +252,8 @@ impl WebCaptureTone
                                  "video work must not repeatedly interrupt the native sound source")
                 }
 
-                Swag.require(recorder.video.sourceFailureCount() == 0 and recorder.video.source.memoryDC != null)
+                Swag.require(recorder.video.sourceFailureCount() == 0 and
+                             (recorder.video.source.accelerated != null or recorder.video.source.memoryDC != null))
                 stage[] = 3
                 let hud = unwrap recorder.hud
                 hud.stopButton.sigPressed.call(hud.stopButton)
@@ -305,7 +326,9 @@ impl WebCaptureTone
     journey.waitFor("browser paused and muted", func|evidence|()->bool
                     => File.exists(Path.combine(evidence, "source-silent")))
 
-    var queue = expect CaptureQueue.create(48_000, 2, Time.monotonicMicroseconds() * 10, 10_000_000, slots: 64)
+    // Editor frames at large capture sizes can delay the test consumer; retain the
+    // independent output samples until the next GUI frame drains the probe.
+    var queue = expect CaptureQueue.create(48_000, 2, Time.monotonicMicroseconds() * 10, 10_000_000, slots: 256)
     var loopback: WebCaptureOutputProbe
     expect loopback.start(&queue)
     defer loopback.close()
@@ -394,4 +417,120 @@ impl WebCaptureTone
     Swag.require(replayTone.rms() * Math.sqrt(replayTone.toneFraction()) > Math.max(300, baselineToneRms * 4),
                  "editor output must introduce the reference tone above the measured background")
     discard expect File.writeAllText(Path.combine(evidence, "passed"), "web video and audio recorded and replayed")
+}
+
+// Exercise the shipped full-screen and monitor commands with native DXGI frames.
+#[Swag.TestTag("integration.capture.fullscreen")]
+#test
+{
+    Swag.require(Env.hasArgument("swag.capture.native-screen=true"),
+                 "launch this device integration with tools/capture-web.py")
+    let desktop = Env.variable("SWAG_CAPTURE_WEB_MODE") == "desktop"
+    let expected = desktop ? Math.Rectangle{Env.getSystemMetric(.DesktopX),
+                                             Env.getSystemMetric(.DesktopY),
+                                             Env.getSystemMetric(.DesktopWidth),
+                                             Env.getSystemMetric(.DesktopHeight)} :
+                             Env.getMonitors()[0].physicalBounds
+    let videoWidth = cast(s32, Math.floor(expected.width / 2) * 2)
+    let videoHeight = cast(s32, Math.floor(expected.height / 2) * 2)
+    let maxSide = Math.max(videoWidth, videoHeight)
+    let outputWidth = maxSide > 4096 ?
+                      Math.max(2, cast(s32, Math.floor(cast(f64, videoWidth) * 4096 / maxSide / 2)) * 2) : videoWidth
+    let outputHeight = maxSide > 4096 ?
+                       Math.max(2, cast(s32, Math.floor(cast(f64, videoHeight) * 4096 / maxSide / 2)) * 2) : videoHeight
+    let maxMissed = expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_MAX_MISSED"))
+    let evidence = Env.sandboxRoot()
+    Console.println("Full-screen capture: mode=", desktop ? "desktop" : "monitor",
+                    " bounds=", expected.x, ", ", expected.y, " ", expected.width, " x ", expected.height)
+
+    var journey: CaptureJourney
+    journey.setup()
+    let main = journey.main
+    let app = journey.app
+    main.captureOptions.recordCountdown = false
+    main.captureOptions.captureCursor = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
+    main.captureOptions.recordSystemSound = false
+    main.captureOptions.recordMicrophone = false
+    main.captureOptions.inPlaceEdit = true
+    main.captureOptions.hideEditorBefore = true
+    main.captureOptions.sendToEditor = true
+    var stage: u32
+    app.sigFrame += func|&journey, maxMissed, stage = &stage|(_)
+    {
+        Swag.require(journey.watch.elapsedMilliseconds() < 30_000, "full-screen recording timed out")
+        if not g_Recorder do
+            return
+        let recorder = unwrap g_Recorder
+        if stage[] == 0
+        {
+            Swag.require(recorder.state == .Preparing and recorder.target.window == 0)
+            stage[] = 1
+            let hud = unwrap recorder.hud
+            hud.pauseButton.sigPressed.call(hud.pauseButton)
+        }
+        elif stage[] == 1 and recorder.elapsed() >= 3_000_000
+        {
+            recorder.videoProducer.close()
+            Console.println("Full-screen recording: frames=", recorder.video.frameCount(),
+                            " missed=", recorder.video.missedFrameSlotCount(),
+                            " source_failures=", recorder.video.sourceFailureCount(),
+                            " grab_us=", recorder.video.grabMicroseconds,
+                            " scale_us=", recorder.video.scaleMicroseconds,
+                            " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds),
+                            " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds),
+                            " dxgi=", recorder.video.source.accelerated != null)
+            if let accelerated = recorder.video.source.accelerated
+            {
+                let metrics = accelerated.metrics()
+                Console.println("DXGI work: acquired=", metrics.acquiredFrames,
+                                " unchanged=", metrics.unchangedFrames,
+                                " partial=", metrics.partialFrames,
+                                " copied_pixels=", metrics.copiedPixels,
+                                " acquire_us=", metrics.acquireMicroseconds,
+                                " readback_us=", metrics.readbackMicroseconds,
+                                " copy_us=", metrics.copyMicroseconds,
+                                " output_us=", metrics.outputMicroseconds,
+                                " compose_us=", metrics.composeMicroseconds)
+            }
+            Swag.require(recorder.video.sourceFailureCount() == 0 and
+                         recorder.video.source.accelerated != null)
+            if maxMissed >= 0 do
+                Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
+                             "full-screen recording exceeded the missed-frame budget")
+            stage[] = 2
+            let hud = unwrap recorder.hud
+            hud.stopButton.sigPressed.call(hud.stopButton)
+        }
+    }
+
+    journey.surface.hide()
+    if desktop do
+        main.sendCommandEvent(ActionCapture.RecordFullScreen)
+    else do
+        main.recordVideoScreen(.Monitor, 0)
+    app.runFrame()
+    app.sigFrame.clear()
+    Swag.require(stage == 2 and g_Recorder == null)
+    let capture = unwrap main.editWnd.getCapture()
+    Swag.require(capture.media == .Video and capture.width == outputWidth and
+                 capture.height == outputHeight)
+    let media = Capture.mediaPathOf(String.from(capture.file), .Video)
+    var reader = expect Video.Reader.open(media)
+    Console.println("Full-screen file: frames=", reader.frameCount(),
+                    " duration=", reader.durationInSeconds())
+    Swag.require(reader.frameCount() > 0 and reader.durationInSeconds() >= 2.5)
+    var image: Image
+    expect reader.decodeFrameInto(&image, 0)
+    Swag.require(image.width == outputWidth and image.height == outputHeight)
+    let firstHash = Hash.hashBytes32(image.pixels.toSlice())
+    expect reader.decodeFrameInto(&image, reader.frameCount() - 1)
+    if desktop do
+        Swag.require(Hash.hashBytes32(image.pixels.toSlice()) != firstHash,
+                     "the virtual desktop recording must preserve moving pixels")
+    expect image.save(Path.combine(evidence, "fullscreen-last.png"))
+    Console.println("Full-screen file: frames=", reader.frameCount(),
+                    " duration=", reader.durationInSeconds(), " decoded=", image.width, " x ", image.height)
+    discard expect File.writeAllBytes(Path.combine(evidence, "fullscreen.mp4"),
+                                      (expect File.readAllBytes(media)).toSlice())
+    discard expect File.writeAllText(Path.combine(evidence, "passed"), "full-screen recording decoded")
 }

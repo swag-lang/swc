@@ -60,6 +60,10 @@ def main():
                         help='inject an interface stall; zero measures normal recording')
     parser.add_argument('--max-missed-frames', type=int,
                         help='fail if recording misses more than this many frame slots')
+    parser.add_argument('--capture-cursor', action='store_true',
+                        help='include the native pointer overlay in the recording')
+    parser.add_argument('--capture-mode', choices=('area', 'monitor', 'desktop'), default='area',
+                        help='record a selected area, one entire monitor, or the virtual desktop')
     parser.add_argument('--devmode-compiler', action='store_true',
                         help='drive the Release application with swc.dm.exe')
     args = parser.parse_args()
@@ -139,9 +143,10 @@ def main():
         command = [sys.executable, str(repo / 'tools/tool.py'), 'apps']
         if args.devmode_compiler:
             command.append('dm')
+        test_tag = 'integration.capture.web' if args.capture_mode == 'area' else 'integration.capture.fullscreen'
         command += ['test', 'swagcapture',
                    '-bc', 'release', '--test-file', 'webcapture.win32.swg',
-                   '--test-tag', 'integration.capture.web', '--run-timeout', '60',
+                   '--test-tag', test_tag, '--run-timeout', '60',
                    '--run-arg', f'swag.sandbox={sandbox}',
                    '--run-arg', 'swag.audio.native-output=true',
                    '--run-arg', 'swag.capture.native-screen=true']
@@ -149,7 +154,9 @@ def main():
                            SWAG_CAPTURE_WEB_INSET_Y=str(status['insetY']),
                            SWAG_CAPTURE_WEB_WIDTH=str(args.width), SWAG_CAPTURE_WEB_HEIGHT=str(args.height),
                            SWAG_CAPTURE_WEB_STALL_MS=str(args.stall_ms),
-                           SWAG_CAPTURE_WEB_MAX_MISSED=str(args.max_missed_frames if args.max_missed_frames is not None else -1))
+                           SWAG_CAPTURE_WEB_MAX_MISSED=str(args.max_missed_frames if args.max_missed_frames is not None else -1),
+                           SWAG_CAPTURE_WEB_CURSOR='true' if args.capture_cursor else 'false',
+                           SWAG_CAPTURE_WEB_MODE=args.capture_mode)
         print(f'Browser ready: {status}\nEvidence: {output}', flush=True)
         # Admission is repeated by this explicit host runner immediately before compiling/testing.
         check = repo / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'

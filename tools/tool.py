@@ -87,9 +87,10 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
     for directory in directories:
         # The expected-error semantic corpus depends on deterministic cross-file analysis.
         workers = '1' if directory == 'errors/sema' else '3'
+        stage_options = without_options(options, ('-j', '--num-cores')) if directory == 'errors/sema' else options
         command = [str(compiler), 'test', '--directory', str(bin_root / 'unittests' / directory),
                    '--module-namespace', suite.capitalize(), '--artifact-kind', 'executable',
-                   '--num-cores', workers, *flags, *options]
+                   '--num-cores', workers, *flags, *stage_options]
         if output_root:
             command += ['--out-dir', str(output_root / 'out' / directory),
                         '--work-dir', str(output_root / 'work' / directory)]

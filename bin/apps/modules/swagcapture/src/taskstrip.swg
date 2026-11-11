@@ -2,7 +2,7 @@ using Core, Gui
 
 // The repeated capture and output gestures of the window, set in its top strip.
 //
-// Capture and the library stand after the command menu, where work comes in; the output of the
+// Image, video and the library stand after the command menu, where work comes in; the output of the
 // picture stands before the window buttons, where it goes out, its copy as the one primary
 // action of the editor. The title keeps the room between the two. Without a strip, as on a
 // surface that has none, the same two groups stand in a band of the same height at the top of
@@ -18,6 +18,7 @@ struct TaskStrip
         leading:       *StackLayoutCtrl     // Capture, its modes, and the library.
         trailing:      *StackLayoutCtrl     // Save and copy the picture, while the editor shows one.
         captureChoice: *IconButton          // The chevron that opens the capture modes.
+        videoButton:   *IconButton          // Opens video area selection without the long command label.
         shortcutPanel:  *FloatingPanel      // Unavailable capture keys, anchored below Capture.
         shortcutWarning: *IconButton        // Opens the unavailable key names.
         frozenPanel:    *FloatingPanel      // Selection mode, anchored beside the inspector.
@@ -33,6 +34,8 @@ impl IWnd for TaskStrip
         switch evt.kind
         {
         case .LanguageChanged:
+            .videoButton.setQuietText(appStrings().ui_MediaVideo)
+            .videoButton.toolTip = appStrings().act_RecordVideo
             .frozenButton.setQuietText(appStrings().ui_Frozen)
             .shortcutWarning.setQuietText(appStrings().ui_ShortcutsUnavailable)
             .itf.onLayout()
@@ -137,6 +140,16 @@ impl TaskStrip
             .margin.x    = -main.themeMetrics().wnd_CaptionActionGap
             .setIcon(.theme().icon(.ChevronDown))
             .sigPressed += func|main|(button) { main.showCaptureMenu(button) }
+        }
+
+        with result.videoButton = IconButton.createQuiet(result.leading, menu: false)
+        {
+            .owner       = main
+            .focusPolicy = .None
+            .toolTip     = appStrings().act_RecordVideo
+            .setIcon(kindIcon(main, .theme(), .Video))
+            .setQuietText(appStrings().ui_MediaVideo)
+            .sigPressed += func|main|(_) { main.postCommandEvent(ActionCapture.RecordVideo) }
         }
 
         with let libraryButton = IconButton.createQuiet(result.leading, ActionGlobal.ShowLibrary, menu: false)

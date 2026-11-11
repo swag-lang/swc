@@ -101,6 +101,16 @@ var g_CursorTexture:   Texture
 // and `Tab` changes it before the capture is taken.
 var g_CaptureMedia: CaptureMedia
 
+// Each interactive selection starts empty; the previous coordinates remain available until
+// this point so the Last Area command can reuse them without opening the overlay.
+func beginAreaSelection()
+{
+    g_StartGrabX, g_EndGrabX = 0
+    g_StartGrabY, g_EndGrabY = 0
+    g_CaptureWindow = {}
+    g_CaptureAnchored = false
+}
+
 func getGrabRect()->Math.Rectangle
 {
     var result: #returntype
@@ -195,8 +205,8 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: 
     g_App.setGlobalHotKeysEnabled(false)
     defer g_App.setGlobalHotKeysEnabled()
 
-    g_CaptureWindow = {}
-    g_CaptureAnchored = false
+    let previousArea = getGrabRect()
+    beginAreaSelection()
 
     var result: #returntype
 
@@ -229,6 +239,8 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: 
         .setPosition(0, 0, sf.size().x, sf.size().y)
     }
 
+    captureWnd.createHints()
+
     sf.setView(captureWnd)
     captureWnd.setFocus()
     sf.show()
@@ -237,6 +249,11 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: 
 
     if not waitForCapture()
     {
+        // An abandoned new selection does not erase the Last Area shortcut.
+        g_StartGrabX = previousArea.x
+        g_StartGrabY = previousArea.y
+        g_EndGrabX   = previousArea.right()
+        g_EndGrabY   = previousArea.bottom()
         sf.destroy()
         result.sf = null
     }
@@ -252,6 +269,12 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface?, target: 
 // Builds an in-place editor for the grabbed area, or crops it immediately when that mode is off.
 func performInPlaceEdit(img: Image, surface: *Surface, main: *MainWnd, target: CaptureTarget)->*Capture? fail
 {
+    if g_CaptureMedia == .Video
+    {
+        surface.destroy()
+        return try Recorder.recordVideo(main, target, prepare: true)
+    }
+
     let grabRect = getGrabRect()
 
     with let capture = Memory.new'Capture()
@@ -315,7 +338,7 @@ func recordZone(main: *MainWnd, zone: *Capture, chosen: CaptureTarget)->*Capture
         target = CaptureTarget.create(screenArea, g_CaptureAnchored ? g_CaptureWindow.nativeWindow : 0)
     var result: *Capture?
     if g_CaptureMedia == .Video do
-        result = try Recorder.recordVideo(main, target)
+        result = try Recorder.recordVideo(main, target, prepare: true)
     else do
         result = try Recorder.record(main, target)
     if not result do
@@ -429,7 +452,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 
         if g_CaptureMedia == .Video
         {
-            capture = try Recorder.recordVideo(main, target)
+            capture = try Recorder.recordVideo(main, target, prepare: true)
         }
         elif g_CaptureMedia == .Animation
         {

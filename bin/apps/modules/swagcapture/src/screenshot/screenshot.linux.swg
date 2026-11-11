@@ -61,7 +61,7 @@ func beginCapturePlatformScope()->CapturePlatformScope => {}
 func getDesktopImage(drawCursor: bool)->Image fail
 {
     var capture = try X11Capture.create()
-    return try capture.image(drawCursor, 0, 0, capture.screen.width_in_pixels, capture.screen.height_in_pixels)
+    return try capture.image(drawCursor, 0, 0, capture.desktopWidth(), capture.desktopHeight())
 }
 
 func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail

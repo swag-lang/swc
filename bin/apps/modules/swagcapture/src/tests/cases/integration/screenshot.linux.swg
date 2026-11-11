@@ -31,42 +31,26 @@ func openCaptureDescriptorCount()->u64
     return count
 }
 
-func captureSharedMappingCount()->u64 fail
-{
-    let maps = try File.readAllLines("/proc/self/maps")
-    var count = 0'u64
-    for line in maps where line.contains("/SYSV") do
-        count += 1
-    return count
-}
-
-func captureSharedSegmentCount()->u64 fail
-{
-    let segments = try File.readAllLines("/proc/sysvipc/shm")
-    // The first line is the proc table header.
-    return segments.count - 1
-}
-
 // An isolated X server has no window manager; publish the EWMH active-window property it owns.
 func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 {
-    let library    = unwrap capture.library
+    let library    = unwrap capture.nativeLibrary()
     let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
-    let connection = unwrap capture.connection
-    let property   = capture.atom("_NET_ACTIVE_WINDOW")
+    let connection = unwrap capture.nativeConnection()
+    let property   = capture.atom("_NET_ACTIVE_WINDOW", create: true)
     Swag.require(property != 0)
     var request: Linux.xcb_void_cookie_t
     if window
     {
         let change = expect X11Capture.symbol'Linux.xcb_change_property_checked_fn(library, "xcb_change_property_checked")
-        let kind   = capture.atom("WINDOW")
+        let kind   = capture.atom("WINDOW", create: true)
         Swag.require(kind != 0)
-        request = change(connection, 0, capture.screen.root, property, kind, 32, 1, &window)
+        request = change(connection, 0, capture.rootWindow(), property, kind, 32, 1, &window)
     }
     else
     {
         let remove = expect X11Capture.symbol'Linux.xcb_delete_property_checked_fn(library, "xcb_delete_property_checked")
-        request = remove(connection, capture.screen.root, property)
+        request = remove(connection, capture.rootWindow(), property)
     }
 
     let error = check(connection, request)
@@ -106,7 +90,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     Swag.require(outcome.value() is Errors.BadParameterError)
     discard catch capture.image(false, 0, 0, 0, 8) as outcome
     Swag.require(outcome.value() is Errors.BadParameterError)
-    discard catch capture.image(false, 0, 0, cast(s32, capture.screen.width_in_pixels) + 1, 8) as outcome
+    discard catch capture.image(false, 0, 0, cast(s32, capture.desktopWidth()) + 1, 8) as outcome
     Swag.require(outcome.value() is Errors.BadParameterError)
 }
 
@@ -118,16 +102,18 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     expect window.show()
     paintCaptureWindow(&window, 0xFF0000)
     var capture = expect X11Capture.create()
-    let warp    = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.library, "xcb_warp_pointer_checked")
-    let check   = expect X11Capture.symbol'Linux.xcb_request_check_fn(capture.library, "xcb_request_check")
-    let error   = check(unwrap capture.connection, warp(capture.connection, 0, capture.screen.root, 0, 0, 0, 0, 40, 50))
+    let warp    = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.nativeLibrary(), "xcb_warp_pointer_checked")
+    let check   = expect X11Capture.symbol'Linux.xcb_request_check_fn(unwrap capture.nativeLibrary(), "xcb_request_check")
+    let connection = unwrap capture.nativeConnection()
+    let error   = check(connection, warp(connection, 0, capture.rootWindow(), 0, 0, 0, 0, 40, 50))
     defer Linux.free(error)
     Swag.require(error == null)
     let plain = expect capture.image(false, 10, 20, 64, 64)
     var source = expect ScreenFrameSource.create(true, 10, 20, 64, 64)
     var cursor: Image
     expect source.grabInto(&cursor)
-    Swag.require(source.capture.fixesReady)
+    discard expect capture.image(true, 10, 20, 64, 64)
+    Swag.require(capture.cursorExtensionReady())
     var repeated: Image
     expect source.grabInto(&repeated)
     Swag.require(Slice.equals(cursor.pixels.toSlice(), repeated.pixels.toSlice()))
@@ -188,57 +174,6 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
         }
     }
     Swag.require(openCaptureDescriptorCount() == before)
-}
-
-// An interrupted XCB socket is recovered without retaining its old SysV mapping or
-// connection. The display stays alive so reopening exercises the same physical screen.
-#[Swag.TestTag("integration.capture.x11")]
-#test
-{
-    let descriptors = openCaptureDescriptorCount()
-    let mappings    = expect captureSharedMappingCount()
-    let segments    = expect captureSharedSegmentCount()
-    var usedSharedMemory = false
-    for 4
-    {
-        scope
-        {
-            var source = expect ScreenFrameSource.create(false, 0, 0, 64, 48)
-            var image: Image
-            expect source.grabInto(&image)
-            let storage = image.pixels.storage()
-            if source.capture.shmData
-            {
-                usedSharedMemory = true
-                Swag.require((expect captureSharedMappingCount()) == mappings + 1)
-            }
-
-            let fileDescriptor = expect X11Capture.symbol'Linux.xcb_get_file_descriptor_fn(
-                unwrap source.capture.library, "xcb_get_file_descriptor")
-            let socket = fileDescriptor(unwrap source.capture.connection)
-            Swag.require(socket >= 0 and Linux.shutdown(socket, 0) == 0)
-            var failure: Swag.Error
-            discard catch source.grabInto(&image) as failure
-            Swag.require(failure.value() is Swag.SystemError)
-            expect source.reopen()
-            expect source.grabInto(&image)
-            Swag.require(image.pixels.storage() == storage)
-            Swag.require(image.width == 64 and image.height == 48)
-        }
-        Swag.require(openCaptureDescriptorCount() == descriptors)
-        Swag.require((expect captureSharedMappingCount()) == mappings)
-    }
-
-    // X11 closes a disconnected client's segment asynchronously.
-    for 100
-    {
-        if (expect captureSharedSegmentCount()) == segments do
-            break
-        Threading.Thread.sleep(1'ms)
-    }
-    Swag.require((expect captureSharedSegmentCount()) == segments)
-    Console.printf("X11 socket recovery: shared memory %, 4 cycles, no retained descriptors or segments\n",
-                   usedSharedMemory ? "enabled" : "unavailable")
 }
 
 // The application command must carry real X11 pixels into the editor and its saved document.

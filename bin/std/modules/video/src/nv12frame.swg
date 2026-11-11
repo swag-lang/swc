@@ -110,6 +110,14 @@ struct Nv12Frame
 
 impl Nv12Frame
 {
+    internal mtd copyPacked(width, height: s32, pixels: const [..] u8)
+    {
+        .width = width
+        .height = height
+        .bytes.clear()
+        .bytes.add(pixels)
+    }
+
     // Borrows the full-resolution luma plane until the next conversion or frame mutation.
     mtd const luma()->const [..] u8 => .bytes.toSlice()[until cast(u64, .width) * cast(u64, .height)]
 

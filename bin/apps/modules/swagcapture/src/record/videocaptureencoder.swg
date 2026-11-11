@@ -8,7 +8,7 @@ struct VideoCaptureFrame
 }
 
 // A bounded handoff lets screen readback overlap encoding without retaining a growing movie.
-// The interface produces slots; this worker alone owns the video encoder until it is joined.
+// The screen reader produces slots; this worker alone owns the video encoder until it is joined.
 #[Swag.NoCopy]
 struct VideoCaptureEncoder
 {

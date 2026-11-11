@@ -96,6 +96,10 @@ ui_MediaAnimation      GIF
 ui_MediaVideo          Vidéo
 ui_Mp4Video            Vidéo MP4
 act_RecordVideo        Enregistrer une vidéo
+act_RecordFullScreen   Enregistrer tous les écrans
+act_RecordActiveWindow Enregistrer la fenêtre active
+act_RecordMonitor      Enregistrer l'écran %
+act_RecordMonitorSize  Enregistrer l'écran % · % × %
 ui_AimCursor           Curseur
 ui_AimCountdown        Compte à rebours
 ui_AimRate             % i/s
@@ -104,12 +108,16 @@ ui_AimNoSound          Pas de son dans un GIF
 ui_AimMicrophone       Microphone
 ui_AimSystemSound      Son du système
 ui_AimSoundUnavailable La capture du son nécessite Windows
-ui_AimAnchored         Liée à %
+ui_AimAnchored         Suivre %
 msg_RecordingPlaybackFailed Impossible de lire l’enregistrement.
-tip_AimAnchored        Suivre cette fenêtre quand elle se déplace. L’enregistrement libère la fenêtre pour que vous puissiez l’utiliser.
+tip_AimAnchored        Garder la zone alignée sur cette fenêtre quand elle se déplace.
 ui_AimDetached         Zone fixe
 ui_AimPictureDraft     Annotations conservées pour Image
 ui_AimRecord           Enregistrer
+ui_AimReady            Prêt à enregistrer
+hint_AimWindow         maintenir pour viser la fenêtre
+hint_AimAttach         suivre la fenêtre
+hint_AimFormat         changer le format
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_VideoStoppedForStorage Enregistrement arrêté car le disque est presque plein

@@ -375,15 +375,22 @@ impl MainWnd
             .addItem(ActionGlobal.ShowEditor)
             .addSeparator()
             .addItem(ActionCapture.Area)
-            .addItem(ActionCapture.Record)
-            .addItem(ActionCapture.RecordVideo)
-            .addSeparator()
             .addItem(ActionCapture.LastArea)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
 
             for idx in me.monitors.count do
                 .addItem(ActionCapture.screenId(idx))
+
+            .addSeparator()
+            .addItem(ActionCapture.RecordVideo)
+            .addItem(ActionCapture.RecordFullScreen)
+            .addItem(ActionCapture.RecordActiveWindow)
+            for idx in me.monitors.count do
+                .addItem(ActionCapture.recordScreenId(idx))
+
+            .addSeparator()
+            .addItem(ActionCapture.Record)
 
             .addSeparator()
             .addItem(ActionGlobal.Exit)
@@ -746,14 +753,20 @@ impl MainWnd
         with let menu = MenuCtrl.createPopup(me)
         {
             .addItem(ActionCapture.Area)
-            .addItem(ActionCapture.Record)
-            .addItem(ActionCapture.RecordVideo)
-            .addSeparator()
             .addItem(ActionCapture.ActiveWnd)
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.LastArea)
             for index in 0 until main.monitors.count do
                 .addItem(ActionCapture.screenId(index))
+
+            .addSeparator()
+            .addItem(ActionCapture.RecordVideo)
+            .addItem(ActionCapture.RecordActiveWindow)
+            .addItem(ActionCapture.RecordFullScreen)
+            for index in 0 until main.monitors.count do
+                .addItem(ActionCapture.recordScreenId(index))
+            .addSeparator()
+            .addItem(ActionCapture.Record)
             .addSeparator()
             .addItem(ActionCapture.CaptureCursor)
         }

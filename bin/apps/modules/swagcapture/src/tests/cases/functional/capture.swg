@@ -29,20 +29,26 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         if inspected[] do
             return
         let menu = unwrap host.capturedPopupMenu()
-        Swag.require(menu.items.count == 13)
+        Swag.require(menu.items.count == 18)
         Swag.require(menu.items[0]!.id == ActionCapture.Area)
-        Swag.require(menu.items[1]!.id == ActionCapture.Record)
-        Swag.require(menu.items[1]!.icon.isValid())
-        Swag.require(menu.items[2]!.id == ActionCapture.RecordVideo)
-        Swag.require(menu.items[2]!.icon.isValid())
-        Swag.require(menu.items[3]!.separator)
-        Swag.require(menu.items[4]!.id == ActionCapture.ActiveWnd)
-        Swag.require(menu.items[5]!.id == ActionCapture.FullScreen)
-        Swag.require(menu.items[6]!.id == ActionCapture.LastArea)
-        Swag.require(menu.items[7]!.id == ActionCapture.screenId(0))
-        Swag.require(menu.items[8]!.id == ActionCapture.screenId(1))
-        Swag.require(menu.items[10]!.id == ActionCapture.CaptureCursor)
-        Swag.require(menu.items[11]!.separator)
+        Swag.require(menu.items[1]!.id == ActionCapture.ActiveWnd)
+        Swag.require(menu.items[2]!.id == ActionCapture.FullScreen)
+        Swag.require(menu.items[3]!.id == ActionCapture.LastArea)
+        Swag.require(menu.items[4]!.id == ActionCapture.screenId(0))
+        Swag.require(menu.items[5]!.id == ActionCapture.screenId(1))
+        Swag.require(menu.items[6]!.separator)
+        Swag.require(menu.items[7]!.id == ActionCapture.RecordVideo)
+        Swag.require(menu.items[7]!.icon.isValid())
+        Swag.require(menu.items[8]!.id == ActionCapture.RecordActiveWindow)
+        Swag.require(menu.items[9]!.id == ActionCapture.RecordFullScreen)
+        Swag.require(menu.items[10]!.id == ActionCapture.recordScreenId(0))
+        Swag.require(menu.items[11]!.id == ActionCapture.recordScreenId(1))
+        Swag.require(menu.items[12]!.separator)
+        Swag.require(menu.items[13]!.id == ActionCapture.Record)
+        Swag.require(menu.items[13]!.icon.isValid())
+        Swag.require(menu.items[14]!.separator)
+        Swag.require(menu.items[15]!.id == ActionCapture.CaptureCursor)
+        Swag.require(menu.items[16]!.separator)
         Swag.require(menu.children.count == 1)
         let delays = assume cast(*Gui.StackLayoutCtrl, menu.children[0])
         Swag.require(delays.children.count == CaptureDelays.count)
@@ -71,11 +77,23 @@ func testAddMonitor(main: *MainWnd, idx: u32)
 
     g_DesktopX, g_DesktopY = 0
     g_Exit, g_GrabDone     = false
+    g_StartGrabX, g_EndGrabX = 0
+    g_StartGrabY, g_EndGrabY = 0
     let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 320, 240})
     wnd.main        = f.main
     wnd.focusPolicy = .Click
     wnd.setFocus()
     Swag.require(wnd.hasFocus())
+
+    var move = Gui.MouseEvent{kind: .Move, surfacePos: {40, 50}}
+    wnd.sendEvent(&move)
+    Swag.require(not wnd.autoGrab and getGrabRect().isEmpty())
+
+    var attach = Gui.KeyEvent{kind: .Pressed, key: .A, modifiers: .None}
+    wnd.sendEvent(&attach)
+    Swag.require(wnd.attachArea)
+    wnd.sendEvent(&attach)
+    Swag.require(not wnd.attachArea)
 
     var evt = Gui.MouseEvent{kind: .Pressed, button: .Left, surfacePos: {80, 100}}
     wnd.sendEvent(&evt)
@@ -106,7 +124,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     evt.button = .Right
     wnd.sendEvent(&evt)
     Swag.require(not g_Exit and not g_GrabDone)
-    Swag.require(not wnd.startGrab and not wnd.tryStartGrab and wnd.autoGrab)
+    Swag.require(not wnd.startGrab and not wnd.tryStartGrab and not wnd.autoGrab)
 
     evt.kind   = .Released
     evt.button = .Left
@@ -177,6 +195,14 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.FullScreen, &evt))
     Swag.require(not evt.name.isEmpty())
 
+    evt = Gui.Testing.commandState(ActionCapture.RecordFullScreen)
+    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.RecordFullScreen, &evt))
+    Swag.require(evt.name == appStrings().act_RecordFullScreen and evt.icon.isValid())
+
+    evt = Gui.Testing.commandState(ActionCapture.RecordActiveWindow)
+    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.RecordActiveWindow, &evt))
+    Swag.require(evt.name == appStrings().act_RecordActiveWindow and evt.icon.isValid())
+
     evt = Gui.Testing.commandState(ActionCapture.ActiveWnd)
     Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, ActionCapture.ActiveWnd, &evt))
     Swag.require(not evt.name.isEmpty())
@@ -186,6 +212,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     for idx in f.main.monitors.count
     {
         let id = ActionCapture.screenId(idx)
+        let recordId = ActionCapture.recordScreenId(idx)
 
         // A minted id must still carry the owning scope: `acceptOwnCmdIds` routes a
         // command to its action by that prefix alone.
@@ -195,6 +222,13 @@ func testAddMonitor(main: *MainWnd, idx: u32)
         Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, id, &evt))
         Swag.require(not evt.name.isEmpty())
         Swag.require(not evt.disabled)
+
+        Swag.require(Utf8.startsWith(recordId, "ActionCapture."))
+        Swag.require(ActionCapture.recordScreenIndex(recordId) == idx)
+        evt = Gui.Testing.commandState(recordId)
+        Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, recordId, &evt))
+        Swag.require(not evt.name.isEmpty() and evt.icon.isValid())
+        Swag.require(not evt.disabled)
     }
 
     // A command whose monitor is gone stays answerable and reports itself disabled.
@@ -203,6 +237,11 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, goneId, &evt))
     Swag.require(not evt.name.isEmpty())
     Swag.require(evt.disabled)
+
+    let goneRecordId = ActionCapture.recordScreenId(f.main.monitors.count)
+    evt = Gui.Testing.commandState(goneRecordId)
+    Swag.require(Gui.Testing.actionUpdate'ActionCapture(f.main, goneRecordId, &evt))
+    Swag.require(not evt.name.isEmpty() and evt.disabled)
 }
 
 // The capture control of the top strip names the last capture taken, the area capture before the
@@ -231,6 +270,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     testAddMonitor(f.main, 0)
     f.main.lastCapture = ActionCapture.screenId(0)
     Swag.require(f.main.lastCaptureCommand() == ActionCapture.screenId(0))
+    f.main.lastCapture = ActionCapture.recordScreenId(0)
+    Swag.require(f.main.lastCaptureCommand() == ActionCapture.recordScreenId(0))
     f.main.lastCapture = "ActionCapture.Screen7"
     Swag.require(f.main.lastCaptureCommand() == ActionCapture.Area)
 }

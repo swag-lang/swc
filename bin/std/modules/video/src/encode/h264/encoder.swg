@@ -372,6 +372,14 @@ impl Encoder
            (.hasFrame and decodeTime < .previousEnd) do
             fail BadParameterError{"H.264 encoder packet timing is invalid"}
 
+        if .hasFrame and .framesSinceKey < .keyInterval
+        {
+            let prior = .quantizationQp ? .previousInput.toSlice() : .previous.toSlice()
+            if prior.count == frame.bytes.count and
+               Memory.compare(prior.buffer, frame.bytes.storage(), prior.count) == 0 do
+                return try .repeatPrevious(decodeTime, duration)
+        }
+
         let key = not .hasFrame or .framesSinceKey >= .keyInterval
         if .quantizationQp
         {
@@ -418,6 +426,53 @@ impl Encoder
         }
         let presentationTime = decodeTime
         return EncodedPacket{.packet.toSlice(), decodeTime, presentationTime, duration, key}
+    }
+
+    // Holds the last encoded picture for another video slot without analyzing its pixels.
+    //
+    // The first picture must already have been encoded. At an IDR boundary the stored input
+    // picture is encoded normally, preserving the configured clean-point interval. The packet
+    // borrows its bytes until the next encode or repeat call.
+    mtd repeatPrevious(decodeTime: u64, duration: u32)->EncodedPacket fail
+    {
+        if not .hasFrame do
+            fail BadParameterError{"H.264 encoder has no previous picture to repeat"}
+        if not duration or decodeTime > Swag.U64.Max - duration or decodeTime < .previousEnd do
+            fail BadParameterError{"H.264 encoder packet timing is invalid"}
+
+        if .framesSinceKey >= .keyInterval
+        {
+            var frame: Nv12Frame
+            frame.copyPacked(.width, .height,
+                             .quantizationQp ? .previousInput.toSlice() : .previous.toSlice())
+            return try .encode(&frame, decodeTime, duration)
+        }
+
+        var packet: Array'u8
+        for sliceIndex in .sliceCount
+        {
+            let sliceStartY = sliceIndex * .mbHeight / .sliceCount
+            let sliceEndY = (sliceIndex + 1) * .mbHeight / .sliceCount
+            var bits: EncoderBits
+            bits.unsigned(sliceStartY * .mbWidth)
+            bits.unsigned(0)             // P slice.
+            bits.unsigned(0)             // pic_parameter_set_id.
+            bits.bits(.frameNumber, 8)
+            bits.bit(0)                  // num_ref_idx_active_override_flag.
+            bits.bit(0)                  // ref_pic_list_modification_flag_l0.
+            bits.bit(0)                  // adaptive_ref_pic_marking_mode_flag.
+            bits.unsigned(0)             // slice_qp_delta.
+            bits.unsigned(1)             // Deblocking disabled.
+            bits.unsigned((sliceEndY - sliceStartY) * .mbWidth)
+            bits.trailing()
+            appendEncoderNal(&packet, 0x41, bits.bytes.toSlice())
+        }
+        .packet = #move packet
+        .previousEnd = decodeTime + duration
+        .frameNumber += 1
+        .framesSinceKey += 1
+        let presentationTime = decodeTime
+        return EncodedPacket{.packet.toSlice(), decodeTime, presentationTime, duration, false}
     }
 }
 

@@ -235,8 +235,10 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
 
         let leading  = main.taskStrip.leading
         let trailing = main.taskStrip.trailing
-        Swag.require(leading.children.count == 3 and trailing.children.count == 2)
+        Swag.require(leading.children.count == 4 and trailing.children.count == 2)
         Swag.require(leading.children[0].name == appStrings().act_CaptureArea)
+        Swag.require(leading.children[2] == main.taskStrip.videoButton)
+        Swag.require(main.taskStrip.videoButton.text() == appStrings().ui_MediaVideo)
         Swag.require(not main.taskStrip.shortcutPanel.isLocallyVisible())
         Swag.require(not main.taskStrip.frozenPanel.isLocallyVisible())
         Swag.require(trailing.children[0].name == appStrings().act_SaveImage)
@@ -276,7 +278,7 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
         }
     }
 
-    host.clickWnd(main.taskStrip.leading.children[2])
+    host.clickWnd(main.taskStrip.leading.children[3])
     host.pump()
     Swag.require(main.libraryMode)
     Swag.require(not main.taskStrip.trailing.isLocallyVisible())
@@ -1021,13 +1023,15 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         main.updateState()
         main.lens.open()
         let sections = &main.lens.results.sections
-        Swag.require(sections[0]!.entries.count == 6)
+        Swag.require(sections[0]!.entries.count == 8)
         Swag.require(sections[0]!.entries[0].id == ActionCapture.Area)
         Swag.require(sections[0]!.entries[1].id == ActionCapture.Record)
         Swag.require(sections[0]!.entries[2].id == ActionCapture.RecordVideo)
-        Swag.require(sections[0]!.entries[3].id == ActionCapture.LastArea)
-        Swag.require(sections[0]!.entries[4].id == ActionFile.OpenImage)
-        Swag.require(sections[0]!.entries[5].id == ActionGlobal.ShowLibrary)
+        Swag.require(sections[0]!.entries[3].id == ActionCapture.RecordFullScreen)
+        Swag.require(sections[0]!.entries[4].id == ActionCapture.RecordActiveWindow)
+        Swag.require(sections[0]!.entries[5].id == ActionCapture.LastArea)
+        Swag.require(sections[0]!.entries[6].id == ActionFile.OpenImage)
+        Swag.require(sections[0]!.entries[7].id == ActionGlobal.ShowLibrary)
         Swag.require(sections[1]!.entries.count == 2)
         Swag.require(sections[1]!.entries[0].id == ActionFile.SaveAsImage)
         Swag.require(sections[1]!.entries[1].id == ActionCopyPaste.CopyAsImage)
@@ -1415,9 +1419,9 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 }
 
 // The kind beside the size chip opens the choices. Choosing the animation fills the bar with the
-// recording options and Record, keeps what was drawn, and Enter then starts the recording; Tab
-// advances through video and then gives the picture and its tools back.
-#[Swag.TestTag("capture.interaction")]
+// recording options and Record, and keeps what was drawn. Choosing video leaves the frozen
+// editor so that its preparation can run over the live desktop.
+#[Swag.TestTag("capture.format.choice")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -1523,41 +1527,14 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     }
     Swag.require(editor.source.captureOptions.recordRate == rate)
 
-    // Tab offers video with independently chosen sound sources.
+    // Video leaves the frozen editor; the live preparation owns its sound choices.
     var key = Gui.KeyEvent{kind: .Pressed, key: .Tab}
+    g_Exit, g_GrabDone = false
     editor.sendEvent(&key)
-    Swag.require(g_CaptureMedia == .Video)
-    Swag.require(editor.kindButton.position.width == kindWidth)
-    #static if #os == Swag.TargetOs.Windows
-    {
-        Swag.require(chips(editor) == 4)
-        var microphone: *OptionChip?
-        var system: *OptionChip?
-        for item in editor.bar.items
-        {
-            if item.wnd is OptionChip as chip
-            {
-                if chip.label == appStrings().ui_AimMicrophone do
-                    microphone = chip
-                if chip.label == appStrings().ui_AimSystemSound do
-                    system = chip
-            }
-        }
-        Swag.require(microphone and system)
-        host.clickWnd(microphone)
-        host.clickWnd(system)
-        Swag.require(editor.source.captureOptions.recordMicrophone)
-        Swag.require(editor.source.captureOptions.recordSystemSound)
-        editor.source.captureOptions.recordMicrophone = false
-        editor.source.captureOptions.recordSystemSound = false
-    }
-
-    // Another Tab gives the picture back, with its tools.
-    editor.sendEvent(&key)
-    Swag.require(g_CaptureMedia == .Picture and chips(editor) == 0)
-    Swag.require(editor.editMode == .Marker and editor.newMain.editMode == .Draw)
+    Swag.require(g_CaptureMedia == .Video and g_Exit and g_GrabDone)
 
     // In an animation, Enter starts the recording of the zone.
+    g_CaptureMedia = .Picture
     editor.setMedia(.Animation)
     g_Exit, g_GrabDone = false
     key.key = .Return
@@ -1604,7 +1581,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 }
 
 // The video handoff also excludes annotations drawn in the picture draft.
-#[Swag.TestTag("capture.interaction")]
+#[Swag.TestTag("capture.video.handoff")]
 #test
 {
     var host: Gui.Testing.HeadlessHost
@@ -1623,7 +1600,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     editor.editWnd.editView.capture = null
     editor.capture = null
     editor.placeBar()
-    testEndRecordingAfter(20, cancel: false)
+    testStartAndEndVideoAfter(20)
     let area = Math.Rectangle{-zone.backImagePos.x, -zone.backImagePos.y,
                               cast(f32, zone.width), cast(f32, zone.height)}
     let capture = expect recordZone(editor.source, zone, CaptureTarget.create(desktopToScreenRect(area), 0))

@@ -65,15 +65,15 @@ impl CaptureQueue
     // Creates a queue with fixed block and slot limits, using the recording's monotonic clock.
     //
     // The queue allocates `blockFrames * slots * channels * 2` PCM bytes. A block may contain
-    // one through `blockFrames` complete frames; `slots` is between one and 64. The origin and
+    // one through `blockFrames` complete frames; `slots` is between one and 256. The origin and
     // source timestamps use `clockFrequency` ticks per second. `tolerance` absorbs small clock
     // jitter in sample frames without hiding larger gaps.
     func create(sampleRate: u32, channels: u16, originTick: u64, clockFrequency: u64,
                 blockFrames: u32 = 1_024, slots: u32 = 8, tolerance: u32 = 1)->CaptureQueue fail
     {
         if not channels or channels > 8 or not blockFrames or blockFrames > 4_096 or
-           not slots or slots > 64 or tolerance > blockFrames do
-            fail BadParameterError{"capture queue needs one to eight channels, 1-4096 frames per block, and 1-64 slots"}
+           not slots or slots > 256 or tolerance > blockFrames do
+            fail BadParameterError{"capture queue needs one to eight channels, 1-4096 frames per block, and 1-256 slots"}
         var result: #returntype
         result.timeline = try SampleTimeline.createWithOrigin(sampleRate, clockFrequency, originTick, tolerance)
         result.channels = channels

@@ -11,6 +11,8 @@ impl ActionCapture
     newCmdId("Area")
     newCmdId("Record")
     newCmdId("RecordVideo")
+    newCmdId("RecordFullScreen")
+    newCmdId("RecordActiveWindow")
     newCmdId("CancelRecording")
     newCmdId("LastArea")
     newCmdId("FullScreen")
@@ -27,6 +29,7 @@ impl ActionCapture
     // both outlive, so the ids are cached here and kept for the process lifetime; there
     // is one per monitor, so the cache stays a handful of entries.
     private var screenIds: Array'String
+    private var recordScreenIds: Array'String
 
     // Returns the command id capturing the monitor at `index` in `MainWnd.monitors`.
     func screenId(index: u64)->WndId
@@ -45,6 +48,27 @@ impl ActionCapture
     func screenIndex(id: WndId)->u64
     {
         for &minted, index in screenIds where minted[] == id do
+            return index
+        return Swag.U64.Max
+    }
+
+    // Returns the command that records monitor `index` as a video.
+    func recordScreenId(index: u64)->WndId
+    {
+        if recordScreenIds.count <= index
+        {
+            recordScreenIds.reserve(index + 1)
+            while recordScreenIds.count <= index do
+                recordScreenIds.add(Format.toString("%.RecordScreen%", #scopename, recordScreenIds.count))
+        }
+
+        return recordScreenIds[index]
+    }
+
+    // Returns the recorded monitor, or `Swag.U64.Max` for another command.
+    func recordScreenIndex(id: WndId)->u64
+    {
+        for &minted, index in recordScreenIds where minted[] == id do
             return index
         return Swag.U64.Max
     }
@@ -72,6 +96,21 @@ impl IActionUI for ActionCapture
                                                   main.monitors[monitor].bounds.width,
                                                   main.monitors[monitor].bounds.height)
             evt.icon = main.icon(.Monitor)
+            return true
+        }
+
+        let recordedMonitor = ActionCapture.recordScreenIndex(cxt.id)
+        if recordedMonitor != Swag.U64.Max
+        {
+            evt.updatedFields |= .Name | .Icon | .Disabled
+            evt.disabled      = not g_Recorder and recordedMonitor >= main.monitors.count
+            evt.name          = g_Recorder ? appStrings().act_StopRecording : evt.disabled
+                                ? Format.toString(appStrings().act_RecordMonitor, recordedMonitor + 1)
+                                : Format.toString(appStrings().act_RecordMonitorSize,
+                                                  recordedMonitor + 1,
+                                                  main.monitors[recordedMonitor].bounds.width,
+                                                  main.monitors[recordedMonitor].bounds.height)
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
             return true
         }
 
@@ -103,6 +142,16 @@ impl IActionUI for ActionCapture
         case .RecordVideo:
             evt.updatedFields |= .Name | .Icon
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordVideo
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
+
+        case .RecordFullScreen:
+            evt.updatedFields |= .Name | .Icon
+            evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordFullScreen
+            evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
+
+        case .RecordActiveWindow:
+            evt.updatedFields |= .Name | .Icon
+            evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordActiveWindow
             evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
 
         case .CancelRecording:
@@ -177,6 +226,15 @@ impl IActionUI for ActionCapture
             return true
         }
 
+        let recordedMonitor = ActionCapture.recordScreenIndex(cxt.id)
+        if recordedMonitor != Swag.U64.Max
+        {
+            if not g_Recorder do
+                main.lastCapture = cxt.id
+            main.recordVideoScreen(.Monitor, recordedMonitor)
+            return true
+        }
+
         // The capture control of the top strip follows the last capture taken.
         switch cxt.id
         {
@@ -184,7 +242,7 @@ impl IActionUI for ActionCapture
             main.sendCommandEvent(main.lastCaptureCommand())
             return true
 
-        case .Area, .Record, .RecordVideo, .LastArea, .FullScreen, .ActiveWnd:
+        case .Area, .Record, .RecordVideo, .RecordFullScreen, .RecordActiveWindow, .LastArea, .FullScreen, .ActiveWnd:
             if not g_Recorder do
                 main.lastCapture = cxt.id
         }
@@ -202,6 +260,12 @@ impl IActionUI for ActionCapture
 
         case .RecordVideo:
             main.recordVideoScreen()
+
+        case .RecordFullScreen:
+            main.recordVideoScreen(.FullScreen)
+
+        case .RecordActiveWindow:
+            main.recordVideoScreen(.ActiveWindow)
 
         case .CancelRecording:
             if g_Recorder do
@@ -298,13 +362,19 @@ impl MainWnd
             return ActionCapture.Area
 
         // The per-monitor commands are minted from the monitor list; mint them before matching.
-        for index in .monitors.count do
+        for index in .monitors.count
+        {
             discard ActionCapture.screenId(index)
+            discard ActionCapture.recordScreenId(index)
+        }
         let monitor = ActionCapture.screenIndex(.lastCapture)
-        if monitor != Swag.U64.Max do
+        if monitor < .monitors.count do
             return ActionCapture.screenId(monitor)
+        let recordedMonitor = ActionCapture.recordScreenIndex(.lastCapture)
+        if recordedMonitor < .monitors.count do
+            return ActionCapture.recordScreenId(recordedMonitor)
 
-        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
+        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
             return id
         return ActionCapture.Area
     }
@@ -331,7 +401,7 @@ impl MainWnd
     }
 
     // Starts a screen recording with the selected video sound tracks.
-    mtd recordVideoScreen()
+    mtd recordVideoScreen(mode = CaptureMode.Area, monitorIndex: u64 = 0)
     {
         if g_Recorder
         {
@@ -340,6 +410,6 @@ impl MainWnd
         }
 
         g_CaptureMedia = .Video
-        catch screenShot(me, .Area) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
+        catch screenShot(me, mode, monitorIndex) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
     }
 }

@@ -175,8 +175,9 @@ whole recording loaded at once.
   integration exercises that recording path, but does not force chrome overlap or assert its
   removal from the captured pixels. Video target visibility and sound servicing remain
   app.capture.011/app.capture.013.
-- Next: run a native full-screen recording on Windows and assert its frames contain neither the
-  frame nor the pill, including a display where the pill overlaps the selected area.
+- Next: the native full-screen runner now records one monitor and the virtual desktop; assert
+  that its frames contain neither the frame nor the pill, including a display where the pill
+  overlaps the selected area.
 - Done when: the Windows recording test passes and the controls remain usable throughout it.
 - Related: app.capture.011, app.capture.013, platform.portability.097
 
@@ -213,11 +214,41 @@ whole recording loaded at once.
   editor playback loop with measured XAudio2 output. It accepts a native 1920x1080 browser source
   and a missed-slot budget. Six-second samples do not establish two-hour endurance or drift.
   The application fixes video capture at 30 fps and uses software H.264 with exact QP 0,
-  bounded parallel slices and no target bitrate. Screen acquisition runs on the interface thread;
-  a two-slot handoff overlaps it with video encoding. WASAPI servicing and AAC encoding have
-  separate bounded workers, with multimedia scheduling for the native source.
-  Storage use, remaining video stalls and source losses under sustained
-  machine load still need representative measurements.
+  bounded parallel slices and no target bitrate. Screen acquisition now runs on its own thread;
+  a two-slot handoff overlaps it with video encoding while the interface handles controls and
+  window tracking. WASAPI servicing and AAC encoding have separate bounded workers, with
+  multimedia scheduling for the native source. A six-second Windows browser recording at
+  1920x1080 with a forced 250 ms interface stall missed zero slots with both compiler executables;
+  the previous interface-driven reader necessarily lost the slots during such a stall. At
+  2304x1296, GDI short runs ranged from zero to 83 missed slots out of about 179. The new
+  `Screen.Source` uses DXGI Desktop Duplication for Windows video and X11 MIT-SHM for Linux video;
+  Windows keeps GDI as fallback. A 2304x1296 DXGI browser run with cursor, sound and a forced UI
+  stall missed 11 slots while decoding all 179 frames and replaying sound without queue loss;
+  another missed two. The native full-screen runner records a 3840x2160 monitor and a 7680x2169
+  virtual desktop, with proportional H.264 output at 4096x1156 for the latter. Direct multi-output
+  composition reduced its missed slots from 28 to five in one three-second run, though another
+  missed 23. The source reports acquisition, readback and copy costs. These short runs do not
+  establish sustained throughput; storage use, source losses and performance under sustained
+  machine load still need measurement.
+  Explicitly missed slots now use the encoder's fast held-picture path. The editor also decodes
+  video directly into its reusable canvas image, avoiding a full-resolution RGB copy per shown
+  frame. A subsequent three-second virtual-desktop run decoded its 85-frame MP4, missed five
+  slots, and spent 29 µs in total on held-picture encoding. Fresh-picture encoding still took
+  539 ms and screen acquisition/composition 2.09 seconds in that run.
+  The recorder now uses the source's unchanged-pixel result to emit held pictures without
+  BGRA scaling or a cached-image copy when the pointer is excluded. A native 3840×2160 monitor
+  run decoded all 90 output frames, including five unchanged-source polls and six missed slots;
+  the short run does not isolate a whole-pipeline gain because the displayed content and DXGI
+  presentation rate varied between runs.
+  Full-desktop captures now reduce bottom-up BGRA with parallel 32-bit nearest-neighbor copies;
+  a large synthetic case matches both the serial and byte-copy references exactly. In one native
+  7680x2169 desktop run, reduction took 228 ms for 86 output frames, compared with 510 ms in an
+  earlier run before the parallel change. DXGI changed-region readback reduced CPU pixel copies
+  in that native run to 68.7 million; the 4096x1156 MP4 decoded and missed five slots. A separate
+  full-monitor run decoded 90 frames and missed one slot. A 1920x1080 browser-area run with sound,
+  editor replay and a forced 250 ms interface stall decoded 179 frames and missed one slot. The
+  scene and display activity varied, so these timings are diagnostic rather than a throughput
+  guarantee.
   `recordVideo` deletes `fileToDiscard` on failure until adoption succeeds, even when completed
   MP4 fragments already exist. A stopped process can leave a playable orphan MP4, but library
   enumeration does not discover it without its capture document and the app has no recovery flow.
@@ -232,8 +263,9 @@ whole recording loaded at once.
 - Next: first retain completed media on recording/finalization/adoption errors and make an orphan
   MP4 recoverable as a capture; only explicit cancellation should discard useful media. Add a
   focused fault-injection test and a separate-process termination/reopen scenario.
-  Then measure a moving 1080p30 browser source with audio, select a bounded recording-quality
-  policy, and keep acquisition/encoding and audio servicing from blocking each other or input.
+  Then measure a moving 1080p30 browser source with audio under sustained load, select a bounded
+  recording-quality policy, and reduce multi-monitor readback and copying through std.screen.002
+  before promising 30 fps for large or multi-monitor areas.
   Group fragments within a stated recovery-loss budget, emit the final key-frame index and use
   it for fast opening/seeking through std.video.016. Preserve the resumable media prefix.
   Add an explicit two-hour native endurance runner with a visible time code and synchronized
@@ -248,7 +280,7 @@ whole recording loaded at once.
   termination leaves the completed prefix recoverable. Higher-resolution/cadence encoder goals
   remain in std.video.015; native control-exclusion coverage remains app.capture.030.
 - Related: app.capture.013, app.capture.030, app.capture.037, std.video.015, std.video.016,
-  platform.portability.097
+  platform.portability.097, std.screen.004
 
 ### app.capture.013 — Keep recorded sound available and synchronized over long sessions
 

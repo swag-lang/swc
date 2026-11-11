@@ -86,6 +86,15 @@ class ToolTests(unittest.TestCase):
         self.invoke(['unittests', 'native', '--no-test-native'])
         self.assertEqual([stage.name for stage in self.stages], ['native'])
 
+    def test_expected_error_sema_corpus_keeps_one_worker(self):
+        for worker_option in (['--num-cores', '3'], ['-j', '2'], ['--num-cores=3']):
+            self.invoke(['unittests', 'dm', 'sema', '-bc', 'devmode', *worker_option])
+            command = next(stage.command for stage in self.stages if stage.name == 'errors-sema')
+            self.assertEqual(command.count('--num-cores'), 1)
+            self.assertEqual(command[command.index('--num-cores') + 1], '1')
+            self.assertNotIn('-j', command)
+            self.assertIn('devmode', command)
+
     def test_workspace_dynamic_library_tracks_host_and_configuration(self):
         for windows in (False, True):
             self.invoke(['unittests', 'dm', 'workspace', '-bc', 'release', '--num-cores', '1'], windows=windows)

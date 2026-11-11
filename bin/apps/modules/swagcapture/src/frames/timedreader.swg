@@ -58,4 +58,8 @@ impl TimedReader
         try .video.decodeFrameInto(&.picture, frame)
         return &.picture
     }
+
+    // Decodes video directly into a caller's reusable picture buffer.
+    mtd readVideoInto(target: *Image, frame: u64) fail
+        => try .video.decodeFrameInto(target, frame)
 }

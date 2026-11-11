@@ -1089,7 +1089,7 @@ namespace
 
     void appendGeneratedInitWrapper(Utf8& source)
     {
-        source += "    #[Implicit]\n";
+        source += "    #[Swag.Implicit]\n";
         source += "    private mtd ";
         source += SemaSpecOp::generatedInitWrapperName();
         source += "()\n";
@@ -1103,7 +1103,7 @@ namespace
         const std::string_view wrapperName = SemaSpecOp::generatedLifecycleWrapperName(kind);
         SWC_ASSERT(!wrapperName.empty());
 
-        source += "    #[Implicit]\n";
+        source += "    #[Swag.Implicit]\n";
         source += "    private mtd ";
         source += wrapperName;
         source += "()\n";

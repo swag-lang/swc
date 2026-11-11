@@ -554,6 +554,25 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(errorOutcome.value() != null)
 }
 
+#test
+{
+    var writer: TestTiffLzwWriter
+    writer.bytes       = {}
+    writer.pending     = 0
+    writer.pendingBits = 0
+    writer.write(256, 9)
+    writer.write(65, 9)
+    writer.write(66, 9)
+    writer.write(257, 9)
+    writer.finish()
+
+    let buf = buildTiff(true, 1, 1, 1, 1, 5, 1, 8, nnBytes(writer.bytes.toSlice()), null, false)
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try decodeTiff(nnBytes(buf.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode horizontal differencing (Predictor=2) after LZW expansion.
 #test
 {

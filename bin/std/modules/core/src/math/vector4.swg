@@ -235,11 +235,8 @@ impl Vector4
     // Returns the Euclidean distance between this vector and `dest`.
     mtd const distanceTo(dest: Vector4)->f32
     {
-        let xn = (.x - dest.x)
-        let yn = (.y - dest.y)
-        let zn = (.z - dest.z)
-        let wn = (.w - dest.w)
-        return Vector4{xn, yn, zn, wn}.length()
+        let difference = me - dest
+        return difference.length()
     }
 
     // Returns the squared distance between this vector and `dest`.
@@ -247,11 +244,8 @@ impl Vector4
     // It avoids the square root of [[Core.Math.Vector4.distanceTo]], which is enough to compare distances.
     mtd const distanceSquaredTo(dest: Vector4)->f32
     {
-        let xn = (.x - dest.x)
-        let yn = (.y - dest.y)
-        let zn = (.z - dest.z)
-        let wn = (.w - dest.w)
-        return (xn * xn) + (yn * yn) + (zn * zn) + (wn * wn)
+        let difference = me - dest
+        return difference.lengthSquared()
     }
 
     // Scales this vector to unit length in place.

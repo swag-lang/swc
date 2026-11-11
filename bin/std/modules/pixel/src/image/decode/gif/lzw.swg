@@ -116,10 +116,11 @@ impl Decoder
         var ret           = 0
         let frmSize       = cast(u32, .fw) * .fh
         var tableIsFull   = 0
+        var hasEndCode    = false
         var strLen        = 0'u16
 
         var entry: Entry
-        while frmOff < frmSize
+        while true
         {
             if key == clear
             {
@@ -127,7 +128,7 @@ impl Decoder
                 .table.nentries = (1 << (keySize - 1)) + 2
                 tableIsFull     = 0
             }
-            elif not tableIsFull
+            elif frmOff < frmSize and not tableIsFull
             {
                 ret = .addEntry(cast(u16, (strLen + 1)), key, entry.suffix)
                 if .table.nentries == 0x1000
@@ -140,12 +141,18 @@ impl Decoder
             key = try .getKey(keySize, &subLen, &shift, &byte)
             if key == clear do
                 continue
-            if key == stop or key == 0x1000 do
+            if key == stop
+            {
+                hasEndCode = true
                 break
-            if ret == 1 do
-                keySize += 1
+            }
+
+            if key == 0x1000 do
+                break
             if key >= .table.nentries do
                 fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
+            if frmOff >= frmSize do
+                fail InvalidFormatError{"GIF LZW data exceeds its frame"}
             entry  = .table.entries.storage()[key]
             strLen = entry.length
             if not strLen or strLen > frmSize - frmOff do
@@ -166,14 +173,16 @@ impl Decoder
             }
 
             frmOff += strLen
+            if ret == 1 and frmOff < frmSize do
+                keySize += 1
             if key < .table.nentries - 1 and not tableIsFull do
                 .table.entries[.table.nentries - 1].suffix = entry.suffix
         }
 
         if frmOff != frmSize do
             fail InvalidFormatError{"GIF LZW frame has too few pixels"}
-        if key == stop do
-            subLen = try .readU8()     // Must be zero!
+        if not hasEndCode do
+            fail InvalidFormatError{"GIF LZW stream needs an end code"}
         .stream    = .streamStart + end
         .streamLen = remainEnd
     }

@@ -167,6 +167,20 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 
 #test
 {
+    const MissingEndCode: [34] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        1, 0, 1, 0, 0x80, 0, 0,
+        0, 0, 0, 255, 255, 255,
+        0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+        2, 1, 1, 0, 0x3B]
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("missing-eoi.gif", MissingEndCode) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+#test
+{
     var bytes = expect File.readAllBytes(getTestDataPath("test.gif"))
     var gceOffset: u64
     for i in bytes.count - 7

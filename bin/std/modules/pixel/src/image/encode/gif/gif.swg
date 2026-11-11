@@ -1,5 +1,5 @@
 //! Format: Graphics Interchange Format (GIF89a) encoder component.
-//! Supported: One indexed frame with generated palette, LZW compression, and binary transparency.
+//! Supported: One 8-bit RGB, BGR, grayscale, or alpha frame with a generated palette, LZW compression, and binary transparency.
 //! Not supported: Interlaced output and partial alpha; animations are written by [[Gif.AnimationWriter]].
 //! Role: This file owns encoder state and top-level GIF emission.
 //
@@ -64,6 +64,13 @@ internal impl IImageEncoder for Encoder
             fail UnsupportedFormatError{"width is too big"}
         if image.height > Swag.U16.Max do
             fail UnsupportedFormatError{"height is too big"}
+        if image.pixelFormat != .RGB8 and
+           image.pixelFormat != .BGR8 and
+           image.pixelFormat != .RGBA8 and
+           image.pixelFormat != .BGRA8 and
+           image.pixelFormat != .Gray8 and
+           image.pixelFormat != .GrayAlpha8 do
+            fail UnsupportedFormatError{"unsupported pixel format"}
 
         let palette = buildPalette(image)
         let packed  = 0x80'u8 | ((palette.tableBits - 1) << 4) | (palette.tableBits - 1)

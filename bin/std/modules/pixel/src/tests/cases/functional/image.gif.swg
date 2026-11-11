@@ -248,6 +248,40 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(Memory.compare(src.pixels.storage(), decoded.pixels.storage(), src.pixels.count) == 0)
 }
 
+// Encode 8-bit grayscale images as neutral RGB colours and preserve grayscale transparency.
+#test
+{
+    var gray    = Image.create(2, 1, .Gray8)
+    let grayBuf = gray.pixels.storage()
+    grayBuf[0] = 37'u8
+    grayBuf[1] = 219'u8
+    let grayBytes   = expect gray.encodeToBytes("gray.gif")
+    let grayDecoded = expect Image.decode("gray.gif", grayBytes.toSlice())
+    assertGifPixelAt(grayDecoded, 0, 0, 37'u8, 37'u8, 37'u8, 255'u8)
+    assertGifPixelAt(grayDecoded, 1, 0, 219'u8, 219'u8, 219'u8, 255'u8)
+
+    var grayAlpha = Image.create(2, 1, .GrayAlpha8)
+    let alphaBuf  = grayAlpha.pixels.storage()
+    alphaBuf[0] = 80'u8
+    alphaBuf[1] = 0'u8
+    alphaBuf[2] = 180'u8
+    alphaBuf[3] = 255'u8
+    let alphaBytes   = expect grayAlpha.encodeToBytes("gray-alpha.gif")
+    let alphaDecoded = expect Image.decode("gray-alpha.gif", alphaBytes.toSlice())
+    assertGifPixelAt(alphaDecoded, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
+    assertGifPixelAt(alphaDecoded, 1, 0, 180'u8, 180'u8, 180'u8, 255'u8)
+}
+
+// Higher precision and floating point formats must fail instead of silently encoding as black.
+#test
+{
+    var src: Image
+    src.init(1, 1, .Gray16)
+    var errorOutcome: Swag.Error
+    catch { discard try src.encodeToBytes("unsupported.gif") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode RGBA8 with GIF's single transparent index.
 #test
 {

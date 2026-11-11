@@ -33,6 +33,12 @@ impl Encoder
 
         switch image.pixelFormat
         {
+        case .Gray8:
+            result.setArgb(255, pix[0], pix[0], pix[0])
+
+        case .GrayAlpha8:
+            result.setArgb(pix[1], pix[0], pix[0], pix[0])
+
         case .BGR8:
             result.setArgb(255, pix[2], pix[1], pix[0])
 

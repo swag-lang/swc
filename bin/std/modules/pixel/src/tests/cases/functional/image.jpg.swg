@@ -254,6 +254,27 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(err10 != null)
 }
 
+#test
+{
+    var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    var sofOffset = Swag.U64.Max
+
+    // EXIF thumbnails can contain their own SOF marker before the main image.
+    for i in bytes.count - 11
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC0 do
+            sofOffset = i
+    }
+
+    Swag.require(sofOffset != Swag.U64.Max)
+    bytes[sofOffset + 11] = 0     // The first component's horizontal sampling factor.
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("zero-sampling.jpg", bytes.toSlice()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode BGR8 and round-trip through the JPEG decoder.
 #test
 {

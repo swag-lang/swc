@@ -335,6 +335,8 @@ impl Decoder
             .compSampH[i] = .getBits1(4)
             .compSampV[i] = .getBits1(4)
             .compQuant[i] = .getBits1(8)
+            if .compSampH[i] < 1 or .compSampH[i] > 4 or .compSampV[i] < 1 or .compSampV[i] > 4 do
+                fail InvalidFormatError{"JPEG component sampling factors accept values from 1 through 4"}
         }
     }
 

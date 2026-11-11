@@ -30,6 +30,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
                ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record,
                ActionCapture.CaptureCursor, ActionOptions.Options, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
+    Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
     Swag.require(not testPanelOffers(panel, ActionCapture.screenId(0)))
     Swag.require(not testPanelOffers(panel, ActionCapture.recordScreenId(0)))
 
@@ -69,7 +70,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.LastArea,
                ActionCapture.RecordVideo, ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow,
                ActionCapture.Record, ActionGlobal.ShowEditor, ActionGlobal.ShowLibrary,
-               ActionOptions.Options, ActionGlobal.Exit] do
+               ActionOptions.Options, ActionGlobal.Minimize, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     Swag.require(not testPanelOffers(panel, ActionGlobal.ShowHub))
     Swag.require(panel.recents == null)

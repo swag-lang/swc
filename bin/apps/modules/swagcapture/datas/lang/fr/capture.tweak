@@ -251,7 +251,7 @@ act_Line               Ligne
 act_LocateCaptureFile  Localiser le fichier de capture
 act_LocateLinkedImage  Localiser l'image liée
 act_MediumView         Vignettes moyennes
-act_Minimize           Réduire
+act_Minimize           Réduire dans la zone de notification
 act_MoveBackward       Reculer
 act_MoveForward        Avancer
 act_NewFromClipboard   Nouvelle depuis le presse-papiers

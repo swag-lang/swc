@@ -107,7 +107,8 @@ impl HubRecents
 // main window may be hidden while it is on screen.
 //
 // The hub stands in the upper middle of the screen and is what the application starts on by
-// default: what to capture, what to record, the last captures, then the editor and the library.
+// default: what to capture, what to record, the last captures, then the editor, the library
+// and the way back behind the icon.
 // The menu of the notification-area icon stands at the pointer and carries every capture command
 // with its settings. While a recording runs, both offer to stop it instead of starting another.
 //
@@ -291,6 +292,10 @@ impl ResidentPanel
         {
             .addItem(ActionOptions.Options)
             .addSeparator()
+
+            // The hub says how to leave it and keep the application; the menu is the icon's own.
+            if me.kind == .Hub do
+                .addItem(ActionGlobal.Minimize)
             .addItem(ActionGlobal.Exit)
 
             .owner     = me.main

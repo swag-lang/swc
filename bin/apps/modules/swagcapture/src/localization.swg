@@ -376,7 +376,7 @@ struct AppStrings
     act_LocateCaptureFile:        string = "Locate Capture File"
     act_LocateLinkedImage:        string = "Locate Linked Image"
     act_MediumView:               string = "Medium View"
-    act_Minimize:                 string = "Minimize"
+    act_Minimize:                 string = "Minimize to Notification Area"     // Hides the window and the hub; the icon stays.
     act_MoveBackward:             string = "Move Backward"
     act_MoveForward:              string = "Move Forward"
     act_NewFromClipboard:         string = "New from Clipboard"

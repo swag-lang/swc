@@ -736,7 +736,7 @@ the screen to its work.
   icon alone. The hub is a floating list in the upper middle of the screen, on a surface of its
   own: what to capture and what to record under their section labels, each with its key, the
   last captures as one row of pictures that open in the editor, then the editor, the library,
-  the options and the way out. It has no accent: nothing in it acts before a choice. The menu
+  the options, the way back behind the icon and the way out. It has no accent: nothing in it acts before a choice. The menu
   of the icon stands at the pointer and carries every capture command, picture then video, a
   monitor of its own only when there are several, then the cursor choice and the waits as one
   row of exclusive choices. While a recording runs, both offer to stop or abandon it instead of

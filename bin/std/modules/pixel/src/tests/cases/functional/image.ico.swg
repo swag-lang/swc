@@ -623,6 +623,19 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(errNone != null)
 }
 
+#test
+{
+    var grayscale = Image.create(1, 1, .Gray8)
+    var encodeError: Swag.Error
+    discard catch grayscale.encode("grayscale.ico") as encodeError
+    Swag.require(encodeError.value() != null)
+
+    let entries:  [1] Image = [grayscale]
+    var setError: Swag.Error
+    discard catch Ico.encodeAll(entries) as setError
+    Swag.require(setError.value() != null)
+}
+
 // The whole set reaches a file through the namespace entry point.
 #test
 {

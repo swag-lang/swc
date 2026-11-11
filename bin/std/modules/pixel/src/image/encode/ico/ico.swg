@@ -27,7 +27,8 @@ internal impl IImageEncoder for Encoder
 //
 // An icon is picked by size at display time, so a favicon carrying 16, 32, and 48 pixel
 // entries stays sharp in a tab, a bookmark, and a shortcut alike. Each image is written as a
-// 32-bit BGRA entry whose alpha channel carries transparency.
+// 32-bit BGRA entry whose alpha channel carries transparency. Every input image must use
+// `RGB8`, `BGR8`, `RGBA8`, or `BGRA8`.
 //
 // ## Example
 //
@@ -55,6 +56,11 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
             fail InvalidFormatError{"invalid image"}
         if image.width > 256 or image.height > 256 do
             fail UnsupportedFormatError{"icon dimensions must be <= 256"}
+        if image.pixelFormat != .RGB8 and
+           image.pixelFormat != .BGR8 and
+           image.pixelFormat != .RGBA8 and
+           image.pixelFormat != .BGRA8 do
+            fail UnsupportedFormatError{"ICO encoding only supports RGB8, BGR8, RGBA8, and BGRA8 images"}
     }
 
     // ICONDIR
@@ -92,6 +98,8 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
 }
 
 // Writes an icon file holding every image, in the order given.
+//
+// Every input image must use `RGB8`, `BGR8`, `RGBA8`, or `BGRA8`.
 public func save(fileName: string, images: const [..] Image) fail
 {
     let buffer = try encodeAll(images)

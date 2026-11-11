@@ -254,12 +254,12 @@ impl Decoder
                 fail InvalidFormatError{"bad dht marker"}
 
             left -= i
-            if (index & 0x10) > 0x10 do
-                fail InvalidFormatError{"bad dht index"}
+            let tableClass = index >> 4
+            let tableId    = index & 0x0F
+            if tableClass > 1 or tableId >= (MaxHuffTables >> 1) do
+                fail InvalidFormatError{"JPEG Huffman table class or identifier is invalid"}
 
-            index = (index & 0x0F) + ((index & 0x10) >> 4) * (MaxHuffTables >> 1)
-            if index >= MaxHuffTables do
-                fail InvalidFormatError{"bad dht index"}
+            index = tableId + tableClass * (MaxHuffTables >> 1)
 
             .huffNum[index].resize(17)
             .huffVal[index].resize(256)

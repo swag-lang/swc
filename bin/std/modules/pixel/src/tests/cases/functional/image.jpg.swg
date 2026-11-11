@@ -275,6 +275,27 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(errorOutcome.value() != null)
 }
 
+#test
+{
+    var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    var dhtOffset = Swag.U64.Max
+
+    // EXIF thumbnails can define their own Huffman tables before the main image.
+    for i in bytes.count - 5
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC4 do
+            dhtOffset = i
+    }
+
+    Swag.require(dhtOffset != Swag.U64.Max)
+    bytes[dhtOffset + 4] = 0x20     // Huffman table class 2 is reserved.
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("invalid-huffman-class.jpg", bytes.toSlice()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode BGR8 and round-trip through the JPEG decoder.
 #test
 {

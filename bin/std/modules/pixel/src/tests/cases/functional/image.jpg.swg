@@ -296,6 +296,48 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(errorOutcome.value() != null)
 }
 
+#test
+{
+    var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    var sosOffset = Swag.U64.Max
+
+    // EXIF thumbnails can contain their own scan markers before the main image.
+    for i in bytes.count - 7
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+            sosOffset = i
+    }
+
+    Swag.require(sosOffset != Swag.U64.Max)
+    bytes[sosOffset + 6] = 0x40     // DC Huffman table id 4 is outside the supported range.
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("invalid-sos-table.jpg", bytes.toSlice()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+#test
+{
+    var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    var sosOffset = Swag.U64.Max
+
+    // EXIF thumbnails can contain their own scan markers before the main image.
+    for i in bytes.count - 7
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+            sosOffset = i
+    }
+
+    Swag.require(sosOffset != Swag.U64.Max)
+    bytes[sosOffset + 6] = 0x04     // AC Huffman table id 4 is outside the supported range.
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("invalid-sos-table.jpg", bytes.toSlice()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode BGR8 and round-trip through the JPEG decoder.
 #test
 {

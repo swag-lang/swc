@@ -429,9 +429,14 @@ impl Decoder
             if ci >= .compsInFrame do
                 fail InvalidFormatError{"bad sos comp id"}
 
+            let dcTable = (c >> 4) & 15
+            let acTable = c & 15
+            if dcTable >= (MaxHuffTables >> 1) or acTable >= (MaxHuffTables >> 1) do
+                fail InvalidFormatError{"JPEG scan Huffman table identifiers must be from 0 through 3"}
+
             .compList[i]   = ci
-            .compDcTab[ci] = (c >> 4) & 15
-            .compAcTab[ci] = (c & 15) + (MaxHuffTables >> 1)
+            .compDcTab[ci] = dcTable
+            .compAcTab[ci] = acTable + (MaxHuffTables >> 1)
         }
 
         .spectralStart  = .getBits1(8)

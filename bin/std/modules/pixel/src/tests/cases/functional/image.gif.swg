@@ -165,6 +165,34 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(err13 != null)
 }
 
+#test
+{
+    var bytes = expect File.readAllBytes(getTestDataPath("test.gif"))
+    var gceOffset: u64
+    for i in bytes.count - 7
+    {
+        if bytes[i] == 0x21 and bytes[i + 1] == 0xF9 and bytes[i + 2] == 4
+        {
+            gceOffset = i
+            break
+        }
+    }
+
+    Swag.require(gceOffset != 0)
+    bytes[gceOffset + 7] = 1     // A graphic control extension must end with zero.
+
+    var image: Image
+    var terminatorError: Swag.Error
+    catch { image = try Image.decode("bad-control.gif", bytes.toSlice()) } as terminatorError
+    Swag.require(terminatorError.value() != null)
+
+    bytes[gceOffset + 7] = 0
+    bytes[gceOffset + 2] = 3     // The payload contains exactly four bytes.
+    var sizeError: Swag.Error
+    catch { image = try Image.decode("bad-control.gif", bytes.toSlice()) } as sizeError
+    Swag.require(sizeError.value() != null)
+}
+
 // Encode RGB8 images with an exact palette and preserve the colors through the decoder.
 #test
 {

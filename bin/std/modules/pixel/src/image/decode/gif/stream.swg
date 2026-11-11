@@ -77,8 +77,8 @@ impl Decoder
     #[Swag.Propagate]
     mtd readGraphicControlExt() fail
     {
-        // Discard block size (always 0x04)
-        .seek(1)
+        if .readU8() != 4 do
+            fail InvalidFormatError{"GIF graphic control extension needs a four-byte payload"}
         let rdit = .readU8()
         .gce.disposal     = (rdit >> 2) & 3
         .gce.input        = rdit & 2
@@ -86,8 +86,8 @@ impl Decoder
         .gce.delay        = .readU16()
         .gce.tindex       = .readU8()
 
-        // Skip block terminator
-        .seek(1)
+        if .readU8() != 0 do
+            fail InvalidFormatError{"GIF graphic control extension needs a zero terminator"}
     }
 
     mtd readCommentExt() fail

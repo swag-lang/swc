@@ -426,7 +426,8 @@ private impl TagBin
             if Reflection.isDynamicArray(toStruct)
             {
                 // Conversion from simple value to Core.Array
-                if (not fromStruct or not Reflection.isDynamicArray(fromStruct)) and .canConvertType(Reflection.dynamicArrayElementType(toStruct), srcType)
+                if (not fromStruct or not Reflection.isDynamicArray(fromStruct)) and
+                   .canConvertType(Reflection.dynamicArrayElementType(toStruct), srcType)
                 {
                     .convertValToArray = true
                     return true

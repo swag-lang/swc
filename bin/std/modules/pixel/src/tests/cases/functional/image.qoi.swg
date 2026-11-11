@@ -33,6 +33,15 @@ using Swag, Core
     Swag.require(Memory.compare(image.pixels.storage(), expected.buffer, expected.count) == 0)
 }
 
+// A run updates the QOI index table for a following INDEX chunk of the same pixel.
+#test
+{
+    const Bytes:    [24] u8 = ['q', 'o', 'i', 'f', 0, 0, 0, 2, 0, 0, 0, 1, 4, 0, 0xC0, 53, 0, 0, 0, 0, 0, 0, 0, 1]
+    const Expected: [8] u8  = [0, 0, 0, 255, 0, 0, 0, 255]
+    let image = expect Image.decode("run-index.qoi", Bytes, {})
+    Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
+}
+
 // Round-trip every existing packed channel order without changing logical colors.
 #test
 {

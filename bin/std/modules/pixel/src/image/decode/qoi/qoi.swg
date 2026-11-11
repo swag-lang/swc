@@ -155,6 +155,7 @@ internal impl IImageDecoder for Decoder
                         output += 1
                     }
 
+                    index[hash(previous)] = previous
                     continue
                 }
             }

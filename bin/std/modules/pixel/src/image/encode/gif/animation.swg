@@ -66,11 +66,13 @@ public impl AnimationWriter
     // Adds `image`, shown for `duration` microseconds.
     //
     // The image must have the size of the animation, in an 8-bit RGB or BGR format with or without
-    // alpha. Durations that overflow the animation's microsecond clock are rejected before the
-    // frame is accepted.
+    // alpha, with a complete pixel buffer. Durations that overflow the animation's microsecond
+    // clock are rejected before the frame is accepted.
     mtd addFrame(image: Image, duration: u64) fail
     {
         Swag.assert(not .isEnded)
+        if not image.isValid() or image.pixels.count != image.byteCount do
+            fail InvalidFormatError{"invalid frame image"}
         if image.width != .width or image.height != .height do
             fail InvalidFormatError{"frame size differs from the animation size"}
         if image.pixelFormat != .BGRA8 and

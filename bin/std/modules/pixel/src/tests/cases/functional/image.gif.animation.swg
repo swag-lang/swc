@@ -204,6 +204,33 @@ func sameColors(decoded: Image, source: Image)->bool
     Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 0.1) < 0.001)
 }
 
+// An image whose public pixel buffer was released is rejected before frame processing reads it.
+#test
+{
+    var name = String.from("gif-invalid-frame-")
+    name += Guid64.random().toString()
+    name += ".gif"
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    var frame = Image.create(1, 1, .RGB8)
+    frame.pixels.free()
+    var writer = expect Gif.AnimationWriter.create(path, 1, 1)
+    var error: Swag.Error
+    discard catch writer.addFrame(frame, 100_000) as error
+    Swag.require(error.value() != null)
+
+    var truncated = Image.create(1, 1, .RGB8)
+    truncated.pixels.count = 0
+    var truncatedError: Swag.Error
+    discard catch writer.addFrame(truncated, 100_000) as truncatedError
+    Swag.require(truncatedError.value() != null)
+
+    let valid = Image.create(1, 1, .RGB8)
+    expect writer.addFrame(valid, 100_000)
+    expect writer.end()
+}
+
 // A still GIF compresses repeated colours instead of storing one code per pixel.
 #test
 {

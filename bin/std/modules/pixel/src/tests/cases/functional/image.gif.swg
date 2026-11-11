@@ -282,6 +282,16 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(errorOutcome.value() != null)
 }
 
+// A truncated public pixel array must be rejected before the encoder reads its storage.
+#test
+{
+    var src = Image.create(1, 1, .RGB8)
+    src.pixels.count = 0
+    var errorOutcome: Swag.Error
+    catch { discard try src.encodeToBytes("truncated.gif") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Encode RGBA8 with GIF's single transparent index.
 #test
 {

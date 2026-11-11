@@ -159,7 +159,9 @@ impl Vector3
         let scale = Math.max(Math.abs(.x), Math.abs(.y), Math.abs(.z))
         if scale == 0 do
             return 0'f32
-        return scale * sqrt(((.x / scale) * (.x / scale)) + ((.y / scale) * (.y / scale)) + ((.z / scale) * (.z / scale)))
+        return scale * sqrt(((.x / scale) * (.x / scale)) +
+                            ((.y / scale) * (.y / scale)) +
+                            ((.z / scale) * (.z / scale)))
     }
 
     // Returns the squared length of the vector.

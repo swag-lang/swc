@@ -165,6 +165,8 @@ struct AppStrings
     msg_FailedExportCaptures:  string = "Cannot export the selected captures"
     msg_FailedMoveCaptures:    string = "Some captures could not be moved. They are still where they were."
     msg_ShortcutsUnavailableHelp: string = "Another app may own these keys. Restart Swag Capture to try again."
+    msg_ResidentTitle:         string = "Swag Capture is still running"                                                  // Leads the notification shown once the hub or the window is closed.
+    msg_ResidentText:          string = "Double-click its icon in the notification area to open it, right-click for the menu."     // Says where the application went.
     msg_ResetStyles:           string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:    string = "Rename Capture"     // Title of the capture rename dialog.
     ui_Outline:                string = "Outline"            // Label of the outline thickness slider.

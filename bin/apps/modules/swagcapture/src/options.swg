@@ -116,6 +116,11 @@ struct EditorOptions
     #[Description("Choose what opens when Swag Capture starts")]
     startup: StartupMode = .Hub
 
+    // How many more times closing the hub or the window says that the application keeps running
+    // behind its icon: often enough to be read once, then never again.
+    #[Hidden]
+    residentNotices: s32 = 3
+
     #[Hidden]
     theme: AppearanceTheme = .Dark
 

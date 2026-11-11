@@ -144,3 +144,37 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     host.pump()
     Swag.require(main.residentPanel == null and surface.isHidden)
 }
+
+// Leaving the hub with nothing left on screen says that the application keeps running, the
+// first few times only; the menu of the icon and a hub over the visible window say nothing.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    let surface = unwrap main.surface
+    let notices = main.editorOptions.residentNotices
+    Swag.require(notices > 0)
+
+    surface.show()
+    testOpenResidentPanel(&host, main, .Hub).choose(null)
+    Swag.require(main.editorOptions.residentNotices == notices)
+
+    surface.hide()
+    testOpenResidentPanel(&host, main, .Menu).choose(null)
+    Swag.require(main.editorOptions.residentNotices == notices)
+
+    for left in reversed(notices)
+    {
+        testOpenResidentPanel(&host, main, .Hub).choose(null)
+        Swag.require(main.editorOptions.residentNotices == left)
+    }
+
+    Swag.require(not main.noticeResident())
+    Swag.require(main.editorOptions.residentNotices == 0)
+}

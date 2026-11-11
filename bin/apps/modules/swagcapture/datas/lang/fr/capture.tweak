@@ -134,6 +134,8 @@ msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
 msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
 msg_FailedMoveCaptures Certaines captures n'ont pas pu être déplacées. Elles sont restées à leur place.
 msg_ShortcutsUnavailableHelp Une autre application utilise peut-être ces touches. Relancez Swag Capture pour réessayer.
+msg_ResidentTitle      Swag Capture reste actif
+msg_ResidentText       Double-cliquez sur son icône dans la zone de notification pour l'ouvrir, clic droit pour le menu.
 act_ActualSize         Taille réelle
 act_Arrow              Flèche
 act_BigView            Grandes vignettes

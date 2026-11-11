@@ -243,9 +243,16 @@ impl ResidentPanel
     mtd choose(id: WndId?)
     {
         let main = .main
+        let kind = .kind
         .close()
-        if not id do
+
+        // A hub left without a choice leaves nothing on screen: say where the application is.
+        if not id
+        {
+            if kind == .Hub do
+                main.noticeResident()
             return
+        }
 
         // The library and the options stand in the main window, which may be hidden.
         if id == ActionGlobal.ShowLibrary or id == ActionOptions.Options do
@@ -303,6 +310,9 @@ impl ResidentPanel
         .menu.destroy()
         .fill()
         .applyLayout()
+
+        // The list that left may have held the keyboard: `Esc` stays with the panel.
+        .setFocus()
 
         // A floating panel stays on the monitor it stands on, whatever the pointer did since.
         if .floating

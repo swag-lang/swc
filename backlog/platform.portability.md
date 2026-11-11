@@ -1389,6 +1389,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   both platforms.
 - Related: app.capture.036, platform.portability.099
 
+### platform.portability.102 — The notification-area icon cannot notify on Linux
+
+- Evidence: `Gui.Surface.showTrayMessage` shows a notification through `Shell_NotifyIconW` on
+  Windows and does nothing on Linux. Swag Capture uses it to say that it keeps running behind
+  its icon once its hub or its window is closed, so a Linux reader is not told.
+- Next: send the notification through the `org.freedesktop.Notifications` D-Bus service, and
+  fall back to the XEmbed `_NET_SYSTEM_TRAY_OPCODE` message only where no service answers.
+- Done when: the same call shows a silent notification on a Linux desktop with a notification
+  service, covered by an integration test, and stays silent without one.
+
 ### platform.portability.101 — Linux has no screen recording or sound capture source
 
 - Evidence: Swag Capture on Linux grabs still pictures through X11 only. The animation recorder

@@ -242,8 +242,11 @@ impl IWnd for MainWnd
         {
             evt.accepted = true
             .saveAppState()
-            if .editorOptions.hideOnClose do
+            if .editorOptions.hideOnClose
+            {
                 .surface?.hide()
+                .noticeResident()
+            }
             else do
                 .postCommandEvent(ActionGlobal.Exit)
         }
@@ -373,6 +376,25 @@ impl MainWnd
         catch g_App.loadState()
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         .recentWnd.scheduleLoadRecent()
+    }
+
+    // Says, from the notification-area icon, that the application keeps running behind it, and
+    // reports whether it did.
+    //
+    // Closing the hub or the window leaves nothing on screen, which reads as quitting. The
+    // notice is shown the first few times only, and never while the window is on screen: it
+    // teaches where the application went, then stays out of the way.
+    #[Swag.Discardable]
+    mtd noticeResident()->bool
+    {
+        let surface = unwrap .surface
+        if not surface.isHidden or .editorOptions.residentNotices <= 0 do
+            return false
+
+        .editorOptions.residentNotices -= 1
+        surface.showTrayMessage(appStrings().msg_ResidentTitle, appStrings().msg_ResidentText)
+        .saveAppState()
+        return true
     }
 
     // Puts the window on screen, in front of the others.

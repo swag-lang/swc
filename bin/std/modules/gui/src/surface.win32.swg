@@ -912,6 +912,39 @@ impl Surface
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
     }
 
+    // Shows a short notification from the notification-area icon of this surface.
+    //
+    // `title` leads the notification and `message` says the rest; the system keeps at most 63
+    // UTF-16 units of the first and 255 of the second. The notification is silent, carries the
+    // icon set by [[Gui.Surface.setTrayIcon]], and leaves on its own: it asks no answer, and the
+    // system may hold it back while the reader asked not to be disturbed. Nothing is shown
+    // without a notification-area icon.
+    mtd showTrayMessage(title, message: string)
+    {
+        if not .trayIcon or not .app.renderer.needsNativeWindow() do
+            return
+
+        var tnid: NOTIFYICONDATAW
+        tnid.cbSize      = #sizeof(NOTIFYICONDATAW)
+        tnid.hWnd        = .hWnd
+        tnid.uID         = TrayIconID
+        tnid.uFlags      = NIF_INFO
+        tnid.dwInfoFlags = NIIF_USER | NIIF_NOSOUND | NIIF_RESPECT_QUIET_TIME
+
+        // Writes `text` into a zeroed field of `fieldBytes` bytes, keeping its terminator.
+        func fill(field: [*] u16, fieldBytes: u64, text: string)
+        {
+            let wide  = Utf16.fromUtf8(text)
+            let units = Math.min(wide.count, fieldBytes / #sizeof(u16) - 1)
+            for index in units do
+                field[index] = wide[index]
+        }
+
+        fill(&tnid.szInfoTitle[0], #sizeof(tnid.szInfoTitle), title)
+        fill(&tnid.szInfo[0], #sizeof(tnid.szInfo), message)
+        catch Shell_NotifyIconW(NIM_MODIFY, &tnid)
+    }
+
     // Removes the notification-area icon owned by this surface, if any.
     mtd removeTrayIcon()
     {

@@ -850,6 +850,15 @@ impl Surface
                                                                 unwrap pixels.buffer))
     }
 
+    // Shows a short notification from the notification-area icon of this surface.
+    //
+    // The XEmbed tray protocol leaves its balloon messages to the tray manager, and few show
+    // them: nothing is shown on this platform yet.
+    mtd showTrayMessage(title, message: string)
+    {
+        discard title, message
+    }
+
     // Removes the notification-area icon owned by this surface.
     mtd removeTrayIcon()
     {

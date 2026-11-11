@@ -409,6 +409,15 @@ const NIF_GUID     = 0x00000020
 const NIF_REALTIME = 0x00000040
 const NIF_SHOWTIP  = 0x00000080
 
+const NIIF_NONE               = 0x00000000
+const NIIF_INFO               = 0x00000001
+const NIIF_WARNING            = 0x00000002
+const NIIF_ERROR              = 0x00000003
+const NIIF_USER               = 0x00000004
+const NIIF_NOSOUND            = 0x00000010
+const NIIF_LARGE_ICON         = 0x00000020
+const NIIF_RESPECT_QUIET_TIME = 0x00000080
+
 struct NOTIFYICONDATAA
 {
     public

@@ -556,6 +556,18 @@ func expectVec4(actual, expected: Math.Vector4)
 
 #test
 {
+    // The component squares overflow or underflow, but each vector length remains representable.
+    Swag.require(Math.Vector2{3e30, 4e30}.length() == 5e30)
+    Swag.require(Math.Vector3{0, 3e30, 4e30}.length() == 5e30)
+    Swag.require(Math.Vector4{0, 0, 3e30, 4e30}.length() == 5e30)
+
+    Swag.require(Math.Vector2{3e-30, 4e-30}.length() == 5e-30)
+    Swag.require(Math.Vector3{0, 3e-30, 4e-30}.length() == 5e-30)
+    Swag.require(Math.Vector4{0, 0, 3e-30, 4e-30}.length() == 5e-30)
+}
+
+#test
+{
     var vec = Math.Vector4{2, 4, 5, 6}
     vec.setLength(18)
     expectVec4(vec, {4, 8, 10, 12})

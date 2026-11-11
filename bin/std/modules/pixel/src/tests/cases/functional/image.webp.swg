@@ -272,12 +272,18 @@ func assertEncodedWebpRoundtrip(source: Image)
     }
 
     Swag.require(frameOffset > 0)
-    bytes[frameOffset] = (bytes[frameOffset] & 0xF1) | 0x08
+    let frameTag = bytes[frameOffset]
+    bytes[frameOffset] = (frameTag & 0xF1) | 0x08
 
     var image: Image
     var versionErrorOutcome: Swag.Error
     catch { image = try Image.decode("reserved-version.webp", bytes.toSlice()) } as versionErrorOutcome
     Swag.require(versionErrorOutcome.value() != null)
+
+    bytes[frameOffset] = frameTag & 0xEF
+    var showFrameErrorOutcome: Swag.Error
+    catch { image = try Image.decode("hidden-frame.webp", bytes.toSlice()) } as showFrameErrorOutcome
+    Swag.require(showFrameErrorOutcome.value() != null)
 }
 
 // Decode a VP8 fixture and compare it with the official split-plane YCbCr golden image.

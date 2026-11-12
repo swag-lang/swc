@@ -122,6 +122,27 @@ private
     }
 }
 
+// PNG tEXt keywords use the Latin-1 keyword alphabet and have at most 79 bytes.
+private func isValidTextKeyword(keyword: const [..] u8)->bool
+{
+    if keyword.count == 0 or keyword.count > 79 do
+        return false
+
+    var previousSpace = false
+    for byte, index in keyword
+    {
+        if byte < 32 or (byte > 126 and byte < 161) do
+            return false
+
+        let isSpace = byte == ' 'u8
+        if isSpace and (index == 0 or index + 1 == keyword.count or previousSpace) do
+            return false
+        previousSpace = isSpace
+    }
+
+    return true
+}
+
 // Encodes PNG images with configurable filtering, compression, and interlacing.
 //
 // The encoder is opaque; use [[Pixel.Png.EncodeOptions]] to configure output.
@@ -243,6 +264,9 @@ impl Encoder
                 .finishChunk()
                 continue
             }
+
+            if not isValidTextKeyword(md.tag.toSlice()) do
+                fail UnsupportedFormatError{"PNG text metadata tag is not a valid tEXt keyword"}
 
             .writePtr = .writeHeader(TypeTEXt, md.tag.count + 1 + md.value.count)
             Memory.copy(.writePtr, md.tag.storage(), md.tag.count)

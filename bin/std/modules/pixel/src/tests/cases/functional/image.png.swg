@@ -1483,6 +1483,65 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(cast(string, img.metadata[0].toSlice()) == "drawing.editor")
 }
 
+// PNG tEXt keywords outside the format's byte and spacing rules are rejected, while valid text
+// metadata still round-trips.
+#test
+{
+    var image = Image.create(1, 1, .RGB8)
+    var longTag: ImageMetadata
+    longTag.tag.resize(80)
+    for index in longTag.tag.count do
+        longTag.tag[index] = 'a'
+    longTag.value = "value"
+    image.metadata.add(longTag)
+    var encoded:      ConcatBuffer
+    var errorOutcome: Swag.Error
+    catch { encoded = try image.encode("long-keyword.png") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    var nulTag: ImageMetadata
+    const TagWithNul: [3] u8 = ['A', 0, 'B']
+    nulTag.tag   = cast(string, Swag.makeSlice(&TagWithNul[0], TagWithNul.count))
+    nulTag.value = "value"
+    image.metadata.clear()
+    image.metadata.add(nulTag)
+    errorOutcome = {}
+    catch { encoded = try image.encode("nul-keyword.png") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    var controlTag: ImageMetadata
+    const TagWithControl: [3] u8 = ['A', 1, 'B']
+    controlTag.tag   = cast(string, Swag.makeSlice(&TagWithControl[0], TagWithControl.count))
+    controlTag.value = "value"
+    image.metadata.clear()
+    image.metadata.add(controlTag)
+    errorOutcome = {}
+    catch { encoded = try image.encode("control-keyword.png") } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+
+    var validTag: ImageMetadata
+    validTag.tag   = "Editor.SourceFile"
+    validTag.value = "drawing.editor"
+    image.metadata.clear()
+    image.metadata.add(validTag)
+    encoded = expect image.encode("valid-keyword.png")
+    let decoded = expect Image.decode("valid-keyword.png", encoded.toSlice())
+    Swag.require(decoded.metadata.count == 1 and decoded.metadata[0].isTag("Editor.SourceFile"))
+    Swag.require(cast(string, decoded.metadata[0].toSlice()) == "drawing.editor")
+
+    var boundaryTag: ImageMetadata
+    boundaryTag.tag.resize(79)
+    for index in boundaryTag.tag.count do
+        boundaryTag.tag[index] = 'a'
+    boundaryTag.value = "boundary"
+    image.metadata.clear()
+    image.metadata.add(boundaryTag)
+    encoded = expect image.encode("boundary-keyword.png")
+    let boundaryDecoded = expect Image.decode("boundary-keyword.png", encoded.toSlice())
+    Swag.require(boundaryDecoded.metadata.count == 1 and boundaryDecoded.metadata[0].tag.count == 79)
+    Swag.require(cast(string, boundaryDecoded.metadata[0].toSlice()) == "boundary")
+}
+
 // Invalid and truncated buffers should fail without producing an image.
 #test
 {

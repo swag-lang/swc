@@ -3,6 +3,27 @@
 
 using Swag, Core
 
+var WndCreateTestId: String
+
+// Wnd.create owns a dynamic identifier for lookup and command-state queries.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(200, 200)
+
+    let expected = "Wnd.Dynamic.Command.Identifier"
+    WndCreateTestId = Core.String.from(expected)
+    let child = Wnd.create'Wnd(null, null, {}, WndCreateTestId.toString())
+    child.setParent(&host.root)
+    WndCreateTestId[0] = 'X'
+
+    Swag.require(child.id == expected)
+    Swag.require(host.root.childById(expected) == child)
+
+    let state = child.sendComputeCommandStateEvent(child.id)
+    Swag.require(state.id == expected)
+}
+
 struct AncestorTestWnd
 {
     using wnd: Wnd

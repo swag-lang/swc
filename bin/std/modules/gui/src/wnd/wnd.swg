@@ -304,7 +304,9 @@ struct Wnd
         readonly children: Array'(*Wnd)
 
         name:    RichString     // Display text with optional rich spans.
-        id:      WndId?         // Optional stable command, lookup, and persistence identifier.
+        // Optional stable command, lookup, and persistence identifier. `Wnd.create` copies this
+        // value; assignments made directly to the public field remain caller-owned.
+        id:      WndId?
         cursor:  Cursor         // Cursor requested while the pointer is over this window.
         toolTip: String         // Plain tooltip text; empty disables the tooltip.
 
@@ -364,6 +366,7 @@ struct Wnd
         cachedSizeHint:  SizeHint        // Memoized measure result, refreshed by the layout pass.
         createEventDone: bool            // Whether the create event was already delivered.
         layoutDirty:     bool = true     // Whether the next frame must re-run layout.
+        idStorage:       String          // Owns the identifier passed to `Wnd.create`; `id` views this value.
     }
 
     public
@@ -650,7 +653,8 @@ impl Wnd
             .isAllocated = true
             .itf         = res[]
             .name.set(name)
-            .id            = id
+            .idStorage     = id orelse ""
+            .id            = id ? .idStorage.toString() : null
             .position      = position
             .preferredSize = Math.Point{position.width, position.height}
             .hookOnEvent   = hook

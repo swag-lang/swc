@@ -3,6 +3,43 @@
 
 using Swag, Core
 
+// A natural-size label reflows when letter spacing changes its measured width.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let label = Label.create(row, "A label that grows when its letters are spaced farther apart")
+    host.pump()
+    let originalWidth = label.itf.measureContent({}).x
+
+    label.setLetterSpacing(2)
+    host.pump()
+    let measuredWidth = label.itf.measureContent({}).x
+    let layoutWidth   = label.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("Label letter spacing widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(label.position.width == layoutWidth,
+                 Format.toString("Label width after letter spacing: measured %, committed %", layoutWidth, label.position.width).toString())
+}
+
+// A hand-placed AutoHeight label keeps enough room after letter spacing changes its wrapped text.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 400)
+
+    let label = Label.create(&host.root, "A wrapped paragraph whose spaced letters need more room", {20, 20, 100, 0}, flags: .WordWrap | .AutoHeight)
+    host.pump()
+    label.setLetterSpacing(3)
+    host.pump()
+
+    let needed = label.itf.measureContent(Math.Point{label.position.width, label.position.height}).y
+    Swag.require(needed <= label.position.height,
+                 Format.toString("AutoHeight after letter spacing: needed %, committed %", needed, label.position.height).toString())
+}
+
 // A label stores and returns its text, and is hit-testable.
 #test
 {

@@ -195,6 +195,8 @@ impl Label
     {
         .letterSpacing = spacing
         .invalidate()
+        .invalidateLayout()
+        .updateAutomaticHeight()
     }
 
     private mtd getStringFormat(isDisabled: bool)->RichStringFormat

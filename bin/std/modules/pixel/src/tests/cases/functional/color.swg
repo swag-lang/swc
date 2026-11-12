@@ -42,6 +42,20 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
 
 #test
 {
+    // Canonical HSL wheel points stay exact after quantizing RGB to bytes.
+    let yellow  = Color.fromHsl(1.0 / 6.0, 1, 0.5)
+    let cyan    = Color.fromHsl(0.5, 1, 0.5)
+    let blue    = Color.fromHsl(2.0 / 3.0, 1, 0.5)
+    let magenta = Color.fromHsl(5.0 / 6.0, 1, 0.5)
+    Swag.require(yellow == Color.fromRgb(255, 255, 0) and
+                 cyan == Color.fromRgb(0, 255, 255) and
+                 blue == Color.fromRgb(0, 0, 255) and
+                 magenta == Color.fromRgb(255, 0, 255))
+
+    // Intermediate hues round to their nearest byte rather than truncating float residue.
+    Swag.require(Color.fromHsl(0.25, 0.5, 0.4) == Color.fromRgb(102, 153, 51))
+    Swag.require(Color.fromHsl(0.123, 0.7, 0.37) == Color.fromRgb(160, 126, 28))
+
     let red = Color.fromHsl(0, 1, 0.5)
     Swag.require(red == Color.fromArgb(255, 255, 0, 0))
 

@@ -88,6 +88,25 @@ using Swag
 
 #test
 {
+    var velocityUp32 = 1000'f32
+    let valueUp32    = Math.smoothDamp(0'f32, 10'f32, &velocityUp32, 0.5'f32, 1'f32)
+    Swag.require(valueUp32 == 10'f32 and velocityUp32 == 0'f32)
+
+    var velocityDown32 = -1000'f32
+    let valueDown32    = Math.smoothDamp(10'f32, 0'f32, &velocityDown32, 0.5'f32, 1'f32)
+    Swag.require(valueDown32 == 0'f32 and velocityDown32 == 0'f32)
+
+    var velocityUp64 = 1000'f64
+    let valueUp64    = Math.smoothDamp(0'f64, 10'f64, &velocityUp64, 0.5'f64, 1'f64)
+    Swag.require(valueUp64 == 10'f64 and velocityUp64 == 0'f64)
+
+    var velocityDown64 = -1000'f64
+    let valueDown64    = Math.smoothDamp(10'f64, 0'f64, &velocityDown64, 0.5'f64, 1'f64)
+    Swag.require(valueDown64 == 0'f64 and velocityDown64 == 0'f64)
+}
+
+#test
+{
     Swag.require(Math.toDegrees(0'f32) == 0'f32)
     Swag.require(Math.isEqualEpsilon(Math.toDegrees(Math.ConstF32.Pi), 180'f32, 0.001'f32))
     Swag.require(Math.isEqualEpsilon(Math.toDegrees(Math.ConstF32.TwoPi), 360'f32, 0.001'f32))

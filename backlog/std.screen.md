@@ -86,7 +86,11 @@ continues to own media frames and codecs, not desktop access.
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous
   outputs after profiling GPU readback stalls, and measure sustained cadence under desktop motion
-  and machine load.
+  and machine load. A one-staging-texture deferred-map prototype acquired only 450 fresh frames
+  in 901 video slots because acquisition alternated with readback; evaluate two staging textures
+  and DXGI frame lifetime before attempting a pipelined readback again. `ReleaseFrame` invalidates
+  the acquired desktop surface, so queue all operations on that surface before releasing it
+  ([DXGI contract](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_2/nf-dxgi1_2-idxgioutputduplication-releaseframe)).
 - Done when: the native consumer sustains 30 fps on a moving 5120x1440 desktop on a supported
   Windows machine, reports source and readback losses separately, and resumes after display
   changes. A covered window remains capturable through the window source.

@@ -320,6 +320,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
   quantized luma/chroma residuals and avoid unused result copies on changing screens,
   then remeasure the complete 1080p60 and 4K60 paths.
+  Measure slice-count changes with concurrent screen readback: eight slices improved isolated
+  4K P-picture throughput, but a scaled two-screen recording lost 363 slots in one 60-second
+  run, while four slices lost none in a subsequent run with varying desktop load.
   Connect the pure-Swag rate controller only after the encoder can change QP per picture;
   refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
   or make packet submission transactional. Use each H.264 packet's bytes and duration for

@@ -59,15 +59,27 @@ impl Image
         if not .pixelFormat.isPacked() do
             return
 
-        if not .hasStraightByteColors()
+        let kernelValues = cast(const [..] s32, kernel)
+        var filterAlpha  = .pixelFormat.hasAlpha() and kernelValues[1] > 0
+        for index in kernelValues.count - 2
         {
-            var context = {kernel: cast(const [..] s32, kernel), dstImage: dstImage}
+            if kernelValues[index + 2] < 0
+            {
+                filterAlpha = false
+                break
+            }
+        }
+
+        if not .hasStraightByteColors() or filterAlpha
+        {
+            var context = {kernel: kernelValues, dstImage: dstImage, filterAlpha: filterAlpha}
             .visitPixels(&context)
             {
                 let params       = cast(const *#decltype(context), unwrap userData)[]
                 let radius       = params.kernel[0] / 2
                 var coefficients = params.kernel.buffer + 2
                 var sum          = PixelValue{0, 0, 0, 0}
+                var alphaSum: f32
 
                 // The buffer is bottom-up, so the top kernel row reads the highest buffer row.
                 for var dy = -radius; dy <= radius; dy += 1
@@ -80,20 +92,51 @@ impl Image
                         let source      = sourceRow + cast(u64, sourceX) * image.bytesPerPixel
                         let sample      = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
                         let coefficient = cast(f32, coefficients[])
-                        sum.r        += sample.r * coefficient
-                        sum.g        += sample.g * coefficient
-                        sum.b        += sample.b * coefficient
+                        if params.filterAlpha
+                        {
+                            let weightedAlpha = sample.a * coefficient
+                            sum.r    += sample.r * weightedAlpha
+                            sum.g    += sample.g * weightedAlpha
+                            sum.b    += sample.b * weightedAlpha
+                            alphaSum += weightedAlpha
+                        }
+                        else
+                        {
+                            sum.r += sample.r * coefficient
+                            sum.g += sample.g * coefficient
+                            sum.b += sample.b * coefficient
+                        }
+
                         coefficients += 1
                     }
                 }
 
-                let divisor = params.kernel[1]
-                if divisor > 1
+                if params.filterAlpha
                 {
-                    let scale = cast(f32, divisor)
-                    sum.r /= scale
-                    sum.g /= scale
-                    sum.b /= scale
+                    if alphaSum > 0.0
+                    {
+                        sum.r /= alphaSum
+                        sum.g /= alphaSum
+                        sum.b /= alphaSum
+                    }
+                    else
+                    {
+                        let current = readLogicalPixelValue(pix, image.pixelFormat, image.alphaMode)
+                        sum.r = current.r
+                        sum.g = current.g
+                        sum.b = current.b
+                    }
+                }
+                else
+                {
+                    let divisor = params.kernel[1]
+                    if divisor > 1
+                    {
+                        let scale = cast(f32, divisor)
+                        sum.r /= scale
+                        sum.g /= scale
+                        sum.b /= scale
+                    }
                 }
 
                 let current = readLogicalPixelValue(pix, image.pixelFormat, image.alphaMode)
@@ -175,6 +218,9 @@ impl Image
     }
 
     // Convolves the image with a predefined kernel, in place.
+    // Normalized kernels with non-negative weights filter visible colors using the source alpha
+    // while preserving each destination pixel's alpha. Kernels with negative weights preserve
+    // alpha and filter the color channels directly.
     public mtd applyKernel(kernel: Kernel)
     {
         Swag.assert(.pixels.buffer != null)
@@ -184,6 +230,9 @@ impl Image
     }
 
     // Returns a copy of the image convolved with a predefined kernel.
+    // Normalized kernels with non-negative weights filter visible colors using the source alpha
+    // while preserving each destination pixel's alpha. Kernels with negative weights preserve
+    // alpha and filter the color channels directly.
     public mtd withKernelApplied(kernel: Kernel)->Image
     {
         Swag.assert(.pixels.buffer != null)

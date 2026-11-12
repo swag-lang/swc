@@ -172,10 +172,18 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.require(table.count == 3)
     Swag.require(table[2] == 200)
 
+    let capacity = table.capacity
     table.clear()
     Swag.require(table.isEmpty())
     Swag.require(not table.contains(1))
     Swag.require(not table.contains(2))
+    Swag.require(table.capacity == capacity)
+
+    table.add(1, 100)
+    table.add(2, 200)
+    table.add(3, 300)
+    Swag.require(table.count == 3)
+    Swag.require(table[1] == 100 and table[2] == 200 and table[3] == 300)
 }
 
 func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool

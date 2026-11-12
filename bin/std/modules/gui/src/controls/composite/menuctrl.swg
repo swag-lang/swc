@@ -1357,15 +1357,18 @@ public impl MenuCtrl
     }
 
     // Adds a submenu with explicit presentation and returns its mutable item descriptor.
+    //
+    // Copies the optional identifier so the item can outlive its source string.
     #[Swag.Discardable]
     mtd addPopup(name: string?, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
             .name.set(name)
-            .icon  = icon
-            .popup = popup
-            .id    = id
+            .icon      = icon
+            .popup     = popup
+            .commandId = id orelse ""
+            .id        = id ? .commandId.toString() : null
         }
 
         popup.ownerMenu = me

@@ -19,6 +19,36 @@ using Swag, Core
     Swag.require(menu.items[0]!.id == expected)
 }
 
+// A submenu keeps its command identifier after the source string changes.
+#test
+{
+    var received: String
+    var host:     Testing.HeadlessHost
+    host.setup(400, 240)
+    let popup    = MenuCtrl.createPopup(&host.root)
+    let submenu  = MenuCtrl.createPopup(&host.root)
+    let expected = "Menu.Submenu.With.An.Allocated.Identifier"
+    var source   = Core.String.from(expected)
+
+    let item = popup.addPopup("More", submenu, id: source.toString())
+    source[0] = 'X'
+
+    host.root.hookOnEvent = func|received = &received|(_, event)->bool
+    {
+        if event is CommandStateEvent as state where state.kind == .Compute
+        {
+            received[] = String.from(state.id)
+            return true
+        }
+
+        return false
+    }
+
+    popup.updateState()
+
+    Swag.require(item.id == expected and received.toString() == expected)
+}
+
 // A popup note remains readable information and cannot be selected like a command.
 #test
 {

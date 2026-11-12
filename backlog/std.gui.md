@@ -87,21 +87,6 @@ prove it. Operating-system integrations live in
   menus, and list rows across shipped font families; the chosen placement rule is documented
   and the resulting goldens pin the decision.
 
-### std.gui.055 — A menu entry borrows its identifier, so one formatted while the menu is built dangles
-
-- Evidence: `Gui.WndId` is `string`, and `MenuCtrl.addItem` and `addRadioItem` keep the view
-  they receive. An identifier built with `Format.toString(...).toString()` inside the call
-  dangles after the statement. Nothing fails at build or run time, and the headless
-  `clickPopupMenuItem` never matches the entry. The borrow-escape analysis does not see the
-  escape through the `WndId` parameter. Consumers work around it with long-lived storage
-  (Swag Scope's `SlideIds` table in `swagscope/src/api/playback.swg`).
-- Next: decide whether `Item.id` and the other retained `WndId` fields should own a `String`,
-  or whether the sanitizer can flag a `string` view of a temporary that escapes into a struct
-  through a parameter. Prototype the owning field on `PopupMenuItem` and measure the churn on
-  consumers.
-- Done when: an identifier formatted at the call site either works or is rejected at build
-  time, and a test in `menu.swg` pins whichever it is.
-
 ### std.gui.049 — One dirty rectangle couples distant changes on a surface
 
 - Evidence: invalidations are unioned into one `dirtyRect`, which

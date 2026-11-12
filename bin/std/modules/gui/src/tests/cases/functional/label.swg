@@ -3,6 +3,48 @@
 
 using Swag, Core
 
+// A natural-height label reflows when its line limit changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 300, 170})
+    let label = Label.create(row, "First\nSecond\nThird\nFourth", {0, 0, 240, 0})
+    label.preferredSize.y = 0
+    label.invalidateLayout()
+    host.pump()
+    let originalHeight = label.itf.measureContent({label.position.width, 0}).y
+
+    label.setMaxLines(2)
+    host.pump()
+    let measuredHeight = label.itf.measureContent({label.position.width, 0}).y
+    let layoutHeight   = label.measure({}).preferred.y
+    Swag.require(originalHeight != measuredHeight,
+                 Format.toString("Label max-lines heights: original %, measured %", originalHeight, measuredHeight).toString())
+    Swag.require(label.position.height == layoutHeight,
+                 Format.toString("Label height after max-lines: measured %, committed %", layoutHeight, label.position.height).toString())
+}
+
+// A hand-placed AutoHeight label shrinks when its line limit changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 300, 170})
+    let label = Label.create(row, "First\nSecond\nThird\nFourth", {0, 0, 240, 0}, flags: .AutoHeight)
+    host.pump()
+    let originalHeight = label.position.height
+
+    label.setMaxLines(2)
+    host.pump()
+    let needed = label.itf.measureContent({label.position.width, label.position.height}).y
+    Swag.require(label.position.height < originalHeight, "Max-lines should shrink AutoHeight")
+    Swag.require(needed <= label.position.height,
+                 Format.toString("AutoHeight after max-lines: needed %, committed %", needed, label.position.height).toString())
+}
+
 // A natural-size label reflows when its text padding changes the measured width.
 #test
 {

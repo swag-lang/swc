@@ -318,6 +318,7 @@ impl Label
             return
         .maxLines = count
         .invalidate()
+        .invalidateLayout()
         .updateAutomaticHeight()
     }
 

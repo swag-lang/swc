@@ -1337,7 +1337,7 @@ impl FileBrowserCtrl
         Path.normalize(&normalized)
         for &existing, idx in state.recentFolders
         {
-            if Utf8.compare(existing.toSlice(), normalized.toSlice(), .Latin1NoCase) == 0
+            if Path.equals(existing.toString(), normalized.toString())
             {
                 state.recentFolders.removeAtOrdered(idx)
                 break

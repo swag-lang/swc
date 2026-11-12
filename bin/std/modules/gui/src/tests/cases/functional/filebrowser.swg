@@ -198,6 +198,36 @@ using Swag, Core, File
     Swag.require(not history.canGoForward())
 }
 
+// Recent-folder identity follows the target's path case policy.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag-recent-case-%", Guid64.random().toString()))
+    expect Directory.create(root, recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+
+    let upper = Path.combine(root, "Case")
+    let lower = Path.combine(root, "case")
+    expect Directory.create(upper)
+    if not Path.equals(upper.toString(), lower.toString()) do
+        expect Directory.create(lower)
+
+    var state:   FileDlgState
+    var options: FileDlgOptions
+    options.mode              = .SelectFolder
+    options.initialFolder     = upper.toString()
+    options.showLocationsPane = false
+    options.state             = &state
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    let browser = FileBrowserCtrl.create(&host.root, options, {0, 0, 600, 400})
+    browser.recordRecentFolder(upper.toString())
+    browser.recordRecentFolder(lower.toString())
+
+    let expectedCount = Path.equals(upper.toString(), lower.toString()) ? 1'u64 : 2'u64
+    Swag.require(state.recentFolders.count == expectedCount)
+}
+
 // The reusable dialog state receives the column widths on destruction, and the
 // recent-folder history keeps unique existing folders, most recent first.
 #test

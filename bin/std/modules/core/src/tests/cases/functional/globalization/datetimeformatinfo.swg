@@ -32,3 +32,16 @@ using Swag
     let ja = Globalization.CultureInfo.fromName("ja-JP")
     Swag.require(ja.dateTimeFormat.formatDate(value) == "2024/02/29")
 }
+
+#test
+{
+    let midnight = Time.DateTime{2024, 2, 29, 0, 0, 0, 0}
+    let noon     = Time.DateTime{2024, 2, 29, 12, 0, 0, 0}
+    let en       = Globalization.CultureInfo.fromName("en-US")
+    let fr       = Globalization.CultureInfo.fromName("fr-FR")
+
+    Swag.require(en.dateTimeFormat.formatTime(midnight) == "12:00:00 AM")
+    Swag.require(en.dateTimeFormat.formatTime(noon) == "12:00:00 PM")
+    Swag.require(fr.dateTimeFormat.formatTime(midnight) == "00:00:00")
+    Swag.require(fr.dateTimeFormat.formatTime(noon) == "12:00:00")
+}

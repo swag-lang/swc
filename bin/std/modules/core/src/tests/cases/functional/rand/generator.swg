@@ -135,3 +135,16 @@ internal impl MaxRandomSource
     for present in found do
         Swag.require(present)
 }
+
+#test
+{
+    const Seed = 0x1234_5678'u32
+    let shared = Random.shared()
+    shared.seedU32(Seed)
+    let first  = shared.nextU32()
+    let second = shared.nextU32()
+
+    shared.seedU32(Seed)
+    Swag.require(shared.nextU32() == first)
+    Swag.require(shared.nextU32() == second)
+}

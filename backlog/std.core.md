@@ -342,13 +342,16 @@ new module rather than growth inside `core`.
 
 ### std.core.037 — Format.toString ignores arguments its format does not use
 
-- Evidence: in Swag Capture, Format.toString("%:%%", minutes, tens, units) printed "0:%" for
-  every time: "%%" is a literal percent sign, so the format had one placeholder and the two
-  other arguments were dropped without a word.
-- Next: report a format whose placeholders and arguments disagree, at compile time when the
-  format is a constant and through an assertion otherwise, and offer a zero-padded integer field
-  so two-digit times need no digit-by-digit workaround.
-- Done when: the call above is rejected or asserts, and a padded field writes "0:07".
+- Evidence: `Format.append` asserts when a placeholder has no value but silently ignores unused
+  values. `Format.checkFormat` is not called and counts every non-escaped percent sign as a separate
+  value, which would reject supported indexed or repeated placeholders such as
+  `%{#0} and %{#0} again`. The formatter already supports zero-padded fields: `"%{04}"` with `7`
+  writes `"0007"` in its functional test.
+- Next: define argument-use rules for sequential, indexed, reordered, and repeated placeholders,
+  then validate literal formats at compile time and dynamic formats with an assertion without
+  rejecting supported indexed reuse.
+- Done when: mismatched placeholder and value use is reported, indexed and repeated references
+  remain valid, and tests cover both format paths.
 
 ### std.core.038 — TagBin stores an enum by its rank, which ties stored data to declaration order
 

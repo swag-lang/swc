@@ -639,6 +639,36 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.require(img.pixels.buffer[5] == 0'u8)
 }
 
+#test
+{
+    var cb: ConcatBuffer
+    var fh: BmpFH
+    fh.bfType    = 0x4D42'u16
+    fh.bfSize    = 70'u32
+    fh.bfOffBits = 66'u32
+    cb.addStruct(fh)
+
+    var bh: Bmp.Header
+    bh.biSize        = 40'u32
+    bh.biWidth       = 1
+    bh.biHeight      = 1
+    bh.biPlanes      = 1'u16
+    bh.biBitCount    = 16'u16
+    bh.biCompression = Bmp.BI_BITFIELDS
+    bh.biSizeImage   = 4'u32
+    cb.addStruct(bh)
+    cb.addNative(0x5000'u32)     // Red mask has separated bit runs.
+    cb.addNative(0x03E0'u32)
+    cb.addNative(0x001F'u32)
+    cb.addNative(0x5000'u16)
+    cb.addNative(0'u16)
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("noncontiguous-mask.bmp", nnBytes(cb.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode BI_RLE8 indexed data.
 #test
 {

@@ -116,6 +116,14 @@ func readMask(mask: u32)->Mask
     return result
 }
 
+func validMask(mask: Mask, bitCount: u16)->bool
+{
+    if not mask.value or not mask.bits or cast(u32, mask.shift) + mask.bits > bitCount do
+        return false
+    let expected = ((1'u64 << cast(u64, mask.bits)) - 1) << cast(u64, mask.shift)
+    return cast(u64, mask.value) == expected
+}
+
 func maskToByte(pixel: u32, mask: Mask)->u8
 {
     if not mask.value or not mask.bits do
@@ -247,8 +255,16 @@ internal impl IImageDecoder for Decoder
                 fail InvalidFormatError{"invalid source buffer"}
             }
 
-            if not masks.r.value or not masks.g.value or not masks.b.value do
+            if not validMask(masks.r, bh.biBitCount) or
+               not validMask(masks.g, bh.biBitCount) or
+               not validMask(masks.b, bh.biBitCount) or
+               (masks.a.value and not validMask(masks.a, bh.biBitCount)) do
                 fail InvalidFormatError{"invalid bit masks"}
+            if (masks.r.value & masks.g.value) or
+               (masks.r.value & masks.b.value) or
+               (masks.g.value & masks.b.value) or
+               (masks.a.value & (masks.r.value | masks.g.value | masks.b.value)) do
+                fail InvalidFormatError{"overlapping bit masks"}
         }
 
         // Create image

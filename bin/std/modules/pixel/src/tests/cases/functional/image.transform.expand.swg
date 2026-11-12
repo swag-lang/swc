@@ -38,3 +38,23 @@ using Swag, Core
         assertPixel(paddedOnly, x, 1, bgColor)
     }
 }
+
+#test
+{
+    let source  = Image.create(3, 3, .RGBA8)
+    let maximum = Swag.S32.Max
+
+    let largest = source.getWH(maximum - source.width, maximum - source.height, 0, 0)
+    Swag.require(largest.w == maximum and largest.h == maximum)
+
+    let sourcePointer = &source
+    let rejectedWidth = Swag.catchPanic(func|sourcePointer, maximum|()
+    {
+        discard sourcePointer[].getWH(maximum, 0, maximum, 0)
+    })
+    let rejectedHeight = Swag.catchPanic(func|sourcePointer, maximum|()
+    {
+        discard sourcePointer[].getWH(0, maximum, 0, maximum)
+    })
+    Swag.require(rejectedWidth.raised and rejectedHeight.raised)
+}

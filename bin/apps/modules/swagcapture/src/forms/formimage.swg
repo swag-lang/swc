@@ -54,8 +54,14 @@ impl FormImage
 {
     mtd opDrop()
     {
+        .releaseTexture()
+    }
+
+    mtd releaseTexture()
+    {
         if .textureApp do
             .textureApp.renderer.removeTexture(&.texture)
+        .textureApp = null
     }
 
     mtd opPostCopy()

@@ -79,12 +79,12 @@ impl RecentView
 
     // Opens `capture`, loaded for item `idx`, in the editor at the zoom the item last had.
     // The outgoing capture has already been snapshotted by the recent window.
-    private mtd selectLoaded(idx: u64, capture: *Capture)
+    private mtd selectLoaded(idx: u64, capture: *Capture)->*Capture?
     {
         if idx >= .items.count
         {
             Memory.delete(capture)
-            return
+            return null
         }
 
         let view = .main.editWnd.editView
@@ -99,7 +99,7 @@ impl RecentView
         // Only commit the selection once the capture has actually loaded,
         // otherwise .selected would point at an item never shown in the view.
         .selected = idx
-        view.setCapture(capture)
+        let outgoing = view.replaceCapture(capture)
         let item = unwrap .items[idx]
         if item.zoom == 0 do
             view.zoomToFit(false)
@@ -107,6 +107,7 @@ impl RecentView
             view.setZoom(item.zoom)
         view.main.freezeSelection(false)
         .invalidate()
+        return outgoing
     }
 
     // A pointer or lens selection keeps the current editor responsive while the next capture
@@ -285,8 +286,12 @@ struct RecentWnd
     loadTimer:          *Gui.Timer?
     selectionTimer:     *Gui.Timer?
     loadJob:            *CaptureLoadJob?
+    captureCache:       RecentCaptureCache
     readyCapture:       *Capture?
     readyFile:          String
+    readyRevision:      File.FileInfo
+    activeCapture:      *Capture?
+    activeRevision:     File.FileInfo
     requestedFile:      String
     requestedMenu:      bool
     requestedMenuPos:   Math.Point
@@ -413,6 +418,7 @@ impl IWnd for RecentWnd
         let loaded  = job.capture
         let failure = #move job.error
         let file = job.file
+        let revision = job.revision
         Memory.delete(job)
 
         // A later click, a deletion, or an immediate programmatic selection supersedes this
@@ -429,6 +435,7 @@ impl IWnd for RecentWnd
         {
             .readyCapture = loaded
             .readyFile    = file
+            .readyRevision = revision
             .finishRequestedSelection()
             return
         }
@@ -469,6 +476,7 @@ impl RecentWnd
             Memory.delete(.readyCapture)
         .readyCapture = null
         .readyFile.clear()
+        .readyRevision = {}
     }
 
     mtd cancelRequestedSelection()
@@ -548,12 +556,25 @@ impl RecentWnd
             }
         }
 
+        let cached = .captureCache.take(file, &.readyRevision)
+        if cached
+        {
+            .readyCapture = cached
+            .readyFile    = file
+            .finishRequestedSelection()
+            return
+        }
+
         let job  = Memory.new'CaptureLoadJob()
         job.file = file
         .loadJob = job
         job.task.submit(func|job|()
         {
+            let before = catch File.info(job.file)
             catch { job.capture = try Capture.load(job.file) } as job.error
+            let after = catch File.info(job.file)
+            if RecentCaptureCache.sameRevision(before, after) do
+                job.revision = after
         }, .taskNotifier(&job.task))
     }
 
@@ -565,6 +586,14 @@ impl RecentWnd
         if not loaded do
             return
         if .requestedFile != .readyFile
+        {
+            .discardReadyCapture()
+            .startRequestedSelection()
+            return
+        }
+
+        if not .readyRevision.fullName.isEmpty() and
+           not RecentCaptureCache.sameRevision(.readyRevision, catch File.info(.readyFile))
         {
             .discardReadyCapture()
             .startRequestedSelection()
@@ -604,8 +633,10 @@ impl RecentWnd
             }
         }
 
+        let loadedRevision = .readyRevision
         .readyCapture = null
         .readyFile.clear()
+        .readyRevision = {}
         .stopTimer(&.selectionTimer)
         .requestedFile.clear()
         .startupSelection.clear()
@@ -615,7 +646,16 @@ impl RecentWnd
         .returnToEditor = false
         .invalidateRecentViews()
 
-        .recentView.selectLoaded(idx, loaded)
+        let previous = .recentView.selectLoaded(idx, loaded)
+        if previous
+        {
+            if previous == .activeCapture do
+                .captureCache.put(previous, .activeRevision)
+            else do
+                Memory.delete(previous)
+        }
+        .activeCapture  = loaded
+        .activeRevision = loadedRevision
         if returnToEditor and .main.libraryMode
         {
             .main.swapLibraryMode()
@@ -676,6 +716,7 @@ impl RecentWnd
     // Drops `file` from the recent strip once the library deleted it.
     mtd onLibraryFileDeleted(file: String)
     {
+        .captureCache.invalidate(file)
         if .requestedFile == file do
             .cancelRequestedSelection()
         for it, i in .recentView.items
@@ -820,6 +861,7 @@ impl RecentWnd
     // the strip within `MaxRecent` items.
     mtd addRecent(file: String, preview: Image, front = true, sel = false, linkedUpToDate = true, linked: string = "", duration: u64 = 0)
     {
+        .captureCache.invalidate(file)
         // Already there ?
         for it, i in .recentView.items
         {
@@ -895,6 +937,7 @@ impl RecentWnd
             if .recentView.selected == .recentView.items.count - 1 do
                 .recentView.selected = Swag.U64.Max
             let back = unwrap .recentView.items.back()
+            .captureCache.invalidate(back.file)
             .recentView.items.destroy(back)
             .recentView.items.count -= 1
         }

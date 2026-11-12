@@ -298,6 +298,7 @@ struct CaptureLoadJob
     file:    String
     capture: *Capture?
     error:   Swag.Error
+    revision: File.FileInfo
 }
 
 // One duplicate owns both paths until its SCC and timed media files are ready.
@@ -712,6 +713,18 @@ impl Capture
             .editView!.app().renderer.removeTexture(&.backTexture)
         freeForms(.forms)
         .closeMedia()
+    }
+
+    // A recent capture keeps its decoded pixels, but no surface-owned GPU resources or view.
+    mtd detachView()
+    {
+        if .backTexture.isValid() do
+            .editView!.app().renderer.removeTexture(&.backTexture)
+        while .formCaches.count do
+            .formCaches.deleteAt(.formCaches.count - 1)
+        for form in .forms where Swag.kindOf(form) == FormImage do
+            (assume cast(*FormImage, form)).releaseTexture()
+        .editView = null
     }
 
     // Attaches the capture to `view`, and makes a drag of the canvas gizmo resize the canvas as

@@ -335,21 +335,6 @@ construction so static labels do not depend on each application remembering a ma
   without application-specific handlers.
 - Done when: A label initialized from the GUI string catalog updates after Application.setLanguage without an application-specific notification handler, while command-driven controls retain their existing behavior in a localization test.
 
-### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
-
-- Evidence: `Wnd.resize` rounds a logical size to whole units, and `Surface.setPosition` places
-  a native window on whole physical pixels. A composite that measures its content, commits
-  that size, and then assumes the content still fits can lose up to half a unit, which is
-  enough to wrap a line or to raise a scroll bar. Dialogs (`Dialog.physicalRoom`) and tooltips
-  (rounding up on both axes) are guarded. The popup list, the menu popup, and `AutoHeight`
-  labels are not audited.
-- Next: audit those three composites for the commit-then-assume pattern. Either round out
-  through one shared helper, or measure the second axis after committing the first. Prove it
-  the way `dialogs.layout.swg` does, by sweeping content length.
-- Done when: Popup lists, menu popups, and automatic labels retain all measured content after
-  committing size across fractional scales and a sweep of content lengths, with no new scroll
-  bar or clipped last line.
-
 ### std.gui.004 — French is the only shipped GUI translation
 
 

@@ -29,6 +29,28 @@ func expectedAbs8(value: s8)->s8
 
 #test
 {
+    Swag.require(Math.byteAt(0xA5'u8, 0) == 0xA5'u8)
+
+    Swag.require(Math.byteAt(0x1234'u16, 0) == 0x34'u8)
+    Swag.require(Math.byteAt(0x1234'u16, 1) == 0x12'u8)
+
+    Swag.require(Math.byteAt(0x12345678'u32, 0) == 0x78'u8)
+    Swag.require(Math.byteAt(0x12345678'u32, 1) == 0x56'u8)
+    Swag.require(Math.byteAt(0x12345678'u32, 2) == 0x34'u8)
+    Swag.require(Math.byteAt(0x12345678'u32, 3) == 0x12'u8)
+
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 0) == 0xEF'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 1) == 0xCD'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 2) == 0xAB'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 3) == 0x89'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 4) == 0x67'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 5) == 0x45'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 6) == 0x23'u8)
+    Swag.require(Math.byteAt(0x01234567_89ABCDEF'u64, 7) == 0x01'u8)
+}
+
+#test
+{
     Swag.require(Math.isPowerOf2(1'u8))
     Swag.require(Math.isPowerOf2(128'u8))
     Swag.require(Math.isPowerOf2(0x80'u8))

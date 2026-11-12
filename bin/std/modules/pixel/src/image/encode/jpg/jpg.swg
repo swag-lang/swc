@@ -311,6 +311,11 @@ internal impl IImageEncoder for Encoder
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
+        if image.pixelFormat != .BGR8 and
+           image.pixelFormat != .RGB8 and
+           image.pixelFormat != .BGRA8 and
+           image.pixelFormat != .RGBA8 do
+            fail UnsupportedFormatError{"JPEG encoder supports only BGR8, RGB8, BGRA8, and RGBA8"}
         if image.width > MaxImageDimension or image.height > MaxImageDimension do
             fail UnsupportedFormatError{"JPEG encoder dimensions cannot exceed 65528 pixels"}
 

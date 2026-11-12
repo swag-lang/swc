@@ -151,6 +151,10 @@ struct MainWnd
     duplicateTimer: *Gui.Timer?
     duplicateJob: *CaptureDuplicateJob?
     duplicateSource: String
+    exportTimer: *Gui.Timer?
+    exportJob: *CaptureLoadJob?
+    exportSource, exportDestination: String
+    exportLinked: bool
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -219,6 +223,12 @@ impl IWnd for MainWnd
             .finishDuplicateCapture(duplicate)
             return
         }
+        let export = .exportJob
+        if export and evt.task == &export.task
+        {
+            .finishLibraryExport(export)
+            return
+        }
         evt.accepted = false
     }
 
@@ -234,6 +244,12 @@ impl IWnd for MainWnd
         {
             .stopTimer(&.duplicateTimer)
             .startDuplicateCapture()
+            return
+        }
+        if evt.timer == .exportTimer
+        {
+            .stopTimer(&.exportTimer)
+            .startLibraryExport()
             return
         }
         if evt.timer != .metadataTimer
@@ -321,6 +337,17 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .stopTimer(&.exportTimer)
+        if .exportJob
+        {
+            let job = .exportJob
+            .exportJob = null
+            job.task.cancel()
+            job.task.wait()
+            if job.capture do
+                Memory.delete(job.capture)
+            Memory.delete(job)
+        }
         .stopTimer(&.duplicateTimer)
         if .duplicateJob
         {
@@ -438,6 +465,67 @@ impl IWnd for MainWnd
 
 impl MainWnd
 {
+    // Loads a library document on a worker after the destination has been chosen.
+    mtd requestLibraryExport(source: String, destination: String, linked: bool)
+    {
+        if .exportJob or not .exportSource.isEmpty() do
+            return
+        .exportSource = source
+        .exportDestination = destination
+        .exportLinked = linked
+        .startLibraryExport()
+    }
+
+    private mtd startLibraryExport()
+    {
+        if .exportJob or .exportSource.isEmpty() do
+            return
+        let failed = g_CaptureSaves.collect()
+        if not failed.isEmpty()
+        {
+            .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+            if failed == .exportSource
+            {
+                .exportSource.clear()
+                return
+            }
+        }
+        if g_CaptureSaves.writing(.exportSource)
+        {
+            if not .exportTimer do
+                .exportTimer = .addTimer(16'ms)
+            return
+        }
+
+        let job = Memory.new'CaptureLoadJob()
+        job.file = .exportSource
+        .exportJob = job
+        job.task.submit(func|job|()
+        {
+            catch { job.capture = try Capture.load(job.file) } as job.error
+        }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishLibraryExport(job: *CaptureLoadJob)
+    {
+        .exportJob = null
+        .exportSource.clear()
+        let capture = job.capture
+        let destination = String.from(.exportDestination)
+        let linked = .exportLinked
+        .exportDestination.clear()
+        Memory.delete(job)
+        if not capture
+        {
+            .reportFailure(appStrings().msg_FailedSaveFile, destination)
+            return
+        }
+
+        defer Memory.delete(capture)
+        capture.editView = .editWnd.editView
+        .saveLoadedAsImage(capture, destination, linked)
+    }
+
     // Restores the saved state, once: the options, the placement of the window and the recent
     // captures.
     //

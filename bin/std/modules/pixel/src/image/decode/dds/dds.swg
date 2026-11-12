@@ -165,7 +165,9 @@ impl Decoder
         let redMask   = readU32(buffer.buffer + 92)
         let greenMask = readU32(buffer.buffer + 96)
         let blueMask  = readU32(buffer.buffer + 100)
-        let alphaMask = readU32(buffer.buffer + 104)
+        var alphaMask = readU32(buffer.buffer + 104)
+        if (pfFlags & AlphaFlag) == 0 do
+            alphaMask = 0
         var offset    = HeaderSize
         var format    = PixelFormat.RGBA8
         var blocks:           TextureBlocks.Format

@@ -41,10 +41,55 @@ func ddsBc1Fixture()->ConcatBuffer
     return result
 }
 
+func ddsMaskedRgbaFixture(pixelFlags: u32, alpha: u8)->ConcatBuffer
+{
+    var result: #returntype
+    ddsAddU32(&result, 0x20534444)
+    ddsAddU32(&result, 124)
+    ddsAddU32(&result, 0x0000100F)
+    ddsAddU32(&result, 1)     // Height.
+    ddsAddU32(&result, 1)     // Width.
+    ddsAddU32(&result, 4)     // Pitch.
+    ddsAddU32(&result, 0)     // Depth.
+    ddsAddU32(&result, 0)     // Mip count.
+    for 11 do
+        ddsAddU32(&result, 0)
+    ddsAddU32(&result, 32)     // Pixel format size.
+    ddsAddU32(&result, pixelFlags)
+    ddsAddU32(&result, 0)      // FourCC.
+    ddsAddU32(&result, 32)     // Bits per pixel.
+    ddsAddU32(&result, 0x000000FF)
+    ddsAddU32(&result, 0x0000FF00)
+    ddsAddU32(&result, 0x00FF0000)
+    ddsAddU32(&result, 0xFF000000)
+    ddsAddU32(&result, 0x1000)     // Texture caps.
+    for 4 do
+        ddsAddU32(&result, 0)
+    result.addNative(10'u8)
+    result.addNative(20'u8)
+    result.addNative(30'u8)
+    result.addNative(alpha)
+    return result
+}
+
 func ddsRoundtrip(source: Image)->Image
 {
     let encoded = expect source.encode("memory.dds")
     return expect Image.decode("roundtrip.dds", nnBytes(encoded.toSlice()))
+}
+
+// The alpha mask is meaningful only when DDPF_ALPHAPIXELS is declared.
+#test
+{
+    for hasAlpha in 2
+    {
+        let pixelFlags = 0x40'u32 | (hasAlpha ? 0x1'u32 : 0'u32)
+        let bytes      = ddsMaskedRgbaFixture(pixelFlags, 0)
+        let image      = expect Image.decode("alpha-flag.dds", nnBytes(bytes.toSlice()))
+        assertImage(image, 1, 1, .RGBA8)
+        Swag.require(image.pixels[0] == 10 and image.pixels[1] == 20 and image.pixels[2] == 30)
+        Swag.require(image.pixels[3] == (hasAlpha ? 0'u8 : 255'u8))
+    }
 }
 
 #test

@@ -2,6 +2,52 @@
 
 using Swag, Core
 
+func checkRgbToRgba(width: s32, sourceFormat, destinationFormat: PixelFormat)
+{
+    var source = Image.create(width, 1, sourceFormat)
+    for x in width
+    {
+        let red   = cast(u8, (x * 13 + 11))
+        let green = cast(u8, (x * 9 + 53))
+        let blue  = cast(u8, (x * 7 + 97))
+        let pixel = source.pixels.storage() + cast(u64, x) * 3
+        if sourceFormat == .RGB8
+        {
+            pixel[0] = red
+            pixel[1] = green
+            pixel[2] = blue
+        }
+        else
+        {
+            pixel[0] = blue
+            pixel[1] = green
+            pixel[2] = red
+        }
+    }
+
+    let converted = source.convertedTo(destinationFormat)
+    for x in width
+    {
+        let red   = cast(u8, (x * 13 + 11))
+        let green = cast(u8, (x * 9 + 53))
+        let blue  = cast(u8, (x * 7 + 97))
+        let pixel = converted.pixels.storage() + cast(u64, x) * 4
+        if destinationFormat == .RGBA8
+        {
+            Swag.require(pixel[0] == red and pixel[1] == green and pixel[2] == blue)
+        }
+        else
+        {
+            Swag.require(pixel[0] == blue and pixel[1] == green and pixel[2] == red)
+        }
+
+        Swag.require(pixel[3] == 255)
+    }
+
+    let restored = converted.convertedTo(sourceFormat)
+    Swag.require(Memory.compare(source.pixels.storage(), restored.pixels.storage(), source.byteCount) == 0)
+}
+
 #test
 {
     const rgbaPixels = [
@@ -30,4 +76,18 @@ using Swag, Core
     assertImage(bgrSrc, 2, 1, .RGBA8)
     assertPixel(bgrSrc, 0, 0, Color.fromArgb(255'u8, 7'u8, 8'u8, 9'u8))
     assertPixel(bgrSrc, 1, 0, Color.fromArgb(255'u8, 11'u8, 12'u8, 13'u8))
+}
+
+#test
+{
+    for width in [5's32, 6, 7, 10]
+    {
+        for sourceFormat in [PixelFormat.RGB8, PixelFormat.BGR8]
+        {
+            for destinationFormat in [PixelFormat.RGBA8, PixelFormat.BGRA8]
+            {
+                checkRgbToRgba(width, sourceFormat, destinationFormat)
+            }
+        }
+    }
 }

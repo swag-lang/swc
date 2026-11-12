@@ -25,6 +25,22 @@ using Swag, Core
     assertPixel(redGreen, 1, 0, Color.fromRgbF32(0.5, 0.5, 0.0).withAlpha(255))
 }
 
+#test
+{
+    var hue = Image.create(1, 2, .RGBA8)
+    hue.fillHsl(.HueVert)
+
+    let top    = Color.fromHsl(0.0, 1.0, 0.5).withAlpha(255)
+    let bottom = Color.fromHsl(0.5, 1.0, 0.5).withAlpha(255)
+    Swag.require(hue.pixelColor(0, 0) == top, "RGBA8 top")
+    Swag.require(hue.pixelColor(0, 1) == bottom, "RGBA8 bottom")
+
+    var bgra = Image.create(1, 2, .BGRA8)
+    bgra.fillHsl(.HueVert)
+    Swag.require(bgra.pixelColor(0, 0) == top, "BGRA8 top")
+    Swag.require(bgra.pixelColor(0, 1) == bottom, "BGRA8 bottom")
+}
+
 // RGB plane modes as the ColorPicker actually uses them: RGBA8 format with a
 // non-zero fixed third channel. These must produce a real gradient (not a flat
 // gray fill), so assert the colored corners for every RGB plane.

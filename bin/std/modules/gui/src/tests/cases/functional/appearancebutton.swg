@@ -91,3 +91,25 @@ using Swag, Core, Pixel
     host.root.sendCommandEvent(themes.items[1]!.id)
     Swag.require(button.appearanceTheme == .Light)
 }
+
+// The appearance menu starts from the application's previously selected theme.
+#test
+{
+    for appearance in [AppearanceTheme.Light, .System]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(640, 400)
+        host.surface.flags = SurfaceFlags.StandardWindow
+        host.app.setAppearance(appearance)
+        host.surfaceWnd.create(&host.root, null)
+
+        let button = AppearanceButton.create(&host.surface)
+        Swag.require(button.appearanceTheme == appearance)
+
+        let lens = Lens.View.create(&host.root)
+        button.addToLens(lens)
+        lens.open(strings().appearance_Theme)
+        let selected = appearance == .Light ? 1 : 2
+        Swag.require(lens.results.sections[0]!.entries[selected].checked)
+    }
+}

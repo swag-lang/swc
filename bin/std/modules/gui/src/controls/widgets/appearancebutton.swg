@@ -143,6 +143,7 @@ impl AppearanceButton
         let parent      = assume cast (*SurfaceWnd, surface.wnd)
         with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
         {
+            .appearanceTheme = surface.app.appearance
             .button.setIcon(surface.app.theme.icon(.Appearance, surface.app.theme.metrics.wnd_CaptionButtonGlyph))
             .setForm(.RoundedRectangle)
             .focusPolicy = .None

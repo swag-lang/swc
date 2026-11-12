@@ -141,11 +141,11 @@ impl IWnd for SplitterCtrl
                 if it.label
                 {
                     var labelRect = paneRect
-                    labelRect.height = .titleSize
+                    labelRect.height = Math.max(Math.min(.titleSize, paneRect.height), 0)
                     it.label.setPosition(labelRect)
 
-                    paneRect.y      += .titleSize
-                    paneRect.height -= .titleSize
+                    paneRect.y      += labelRect.height
+                    paneRect.height -= labelRect.height
                 }
 
                 it.view.setPosition(paneRect)
@@ -159,11 +159,11 @@ impl IWnd for SplitterCtrl
                 if it.label
                 {
                     var labelRect = paneRect
-                    labelRect.width = .titleSize
+                    labelRect.width = Math.max(Math.min(.titleSize, paneRect.width), 0)
                     it.label.setPosition(labelRect)
 
-                    paneRect.x     += .titleSize
-                    paneRect.width -= .titleSize
+                    paneRect.x     += labelRect.width
+                    paneRect.width -= labelRect.width
                 }
 
                 it.view.setPosition(paneRect)

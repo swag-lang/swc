@@ -443,6 +443,22 @@ namespace ResizeTools
 
     func doResizeFilter(dstImage: *Image, srcImage: const *Image, mode: Image.ResizeMode)
     {
+        if srcImage.pixelFormat.hasAlpha() and srcImage.alphaMode == .Straight
+        {
+            // Keep both filtered passes premultiplied in float, then quantize only after unassociation.
+            var premultipliedSource = srcImage[].convertedTo(.RGBAF32)
+            premultipliedSource.convertAlphaTo(.Premultiplied)
+
+            var tmp      = Image.create(dstImage.width, srcImage.height, .RGBAF32, alphaMode: .Premultiplied)
+            var filtered = Image.create(dstImage.width, dstImage.height, .RGBAF32, alphaMode: .Premultiplied)
+            scaleRow(&tmp, &premultipliedSource, mode)
+            scaleCol(&filtered, &tmp, mode)
+            filtered.convertAlphaTo(.Straight)
+            let result = filtered.convertedTo(dstImage.pixelFormat)
+            Memory.copy(dstImage.pixels.storage(), result.pixels.storage(), dstImage.byteCount)
+            return
+        }
+
         var tmp = Image.create(dstImage.width, srcImage.height, srcImage.pixelFormat, alphaMode: srcImage.alphaMode)
         scaleRow(&tmp, srcImage, mode)
         scaleCol(dstImage, &tmp, mode)

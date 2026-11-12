@@ -5,18 +5,30 @@ using Swag, Core
 // Run the existing scalar kernels directly so the reference never dispatches work.
 private func serialFilteredResize(source: const *Image, width, height: s32, mode: Image.ResizeMode)->Image
 {
-    var intermediate        = Image.create(width, source.height, source.pixelFormat, alphaMode: source.alphaMode)
-    var result: #returntype = Image.create(width, height, source.pixelFormat, alphaMode: source.alphaMode)
+    var convertedSource: Image
+    var workSource       = source
+    let needsPremultiply = source.pixelFormat.hasAlpha() and source.alphaMode == .Straight
+    if needsPremultiply
+    {
+        convertedSource = source[].convertedTo(.RGBAF32)
+        convertedSource.convertAlphaTo(.Premultiplied)
+        workSource = &convertedSource
+    }
+
+    let outputAlphaMode     = needsPremultiply ? AlphaMode.Premultiplied : source.alphaMode
+    let outputFormat        = needsPremultiply ? PixelFormat.RGBAF32 : source.pixelFormat
+    var intermediate        = Image.create(width, source.height, outputFormat, alphaMode: outputAlphaMode)
+    var result: #returntype = Image.create(width, height, outputFormat, alphaMode: outputAlphaMode)
     let horizontal          = ResizeTools.calcContributions(width, source.width, cast(f64, width) / source.width, mode)
     let vertical            = ResizeTools.calcContributions(height, source.height, cast(f64, height) / source.height, mode)
-    let format              = source.pixelFormat
+    let format              = workSource.pixelFormat
     let legacy              = format == .RGB8 or format == .RGBA8 or format == .BGR8 or format == .BGRA8
     for row in source.height
     {
         if legacy do
-            ResizeTools.scaleRow(&intermediate, source, row, &horizontal)
+            ResizeTools.scaleRow(&intermediate, workSource, row, &horizontal)
         else do
-            ResizeTools.scaleRowGeneric(&intermediate, source, row, &horizontal)
+            ResizeTools.scaleRowGeneric(&intermediate, workSource, row, &horizontal)
     }
 
     for column in width
@@ -25,6 +37,12 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
             ResizeTools.scaleCol(&result, &intermediate, column, &vertical)
         else do
             ResizeTools.scaleColGeneric(&result, &intermediate, column, &vertical)
+    }
+
+    if needsPremultiply
+    {
+        result.convertAlphaTo(.Straight)
+        return result.convertedTo(source.pixelFormat)
     }
 
     return result
@@ -110,4 +128,36 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     assertPixel(filteredOut, 2, 1, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
     assertPixel(filteredOut, 0, 0, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
     assertPixel(filteredOut, 2, 0, Color.fromArgb(37'u8, 7'u8, 17'u8, 27'u8))
+}
+
+#test
+{
+    const edgePixels = [17'u8, 91, 203, 0, 255, 0, 0, 255]
+    let straight      = Image.create(2, 1, .RGBA8, edgePixels)
+    var premultiplied = Image.create(2, 1, .RGBA8, edgePixels)
+    premultiplied.convertAlphaTo(.Premultiplied)
+
+    for mode in [Image.ResizeMode.Bilinear, Image.ResizeMode.Bicubic]
+    {
+        let straightResize = straight.resized(1, 1, mode)
+        let premultResize  = premultiplied.resized(1, 1, mode)
+        let expected       = premultResize.pixelColor(0, 0)
+
+        Swag.require(straightResize.alphaMode == .Straight)
+        Swag.require(premultResize.alphaMode == .Premultiplied)
+        Swag.require(expected.r == 255 and expected.g == 0 and expected.b == 0)
+        Swag.require(expected.a > 0 and expected.a < 255)
+        if mode == .Bilinear do
+            Swag.require(expected.a == 85)
+        assertPixel(straightResize, 0, 0, expected)
+    }
+
+    let nearest = straight.resized(4, 1, .Nearest)
+    Swag.require(nearest.alphaMode == .Straight)
+    Swag.require(Memory.compare(nearest.pixels.storage(), edgePixels.buffer, 4) == 0)
+    assertPixel(nearest, 3, 0, Color.fromArgb(255'u8, 255, 0, 0))
+    Swag.require(Memory.compare(straight.pixels.storage(), edgePixels.buffer, edgePixels.count) == 0)
+
+    let single = Image.create(1, 1, .RGBA8, [7'u8, 17, 27, 37]).resized(3, 2, .Bicubic)
+    assertPixel(single, 0, 1, Color.fromArgb(37'u8, 7, 17, 27))
 }

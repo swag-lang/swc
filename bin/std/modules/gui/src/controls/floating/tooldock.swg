@@ -46,9 +46,15 @@ struct ToolDock
 // One tool of a group of a [[Gui.ToolDock]] cell.
 struct ToolDockMember
 {
-    icon:    Icon
-    id:      WndId?
-    toolTip: String
+    icon:      Icon
+    idStorage: String
+    hasId:     bool
+    toolTip:   String
+}
+
+impl ToolDockMember
+{
+    mtd idView()->WndId? => .hasId ? .idStorage.toString() : null
 }
 
 // The tools one cell of a [[Gui.ToolDock]] stands for.
@@ -170,7 +176,14 @@ impl ToolDock
         {
             let added = .groups.emplaceInitAddress()
             added.cell = cell
-            added.members.add(ToolDockMember{cell.icon, cell.id, String.from(cell.toolTip)})
+            let member = added.members.emplaceInitAddress()
+            member.icon = cell.icon
+            if cell.id
+            {
+                member.idStorage = cell.id
+                member.hasId     = true
+            }
+            member.toolTip = String.from(cell.toolTip)
             cell.hookOnEvent = func|dock = me|(wnd, evt)->bool => dock.groupCellEvent(assume cast(*IconButton, wnd), evt)
         }
 
@@ -178,7 +191,12 @@ impl ToolDock
         let metrics = .themeMetrics()
         var glyph   = icon
         glyph.sizeX, glyph.sizeY = metrics.toolDock_Glyph
-        group.members.add(ToolDockMember{glyph, id, String.from(toolTip orelse "")})
+        let member = group.members.emplaceInitAddress()
+        member.icon    = glyph
+        member.toolTip = String.from(toolTip orelse "")
+        member.hasId   = id != null
+        if id do
+            member.idStorage = id
         .invalidate()
     }
 
@@ -195,7 +213,7 @@ impl ToolDock
 
         for &group in .groups
         {
-            for &member in group.members where member.id == id
+            for &member in group.members where member.idView() == id
             {
                 .showMember(group, member)
                 .activate(group.cell, notify: false)
@@ -218,11 +236,12 @@ impl ToolDock
         {
             for &member in group.members
             {
+                let memberId = member.idView()
                 // A tool with no words of its own is named by its command.
-                if member.toolTip.isEmpty() and member.id do
-                    discard .addItem(null, member.id, member.icon, checked: member.id == cell.id)
+                if member.toolTip.isEmpty() and memberId do
+                    discard .addItem(null, memberId, member.icon, checked: memberId == cell.id)
                 else do
-                    discard .addItem(member.toolTip, member.id orelse "", member.icon, checked: member.id == cell.id)
+                    discard .addItem(member.toolTip, memberId orelse "", member.icon, checked: memberId == cell.id)
             }
         }
 
@@ -240,7 +259,7 @@ impl ToolDock
         let group = .groupOf(cell)
         if not group do
             return
-        for &member in group.members where member.id == id
+        for &member in group.members where member.idView() == id
         {
             .showMember(group, member)
             .activate(cell, notify: true)
@@ -288,7 +307,7 @@ impl ToolDock
     {
         let cell = group.cell
         cell.setIcon(member.icon)
-        cell.id      = member.id
+        cell.setId(member.idView())
         cell.toolTip = member.toolTip
         cell.invalidate()
     }

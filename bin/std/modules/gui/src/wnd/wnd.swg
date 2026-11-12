@@ -670,6 +670,13 @@ impl Wnd
         return res
     }
 
+    // Replaces the identifier with one copied into storage owned by this window.
+    internal mtd setId(id: WndId?)
+    {
+        .idStorage = id orelse ""
+        .id = id ? .idStorage.toString() : null
+    }
+
     // Destroys this window and its subtree immediately.
     //
     // Every window of the subtree receives its destroy event before this returns; storage is

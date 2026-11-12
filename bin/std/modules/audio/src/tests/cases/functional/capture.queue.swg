@@ -35,7 +35,8 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(queue.pendingBlocks() == 2 and queue.sampleEnd() == 5)
 
     var samples: Array's16
-    var info: CaptureBlock
+    var info = CaptureBlock{startSample: 5, firstTick: 7, frameCount: 1,
+                            gapFrames: 2, sourceInterrupted: true}
     Swag.require(queue.pop(&samples, &info))
     Swag.require(info.startSample == 0 and info.firstTick == 0 and info.frameCount == 3)
     Swag.require(info.gapFrames == 0 and not info.sourceInterrupted)
@@ -45,6 +46,8 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(info.gapFrames == 0 and not info.sourceInterrupted)
     Swag.require(Slice.equals(samples.toSlice(), Second))
     Swag.require(not queue.pop(&samples, &info) and samples.isEmpty())
+    Swag.require(info.startSample == 0 and info.firstTick == 0 and info.frameCount == 0 and
+                 info.gapFrames == 0 and not info.sourceInterrupted)
 }
 
 // Timestamp gaps survive; overlapping source frames are discarded before enqueueing.

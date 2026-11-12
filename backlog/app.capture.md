@@ -258,6 +258,15 @@ whole recording loaded at once.
   editor replay and a forced 250 ms interface stall decoded 179 frames and missed one slot. The
   scene and display activity varied, so these timings are diagnostic rather than a throughput
   guarantee.
+  A new Windows full-screen pass captured a 3840x2160 monitor as 90 playable frames with four
+  missed slots. A 7680x2169 virtual desktop rendered at 4096x1156 as 90 playable frames with
+  three missed slots. With the cursor included, `ScreenFrameSource` now restores only the old
+  pointer rectangle before asking DXGI to mirror changed desktop regions. It compares the new
+  pointer pixels with the prior overlay so a stationary cursor can use a held picture. On one
+  three-second virtual-desktop pass, composition fell from 285 ms to 9 ms, scaling from 180 ms
+  to 20 ms, and fresh-picture encoding from 383 ms to 76 ms; both passes missed three slots.
+  Desktop activity varied between passes, so this establishes the avoided full-frame copies,
+  not a guaranteed end-to-end throughput gain.
   `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
   late producer or audio errors, and returns an editable capture when that prefix is readable.
   A failure toast exposes the retained file in the explorer. On startup and when the library

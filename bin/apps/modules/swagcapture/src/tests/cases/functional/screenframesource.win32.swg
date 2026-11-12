@@ -19,3 +19,29 @@ using Swag, Core, Pixel
     Swag.require(frame.pixels.storage() == storage)
     Swag.require(source.memoryDC == null and source.bitmap == null)
 }
+
+// Restoring the previous cursor rectangle touches only its pixels and ignores a replaced target.
+#test
+{
+    var source = expect ScreenFrameSource.create(true, 0, 0, 6, 4)
+    var frame = Image.create(6, 4, .BGRA8)
+    frame.fill(Argb.White)
+    source.saveCursorPixels(&frame, 1, 1, 3, 3)
+    frame.fill(Argb.Black)
+    source.restoreCursorPixels(&frame)
+    Swag.require(frame.pixelColor(1, 1) == Argb.White)
+    Swag.require(frame.pixelColor(2, 2) == Argb.White)
+    Swag.require(frame.pixelColor(0, 0) == Argb.Black)
+
+    source.saveCursorPixels(&frame, 1, 1, 3, 3)
+    var replacement = Image.create(6, 4, .BGRA8)
+    replacement.fill(Argb.Black)
+    source.restoreCursorPixels(&replacement)
+    Swag.require(replacement.pixelColor(1, 1) == Argb.Black and source.cursorBackup.isEmpty())
+
+    Swag.require(source.cursorPixelsChanged(&frame, 1, 1, 3, 3))
+    Swag.require(not source.cursorPixelsChanged(&frame, 1, 1, 3, 3))
+    frame.fill(Argb.Black)
+    Swag.require(source.cursorPixelsChanged(&frame, 1, 1, 3, 3))
+    Swag.require(source.cursorPixelsChanged(&frame, 2, 1, 4, 3))
+}

@@ -73,3 +73,33 @@ using Core
 
     discard popup.doModal(button, autoDestroy: true)
 }
+
+// A popup menu keeps fractional measured rows when Wnd commits its rounded frame size.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 220)
+    host.theme.metrics.menuPopup_ItemHeight = 30.4
+
+    let popup = MenuCtrl.createPopup(&host.root)
+    popup.addItem("A caption measured at a fractional width", "open")
+    popup.computeLayoutPopup()
+
+    var checked: bool
+    host.app.sigFrame += func|popup, checked = &checked|(_)
+    {
+        if checked[] do
+            return
+        let item      = unwrap popup.items[0]
+        let body      = popup.getPopupBodyRect()
+        let metrics   = popup.themeMetrics()
+        let textWidth = body.width - popup.padding.x - popup.padding.z - metrics.menuPopup_IconMargin - metrics.menuPopup_IconSize
+        Swag.require(item.pos + item.size <= body.bottom() - popup.padding.w)
+        Swag.require(item.name.boundRect.width <= textWidth)
+        checked[] = true
+        popup.setEndModal(null)
+    }
+
+    discard popup.doModal({40, 40})
+    Swag.require(checked)
+}

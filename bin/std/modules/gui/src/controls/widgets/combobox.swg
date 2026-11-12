@@ -683,6 +683,7 @@ impl ComboBox
         .items.clear()
         .applySelectedIndex(Swag.U32.Max, notify: false)
         .invalidate()
+        .invalidateLayout()
     }
 
     // Appends a selectable item and returns its stable heap object.
@@ -704,6 +705,7 @@ impl ComboBox
         .items.add(item)
         .hidePopup()
         .invalidate()
+        .invalidateLayout()
         return item
     }
 
@@ -716,6 +718,7 @@ impl ComboBox
         .items.add(item)
         .hidePopup()
         .invalidate()
+        .invalidateLayout()
         return item
     }
 
@@ -732,6 +735,7 @@ impl ComboBox
         elif .selectedIndex > index and .selectedIndex != Swag.U32.Max do
             .selectedIndex -= 1
         .invalidate()
+        .invalidateLayout()
     }
 
     // Returns the selected item, or null when the combo box has no selection.
@@ -769,6 +773,7 @@ impl ComboBox
         .flags.add(add)
         .flags.remove(remove)
         .invalidate()
+        .invalidateLayout()
     }
 
     // Gives a hosted segmented combo the measured width of each item, instead of equal shares.
@@ -779,6 +784,7 @@ impl ComboBox
         for width in widths do
             .segmentWidths.add(width)
         .invalidate()
+        .invalidateLayout()
     }
 }
 

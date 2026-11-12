@@ -16,6 +16,75 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     ComboHeadlessLastIdx      = idx
 }
 
+// Item mutations keep an auto-measured combo in sync with the width measured after each change.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 100)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 420, 40})
+    let combo = ComboBox.create(row)
+    host.pump()
+    let initial = combo.position.width
+
+    combo.addItem("A combo entry wide enough to exceed the default field width")
+    host.pump()
+    let addedWidth = combo.measure({}).preferred.x
+    var failures: u32
+    if addedWidth <= initial or combo.position.width != addedWidth do
+        failures |= 1
+
+    // Force the current item set into the layout so the removal phase starts at its wide size.
+    row.computeLayout()
+    host.pump()
+    let withWideItem = combo.position.width
+
+    combo.removeItemAt(0)
+    host.pump()
+    let removedWidth = combo.measure({}).preferred.x
+    if removedWidth >= withWideItem or combo.position.width != removedWidth do
+        failures |= 2
+
+    // The clear phase likewise starts with a committed wide item.
+    combo.addItem("A combo entry wide enough to exceed the default field width")
+    row.computeLayout()
+    host.pump()
+    let beforeClear = combo.position.width
+    combo.clear()
+    host.pump()
+    let clearedWidth = combo.measure({}).preferred.x
+    if clearedWidth >= beforeClear or combo.position.width != clearedWidth do
+        failures |= 4
+
+    // The segmented flag and explicit segment widths also change the measured outer width.
+    combo.addItem("A long first segmented caption")
+    combo.addItem("A long second segmented caption")
+    row.computeLayout()
+    host.pump()
+    let beforeSegmented = combo.position.width
+    combo.updateFlags(.Segmented)
+    host.pump()
+    let segmentedWidth = combo.measure({}).preferred.x
+    if segmentedWidth == beforeSegmented or combo.position.width != segmentedWidth do
+        failures |= 8
+
+    var widths: Array'f32
+    widths.add(240)
+    widths.add(240)
+    combo.setSegmentWidths(widths)
+    host.pump()
+    let explicitWidth = combo.measure({}).preferred.x
+    if explicitWidth == segmentedWidth or combo.position.width != explicitWidth do
+        failures |= 16
+
+    discard combo.addSeparator()
+    host.pump()
+    let afterSeparator = combo.measure({}).preferred.x
+    if afterSeparator == explicitWidth or combo.position.width != afterSeparator do
+        failures |= 32
+    Swag.require(failures == 0, Format.toString("ComboBox layout invalidation failures: %", failures).toString())
+}
+
 // A live palette switch resolves every painted combo part immediately. Interaction inside one
 // palette may animate, but the old palette must never remain visible while the surface changes.
 #test

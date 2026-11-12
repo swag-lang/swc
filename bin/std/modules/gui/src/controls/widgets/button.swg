@@ -96,13 +96,14 @@ impl Button
         .invalidateLayout()
     }
 
-    // Removes the displayed icon and repaints the button.
+    // Removes the displayed icon, repaints, and lets the next layout pass remeasure it.
     mtd clearIcon()
     {
         if not .icon.isValid() do
             return
         .icon.clear()
         .invalidate()
+        .invalidateLayout()
     }
 
     // Overrides the icon draw size; zero on either axis preserves that axis from the icon descriptor.

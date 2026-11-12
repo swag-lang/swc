@@ -97,27 +97,30 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
     }
 }
 
-// Repeated changing pictures expose per-frame allocation and scratch-reset costs.
+// Repeated changing pictures expose sustained cost at Capture's two lossy settings.
 #[Swag.TestTag("stress")]
 #test
 {
     let first = expect sliceStressFrame(0)
     let changed = expect sliceStressFrame(1)
-    var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: 28,
-                                              sliceCount: 4)
-    discard expect encoder.encode(&first, 0, 3_000)
-    discard expect encoder.encode(&changed, 3_000, 3_000)
-    var watch: Time.Stopwatch
-    watch.start()
-    var totalBytes: u64
-    for index in 100'u64
+    for qp in [18'u32, 28]
     {
-        let picture = index % 2 ? &changed : &first
-        let packet = expect encoder.encode(picture, (index + 2) * 3_000, 3_000)
-        totalBytes += packet.bytes.count
+        var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: qp,
+                                                  sliceCount: 4)
+        discard expect encoder.encode(&first, 0, 3_000)
+        discard expect encoder.encode(&changed, 3_000, 3_000)
+        var watch: Time.Stopwatch
+        watch.start()
+        var totalBytes: u64
+        for index in 100'u64
+        {
+            let picture = index % 2 ? &changed : &first
+            let packet = expect encoder.encode(picture, (index + 2) * 3_000, 3_000)
+            totalBytes += packet.bytes.count
+        }
+        watch.stop()
+        Console.printf("H264 4K QP % four slices: 100 changing P pictures % us/% bytes\n",
+                       qp, watch.elapsedMicroseconds(), totalBytes)
+        Swag.require(totalBytes > 0)
     }
-    watch.stop()
-    Console.printf("H264 4K QP28 four slices: 100 changing P pictures % us/% bytes\n",
-                   watch.elapsedMicroseconds(), totalBytes)
-    Swag.require(totalBytes > 0)
 }

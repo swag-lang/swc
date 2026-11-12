@@ -496,6 +496,11 @@ impl WebCaptureTone
         {
             Swag.require(recorder.state == .Preparing and recorder.target.window == 0)
             let hud = unwrap recorder.hud
+            let hudSurface = unwrap hud.surface
+            var affinity: Win32.DWORD
+            Swag.require(GetWindowDisplayAffinity(hudSurface.win32Handle(), &affinity) and
+                         affinity == 0x11'u32,
+                         "the recording controls must be excluded from desktop capture")
             if desktop
             {
                 let screenButton = unwrap hud.screenButton
@@ -505,6 +510,8 @@ impl WebCaptureTone
                              "the screen menu must have its own native surface")
                 choices.menu.sigCommandSelected.call(choices.menu, AllScreensChoiceId)
                 choices.close()
+                Swag.require(hudSurface.position.intersects(recorder.area),
+                             "the full-desktop test must exercise overlapping recording controls")
             }
             Swag.require(recorder.area.x == expected.x and recorder.area.y == expected.y and
                          recorder.area.width == videoWidth and recorder.area.height == videoHeight)

@@ -445,6 +445,8 @@ public impl RichEditCtrl
         .loadedContentHeight    = 0
         .residentContentOffset  = 0
         .estimatedContentHeight = 0
+        .recomputeScroll        = true
+        .edView.invalidate()
         .reportCaretMove()
     }
 

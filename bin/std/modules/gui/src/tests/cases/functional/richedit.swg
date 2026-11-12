@@ -159,6 +159,35 @@ using Swag, Core
     Swag.require(ed.text() == "")
 }
 
+// Clearing a laid-out document drops both scroll extents and returns the view to its origin.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 120)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
+    var text: Core.String
+    for 80 do
+        text += "a very long line that must overflow horizontally\n"
+    ed.setText(text.toString())
+    discard host.render(ed)
+    discard host.render(ed)
+
+    let viewWidth  = ed.scrollWnd.paddedClientRect().width
+    let viewHeight = ed.scrollWnd.view.position.height
+    Swag.require(ed.scrollWnd.scrollSize.x > viewWidth)
+    Swag.require(ed.scrollWnd.scrollSize.y > viewHeight)
+
+    ed.scrollWnd.setScrollPos(80, 80)
+    ed.clear()
+    discard host.render(ed)
+
+    Swag.require(ed.text().isEmpty())
+    Swag.require(ed.scrollWnd.scrollSize.x <= viewWidth)
+    Swag.require(ed.scrollWnd.scrollSize.y == 0)
+    Swag.require(ed.scrollPosition() == Math.Point{})
+}
+
 #test
 {
     var host: Testing.HeadlessHost

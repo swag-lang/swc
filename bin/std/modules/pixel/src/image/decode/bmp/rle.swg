@@ -73,6 +73,13 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             x += absoluteCount
         }
     }
+
+    // The compressed bitmap is not complete until its explicit end marker is present.
+    if p >= last do
+        fail InvalidFormatError{"invalid source buffer"}
+    try checkBuffer(p, last, 2)
+    if p[0] != 0 or p[1] != FILL_RLE_ENDOFBITMAP do
+        fail InvalidFormatError{"invalid source buffer"}
 }
 
 func rle4Index(value: u8, index: u32)->u32 => cast(u32, ((index & 1) ? (value & 0x0F) : (value >> 4)))
@@ -144,4 +151,11 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             x += pixelCount
         }
     }
+
+    // The compressed bitmap is not complete until its explicit end marker is present.
+    if p >= last do
+        fail InvalidFormatError{"invalid source buffer"}
+    try checkBuffer(p, last, 2)
+    if p[0] != 0 or p[1] != FILL_RLE_ENDOFBITMAP do
+        fail InvalidFormatError{"invalid source buffer"}
 }

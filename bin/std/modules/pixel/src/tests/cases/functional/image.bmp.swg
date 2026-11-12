@@ -669,6 +669,76 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.require(errorOutcome.value() != null)
 }
 
+// Error: BI_RLE8 stream ending without an end-of-bitmap marker must fail.
+#test
+{
+    let path = makeTempBmpPath()
+    defer discard catch File.delete(path.toString())
+    var cb: ConcatBuffer
+    var fh: BmpFH
+    fh.bfType    = 0x4D42'u16
+    fh.bfSize    = 64'u32
+    fh.bfOffBits = 62'u32
+    cb.addStruct(fh)
+
+    var bh: Bmp.Header
+    bh.biSize        = 40'u32
+    bh.biWidth       = 1
+    bh.biHeight      = 1
+    bh.biPlanes      = 1'u16
+    bh.biBitCount    = 8'u16
+    bh.biCompression = Bmp.BI_RLE8
+    bh.biClrUsed     = 2'u32
+    bh.biSizeImage   = 2'u32
+    cb.addStruct(bh)
+    addBmpPaletteColor(&cb, 0, 0, 0)
+    addBmpPaletteColor(&cb, 10, 20, 30)
+    cb.addNative(1'u8)
+    cb.addNative(1'u8)
+
+    discard expect File.writeAllBytes(path.toString(), cb)
+    var img: Image
+    var errorOutcome: Swag.Error
+    catch { img = try Image.load(path.toString()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+// Error: BI_RLE4 stream ending without an end-of-bitmap marker must fail.
+#test
+{
+    let path = makeTempBmpPath()
+    defer discard catch File.delete(path.toString())
+    var cb: ConcatBuffer
+    var fh: BmpFH
+    fh.bfType    = 0x4D42'u16
+    fh.bfSize    = 66'u32
+    fh.bfOffBits = 62'u32
+    cb.addStruct(fh)
+
+    var bh: Bmp.Header
+    bh.biSize        = 40'u32
+    bh.biWidth       = 1
+    bh.biHeight      = 1
+    bh.biPlanes      = 1'u16
+    bh.biBitCount    = 4'u16
+    bh.biCompression = Bmp.BI_RLE4
+    bh.biClrUsed     = 2'u32
+    bh.biSizeImage   = 4'u32
+    cb.addStruct(bh)
+    addBmpPaletteColor(&cb, 0, 0, 0)
+    addBmpPaletteColor(&cb, 40, 50, 60)
+    cb.addNative(1'u8)
+    cb.addNative(0x10'u8)
+    cb.addNative(0'u8)
+    cb.addNative(0'u8)
+
+    discard expect File.writeAllBytes(path.toString(), cb)
+    var img: Image
+    var errorOutcome: Swag.Error
+    catch { img = try Image.load(path.toString()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode BI_RLE8 indexed data.
 #test
 {

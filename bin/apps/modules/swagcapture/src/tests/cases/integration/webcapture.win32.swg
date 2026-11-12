@@ -433,11 +433,30 @@ impl WebCaptureTone
     Swag.require(Env.hasArgument("swag.capture.native-screen=true"),
                  "launch this device integration with tools/capture-web.py")
     let desktop = Env.variable("SWAG_CAPTURE_WEB_MODE") == "desktop"
+    let browser = Win32.FindWindowA(null, "Swag Capture Web AV Probe".buffer)
+    Swag.require(browser != null, "the owned browser fixture window is missing")
+    var browserBounds: Win32.RECT
+    Swag.require(Win32.GetWindowRect(browser, &browserBounds))
+    let browserX = browserBounds.left + expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
+    let browserY = browserBounds.top + expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
+    let monitors = Env.getMonitors()
+    var monitorIndex = Swag.U64.Max
+    for index in monitors.count
+    {
+        let bounds = monitors[index].physicalBounds
+        if browserX >= bounds.x and browserX < bounds.right() and
+           browserY >= bounds.y and browserY < bounds.bottom()
+        {
+            monitorIndex = index
+            break
+        }
+    }
+    Swag.require(monitorIndex != Swag.U64.Max, "the browser fixture is outside the connected monitors")
     let expected = desktop ? Math.Rectangle{Env.getSystemMetric(.DesktopX),
                                              Env.getSystemMetric(.DesktopY),
                                              Env.getSystemMetric(.DesktopWidth),
                                              Env.getSystemMetric(.DesktopHeight)} :
-                             Env.getMonitors()[0].physicalBounds
+                             monitors[monitorIndex].physicalBounds
     let videoWidth = cast(s32, Math.floor(expected.width / 2) * 2)
     let videoHeight = cast(s32, Math.floor(expected.height / 2) * 2)
     let maxSide = Math.max(videoWidth, videoHeight)
@@ -527,7 +546,7 @@ impl WebCaptureTone
     if desktop do
         main.sendCommandEvent(ActionCapture.RecordScreen)
     else do
-        main.recordVideoScreen(.Monitor, 0)
+        main.recordVideoScreen(.Monitor, monitorIndex)
     app.runFrame()
     app.sigFrame.clear()
     Swag.require(stage == 2 and g_Recorder == null)
@@ -544,9 +563,8 @@ impl WebCaptureTone
     Swag.require(image.width == outputWidth and image.height == outputHeight)
     let firstHash = Hash.hashBytes32(image.pixels.toSlice())
     expect reader.decodeFrameInto(&image, reader.frameCount() - 1)
-    if desktop do
-        Swag.require(Hash.hashBytes32(image.pixels.toSlice()) != firstHash,
-                     "the virtual desktop recording must preserve moving pixels")
+    Swag.require(Hash.hashBytes32(image.pixels.toSlice()) != firstHash,
+                 "the full-screen recording must preserve moving pixels")
     expect image.save(Path.combine(evidence, "fullscreen-last.png"))
     Console.println("Full-screen file: frames=", reader.frameCount(),
                     " duration=", reader.durationInSeconds(), " decoded=", image.width, " x ", image.height)

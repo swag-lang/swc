@@ -197,3 +197,17 @@ func expectNear(actual, expected: f32)
     Swag.require(Math.Geometry.polygonContainsPoint(polygon, {5, 5}))
     Swag.require(not Math.Geometry.polygonContainsPoint(polygon, {15, 5}))
 }
+
+#test
+{
+    var bowTie: Array'Math.Vector2
+    bowTie.add({0, 0})
+    bowTie.add({10, 10})
+    bowTie.add({0, 10})
+    bowTie.add({10, 0})
+
+    Swag.require(Math.Geometry.polygonContainsPoint(bowTie, {5, 2}))
+    Swag.require(Math.Geometry.polygonContainsPoint(bowTie, {5, 8}))
+    Swag.require(not Math.Geometry.polygonContainsPoint(bowTie, {1, 5}))
+    Swag.require(not Math.Geometry.polygonContainsPoint(bowTie, {9, 5}))
+}

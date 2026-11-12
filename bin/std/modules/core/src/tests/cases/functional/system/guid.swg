@@ -57,6 +57,24 @@ struct GuidRace
     drawn: [16] u64
 }
 
+struct Guid128Race
+{
+    ready: u32
+    start: u32
+    next:  u32
+    drawn: [16] Guid128
+}
+
+func guid128RaceWorker(thread: const *Threading.Thread)
+{
+    let race = cast(*Guid128Race, unwrap thread.userParam)
+    discard Swag.atomicAdd(&race.ready, 1)
+    while Swag.atomicLoad(&race.start) == 0 do
+        Threading.Thread.yield()
+    let slot = Swag.atomicAdd(&race.next, 1)
+    race.drawn[slot] = Guid128.random()
+}
+
 func guidRaceWorker(thread: const *Threading.Thread)
 {
     let race = cast(*GuidRace, unwrap thread.userParam)
@@ -87,6 +105,32 @@ func guidRaceWorker(thread: const *Threading.Thread)
 
     for i in race.drawn.count
     {
+        for j in i + 1 until race.drawn.count do
+            Swag.require(race.drawn[i] != race.drawn[j])
+    }
+}
+
+// Concurrently started workers seed distinct per-thread generators and produce RFC 4122 UUIDs.
+#test
+{
+    var race:    Guid128Race
+    var threads: [16] Threading.Thread
+    for &thread in threads
+    {
+        discard expect thread.init(&guid128RaceWorker, &race)
+        discard expect thread.start()
+    }
+
+    while Swag.atomicLoad(&race.ready) != threads.count do
+        Threading.Thread.yield()
+    discard Swag.atomicExchange(&race.start, 1)
+    for &thread in threads do
+        thread.wait()
+
+    for i in race.drawn.count
+    {
+        Swag.require((race.drawn[i].bytes[6] & 0xF0) == 0x40)
+        Swag.require((race.drawn[i].bytes[8] & 0xC0) == 0x80)
         for j in i + 1 until race.drawn.count do
             Swag.require(race.drawn[i] != race.drawn[j])
     }

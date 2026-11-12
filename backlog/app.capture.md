@@ -66,15 +66,18 @@ whole recording loaded at once.
 
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
-- Evidence: `RecentView.select` in `src/recentwnd.swg` flushes a pending save of the selected
-  file, then calls `Capture.load` synchronously on the interface thread, although the recent
-  strip already has its preview. A 2341x1903 BGRA8 capture took a few hundred milliseconds on
-  that path.
-- Next: make selection an owned asynchronous load that leaves the preview visible, respects
-  outstanding saves, and publishes only the result of the latest selection. Define cancellation,
-  failure presentation and window-close cleanup before moving the decode off the interface thread.
-- Done when: delayed loads cannot freeze input or replace a newer selection, failed loads
-  leave a useful preview and diagnostic, and shutdown joins outstanding work.
+- Evidence: Pointer and lens selection now decode through an owned background task, keep the
+  preview visible, wait for a save of the same file without blocking input, discard superseded
+  results, and join at shutdown. `RecentView.select` and `RecentWnd.addRecent(sel: true)` still
+  open synchronously for library and explicit file actions. The first startup capture is also
+  decoded on the interface thread; `selectLoaded` still saves the outgoing edited capture
+  synchronously. A 2341x1903 BGRA8 capture took a few hundred milliseconds.
+- Next: move library/file selection and the initial startup decode to the same asynchronous
+  ownership path, then schedule the outgoing capture save without blocking the interface.
+  Preserve the immediate document handoff needed by capture creation.
+- Done when: every user-triggered recent open keeps input responsive, delayed loads cannot
+  replace a newer selection, failures leave a useful preview and diagnostic, and shutdown joins
+  outstanding work.
 - Related: app.capture.024, app.capture.025, language.parallelism.001
 
 ### app.capture.024 — Revisiting a recent capture decodes its full image again

@@ -34,6 +34,7 @@ struct RecentInfos
 {
     hot:            bool
     selected:       bool
+    loading:        bool
     linkedUpToDate: bool
     linked:         String
     showLinked:     bool = true
@@ -52,8 +53,38 @@ struct RecentView
     hotItem:        u64 = Swag.U64.Max
 }
 
+// A full capture decode owns its file name and result until the window accepts or discards it.
+struct RecentLoadJob
+{
+    task:    Swag.Task
+    file:    String
+    capture: *Capture?
+    error:   Swag.Error
+}
+
 impl RecentView
 {
+    mtd showContextMenu(pos: Math.Point)
+    {
+        with let menu = MenuCtrl.createPopup(me)
+        {
+            .addItem(ActionFile.UpdateLinkedImage)
+            .addSeparator()
+            .addItem(ActionFile.DupCapture)
+            .addItem(ActionFile.RenameCapture)
+            .addItem(ActionFile.DeleteCapture)
+            .addSeparator()
+            .addItem(ActionCopyPaste.CopyAsImage)
+            .addSeparator()
+            .addItem(ActionFile.CaptureFileLocation)
+            .addItem(ActionFile.LinkedFileLocation)
+            .addSeparator()
+            .addItem(ActionFile.FileDetails)
+        }
+
+        discard menu.doModal(pos, autoDestroy: true)
+    }
+
     // Opens `capture`, loaded for item `idx`, in the editor at the zoom the item last had, after
     // saving the capture it replaces. A capture whose item is gone is released.
     private mtd selectLoaded(idx: u64, capture: *Capture)
@@ -89,10 +120,10 @@ impl RecentView
         .invalidate()
     }
 
-    // Selects recent item `idx` and opens its capture in the editor, unless it already is and
-    // `force` is false.
+    // Opens a recent item immediately for callers that must finish the selection before returning.
     mtd select(idx: u64, force = false)
     {
+        .recentWnd.cancelRequestedSelection()
         if .selected == idx and not force do
             return
 
@@ -110,6 +141,24 @@ impl RecentView
         .main.flushCaptureSave(item.file)
 
         catch { .selectLoaded(idx, try Capture.load(item.file)) }
+    }
+
+    // A pointer or lens selection keeps the current editor responsive while the next capture
+    // decodes. The popup is shown only after the clicked capture becomes the active one.
+    mtd requestSelect(idx: u64, contextMenu = false, pos: Math.Point = {})
+    {
+        if idx >= .items.count do
+            return
+        if .selected == idx
+        {
+            .recentWnd.cancelRequestedSelection()
+            if contextMenu do
+                .showContextMenu(pos)
+            return
+        }
+
+        let item = unwrap .items[idx]
+        .recentWnd.requestSelection(item.file, contextMenu, pos)
     }
 
     // Paints the mark of a capture linked to an image file at the top-left corner of `rect`: on the
@@ -177,10 +226,12 @@ impl RecentView
         var content: Gui.FileTile.Content
         content.texture = texture
         content.icon    = parent.theme().icon(.FileImage, parent.themeMetrics().menuPopup_IconSize)
+        if infos.loading do
+            content.badge = appStrings().ui_Loading
 
         var options: Gui.FileTile.Options
         options.fit         = .Cover
-        options.hovered     = infos.hot
+        options.hovered     = infos.hot or infos.loading
         options.selected    = infos.selected
         options.showCaption = false
         Gui.FileTile.paint(parent, painter, rect, &content, options)
@@ -221,28 +272,7 @@ impl IWnd for RecentView
         {
             if evt.button == .Left or evt.button == .Right
             {
-                .select(.hotItem)
-
-                if evt.button == .Right
-                {
-                    with let menu = MenuCtrl.createPopup(me)
-                    {
-                        .addItem(ActionFile.UpdateLinkedImage)
-                        .addSeparator()
-                        .addItem(ActionFile.DupCapture)
-                        .addItem(ActionFile.RenameCapture)
-                        .addItem(ActionFile.DeleteCapture)
-                        .addSeparator()
-                        .addItem(ActionCopyPaste.CopyAsImage)
-                        .addSeparator()
-                        .addItem(ActionFile.CaptureFileLocation)
-                        .addItem(ActionFile.LinkedFileLocation)
-                        .addSeparator()
-                        .addItem(ActionFile.FileDetails)
-                    }
-
-                    discard menu.doModal(evt.surfacePos, autoDestroy: true)
-                }
+                .requestSelect(.hotItem, evt.button == .Right, evt.surfacePos)
             }
         }
     }
@@ -265,6 +295,7 @@ impl IWnd for RecentView
             {
                 .hot            = idx == me.hotItem
                 .selected       = idx == me.selected
+                .loading        = me.recentWnd.requestedFile == it.file
                 .linkedUpToDate = it.linkedUpToDate
                 .linked         = it.linked
                 .duration       = it.duration
@@ -286,6 +317,11 @@ struct RecentWnd
     late recentView:    *RecentView
     timer:              *Gui.Timer?
     loadTimer:          *Gui.Timer?
+    selectionTimer:     *Gui.Timer?
+    loadJob:            *RecentLoadJob?
+    requestedFile:      String
+    requestedMenu:      bool
+    requestedMenuPos:   Math.Point
     pendingRecentFiles: Array'String
     pendingRecentIndex: u64
     loadDone:           bool
@@ -298,6 +334,18 @@ impl IWnd for RecentWnd
     {
         .stopTimer(&.timer)
         .stopTimer(&.loadTimer)
+        .stopTimer(&.selectionTimer)
+
+        if .loadJob
+        {
+            let job = .loadJob
+            .loadJob = null
+            job.task.cancel()
+            job.task.wait()
+            if job.capture do
+                Memory.delete(job.capture)
+            Memory.delete(job)
+        }
 
         // The automatic save owns no window: land it before the strip that schedules
         // and collects it goes away.
@@ -306,6 +354,13 @@ impl IWnd for RecentWnd
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .selectionTimer
+        {
+            .stopTimer(&.selectionTimer)
+            .startRequestedSelection()
+            return
+        }
+
         // The scroll window has its own timer, which lets the bar fade once the strip is still.
         if evt.timer != .loadTimer and evt.timer != .timer
         {
@@ -369,10 +424,115 @@ impl IWnd for RecentWnd
 
         .stopTimer(&.timer)
     }
+
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        let job = .loadJob
+        if not job or evt.task != &job.task
+        {
+            evt.accepted = false
+            return
+        }
+
+        .loadJob = null
+        let loaded  = job.capture
+        let failure = #move job.error
+        let file = job.file
+        Memory.delete(job)
+
+        // A later click, a deletion, or an immediate programmatic selection supersedes this
+        // result. The worker never touches the current editor or its selection.
+        if .requestedFile != file
+        {
+            if loaded do
+                Memory.delete(loaded)
+            .startRequestedSelection()
+            return
+        }
+
+        .requestedFile.clear()
+        let openMenu = .requestedMenu
+        .requestedMenu = false
+        .invalidateRecentViews()
+
+        if loaded
+        {
+            for it, idx in .recentView.items where it!.file == file
+            {
+                .recentView.selectLoaded(idx, loaded)
+                if openMenu do
+                    .recentView.showContextMenu(.requestedMenuPos)
+                return
+            }
+            Memory.delete(loaded)
+            return
+        }
+
+        MessageDlg.error(unwrap .main.surface, Format.toString(appStrings().msg_FailedLoadFile, file), failure)
+    }
 }
 
 impl RecentWnd
 {
+    mtd cancelRequestedSelection()
+    {
+        .loadJob?.task.cancel()
+        .requestedFile.clear()
+        .requestedMenu = false
+        .stopTimer(&.selectionTimer)
+        .invalidateRecentViews()
+    }
+
+    mtd requestSelection(file: string, contextMenu: bool, pos: Math.Point)
+    {
+        if .loadJob and .loadJob.file != file do
+            .loadJob.task.cancel()
+        .requestedFile    = file
+        .requestedMenu    = contextMenu
+        .requestedMenuPos = pos
+        .invalidateRecentViews()
+        .startRequestedSelection()
+    }
+
+    private mtd startRequestedSelection()
+    {
+        if .requestedFile.isEmpty() or .loadJob do
+            return
+
+        var found = false
+        for it in .recentView.items where it!.file == .requestedFile
+        {
+            found = true
+            break
+        }
+        if not found
+        {
+            .cancelRequestedSelection()
+            return
+        }
+
+        // Reading a file while its automatic save replaces it can return stale content.
+        // Poll that one writer instead of joining it on the interface thread.
+        let pending = g_CaptureSaves.pending
+        if pending and pending.file == .requestedFile
+        {
+            if g_CaptureSaves.busy()
+            {
+                .selectionTimer = .addTimer(16'ms)
+                return
+            }
+            .main.flushCaptureSave(.requestedFile)
+        }
+
+        let job  = Memory.new'RecentLoadJob()
+        job.file = .requestedFile
+        .loadJob = job
+        job.task.submit(func|job|()
+        {
+            catch { job.capture = try Capture.load(job.file) } as job.error
+        }, .taskNotifier(&job.task))
+    }
+
     // The strip and the detached hub paint the same items on different surfaces.
     private mtd invalidateRecentViews()
     {
@@ -424,6 +584,8 @@ impl RecentWnd
     // Drops `file` from the recent strip once the library deleted it.
     mtd onLibraryFileDeleted(file: String)
     {
+        if .requestedFile == file do
+            .cancelRequestedSelection()
         for it, i in .recentView.items
         {
             if it!.file == file

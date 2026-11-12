@@ -28,6 +28,7 @@ struct AppStrings
     ui_MenuArrange:            string = "Arrange"
     ui_AllCaptures:            string = "All Items"
     ui_ImageBadge:             string = "IMAGE"
+    ui_Loading:                string = "Loading…"
     ui_CommaSeparatedTags:     string = "Tags separated by commas"
     ui_Search:                 string = "Search"
     ui_NoMatchingFonts:        string = "No matching fonts"     // Empty result of the font picker search.

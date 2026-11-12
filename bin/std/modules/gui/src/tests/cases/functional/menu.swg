@@ -88,6 +88,72 @@ using Swag, Core
     Swag.require(item.id == expected and received.toString() == expected)
 }
 
+// Updating command visibility removes hidden entries from menu-bar positions.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 120)
+
+    let bar    = MenuCtrl.createBar(&host.root, {0, 0, 380, 0})
+    let hidden = bar.addItem("Hide", "menu.hide")
+    let next   = bar.addItem("Next", "menu.next")
+    bar.computeLayoutBar()
+    bar.dirtyLayout = false
+    let originalPosition = next.pos
+
+    host.root.hookOnEvent = func||(_, event)->bool
+    {
+        if event is CommandStateEvent as state where state.kind == .Compute and state.id == "menu.hide"
+        {
+            state.updatedFields = .Hidden
+            state.hidden        = true
+            return true
+        }
+
+        return false
+    }
+
+    bar.updateState()
+    Swag.require(bar.dirtyLayout)
+    host.pump()
+    bar.computeLayoutBar()
+    Swag.require(hidden.hidden)
+    Swag.require(next.pos < originalPosition,
+                 Format.toString("Next menu item position after hiding prior entry: expected <%, committed %", originalPosition, next.pos).toString())
+}
+
+// Refreshing a visible menu bar updates the measured width of command labels.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 120)
+
+    let bar  = MenuCtrl.createBar(&host.root, {0, 0, 380, 0})
+    let item = bar.addItem("Open", "menu.refresh")
+    bar.computeLayoutBar()
+    bar.dirtyLayout = false
+    let originalWidth = item.size
+
+    host.root.hookOnEvent = func||(_, event)->bool
+    {
+        if event is CommandStateEvent as state where state.kind == .Compute
+        {
+            state.updatedFields = .Name
+            state.name = "Open a much longer document"
+            return true
+        }
+
+        return false
+    }
+
+    bar.updateState()
+    Swag.require(bar.dirtyLayout)
+    host.pump()
+    bar.computeLayoutBar()
+    Swag.require(item.size > originalWidth,
+                 Format.toString("Menu item width after command update: expected >%, committed %", originalWidth, item.size).toString())
+}
+
 // A popup note remains readable information and cannot be selected like a command.
 #test
 {

@@ -828,24 +828,44 @@ impl MenuCtrl
     // The label, icon, shortcut, and flags an answer updates replace those of the item.
     public mtd updateState()
     {
+        var layoutChanged = false
         for i in .items
         {
-            let it  = unwrap i
+            let it = unwrap i
             if it.widget do
                 continue
             let evt = .sendComputeCommandStateEvent(it.id)
             if evt.updatedFields.has(.Disabled) do
                 it.disabled = evt.disabled
-            if evt.updatedFields.has(.Hidden) do
-                it.hidden = evt.hidden
-            if evt.updatedFields.has(.Icon) do
-                it.icon = evt.icon
-            if evt.updatedFields.has(.LongName) do
-                it.name = evt.longName
-            elif evt.updatedFields.has(.Name) do
-                it.name = evt.name
-            if evt.updatedFields.has(.Shortcut) do
+            if evt.updatedFields.has(.Hidden)
+            {
+                it.hidden     = evt.hidden
+                layoutChanged = true
+            }
+
+            if evt.updatedFields.has(.Icon)
+            {
+                it.icon       = evt.icon
+                layoutChanged = true
+            }
+
+            if evt.updatedFields.has(.LongName)
+            {
+                it.name       = evt.longName
+                layoutChanged = true
+            }
+            elif evt.updatedFields.has(.Name)
+            {
+                it.name       = evt.name
+                layoutChanged = true
+            }
+
+            if evt.updatedFields.has(.Shortcut)
+            {
                 it.rightName.set(evt.shortcut)
+                layoutChanged = true
+            }
+
             if evt.updatedFields.has(.Checked) do
                 it.checked = evt.checked
             if evt.updatedFields.has(.RenderingHint)
@@ -853,6 +873,12 @@ impl MenuCtrl
                 it.rg       = evt.renderingHint
                 it.critical = evt.renderingHint.has(.Critical)
             }
+        }
+
+        if layoutChanged
+        {
+            .dirtyLayout = true
+            .invalidate()
         }
     }
 

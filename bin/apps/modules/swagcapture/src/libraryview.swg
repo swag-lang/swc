@@ -628,12 +628,19 @@ impl LibraryView
 
         catch capture.materializePreview()
         catch File.touch(item.fi.fullName)
-        .mainWnd.recentWnd.addRecent(item.fi.fullName, capture.preview, front: true, sel: true, linked: capture.linkedImage, duration: capture.keptDuration())
+        .mainWnd.recentWnd.addRecent(item.fi.fullName, capture.preview, front: true, linked: capture.linkedImage, duration: capture.keptDuration())
         if not capture.previewBytes.isEmpty() do
             capture.preview = {}
         .mainWnd.recentWnd.setScrollPos(0, 0)
-        .mainWnd.swapLibraryMode()
-        .mainWnd.updateState()
+        let active = .mainWnd.editWnd.getCapture()
+        if active and active.file == item.fi.fullName
+        {
+            .mainWnd.recentWnd.cancelRequestedSelection()
+            .mainWnd.swapLibraryMode()
+            .mainWnd.updateState()
+        }
+        else do
+            .mainWnd.recentWnd.requestSelection(item.fi.fullName, false, {}, returnToEditor: true)
     }
 
     // Returns how many cells a row of the grid holds: as many as the chosen preview size lets fit.

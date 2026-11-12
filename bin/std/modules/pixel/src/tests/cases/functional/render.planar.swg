@@ -101,6 +101,22 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     Swag.require(PixelFormat.Yuv420.bitsPerPixel() == 12)
 }
 
+// Chroma dimensions round up for even/odd luma sizes and do not overflow at s32 max.
+#test
+{
+    var storage: Array'u8
+    storage.resize(3)
+    var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage(), chromaR: storage.storage(), lumaStride: 1, chromaStride: 1, width: 4, height: 6}
+    Swag.require(view.chromaWidth() == 2 and view.chromaHeight() == 3)
+    view.width  = 5
+    view.height = 7
+    Swag.require(view.chromaWidth() == 3 and view.chromaHeight() == 4)
+    view.width  = Swag.S32.Max
+    view.height = Swag.S32.Max
+    Swag.require(view.chromaWidth() == 1_073_741_824)
+    Swag.require(view.chromaHeight() == 1_073_741_824)
+}
+
 // Matrix and range metadata select distinct conversions, including the sixteen-pixel SIMD path.
 #test
 {

@@ -293,6 +293,74 @@ using Swag, Core
     Swag.require(c11.position == {105, 35, 100, 30})
 }
 
+// Updating a grid track after arrangement repositions its assigned children.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 120)
+    let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 250, 80})
+    let left  = Wnd.create'Wnd(grid)
+    let right = Wnd.create'Wnd(grid)
+    grid.setCell(left, 0, 0)
+    grid.setCell(right, 1, 0)
+    host.pump()
+    let originalRightX = right.position.x
+
+    grid.setColumnSize(0, 150)
+    host.pump()
+    Swag.require(right.position.x > originalRightX,
+                 Format.toString("Second grid column x after resizing first: expected >%, committed %", originalRightX, right.position.x).toString())
+    Swag.require(right.position.x == left.position.right() + grid.horizontalSpacing)
+}
+
+// Updating each explicit grid track invalidates deferred arrangement.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 120)
+
+    let columns = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 250, 80})
+    let left    = Wnd.create'Wnd(columns)
+    let right   = Wnd.create'Wnd(columns)
+    columns.setCell(left, 0, 0)
+    columns.setCell(right, 1, 0)
+    host.pump()
+    let originalRightX = right.position.x
+    columns.setColumnTrack(0, .Fixed, 150)
+    host.pump()
+    Swag.require(right.position.x > originalRightX)
+    Swag.require(right.position.x == left.position.right() + columns.horizontalSpacing)
+
+    let rows   = GridLayoutCtrl.create(&host.root, 1, 2, {0, 0, 250, 80})
+    let top    = Wnd.create'Wnd(rows)
+    let bottom = Wnd.create'Wnd(rows)
+    rows.setCell(top, 0, 0)
+    rows.setCell(bottom, 0, 1)
+    host.pump()
+    let originalBottomY = bottom.position.y
+    rows.setRowTrack(0, .Fixed, 50)
+    host.pump()
+    Swag.require(bottom.position.y > originalBottomY)
+    Swag.require(bottom.position.y == top.position.bottom() + rows.verticalSpacing)
+}
+
+// Reassigning a cell after arrangement moves the child to its new track.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 120)
+    let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 250, 80})
+    let child = Wnd.create'Wnd(grid)
+    grid.setCell(child, 0, 0)
+    host.pump()
+    Swag.require(child.position.x == 0)
+
+    grid.setCell(child, 1, 0)
+    host.pump()
+    Swag.require(child.position.x == 105,
+                 Format.toString("Grid child x after reassignment: expected 105, committed %", child.position.x).toString())
+}
+
 // GridLayoutCtrl supports cells spanning multiple columns.
 #test
 {

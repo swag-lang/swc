@@ -273,7 +273,7 @@ impl Color
             else do
                 channel = channelMin
 
-            return cast(u8, (channel * 255))
+            return cast(u8, Math.round(channel * 255))
         }
 
         var clampedHue        = Math.saturate(h)

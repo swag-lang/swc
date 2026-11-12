@@ -66,15 +66,18 @@ whole recording loaded at once.
 
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
-- Evidence: `RecentView.select` in `src/recentwnd.swg` flushes a pending save of the selected
-  file, then calls `Capture.load` synchronously on the interface thread, although the recent
-  strip already has its preview. A 2341x1903 BGRA8 capture took a few hundred milliseconds on
-  that path.
-- Next: make selection an owned asynchronous load that leaves the preview visible, respects
-  outstanding saves, and publishes only the result of the latest selection. Define cancellation,
-  failure presentation and window-close cleanup before moving the decode off the interface thread.
-- Done when: delayed loads cannot freeze input or replace a newer selection, failed loads
-  leave a useful preview and diagnostic, and shutdown joins outstanding work.
+- Evidence: All recent selections, including library opens, explicit file opens, deletion
+  replacements and the first startup document, now decode through an owned background task.
+  The outgoing edited capture is snapshotted before switching and saved on a worker. Other
+  user actions still call full `Capture.load` on the interface thread: inactive metadata edits
+  and library export in `src/librarywnd.selection.swg`, inactive rename and copy in
+  `src/mainwnd.swg`, duplicate and library Save as Image in `src/actions/actionfile.swg`.
+  A 2341x1903 BGRA8 capture took a few hundred milliseconds on that path.
+- Next: move these remaining full loads off the interface thread, or update SCC metadata
+  without decoding pixels where the action only edits the manifest/model. Keep the renderer
+  work of copy and export on its owning thread, and preserve save ordering and failure reports.
+- Done when no user action decodes an inactive capture on the interface thread, and cancel,
+  failure and window-close paths release each background result.
 - Related: app.capture.024, app.capture.025, language.parallelism.001
 
 ### app.capture.024 — Revisiting a recent capture decodes its full image again

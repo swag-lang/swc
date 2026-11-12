@@ -61,6 +61,13 @@ impl ScenarioFixture
         if .main.libraryMode do
             .settleLibrary()
     }
+
+    mtd finishRecentSelection()
+    {
+        if .main.recentWnd.loadJob do
+            .main.recentWnd.loadJob.task.wait()
+        .gui.pump()
+    }
 }
 
 func scenarioNewCapture(main: *MainWnd, application: string)->String
@@ -231,7 +238,7 @@ func scenarioDeleteCaptureFiles(path: String)
     f.toggleLibrary()
     let item = f.main.libWnd.view.items[0]
     f.main.libWnd.view.openItem(item)
-    f.gui.pump()
+    f.finishRecentSelection()
 
     Swag.require(not f.main.libraryMode)
     Swag.require(f.main.editWnd.getCapture()!.file == path)
@@ -307,10 +314,38 @@ func scenarioDeleteCaptureFiles(path: String)
     f.settleLibrary()
     Swag.require(f.main.libWnd.view.items.count == 1)
     f.main.libWnd.view.openItem(f.main.libWnd.view.items[0])
-    f.gui.pump()
+    f.finishRecentSelection()
 
     Swag.require(not f.main.libraryMode)
     Swag.require(f.main.editWnd.getCapture()!.file == path)
+}
+
+// Opening another library capture keeps the library visible until its document is ready.
+#test
+{
+    var f: ScenarioFixture
+    f.setup()
+    defer f.shutdown()
+
+    let firstPath = scenarioNewCapture(f.main, "Scenario First")
+    defer scenarioDeleteCaptureFiles(firstPath)
+    let secondPath = scenarioNewCapture(f.main, "Scenario Second")
+    defer scenarioDeleteCaptureFiles(secondPath)
+
+    f.toggleLibrary()
+    var firstItem: *LibraryItem?
+    for item in f.main.libWnd.view.items where item.fi.fullName == firstPath do
+        firstItem = item
+    Swag.require(firstItem != null)
+    f.main.libWnd.view.openItem(firstItem)
+    Swag.require(f.main.libraryMode)
+    Swag.require(f.main.libWnd.view.imgSpin.isLocallyVisible())
+    Swag.require(f.main.editWnd.getCapture()!.file == secondPath)
+
+    f.finishRecentSelection()
+    Swag.require(not f.main.libraryMode)
+    Swag.require(not f.main.libWnd.view.imgSpin.isLocallyVisible())
+    Swag.require(f.main.editWnd.getCapture()!.file == firstPath)
 }
 
 // Removing the last item in history selects its surviving neighbour. This protects the editor,
@@ -329,13 +364,14 @@ func scenarioDeleteCaptureFiles(path: String)
     f.toggleLibrary()
     f.toggleLibrary()
     Swag.require(f.main.recentWnd.recentView.items.count == 2)
-    f.main.recentWnd.recentView.select(1)
+    f.main.recentWnd.recentView.requestSelect(1)
+    f.finishRecentSelection()
     Swag.require(f.main.editWnd.getCapture()!.file == firstPath)
 
     f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DeleteCapture)
     Swag.require(actionExecuted)
-    f.gui.pump()
+    f.finishRecentSelection()
 
     Swag.require(f.main.recentWnd.recentView.items.count == 1)
     Swag.require(f.main.recentWnd.recentView.selected == 0)

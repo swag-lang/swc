@@ -233,6 +233,18 @@ private func parseFormat(bytes: const [..] u8)->Format fail
     }
 
     result.encoding = try encodingOf(classicTag, result.bitsPerSample)
+    switch result.encoding
+    {
+    case .Pcm8, .Pcm16, .Pcm24, .Pcm32, .Float32:
+        let bytesPerSample = result.bitsPerSample / 8
+        let expectedAlign  = result.channels * bytesPerSample
+        let expectedRate   = cast(u64, result.sampleRate) * expectedAlign
+        if expectedAlign > Swag.U16.Max or
+           result.blockAlign != expectedAlign or
+           expectedRate != averageBytes do
+            fail InvalidFormatError{"WAV PCM/float frame alignment or byte rate is inconsistent"}
+    }
+
     if extraEnd > extraStart do
         result.extra.add(bytes[extraStart until extraEnd])
     return result

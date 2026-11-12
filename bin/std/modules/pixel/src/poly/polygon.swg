@@ -348,9 +348,9 @@ impl Polygon
         }
 
         // Self-intersection test via a uniform spatial grid over the polygon bbox.
-        // Each edge is registered in every cell its bounding box overlaps and tested
-        // only against edges already present in those cells. Two intersecting edges
-        // always share the cell containing their crossing point, so no pair is missed,
+        // Each edge is registered in every cell its tolerance-widened bounding box
+        // overlaps and tested only against edges already present in those cells. Two
+        // edges accepted by the segment tolerance therefore share a cell, so no pair is missed,
         // while for the dense, short edges produced by flattening this runs in ~O(n)
         // instead of the O(n^2) brute-force all-pairs test. That test dominated the
         // entire vector pipeline (it runs in every non-convex path flatten).
@@ -384,10 +384,11 @@ impl Polygon
             if a0.isEqualEpsilon(a1) do
                 continue
 
-            let cx0 = Math.clamp(cast(s32, ((Math.min(a0.x, a1.x) - .minBounds.x) * invCw)), 0, res - 1)
-            let cx1 = Math.clamp(cast(s32, ((Math.max(a0.x, a1.x) - .minBounds.x) * invCw)), 0, res - 1)
-            let cy0 = Math.clamp(cast(s32, ((Math.min(a0.y, a1.y) - .minBounds.y) * invCh)), 0, res - 1)
-            let cy1 = Math.clamp(cast(s32, ((Math.max(a0.y, a1.y) - .minBounds.y) * invCh)), 0, res - 1)
+            let bounds = segmentBox(a0, a1)
+            let cx0    = Math.clamp(cast(s32, ((bounds.minX - .minBounds.x) * invCw)), 0, res - 1)
+            let cx1    = Math.clamp(cast(s32, ((bounds.maxX - .minBounds.x) * invCw)), 0, res - 1)
+            let cy0    = Math.clamp(cast(s32, ((bounds.minY - .minBounds.y) * invCh)), 0, res - 1)
+            let cy1    = Math.clamp(cast(s32, ((bounds.maxY - .minBounds.y) * invCh)), 0, res - 1)
 
             // Test against edges already registered in any cell this edge overlaps.
             for cy in cy0 to cy1

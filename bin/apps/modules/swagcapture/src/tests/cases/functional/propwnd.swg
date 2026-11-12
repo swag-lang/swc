@@ -217,7 +217,9 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
 
     f.main.recentWnd = RecentWnd.create(f.main, f.main)
     f.main.recentWnd.addRecent(nextPath, Gui.Testing.indexedImage(32, 20), front: false)
-    f.main.recentWnd.recentView.select(0)
+    f.main.recentWnd.recentView.requestSelect(0)
+    f.main.recentWnd.loadJob!.task.wait()
+    f.gui.pump()
 
     let current = unwrap f.main.editWnd.getCapture()
     Swag.require(current.file == nextPath)

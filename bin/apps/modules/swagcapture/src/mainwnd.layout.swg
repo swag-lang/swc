@@ -1007,7 +1007,7 @@ impl MainWnd
     {
         if .libraryMode do
             .swapLibraryMode()
-        .recentWnd.recentView.select(index)
+        .recentWnd.recentView.requestSelect(index)
         .updateState()
     }
 

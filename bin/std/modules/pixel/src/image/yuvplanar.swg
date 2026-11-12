@@ -53,11 +53,19 @@ impl YuvPlanarView
 {
     // Returns the width of one chroma plane, in samples.
     #[Swag.Inline]
-    mtd const chromaWidth()->s32 => (.width + (1 << .chromaShift) - 1) >> .chromaShift
+    mtd const chromaWidth()->s32
+    {
+        let divisor = 1's32 << .chromaShift
+        return .width / divisor + (.width % divisor != 0 ? 1 : 0)
+    }
 
     // Returns the number of rows of one chroma plane.
     #[Swag.Inline]
-    mtd const chromaHeight()->s32 => (.height + (1 << .chromaShift) - 1) >> .chromaShift
+    mtd const chromaHeight()->s32
+    {
+        let divisor = 1's32 << .chromaShift
+        return .height / divisor + (.height % divisor != 0 ? 1 : 0)
+    }
 
     // Converts the picture into `target`, which is created or reused as RGB8.
     //

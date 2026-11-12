@@ -24,6 +24,36 @@ using Swag, Core
     }
 }
 
+// PCM and float WAVE headers must describe the same frame layout as their sample format.
+#test
+{
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-wav-format-%.wav", Guid128.random()))
+    defer discard catch File.delete(temporary)
+
+    for index in 2
+    {
+        let path = index == 0 ? audioGetTestDataPath("pcm16_stereo.wav") :
+                   audioGetTestDataPath("float32_extensible_mono.wav")
+        let source = expect File.readAllBytes(path)
+        for fieldOffset in [28'u64, 32]
+        {
+            var bytes  = source
+            var writer = ByteStream.openWrite(&bytes)
+            writer.setPosition(fieldOffset)
+            if fieldOffset == 28 do
+                writer.writeLittleEndian(1'u32)
+            else do
+                writer.writeLittleEndian(1'u16)
+            discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+            var error: Swag.Error
+            discard catch SoundFile.load(temporary) as error
+            Swag.require(error.value() is Errors.InvalidFormatError)
+        }
+    }
+}
+
 #test
 {
     let path = audioGetTestDataPath("pcm16_stereo.wav")

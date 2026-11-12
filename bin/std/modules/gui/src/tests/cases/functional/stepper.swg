@@ -97,3 +97,28 @@ using Swag, Core
     stepper.stepBy(-10)
     Swag.require(stepper.value == Swag.S64.Min)
 }
+
+// A large step count saturates by direction without overflowing its intermediate product.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 80)
+
+    let stepper = Stepper.create(&host.root, {20, 20, 120, 0})
+    stepper.setRange(Swag.S64.Min, Swag.S64.Max)
+    stepper.setStep(Swag.S64.Max)
+
+    stepper.stepBy(2)
+    Swag.require(stepper.value == Swag.S64.Max)
+    stepper.setValue(0)
+    stepper.stepBy(-2)
+    Swag.require(stepper.value == Swag.S64.Min)
+
+    // The oversized intermediate still lands in range when the start value offsets it.
+    stepper.setValue(Swag.S64.Min)
+    stepper.stepBy(2)
+    Swag.require(stepper.value == Swag.S64.Max - 1)
+    stepper.setValue(Swag.S64.Max)
+    stepper.stepBy(-2)
+    Swag.require(stepper.value == Swag.S64.Min + 1)
+}

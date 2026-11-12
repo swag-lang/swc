@@ -214,19 +214,72 @@ impl Stepper
     // The sum saturates at the bounds instead of wrapping.
     mtd stepBy(count: s64)
     {
-        let delta = count * .step
-        if delta > 0 and .value > .maxValue - delta do
-            .changeValue(.maxValue)
-        elif delta < 0 and .value < .minValue - delta do
-            .changeValue(.minValue)
-        else do
-            .changeValue(.value + delta)
+        if count == 0 do
+            return
+
+        let magnitude = .unsignedMagnitude(count)
+        let step      = cast(u64, .step)
+        if magnitude > Swag.U64.Max / step
+        {
+            .changeValue(count > 0 ? .maxValue : .minValue)
+            return
+        }
+
+        let amount = magnitude * step
+        if count > 0
+        {
+            if amount > .distanceToMax() do
+                .changeValue(.maxValue)
+            else do
+                .changeValue(.addStepAmount(.value, amount))
+        }
+        else
+        {
+            if amount > .distanceToMin() do
+                .changeValue(.minValue)
+            else do
+                .changeValue(.subtractStepAmount(.value, amount))
+        }
     }
 }
 
 private impl Stepper
 {
     mtd changeValue(value: s64) => .setValue(value, notify: true)
+
+    // Returns the magnitude without negating S64.Min.
+    mtd unsignedMagnitude(value: s64)->u64
+    {
+        if value >= 0 do
+            return cast(u64, value)
+        return cast(u64, -(value + 1)) + 1
+    }
+
+    // Returns the inclusive distance from the current value to the upper bound.
+    mtd distanceToMax()->u64
+    {
+        if .value >= 0 or .maxValue < 0 do
+            return cast(u64, .maxValue - .value)
+        return .unsignedMagnitude(.value) + cast(u64, .maxValue)
+    }
+
+    // Returns the inclusive distance from the current value to the lower bound.
+    mtd distanceToMin()->u64
+    {
+        if .value <= 0 do
+            return .unsignedMagnitude(.minValue) - .unsignedMagnitude(.value)
+        if .minValue >= 0 do
+            return cast(u64, .value - .minValue)
+        return cast(u64, .value) + .unsignedMagnitude(.minValue)
+    }
+
+    // Adds a positive unsigned amount to the signed value using its two's-complement bits.
+    #[Swag.Safety(.Overflow, false)]
+    mtd addStepAmount(value: s64, amount: u64)->s64 => cast #bit (s64, cast #bit (u64, value) + amount)
+
+    // Subtracts a positive unsigned amount from the signed value using its two's-complement bits.
+    #[Swag.Safety(.Overflow, false)]
+    mtd subtractStepAmount(value: s64, amount: u64)->s64 => cast #bit (s64, cast #bit (u64, value) - amount)
 
     // A button that reaches a bound is unavailable, so the field says which way is left.
     mtd updateButtons()

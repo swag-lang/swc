@@ -15,7 +15,7 @@ using Swag, Core, Pixel
     var reference = Image.create(cast(s32, Width), cast(s32, Height), .BGRA8)
     let pixels = cast([*] u32, source.pixels.storage())
     for index in Width * Height do
-        pixels[index] = cast(u32, (index * 2_654_435_761'u64) >> 16)
+        pixels[index] = cast(u32, (index * 2_654_435_761'u64) & 0xFFFF_FFFF)
 
     var watch: Time.Stopwatch
     watch.start()

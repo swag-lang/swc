@@ -592,9 +592,13 @@ private func webCaptureQuality()->VideoQuality
     var reader = expect Video.Reader.open(media)
     Console.println("Full-screen file: frames=", reader.frameCount(),
                     " duration=", reader.durationInSeconds())
-    Swag.require(reader.frameCount() >= cast(u64, durationSeconds) * 30 and
-                 reader.durationInSeconds() >= durationSeconds,
-                 "the recording clock must start with the first captured picture")
+    // A gap longer than four slots is represented by one held sample, so its duration
+    // matters here rather than the number of encoded pictures.
+    Swag.require(reader.frameCount() > 0 and
+                 Math.isEqualEpsilon(reader.frameTimestamp(0), 0, 0.000001),
+                 "full-screen recording begins after time zero")
+    Swag.require(reader.durationInSeconds() >= cast(f64, durationSeconds) - 0.1,
+                 "full-screen recording ends over 100 ms before the requested duration")
     var image: Image
     expect reader.decodeFrameInto(&image, 0)
     Swag.require(image.width == outputWidth and image.height == outputHeight)

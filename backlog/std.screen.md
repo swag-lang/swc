@@ -54,11 +54,15 @@ continues to own media frames and codecs, not desktop access.
   same case. Large pitched DXGI readbacks use parallel row groups, retaining the serial path for
   smaller regions; a synthetic 7680x2168 pitched readback took 68 versus 143 ms for 16 frames,
   with exact output. These are CPU copy measurements, not end-to-end readback timings. The first
-  acquired DXGI frame now counts as fresh even when it carries only pointer metadata.
+  acquired DXGI frame now counts as fresh even when it carries only pointer metadata. A later
+  dual-output live A/B/A check found that parallel copying each changed region reduced isolated
+  composition time but coincided with longer GPU readback and more missed slots; that change was
+  removed. The next optimization needs readback timing in the live pipeline.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous
-  outputs, and measure sustained cadence under desktop motion and machine load.
+  outputs after profiling GPU readback stalls, and measure sustained cadence under desktop motion
+  and machine load.
 - Done when: the native consumer sustains 30 fps on a moving 5120x1440 desktop on a supported
   Windows machine, reports source and readback losses separately, and resumes after display
   changes. A covered window remains capturable through the window source.

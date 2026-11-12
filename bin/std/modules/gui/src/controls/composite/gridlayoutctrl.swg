@@ -390,6 +390,7 @@ impl GridLayoutCtrl
         Swag.assert(column >= 0 and column < .numColumns)
         Swag.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
         .columnTracks[column] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
+        .invalidateLayout()
     }
 
     // Configures the sizing policy of `row`, with the same parameters as [[Gui.GridLayoutCtrl.setColumnTrack]].
@@ -399,6 +400,7 @@ impl GridLayoutCtrl
         Swag.assert(row >= 0 and row < .numRows)
         Swag.assert(minimum >= 0 and (maximum == 0 or maximum >= minimum))
         .rowTracks[row] = {kind: kind, value: value, minimum: minimum, maximum: maximum}
+        .invalidateLayout()
     }
 
     // Assigns `child` to a cell and optional column/row span.
@@ -430,5 +432,7 @@ impl GridLayoutCtrl
                 .layout[x1] = child
             }
         }
+
+        .invalidateLayout()
     }
 }

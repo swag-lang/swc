@@ -449,6 +449,15 @@ prop_RecordCountdown       Compte à rebours
 prop_RecordCountdownDesc   Compter trois secondes avant le début d'un enregistrement
 prop_RecordRate            Cadence d'enregistrement
 prop_RecordRateDesc        Enregistrer dix, quinze ou vingt images par seconde
+prop_RecordMicrophone      Enregistrer le microphone
+prop_RecordMicrophoneDesc Enregistrer le microphone sur sa propre piste audio dans la vidéo
+prop_RecordSystemSound     Enregistrer le son système
+prop_RecordSystemSoundDesc Enregistrer le son système sur sa propre piste audio dans la vidéo
+prop_RecordVideoQuality    Qualité vidéo
+prop_RecordVideoQualityDesc Équilibrer les détails de la vidéo et la taille du fichier
+prop_QualityMaximum        Maximale
+prop_QualityBalanced       Équilibrée
+prop_QualityCompact        Compacte
 prop_RecordMaxSeconds      Durée maximale d'enregistrement
 prop_RecordMaxSecondsDesc Arrêter l'animation après ce nombre de secondes
 prop_RecordMaxDimension    Taille maximale d'enregistrement

@@ -1219,6 +1219,12 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         window.lens.open(french ? "exporter image" : "export image")
         Swag.require(window.lens.chosenEntry()!.id == ActionFile.SaveAsImage)
         window.lens.close()
+        Swag.require(resolvePropertyText("Record Video Quality") ==
+                     (french ? "Qualité vidéo" : "Record Video Quality"))
+        Swag.require(resolvePropertyText("Balanced") ==
+                     (french ? "Équilibrée" : "Balanced"))
+        Swag.require(resolvePropertyText("Record System Sound") ==
+                     (french ? "Enregistrer le son système" : "Record System Sound"))
     }
 }
 

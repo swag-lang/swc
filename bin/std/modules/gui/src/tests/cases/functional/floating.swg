@@ -3,6 +3,8 @@
 
 using Swag, Core, Pixel
 
+var InfoSheetTestLinkId: String
+
 // The dock stands at the leading edge, vertically centred, and keeps exactly one tool active.
 #test
 {
@@ -165,6 +167,25 @@ using Swag, Core, Pixel
     Swag.require(keys.position.x == 40 and keys.position.width == keys.contentWidth())
     Swag.require(reading.position.right() == 480 - 60 and reading.position.width == reading.contentWidth())
     Swag.require(keys.position.bottom() == 400 - metrics.hintLine_Bottom and reading.position.y == keys.position.y)
+}
+
+// An information-sheet link keeps its command identifier after the source string changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+
+    let expected = "InfoSheet.Dynamic.Link.Identifier"
+    InfoSheetTestLinkId = Core.String.from(expected)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.addLink("Open", InfoSheetTestLinkId.toString())
+    sheet.addFootnote("Footnote", "Open", InfoSheetTestLinkId.toString())
+    sheet.addFootnote("No command", "")
+    InfoSheetTestLinkId[0] = 'X'
+
+    Swag.require(sheet.blocks[0].commandId == expected and sheet.blocks[0].id == expected)
+    Swag.require(sheet.blocks[1].commandId == expected and sheet.blocks[1].id == expected)
+    Swag.require(sheet.blocks[2].commandId.isEmpty() and sheet.blocks[2].id == null)
 }
 
 // The sheet opens at the trailing edge, below the strip of the window, and its key toggles it.

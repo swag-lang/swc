@@ -87,3 +87,25 @@ using Swag, Core.Errors, Audio
     discard catch pacer.tryAccept(16, &slot) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
+
+// An ignored picture still advances the monotonic input clock, without changing the output slot.
+#test
+{
+    var pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 1000, 1000)
+    var slot: FrameSlot
+    Swag.require(expect pacer.tryAccept(0, &slot))
+
+    let accepted = slot
+    slot = FrameSlot{99, 88, 77, 66}
+    Swag.require(not expect pacer.tryAccept(10, &slot))
+    Swag.require(slot.index == 99 and slot.decodeTime == 88 and slot.duration == 77 and slot.skippedFrames == 66)
+
+    var rejected: Swag.Error
+    discard catch pacer.tryAccept(9, &slot) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(slot.index == 99 and slot.decodeTime == 88 and slot.duration == 77 and slot.skippedFrames == 66)
+
+    Swag.require(accepted.index == 0)
+    Swag.require(expect pacer.tryAccept(17, &slot))
+    Swag.require(slot.index == 1 and slot.decodeTime == 17)
+}

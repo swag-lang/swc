@@ -188,7 +188,19 @@ using Swag, Core, Core.Errors
     var track = expect CaptureAacTrack.create(&queue)
     var packet: Array'u8
     var info: CaptureAacPacket
-    Swag.require(not expect track.finish(&packet, &info))
+    info = CaptureAacPacket{startSample: 42, validFrames: 2, syntheticFrames: 1,
+                            sourceInterrupted: true}
+    packet.add(0xFF)
+    Swag.require(not expect track.nextPacket(&packet, &info) and packet.isEmpty())
+    Swag.require(info.startSample == 0 and info.validFrames == 0 and info.syntheticFrames == 0 and
+                 not info.sourceInterrupted)
+
+    info = CaptureAacPacket{startSample: 42, validFrames: 2, syntheticFrames: 1,
+                            sourceInterrupted: true}
+    packet.add(0xFF)
+    Swag.require(not expect track.finish(&packet, &info) and packet.isEmpty())
+    Swag.require(info.startSample == 0 and info.validFrames == 0 and info.syntheticFrames == 0 and
+                 not info.sourceInterrupted)
     discard catch track.nextPacket(&packet, &info) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }

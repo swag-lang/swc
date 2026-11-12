@@ -81,24 +81,30 @@ impl CaptureAacTrack
 
     // Produces one AAC access unit from currently available capture blocks or source-loss time.
     //
-    // Returns false with an empty `packet` when no complete unit is ready. A later call may
-    // succeed after the producer submits another block or advances the lost-source timeline.
+    // Returns false with empty outputs when no complete unit is ready. A later call may succeed
+    // after the producer submits another block or advances the lost-source timeline.
     mtd nextPacket(packet: *Array'u8, info: *CaptureAacPacket)->bool fail
     {
         if .finishing do
             fail BadParameterError{"capture AAC track has begun finalization"}
-        return try .pull(packet, info)
+        if try .pull(packet, info) do
+            return true
+        Swag.init(info, 1)
+        return false
     }
 
     // Completes queued input, padding the final packet and draining AAC's transform overlap.
     //
     // Stop the capture producer first. Call repeatedly until false; each successful call returns
-    // one packet. Repeated calls after completion return false with an empty output array.
+    // one packet. Repeated calls after completion return false with empty outputs.
     mtd finish(packet: *Array'u8, info: *CaptureAacPacket)->bool fail
     {
         packet.clear()
-        if .finished do
+        if .finished
+        {
+            Swag.init(info, 1)
             return false
+        }
         .finishing = true
         if try .pull(packet, info) do
             return true
@@ -108,6 +114,7 @@ impl CaptureAacTrack
             return true
         }
         .finished = true
+        Swag.init(info, 1)
         return false
     }
 }

@@ -39,8 +39,8 @@ struct SourceMetrics
     public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
     public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
-    public readbackMicroseconds: u64 // Time until native pixels become CPU-readable.
-    public maxReadbackMicroseconds: u64 // Longest single CPU readback wait.
+    public readbackMicroseconds: u64 // CPU time submitting and waiting for native pixel readbacks.
+    public maxReadbackMicroseconds: u64 // Longest single readback, including deferred CPU waits.
     public deferredReadbacks:     u64 // Readback polls deferred while the GPU still owned the pixels.
     public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.

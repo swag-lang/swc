@@ -81,6 +81,23 @@ const PackedFormats: [18] PixelFormat = [
 // Binary16 conversion keeps normal, subnormal, signed-zero, infinity, and NaN classes.
 #test
 {
+    // The exact halfway point between zero and the smallest half subnormal rounds to even zero.
+    // Its adjacent binary32 values prove that the interval above it rounds up, preserving sign.
+    Swag.require(floatToHalf(cast #bit (f32, 0x32FFFFFF'u32)) == 0)
+    Swag.require(floatToHalf(cast #bit (f32, 0x33000000'u32)) == 0)
+    Swag.require(floatToHalf(cast #bit (f32, 0x33000001'u32)) == 1)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB2FFFFFF'u32)) == 0x8000)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB3000000'u32)) == 0x8000)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB3000001'u32)) == 0x8001)
+
+    // Rounding around the largest subnormal keeps the tie-to-even boundary at 0x0400.
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FDFFF'u32)) == 0x03FF)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FE000'u32)) == 0x0400)
+    Swag.require(floatToHalf(cast #bit (f32, 0x387FE001'u32)) == 0x0400)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FDFFF'u32)) == 0x83FF)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE000'u32)) == 0x8400)
+    Swag.require(floatToHalf(cast #bit (f32, 0xB87FE001'u32)) == 0x8400)
+
     for value in [0.0'f32, -0.0'f32, 1.0'f32, -2.0'f32, 0.00006103515625'f32, 0.000000059604645'f32, 65504.0'f32]
     {
         let restored = halfToFloat(floatToHalf(value))

@@ -580,6 +580,9 @@ private func webCaptureQuality()->VideoQuality
             }
             Swag.require(recorder.video.sourceFailureCount() == 0 and
                          recorder.video.source.accelerated != null)
+            if Env.variable("SWAG_CAPTURE_WEB_MOTION_STRESS") == "true" do
+                Swag.require(recorder.video.freshFrames * 4 >= recorder.video.frameCount() * 3,
+                             "full-screen recording lost too many moving desktop frames")
             if maxMissed >= 0 do
                 Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
                              "full-screen recording exceeded the missed-frame budget")

@@ -35,12 +35,11 @@ func get(host: string, port: u16, path: string, secure = true, options: GetOptio
        port == 0 or
        path.count == 0 or
        path[0] != '/' or
+       not isValidRequestPath(path) or
        options.timeoutMs == 0 or
        options.timeoutMs > Swag.S32.Max do
         fail Errors.BadParameterError{}
     for c in host where c <= ' ' or c == 0x7F do
-        fail Errors.BadParameterError{}
-    for c in path where c <= ' ' or c == 0x7F or c == '#' do
         fail Errors.BadParameterError{}
     for c in options.userAgent where c < ' ' or c == 0x7F do
         fail Errors.BadParameterError{}
@@ -63,4 +62,33 @@ func get(host: string, port: u16, path: string, secure = true, options: GetOptio
     }
 
     return try getNative(host, port, path, secure, options)
+}
+
+// The caller supplies the request target, so it must already use valid ASCII URI syntax with
+// complete percent escapes before either native HTTP backend sees it.
+private func isValidRequestPath(path: string)->bool
+{
+    var index = 0'u64
+    while index < path.count
+    {
+        let c = path[index]
+        if not ((c >= 'a' and c <= 'z') or
+                (c >= 'A' and c <= 'Z') or
+                Latin1.isDigit(c) or
+                Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max) do
+            return false
+
+        if c == '%'
+        {
+            if path.count - index < 3 or
+               not Latin1.isHexDigit(path[index + 1]) or
+               not Latin1.isHexDigit(path[index + 2]) do
+                return false
+            index += 2
+        }
+
+        index += 1
+    }
+
+    return true
 }

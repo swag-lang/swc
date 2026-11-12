@@ -79,6 +79,19 @@ impl Image
 {
     mtd const doHalfSize(dstImage: *Image)
     {
+        if .pixelFormat.hasAlpha() and .alphaMode == .Straight
+        {
+            // Keep premultiplied color in float until the box average is complete.
+            var premultipliedSource = .convertedTo(.RGBAF32)
+            premultipliedSource.convertAlphaTo(.Premultiplied)
+            var filtered = Image.create(dstImage.width, dstImage.height, .RGBAF32, alphaMode: .Premultiplied)
+            premultipliedSource.doHalfSize(&filtered)
+            filtered.convertAlphaTo(.Straight)
+            let result = filtered.convertedTo(dstImage.pixelFormat)
+            Memory.copy(dstImage.pixels.storage(), result.pixels.storage(), dstImage.byteCount)
+            return
+        }
+
         let legacy = .pixelFormat == .BGR8 or
                      .pixelFormat == .BGRA8 or
                      .pixelFormat == .RGB8 or

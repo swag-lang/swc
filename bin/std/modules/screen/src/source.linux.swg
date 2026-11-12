@@ -27,7 +27,9 @@ impl NativeSource
         let start = Time.monotonicMicroseconds()
         try .capture.imageInto(target, .options.includeCursor, .options.x, .options.y,
                                .options.width, .options.height)
-        .metrics.readbackMicroseconds += Time.monotonicMicroseconds() - start
+        let readbackDuration = Time.monotonicMicroseconds() - start
+        .metrics.readbackMicroseconds += readbackDuration
+        .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds, readbackDuration)
         .metrics.acquiredFrames += 1
         return true
     }

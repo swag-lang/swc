@@ -247,7 +247,9 @@ impl NativeSource
         let acquireStart = Time.monotonicMicroseconds()
         let status = duplication.lpVtbl.AcquireNextFrame(duplication, .hasLast ? 0 : 1000,
                                                           &info, &resource)
-        .metrics.acquireMicroseconds += Time.monotonicMicroseconds() - acquireStart
+        let acquireDuration = Time.monotonicMicroseconds() - acquireStart
+        .metrics.acquireMicroseconds += acquireDuration
+        .metrics.maxAcquireMicroseconds = Math.max(.metrics.maxAcquireMicroseconds, acquireDuration)
         if status == DXGI_ERROR_WAIT_TIMEOUT
         {
             .metrics.unchangedFrames += 1
@@ -268,6 +270,8 @@ impl NativeSource
             return false
         }
         .metrics.acquiredFrames += 1
+        if .hasLast and info.AccumulatedFrames > 1 do
+            .metrics.coalescedUpdates += cast(u64, info.AccumulatedFrames - 1)
 
         let x = cast(u32, .options.x - .outputBounds.left)
         let y = cast(u32, .options.y - .outputBounds.top)
@@ -343,7 +347,9 @@ impl NativeSource
                                            D3D11_MAP_READ, 0, &mapped)
         if mapStatus < 0 do
             fail SystemError{"cannot read screen capture frame", errorID: cast(u64, cast #bit (u32, mapStatus))}
-        .metrics.readbackMicroseconds += .pendingSubmitMicroseconds + Time.monotonicMicroseconds() - readbackStart
+        let readbackDuration = .pendingSubmitMicroseconds + Time.monotonicMicroseconds() - readbackStart
+        .metrics.readbackMicroseconds += readbackDuration
+        .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds, readbackDuration)
         defer context.lpVtbl.Unmap(context, cast(*ID3D11Resource, cast(*void, staging)), 0)
 
         let rowBytes = cast(u64, .pendingRight - .pendingLeft) * 4

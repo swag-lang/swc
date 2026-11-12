@@ -36,8 +36,11 @@ struct SourceMetrics
 {
     public acquiredFrames:       u64 // Desktop frames returned by the native source.
     public unchangedFrames:      u64 // Polls with no newer desktop pixels.
+    public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
+    public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
     public readbackMicroseconds: u64 // Time until native pixels become CPU-readable.
+    public maxReadbackMicroseconds: u64 // Longest single CPU readback wait.
     public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
     public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
@@ -224,8 +227,13 @@ impl Source
         {
             result.acquiredFrames += source.metrics.acquiredFrames
             result.unchangedFrames += source.metrics.unchangedFrames
+            result.coalescedUpdates += source.metrics.coalescedUpdates
             result.acquireMicroseconds += source.metrics.acquireMicroseconds
+            result.maxAcquireMicroseconds = Math.max(result.maxAcquireMicroseconds,
+                                                     source.metrics.maxAcquireMicroseconds)
             result.readbackMicroseconds += source.metrics.readbackMicroseconds
+            result.maxReadbackMicroseconds = Math.max(result.maxReadbackMicroseconds,
+                                                      source.metrics.maxReadbackMicroseconds)
             result.copyMicroseconds += source.metrics.copyMicroseconds
             result.outputMicroseconds += source.metrics.outputMicroseconds
             result.partialFrames += source.metrics.partialFrames

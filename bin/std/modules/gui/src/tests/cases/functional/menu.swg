@@ -3,6 +3,45 @@
 
 using Swag, Core
 
+// A detached menu keeps its keyboard selection on actionable rows and cycles matching names.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(440, 320)
+    defer host.shutdown()
+
+    let menu = MenuCtrl.createPopup(&host.root)
+    menu.addLabel("Capture")
+    menu.addItem("Capture Area", "capture.area")
+    menu.addItem("Unavailable", "capture.disabled", disabled: true)
+    menu.addSeparator()
+    menu.addItem("Record Video", "record.video")
+    menu.addItem("Record Screen", "record.screen")
+
+    var down = KeyEvent{kind: .Pressed, key: .Down}
+    menu.handleKeyboard(&down)
+    Swag.require(down.accepted and menu.selectedIdx == 1)
+    menu.handleKeyboard(&down)
+    Swag.require(menu.selectedIdx == 4)
+
+    var letter = KeyEvent{kind: .Character, character: 'r'}
+    menu.handleKeyboard(&letter)
+    Swag.require(letter.accepted and menu.selectedIdx == 5)
+    menu.handleKeyboard(&letter)
+    Swag.require(menu.selectedIdx == 4)
+
+    var home = KeyEvent{kind: .Pressed, key: .Home}
+    menu.handleKeyboard(&home)
+    Swag.require(menu.selectedIdx == 1)
+    var end = KeyEvent{kind: .Pressed, key: .End}
+    menu.handleKeyboard(&end)
+    Swag.require(menu.selectedIdx == 5)
+
+    var enter = KeyEvent{kind: .Pressed, key: .Return}
+    menu.handleKeyboard(&enter)
+    Swag.require(enter.accepted and menu.isModalEnded() and menu.modalResult() == "record.screen")
+}
+
 // Dynamic navigation targets remain valid after the source collection has been released.
 #test
 {

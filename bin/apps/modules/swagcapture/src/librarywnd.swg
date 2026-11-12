@@ -290,9 +290,15 @@ impl LibraryWnd
     {
         let texts = appStrings()
         .hintLine.clearHints()
-        if .view != null and .view.allItems.isEmpty()
+        if .view != null and .view.items.isEmpty()
         {
-            .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_Space)
+            if not .view.allItems.isEmpty()
+            {
+                .hintLine.addHint(Input.formatKeyShortcut(.None, .Oem2), texts.hint_Filter)
+                .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_EmptySearchSpace)
+            }
+            else do
+                .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_Space)
             return
         }
 

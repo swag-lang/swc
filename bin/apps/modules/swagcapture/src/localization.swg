@@ -212,6 +212,7 @@ struct AppStrings
     hint_Rate:                    string = "rate"                                                          // What the digits do to the chosen captures of the library.
     hint_Filter:                  string = "filter"                                                        // What / does in the library: it reaches the field filtering the grid.
     hint_LibrarySpace:            string = "export, tag, rate, move"                                       // What Ctrl Space opens, on the hint line of the library.
+    hint_EmptySearchSpace:        string = "search, filters, folders"                                    // Available lens routes when no library item matches.
     ui_LibraryEmpty:              string = "No captures here yet."                                         // Sentence of a library folder that holds nothing.
     ui_LibraryNoMatch:            string = "No capture matches the filters or the search."                 // Sentence of a library page the filters emptied.
     lens_Tools:                   string = "Tools"                                                         // Lens section of the drawing tools.

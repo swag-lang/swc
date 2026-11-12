@@ -17,6 +17,7 @@ struct HubRecents
 
     late main: *MainWnd
     hovered:   u64 = Swag.U64.Max
+    keyboardIndex: u64 = Swag.U64.Max
     chosen:    u64 = Swag.U64.Max     // The picture clicked, which the panel opens on its next watch.
 }
 
@@ -29,7 +30,7 @@ impl IWnd for HubRecents
             let item = unwrap .main.recentWnd.recentView.items[index]
             with var infos: RecentInfos
             {
-                .hot        = index == me.hovered
+                .hot        = index == (me.keyboardIndex != Swag.U64.Max ? me.keyboardIndex : me.hovered)
                 .duration   = item.duration
                 .showLinked = false
             }
@@ -56,6 +57,28 @@ impl IWnd for HubRecents
 
         if evt.kind == .Released and evt.button == .Left and hit != Swag.U64.Max do
             .chosen = hit
+        evt.accepted = true
+    }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed or not .count() do
+            return
+
+        switch evt.key
+        {
+        case .Left:
+            .keyboardIndex = .keyboardIndex == Swag.U64.Max ? .count() - 1 :
+                             (.keyboardIndex + .count() - 1) % .count()
+        case .Right:
+            .keyboardIndex = .keyboardIndex == Swag.U64.Max ? 0 : (.keyboardIndex + 1) % .count()
+        case .Return, .Space:
+            .chosen = .keyboardIndex == Swag.U64.Max ? 0 : .keyboardIndex
+        default: return
+        }
+
+        .invalidate()
         evt.accepted = true
     }
 }
@@ -93,6 +116,14 @@ impl HubRecents
     }
 
     mtd count()->u64 => available(.main)
+
+    mtd clearKeyboardSelection()
+    {
+        if .keyboardIndex == Swag.U64.Max do
+            return
+        .keyboardIndex = Swag.U64.Max
+        .invalidate()
+    }
 
     // Returns the cell of the picture `index`.
     mtd tileRect(index: u64)->Math.Rectangle
@@ -171,11 +202,14 @@ impl IWnd for ResidentPanel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        evt.accepted = false
-        if evt.kind == .Pressed and evt.key == .Escape
+        if evt.kind == .Character or
+           (evt.kind == .Pressed and (evt.key == .Up or evt.key == .Down or evt.key == .Home or evt.key == .End)) do
+            .recents?.clearKeyboardSelection()
+
+        .menu.handleKeyboard(evt)
+        if .menu.isModalEnded()
         {
-            .choose(null)
-            evt.accepted = true
+            .choose(.menu.modalResult())
         }
     }
 

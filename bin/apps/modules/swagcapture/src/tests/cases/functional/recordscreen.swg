@@ -108,4 +108,13 @@ impl Recorder
     Swag.require(recorder.area == Math.Rectangle{0, 0, 1600, 600})
     Swag.require(chooser.name.raw.toString() == appStrings().ui_AimAllScreens)
     Swag.require(recorder.testChromeGeometry().outer == recorder.area)
+
+    f.gui.clickWnd(chooser)
+    let keyboardChoices = hud.screenChoices
+    var home = KeyEvent{kind: .Pressed, key: .Home}
+    keyboardChoices.sendEvent(&home)
+    var enter = KeyEvent{kind: .Pressed, key: .Return}
+    keyboardChoices.sendEvent(&enter)
+    Swag.require(home.accepted and enter.accepted and hud.screenChoices == null)
+    Swag.require(recorder.screenIndex == 0 and recorder.area == f.main.monitors[0].physicalBounds)
 }

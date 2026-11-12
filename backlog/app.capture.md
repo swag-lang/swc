@@ -25,20 +25,17 @@ referenced by the capture document, so a save never rewrites it; no memory grows
 duration; and the timeline, trimming and export work from indexes and streams, never from a
 whole recording loaded at once.
 
-### app.capture.042 — The hub is driven by the pointer alone
+### app.capture.042 — Verify desktop dismissal and charter for the resident hub
 
-- Evidence: `ResidentPanel` (`src/residentpanel.swg`) hosts a `MenuCtrl` on a surface of its own,
-  outside `MenuCtrl.doModal`, and handles `Esc` itself; the arrows and Enter choose nothing, in
-  the hub or in the menu of the notification-area icon, and the row of recent captures takes no
-  key. The panel leaves when `Application.isActivated` falls after having been true: a native
-  launch showed the hub opening in front and leaving on `Esc`, but a script could not hand the
-  foreground to another window, so leaving on a click elsewhere has no native observation.
+- Evidence: `MenuCtrl` now navigates detached menus with arrows, Home, End, Enter, Escape and
+  typed initials; `HubRecents` takes Left, Right and Enter through its selected widget row. A
+  native tray journey chooses a command with keyboard input. The panel leaves when
+  `Application.isActivated` falls after having been true, but leaving on a click in another
+  application still has no native observation.
   The charter describes the hub and the menu in words; `imgs/` has no picture of either, and the
-  goldens `resident.hub.encre` and `resident.menu.papier` stand in for one.
-- Next: give the panel the arrows, Enter and the letters of a menu, through the toolkit rather
-  than a second key handler in the application, with `←` `→` along the recent captures; add a
-  desktop input journey that opens the hub, clicks another window and checks that it left; then
-  draw the charter pictures of the hub and the menu.
+  goldens `resident.hub.encre`, `resident.hub.keyboard.papier` and `resident.menu.papier` stand in for one.
+- Next: add a desktop input journey that opens the hub, clicks another application's window and
+  checks that it left; then draw the charter pictures of the hub and the menu.
 - Done when: the hub is usable without the pointer, the journey passes on Windows, and each
   golden is compared with its charter picture.
 - Related: std.gui.010
@@ -385,10 +382,3 @@ whole recording loaded at once.
 - Next: design a reusable stamp set following `design-swag-identity` and place stamps as
   `FormImage` instances.
 - Done when: stamps can be browsed and placed from the editor and remain editable images.
-
----
-### app.capture.041 — Match library hints to the filtered result
-
-- Evidence: the `library.empty-search.paper` golden shows no matching capture, while the hint line still offers Open, Delete, Rename, and Rate. Those actions have no target in this state.
-- Next: derive the hint line from the filtered selection and retain only actions that can apply when the result is empty.
-- Done when an empty search or filter shows no item actions, and clearing it restores the available selection hints.

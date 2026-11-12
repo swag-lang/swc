@@ -55,3 +55,24 @@ using Swag
     Swag.require(timing.frameCount == 3)
     Swag.require(timing.deltaSeconds == 0.02)
 }
+
+#test
+{
+    var stopwatch: Time.Stopwatch
+
+    stopwatch.start()
+    Threading.Thread.sleep(2'ms)
+    let firstElapsed = stopwatch.elapsedTicks()
+    Swag.require(firstElapsed > 0)
+
+    stopwatch.start()
+    Swag.require(stopwatch.elapsedTicks() >= firstElapsed)
+    Threading.Thread.sleep(2'ms)
+    stopwatch.stop()
+    let stoppedElapsed = stopwatch.elapsedTicks()
+    Swag.require(stoppedElapsed >= firstElapsed)
+
+    Threading.Thread.sleep(1'ms)
+    stopwatch.stop()
+    Swag.require(stopwatch.elapsedTicks() == stoppedElapsed)
+}

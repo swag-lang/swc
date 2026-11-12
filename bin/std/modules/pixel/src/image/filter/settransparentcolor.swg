@@ -11,6 +11,9 @@ public impl Image
     // there, or the color of the art around it. Only pixels at alpha zero change, so what
     // the image actually shows is untouched.
     //
+    // A premultiplied image is first converted to straight alpha, preserving logical colors of
+    // pixels with nonzero alpha. The image's alpha mode is then `Straight`.
+    //
     // A format without an alpha channel has no fully transparent pixel and is left as is.
     mtd setTransparentColor(color: Color)
     {

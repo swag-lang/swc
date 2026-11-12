@@ -37,3 +37,18 @@ using Swag, Core
     img.setTransparentColor(Color.fromArgb(Argb.White))
     assertPixel(img, 0, 0, Color.fromArgb(255'u8, 3'u8, 2'u8, 1'u8))
 }
+
+// Premultiplied input preserves visible logical colors and becomes straight alpha.
+#test
+{
+    var img = Image.create(2, 1, .RGBA8, [200'u8, 100, 50, 128, 0, 0, 0, 0])
+    img.convertAlphaTo(.Premultiplied)
+    let visible = img.pixelColor(0, 0)
+
+    img.setTransparentColor(Color.fromArgb(255'u8, 10, 20, 30))
+
+    Swag.require(img.alphaMode == .Straight)
+    assertPixel(img, 0, 0, visible)
+    assertPixel(img, 1, 0, Color.fromArgb(0'u8, 10, 20, 30))
+    Swag.require(img.pixels.storage()[7] == 0)
+}

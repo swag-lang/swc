@@ -381,4 +381,18 @@ new module rather than growth inside `core`.
   corresponding boundary cases.
 - Related: none.
 
+### std.core.040 — `Math.lcm` cannot return every nonnegative result in `s64`
+
+- Evidence: `Math.lcm` accepts signed `s64` inputs and documents a nonnegative result, but
+  `lcm(Swag.S64.Min, 1)` is 2^63, which cannot be represented in `s64`. Other products also exceed
+  the return range, for example `lcm(Swag.S64.Max, 2)`. The implementation computes
+  `abs(a / gcd(a, b) * b)` without checking whether the multiplication or absolute value is
+  representable.
+- Next: choose the contract for unrepresentable results: widen the return type, report an error or
+  panic on overflow, or narrow the documented guarantee to representable results; then ensure the
+  multiplication is checked before it overflows.
+- Done when: the chosen behavior is documented and tests cover `S64.Min` with 1, a product beyond
+  `S64.Max`, and zero inputs.
+- Related: std.core.039.
+
 ---

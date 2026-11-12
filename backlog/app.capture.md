@@ -77,8 +77,9 @@ whole recording loaded at once.
   the pixels and a second worker encodes and atomically replaces the output. Duplicate rewrites the
   model on a worker while copying stored image chunks and timed-media files, and refreshes an
   already-open library when complete. Library Copy and selected-library Export also decode on
-  workers. Exporting an unchanged video from either the editor or library now copies its MP4
-  on a worker and publishes it atomically, without borrowing the editable capture. Image
+  workers. Exporting an unchanged video from the editor, an individual library selection or a
+  selected-library batch now copies its MP4 on a worker and publishes it atomically, without
+  borrowing the editable capture. The batch waits for each copy before reporting completion. Image
   composition and timed-media encoding for edited captures still run on the interface thread.
   A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old full-load path.
 - Next: move timed-media copy/export encoding away from the interface where renderer ownership

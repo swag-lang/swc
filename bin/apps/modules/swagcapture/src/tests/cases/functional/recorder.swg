@@ -180,6 +180,24 @@ internal func testEndRecording()
     Swag.require(File.exists(libraryExport))
     let libraryBytes = expect File.readAllBytes(libraryExport)
     Swag.require(Slice.equals(originalBytes.toSlice(), libraryBytes.toSlice()))
+
+    let folder = Gui.Testing.tempFilePath("capture-selected-video-", "")
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let library = f.setupLibraryWnd()
+    var selected: Array'String
+    selected.add(document)
+    library.beginExport(#move selected, folder)
+    Swag.require(library.exportJob != null)
+    library.exportJob.task.wait()
+    f.gui.pump()
+    Swag.require(library.videoCopyJob != null and library.exporting)
+    library.videoCopyJob.task.wait()
+    f.gui.pump()
+    Swag.require(not library.exporting and library.videoCopyJob == null)
+    let selectedPath = Path.combine(folder, Format.toString("%.mp4", Path.fileNameWithoutExtension(document) orelse "capture"))
+    let selectedBytes = expect File.readAllBytes(selectedPath)
+    Swag.require(Slice.equals(originalBytes.toSlice(), selectedBytes.toSlice()))
 }
 
 // A cancelled recording keeps nothing.

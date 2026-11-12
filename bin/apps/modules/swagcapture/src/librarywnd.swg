@@ -128,6 +128,7 @@ struct LibraryWnd
     exportFolder: String
     exportIndex:  u64
     exportJob:    *CaptureLoadJob?
+    videoCopyJob: *CaptureVideoCopyJob?
     exportTimer:  *Gui.Timer?
     exporting:    bool
 }
@@ -136,6 +137,25 @@ impl IWnd for LibraryWnd
 {
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        let videoCopy = .videoCopyJob
+        if videoCopy and evt.task == &videoCopy.task
+        {
+            .videoCopyJob = null
+            let file = String.from(videoCopy.source)
+            let failed = not videoCopy.error.isEmpty()
+            Memory.delete(videoCopy)
+            if failed
+            {
+                .main.reportFailure(appStrings().msg_FailedExportCaptures, file)
+                .finishExport()
+            }
+            else
+            {
+                .exportIndex += 1
+                .startNextExport()
+            }
+            return
+        }
         let job = .exportJob
         if not job or evt.task != &job.task
         {
@@ -155,6 +175,19 @@ impl IWnd for LibraryWnd
         }
 
         defer Memory.delete(capture)
+        if capture.canCopyOriginalVideo()
+        {
+            let name = Format.toString("%.mp4", Path.fileNameWithoutExtension(file) orelse "capture")
+            let copy = Memory.new'CaptureVideoCopyJob()
+            copy.source = Capture.mediaPathOf(file, .Video)
+            copy.target = Library.uniqueName(.exportFolder, name)
+            .videoCopyJob = copy
+            copy.task.submit(func|copy|()
+            {
+                catch exportOriginalVideo(copy.source, copy.target) as copy.error
+            }, .taskNotifier(&copy.task))
+            return
+        }
         catch .exportLoadedCapture(capture, file, .exportFolder)
         {
             .main.reportFailure(appStrings().msg_FailedExportCaptures, file)
@@ -179,6 +212,14 @@ impl IWnd for LibraryWnd
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopTimer(&.exportTimer)
+        if .videoCopyJob
+        {
+            let job = .videoCopyJob
+            .videoCopyJob = null
+            job.task.cancel()
+            job.task.wait()
+            Memory.delete(job)
+        }
         if .exportJob
         {
             let job = .exportJob

@@ -32,26 +32,24 @@ func assertBitArray(values: BitArray, expected: const [..] bool)->bool
 
 #test
 {
-    var seed: [33] bool
-    seed[0]  = true
-    seed[32] = true
-
-    var values: BitArray
-    values = seed
-
-    var visitCount:  u64 = 0
-    var lastOrdinal: u64 = 0
-    var lastValue        = false
-    for value, ordinal in values
+    let lengths: [7] u64 = [0, 1, 31, 32, 33, 65, 129]
+    for length in lengths
     {
-        visitCount  += 1
-        lastOrdinal = ordinal
-        lastValue   = value
-    }
+        var values: BitArray
+        values.resize(length)
+        for index in length do
+            values[index] = index % 3 == 0
 
-    Swag.require(visitCount == 33)
-    Swag.require(lastOrdinal == 32)
-    Swag.require(lastValue)
+        var nextOrdinal = 0'u64
+        for value, ordinal in values
+        {
+            Swag.require(ordinal == nextOrdinal)
+            Swag.require(value == (ordinal % 3 == 0))
+            nextOrdinal += 1
+        }
+
+        Swag.require(nextOrdinal == length)
+    }
 }
 
 #test

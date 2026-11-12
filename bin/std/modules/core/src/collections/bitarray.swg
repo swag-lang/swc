@@ -162,11 +162,9 @@ public impl BitArray
     {
         if not .count do
             return
-        var totalWords = .count >> 5
-        if totalWords << 5 < .count do
-            totalWords += 1
-        var countBits = 0'u64
-        let buffer    = unwrap .buffer
+        let totalWords = .wordCount()
+        var countBits  = 0'u64
+        let buffer     = unwrap .buffer
 
         scope(Up)
         for idx in totalWords

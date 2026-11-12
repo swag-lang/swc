@@ -64,7 +64,9 @@ struct NativeSource
     pendingRight:              u32
     pendingBottom:             u32
     pendingSubmitMicroseconds: u64
+    pendingWaitMicroseconds:   u64
     pendingMultiRect:          bool
+    pendingFlushed:            bool
     pending:                   bool
     metrics:      SourceMetrics
 }
@@ -81,6 +83,8 @@ impl NativeSource
         discard duplication.lpVtbl.ReleaseFrame(duplication)
         .pendingTexture  = null
         .pendingResource = null
+        .pendingWaitMicroseconds = 0
+        .pendingFlushed = false
         .pending         = false
     }
 
@@ -92,6 +96,7 @@ impl NativeSource
             let start = Time.monotonicMicroseconds()
             context.lpVtbl.Flush(context)
             .pendingSubmitMicroseconds += Time.monotonicMicroseconds() - start
+            .pendingFlushed = true
         }
     }
 
@@ -273,6 +278,7 @@ impl NativeSource
         Swag.assert(not .pending)
         .updatedBounds = RECT{}
         .pendingMultiRect = false
+        .pendingFlushed = false
         if not .duplication do
             fail SystemError{"screen capture output was lost"}
         let duplication = .duplication
@@ -386,19 +392,45 @@ impl NativeSource
     }
 
     // Maps an earlier GPU copy and writes it into the composed bottom-up image.
-    mtd finishGrab(target: *Image, destinationX: u64, destinationBottom: u64) fail
+    mtd finishGrab(target: *Image, destinationX: u64, destinationBottom: u64,
+                   allowDeferred: bool)->bool fail
     {
         Swag.assert(.pending)
-        defer .abortGrab()
         let context = unwrap .context
         let staging = unwrap .staging
         var mapped: D3D11_MAPPED_SUBRESOURCE
         let readbackStart = Time.monotonicMicroseconds()
-        let mapStatus = context.lpVtbl.Map(context, cast(*ID3D11Resource, cast(*void, staging)), 0,
-                                           D3D11_MAP_READ, 0, &mapped)
-        if mapStatus < 0 do
+        let resource = cast(*ID3D11Resource, cast(*void, staging))
+        var mapStatus: HRESULT
+        if allowDeferred and .hasLast
+        {
+            let deadline = readbackStart + 12_000
+            while true
+            {
+                mapStatus = context.lpVtbl.Map(context, resource, 0, D3D11_MAP_READ,
+                                               D3D11_MAP_FLAG_DO_NOT_WAIT, &mapped)
+                if mapStatus != DXGI_ERROR_WAS_STILL_DRAWING or
+                   Time.monotonicMicroseconds() >= deadline do
+                    break
+                Threading.Thread.sleep(1'ms)
+            }
+            if mapStatus == DXGI_ERROR_WAS_STILL_DRAWING
+            {
+                .pendingWaitMicroseconds += Time.monotonicMicroseconds() - readbackStart
+                .metrics.deferredReadbacks += 1
+                return false
+            }
+        }
+        else do
+            mapStatus = context.lpVtbl.Map(context, resource, 0, D3D11_MAP_READ, 0, &mapped)
+        if mapStatus < 0
+        {
+            .abortGrab()
             fail SystemError{"cannot read screen capture frame", errorID: cast(u64, cast #bit (u32, mapStatus))}
-        let readbackDuration = .pendingSubmitMicroseconds + Time.monotonicMicroseconds() - readbackStart
+        }
+        defer .abortGrab()
+        let readbackDuration = .pendingSubmitMicroseconds + .pendingWaitMicroseconds +
+                               Time.monotonicMicroseconds() - readbackStart
         .metrics.readbackMicroseconds += readbackDuration
         .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds, readbackDuration)
         defer context.lpVtbl.Unmap(context, cast(*ID3D11Resource, cast(*void, staging)), 0)
@@ -418,6 +450,7 @@ impl NativeSource
         .updatedBounds = RECT{cast(s32, .pendingLeft), cast(s32, .pendingTop),
                               cast(s32, .pendingRight), cast(s32, .pendingBottom)}
         .hasLast = true
+        return true
     }
 
     mtd copyMappedRect(target: *Image, mapped: const *D3D11_MAPPED_SUBRESOURCE,
@@ -484,7 +517,7 @@ impl Source
     }
 
     // Queue each output's GPU copy before any map waits for pixels on the CPU.
-    mtd grabWindows(target: *Image, mirroring: bool)->bool fail
+    mtd grabWindows(target: *Image, mirroring, allowDeferred: bool)->bool fail
     {
         var fresh = false
         catch
@@ -492,27 +525,24 @@ impl Source
             for beginIndex in .sources.count
             {
                 let native = .sources[beginIndex]
+                if native.pending do
+                    continue
                 discard try native.beginGrab()
             }
-            if .sources.count > 1
+            if .sources.count > 1 or allowDeferred
             {
                 for flushIndex in .sources.count
                 {
                     let native = .sources[flushIndex]
-                    if not native.pending do
+                    if not native.pending or native.pendingFlushed do
                         continue
-                    var flushed = false
-                    for previous in flushIndex
+                    native.flushReadback()
+                    for markIndex in flushIndex + 1 until .sources.count
                     {
-                        let earlier = .sources[previous]
-                        if earlier.pending and earlier.context == native.context
-                        {
-                            flushed = true
-                            break
-                        }
+                        let later = .sources[markIndex]
+                        if later.pending and later.context == native.context do
+                            later.pendingFlushed = true
                     }
-                    if not flushed do
-                        native.flushReadback()
                 }
             }
 
@@ -523,7 +553,8 @@ impl Source
                     continue
                 let x = cast(u64, native.options.x - .options.x)
                 let bottom = cast(u64, .options.height - (native.options.y - .options.y) - native.options.height)
-                try native.finishGrab(&.composed, x, bottom)
+                if not try native.finishGrab(&.composed, x, bottom, allowDeferred) do
+                    continue
                 fresh = true
                 if mirroring
                 {

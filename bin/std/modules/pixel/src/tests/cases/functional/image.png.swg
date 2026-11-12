@@ -1542,6 +1542,20 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     Swag.require(cast(string, boundaryDecoded.metadata[0].toSlice()) == "boundary")
 }
 
+#test
+{
+    var image = Image.create(1, 1, .RGB8)
+    var metadata: ImageMetadata
+    metadata.tag = "EmptyText"
+    image.metadata.add(metadata)
+
+    let encoded = expect image.encode("empty-text.png")
+    let decoded = expect Image.decode("empty-text.png", encoded.toSlice())
+    Swag.require(decoded.metadata.count == 1)
+    Swag.require(decoded.metadata[0].isTag("EmptyText"))
+    Swag.require(decoded.metadata[0].value.isEmpty())
+}
+
 // Invalid and truncated buffers should fail without producing an image.
 #test
 {

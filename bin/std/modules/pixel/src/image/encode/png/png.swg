@@ -254,10 +254,12 @@ impl Encoder
     {
         for md in image.metadata
         {
-            if not md.tag.count or not md.value.count do
+            if not md.tag.count do
                 continue
             if md.signature == 1 and md.isTag("Exif")
             {
+                if not md.value.count do
+                    continue
                 const TypeEXIf: [4] u8 = ['e', 'X', 'I', 'f']
                 .writePtr = .writeHeader(TypeEXIf, md.value.count)
                 Memory.copy(.writePtr, md.value.storage(), md.value.count)
@@ -271,7 +273,8 @@ impl Encoder
             .writePtr = .writeHeader(TypeTEXt, md.tag.count + 1 + md.value.count)
             Memory.copy(.writePtr, md.tag.storage(), md.tag.count)
             .writePtr[md.tag.count] = 0
-            Memory.copy(.writePtr + md.tag.count + 1, md.value.storage(), md.value.count)
+            if md.value.count do
+                Memory.copy(.writePtr + md.tag.count + 1, md.value.storage(), md.value.count)
             .finishChunk()
         }
     }

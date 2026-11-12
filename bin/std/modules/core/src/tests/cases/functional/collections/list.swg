@@ -195,3 +195,22 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     Swag.require(source.tail == null)
     Swag.require(assertIntList(&moved, expected))
 }
+
+#test
+{
+    var values: List's32
+    values.addBack(1)
+    values.addBack(2)
+    values.addBack(3)
+
+    values.clear()
+    Swag.require(values.isEmpty())
+    Swag.require(values.count == 0)
+    Swag.require(values.head == null and values.tail == null)
+
+    values.addFront(4)
+    values.addBack(5)
+    let expected: [2] s32 = [4, 5]
+    Swag.require(assertIntList(&values, expected))
+    Swag.require(values.head!.prev == null and values.tail!.next == null)
+}

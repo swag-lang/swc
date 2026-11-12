@@ -65,3 +65,18 @@ func circularHeadlessChanged(_: *Circular)
     Swag.require(Math.abs(circ.upperValue() - 70) < 0.01)
     Swag.require(circ.lowerRatio <= circ.upperRatio)
 }
+
+// Integer snapping keeps fractional inclusive bounds in range at both endpoints.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(160, 160)
+    let circ = Circular.create(&host.root, {20, 20, 120, 120})
+    circ.flags.add(.Integer)
+    circ.setBounds(0.2, 0.8)
+
+    circ.setValue(0.2)
+    Swag.require(circ.lowerValue() >= circ.minimum() and circ.lowerValue() <= circ.maximum())
+    circ.setValue(0.8)
+    Swag.require(circ.lowerValue() >= circ.minimum() and circ.lowerValue() <= circ.maximum())
+}

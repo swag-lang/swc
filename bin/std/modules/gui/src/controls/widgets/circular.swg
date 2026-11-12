@@ -443,7 +443,7 @@ private impl Circular
         if .flags.has(.Integer)
         {
             let val = Math.round((.min + (.max - .min) * normalized))
-            return (val - .min) / (.max - .min)
+            return Math.clamp((val - .min) / (.max - .min), 0, 1)
         }
 
         return normalized

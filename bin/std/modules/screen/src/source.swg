@@ -45,6 +45,7 @@ struct SourceMetrics
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
     public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
     public partialFrames:        u64 // Frames read through a region smaller than the selected output.
+    public multiRectFrames:      u64 // Frames read through several bounded desktop update regions.
     public copiedPixels:         u64 // Pixels copied from mapped native storage, including full frames.
 }
 
@@ -237,6 +238,7 @@ impl Source
             result.copyMicroseconds += source.metrics.copyMicroseconds
             result.outputMicroseconds += source.metrics.outputMicroseconds
             result.partialFrames += source.metrics.partialFrames
+            result.multiRectFrames += source.metrics.multiRectFrames
             result.copiedPixels += source.metrics.copiedPixels
         }
         return result

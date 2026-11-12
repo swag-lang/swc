@@ -63,7 +63,14 @@ continues to own media frames and codecs, not desktop access.
   reports coalesced desktop updates and maximum acquisition/readback waits separately. A
   30-second moving-fixture full-desktop recording decoded 901 pictures at 4096x1156 with no
   missed slots. A 60-second run decoded 1778 pictures, missed 49 slots, and had one 302 ms
-  readback wait with no source failures; short runs can conceal GPU stalls.
+  readback wait with no source failures; short runs can conceal GPU stalls. When at most eight
+  DXGI update rectangles cover less than half their union, the backend now queues each rectangle
+  separately and maps the staging texture once. A synthetic pitched-image test checks separate
+  top-down regions and bottom-up output. In a 30-second on/off/on comparison, pixel copies were
+  265/1051/258 million and CPU copy time 150/351/170 ms; all three files decoded and missed no
+  slots. Readback time was 2.55/4.05/4.82 s, so that comparison does not establish a GPU wait
+  improvement. A separate 60-second run with regional copies decoded 1801 pictures, missed no
+  slots and copied 513 million pixels, but desktop load differed from the earlier long run.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous

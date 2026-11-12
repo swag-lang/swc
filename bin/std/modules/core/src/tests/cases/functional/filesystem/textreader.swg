@@ -120,3 +120,30 @@ using Swag
     discard catch reader.readToEnd() as textError
     Swag.require(textError.value() is Errors.InvalidFormatError)
 }
+
+// A CR at the end of the 64 KiB read window consumes a following LF from the next refill.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_textreader_crlf_refill.tmp")
+    defer discard catch File.delete(fileName)
+
+    var payload: [64 * 1024 + 5] u8
+    for index in 64 * 1024 - 1 do
+        payload[index] = 'a'u8
+    payload[64 * 1024 - 1] = '\r'u8
+    payload[64 * 1024]     = '\n'u8
+    Memory.copy(payload.buffer + 64 * 1024 + 1, "tail".buffer, 4)
+    discard expect File.writeAllBytes(fileName, payload)
+
+    var reader: File.TextReader
+    expect reader.open(fileName)
+    defer reader.close()
+
+    var line: String
+    Swag.require(expect reader.readLine(&line))
+    Swag.require(line.length == 64 * 1024 - 1)
+    Swag.require(line[0] == 'a' and line[line.length - 1] == 'a')
+    Swag.require(expect reader.readLine(&line) and line == "tail")
+    let hasMoreLines = expect reader.readLine(&line)
+    Swag.require(not hasMoreLines)
+}

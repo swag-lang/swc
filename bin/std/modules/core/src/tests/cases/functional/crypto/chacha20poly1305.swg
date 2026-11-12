@@ -135,8 +135,11 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     Swag.require(not (expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
     ciphertext[0] ^= 1
 
+    Memory.set(opened.storage(), 0xA5, opened.count)
     tag[0] ^= 1
     Swag.require(not (expect Crypto.chacha20Poly1305Open(key.toSlice(), nonce.toSlice(), ciphertext.toSlice(), tag, associatedData.toSlice(), opened.toSlice())))
+    for value in opened.toSlice() do
+        Swag.require(value == 0xA5)
     tag[0] ^= 1
 
     let otherAssociated = rangeBytes(9, 0x34)

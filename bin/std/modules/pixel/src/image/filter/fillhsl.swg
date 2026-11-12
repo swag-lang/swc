@@ -41,7 +41,8 @@ public impl Image
                 switch #complete params.fillType
                 {
                 case .HueVert:
-                    result = hslPixelValue(fy, 1, 0.5)
+                    let hue = (image.height - y - 1) / cast(f32, image.height)
+                    result = hslPixelValue(hue, 1, 0.5)
 
                 case .HueHorz:
                     result = hslPixelValue(fx, 1, 0.5)
@@ -93,7 +94,7 @@ public impl Image
             .visitPixels(&swapRB)
             {
                 let swapRB  = cast(const *bool, unwrap userData)[]
-                let factor0 = y / cast(f32, image.height)
+                let factor0 = (image.height - y - 1) / cast(f32, image.height)
                 let col     = Color.fromHsl(factor0, 1, 0.5)
                 if swapRB
                 {

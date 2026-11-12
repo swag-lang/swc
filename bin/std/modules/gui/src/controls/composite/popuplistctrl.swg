@@ -455,6 +455,7 @@ impl PopupListCtrl
         pos.width  = Math.max(width + gutter, .minimumWidth + gutter, .contentWidth(), 0)
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
         pos.height += .padding.y + .padding.w
+        pos.height = Math.ceil(pos.height)
         .setPosition(pos)
         let sdw = .themeMetrics().frameWnd_SmallShadowSize
         .fitPosInParent(sdw.z, sdw.w, .fitHorizontally, .fitVertically)

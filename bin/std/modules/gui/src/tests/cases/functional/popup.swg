@@ -139,6 +139,25 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     host.pump()
 }
 
+// A naturally sized popup rounds its committed frame up, so a fractional row height does not
+// create a scrollbar for content that is supposed to fit without scrolling.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+
+    let popup = PopupListCtrl.create(&host.root)
+    popup.itemHeight = 24.4
+    popup.addItem("Fractional row")
+    popup.show(20, 20, 100)
+
+    Swag.require(popup.scrollWnd.scrollSize.y == 24.4)
+    Swag.require(popup.scrollWnd.scrollSize.y <= popup.scrollWnd.view.position.height)
+    host.app.setMouseCaptureRaw(null)
+    popup.destroy()
+    host.pump()
+}
+
 // A list whose entries are painted samples opens with nothing highlighted.
 //
 // Its check mark already says which entry is current, and the opening highlight would put the

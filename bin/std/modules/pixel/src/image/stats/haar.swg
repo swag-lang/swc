@@ -61,14 +61,16 @@ func haarTransform1DVertical(data: [*] f32, col: s32, length: s32, stride: s32)
 func resampleToGrayscale(image: Image, targetWidth, targetHeight: s32, output: [*] f32)
 {
     Swag.assert(targetWidth > 0 and targetHeight > 0, "Target dimensions must be positive")
+    let scaleX = cast(f32, image.width) / cast(f32, targetWidth)
+    let scaleY = cast(f32, image.height) / cast(f32, targetHeight)
 
     for y in targetHeight
     {
         for x in targetWidth
         {
-            // Bilinear sampling
-            let srcX = cast(f32, (x * image.width)) / cast(f32, targetWidth)
-            let srcY = cast(f32, (y * image.height)) / cast(f32, targetHeight)
+            // Sample pixel centers and clamp the edge coordinates before finding neighbors.
+            let srcX = Math.clamp((cast(f32, x) + 0.5) * scaleX - 0.5, 0, cast(f32, (image.width - 1)))
+            let srcY = Math.clamp((cast(f32, y) + 0.5) * scaleY - 0.5, 0, cast(f32, (image.height - 1)))
 
             let x0 = cast(s32, srcX)
             let y0 = cast(s32, srcY)
@@ -260,8 +262,8 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     grayData.resize(windowSize * windowSize)
     let grayBuf = grayData.storage()
 
-    let stepX = Math.max(1.0, cast(f32, image.width) / cast(f32, windowSize))
-    let stepY = Math.max(1.0, cast(f32, image.height) / cast(f32, windowSize))
+    let stepX = cast(f32, image.width) / cast(f32, windowSize)
+    let stepY = cast(f32, image.height) / cast(f32, windowSize)
 
     for y in windowSize
     {

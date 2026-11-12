@@ -734,7 +734,7 @@ the screen to its work.
   hidden. It starts on the hub by default, and the options choose between the hub, the icon
   alone and the editor; activating the icon opens the same thing, the hub standing in for the
   icon alone. The hub is a floating list in the upper middle of the screen, on a surface of its
-  own: what to capture and what to record under their section labels, each with its key, the
+  own: what to capture and what to record under their section labels, with assigned keys, the
   last captures as one row of pictures that open in the editor, then the editor, the library,
   the options, the way back behind the icon and the way out. It has no accent: nothing in it acts before a choice. The menu
   of the icon stands at the pointer and carries every capture command, picture then video, a
@@ -746,6 +746,11 @@ the screen to its work.
   the icon says that Swag Capture is still running and how to open it again. It has a close button
   and a check box to stop showing it on later dismissals; until that choice, it appears every time.
   It is never a dialog.
+
+![Resident hub, Encre](imgs/capture.hub.png) ![Hub keyboard selection, Papier](imgs/capture.hub.keyboard.paper.png)
+
+![Resident icon menu, Papier](imgs/capture.resident.menu.paper.png)
+
 - The capture control starts an image area capture directly, and the adjacent Video action starts
   a video area capture. The chevron groups image targets, video targets and GIF, then offers delay
   and cursor choices. Both formats can target the whole desktop, one monitor, an active window or

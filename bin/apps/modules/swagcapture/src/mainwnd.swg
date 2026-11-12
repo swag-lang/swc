@@ -1220,6 +1220,7 @@ impl MainWnd
         .registerHotKey(.CtrlShift, .PrintScreen, ActionCapture.LastArea)
         .registerHotKey(.Control, .PrintScreen, ActionCapture.FullScreen)
         .registerHotKey(.Alt, .PrintScreen, ActionCapture.ActiveWnd)
+        .registerHotKey(.CtrlShift, .F10, ActionCapture.RecordVideo)
 
         if .taskStrip != null do
             .taskStrip.showUnavailableShortcuts(not .takenHotKeys.isEmpty())

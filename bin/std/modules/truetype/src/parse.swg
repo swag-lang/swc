@@ -189,8 +189,9 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         let platformID = try readU16(cmapTable, base + 0)
         let encodingID = try readU16(cmapTable, base + 2)
         let offset     = try readU32(cmapTable, base + 4)
-        let subTable   = try getSlice(cmapTable, offset, cmapTable.count - offset)
-        let format     = try readU16(subTable, 0)
+        try assertRange(cmapTable, offset, 0)
+        let subTable = try getSlice(cmapTable, offset, cmapTable.count - offset)
+        let format   = try readU16(subTable, 0)
 
         // Variation sequences supplement the selected map rather than compete with
         // it: they resolve a base character already mapped elsewhere.

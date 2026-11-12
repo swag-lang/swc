@@ -45,6 +45,22 @@ using Swag, Core
     Swag.require(faceData.cmapFormat == 12)
 }
 
+// A subtable offset beyond the cmap table must fail before constructing a slice.
+#test
+{
+    const Cmap: [12] u8 = [
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x01, 0x00]
+    var faceData: FaceImpl
+    faceData.fontData.add(Cmap)
+    faceData.tables.add({tag: TAG_CMAP, length: Cmap.count})
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    let error = rejected.value()
+    Swag.require(error != null)
+}
+
 #test
 {
     var faceScope: FaceScope

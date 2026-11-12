@@ -302,6 +302,13 @@ whole recording loaded at once.
   1801 frames at 4096x1156, missed no slots and produced 34.9 MiB with Balanced. The same
   fixture at Maximum had produced 480.1 MiB; changing desktop activity limits a precise
   ratio, but the size reduction is substantial.
+  A separate full-viewport color-and-motion fixture changed nearly every sampled pixel
+  between its first and last decoded 4K frames. At Balanced, a one-minute monitor recording
+  missed 13 of 1801 slots, spent 55.4 seconds encoding, and wrote 400.6 MB; at Compact it
+  missed one slot, spent 49.0 seconds encoding, and wrote 193.1 MB. The browser and desktop
+  workloads varied, so these are stress evidence rather than a controlled QP speed ratio.
+  Increasing the handoff queue from two pictures to four did not improve a subsequent run;
+  it missed 60 slots while encoding consumed 59.3 seconds, so the queue was left unchanged.
   `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
   late producer or audio errors, and returns an editable capture when that prefix is readable.
   A failure toast exposes the retained file in the explorer. On startup and when the library

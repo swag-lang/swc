@@ -302,6 +302,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   11–53-byte P-skip packet, while the changing P picture took 39–73 ms.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
+  A deterministic four-slice QP 28 stress case now measures 100 alternating 4K P pictures.
+  Reusing per-slice scratch storage took 4.02–4.19 seconds against 4.11 seconds with
+  local arrays on one Windows checkout, with identical 15.33 MB packets. The difference
+  is below run variation, so the scratch experiment was removed.
 - Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
   quantized luma/chroma residuals and avoid unused result copies on changing screens,
   then remeasure the complete 1080p60 and 4K60 paths.

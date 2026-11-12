@@ -22,10 +22,17 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 PAGE = r"""<!doctype html><title>Swag Capture Web AV Probe</title>
 <style>body{margin:0;background:#16181b;color:white;font:16px sans-serif}
-video{display:block;margin:20px;width:320px;height:180px}p{margin:20px}</style>
+video{display:block;margin:20px;width:320px;height:180px}p{margin:20px}
+body.motion-stress:before{content:"";position:fixed;inset:-100px;z-index:0;
+ background:repeating-linear-gradient(35deg,#081a42 0px,#c7d7ee 7px,#612920 14px,#07132e 21px);
+ animation:drift 3.7s linear infinite}
+body.motion-stress video,body.motion-stress p{position:relative;z-index:1}
+@keyframes drift{from{transform:translateX(0);filter:hue-rotate(0deg)}
+ to{transform:translateX(200px);filter:hue-rotate(360deg)}}</style>
 <video autoplay loop playsinline></video><p>Swag Capture — browser video + 440 Hz audio</p>
 <script>
 (async()=>{
+ if (location.search.includes('motion-stress')) document.body.classList.add('motion-stress');
  const video=document.querySelector('video');video.src='/fixture.webm';await video.play();
  setInterval(async()=>{
   const control=await(await fetch('/control')).json();if(control.mute){video.pause();video.muted=true;}
@@ -69,6 +76,8 @@ def main():
                         help='full-screen recording length in seconds (default: 3)')
     parser.add_argument('--video-quality', choices=('maximum', 'balanced', 'compact'), default='balanced',
                         help='recording compression setting (default: balanced)')
+    parser.add_argument('--motion-stress', action='store_true',
+                        help='animate a dense pattern across the full browser viewport')
     parser.add_argument('--devmode-compiler', action='store_true',
                         help='drive the Release application with swc.dm.exe')
     args = parser.parse_args()
@@ -138,7 +147,8 @@ def main():
         '--disable-background-timer-throttling', '--disable-renderer-backgrounding',
         '--disable-backgrounding-occluded-windows',
         '--window-position=100,80', f'--window-size={max(600, args.width + 80)},{max(500, args.height + 150)}',
-        f'--app=http://127.0.0.1:{server.server_port}/'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        f'--app=http://127.0.0.1:{server.server_port}/' + ('?motion-stress' if args.motion_stress else '')],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         deadline = time.monotonic() + 25
         while not (status.get('playing') and status.get('ready', 0) >= 3 and status.get('time', 0) > .2):

@@ -324,6 +324,9 @@ every connected screen; both modes decode the first and last frames and report D
 and missed frame slots. Long runs keep their MP4 in the printed sandbox without making a
 second in-memory copy. `--video-quality maximum|balanced|compact` tests the three recording
 settings; Balanced is the application default.
+Add `--motion-stress` to animate a dense pattern across the browser viewport, then
+use `--max-missed-frames` to gate sustained high-motion capture. The runner keeps
+the browser video and its reference sound under that pattern.
 `capture-web-source.py --input <1080p-movie> --output <external-source.mp4> --start 30`
 prepares an eight-second native-resolution excerpt and reference sound with PyAV and NumPy,
 using three codec threads. One reproducible source is Blender Foundation's

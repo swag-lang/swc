@@ -74,3 +74,28 @@ func assertOrderedSetKeysAreReadOnly(values: *OrderedSet's32)
     Swag.require(set.count == 1 and set.capacity() == capacity)
     Swag.require(set.contains(42))
 }
+
+#test
+{
+    var set = OrderedSet's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    set.reserve(8)
+    set.add(4)
+    set.add(1)
+    set.add(3)
+    let capacity = set.capacity()
+
+    set.clear()
+    Swag.require(set.isEmpty())
+    Swag.require(set.capacity() == capacity)
+
+    set.add(4)
+    set.add(1)
+    set.add(3)
+    Swag.require(set.count == 3)
+    Swag.require(set.lowerBound(3) == 1)
+
+    var ordered = 0
+    for key in set do
+        ordered = ordered * 10 + key
+    Swag.require(ordered == 134)
+}

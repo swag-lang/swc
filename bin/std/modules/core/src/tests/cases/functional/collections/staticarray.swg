@@ -84,6 +84,27 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 
 #test
 {
+    var values: StaticArray'(s32, 3'u64)
+    values.addOnce(1)
+    values.addOnce(2)
+    values.addOnce(2)
+
+    Swag.require(values.count == 2)
+    Swag.require(values[0] == 1 and values[1] == 2)
+
+    values.addOnce(3)
+    values.addOnce(1)
+    Swag.require(values.count == 3)
+    Swag.require(values[0] == 1 and values[1] == 2 and values[2] == 3)
+
+    let fullArray = Swag.catchPanic(func|&values|() { values.addOnce(4) })
+    Swag.require(fullArray.raised)
+    Swag.require(values.count == 3)
+    Swag.require(values[0] == 1 and values[1] == 2 and values[2] == 3)
+}
+
+#test
+{
     var values: StaticArray'(s32, 4'u64)
     values.add(1)
     values.add(2)

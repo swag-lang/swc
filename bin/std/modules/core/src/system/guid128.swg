@@ -38,20 +38,22 @@ impl Guid128
 
     // Creates a random RFC 4122 version-4 UUID.
     //
-    // The bits come from a per-thread Mersenne Twister seeded from the clocks and the MAC
-    // address: unique enough for identities, but predictable, so never a secret or a token.
+    // The bits come from a per-thread Mersenne Twister seeded from the clocks, MAC address, and
+    // process/thread identities: suitable for identities, but predictable, so never a secret or a token.
     func random()->Guid128
     {
-        // Seeds this thread's generator on first use from the clocks and the MAC address.
+        // Seeds this thread's generator on first use from clocks, machine, process, and thread state.
         #[Swag.Inline]
         func initRng()
         {
             if not g_RngInit
             {
-                var seed: [3] u64
+                var seed: [5] u64
                 seed[0] = Time.monotonicMilliseconds()
                 seed[1] = Time.monotonicMicroseconds()
                 seed[2] = Hardware.macAddress()
+                seed[3] = Env.Process.currentProcessId()
+                seed[4] = Env.Process.currentThreadId()
                 g_Rng.seedU64(seed)
                 g_RngInit = true
             }

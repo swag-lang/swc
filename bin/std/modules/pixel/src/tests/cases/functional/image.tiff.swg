@@ -37,11 +37,11 @@ func tw32(cb: *ConcatBuffer, le: bool, v: u32)
 }
 
 // Single inline SHORT value (left-justified in the 4-byte field).
-func entShort(cb: *ConcatBuffer, le: bool, tag, value: u16)
+func entShort(cb: *ConcatBuffer, le: bool, tag, value: u16, type: u16 = 3, count: u32 = 1)
 {
     tw16(cb, le, tag)
-    tw16(cb, le, 3)
-    tw32(cb, le, 1)
+    tw16(cb, le, type)
+    tw32(cb, le, count)
     tw16(cb, le, value)
     tw16(cb, le, 0)
 }
@@ -123,7 +123,7 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -220,7 +220,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if hasPalette do
         entOffset(&cb, le, 320, 3, palCount, colorMapOffset)
     if extraSamples do
-        entShort(&cb, le, 338, cast(u16, extraSampleType))
+        entShort(&cb, le, 338, cast(u16, extraSampleType), extraSamplesType, extraSamplesCount)
     tw32(&cb, le, 0)
 
     // External arrays
@@ -255,6 +255,14 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     var dec: Tiff.Decoder
     let itf: IImageDecoder = &dec
     return try itf.decode(bytes, opt)
+}
+
+func tiffDecodeFails(bytes: const [..] u8)->bool
+{
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try decodeTiff(bytes) } as errorOutcome
+    return errorOutcome.value() != null
 }
 
 // The decoder and encoder registries recognise .tif and .tiff files.
@@ -405,6 +413,18 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     const Expected: [4] u8 = [64, 32, 16, 128]
     Swag.require(img.pixelFormat == .RGBA8 and img.alphaMode == .Premultiplied)
     Swag.require(Memory.compare(img.pixels.storage(), Expected.buffer, Expected.count) == 0)
+}
+
+// Reject ExtraSamples values and entry layouts outside the supported TIFF alpha contract.
+#test
+{
+    const PixelData: [4] u8 = [64, 32, 16, 128]
+    let badAssociation = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, PixelData, null, true, extraSampleType: 3)
+    let badType        = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, PixelData, null, true, extraSamplesType: 4)
+    let badCount       = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, PixelData, null, true, extraSamplesCount: 2)
+    Swag.require(tiffDecodeFails(nnBytes(badAssociation.toSlice())))
+    Swag.require(tiffDecodeFails(nnBytes(badType.toSlice())))
+    Swag.require(tiffDecodeFails(nnBytes(badCount.toSlice())))
 }
 
 // Decode a PackBits-compressed RGB image (literal run).

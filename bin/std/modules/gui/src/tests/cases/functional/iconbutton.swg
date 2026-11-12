@@ -24,6 +24,82 @@ func iconButtonHeadlessReset()
     IconButtonHeadlessCheckCount   = 0
 }
 
+// A quiet icon button reflows when a menu arrow is added.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 100)
+
+    let row = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 400, 40})
+    let btn = IconButton.createQuiet(row, menu: false)
+    btn.setQuietText("Open")
+    btn.preferredSize.x = 0
+    btn.invalidateLayout()
+    host.pump()
+    let originalWidth = btn.itf.measureContent({}).x
+
+    btn.setArrowPosition(.RightDownward)
+    host.pump()
+    let measuredWidth = btn.itf.measureContent({}).x
+    let layoutWidth   = btn.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("IconButton arrow widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(btn.position.width == layoutWidth,
+                 Format.toString("IconButton width after arrow: measured %, committed %", layoutWidth, btn.position.width).toString())
+}
+
+// A quiet icon button shrinks when its caption moves below the icon.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 100)
+
+    let row  = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 400, 40})
+    let icon = host.root.theme().icon(ThemeIcons.Play, 32)
+    let btn  = IconButton.createQuiet(row, menu: false)
+    btn.setIcon(icon)
+    btn.setQuietText("A caption substantially wider than the icon")
+    btn.preferredSize.x = 0
+    btn.invalidateLayout()
+    host.pump()
+    let originalWidth = btn.itf.measureContent({}).x
+
+    btn.setTextPosition(.Bottom)
+    host.pump()
+    let measuredWidth = btn.itf.measureContent({}).x
+    let layoutWidth   = btn.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("IconButton text position widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(btn.position.width == layoutWidth,
+                 Format.toString("IconButton width after text position: measured %, committed %", layoutWidth, btn.position.width).toString())
+}
+
+// A quiet icon button reflows when it hides its caption.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 100)
+
+    let row  = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 400, 40})
+    let icon = host.root.theme().icon(ThemeIcons.Play, 32)
+    let btn  = IconButton.createQuiet(row, menu: false)
+    btn.setIcon(icon)
+    btn.setQuietText("A caption substantially wider than the icon")
+    btn.preferredSize.x = 0
+    btn.invalidateLayout()
+    host.pump()
+    let originalWidth = btn.itf.measureContent({}).x
+
+    btn.updateFlags(.IconOnly)
+    host.pump()
+    let measuredWidth = btn.itf.measureContent({}).x
+    let layoutWidth   = btn.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("IconButton flag widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(btn.position.width == layoutWidth,
+                 Format.toString("IconButton width after flag: measured %, committed %", layoutWidth, btn.position.width).toString())
+}
+
 // A plain icon button posts a command and fires sigPressed on click.
 #test
 {

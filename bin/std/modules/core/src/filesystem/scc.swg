@@ -446,6 +446,7 @@ impl Writer
     }
 
     // Writes the complete container to a temporary peer and atomically replaces `fileName`.
+    // Fails if the container identity is null or its generation is zero.
     mtd saveAtomic(fileName: string) fail
     {
         func writeU64(buffer: *Array'u8, value: u64)
@@ -453,6 +454,9 @@ impl Writer
             for i in 8 do
                 buffer.add(Math.byteAt(value, i))
         }
+
+        if .header.containerId.isNull() or not .header.generation do
+            fail BadParameterError{"SCC container identity and generation must be non-null"}
 
         .header.chunks.clear()
         for chunk in .chunks do

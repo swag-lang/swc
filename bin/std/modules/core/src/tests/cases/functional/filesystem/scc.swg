@@ -303,3 +303,27 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
     Swag.require((expect File.readAllText(path)) == "keep me")
 }
+
+// A writer cannot replace an existing file with a header that its Reader rejects.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("core_scc_invalid_identity.tmp")
+    defer discard catch File.delete(path)
+    expect File.writeAllText(path, "keep me")
+
+    var writer: Scc.Writer
+    writer.initialize(sccTestId("6cfd74c7-00cb-428c-a6e6-bc817d8fdf8f"))
+    discard expect writer.addChunk("payload", {})
+
+    writer.setIdentity(Guid128{}, 1)
+    var nullIdOutcome: Swag.Error
+    discard catch writer.saveAtomic(path) as nullIdOutcome
+    Swag.require(nullIdOutcome.value() is Errors.BadParameterError)
+    Swag.require((expect File.readAllText(path)) == "keep me")
+
+    writer.setIdentity(sccTestId("a4fe2ad0-71e9-4df8-aa9f-367c76d08d92"), 0)
+    var zeroGenerationOutcome: Swag.Error
+    discard catch writer.saveAtomic(path) as zeroGenerationOutcome
+    Swag.require(zeroGenerationOutcome.value() is Errors.BadParameterError)
+    Swag.require((expect File.readAllText(path)) == "keep me")
+}

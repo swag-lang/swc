@@ -352,6 +352,8 @@ func fragmentedPacketSource()->ByteSource fail
     var rejected: Swag.Error
     discard catch writer.addPacket(EncodedPacket{bytes.toSlice(), 0, 0, 512, false}) as rejected
     Swag.require((rejected.value() is BadParameterError))
+    discard catch writer.addPacket(EncodedPacket{bytes.toSlice(), 0, 0, 0, true}) as rejected
+    Swag.require((rejected.value() is BadParameterError))
 
     let malformed: [5] u8 = [0, 0, 0, 3, 0x65]
     discard catch writer.addPacket(EncodedPacket{Swag.makeSlice(&malformed[0], malformed.count),
@@ -366,6 +368,11 @@ func fragmentedPacketSource()->ByteSource fail
     let file = expect File.readAllBytes(path)
     Swag.require(fragmentedTagCount(file.toSlice(), "moof") == 1)
     Swag.require(fragmentedTagCount(file.toSlice(), "mdat") == 1)
+
+    var packets = expect Mp4.FragmentedPacketReader.open(path)
+    Swag.require(packets.packetCount() == 1)
+    let firstPacket = expect packets.packetInfo(0)
+    Swag.require(firstPacket.decodeTime == 0 and firstPacket.duration == 512)
 }
 
 // Fragment decode times and signed composition offsets retain exact presentation order.

@@ -536,3 +536,33 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     list.sort(0)
     Swag.require(list.focusedLine() == root1)
 }
+
+// Keyboard check commands notify only when the checked row set changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(220, 180)
+    var checkedChanges: u32
+
+    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 160})
+    let line = list.createLine("checkable")
+    line.canCheck = true
+    list.computeLayout()
+    list.setFocusedIndex(0)
+    list.sigCheckedChanged += func|&checkedChanges|(_) { checkedChanges += 1 }
+    host.focus(list.listView)
+
+    host.keyPress(Input.Key.Space)
+    host.keyPress(Input.Key.Return)
+    Swag.require(not list.isLineChecked(0) and checkedChanges == 0)
+
+    list.selectLine(0)
+    host.keyPress(Input.Key.Space)
+    Swag.require(list.isLineChecked(0) and checkedChanges == 1)
+
+    host.keyPress(Input.Key.Return)
+    Swag.require(list.isLineChecked(0) and checkedChanges == 1)
+
+    host.keyPress(Input.Key.Space)
+    Swag.require(not list.isLineChecked(0) and checkedChanges == 2)
+}

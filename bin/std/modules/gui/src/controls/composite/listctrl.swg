@@ -275,6 +275,7 @@ impl IWnd for ListView
             evt.accepted = true
             if focusLine!.canCheck
             {
+                var changed = false
                 for l in .list.selModel
                 {
                     let res = .list.idxLineToIdxList.tryFind(l)
@@ -285,10 +286,14 @@ impl IWnd for ListView
                         continue
                     let checked = not .list.checkModel.isSelected(l)
                     .list.checkModel.setSelected(l, checked)
+                    changed = true
                 }
 
-                .list.sigCheckedChanged.call(.list)
-                .invalidate()
+                if changed
+                {
+                    .list.sigCheckedChanged.call(.list)
+                    .invalidate()
+                }
             }
             else
             {
@@ -299,6 +304,7 @@ impl IWnd for ListView
             evt.accepted = true
             if focusLine!.canCheck
             {
+                var changed = false
                 for l in .list.selModel
                 {
                     let res = .list.idxLineToIdxList.tryFind(l)
@@ -307,11 +313,18 @@ impl IWnd for ListView
                     let idx = res.value
                     if not .list.lines[idx]!.canCheck do
                         continue
-                    .list.checkModel.select(l)
+                    if not .list.checkModel.isSelected(l)
+                    {
+                        .list.checkModel.select(l)
+                        changed = true
+                    }
                 }
 
-                .list.sigCheckedChanged.call(.list)
-                .invalidate()
+                if changed
+                {
+                    .list.sigCheckedChanged.call(.list)
+                    .invalidate()
+                }
             }
             else
             {

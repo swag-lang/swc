@@ -37,9 +37,27 @@ impl DecodeOptions
         let pixels = cast(u64, width) * cast(u64, height)
         if .maxPixels and pixels > .maxPixels do
             fail UnsupportedFormatError{"image exceeds the decoded pixel limit"}
-        let bytesPerPixel = format.bitsPerPixel() / 8
-        if .maxDecodedBytes and bytesPerPixel and pixels > .maxDecodedBytes / bytesPerPixel do
-            fail UnsupportedFormatError{"image exceeds the decoded byte limit"}
+        if .maxDecodedBytes
+        {
+            var exceedsByteLimit = false
+            switch format
+            {
+            case .Yuv420:
+                let chromaWidth  = (cast(u64, width) + 1) / 2
+                let chromaHeight = (cast(u64, height) + 1) / 2
+                exceedsByteLimit = pixels + 2 * chromaWidth * chromaHeight > .maxDecodedBytes
+
+            case .Yuv444:
+                exceedsByteLimit = pixels > .maxDecodedBytes / 3
+
+            default:
+                let bytesPerPixel = cast(u64, (format.bitsPerPixel() / 8))
+                exceedsByteLimit = bytesPerPixel != 0 and pixels > .maxDecodedBytes / bytesPerPixel
+            }
+
+            if exceedsByteLimit do
+                fail UnsupportedFormatError{"image exceeds the decoded byte limit"}
+        }
     }
 
     mtd const checkFrameCount(count: u64) fail

@@ -157,6 +157,10 @@ struct AppStrings
     hint_AimFormat:            string = "change format"               // Tab cycles Picture, GIF and Video.
     msg_FailedCaptureScreen:   string = "Failed to capture the screen"
     msg_FailedRecordScreen:    string = "The recording could not be written"
+    msg_VideoKeptAfterError:   string = "Recording stopped after an error; the video file was kept"
+    msg_RecoveredVideo:        string = "An interrupted video recording was restored to the library"
+    msg_RecoveredVideos:       string = "% interrupted video recordings restored to the library"
+    msg_FailedRecoverVideos:   string = "Could not check interrupted video recordings"
     msg_VideoStoppedForStorage: string = "Recording stopped because the destination is nearly full"
     msg_VideoExportDifferentFile: string = "Choose another file for the exported video. The original belongs to this capture."
     tip_VideoPauseUnavailable: string = "Pause is unavailable for video"

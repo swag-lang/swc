@@ -246,38 +246,54 @@ impl Recorder
         }
 
         recorder.videoProducer.close()
+        var failedAfterFrames = recorder.writeFailed
         if recorder.state != .Cancelled and not recorder.video.stoppedForLowStorage() do
-            try recorder.videoProducer.raiseError()
-        if recorder.videoAudio do
-            try recorder.videoAudio.finish()
+            catch recorder.videoProducer.raiseError() do
+                failedAfterFrames = true
+        if recorder.videoAudio
+        {
+            catch recorder.videoAudio.finish() do
+                failedAfterFrames = true
+        }
         if recorder.state == .Cancelled do
             return null
-        if recorder.writeFailed
-        {
-            try recorder.recordError.raise()
-            fail Errors.InvalidFormatError{}
-        }
         if not recorder.video.frameCount()
         {
+            if failedAfterFrames
+            {
+                try recorder.recordError.raise()
+                fail Errors.InvalidFormatError{}
+            }
             if recorder.video.stoppedForLowStorage() do
                 main.confirm(appStrings().msg_VideoStoppedForStorage)
             return null
         }
-        try recorder.video.end()
-        with let result = Memory.new'Capture()
-        {
-            .file = String.from(recorder.file)
-            try .adoptVideo()
-            .setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable,
-                             g_CaptureWindow.title, g_CaptureWindow.className)
-        }
+        catch recorder.video.end() do
+            failedAfterFrames = true
+
+        // A recording with frames is useful even when finalization or a sound source failed.
+        // Keep its fragmented MP4 if it cannot yet be adopted as a capture document.
+        let mediaFile = String.from(fileToDiscard)
         fileToDiscard.clear()
-        main.confirmSaved(Capture.mediaPathOf(recorder.file, .Video))
+        let result = Memory.new'Capture()
+        defer #fail Memory.delete(result)
+        result.file = String.from(recorder.file)
+        catch result.adoptVideo()
+        {
+            main.reportRetainedVideo(mediaFile)
+            fail Swag.err
+        }
+        result.setScreenSource(g_CaptureWindow.application, g_CaptureWindow.executable,
+                               g_CaptureWindow.title, g_CaptureWindow.className)
+        if not failedAfterFrames do
+            main.confirmSaved(mediaFile)
         if recorder.video.stoppedForLowStorage() do
             main.confirm(appStrings().msg_VideoStoppedForStorage)
         if recorder.video.missedFrameSlotCount() do
             main.confirm(Format.toString(appStrings().ui_DroppedFrames,
                                          recorder.video.missedFrameSlotCount()))
+        if failedAfterFrames do
+            main.reportRetainedVideo(mediaFile)
         return result
     }
 

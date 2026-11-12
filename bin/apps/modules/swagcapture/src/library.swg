@@ -1,4 +1,5 @@
 var g_Library: Library
+const VideoRecoveryBatchSize = 4'u64
 
 // The captures and images in the library folder, and the folder itself.
 struct Library
@@ -102,6 +103,51 @@ impl Library
                               (Capture.isFileName(fi.fullName) or Image.canLoad(fi.fullName)) do
             result.add(fi)
         return result
+    }
+
+    // Recovers playable video fragments left by an interrupted process. Only the application's
+    // `video-<capture-stem>.mp4` companions without a document are considered; each document is
+    // decoded and written in turn, so the worker retains at most one frame at a time.
+    internal func recoverOrphanVideos(folder: String)->Array'String fail
+    {
+        var recovered: #returntype
+        let files = try Directory.enumerateFiles(folder, CaptureVideoExtension)
+        for fi in files
+        {
+            let name = Path.fileNameWithoutExtension(fi.fullName) orelse ""
+            if not Utf8.startsWith(name, "video-") or name.count <= 6 do
+                continue
+            var documentName = String.from(name[6 until name.count])
+            documentName += CaptureFileExtension
+            let document = Path.combine(folder, documentName)
+            if File.exists(document) or not Path.equals(Capture.mediaPathOf(document, .Video), fi.fullName) do
+                continue
+
+            let capture = Memory.new'Capture()
+            capture.file = document
+            capture.capturedAt = fi.lastWriteTime
+            catch capture.adoptVideo()
+            {
+                Memory.delete(capture)
+                continue
+            }
+            let scale = Math.min(1.0, Math.min(PreviewWidth / capture.width,
+                                               PreviewHeight / capture.height))
+            capture.preview = capture.backImg
+            if scale < 1 do
+                capture.preview.resize(Math.max(1, cast(s32, capture.width * scale)),
+                                       Math.max(1, cast(s32, capture.height * scale)), .Bilinear)
+            catch capture.saveRecoveredDocument()
+            {
+                Memory.delete(capture)
+                continue
+            }
+            Memory.delete(capture)
+            recovered.add(document)
+            if recovered.count == VideoRecoveryBatchSize do
+                break
+        }
+        return recovered
     }
 
     // Picks a destination inside `folder` for `name` that does not collide with an

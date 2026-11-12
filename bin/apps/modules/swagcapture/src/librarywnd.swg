@@ -270,6 +270,7 @@ impl LibraryWnd
     {
         if not g_Library.loaded do
             g_Library.fill()
+        .main.startVideoRecovery()
 
         if .filledOnce and .filledRevision == g_Library.revision do
             return

@@ -179,6 +179,37 @@ internal func testEndRecording()
     Swag.require(after.count == before.count)
 }
 
+// A late recording failure keeps the completed video prefix as an editable capture.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let before = f.main.savedPaths.count
+    testEndRecordingAfter(20, cancel: false)
+    g_App.sigFrame += func(_)
+    {
+        if g_Recorder and g_Recorder!.state == .Stopped do
+            g_Recorder!.writeFailed = true
+    }
+    let capture = expect Recorder.recordVideo(f.main, CaptureTarget.create({0, 0, 64, 48}, 0))
+    testEndRecording()
+    let kept = unwrap capture
+    defer Memory.delete(kept)
+    let file = String.from(kept.file)
+    defer discard catch Capture.deleteFiles(file)
+    Swag.require(kept.timeline.frameCount > 0 and not kept.mediaMissing)
+    Swag.require(f.main.savedPaths.count == before + 1)
+    Swag.require(File.exists(Capture.mediaPathOf(file, .Video)))
+
+    kept.changed = true
+    expect kept.save()
+    let reopened = expect Capture.load(file)
+    defer Memory.delete(reopened)
+    Swag.require(reopened.timeline.frameCount == kept.timeline.frameCount and not reopened.mediaMissing)
+}
+
 // The video preparation waits for Record, then creates an MP4 from the live target.
 #[Swag.TestTag("record.preparation")]
 #test

@@ -56,3 +56,30 @@ using Swag, Core
     Swag.require(label.lineGap == 0)
     Swag.require(Math.abs(label.measure({200, 0}).preferred.y - initial) < 0.5)
 }
+
+// Automatic height includes the window padding that is removed before wrapped text is painted.
+#test
+{
+    for scale in [1.0'f32, 1.25'f32, 1.5'f32, 1.75'f32, 2.0'f32]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(240, 400, scale)
+
+        let label = Label.create(&host.root, "A wrapped paragraph whose final words need another line", {20, 20, 100, 0}, flags: .WordWrap | .AutoHeight)
+        label.padding = {8, 4, 8, 4}
+        label.setTextPadding({2, 2, 2, 2})
+
+        var tail: String
+        for index in 20
+        {
+            var text = String.from("A wrapped paragraph whose final words need another line")
+            text += tail
+            label.setText(text.toString())
+            label.updateAutomaticHeight()
+
+            let needed = label.itf.measureContent(Math.Point{label.position.width, label.position.height}).y
+            Swag.require(needed <= label.position.height)
+            tail += index % 2 == 0 ? "!" : "?"
+        }
+    }
+}

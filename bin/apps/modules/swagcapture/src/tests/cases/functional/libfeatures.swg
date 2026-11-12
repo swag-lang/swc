@@ -91,6 +91,8 @@ using Swag, Core
     let rating   = 4'u8
     let library  = f.setupLibraryWnd()
     library.updateMetadata(path, tags: &tags, favorite: &favorite, rating: &rating)
+    Swag.require(g_CaptureSaves.writing(path))
+    Swag.require(g_CaptureSaves.flush(path).isEmpty())
 
     let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
@@ -113,6 +115,33 @@ using Swag, Core
     Swag.require(after.chunks()[1].codecId == backgroundCodec)
     let unchanged = expect after.readStoredChunk(backgroundId)
     Swag.require(Slice.equals(unchanged.toSlice(), backgroundBytes.toSlice()))
+}
+
+// A metadata write queued behind an automatic save edits the version that just landed.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    f.capture.file = path
+    f.capture.title = "First version"
+    f.capture.changed = true
+    expect f.capture.save()
+
+    f.capture.title = "Automatic save"
+    f.capture.changed = true
+    expect f.capture.scheduleSave()
+    let rating = 3'u8
+    f.main.queueCaptureMetadata(path, rating: &rating)
+    Swag.require(g_CaptureSaves.writing(path))
+    Swag.require(g_CaptureSaves.flush(path).isEmpty())
+
+    let loaded = expect Capture.load(path)
+    defer Memory.delete(loaded)
+    Swag.require(loaded.title == "Automatic save" and loaded.rating == 3)
 }
 
 // Copying a stored capture from the library places its full-resolution image on the

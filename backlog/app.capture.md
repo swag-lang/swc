@@ -69,13 +69,12 @@ whole recording loaded at once.
 - Evidence: All recent selections, including library opens, explicit file opens, deletion
   replacements and the first startup document, now decode through an owned background task.
   The outgoing edited capture is snapshotted before switching and saved on a worker. Inactive
-  metadata edits and rename now rewrite only the model and SCC header, copying the stored image
-  chunks exactly, but the file rewrite and any form images inside the model still run on the
-  interface thread. Full `Capture.load` also remains in library export, copy, duplicate, and
-  library Save as Image. A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old
-  full-load path.
-- Next: queue metadata rewrites per file on a worker and publish preview changes on completion;
-  then split decode from renderer-bound work in copy and export, and move duplicate and library
+  metadata edits and rename now queue a worker rewrite of only the model and SCC header, copying
+  the stored image chunks exactly. Consecutive edits and automatic saves share one writer lane,
+  so the interface does not wait for model form decoding or file replacement. Full `Capture.load`
+  remains in library export, copy, duplicate, and library Save as Image. A 2341x1903 BGRA8 capture
+  took a few hundred milliseconds on the old full-load path.
+- Next: split decode from renderer-bound work in copy and export, and move duplicate and library
   Save as Image off the interface thread. Preserve save ordering and failure reports.
 - Done when no user action decodes an inactive capture on the interface thread, and cancel,
   failure and window-close paths release each background result.

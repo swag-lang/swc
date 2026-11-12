@@ -150,22 +150,11 @@ impl LibraryWnd
         .view.invalidate()
     }
 
-    // Writes the tags, favorite mark, or rating given to the capture saved in `file`, after any
-    // pending autosave of it has landed. A null value is left as it is.
+    // Queues a metadata edit in the file-writer lane, then updates the visible preview.
     mtd updateMetadata(file: String, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
     {
-        // The edited capture autosaves in the background; make sure this load reads
-        // the latest landed version of the file.
-        .main.flushCaptureSave(file)
-
-        catch
-        {
-            try Capture.updateFileMetadata(file, tags: tags, favorite: favorite, rating: rating)
-            .refreshPreviewMetadata(file, tags, favorite, rating)
-        }
-        {
-            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedSaveMetadata, Swag.err)
-        }
+        .main.queueCaptureMetadata(file, tags: tags, favorite: favorite, rating: rating)
+        .refreshPreviewMetadata(file, tags, favorite, rating)
     }
 
     // Asks for the tags of the selected captures and writes them to every one. A single capture

@@ -305,25 +305,87 @@ struct CaptureSaveJob
     failed:     bool     // Set by the worker when producing or replacing the file failed.
 }
 
-// The one automatic save in flight. A single slot is deliberate: the automatic save
-// always targets the edited capture, and every other reader or writer of a capture
-// file flushes this slot first, which keeps one writer per file at all times.
+// One library edit owns its values until the file worker has written them.
+struct CaptureMetadataJob
+{
+    task:        Swag.Task
+    late owner:  *MainWnd
+    file:        String
+    title:       String
+    tags:        Array'String
+    favorite:    bool
+    rating:      u8
+    hasTitle:    bool
+    hasTags:     bool
+    hasFavorite: bool
+    hasRating:   bool
+    error:       Swag.Error
+}
+
+// The file-writer lane. The automatic save owns one snapshot slot; library metadata edits wait
+// behind it and run in request order. Readers, moves and deletions flush the affected file first.
 struct CaptureSaveQueue
 {
     pending: *CaptureSaveJob?
+    metadataPending: *CaptureMetadataJob?
+    metadataWaiting: Array'*CaptureMetadataJob
 }
 
 var g_CaptureSaves: CaptureSaveQueue
 
 impl CaptureSaveQueue
 {
-    // Returns whether a scheduled save is still producing its file.
+    // Returns whether the writer lane has unfinished work.
     mtd busy()->bool
     {
-        if not .pending do
-            return false
-        let job = .pending
-        return not job.task.isDone()
+        if .metadataPending or not .metadataWaiting.isEmpty() do
+            return true
+        return .pending and not .pending.task.isDone()
+    }
+
+    mtd metadataTargets(file: string)->bool
+    {
+        if .metadataPending and .metadataPending.file == file do
+            return true
+        for job in .metadataWaiting where job.file == file do
+            return true
+        return false
+    }
+
+    mtd writing(file: string)->bool => (.pending and .pending.file == file) or .metadataTargets(file)
+
+    mtd adoptMetadata(job: *CaptureMetadataJob)
+    {
+        .metadataWaiting.add(job)
+        .startMetadata()
+    }
+
+    private mtd startMetadata()
+    {
+        if .pending or .metadataPending or .metadataWaiting.isEmpty() do
+            return
+        let job = .metadataWaiting[0]
+        .metadataWaiting.removeAt(0)
+        .metadataPending = job
+        job.owner.startMetadataTask(job)
+    }
+
+    // The timer or a synchronous flush lands one result and advances the serial queue.
+    mtd finishMetadata()
+    {
+        let job = .metadataPending
+        if not job or not job.task.isDone() do
+            return
+        .metadataPending = null
+        if not job.error.isEmpty()
+        {
+            let message = job.hasTitle ? appStrings().msg_FailedRename : appStrings().msg_FailedSaveMetadata
+            job.owner.reportFailure(message)
+            if job.owner.libWnd != null and job.owner.libWnd.view != null do
+                catch job.owner.libWnd.view.fill()
+        }
+        Memory.delete(job)
+        .startMetadata()
     }
 
     // Adopts one snapshot the caller has already submitted. The caller collected or flushed
@@ -349,21 +411,31 @@ impl CaptureSaveQueue
             result = job.file
         .pending = null
         Memory.delete(job)
+        .startMetadata()
         return result
     }
 
-    // Waits for the save in flight when it targets `file` (any file when null), then
-    // returns the file it failed to write, empty otherwise. Every other reader or
-    // writer of a capture file goes through here before touching it.
+    // Waits for the automatic save and queued metadata edits that precede `file` (all files when
+    // null). Returns the automatic save's failed file, empty otherwise; metadata failures are
+    // reported by their owner.
     mtd flush(file: string? = null)->String
     {
-        if not .pending do
-            return ""
-        let job = .pending
-        if file != null and job.file != file do
-            return ""
-        job.task.wait()
-        return .collect()
+        var failed: String
+        if .pending and (file == null or .pending.file == file or .metadataTargets(file))
+        {
+            .pending.task.wait()
+            failed = .collect()
+        }
+        while .metadataPending or not .metadataWaiting.isEmpty()
+        {
+            if file != null and not .metadataTargets(file) do
+                break
+            .startMetadata()
+            let job = unwrap .metadataPending
+            job.task.wait()
+            .finishMetadata()
+        }
+        return failed
     }
 }
 

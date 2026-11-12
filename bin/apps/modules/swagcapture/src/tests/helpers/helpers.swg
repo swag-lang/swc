@@ -126,6 +126,7 @@ impl HeadlessFixture
 
     mtd shutdown()
     {
+        discard g_CaptureSaves.flush()
         .gui.shutdown()
         g_Main = null
         // bindApplication lends the headless renderer and style to the global app.

@@ -144,6 +144,7 @@ struct MainWnd
     residentPanel: *ResidentPanel?
     residentNotice: *TrayNotice?
     openHubAfterRecentLoad: bool
+    metadataTimer: *Gui.Timer?
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -198,6 +199,23 @@ struct MainWnd
 
 impl IWnd for MainWnd
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .metadataTimer
+        {
+            .wnd.IWnd.onTimerEvent(evt)
+            return
+        }
+        let failed = g_CaptureSaves.collect()
+        if not failed.isEmpty() do
+            .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        let job = g_CaptureSaves.metadataPending
+        if job and job.task.isDone() do
+            g_CaptureSaves.finishMetadata()
+        if not g_CaptureSaves.metadataPending and g_CaptureSaves.metadataWaiting.isEmpty() do
+            .stopTimer(&.metadataTimer)
+    }
+
     mtd impl onSysUserEvent(evt: *SysUserEvent)
     {
         switch evt.kind
@@ -268,6 +286,8 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .stopTimer(&.metadataTimer)
+        discard g_CaptureSaves.flush()
         .saveAppState()
         .icons.free()
         .appIcon.release(.app().renderer)
@@ -446,9 +466,8 @@ impl MainWnd
 
     mtd saveCapture(capture: *Capture)
     {
-        // An automatic save may still be writing; land it first so its outcome is
-        // reported and the two writes cannot interleave.
-        .flushCaptureSave()
+        // A queued write to this capture must land before the explicit save.
+        .flushCaptureSave(capture.file)
         catch capture.save() do
             MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
     }
@@ -462,6 +481,51 @@ impl MainWnd
             MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, failed))
     }
 
+    // All library metadata writes share the automatic save's single file-writer lane.
+    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
+    {
+        if title == null and not tags and not favorite and not rating do
+            return
+        let job = Memory.new'CaptureMetadataJob()
+        job.owner = me
+        job.file = file
+        if title != null
+        {
+            job.title = title
+            job.hasTitle = true
+        }
+        if tags
+        {
+            job.tags = tags[]
+            job.hasTags = true
+        }
+        if favorite
+        {
+            job.favorite = favorite[]
+            job.hasFavorite = true
+        }
+        if rating
+        {
+            job.rating = rating[]
+            job.hasRating = true
+        }
+        g_CaptureSaves.adoptMetadata(job)
+        if not .metadataTimer do
+            .metadataTimer = .addTimer(30'ms)
+    }
+
+    mtd startMetadataTask(job: *CaptureMetadataJob)
+    {
+        job.task.submit(func|job|()
+        {
+            let title: string? = job.hasTitle ? job.title : null
+            let tags: const *Array'String? = job.hasTags ? &job.tags : null
+            let favorite: const *bool? = job.hasFavorite ? &job.favorite : null
+            let rating: const *u8? = job.hasRating ? &job.rating : null
+            catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating) as job.error
+        })
+    }
+
     // Changes the user-defined name of a capture and persists it. An inactive capture's SCC
     // model and header are rewritten without decoding its background image.
     mtd setCaptureTitle(file: String, title: String)
@@ -473,18 +537,8 @@ impl MainWnd
             editCapture.changed = true
             .saveCapture(editCapture)
         }
-        else
-        {
-            // The edited capture autosaves in the background; make sure this load
-            // reads the latest landed version of the file.
-            .flushCaptureSave(file)
-
-            catch Capture.updateFileMetadata(file, title: title)
-            {
-                MessageDlg.error(unwrap .surface, appStrings().msg_FailedRename, Swag.err)
-                return
-            }
-        }
+        else do
+            .queueCaptureMetadata(file, title: title)
 
         // Reflect the new title on the library preview(s) that reference this file.
         if .libWnd != null and .libWnd.view != null

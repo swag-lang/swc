@@ -62,6 +62,7 @@ impl CaptureJourney
     {
         if not .started do
             return
+        discard g_CaptureSaves.flush()
         .main.libWnd.requestClose()
         .surface.destroy()
         Swag.drop(&g_Library, 1)

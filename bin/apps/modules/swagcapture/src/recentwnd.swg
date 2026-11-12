@@ -368,11 +368,11 @@ impl IWnd for RecentWnd
         // The one-second timer drives the deferred save, which lands in the background.
         // Keep the timer alive while a save is still writing, then surface its outcome
         // before scheduling the next one.
-        if g_CaptureSaves.busy() do
-            return
         let failedSave = g_CaptureSaves.collect()
         if not failedSave.isEmpty() do
             MessageDlg.error(unwrap .main.surface, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
+        if g_CaptureSaves.busy() do
+            return
 
         let capture = .main.editWnd.getCapture()
         if capture and capture.changed
@@ -538,8 +538,7 @@ impl RecentWnd
 
         // Reading a file while its automatic save replaces it can return stale content.
         // Poll that one writer instead of joining it on the interface thread.
-        let pending = g_CaptureSaves.pending
-        if pending and pending.file == file
+        if g_CaptureSaves.writing(file)
         {
             if g_CaptureSaves.busy()
             {

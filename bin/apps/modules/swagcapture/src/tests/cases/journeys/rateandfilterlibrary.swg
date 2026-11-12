@@ -25,6 +25,7 @@ using Core, Gui, Pixel
     for item, index in library.view.items where item.capture and item.capture.title == "Review" do
         chosen = cast(u32, index)
     Swag.require(chosen != Swag.U32.Max)
+    let markedFile = library.view.items[chosen].fi.fullName
     library.view.setFocusItem(chosen)
     library.sendCommandEvent(ActionLibSel.Rate5)
     library.toggleSelectedFavorite()
@@ -40,4 +41,9 @@ using Core, Gui, Pixel
     library.sendCommandEvent(ActionLibFilter.Reset)
     journey.waitFor("all captures", func|library|()->bool => library.view.items.count == 3 and
                                                        not library.favoritesOnly and library.minimumRating == 0)
+    journey.waitFor("metadata written", func||()->bool => not g_CaptureSaves.metadataPending and
+                                                          g_CaptureSaves.metadataWaiting.isEmpty())
+    let stored = expect Capture.load(markedFile, preview: true)
+    defer Memory.delete(stored)
+    Swag.require(stored.rating == 5 and stored.favorite)
 }

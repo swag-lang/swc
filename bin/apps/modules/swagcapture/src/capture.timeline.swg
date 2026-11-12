@@ -58,6 +58,7 @@ impl Capture
     // is left at `target` when a copy fails.
     func duplicateFiles(target, source: string) fail
     {
+        discard g_CaptureSaves.flush(source)
         try File.duplicate(target, source)
         defer #fail
         {
@@ -82,6 +83,7 @@ impl Capture
     // Deletes the capture file `file` and its frame file.
     func deleteFiles(file: string) fail
     {
+        discard g_CaptureSaves.flush(file)
         for kind in [CaptureMedia.Animation, CaptureMedia.Video]
         {
             let media = mediaPathOf(file, kind)

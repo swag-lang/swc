@@ -40,6 +40,16 @@ using Core
 
 #test
 {
+    for invalid in ["http://example.com/#bad fragment", "http://example.com/#%zz"]
+    {
+        var error: Swag.Error
+        discard catch Url.parseHttp(invalid) as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+}
+
+#test
+{
     for invalid in ["/relative", "ftp://example.com/", "https://user@example.com/",
                     "https://[::1]/", "http://example.com:0/", "http://example.com:65536/",
                     "http://example.com:/", "http://example.com/a b", "http://example.com/%zz"]

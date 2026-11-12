@@ -99,17 +99,18 @@ func parseHttp(text: string)->HttpTarget fail
     while finish < text.count and text[finish] != '#' do
         finish += 1
     var index = end
-    while index < finish
+    while index < text.count
     {
         let c = text[index]
         if not ((c >= 'a' and c <= 'z') or
                 (c >= 'A' and c <= 'Z') or
                 Latin1.isDigit(c) or
-                Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max) do
+                Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max or
+                (c == '#' and index == finish)) do
             fail Errors.InvalidFormatError{}
         if c == '%'
         {
-            if finish - index < 3 or
+            if text.count - index < 3 or
                not Latin1.isHexDigit(text[index + 1]) or
                not Latin1.isHexDigit(text[index + 2]) do
                 fail Errors.InvalidFormatError{}

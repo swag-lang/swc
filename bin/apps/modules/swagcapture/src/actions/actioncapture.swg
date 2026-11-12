@@ -11,7 +11,7 @@ impl ActionCapture
     newCmdId("Area")
     newCmdId("Record")
     newCmdId("RecordVideo")
-    newCmdId("RecordFullScreen")
+    newCmdId("RecordScreen")
     newCmdId("RecordActiveWindow")
     newCmdId("CancelRecording")
     newCmdId("LastArea")
@@ -144,9 +144,9 @@ impl IActionUI for ActionCapture
             evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordVideo
             evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
 
-        case .RecordFullScreen:
+        case .RecordScreen:
             evt.updatedFields |= .Name | .Icon
-            evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordFullScreen
+            evt.name = g_Recorder ? appStrings().act_StopRecording : appStrings().act_RecordScreen
             evt.icon = g_Recorder ? main.theme().icon(.Stop) : kindIcon(main, main.theme(), .Video)
 
         case .RecordActiveWindow:
@@ -242,7 +242,7 @@ impl IActionUI for ActionCapture
             main.sendCommandEvent(main.lastCaptureCommand())
             return true
 
-        case .Area, .Record, .RecordVideo, .RecordFullScreen, .RecordActiveWindow, .LastArea, .FullScreen, .ActiveWnd:
+        case .Area, .Record, .RecordVideo, .RecordScreen, .RecordActiveWindow, .LastArea, .FullScreen, .ActiveWnd:
             if not g_Recorder do
                 main.lastCapture = cxt.id
         }
@@ -261,8 +261,8 @@ impl IActionUI for ActionCapture
         case .RecordVideo:
             main.recordVideoScreen()
 
-        case .RecordFullScreen:
-            main.recordVideoScreen(.FullScreen)
+        case .RecordScreen:
+            main.recordVideoScreen(.Monitor, main.pointedMonitorIndex())
 
         case .RecordActiveWindow:
             main.recordVideoScreen(.ActiveWindow)
@@ -374,7 +374,7 @@ impl MainWnd
         if recordedMonitor < .monitors.count do
             return ActionCapture.recordScreenId(recordedMonitor)
 
-        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
+        for id in [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionCapture.FullScreen, ActionCapture.ActiveWnd] where .lastCapture == id do
             return id
         return ActionCapture.Area
     }
@@ -411,5 +411,14 @@ impl MainWnd
 
         g_CaptureMedia = .Video
         catch screenShot(me, mode, monitorIndex) { MessageDlg.error(unwrap .surface, appStrings().msg_FailedRecordScreen, Swag.err) }
+    }
+
+    // Starts a screen recording on the monitor under the pointer.
+    mtd pointedMonitorIndex()->u64
+    {
+        let pointer = Input.mousePosition()
+        for monitor, index in .monitors where monitor.physicalBounds.contains(pointer) do
+            return index
+        return 0
     }
 }

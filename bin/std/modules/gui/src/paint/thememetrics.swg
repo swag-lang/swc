@@ -334,6 +334,8 @@ struct ThemeMetrics
         embInfo_CloseSize:   f32 = 28     // Side of the dismiss button.
         embInfo_CloseGlyph:  f32 = 16     // Side of the dismiss glyph.
         embInfo_CloseMargin: f32 = 6      // Air around the dismiss button.
+        trayNotice_Width:      f32 = 420    // Preferred width of a notification beside the notification-area icon.
+        trayNotice_MinWidth:   f32 = 220    // Narrowest width that keeps its title and close control usable.
 
         separator_HairlineSize: f32 = 1     // Thickness of a hairline separator.
 

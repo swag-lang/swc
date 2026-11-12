@@ -47,7 +47,7 @@ impl IActionUI for ActionGlobal
         case .Minimize:
             evt.updatedFields |= .Name | .Icon
             evt.name = appStrings().act_Minimize
-            evt.icon = main.theme().icon(.Minimize)
+            evt.icon = main.icon(.Resident)
         }
 
         return true
@@ -63,7 +63,10 @@ impl IActionUI for ActionGlobal
             main.showWindow()
 
         case .ShowHub:
-            ResidentPanel.open(main, .Hub)
+            if not main.recentWnd.hubSizeReady() do
+                main.openHubAfterRecentLoad = true
+            else do
+                ResidentPanel.open(main, .Hub)
 
         case .ShowLibrary:
             main.swapLibraryMode()
@@ -84,7 +87,14 @@ impl IActionUI for ActionGlobal
 
         case .Minimize:
             main.saveAppState()
-            main.surface?.hide()
+            if let surface = main.surface
+            {
+                if not surface.isHidden
+                {
+                    surface.hide()
+                    main.noticeResident()
+                }
+            }
         }
 
         return true

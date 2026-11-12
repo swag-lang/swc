@@ -24,6 +24,58 @@ private func SendInput(count: u32, packets: const *DesktopInputPacket, size: s32
 #[Foreign("user32", callconv: Swag.CallConv.C)]
 private func AttachThreadInput(attachThread, otherThread: u32, attach: BOOL)->BOOL
 
+// Reports whether the Shell currently shows this icon in its notification overflow flyout.
+// It lets an interactive test open the chevron only when that flyout is closed.
+func isTrayIconInOverflow(surface: *Surface)->bool
+{
+    var bounds: RECT
+    if not surface.trayIconScreenRect(&bounds) do
+        return false
+
+    let point = POINT{(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2}
+    let window = GetAncestor(WindowFromPoint(point), GA_ROOT)
+    var className: [128] CHAR
+    let length = GetClassNameA(window, &className[0], cast(s32, className.count))
+    let name = String.from(Swag.makeString(&className[0], length))
+    return name == "TopLevelWindowForOverflowXamlIsland" or name == "NotifyIconOverflowWindow"
+}
+
+// Clicks a notification-area icon through Windows input, restoring the pointer after the gesture.
+// An icon in the closed overflow area first yields the chevron's bounds: click once to open the
+// overflow, let it settle, then call again. Run only on an interactive desktop.
+func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButton, count = 1'u32)
+{
+    Swag.require(count > 0 and (button == .Left or button == .Right))
+    var bounds: RECT
+    Swag.require(surface.trayIconScreenRect(&bounds), "the notification icon is not visible")
+    let saved = Input.mousePosition()
+    defer Input.setMousePosition(cast(s32, saved.x), cast(s32, saved.y))
+
+    Input.setMousePosition((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2)
+    app.runFrame()
+
+    let down = button == .Right ? 0x0008'u32 : 0x0002'u32
+    let up = button == .Right ? 0x0010'u32 : 0x0004'u32
+    for count
+    {
+        var press = DesktopInputPacket{kind: 0, flags: down}
+        Swag.require(SendInput(1, &press, #sizeof(DesktopInputPacket)) == 1,
+                     "Windows could not press the notification icon")
+        var held = true
+        defer if held
+        {
+            var release = DesktopInputPacket{kind: 0, flags: up}
+            discard SendInput(1, &release, #sizeof(DesktopInputPacket))
+        }
+        app.runFrame()
+        var release = DesktopInputPacket{kind: 0, flags: up}
+        Swag.require(SendInput(1, &release, #sizeof(DesktopInputPacket)) == 1,
+                     "Windows could not release the notification icon")
+        held = false
+        app.runFrame()
+    }
+}
+
 internal struct NativeDesktopInput
 {
     priorForeground: HWND

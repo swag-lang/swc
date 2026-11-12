@@ -5,7 +5,7 @@ const VideoCaptureFramesPerSecond = 30'u32
 
 // Thickness of the frame drawn around the recorded area, in logical units, and the air between
 // the frame and the area: the frame stands outside, so it never appears in the frames.
-const RecordFrameWidth = 2.0
+const RecordFrameWidth = 5.0
 const RecordFrameGap   = 1.0
 
 // Where a recording stands.
@@ -43,6 +43,8 @@ struct Recorder
     videoProducer: VideoCaptureProducer
     videoAudio:  *VideoRecordingAudio?
     videoMode:   bool
+    screenSelection: bool // The preparation bar can choose a monitor or all screens.
+    screenIndex: u64      // Selected monitor, or U64.Max for all screens.
     state:       RecorderState
     startsAt:    u64           // Monotonic time the countdown ends.
     clock:       RecordingClock // Session time shared by future video and audio tracks.
@@ -146,7 +148,8 @@ impl Recorder
     }
 
     // Records the selected area to an MP4 beside a new editable capture document.
-    func recordVideo(main: *MainWnd, target: CaptureTarget, prepare: bool = false)->*Capture? fail
+    func recordVideo(main: *MainWnd, target: CaptureTarget, prepare: bool = false,
+                     screenSelection = false, screenIndex: u64 = 0)->*Capture? fail
     {
         Swag.assert(not g_Recorder)
         var fileToDiscard: String
@@ -170,6 +173,8 @@ impl Recorder
         recorder.target    = target
         recorder.area      = target.area
         recorder.videoMode = true
+        recorder.screenSelection = screenSelection
+        recorder.screenIndex = screenIndex
         recorder.file = Library.newFileName()
         fileToDiscard = Capture.mediaPathOf(recorder.file, .Video)
         recorder.limit = 0
@@ -198,6 +203,8 @@ impl Recorder
 
             recorder.hud?.surface?.destroy()
             recorder.hud = null
+            if recorder.screenSelection do
+                recorder.clearEdges()
         }
 
         let options = &main.captureOptions
@@ -338,6 +345,61 @@ impl Recorder
     mtd cancel()
     {
         .state = .Cancelled
+    }
+
+    // Changes the screen while the live recording is waiting for Record.
+    mtd selectScreen(index: u64)
+    {
+        if .state != .Preparing or not .screenSelection or
+           (index != Swag.U64.Max and index >= .main.monitors.count) do
+            return
+
+        let bounds = screenBounds(.main, index)
+        let width  = Math.floor(bounds.width / 2) * 2
+        let height = Math.floor(bounds.height / 2) * 2
+        if width < 2 or height < 2 do
+            return
+
+        .screenIndex = index
+        .area = {bounds.x, bounds.y, width, height}
+        .target = CaptureTarget.create(.area, 0)
+        .moveChrome()
+        .hud?.refreshScreenChoice()
+    }
+
+    // The all-screens choice covers the virtual desktop's physical bounding rectangle.
+    private func screenBounds(main: *MainWnd, index: u64)->Math.Rectangle
+    {
+        if index != Swag.U64.Max do
+            return main.monitors[index].physicalBounds
+
+        Swag.assert(main.monitors.count > 0)
+        var left = Swag.F32.Max
+        var top = Swag.F32.Max
+        var right = -Swag.F32.Max
+        var bottom = -Swag.F32.Max
+        for monitor in main.monitors
+        {
+            let rect = monitor.physicalBounds
+            left   = Math.min(left, rect.x)
+            top    = Math.min(top, rect.y)
+            right  = Math.max(right, rect.right())
+            bottom = Math.max(bottom, rect.bottom())
+        }
+        return {left, top, right - left, bottom - top}
+    }
+
+    // Names the selected recording source in the HUD.
+    mtd captureLabel()->String
+    {
+        if .screenSelection
+        {
+            let index = .screenIndex
+            if index == Swag.U64.Max do
+                return String.from(appStrings().ui_AimAllScreens)
+            return Format.toString(appStrings().ui_AimScreen, index + 1)
+        }
+        return String.from(captureTargetLabel())
     }
 
     // Grabs the next frame when its time has come, and ends the recording at its limit.
@@ -513,6 +575,8 @@ impl Recorder
     {
         let scale = Env.monitorForPoint({.area.horzCenter(), .area.vertCenter()}).scaleFactor
         let thick = Math.ceil(RecordFrameWidth * scale)
+        if .state == .Preparing and .screenSelection do
+            return {.area, thick, scale}
         let gap   = Math.ceil(RecordFrameGap * scale)
         let side  = gap + thick
         return {{.area.x - side, .area.y - side,
@@ -598,11 +662,16 @@ impl Recorder
             discard g_App.unregisterHotKey(.CtrlShift, .F10)
         .ownsStop = false
 
+        .clearEdges()
+        .hud?.surface?.destroy()
+        .hud = null
+    }
+
+    private mtd clearEdges()
+    {
         for edge in .edges do
             edge[].destroy()
         .edges.clear()
-        .hud?.surface?.destroy()
-        .hud = null
     }
 
     // Adds one side of the frame, in physical screen pixels.
@@ -638,6 +707,9 @@ impl IWnd for RecordEdge
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        evt.paintContext.painter.fillRect(.clientRect(), .themeColors().critical)
+        let painter = evt.paintContext.painter
+        let rect = .clientRect()
+        painter.fillRect(rect, .themeColors().critical)
+        painter.drawRect(rect, .themeColors().text, .themeMetrics().separator_HairlineSize)
     }
 }

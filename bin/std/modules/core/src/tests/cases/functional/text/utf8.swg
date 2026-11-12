@@ -53,6 +53,18 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     return count
 }
 
+func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..] u8)->bool
+{
+    var bytes: [32] u8
+    for i in bytes.count do
+        bytes[i] = 'a'
+    for value, index in sequence do
+        bytes[prefixLength + index] = value
+
+    let count = prefixLength + sequence.count + 8
+    return Utf8.isValid(bytes[until count])
+}
+
 #test
 {
     var bytes: [4] u8
@@ -369,6 +381,30 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
     Swag.require(Utf8.countBytesAt(invalidStart) == 1)
     Swag.require(Utf8.countBytesAt(truncated) == 1)
     Swag.require(Utf8.countRunes(invalidStart) == 1)
+}
+
+#test
+{
+    Swag.require(Utf8.isValid("abcdefghijklmnopqrstuvwxyz"))
+
+    let invalidStart: [1] u8  = [0x80]
+    let truncated:    [2] u8  = [0xE2, 0x82]
+    let overlong:     [2] u8  = [0xC0, 0xAF]
+    let surrogate:    [3] u8  = [0xED, 0xA0, 0x80]
+    let prefixes:     [2] u64 = [8, 9]
+
+    for prefixLength in prefixes
+    {
+        Swag.require(not utf8SequenceAfterAsciiPrefixIsValid(prefixLength, invalidStart))
+        Swag.require(not utf8SequenceAfterAsciiPrefixIsValid(prefixLength, truncated))
+        Swag.require(not utf8SequenceAfterAsciiPrefixIsValid(prefixLength, overlong))
+        Swag.require(not utf8SequenceAfterAsciiPrefixIsValid(prefixLength, surrogate))
+    }
+
+    let validFourByte: [4] u8  = [0xF0, 0x9F, 0x99, 0x82]
+    let validPrefixes: [3] u64 = [7, 8, 9]
+    for prefixLength in validPrefixes do
+        Swag.require(utf8SequenceAfterAsciiPrefixIsValid(prefixLength, validFourByte))
 }
 
 #test

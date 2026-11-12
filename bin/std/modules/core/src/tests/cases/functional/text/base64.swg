@@ -98,6 +98,29 @@ func base64Reference(bytes: const [..] u8)->String
     Swag.require(misplacedPadding != null)
 }
 
+// Output limits cap reserve and every scalar/vector append while preserving whitespace support.
+#test
+{
+    let exact = expect Base64.decode("Zm9v\r\nYmFy", 6)
+    Swag.require(cast(string, exact.toSlice()) == "foobar")
+
+    var scalarOutcome: Swag.Error
+    discard catch Base64.decode("Zm9v\r\nYmFy", 5) as scalarOutcome
+    Swag.require(scalarOutcome.value() is Errors.UnsupportedFormatError)
+
+    var raw: [24] u8
+    for index in raw.count do
+        raw[index] = cast(u8, ((index * 17 + 3) & 0xFF))
+    let rawSlice    = Swag.makeSlice(&raw[0], raw.count)
+    let encoded     = Base64.encode(rawSlice)
+    let exactVector = expect Base64.decode(encoded.toString(), 24)
+    Swag.require(Memory.compare(&raw[0], exactVector.storage(), raw.count) == 0)
+
+    var vectorOutcome: Swag.Error
+    discard catch Base64.decode(encoded.toString(), 23) as vectorOutcome
+    Swag.require(vectorOutcome.value() is Errors.UnsupportedFormatError)
+}
+
 // Every short tail crosses the 12/16-byte packed boundaries and round-trips
 // against an independent scalar encoder.
 #test

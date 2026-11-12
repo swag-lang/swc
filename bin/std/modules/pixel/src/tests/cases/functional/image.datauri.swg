@@ -16,6 +16,10 @@ using Swag, Core
     Swag.require(decoded.width == 4 and decoded.height == 3)
     Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 
+    var limitOutcome: Swag.Error
+    discard catch Image.fromDataUri(plain.toString(), {maxInputBytes: 1}) as limitOutcome
+    Swag.require(limitOutcome.value() is Errors.UnsupportedFormatError)
+
     var withParameter: String = "data:image/png;name=figure;base64,"
     withParameter += Base64.encode(bytes.toSlice())
     let parameterized = expect Image.fromDataUri(withParameter.toString())

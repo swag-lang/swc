@@ -88,10 +88,20 @@ func encode(bytes: const [..] u8)->String
 // Both the standard and the URL-safe alphabets are accepted, embedded ASCII white space is
 // skipped, and the trailing `=` padding is optional. A character outside those sets, data after
 // the padding, or a final group of a single digit reports [[Core.Errors.InvalidFormatError]].
-func decode(text: string)->Array'u8 fail
+// `maxOutputBytes` bounds the decoded buffer; zero leaves it unlimited.
+func decode(text: string, maxOutputBytes: u64 = 0)->Array'u8 fail
 {
     var result: #returntype
-    result.reserve((text.count / 4 + 1) * 3 + 16)
+    let groups       = text.count / 4
+    let reserveMax   = groups > (Swag.U64.Max - 19) / 3 ? Swag.U64.Max : groups * 3 + 19
+    let reserveLimit = maxOutputBytes > Swag.U64.Max - 4 ? Swag.U64.Max : maxOutputBytes + 4
+    result.reserve(maxOutputBytes ? Math.min(reserveMax, reserveLimit) : reserveMax)
+
+    func checkOutputLimit(outputCount, additional, maxOutputBytes: u64) fail
+    {
+        if maxOutputBytes and (outputCount > maxOutputBytes or additional > maxOutputBytes - outputCount) do
+            fail Errors.UnsupportedFormatError{"base64 output exceeds the configured byte limit"}
+    }
 
     // Returns the sextet a byte spells, or 255 for a byte outside both alphabets.
     func digitValue(value: u8)->u8
@@ -155,6 +165,7 @@ func decode(text: string)->Array'u8 fail
             let block = decodeBlock(text.buffer + index)
             if block.valid
             {
+                try checkOutputLimit(result.count, 12, maxOutputBytes)
                 Simd.store(result.storage() + result.count, block.decoded)
                 result.count += 12
                 index        += 16
@@ -199,6 +210,7 @@ func decode(text: string)->Array'u8 fail
         count         += 1
         if count == 4
         {
+            try checkOutputLimit(result.count, 3, maxOutputBytes)
             let firstByte  = cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4)))
             let secondByte = cast(u8, ((cast(u32, (digits[1] & 15)) << 4) | (cast(u32, digits[2]) >> 2)))
             let thirdByte  = cast(u8, ((cast(u32, (digits[2] & 3)) << 6) | digits[3]))
@@ -220,6 +232,7 @@ func decode(text: string)->Array'u8 fail
         fail Errors.InvalidFormatError{"incomplete base64 padding"}
     if count >= 2
     {
+        try checkOutputLimit(result.count, count == 2 ? 1 : 2, maxOutputBytes)
         let firstByte = cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4)))
         result.add(firstByte)
     }

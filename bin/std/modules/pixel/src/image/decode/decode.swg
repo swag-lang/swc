@@ -232,7 +232,7 @@ public impl Image
         }
 
         let fileName = #move Format.toString("embedded.%", extension.toString())
-        let bytes    = #move try Base64.decode(uri[marker + 8 to])
+        let bytes    = #move try Base64.decode(uri[marker + 8 to], options.maxInputBytes)
         var result   = #move try decode(fileName.toString(), bytes.toSlice(), options)
         return #move result
     }

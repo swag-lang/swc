@@ -118,6 +118,28 @@ const PackedFormats: [18] PixelFormat = [
     Swag.require(restored.pixels.storage()[3] == 128)
 }
 
+// Converting a fully transparent pixel clears hidden RGB in either alpha association.
+#test
+{
+    const hiddenRgb: [4] u8 = [123, 45, 67, 0]
+    var straight = Image.create(1, 1, .RGBA8, hiddenRgb)
+    straight.convertAlphaTo(.Premultiplied)
+    Swag.require(straight.alphaMode == .Premultiplied)
+    Swag.require(straight.pixels.storage()[0] == 0 and
+                 straight.pixels.storage()[1] == 0 and
+                 straight.pixels.storage()[2] == 0 and
+                 straight.pixels.storage()[3] == 0)
+
+    var malformedPremultiplied = Image.create(1, 1, .RGBA8, hiddenRgb, alphaMode: .Premultiplied)
+    malformedPremultiplied.convertAlphaTo(.Straight)
+    Swag.require(malformedPremultiplied.alphaMode == .Straight)
+    Swag.require(malformedPremultiplied.pixels.storage()[0] == 0 and
+                 malformedPremultiplied.pixels.storage()[1] == 0 and
+                 malformedPremultiplied.pixels.storage()[2] == 0 and
+                 malformedPremultiplied.pixels.storage()[3] == 0)
+    Swag.require(malformedPremultiplied.pixelColor(0, 0) == Color.fromArgb(0, 0, 0, 0))
+}
+
 // Every registered encoder and decoder declares a usable format, and the declared
 // extensions are exactly what canSave/canLoad accept: the registry has one source of
 // truth, so a format list built for a file dialog cannot offer an unwritable filter.

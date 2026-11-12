@@ -22,6 +22,24 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
     }
 }
 
+// Relative luminance uses linear-light BT.709 weights, and WCAG contrast is symmetric.
+#test
+{
+    let black = Color.fromRgb(0, 0, 0)
+    let white = Color.fromRgb(255, 255, 255)
+    let red   = Color.fromRgb(255, 0, 0)
+    let green = Color.fromRgb(0, 255, 0)
+    let blue  = Color.fromRgb(0, 0, 255)
+
+    Swag.require(black.relativeLuminance() == 0 and white.relativeLuminance() == 1)
+    Swag.require(Math.abs(red.relativeLuminance() - 0.2126) < 0.00001)
+    Swag.require(Math.abs(green.relativeLuminance() - 0.7152) < 0.00001)
+    Swag.require(Math.abs(blue.relativeLuminance() - 0.0722) < 0.00001)
+    Swag.require(Math.abs(black.contrastRatio(white) - 21) < 0.0001)
+    Swag.require(Math.abs(white.contrastRatio(black) - 21) < 0.0001)
+    Swag.require(Math.abs(red.contrastRatio(black) - 5.252) < 0.001)
+}
+
 #test
 {
     let red = Color.fromHsl(0, 1, 0.5)

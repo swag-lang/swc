@@ -7,7 +7,8 @@ using Core
 //
 // The borrowed application and surface must outlive this value. Native input affects the user's
 // desktop, so run one desktop test at a time in an interactive session. Dropping the value releases
-// held inputs and restores the pointer. Each action checks focus and the actual hit target.
+// held inputs and restores the pointer. Control actions check focus and the actual hit target;
+// [[Gui.Testing.DesktopInput.clickDesktopPoint]] leaves external hit validation to the caller.
 #[Swag.Opaque]
 #[Swag.NoCopy]
 struct DesktopInput
@@ -92,6 +93,20 @@ impl DesktopInput
                 Swag.require(false, "desktop click target did not become stable and actionable")
             previous = rect
         }
+        .sendNativeButton(true)
+        .app.runFrame()
+        .sendNativeButton(false)
+        .app.runFrame()
+    }
+
+    // Clicks a physical desktop point outside the controlled surface.
+    //
+    // The caller must verify the native window at that point before the click. This action can
+    // transfer focus away from the controlled application, so later actions may need a new input.
+    mtd clickDesktopPoint(screen: Math.Point)
+    {
+        .sendNativeMotion(screen)
+        .app.runFrame()
         .sendNativeButton(true)
         .app.runFrame()
         .sendNativeButton(false)

@@ -195,6 +195,8 @@ impl Label
     {
         .letterSpacing = spacing
         .invalidate()
+        .invalidateLayout()
+        .updateAutomaticHeight()
     }
 
     private mtd getStringFormat(isDisabled: bool)->RichStringFormat
@@ -386,6 +388,7 @@ impl Label
             return
         .textPadding = padding
         .invalidate()
+        .invalidateLayout()
         .updateAutomaticHeight()
     }
 

@@ -113,3 +113,25 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     Swag.require(queue.pop() == 2)
     Swag.require(queue.pop() == 3)
 }
+
+// Growing an existing heap keeps every value in priority order.
+#test
+{
+    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    queue.push(7)
+    queue.push(1)
+    queue.push(5)
+    queue.push(3)
+
+    let requestedCapacity = queue.capacity() + 8
+    queue.reserve(requestedCapacity)
+    Swag.require(queue.capacity() >= requestedCapacity)
+
+    queue.push(2)
+    Swag.require(queue.pop() == 1)
+    Swag.require(queue.pop() == 2)
+    Swag.require(queue.pop() == 3)
+    Swag.require(queue.pop() == 5)
+    Swag.require(queue.pop() == 7)
+    Swag.require(queue.isEmpty())
+}

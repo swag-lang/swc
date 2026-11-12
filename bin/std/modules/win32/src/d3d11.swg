@@ -10,6 +10,7 @@ const D3D11_SDK_VERSION                = 7'u32
 const D3D11_USAGE_STAGING              = 3'u32
 const D3D11_CPU_ACCESS_READ            = 0x20000'u32
 const D3D11_MAP_READ                   = 1'u32
+const D3D11_MAP_FLAG_DO_NOT_WAIT      = 0x100000'u32
 
 struct DXGI_SAMPLE_DESC
 {

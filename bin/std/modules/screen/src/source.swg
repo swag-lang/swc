@@ -41,6 +41,7 @@ struct SourceMetrics
     public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
     public readbackMicroseconds: u64 // Time until native pixels become CPU-readable.
     public maxReadbackMicroseconds: u64 // Longest single CPU readback wait.
+    public deferredReadbacks:     u64 // Readback polls deferred while the GPU still owned the pixels.
     public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
     public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
@@ -136,7 +137,8 @@ impl Source
 
     // Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.
     //
-    // False means the desktop pixels did not change; it is not a source failure.
+    // False means no new pixels are available yet, either because the desktop did not
+    // change or because a video readback is still pending. It is not a source failure.
     // By default the previous picture is copied to `target`. Set `copyUnchanged` to false
     // when the caller will reuse its previous encoded picture instead; on a false return,
     // `target` is then left untouched. With `updateChangedOnly` and `copyUnchanged` false,
@@ -177,7 +179,7 @@ impl Source
         var fresh = false
         #static if #os == Swag.TargetOs.Windows
         {
-            fresh = try .grabWindows(target, mirroring)
+            fresh = try .grabWindows(target, mirroring, not copyUnchanged)
         }
         else
         {
@@ -244,6 +246,7 @@ impl Source
             result.readbackMicroseconds += source.metrics.readbackMicroseconds
             result.maxReadbackMicroseconds = Math.max(result.maxReadbackMicroseconds,
                                                       source.metrics.maxReadbackMicroseconds)
+            result.deferredReadbacks += source.metrics.deferredReadbacks
             result.copyMicroseconds += source.metrics.copyMicroseconds
             result.outputMicroseconds += source.metrics.outputMicroseconds
             result.partialFrames += source.metrics.partialFrames

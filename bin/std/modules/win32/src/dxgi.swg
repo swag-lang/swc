@@ -3,10 +3,11 @@
 using Swag
 
 // DXGI 1.2 declarations from dxgi.h and dxgi1_2.h.
-const DXGI_FORMAT_B8G8R8A8_UNORM = 87'u32
-const DXGI_ERROR_NOT_FOUND       = cast #bit (HRESULT, 0x887A_0002)
-const DXGI_ERROR_ACCESS_LOST     = cast #bit (HRESULT, 0x887A_0026)
-const DXGI_ERROR_WAIT_TIMEOUT    = cast #bit (HRESULT, 0x887A_0027)
+const DXGI_FORMAT_B8G8R8A8_UNORM   = 87'u32
+const DXGI_ERROR_NOT_FOUND         = cast #bit (HRESULT, 0x887A_0002)
+const DXGI_ERROR_WAS_STILL_DRAWING = cast #bit (HRESULT, 0x887A_000A)
+const DXGI_ERROR_ACCESS_LOST       = cast #bit (HRESULT, 0x887A_0026)
+const DXGI_ERROR_WAIT_TIMEOUT      = cast #bit (HRESULT, 0x887A_0027)
 
 const IID_IDXGIDevice  = GUID{0x54EC77FA, 0x1377, 0x44E6,
                              [0x8C, 0x32, 0x88, 0xFD, 0x5F, 0x44, 0xC8, 0x4C]}

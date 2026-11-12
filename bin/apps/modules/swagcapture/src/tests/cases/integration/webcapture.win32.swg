@@ -546,6 +546,7 @@ private func webCaptureQuality()->VideoQuality
             Swag.require(recorder.edges.isEmpty(), "the screen selection frame must be gone before encoding")
             recorder.videoProducer.close()
             Console.println("Full-screen recording: frames=", recorder.video.frameCount(),
+                            " fresh=", recorder.video.freshFrames,
                             " missed=", recorder.video.missedFrameSlotCount(),
                             " source_failures=", recorder.video.sourceFailureCount(),
                             " grab_us=", recorder.video.grabMicroseconds,
@@ -569,6 +570,7 @@ private func webCaptureQuality()->VideoQuality
                                 " max_acquire_us=", metrics.maxAcquireMicroseconds,
                                 " readback_us=", metrics.readbackMicroseconds,
                                 " max_readback_us=", metrics.maxReadbackMicroseconds,
+                                " deferred_readbacks=", metrics.deferredReadbacks,
                                 " coalesced_updates=", metrics.coalescedUpdates,
                                 " multi_rect=", metrics.multiRectFrames,
                                 " copy_us=", metrics.copyMicroseconds,

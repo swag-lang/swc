@@ -287,13 +287,32 @@ impl Decoder
             pf = .RGBA8
         }
 
+        var alphaMode = AlphaMode.Straight
+        if samples == 4
+        {
+            let extraSamples = ifd.find(TAG_EXTRA_SAMPLES)
+            if extraSamples
+            {
+                let entry = cast(*Entry, (extraSamples))
+                if entry.type != TYPE_SHORT or entry.count != 1 do
+                    fail InvalidFormatError{"TIFF extra samples entry is invalid"}
+                let association = try readValues(base, last, le, entry)
+                switch association[0]
+                {
+                case 1:  alphaMode = .Premultiplied
+                case 2:  break
+                default: fail UnsupportedFormatError{"TIFF alpha association is not supported"}
+                }
+            }
+        }
+
         let bytesPerPixel = pf.bitsPerPixel() / 8
         if width > cast(u32, Swag.S32.Max) / bytesPerPixel do
             fail UnsupportedFormatError{"TIFF image row exceeds the image limits"}
         try options.checkImage(cast(s32, width), cast(s32, height), pf)
 
         var result: #returntype
-        result.init(cast(s32, width), cast(s32, height), pf)
+        result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
 
         if not options.decodePixels do
             return result

@@ -123,7 +123,7 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -220,7 +220,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if hasPalette do
         entOffset(&cb, le, 320, 3, palCount, colorMapOffset)
     if extraSamples do
-        entShort(&cb, le, 338, 2)
+        entShort(&cb, le, 338, cast(u16, extraSampleType))
     tw32(&cb, le, 0)
 
     // External arrays
@@ -383,11 +383,28 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, true)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
     Swag.require(img.pixelFormat == .RGBA8)
+    Swag.require(img.alphaMode == .Straight)
     Swag.require(img.pixels.buffer != null)
     Swag.require(img.pixels.buffer[0] == 1'u8)
     Swag.require(img.pixels.buffer[1] == 2'u8)
     Swag.require(img.pixels.buffer[2] == 3'u8)
     Swag.require(img.pixels.buffer[3] == 4'u8)
+}
+
+// TIFF associated alpha is retained as premultiplied pixel storage.
+#test
+{
+    var pix: ConcatBuffer
+    pix.addNative(64'u8)
+    pix.addNative(32'u8)
+    pix.addNative(16'u8)
+    pix.addNative(128'u8)
+
+    let buf = buildTiff(true, 1, 1, 4, 2, 1, 1, 8, nnBytes(pix.toSlice()), null, true, extraSampleType: 1)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
+    const Expected: [4] u8 = [64, 32, 16, 128]
+    Swag.require(img.pixelFormat == .RGBA8 and img.alphaMode == .Premultiplied)
+    Swag.require(Memory.compare(img.pixels.storage(), Expected.buffer, Expected.count) == 0)
 }
 
 // Decode a PackBits-compressed RGB image (literal run).

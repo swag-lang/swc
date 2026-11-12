@@ -36,3 +36,30 @@ func assertBuilderString(value: String, expected: string)->bool
     Swag.require(exactBucket.count() == 4)
     Swag.require(bytes.buffer[4] == 0)
 }
+
+#test
+{
+    var allocator: Swag.Allocator
+    allocator.setup()
+    allocator.configure(false, false, false, false, false)
+    let backing: Swag.IAllocator = &allocator
+
+    scope
+    {
+        var builder: StrConv.StringBuilder
+        builder.buffer.allocator = backing
+        builder.setBucketSize(8)
+        builder.appendString("first payload that spans buckets")
+        let allocations = allocator.stats().countAlloc
+        Swag.require(allocations > 0)
+
+        builder.clear()
+        Swag.require(builder.count() == 0)
+        builder.appendString("reuse")
+        Swag.require(builder.count() == 5)
+        Swag.require(allocator.stats().countAlloc == allocations)
+        Swag.require(assertBuilderString(builder.toString(), "reuse"))
+    }
+
+    Swag.require(allocator.stats().countAlloc == 0)
+}

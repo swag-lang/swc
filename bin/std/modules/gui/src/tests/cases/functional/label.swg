@@ -3,6 +3,45 @@
 
 using Swag, Core
 
+// A natural-size label reflows when its text padding changes the measured width.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let label = Label.create(row, "A label whose measured width includes its text insets")
+    host.pump()
+    let originalWidth = label.itf.measureContent({}).x
+
+    label.setTextPadding({12, 0, 12, 0})
+    host.pump()
+    let measuredWidth = label.itf.measureContent({}).x
+    let layoutWidth   = label.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("Label text padding widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(label.position.width == layoutWidth,
+                 Format.toString("Label width after text padding: measured %, committed %", layoutWidth, label.position.width).toString())
+}
+
+// A hand-placed AutoHeight label includes changed text padding in its height.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 100)
+
+    let label = Label.create(&host.root, "Text padding grows the label", {20, 20, 160, 0}, flags: .AutoHeight)
+    host.pump()
+    let originalHeight = label.position.height
+
+    label.setTextPadding({0, 4, 0, 4})
+    host.pump()
+    let needed = label.itf.measureContent(Math.Point{label.position.width, label.position.height}).y
+    Swag.require(label.position.height > originalHeight, "Text padding should increase AutoHeight")
+    Swag.require(needed <= label.position.height,
+                 Format.toString("AutoHeight after text padding: needed %, committed %", needed, label.position.height).toString())
+}
+
 // A natural-size label reflows when letter spacing changes its measured width.
 #test
 {

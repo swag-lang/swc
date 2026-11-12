@@ -388,6 +388,7 @@ impl Label
             return
         .textPadding = padding
         .invalidate()
+        .invalidateLayout()
         .updateAutomaticHeight()
     }
 

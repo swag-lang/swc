@@ -357,6 +357,39 @@ using Swag, Core
     Swag.require(cursor.lineIndex == 0 and cursor.charPosInLine == 0)
 }
 
+// Navigation and deletion commands leave a cleared, line-less document in a valid empty state.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 220)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
+    ed.setText("content")
+    ed.setSelection({0, 0}, {0, 1})
+    ed.setRectangularSelection(true)
+    ed.clear()
+    Swag.require(not ed.hasSelRect)
+
+    ed.executeCommand(.CursorLeft)
+    ed.executeCommand(.CursorRight)
+    ed.executeCommand(.CursorUp)
+    ed.executeCommand(.CursorDown)
+    ed.executeCommand(.CursorStartLine)
+    ed.executeCommand(.CursorEndLine)
+    ed.executeCommand(.CursorWordLeft)
+    ed.executeCommand(.CursorWordRight)
+    ed.executeCommand(.CursorPageUp)
+    ed.executeCommand(.CursorPageDown)
+    ed.executeCommand(.DeleteLeft)
+    ed.executeCommand(.DeleteRight)
+    ed.executeCommand(.DeleteWordLeft)
+    ed.executeCommand(.DeleteWordRight)
+    ed.executeCommand(.DeleteLine)
+
+    Swag.require(ed.text().isEmpty())
+    Swag.require(ed.cursorLogicalLineIndex() == 0 and ed.cursorLogicalCharPos() == 0)
+}
+
 // Counts the lines a paint asks to be lexed.
 struct CountingLexer
 {

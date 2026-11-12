@@ -197,6 +197,14 @@ impl RichEditCtrl
     // Normalizes selection endpoints and refreshes selection geometry.
     mtd checkSelection()
     {
+        if .lines.isEmpty()
+        {
+            .selBeg       = {}
+            .cursorPos    = {}
+            .selRectangle = {}
+            return
+        }
+
         if .selBeg.lineIndex >= .lines.count do
             .selBeg.lineIndex = .lines.count - 1
         if .cursorPos.lineIndex >= .lines.count do
@@ -354,6 +362,8 @@ impl RichEditCtrl
     // Deletes every selected logical line, or the cursor line when no selection exists.
     mtd deleteLine()
     {
+        if .lines.isEmpty() do
+            return
         .pushUndo()
         var beg = .selectionStart()
         var end = .selectionEnd()
@@ -373,6 +383,8 @@ impl RichEditCtrl
     mtd selectWord()
     {
         defer .reportCaretMove()
+        if .lines.isEmpty() do
+            return
         let line = unwrap .lines[.cursorPos.lineIndex]
         let len  = line.length()
         if not len do

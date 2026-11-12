@@ -439,6 +439,8 @@ public impl RichEditCtrl
         .countVisibleLines      = 0
         .cursorPos              = {}
         .selBeg                 = {}
+        .selRectangle           = {}
+        .hasSelRect             = false
         .dirtyFirstLineView     = true
         .firstVisibleLineView   = 0
         .lastVisibleLineView    = 0

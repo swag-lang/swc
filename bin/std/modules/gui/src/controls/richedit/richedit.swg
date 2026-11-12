@@ -274,7 +274,7 @@ private impl RichEditCtrl
     mtd nextVisibleLine(lineIndex: u64)->u64
     {
         let count = .lines.count
-        if lineIndex == count - 1 do
+        if not count or lineIndex >= count do
             return lineIndex
 
         var i = lineIndex + 1
@@ -311,6 +311,7 @@ impl RichEditCtrl
             .wndFlags            |= .NoFocusRing
             .scrollWnd           = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
+
             // Keep text and the caret clear of overlaid scroll bars with a
             // constant edge inset, independent of whether either bar appears.
             let pad  = .themeMetrics().richEdit_Padding

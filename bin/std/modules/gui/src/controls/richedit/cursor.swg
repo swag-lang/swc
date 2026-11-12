@@ -387,6 +387,9 @@ impl RichEditCtrl
     #[Swag.Discardable]
     mtd moveCursorRight(cp: *RichEditCursor)->bool
     {
+        if .lines.isEmpty() do
+            return false
+
         if cp.charPosInLine == .lines[cp.lineIndex]!.length()
         {
             let next = .nextVisibleLine(cp.lineIndex)
@@ -407,6 +410,8 @@ impl RichEditCtrl
     #[Swag.Discardable]
     mtd moveCursorUp(cp: *RichEditCursor)->bool
     {
+        if .lines.isEmpty() do
+            return false
         let pt = .cursorDisplayPosition(cp)
         return .moveCursorUp(cp, pt)
     }
@@ -451,6 +456,8 @@ impl RichEditCtrl
     #[Swag.Discardable]
     mtd moveCursorDown(cp: *RichEditCursor)->bool
     {
+        if .lines.isEmpty() do
+            return false
         let pt = .cursorDisplayPosition(cp)
         return .moveCursorDown(cp, pt)
     }
@@ -493,6 +500,8 @@ impl RichEditCtrl
     // Moves a cursor to the start of its logical line.
     mtd moveCursorStartLine(cp: *RichEditCursor)
     {
+        if .lines.isEmpty() do
+            return
         let line = unwrap .lines[cp.lineIndex]
         var i    = cast(s32, cp.charPosInLine)
 
@@ -528,6 +537,8 @@ impl RichEditCtrl
     // Moves a cursor to the end of its logical line.
     mtd moveCursorEndLine(cp: *RichEditCursor)
     {
+        if .lines.isEmpty() do
+            return
         cp.charPosInLine = .lines[cp.lineIndex]!.length()
     }
 
@@ -554,6 +565,8 @@ impl RichEditCtrl
     // Moves a cursor upward by one viewport page.
     mtd moveCursorPageUp(cp: *RichEditCursor)
     {
+        if .lines.isEmpty() do
+            return
         let client = .edView.clientRect()
         var count  = cast(s64, (client.height / .xGlyphSize().y))
         while count
@@ -568,6 +581,8 @@ impl RichEditCtrl
     // Moves a cursor downward by one viewport page.
     mtd moveCursorPageDown(cp: *RichEditCursor)
     {
+        if .lines.isEmpty() do
+            return
         let client = .edView.clientRect()
         var count  = cast(s64, (client.height / .xGlyphSize().y))
         while count
@@ -582,6 +597,8 @@ impl RichEditCtrl
     // Moves a cursor to the preceding word boundary.
     mtd moveCursorWordLeft(cp: *RichEditCursor)
     {
+        if .lines.isEmpty() do
+            return
         var line = unwrap .lines[cp.lineIndex]
         if cp.charPosInLine == 0
         {
@@ -632,6 +649,8 @@ impl RichEditCtrl
     // Moves a cursor to the following word boundary, optionally including trailing space.
     mtd moveCursorWordRight(cp: *RichEditCursor, withSpace: bool)
     {
+        if .lines.isEmpty() do
+            return
         var line = unwrap .lines[cp.lineIndex]
         if cp.charPosInLine == line.length() or Unicode.isSpace(line.chars[cp.charPosInLine])
         {

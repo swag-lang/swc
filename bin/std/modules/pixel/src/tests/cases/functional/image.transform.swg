@@ -20,7 +20,10 @@ func transformImage(pf: PixelFormat)->Image
 
 func sameImage(a, b: Image)->bool
 {
-    if a.width != b.width or a.height != b.height do
+    if a.width != b.width or
+       a.height != b.height or
+       a.pixelFormat != b.pixelFormat or
+       a.alphaMode != b.alphaMode do
         return false
     for y in a.height
     {
@@ -57,6 +60,30 @@ func sameImage(a, b: Image)->bool
         Swag.require(sameImage(img.flipped().flipped(), img))
         Swag.require(img.mirrored().pixelColor(0, 0) == img.pixelColor(2, 0))
         Swag.require(img.flipped().pixelColor(0, 0) == img.pixelColor(0, 1))
+
+        var turned = img
+        turned.rotate(.Clockwise90)
+        Swag.require(sameImage(turned, r90))
+        turned.rotate(.Clockwise270)
+        Swag.require(sameImage(turned, img))
+
+        var halfTurned = img
+        halfTurned.rotate(.HalfTurn)
+        Swag.require(sameImage(halfTurned, img.rotated(.HalfTurn)))
+        halfTurned.rotate(.HalfTurn)
+        Swag.require(sameImage(halfTurned, img))
+
+        var mirrored = img
+        mirrored.mirror()
+        Swag.require(sameImage(mirrored, img.mirrored()))
+        mirrored.mirror()
+        Swag.require(sameImage(mirrored, img))
+
+        var flipped = img
+        flipped.flip()
+        Swag.require(sameImage(flipped, img.flipped()))
+        flipped.flip()
+        Swag.require(sameImage(flipped, img))
 
         let crop = img.cropped(1, 1, 2, 1)
         Swag.require(crop.width == 2 and crop.height == 1)

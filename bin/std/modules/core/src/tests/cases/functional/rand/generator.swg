@@ -77,6 +77,18 @@ internal impl MaxRandomSource
 
 #test
 {
+    var generator: Random.Generator'MaxRandomSource
+    let min32 = 1'f32
+    let max32 = cast #bit (f32, 0x3F800001'u32)
+    let min64 = 1'f64
+    let max64 = cast #bit (f64, 0x3FF0000000000001'u64)
+
+    Swag.require(generator.nextF32(min32, max32) == min32)
+    Swag.require(generator.nextF64(min64, max64) == min64)
+}
+
+#test
+{
     var generator: Random.Generator
     generator.seedU32(98765)
 

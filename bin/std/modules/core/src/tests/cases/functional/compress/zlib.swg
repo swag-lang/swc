@@ -137,3 +137,25 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     Swag.require(decoded.isEmpty())
     Swag.require((err6 is Errors.InvalidFormatError))
 }
+
+// One ZLib instance resets its encoder and decoder when reused across different stream sizes.
+#test
+{
+    var zlib:  Compress.ZLib
+    let first: [3] u8   = [1, 2, 3]
+    let firstCompressed = expect zlib.compress(first)
+    let firstDecoded    = expect zlib.decompress(firstCompressed.toSlice())
+    Swag.require(Slice.equals(firstDecoded.toSlice(), first))
+
+    var empty: Array'u8
+    let emptyCompressed = expect zlib.compress(empty.toSlice())
+    let emptyDecoded    = expect zlib.decompress(emptyCompressed.toSlice(), 8)
+    Swag.require(emptyDecoded.isEmpty())
+
+    var larger: [257] u8
+    fillCompressPattern(larger)
+    let largerCompressed = expect zlib.compress(larger)
+    let largerDecoded    = expect zlib.decompress(largerCompressed.toSlice())
+    Swag.require(largerDecoded.count == larger.count)
+    Swag.require(Slice.equals(largerDecoded.toSlice(), larger))
+}

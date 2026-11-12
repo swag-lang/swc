@@ -123,7 +123,7 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -202,7 +202,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if includeBitsPerSample
     {
         if bpsExternal do
-            entOffset(&cb, le, 258, 3, spp, bpsOffset)
+            entOffset(&cb, le, 258, 3, bitsPerSampleCount ? bitsPerSampleCount : spp, bpsOffset)
         else do
             entShort(&cb, le, 258, cast(u16, bps))
     }
@@ -440,6 +440,9 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         let unsupported = buildTiff(true, 1, 1, 3, photometric, 1, 1, 8, PixelData, null, false)
         Swag.require(tiffDecodeFails(nnBytes(unsupported.toSlice())))
     }
+
+    let missingSampleBits = buildTiff(true, 1, 1, 3, 2, 1, 1, 8, PixelData, null, false, bitsPerSampleCount: 1)
+    Swag.require(tiffDecodeFails(nnBytes(missingSampleBits.toSlice())))
 
     let valid = buildTiff(true, 1, 1, 3, 2, 1, 1, 8, PixelData, null, false)
     let image = expect decodeTiff(nnBytes(valid.toSlice()))

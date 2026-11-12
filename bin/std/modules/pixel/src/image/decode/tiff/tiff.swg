@@ -260,6 +260,8 @@ impl Decoder
         if bpsEntry
         {
             let bps = try readValues(base, last, le, cast(*Entry, (bpsEntry)))
+            if bps.count != samples do
+                fail InvalidFormatError{"TIFF bits per sample count differs from samples per pixel"}
             for b in bps
             {
                 if b != 8 do

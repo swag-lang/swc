@@ -65,6 +65,10 @@ def main():
                         help='include the native pointer overlay in the recording')
     parser.add_argument('--capture-mode', choices=('area', 'monitor', 'desktop'), default='area',
                         help='record a selected area, one entire monitor, or the virtual desktop')
+    parser.add_argument('--duration', type=int, default=3,
+                        help='full-screen recording length in seconds (default: 3)')
+    parser.add_argument('--video-quality', choices=('maximum', 'balanced', 'compact'), default='balanced',
+                        help='recording compression setting (default: balanced)')
     parser.add_argument('--devmode-compiler', action='store_true',
                         help='drive the Release application with swc.dm.exe')
     args = parser.parse_args()
@@ -74,6 +78,10 @@ def main():
         parser.error('--stall-ms must be between zero and 1000')
     if args.max_missed_frames is not None and args.max_missed_frames < 0:
         parser.error('--max-missed-frames must be nonnegative')
+    if args.duration < 3 or args.duration > 7200:
+        parser.error('--duration must be between 3 and 7200 seconds')
+    if args.capture_mode == 'area' and args.duration != 3:
+        parser.error('--duration applies to monitor and desktop recordings')
     if sys.platform != 'win32':
         parser.error('this integration scenario requires Windows WASAPI loopback')
     repo = Path(__file__).resolve().parent.parent
@@ -161,7 +169,7 @@ def main():
         test_tag = 'integration.capture.web' if args.capture_mode == 'area' else 'integration.capture.fullscreen'
         command += ['test', 'swagcapture',
                    '-bc', 'release', '--test-file', 'webcapture.win32.swg',
-                   '--test-tag', test_tag, '--run-timeout', '60',
+                   '--test-tag', test_tag, '--run-timeout', str(max(60, args.duration + 45)),
                    '--run-arg', f'swag.sandbox={sandbox}',
                    '--run-arg', 'swag.audio.native-output=true',
                    '--run-arg', 'swag.capture.native-screen=true']
@@ -171,7 +179,9 @@ def main():
                            SWAG_CAPTURE_WEB_STALL_MS=str(args.stall_ms),
                            SWAG_CAPTURE_WEB_MAX_MISSED=str(args.max_missed_frames if args.max_missed_frames is not None else -1),
                            SWAG_CAPTURE_WEB_CURSOR='true' if args.capture_cursor else 'false',
-                           SWAG_CAPTURE_WEB_MODE=args.capture_mode)
+                           SWAG_CAPTURE_WEB_MODE=args.capture_mode,
+                           SWAG_CAPTURE_WEB_DURATION=str(args.duration),
+                           SWAG_CAPTURE_WEB_QUALITY=args.video_quality)
         print(f'Browser ready: {status}\nEvidence: {output}', flush=True)
         # Admission is repeated by this explicit host runner immediately before compiling/testing.
         check = repo / '.agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1'

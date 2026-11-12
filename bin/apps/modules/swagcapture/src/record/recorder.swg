@@ -212,7 +212,9 @@ impl Recorder
         let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), 4'u32, rows)
         recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
                                                         try FrameRate.create(VideoCaptureFramesPerSecond, 1),
-                                                        options.captureCursor, configs.toSlice(), sliceCount: slices)
+                                                        options.captureCursor, configs.toSlice(),
+                                                        quantizationQp: options.recordVideoQuality.quantizationQp(),
+                                                        sliceCount: slices)
         try recorder.video.startEncoder()
 
         if not prepare do

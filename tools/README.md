@@ -318,6 +318,12 @@ and `--stall-ms 0 --max-missed-frames 2`. The source must itself be 1920 by 1080
 440 Hz reference sound. The run reports fresh and repeated slots, readback and encoder work,
 queue wait, and sound losses; the missed-slot budget makes a throughput regression fail.
 Use `--devmode-compiler` to drive the same Release program with `swc.dm.exe`.
+Use `--capture-mode monitor --width 3200 --height 1800 --duration 60` to record the
+monitor containing the browser fixture for one minute. `--capture-mode desktop` records
+every connected screen; both modes decode the first and last frames and report DXGI work
+and missed frame slots. Long runs keep their MP4 in the printed sandbox without making a
+second in-memory copy. `--video-quality maximum|balanced|compact` tests the three recording
+settings; Balanced is the application default.
 `capture-web-source.py --input <1080p-movie> --output <external-source.mp4> --start 30`
 prepares an eight-second native-resolution excerpt and reference sound with PyAV and NumPy,
 using three codec threads. One reproducible source is Blender Foundation's

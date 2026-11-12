@@ -39,6 +39,7 @@ using Swag, Core, Gui
     else do
         Swag.require(hud.prepOptions.count == 3 and not hud.prepOptions[2].isEnabled())
     let options = &f.main.captureOptions
+    Swag.require(options.recordVideoQuality == .Balanced)
     let before = [options.captureCursor, options.recordCountdown,
                   options.recordMicrophone, options.recordSystemSound]
     for button, index in hud.prepOptions where button.isEnabled()

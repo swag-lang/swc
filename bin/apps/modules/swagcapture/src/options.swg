@@ -29,6 +29,26 @@ impl AnimationRate
     }
 }
 
+enum VideoQuality
+{
+    Maximum
+    Balanced
+    Compact
+}
+
+impl VideoQuality
+{
+    mtd quantizationQp()->u32
+    {
+        switch #complete me
+        {
+        case .Maximum:  return 0
+        case .Balanced: return 18
+        case .Compact:  return 28
+        }
+    }
+}
+
 // The capture settings shown in the options grid: what a screenshot includes, how long it waits,
 // and where the result goes.
 #[Swag.Using(Properties)]
@@ -66,6 +86,9 @@ struct CaptureOptions
 
     #[Description("Record system sound on its own video sound track")]
     recordSystemSound = false
+
+    #[Description("Balance video detail and file size")]
+    recordVideoQuality: VideoQuality = .Balanced
 
     #[Description("Stop an animation after this many seconds"), SliderMinMax(1, 60), Unit("s")]
     recordMaxSeconds: s32 = 30

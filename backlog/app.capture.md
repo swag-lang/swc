@@ -287,6 +287,21 @@ whole recording loaded at once.
   interface thread while the producer primes DXGI; its clock remains at zero until the first
   accepted picture. The native browser journey and eight focused recorder tests cover that
   start sequence.
+  A one-minute native run with a 3200x1800 moving browser scene on a 3840x2160 monitor
+  produced 1801 frames over 60.033 seconds with zero missed slots and zero source failures.
+  The maximum-detail QP 0 file was 1144 MiB. QP 18 produced 61.7 MiB with the same frame
+  count and no missed slots, while a static browser-chrome strip differed by 0.58 of 255
+  levels per color channel on average in three-second comparisons. QP 28 reached 2.2 MiB
+  versus 3.2 MiB for QP 18 in those short runs; the same static strip differed by 1.50
+  levels per channel on average. Swag Capture now defaults to Balanced (QP 18) and offers
+  Maximum and Compact in capture options. A six-second 1920x1080 area recording at the new
+  default retained continuous system sound through editor replay. It missed no frame slots
+  despite a 250 ms interface stall. These measurements use a low-motion browser fixture;
+  full-motion 4K and two-hour disk throughput still need measurement.
+  A separate one-minute 7680x2169 virtual-desktop run with the pointer included encoded
+  1801 frames at 4096x1156, missed no slots and produced 34.9 MiB with Balanced. The same
+  fixture at Maximum had produced 480.1 MiB; changing desktop activity limits a precise
+  ratio, but the size reduction is substantial.
   `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
   late producer or audio errors, and returns an editable capture when that prefix is readable.
   A failure toast exposes the retained file in the explorer. On startup and when the library

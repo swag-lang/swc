@@ -37,3 +37,11 @@ using Swag, Core
     assertPixel(grad, 2, 0, Color.fromArgb(255'u8, 133'u8, 80'u8, 26'u8))
     assertPixel(grad, 3, 0, Color.fromArgb(255'u8, 200'u8, 120'u8, 40'u8))
 }
+
+#test
+{
+    var grad = Image.create(2, 1, .RGBAF32)
+    grad.fillGradient(Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8), Color.fromArgb(255'u8, 255'u8, 0'u8, 0'u8))
+    assertPixel(grad, 0, 0, Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
+    assertPixel(grad, 1, 0, Color.fromArgb(255'u8, 255'u8, 0'u8, 0'u8))
+}

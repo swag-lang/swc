@@ -531,7 +531,7 @@ impl Image
     // 8-bit specialization cannot represent a high-precision or grayscale image.
     #[Swag.Macro]
     internal mtd transformLogicalPixels(pixelUserData: *void? = null,
-                                        stmt: #code(var value: PixelValue, image: *Image, x: s32, y: s32, userData))
+                                        stmt: #code(value: *PixelValue, image: *Image, x: s32, y: s32, userData))
     {
         var context = {image: me, userData: pixelUserData}
         parallel for |&context| parIndex in cast(u64, .height)
@@ -543,7 +543,7 @@ impl Image
             for column in image.width
             {
                 var logical = readLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode)
-                #inject(stmt, value = logical, image = image, x = column, y = cast(s32, row), userData = params.userData)
+                #inject(stmt, value = &logical, image = image, x = column, y = cast(s32, row), userData = params.userData)
                 writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, logical)
                 pixel += image.bytesPerPixel
             }

@@ -80,7 +80,7 @@ public impl Image
                     result = PixelValue{fx, 1 - fy, params.color.b / 255.0, 1}
                 }
 
-                value = result
+                value[] = result
             }
 
             return

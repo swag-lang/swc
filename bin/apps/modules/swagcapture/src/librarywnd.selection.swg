@@ -332,7 +332,7 @@ impl LibraryWnd
 
     private mtd startNextExport()
     {
-        if not .exporting or .exportJob do
+        if not .exporting or .exportJob or .videoCopyJob do
             return
         if .exportIndex >= .exportFiles.count
         {

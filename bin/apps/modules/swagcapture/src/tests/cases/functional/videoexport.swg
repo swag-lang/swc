@@ -3,6 +3,19 @@
 
 using Swag, Core, Gui, Pixel, Video
 
+// A failed background-safe copy must leave an existing export intact.
+#test
+{
+    let missing = Gui.Testing.tempFilePath("capture-missing-video-", ".mp4")
+    let target = Gui.Testing.tempFilePath("capture-existing-video-", ".mp4")
+    defer discard catch File.delete(target)
+    expect File.writeAllText(target, "previous export")
+    var failure: Swag.Error
+    discard catch exportOriginalVideo(missing, target) as failure
+    Swag.require(failure.value() != null)
+    Swag.require((expect File.readAllText(target)) == "previous export")
+}
+
 // The editor exports its kept span with time-limited annotations and both sound sources.
 #test
 {

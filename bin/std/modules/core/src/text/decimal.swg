@@ -466,19 +466,19 @@ impl Decimal
                 if cpt == Swag.U32.Max do
                     fail Errors.OverflowError{"floating-point token exceeds the supported length"}
                 buffer, cpt += 1
-                esign       = -1
-                c           = buffer[]
-                if not Latin1.isDigit(c) and cpt >= countof do
+                if cpt >= countof do
                     fail ParseIncompleteError{}
+                esign = -1
+                c     = buffer[]
             }
             elif c == plusSign
             {
                 if cpt == Swag.U32.Max do
                     fail Errors.OverflowError{"floating-point token exceeds the supported length"}
                 buffer, cpt += 1
-                c = buffer[]
-                if not Latin1.isDigit(c) and cpt >= countof do
+                if cpt >= countof do
                     fail ParseIncompleteError{}
+                c = buffer[]
             }
 
             if cpt >= countof or c < '0' or c > '9' do

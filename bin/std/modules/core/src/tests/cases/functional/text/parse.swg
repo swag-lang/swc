@@ -21,6 +21,23 @@ using Swag
     Swag.require(floatSignOnly != null)
 }
 
+// An exponent sign at the end of a bounded view is incomplete even when its backing storage
+// continues with a digit that the parser must not read.
+#test
+{
+    let negativeBacking = "1e-7"
+    var negativeOutcome: Swag.Error
+    discard catch StrConv.parseF64(negativeBacking[until 3]) as negativeOutcome
+    let negative = negativeOutcome.value()
+    Swag.require(negative is Errors.ParseIncompleteError)
+
+    let positiveBacking = "1e+8"
+    var positiveOutcome: Swag.Error
+    discard catch StrConv.parseF64(positiveBacking[until 3]) as positiveOutcome
+    let positive = positiveOutcome.value()
+    Swag.require(positive is Errors.ParseIncompleteError)
+}
+
 // An empty text is not a number, whatever its type.
 #test
 {

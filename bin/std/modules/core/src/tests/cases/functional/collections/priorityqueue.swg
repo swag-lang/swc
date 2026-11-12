@@ -95,3 +95,21 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     Swag.require(queue.count == 1 and queue.capacity() == capacity)
     Swag.require(queue.pop() == 42)
 }
+
+// Clearing retains storage and its comparator so the queue can be reused.
+#test
+{
+    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    queue.reserve(8)
+    queue.push(4)
+    queue.push(1)
+    let capacity = queue.capacity()
+
+    queue.clear()
+    Swag.require(queue.isEmpty() and queue.capacity() == capacity)
+
+    queue.push(3)
+    queue.push(2)
+    Swag.require(queue.pop() == 2)
+    Swag.require(queue.pop() == 3)
+}

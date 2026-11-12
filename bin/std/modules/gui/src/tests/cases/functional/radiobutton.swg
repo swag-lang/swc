@@ -108,3 +108,41 @@ func radioButtonHeadlessChanged(_: *RadioButton)
     e.setChecked(true)
     Swag.require(not d.isChecked() and e.isChecked() and b.isChecked())
 }
+
+// Arrow navigation skips disabled options, as focus traversal does.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 200)
+
+    let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
+    let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
+    let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})
+    a.groupId, b.groupId, c.groupId = "choice"
+    b.disable()
+    a.setChecked(true)
+    a.setFocus()
+
+    host.keyPress(Input.Key.Down)
+    Swag.require(not a.isChecked() and not b.isChecked() and c.isChecked())
+    Swag.require(c.hasFocus())
+}
+
+// Arrow navigation skips hidden options, as focus traversal does.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 200)
+
+    let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
+    let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
+    let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})
+    a.groupId, b.groupId, c.groupId = "choice"
+    b.hide()
+    a.setChecked(true)
+    a.setFocus()
+
+    host.keyPress(Input.Key.Down)
+    Swag.require(not a.isChecked() and not b.isChecked() and c.isChecked())
+    Swag.require(c.hasFocus())
+}

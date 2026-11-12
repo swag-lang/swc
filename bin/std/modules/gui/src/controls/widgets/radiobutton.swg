@@ -256,7 +256,7 @@ impl RadioButton
         var current = 0's64
         for child in .parent.children
         {
-            if child is RadioButton as other where other.groupId == .groupId
+            if child is RadioButton as other where other.groupId == .groupId and other.isLocallyVisible() and other.isLocallyEnabled()
             {
                 if child == cast(*Wnd, me) do
                     current = cast(s64, group.count)

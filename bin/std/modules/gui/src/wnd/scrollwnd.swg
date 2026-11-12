@@ -798,6 +798,10 @@ public impl ScrollWnd
     {
         .flags.add(add)
         .flags.remove(remove)
+        if .flags.has(.DisableHorizontal) and
+           .view != null and
+           (.view.scrollPos.x != 0 or .scrollRequestPos.x != 0) do
+            .setScrollPos(0, .view.scrollPos.y)
         .sendResizeEvent()
     }
 

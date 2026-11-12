@@ -93,6 +93,33 @@ func expectedAbs8(value: s8)->s8
 
 #test
 {
+    for value in 256
+    {
+        let byte  = cast(u8, value)
+        let other = byte == 0 ? 1'u8 : byte == 0xFF ? 0xFE'u8 : ~byte
+
+        for index in 4
+        {
+            let shift   = index * 8
+            let value32 = (Math.makeRepeat32(other) & ~(0xFF'u32 << shift)) | (cast(u32, byte) << shift)
+            Swag.require(Math.hasZeroByte(value32) == (byte == 0))
+            Swag.require(Math.hasByte(value32, byte))
+            Swag.require(not Math.hasByte(value32, byte ^ 0x80'u8))
+        }
+
+        for index in 8
+        {
+            let shift   = index * 8
+            let value64 = (Math.makeRepeat64(other) & ~(0xFF'u64 << shift)) | (cast(u64, byte) << shift)
+            Swag.require(Math.hasZeroByte(value64) == (byte == 0))
+            Swag.require(Math.hasByte(value64, byte))
+            Swag.require(not Math.hasByte(value64, byte ^ 0x80'u8))
+        }
+    }
+}
+
+#test
+{
     Swag.require(Math.roundUpToPowerOf2(0'u32) == 1'u32)
     Swag.require(Math.roundUpToPowerOf2(1'u32) == 1'u32)
     Swag.require(Math.roundUpToPowerOf2(2'u32) == 2'u32)

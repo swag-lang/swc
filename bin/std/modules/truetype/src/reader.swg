@@ -2,7 +2,7 @@ using Swag, Core
 
 func assertRange(buffer: const [..] u8, offset, length: u64) fail
 {
-    if offset + length > buffer.count do
+    if offset > buffer.count or length > buffer.count - offset do
         try fault(0x03)
 }
 
@@ -30,7 +30,9 @@ func peekU8(buffer: const [..] u8, offset: u64)->u8
 
 func peekU16(buffer: const [..] u8, offset: u64)->u16
 {
-    if offset + 2 > buffer.count do
+    if offset > buffer.count do
+        return 0
+    if buffer.count - offset < 2 do
         return 0
     let buf = buffer
     return cast(u16, buf[offset]) << 8 | buf[offset + 1]
@@ -46,7 +48,9 @@ func peekS16(buffer: const [..] u8, offset: u64)->s16
 
 func peekU24(buffer: const [..] u8, offset: u64)->u32
 {
-    if offset + 3 > buffer.count do
+    if offset > buffer.count do
+        return 0
+    if buffer.count - offset < 3 do
         return 0
     let buf = buffer
     return cast(u32, buf[offset]) << 16 | cast(u32, buf[offset + 1]) << 8 | buf[offset + 2]
@@ -54,7 +58,9 @@ func peekU24(buffer: const [..] u8, offset: u64)->u32
 
 func peekU32(buffer: const [..] u8, offset: u64)->u32
 {
-    if offset + 4 > buffer.count do
+    if offset > buffer.count do
+        return 0
+    if buffer.count - offset < 4 do
         return 0
     let buf = buffer
     return cast(u32, buf[offset]) << 24 |

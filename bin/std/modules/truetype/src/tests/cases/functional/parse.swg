@@ -23,6 +23,31 @@ using Swag, Core
     discard catch assertRange(ReaderBytes, 0, 16) as err6Outcome
     let err6 = err6Outcome.value()
     Swag.require(err6 != null)
+
+    var errOverflowOutcome: Swag.Error
+    discard catch assertRange(ReaderBytes, Swag.U64.Max, 1) as errOverflowOutcome
+    let errOverflow = errOverflowOutcome.value()
+    Swag.require(errOverflow != null)
+}
+
+#test
+{
+    Swag.require(peekU16(ReaderBytes, Swag.U64.Max) == 0)
+    Swag.require(peekU16(ReaderBytes, Swag.U64.Max - 1) == 0)
+    Swag.require(peekU24(ReaderBytes, Swag.U64.Max) == 0)
+    Swag.require(peekU24(ReaderBytes, Swag.U64.Max - 1) == 0)
+    Swag.require(peekU32(ReaderBytes, Swag.U64.Max) == 0)
+    Swag.require(peekU32(ReaderBytes, Swag.U64.Max - 3) == 0)
+}
+
+// A CFF real without its terminating nibble fails instead of reading zero bytes forever.
+#test
+{
+    const UnterminatedReal: [2] u8 = [30, 0x12]
+    var rejected: Swag.Error
+    discard catch parseCffDict(UnterminatedReal) as rejected
+    let error = rejected.value()
+    Swag.require(error != null)
 }
 
 #test

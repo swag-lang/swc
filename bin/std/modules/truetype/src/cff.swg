@@ -225,6 +225,8 @@ func readCffReal(data: const [..] u8, offset: u64)->{ value: f64, next: u64 } fa
 
     while not done
     {
+        if pos >= data.count do
+            try fault(0x08)
         let byte = peekU8(data, pos)
         pos += 1
         for half in 2'u32

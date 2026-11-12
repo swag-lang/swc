@@ -659,7 +659,8 @@ impl IWnd for IconButton
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or evt.modifiers != .None or
+        if evt.kind != .Pressed or
+           evt.modifiers != .None or
            (evt.key == .Space and not .hasVisibleFocus()) or
            (evt.key != .Space and evt.key != .Return) do
             return
@@ -954,6 +955,7 @@ impl IconButton
         if not .flags.has(.Radio) and not .flags.has(.Toggle) do
             .isChecked = false
         .invalidate()
+        .invalidateLayout()
     }
 
     // Changes background geometry and repaints the button.
@@ -981,6 +983,7 @@ impl IconButton
             return
         .arrowPosition = position
         .invalidate()
+        .invalidateLayout()
     }
 
     // Changes label placement relative to the icon and repaints the button.
@@ -990,6 +993,7 @@ impl IconButton
             return
         .textPosition = position
         .invalidate()
+        .invalidateLayout()
     }
 
     // Creates a `width` by `height` popup frame anchored to the button and makes it the owned popup.

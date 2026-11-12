@@ -35,6 +35,51 @@ using Swag, Core
 
 #test
 {
+    const destination = [17'u8, 31, 47, 63]
+    const source      = [101'u8, 103, 107, 109]
+    let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), Swag.S32.Max, 0)
+    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+}
+
+#test
+{
+    const destination = [17'u8, 31, 47, 63]
+    const source      = [101'u8, 103, 107, 109]
+    var image   = makeImage(1, 1, .RGBA8, destination)
+    let overlay = makeImage(1, 1, .RGBA8, source)
+
+    image.mix(overlay, Swag.S32.Max, 0)
+    assertPixel(image, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+    image.mix(overlay, 0, Swag.S32.Min)
+    assertPixel(image, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+}
+
+#test
+{
+    const destination = [17'u8, 31, 47, 63]
+    const source      = [101'u8, 103, 107, 109]
+    let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), 0, Swag.S32.Max)
+    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+}
+
+#test
+{
+    const destination = [17'u8, 31, 47, 63]
+    const source      = [101'u8, 103, 107, 109]
+    let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), Swag.S32.Min, 0)
+    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+}
+
+#test
+{
+    const destination = [17'u8, 31, 47, 63]
+    const source      = [101'u8, 103, 107, 109]
+    let mixed = makeImage(1, 1, .RGBA8, destination).mixed(makeImage(1, 1, .RGBA8, source), 0, Swag.S32.Min)
+    assertPixel(mixed, 0, 0, Color.fromArgb(63'u8, 17'u8, 31'u8, 47'u8))
+}
+
+#test
+{
     var dstPixels: [48] u8
     for index in dstPixels.count do
         dstPixels[index] = cast(u8, (index * 3 + 1))

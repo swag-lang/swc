@@ -15,20 +15,27 @@ impl Image
 
         Memory.copy(dstImage.pixels.storage(), .pixels.storage(), .byteCount)
 
-        let left   = Math.max(x, 0)
-        let top    = Math.max(y, 0)
-        let right  = Math.min(x + srcImage.width, .width)
-        let bottom = Math.min(y + srcImage.height, .height)
-        if left >= right or top >= bottom do
+        let x64      = cast(s64, x)
+        let y64      = cast(s64, y)
+        let left64   = Math.max(x64, 0)
+        let top64    = Math.max(y64, 0)
+        let right64  = Math.min(x64 + cast(s64, srcImage.width), cast(s64, .width))
+        let bottom64 = Math.min(y64 + cast(s64, srcImage.height), cast(s64, .height))
+        if left64 >= right64 or top64 >= bottom64 do
             return
+
+        let left   = cast(s32, left64)
+        let top    = cast(s32, top64)
+        let right  = cast(s32, right64)
+        let bottom = cast(s32, bottom64)
 
         var context = {
             dst: dstImage,
             src: &srcImage,
             dstX: left,
             dstY: top,
-            srcX: left - x,
-            srcY: top - y,
+            srcX: cast(s32, (left64 - x64)),
+            srcY: cast(s32, (top64 - y64)),
             width: right - left,
             mode: mode}
 

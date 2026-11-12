@@ -336,6 +336,22 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     Swag.require(scroll.scrollPosition() == Math.Point{0, 0})
 }
 
+// Disabling horizontal scrolling still allows the vertical axis to move.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(260, 260)
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    scroll.updateFlags(.DisableHorizontal)
+    scroll.createView'Wnd()
+    scroll.setScrollSize(1000, 1000)
+    Swag.require(not scroll.showBarH and scroll.showBarV)
+
+    scroll.setScrollPos(1000, 1000)
+    Swag.require(scroll.scrollPosition().x == 0)
+    Swag.require(scroll.scrollPosition().y > 0)
+}
+
 // Focus reveals a nested control through both viewports, and can return to the first control.
 #test
 {

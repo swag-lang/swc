@@ -705,13 +705,16 @@ public impl ScrollWnd
         var newSP: Math.Point
 
         let clientRect = .view.clientRect()
-        newSP.x = Math.max(x, 0)
+        newSP.x = .flags.has(.DisableHorizontal) ? 0 : Math.max(x, 0)
         newSP.y = Math.max(y, 0)
-        newSP.x = Math.min(newSP.x, .scrollSize.x - clientRect.width)
+        if not .flags.has(.DisableHorizontal) do
+            newSP.x = Math.min(newSP.x, .scrollSize.x - clientRect.width)
         newSP.y = Math.min(newSP.y, .scrollSize.y - clientRect.height)
-        newSP.x = Math.max(newSP.x, 0)
+        if not .flags.has(.DisableHorizontal) do
+            newSP.x = Math.max(newSP.x, 0)
         newSP.y = Math.max(newSP.y, 0)
-        newSP.x = Math.round(newSP.x)
+        if not .flags.has(.DisableHorizontal) do
+            newSP.x = Math.round(newSP.x)
         newSP.y = Math.round(newSP.y)
 
         return newSP

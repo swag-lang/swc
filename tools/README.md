@@ -326,7 +326,9 @@ second in-memory copy. `--video-quality maximum|balanced|compact` tests the thre
 settings; Balanced is the application default.
 Add `--motion-stress` to animate a dense pattern across the browser viewport, then
 use `--max-missed-frames` to gate sustained high-motion capture. The runner keeps
-the browser video and its reference sound under that pattern.
+the browser video and its reference sound under that pattern. Keep the Windows desktop
+unlocked and dismiss the screen saver: DXGI cannot duplicate its output while that desktop
+is active, and the full-screen scenario stops after three failed source reads.
 `capture-web-source.py --input <1080p-movie> --output <external-source.mp4> --start 30`
 prepares an eight-second native-resolution excerpt and reference sound with PyAV and NumPy,
 using three codec threads. One reproducible source is Blender Foundation's

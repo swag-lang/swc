@@ -308,6 +308,10 @@ whole recording loaded at once.
   workloads varied, so these are stress evidence rather than a controlled QP speed ratio.
   Increasing the handoff queue from two pictures to four did not improve a subsequent run;
   it missed 60 slots while encoding consumed 59.3 seconds, so the queue was left unchanged.
+  A later Windows session started an OLED screen saver. DXGI `DuplicateOutput` then failed
+  even in the isolated `screen` integration test, while the browser fixture remained ready.
+  The full-screen runner now fails after three source errors instead of waiting through the
+  requested recording length; it needs an unlocked interactive desktop for throughput evidence.
   `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
   late producer or audio errors, and returns an editable capture when that prefix is readable.
   A failure toast exposes the retained file in the explorer. On startup and when the library

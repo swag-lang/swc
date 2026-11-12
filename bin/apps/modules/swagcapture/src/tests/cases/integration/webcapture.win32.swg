@@ -508,6 +508,8 @@ private func webCaptureQuality()->VideoQuality
         if not g_Recorder do
             return
         let recorder = unwrap g_Recorder
+        if stage[] == 1 and recorder.video.sourceFailureCount() >= 3 do
+            Swag.require(false, "native desktop capture is unavailable; check desktop access")
         if stage[] == 0
         {
             Swag.require(recorder.state == .Preparing and recorder.target.window == 0)

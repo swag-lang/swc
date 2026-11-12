@@ -110,6 +110,25 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     Swag.require(host.commandCount == 1)
 }
 
+// A combo item keeps its command identifier after the source string changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 80)
+    host.recordCommands()
+
+    let combo    = ComboBox.create(&host.root, {20, 20, 160, 26})
+    let expected = "ComboBox.Dynamic.Command.Identifier"
+    var source   = Core.String.from(expected)
+    combo.addItem("One", source.toString())
+    source[0] = 'X'
+
+    combo.setSelectedIndex(0)
+    host.pump()
+
+    Swag.require(host.commandCount == 1 and host.lastCommand == expected)
+}
+
 // clear() empties the item list and resets all selection state silently.
 #test
 {

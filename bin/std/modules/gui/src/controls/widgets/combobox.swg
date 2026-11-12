@@ -41,6 +41,8 @@ struct ComboBoxItem
         // Width of the alternate segment content in logical units; zero measures `name`.
         paintWidth: f32
     }
+
+    commandId: String     // Owns a dynamically supplied identifier for as long as this item exists.
 }
 
 // Displays a compact selection field with a drop-down list.
@@ -691,7 +693,8 @@ impl ComboBox
         {
             .name.set(name)
             .icon      = icon
-            .id        = id
+            .commandId = id orelse ""
+            .id        = id ? .commandId.toString() : null
             .userData0 = userData0
             .userData1 = userData1
         }

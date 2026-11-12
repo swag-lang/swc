@@ -1357,6 +1357,43 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     }
 }
 
+// Sub-16-bit grayscale and true-color tRNS keys must fit the source sample range.
+#test
+{
+    const GrayRaw: [2] u8 = [0, 10]
+    const GrayKey: [2] u8 = [1, 10]
+    var badGray: ConcatBuffer
+    addPngSignature(&badGray)
+    addPngHeader(&badGray, 1, 1, 8, 0)
+    addPngChunk(&badGray, "tRNS", GrayKey)
+    addPngImageData(&badGray, GrayRaw)
+    addPngChunk(&badGray, "IEND", "")
+    assertPngDecodeFails("bad-gray-key.png", &badGray)
+
+    const RgbRaw: [4] u8 = [0, 10, 0, 0]
+    const RgbKey: [6] u8 = [1, 10, 0, 0, 0, 0]
+    var badRgb: ConcatBuffer
+    addPngSignature(&badRgb)
+    addPngHeader(&badRgb, 1, 1, 8, 2)
+    addPngChunk(&badRgb, "tRNS", RgbKey)
+    addPngImageData(&badRgb, RgbRaw)
+    addPngChunk(&badRgb, "IEND", "")
+    assertPngDecodeFails("bad-rgb-key.png", &badRgb)
+
+    const ValidRaw: [2] u8 = [0, 255]
+    const ValidKey: [2] u8 = [0, 255]
+    var validGray: ConcatBuffer
+    addPngSignature(&validGray)
+    addPngHeader(&validGray, 1, 1, 8, 0)
+    addPngChunk(&validGray, "tRNS", ValidKey)
+    addPngImageData(&validGray, ValidRaw)
+    addPngChunk(&validGray, "IEND", "")
+    let image = expect Image.decode("gray-key-limit.png", nnBytes(validGray.toSlice()), {})
+    Swag.require(image.pixelFormat == .GrayAlpha8)
+    let pixel = cast(const [*] u8, image.pixels.storage())
+    Swag.require(pixel[0] == 255 and pixel[1] == 0)
+}
+
 // Decode palette and tRNS transparency chunks.
 #test
 {

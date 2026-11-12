@@ -395,6 +395,22 @@ impl Decoder
                 if .header.colorType & .Paletted and (transparencySize == 0 or transparencySize > .paletteCount) do
                     fail InvalidFormatError{"PNG indexed-color tRNS chunk exceeds the palette"}
 
+                if .header.bitDepth < 16
+                {
+                    let maxSample = (1'u32 << cast(u32, .header.bitDepth)) - 1
+                    let data      = (.safeTRNSData()).buffer
+                    if cast(u8, .header.colorType) == 0 and cast(u32, .read16(data)) > maxSample do
+                        fail InvalidFormatError{"PNG grayscale tRNS key exceeds the bit depth"}
+                    if cast(u8, .header.colorType) == 2
+                    {
+                        for component in 3
+                        {
+                            if cast(u32, .read16(data + cast(u64, component) * 2)) > maxSample do
+                                fail InvalidFormatError{"PNG true-color tRNS key exceeds the bit depth"}
+                        }
+                    }
+                }
+
             case .BKGD:
                 .seenBKGD = true
                 discard try .readChunk(ch)

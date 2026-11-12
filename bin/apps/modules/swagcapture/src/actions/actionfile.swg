@@ -61,13 +61,13 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
             evt.name          = capture and capture.media == .Video ? appStrings().act_SaveVideo : appStrings().act_SaveImage
             evt.longName      = capture and capture.media == .Video ? appStrings().act_SaveAsVideo : appStrings().act_SaveAsImage
-            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing)
+            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing) or main.exportJob != null or not main.exportSource.isEmpty()
             evt.icon          = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_SaveAsLinkedImage
-            evt.disabled      = not capture or capture.isTimed()
+            evt.disabled      = not capture or capture.isTimed() or main.exportJob != null or not main.exportSource.isEmpty()
             evt.icon          = main.theme().icon(.Export)
 
         case .OpenImage:
@@ -567,24 +567,19 @@ impl MainWnd
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
-        var capture = unwrap .getCapture()
-        var loaded: *Capture?
+        let capture = unwrap .getCapture()
         if .libraryMode
         {
-            .flushCaptureSave(capture.file)
-            catch { loaded = try Capture.load(capture.file) }
-            {
-                MessageDlg.error(unwrap .surface, appStrings().msg_FailedSaveFile, Swag.err)
-                return
-            }
-            capture = unwrap loaded
-            capture.editView = .editWnd.editView
+            .requestLibraryExport(capture.file, fileName, linked)
+            return
         }
-        defer
-        {
-            if loaded do
-                Memory.delete(loaded)
-        }
+        .saveLoadedAsImage(capture, fileName, linked)
+    }
+
+    // Composes and writes an already-loaded document on the interface thread, where its forms
+    // can use the editor renderer. Library documents reach this point after background decode.
+    mtd saveLoadedAsImage(capture: *Capture, fileName: String, linked: bool)
+    {
         if capture.media == .Video and Path.equals(fileName, Capture.mediaPathOf(capture.file, .Video))
         {
             MessageDlg.error(unwrap .surface, appStrings().msg_VideoExportDifferentFile)

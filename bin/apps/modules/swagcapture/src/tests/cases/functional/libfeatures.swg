@@ -279,6 +279,46 @@ using Swag, Core
     Swag.require(stored.rating == 4)
 }
 
+// A library export waits for pending metadata writes before decoding its source.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let source = testTempCapturePath()
+    let target = Gui.Testing.tempFilePath("capture-export-", ".png")
+    defer
+    {
+        discard catch File.delete(source)
+        discard catch File.delete(target)
+    }
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 19
+    capture.height, capture.heightOrg = 13
+    capture.backImg = Gui.Testing.indexedImage(19, 13)
+    capture.file = source
+    capture.changed = true
+    expect capture.save()
+    Memory.delete(capture)
+
+    let rating = 4'u8
+    f.main.queueCaptureMetadata(source, rating: &rating)
+    f.main.requestLibraryExport(source, target, false)
+    Swag.require(f.main.exportJob == null and f.main.exportTimer != null)
+    Swag.require(g_CaptureSaves.flush(source).isEmpty())
+    f.gui.fireTimer(f.main.exportTimer)
+    Swag.require(f.main.exportJob != null)
+    f.main.exportJob.task.wait()
+    f.gui.pump()
+
+    let image = expect Image.load(target)
+    Swag.require(image.width == 19 and image.height == 13)
+    let stored = expect Capture.load(source, preview: true)
+    defer Memory.delete(stored)
+    Swag.require(stored.rating == 4)
+}
+
 // The page is named after the folder it shows, and its folders are tabs: the library first, its
 // sub-folders after it, the recycle bin among them; choosing a tab opens its folder.
 #test

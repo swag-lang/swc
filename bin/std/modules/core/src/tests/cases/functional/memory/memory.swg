@@ -59,6 +59,13 @@ func pushAllocatorAcceptsNull()->bool
 
 #test
 {
+    let result = Swag.catchPanic(func||() { discard Memory.align(13, 3) })
+    Swag.require(result.raised)
+    Swag.require(result.message() == "alignment must be a power of two")
+}
+
+#test
+{
     let count     = Swag.U64.Max / #sizeof(s32) + 1
     let allocated = Swag.catchPanic(func|count|() { discard Memory.new's32(count) })
     Swag.require(allocated.raised)

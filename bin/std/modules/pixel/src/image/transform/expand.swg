@@ -4,10 +4,13 @@ impl Image
 {
     mtd const getWH(l, t, r, b: s32)->{ w, h: s32 }
     {
-        let cw = .width + l + r
-        let ch = .height + t + b
-        Swag.assert(cw > 0 and ch > 0)
-        return {w: cw, h: ch}
+        let width  = cast(s64, .width) + l + r
+        let height = cast(s64, .height) + t + b
+        Swag.assert(width > 0 and
+                    width <= Swag.S32.Max and
+                    height > 0 and
+                    height <= Swag.S32.Max)
+        return {w: cast(s32, width), h: cast(s32, height)}
     }
 
     mtd const doExpand(dstImage: *Image, l, t, r, b: s32, color: Color)
@@ -45,8 +48,7 @@ impl Image
     //
     // `l`, `t`, `r` and `b` are the left, top, right and bottom margins in pixels, in picture
     // coordinates like [[Pixel.Image.crop]]. A negative margin removes that many pixels from its
-    // side instead. The resulting size must
-    // stay positive.
+    // side instead. The resulting width and height must each be positive and fit in `s32`.
     public mtd expand(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))
     {
         let {w: cw, h: ch} = .getWH(l, t, r, b)
@@ -55,7 +57,7 @@ impl Image
         .applyWorkingBuffer()
     }
 
-    // Returns a copy grown by a margin on each side, filled with `color`.
+    // Returns a copy expanded under the dimension and margin rules of [[Pixel.Image.expand]].
     public mtd const expanded(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
     {
         let {w: cw, h: ch}      = .getWH(l, t, r, b)

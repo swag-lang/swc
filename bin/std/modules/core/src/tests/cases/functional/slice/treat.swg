@@ -25,6 +25,30 @@ using Swag
 
 #test
 {
+    var backing: [1] s32 = [42]
+    let empty = backing[until 0]
+
+    let reduceError = Swag.catchPanic(func|empty|()
+    {
+        discard Slice.reduce(empty, func(left, right: s32)->s32 => left + right)
+    })
+    Swag.require(reduceError.raised)
+    Swag.require(reduceError.message() == "cannot reduce an empty slice")
+    Swag.require(empty.count == 0 and backing[0] == 42)
+
+    let minError = Swag.catchPanic(func|empty|() { discard Slice.min(empty) })
+    Swag.require(minError.raised)
+    Swag.require(minError.message() == "cannot get the minimum of an empty slice")
+    Swag.require(empty.count == 0 and backing[0] == 42)
+
+    let maxError = Swag.catchPanic(func|empty|() { discard Slice.max(empty) })
+    Swag.require(maxError.raised)
+    Swag.require(maxError.message() == "cannot get the maximum of an empty slice")
+    Swag.require(empty.count == 0 and backing[0] == 42)
+}
+
+#test
+{
     let values: [5] s32 = [4, -3, 9, -1, 9]
     let minValue        = Slice.min(values)
     let maxValue        = Slice.max(values)

@@ -18,3 +18,30 @@ using Swag, Core
     assertPixel(img, 0, 0, fillColor)
     assertPixel(img, 1, 0, fillColor)
 }
+
+#test
+{
+    const pixels = [255'u8, 64, 32, 128]
+    let source    = makeImage(1, 1, .RGBA8, pixels)
+    let converted = source.convertedTo(.RGBAF32)
+    assertPixel(converted, 0, 0, Color.fromArgb(128'u8, 255'u8, 64'u8, 32'u8))
+}
+
+#test
+{
+    const pixels = [255'u8, 64, 32, 128]
+    let source      = makeImage(1, 1, .RGBA8, pixels)
+    var transformed = source.convertedTo(.RGBAF32)
+    transformed.invert()
+    assertPixel(transformed, 0, 0, Color.fromArgb(128'u8, 0'u8, 191'u8, 223'u8))
+}
+
+#test
+{
+    var image = Image.create(1, 1, .RGBAF32)
+    let color = Color.fromArgb(128'u8, 255'u8, 64'u8, 32'u8)
+    image.fill(color)
+
+    assertImage(image, 1, 1, .RGBAF32)
+    assertPixel(image, 0, 0, color)
+}

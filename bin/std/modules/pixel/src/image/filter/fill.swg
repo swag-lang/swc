@@ -14,7 +14,7 @@ public impl Image
                                      cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0}
             .transformLogicalPixels(&logical)
             {
-                value = cast(const *PixelValue, unwrap userData)[]
+                value[] = cast(const *PixelValue, unwrap userData)[]
             }
 
             return

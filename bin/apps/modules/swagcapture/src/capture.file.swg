@@ -325,8 +325,30 @@ impl Capture
         if title == null and not tags and not favorite and not rating do
             return
 
+        try rewriteFileMetadata(file, file, title, tags, favorite, rating, false)
+    }
+
+    // Duplicates a document with a fresh container identity, keeping encoded images and media
+    // bytes while removing the copy's link to an external image.
+    func duplicateDocument(source: String, target: String) fail
+    {
+        if Path.equals(source, target) do
+            fail Core.Errors.BadParameterError{"a capture cannot duplicate itself"}
+        defer #fail discard catch deleteFiles(target)
+        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
+        {
+            let media = mediaPathOf(source, kind)
+            if File.exists(media) do
+                try File.duplicate(mediaPathOf(target, kind), media)
+        }
+        try rewriteFileMetadata(source, target, null, null, null, null, true)
+    }
+
+    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool) fail
+    {
+
         var reader: Scc.Reader
-        try reader.initialize(file)
+        try reader.initialize(source)
         if reader.kind() != containerKind() do
             fail Core.Errors.InvalidFormatError{}
         if reader.manifest().profileVersion > CaptureProfileVersion do
@@ -352,14 +374,27 @@ impl Capture
             model.favorite = favorite[]
         if rating do
             model.rating = rating[]
+        if duplicate
+        {
+            model.linkedImage.clear()
+            model.linkedUpToDate = true
+        }
 
         var writer: Scc.Writer
         writer.initialize(containerKind())
-        if reader.generation() == Swag.U64.Max do
-            fail Core.Errors.OverflowError{"Capture container generation cannot advance"}
-        writer.setIdentity(reader.id(), reader.generation() + 1)
+        if not duplicate
+        {
+            if reader.generation() == Swag.U64.Max do
+                fail Core.Errors.OverflowError{"Capture container generation cannot advance"}
+            writer.setIdentity(reader.id(), reader.generation() + 1)
+        }
         writer.manifest()[] = reader.manifest()[]
         writer.manifest().modifiedAt = Time.DateTime.now()
+        if duplicate
+        {
+            for &entry in writer.manifest().entries do
+                entry.name = Path.fileName(target) orelse ""
+        }
         if title != null do
             writer.manifest().name = title
         if tags
@@ -369,7 +404,7 @@ impl Capture
                 entry.tags = tags[]
         }
 
-        if favorite or rating
+        if favorite or rating or duplicate
         {
             var metadataDecoder: Decoder'Read.TagBin
             let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
@@ -381,6 +416,11 @@ impl Capture
                 metadata.favorite = favorite[]
             if rating do
                 metadata.rating = rating[]
+            if duplicate
+            {
+                metadata.linkedImage.clear()
+                metadata.linkedUpToDate = true
+            }
             writer.manifest().profileData = try encodeValue(metadata)
         }
 
@@ -406,7 +446,7 @@ impl Capture
         }
 
         reader.close()
-        try writer.saveAtomic(file)
+        try writer.saveAtomic(target)
     }
 
     // Loads an SCC capture, or its library metadata and preview when `preview` is set.

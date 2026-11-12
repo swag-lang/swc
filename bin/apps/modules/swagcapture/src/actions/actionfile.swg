@@ -106,7 +106,7 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
             evt.name          = appStrings().act_Duplicate
             evt.longName      = appStrings().act_DuplicateCapture
-            evt.disabled      = not capture
+            evt.disabled      = not capture or main.duplicateJob != null or not main.duplicateSource.isEmpty()
             evt.icon          = main.theme().icon(.Duplicate)
 
         case .RenameCapture:
@@ -195,33 +195,9 @@ impl IActionUI for ActionFile
             }
 
         case .DupCapture:
-            Cursor.activateWait()
-            main.saveCapture(capture)
-
-            let file = Library.newFileName()
-            catch Capture.duplicateFiles(file, capture.file)
-
-            catch
-            {
-                let loaded = try Capture.load(file)
-                defer Memory.delete(loaded)
-                loaded.file        = file
-                loaded.linkedImage = ""
-                loaded.changed     = true
-                catch loaded.save()
-            }
-            {
-                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedDuplicate)
-                break
-            }
-
-            g_Library.addFile(file)
-
-            catch
-            {
-                Memory.delete(try main.recentWnd.addRecent(file))
-                main.recentWnd.recentView.requestSelect(0)
-            }
+            if not main.libraryMode do
+                main.saveCapture(capture)
+            main.requestDuplicateCapture(capture.file)
 
         case .RenameCapture:
 

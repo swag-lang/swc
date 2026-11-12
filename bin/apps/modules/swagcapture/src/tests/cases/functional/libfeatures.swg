@@ -144,6 +144,57 @@ using Swag, Core
     Swag.require(loaded.title == "Automatic save" and loaded.rating == 3)
 }
 
+// Duplicating a document gives the copy a new identity and no external link while preserving
+// the exact compressed background block.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let source = testTempCapturePath()
+    let target = testTempCapturePath()
+    defer
+    {
+        discard catch File.delete(source)
+        discard catch File.delete(target)
+    }
+
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 18
+    capture.height, capture.heightOrg = 12
+    capture.backImg = Gui.Testing.indexedImage(18, 12)
+    capture.file = source
+    capture.linkedImage = Path.combine(Library.getFolder(), "original.png")
+    capture.linkedUpToDate = false
+    capture.changed = true
+    expect capture.save()
+    Memory.delete(capture)
+
+    var before: Scc.Reader
+    expect before.initialize(source)
+    let originalId = before.id()
+    Swag.require(before.chunks().count == 2)
+    let background = before.chunks()[1]
+    let stored = expect before.readStoredChunk(background.id)
+    before.close()
+
+    expect Capture.duplicateDocument(source, target)
+    var after: Scc.Reader
+    expect after.initialize(target)
+    Swag.require(after.id() != originalId and after.generation() == 1)
+    let copied = expect after.readStoredChunk(background.id)
+    Swag.require(Slice.equals(copied.toSlice(), stored.toSlice()))
+    after.close()
+
+    let full = expect Capture.load(target)
+    defer Memory.delete(full)
+    Swag.require(full.backImg.isValid() and full.width == 18 and full.height == 12)
+    Swag.require(full.linkedImage.isEmpty() and full.linkedUpToDate)
+    let preview = expect Capture.load(target, preview: true)
+    defer Memory.delete(preview)
+    Swag.require(preview.linkedImage.isEmpty() and preview.linkedUpToDate)
+}
+
 // Copying a stored capture from the library places its full-resolution image on the
 // clipboard, composited from the file rather than the low-res preview.
 #test

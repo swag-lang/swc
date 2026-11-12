@@ -148,6 +148,9 @@ struct MainWnd
     copyTimer: *Gui.Timer?
     copyJob: *CaptureLoadJob?
     copyRequestedFile: String
+    duplicateTimer: *Gui.Timer?
+    duplicateJob: *CaptureDuplicateJob?
+    duplicateSource: String
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -205,39 +208,18 @@ impl IWnd for MainWnd
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         let job = .copyJob
-        if not job or evt.task != &job.task
+        if job and evt.task == &job.task
         {
-            evt.accepted = false
+            .finishLibraryCopy(job)
             return
         }
-
-        .copyJob = null
-        let loaded = job.capture
-        let file   = job.file
-        Memory.delete(job)
-        if .copyRequestedFile != file
+        let duplicate = .duplicateJob
+        if duplicate and evt.task == &duplicate.task
         {
-            if loaded do
-                Memory.delete(loaded)
-            .startLibraryCopy()
+            .finishDuplicateCapture(duplicate)
             return
         }
-
-        .copyRequestedFile.clear()
-        if not loaded
-        {
-            .reportFailure(appStrings().msg_FailedCopyCapture, file)
-            return
-        }
-
-        defer Memory.delete(loaded)
-        loaded.editView = .editWnd.editView
-        catch loaded.copyAll()
-        {
-            .reportFailure(appStrings().msg_FailedCopyCapture, file)
-            return
-        }
-        .confirm(appStrings().msg_Copied)
+        evt.accepted = false
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -246,6 +228,12 @@ impl IWnd for MainWnd
         {
             .stopTimer(&.copyTimer)
             .startLibraryCopy()
+            return
+        }
+        if evt.timer == .duplicateTimer
+        {
+            .stopTimer(&.duplicateTimer)
+            .startDuplicateCapture()
             return
         }
         if evt.timer != .metadataTimer
@@ -333,6 +321,15 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .stopTimer(&.duplicateTimer)
+        if .duplicateJob
+        {
+            let job = .duplicateJob
+            .duplicateJob = null
+            job.task.cancel()
+            job.task.wait()
+            Memory.delete(job)
+        }
         .stopTimer(&.copyTimer)
         if .copyJob
         {
@@ -636,6 +633,104 @@ impl MainWnd
         {
             catch { job.capture = try Capture.load(job.file) } as job.error
         }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishLibraryCopy(job: *CaptureLoadJob)
+    {
+        .copyJob = null
+        let loaded = job.capture
+        let file   = job.file
+        Memory.delete(job)
+        if .copyRequestedFile != file
+        {
+            if loaded do
+                Memory.delete(loaded)
+            .startLibraryCopy()
+            return
+        }
+
+        .copyRequestedFile.clear()
+        if not loaded
+        {
+            .reportFailure(appStrings().msg_FailedCopyCapture, file)
+            return
+        }
+
+        defer Memory.delete(loaded)
+        loaded.editView = .editWnd.editView
+        catch loaded.copyAll()
+        {
+            .reportFailure(appStrings().msg_FailedCopyCapture, file)
+            return
+        }
+        .confirm(appStrings().msg_Copied)
+    }
+
+    // Duplicates the stored document on a worker, preserving its encoded images.
+    mtd requestDuplicateCapture(source: String)
+    {
+        if .duplicateJob or not .duplicateSource.isEmpty() do
+            return
+        .duplicateSource = source
+        .startDuplicateCapture()
+    }
+
+    private mtd startDuplicateCapture()
+    {
+        if .duplicateJob or .duplicateSource.isEmpty() do
+            return
+        let failed = g_CaptureSaves.collect()
+        if not failed.isEmpty()
+        {
+            .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+            if failed == .duplicateSource
+            {
+                .duplicateSource.clear()
+                return
+            }
+        }
+        if g_CaptureSaves.writing(.duplicateSource)
+        {
+            if not .duplicateTimer do
+                .duplicateTimer = .addTimer(16'ms)
+            return
+        }
+
+        let job = Memory.new'CaptureDuplicateJob()
+        job.source = .duplicateSource
+        job.target = Library.newFileName()
+        .duplicateJob = job
+        job.task.submit(func|job|()
+        {
+            catch Capture.duplicateDocument(job.source, job.target) as job.error
+        }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishDuplicateCapture(job: *CaptureDuplicateJob)
+    {
+        .duplicateJob = null
+        .duplicateSource.clear()
+        let source = job.source
+        let target = job.target
+        let failed = not job.error.isEmpty()
+        Memory.delete(job)
+        if failed
+        {
+            .reportFailure(appStrings().msg_FailedDuplicate, source)
+            return
+        }
+
+        g_Library.addFile(target)
+        if .libraryMode do
+            .libWnd.fill()
+        catch
+        {
+            Memory.delete(try .recentWnd.addRecent(target))
+            .recentWnd.recentView.requestSelect(0)
+        }
+        {
+            .reportFailure(Format.toString(appStrings().msg_FailedLoadFile, target))
+        }
     }
 
     // Opens the image file `arg`: the capture it was exported from when Swag Capture wrote it,

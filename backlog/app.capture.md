@@ -72,12 +72,14 @@ whole recording loaded at once.
   metadata edits and rename now queue a worker rewrite of only the model and SCC header, copying
   the stored image chunks exactly. Consecutive edits and automatic saves share one writer lane,
   so the interface does not wait for model form decoding or file replacement. Full `Capture.load`
-  remains in duplicate and library Save as Image. Library Copy and selected-library Export decode
-  on workers, but image composition and timed-media encoding still run on the interface thread.
+  remains in library Save as Image. Duplicate now rewrites the model on a worker while copying
+  stored image chunks and timed-media files, and refreshes an already-open library when complete.
+  Library Copy and selected-library Export decode on workers, but image composition and
+  timed-media encoding still run on the interface thread.
   A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old full-load path.
-- Next: split decode from renderer-bound work in library Save as Image, move duplicate off the
-  interface thread, then move timed-media copy/export encoding away from the interface
-  where renderer ownership permits. Preserve save ordering and failure reports.
+- Next: split decode from renderer-bound work in library Save as Image, then move timed-media
+  copy/export encoding away from the interface where renderer ownership permits. Preserve save
+  ordering and failure reports.
 - Done when no user action decodes an inactive capture on the interface thread, and cancel,
   failure and window-close paths release each background result.
 - Related: app.capture.024, app.capture.025, language.parallelism.001

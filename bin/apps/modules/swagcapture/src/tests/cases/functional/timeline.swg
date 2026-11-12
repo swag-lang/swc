@@ -378,6 +378,29 @@ func testProfileVersion(file: string)->u32
     Swag.require(not loaded.mediaMissing)
 }
 
+// Duplicating a timed capture keeps a separate playable frame file.
+#test
+{
+    let capture = testRecordedCapture()
+    defer Memory.delete(capture)
+    let source = String.from(capture.file)
+    defer discard catch Capture.deleteFiles(source)
+    capture.changed = true
+    expect capture.save()
+    capture.closeMedia()
+
+    let target = testTempCapturePath()
+    defer discard catch Capture.deleteFiles(target)
+    expect Capture.duplicateDocument(source, target)
+    let originalBytes = expect File.readAllBytes(Capture.mediaPathOf(source))
+    let copiedBytes = expect File.readAllBytes(Capture.mediaPathOf(target))
+    Swag.require(Slice.equals(originalBytes.toSlice(), copiedBytes.toSlice()))
+
+    let loaded = expect Capture.load(target)
+    defer Memory.delete(loaded)
+    Swag.require(not loaded.mediaMissing and loaded.timeline.frameCount == capture.timeline.frameCount)
+}
+
 // An animation exports as an animated GIF with its frames, its timing and its annotations, and
 // leaves the frame at the playhead on the canvas.
 #test

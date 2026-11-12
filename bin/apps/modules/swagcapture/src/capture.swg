@@ -300,6 +300,15 @@ struct CaptureLoadJob
     error:   Swag.Error
 }
 
+// One duplicate owns both paths until its SCC and timed media files are ready.
+struct CaptureDuplicateJob
+{
+    task:   Swag.Task
+    source: String
+    target: String
+    error:  Swag.Error
+}
+
 // Everything one save writes, snapshotted from the capture so a worker can
 // produce the container while the user keeps editing.
 struct CaptureSaveJob

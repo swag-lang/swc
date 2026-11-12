@@ -540,6 +540,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     defer discard catch File.delete(originalPath)
     let actionExecuted = Gui.Testing.actionExecute'ActionFile(f.main, ActionFile.DupCapture)
     Swag.require(actionExecuted)
+    Swag.require(f.main.duplicateJob != null)
+    f.main.duplicateJob.task.wait()
     f.gui.pump()
 
     Swag.require(f.main.recentWnd.recentView.items.count == 1)

@@ -86,7 +86,7 @@ func parseHttp(text: string)->HttpTarget fail
         if not ((c >= 'a' and c <= 'z') or
                 (c >= 'A' and c <= 'Z') or
                 Latin1.isDigit(c) or
-                Utf8.indexOf("-._~:/?@!$&'()*+,;=[]%", cast(rune, c)) != Swag.U64.Max) do
+                Utf8.indexOf("-._~:/?@!$&'()*+,;=%", cast(rune, c)) != Swag.U64.Max) do
             fail Errors.InvalidFormatError{}
         if c == '%'
         {

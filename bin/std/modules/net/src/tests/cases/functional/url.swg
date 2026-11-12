@@ -27,6 +27,19 @@ using Core
 
 #test
 {
+    for invalid in ["http://example.com/a[b]", "http://example.com/?key[]=value"]
+    {
+        var error: Swag.Error
+        discard catch Url.parseHttp(invalid) as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+
+    let encoded = expect Url.parseHttp("http://example.com/a%5Bb%5D?key%5B%5D=value")
+    Swag.require(encoded.path == "/a%5Bb%5D?key%5B%5D=value")
+}
+
+#test
+{
     for invalid in ["/relative", "ftp://example.com/", "https://user@example.com/",
                     "https://[::1]/", "http://example.com:0/", "http://example.com:65536/",
                     "http://example.com:/", "http://example.com/a b", "http://example.com/%zz"]

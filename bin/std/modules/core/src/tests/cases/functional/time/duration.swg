@@ -64,6 +64,21 @@ using Swag
 
 #test
 {
+    Swag.require(Time.Duration.fromSeconds(0).millisecondsCeiling() == 0)
+    Swag.require(Time.Duration.fromSeconds(1).millisecondsCeiling() == 1000)
+    Swag.require(Time.Duration.fromSeconds(0.0005).millisecondsCeiling() == 1)
+    Swag.require(Time.Duration.fromSeconds(0.0015).millisecondsCeiling() == 2)
+    Swag.require(Time.Duration.fromSeconds(1.0005).millisecondsCeiling() == 1001)
+
+    let tooLarge = Swag.catchPanic(func||()
+    {
+        discard Time.Duration.fromSeconds(cast(f64, Swag.U64.Max)).millisecondsCeiling()
+    })
+    Swag.require(tooLarge.raised and tooLarge.message() == "duration is too large in milliseconds")
+}
+
+#test
+{
     for value in 1000
     {
         let expectedMilliseconds = cast(u64, value)

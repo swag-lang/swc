@@ -253,15 +253,22 @@ impl Capture
     // the live capture again. Runs on the interface thread: the document model is
     // encoded now because the forms may change under a worker, and the images are
     // copied because a later crop or flatten may replace them while a job still encodes.
-    private mtd snapshotSave()->*CaptureSaveJob fail
+    private mtd snapshotSave(target: string = "", duplicate = false)->*CaptureSaveJob fail
     {
         var metadata     = .libraryMetadata()
         var model        = .fileModel()
+        if duplicate
+        {
+            metadata.linkedImage.clear()
+            metadata.linkedUpToDate = true
+            model.linkedImage.clear()
+            model.linkedUpToDate = true
+        }
         var profileBytes = try encodeValue(&metadata)
         var modelBytes   = try encodeValue(&model)
 
         let job = Memory.new'CaptureSaveJob()
-        job.file                    = .file
+        job.file                    = target.count == 0 ? .file : String.from(target)
         job.manifest.profileVersion = .isTimed() ? CaptureProfileVersion : CapturePictureProfileVersion
         job.manifest.name           = .title
         job.manifest.createdAt      = .capturedAt
@@ -280,6 +287,10 @@ impl Capture
 
         return job
     }
+
+    // Freezes the active editor state for a duplicate without saving or changing the original.
+    mtd snapshotDuplicate(target: String)->*CaptureSaveJob fail
+        => try .snapshotSave(target, duplicate: true)
 
     // Produces the SCC container from a snapshot and atomically replaces the target
     // file. Runs on a job worker for the automatic save, inline for a synchronous
@@ -354,6 +365,22 @@ impl Capture
                 try File.duplicate(mediaPathOf(target, kind), media)
         }
         try rewriteFileMetadata(source, target, null, null, null, null, true)
+    }
+
+    // Writes a duplicate of a live, possibly unsaved editor snapshot on a worker.
+    func duplicateSnapshot(source: String, snapshot: *CaptureSaveJob) fail
+    {
+        let target = snapshot.file
+        if Path.equals(source, target) do
+            fail Core.Errors.BadParameterError{"a capture cannot duplicate itself"}
+        defer #fail discard catch deleteFiles(target)
+        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
+        {
+            let media = mediaPathOf(source, kind)
+            if File.exists(media) do
+                try File.duplicate(mediaPathOf(target, kind), media)
+        }
+        try writeScc(snapshot)
     }
 
     private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool) fail

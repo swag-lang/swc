@@ -306,6 +306,7 @@ struct CaptureDuplicateJob
     task:   Swag.Task
     source: String
     target: String
+    snapshot: *CaptureSaveJob?
     error:  Swag.Error
 }
 

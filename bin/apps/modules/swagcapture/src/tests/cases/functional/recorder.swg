@@ -137,6 +137,21 @@ internal func testEndRecording()
 
     owned.changed = true
     expect owned.save()
+    owned.title = "Unsaved video copy"
+    owned.linkedImage = Gui.Testing.tempFilePath("capture-linked-video-", ".png")
+    owned.changed = true
+    let duplicatePath = Library.newFileName()
+    defer discard catch Capture.deleteFiles(duplicatePath)
+    let snapshot = expect owned.snapshotDuplicate(duplicatePath)
+    defer Memory.delete(snapshot)
+    expect Capture.duplicateSnapshot(document, snapshot)
+    let duplicate = expect Capture.load(duplicatePath)
+    defer Memory.delete(duplicate)
+    Swag.require(duplicate.title == "Unsaved video copy" and duplicate.linkedImage.isEmpty())
+    Swag.require(duplicate.media == .Video and duplicate.timeline.frameCount == owned.timeline.frameCount)
+    let duplicateMedia = expect File.readAllBytes(Capture.mediaPathOf(duplicatePath, .Video))
+    let sourceMedia = expect File.readAllBytes(file)
+    Swag.require(Slice.equals(duplicateMedia.toSlice(), sourceMedia.toSlice()))
     let loaded = expect Capture.load(document)
     defer Memory.delete(loaded)
     Swag.require(loaded.media == .Video and loaded.frames != null)

@@ -400,6 +400,8 @@ impl IWnd for MainWnd
             .duplicateJob = null
             job.task.cancel()
             job.task.wait()
+            if job.snapshot do
+                Memory.delete(job.snapshot)
             Memory.delete(job)
         }
         .stopTimer(&.copyTimer)
@@ -932,6 +934,27 @@ impl MainWnd
         .startDuplicateCapture()
     }
 
+    mtd requestDuplicateActiveCapture(capture: *Capture)
+    {
+        if .duplicateJob or not .duplicateSource.isEmpty() do
+            return
+        let target = Library.newFileName()
+        let snapshot = catch capture.snapshotDuplicate(target)
+        {
+            .reportFailure(appStrings().msg_FailedDuplicate, capture.file)
+            return
+        }
+        let job = Memory.new'CaptureDuplicateJob()
+        job.source = capture.file
+        job.target = target
+        job.snapshot = snapshot
+        .duplicateJob = job
+        job.task.submit(func|job|()
+        {
+            catch Capture.duplicateSnapshot(job.source, unwrap job.snapshot) as job.error
+        }, .taskNotifier(&job.task))
+    }
+
     private mtd startDuplicateCapture()
     {
         if .duplicateJob or .duplicateSource.isEmpty() do
@@ -970,6 +993,8 @@ impl MainWnd
         let source = job.source
         let target = job.target
         let failed = not job.error.isEmpty()
+        if job.snapshot do
+            Memory.delete(job.snapshot)
         Memory.delete(job)
         if failed
         {

@@ -229,9 +229,10 @@ impl IActionUI for ActionFile
             }
 
         case .DupCapture:
-            if not main.libraryMode do
-                main.saveCapture(capture)
-            main.requestDuplicateCapture(capture.file)
+            if main.libraryMode do
+                main.requestDuplicateCapture(capture.file)
+            else do
+                main.requestDuplicateActiveCapture(capture)
 
         case .RenameCapture:
 

@@ -76,15 +76,17 @@ whole recording loaded at once.
   owned worker loads the full document before composition. For still images, the interface renders
   the pixels and a second worker encodes and atomically replaces the output. Duplicate rewrites the
   model on a worker while copying stored image chunks and timed-media files, and refreshes an
-  already-open library when complete. Library Copy and selected-library Export also decode on
+  already-open library when complete. Duplicating the active editor now snapshots its unsaved
+  model and images at the click, then writes the new SCC and copies timed media on a worker;
+  the original keeps its dirty state for its normal save. Library Copy and selected-library
+  Export also decode on
   workers. Exporting an unchanged video from the editor, an individual library selection or a
   selected-library batch now copies its MP4 on a worker and publishes it atomically, without
   borrowing the editable capture. The batch waits for each copy before reporting completion. Image
   composition and timed-media encoding for edited captures still run on the interface thread.
   A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old full-load path.
 - Next: move timed-media copy/export encoding away from the interface where renderer ownership
-  permits, and eliminate the synchronous explicit save before duplicating the active capture.
-  Preserve save ordering and failure reports.
+  permits. Preserve save ordering and failure reports.
 - Done when no user action decodes an inactive capture on the interface thread, and cancel,
   failure and window-close paths release each background result.
 - Related: app.capture.024, app.capture.025, language.parallelism.001
@@ -184,8 +186,10 @@ whole recording loaded at once.
 
 - Evidence: X11 excludes a pill overlapping the area during root grabs, covered by an isolated
   display test. Windows applies `WDA_EXCLUDEFROMCAPTURE` to the pill and frame; the native browser
-  integration exercises that recording path, but does not force chrome overlap or assert its
-  removal from the captured pixels. Video target visibility and sound servicing remain
+  integration now checks that Windows accepted affinity `0x11` for the pill, and that the pill
+  overlaps the selected virtual desktop when all screens are recorded. Its last decoded frame
+  was visually inspected without recording controls. The scenario still does not assert their
+  removal from captured pixels. Video target visibility and sound servicing remain
   app.capture.011/app.capture.013.
 - Next: the native full-screen runner now records one monitor and the virtual desktop; assert
   that its frames contain neither the frame nor the pill, including a display where the pill

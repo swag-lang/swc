@@ -287,3 +287,24 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     Swag.require(picker.selectedColor.r == 0x40)
     Swag.require(CompositeColorChangedCount == 2)
 }
+
+// Committing an unchanged color component normalizes the editor without publishing a change.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(380, 360)
+    CompositeColorChangedCount = 0
+
+    let picker = ColorPickerCtrl.create(&host.root, {0, 0, 340, 330})
+    picker.setColor(Argb.Red)
+    picker.sigColorChanged += &compositeColorChanged
+
+    picker.editR.setText("255", false)
+    picker.editR.sigCommitted.call(picker.editR)
+    Swag.require(picker.selectedColor == Argb.Red and CompositeColorChangedCount == 0)
+    Swag.require(picker.editR.text() == "255")
+
+    picker.editR.setText("128", false)
+    picker.editR.sigCommitted.call(picker.editR)
+    Swag.require(picker.selectedColor.r == 128 and CompositeColorChangedCount == 1)
+}

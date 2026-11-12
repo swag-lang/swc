@@ -131,6 +131,13 @@ private impl ColorPickerCtrl
         .updateEdits()
         .updateMode()
     }
+
+    mtd publishEditedColor(previous: Color)
+    {
+        .updateAll()
+        if .selectedColor != previous do
+            .sigColorChanged.call(me)
+    }
 }
 
 impl ColorPickerCtrl
@@ -302,52 +309,52 @@ impl ColorPickerCtrl
             .editR.setMaximumLength(3)
             .editR.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res      = catch StrConv.parseU32(ed.text())
+                let previous = v.selectedColor
                 v.selectedColor.r = cast(Math.clamp(res.value, 0, 255))
-                v.updateAll()
-                v.sigColorChanged.call(v)
+                v.publishEditedColor(previous)
             }
 
             .editG.setUnsignedIntegerRange(0, 255)
             .editG.setMaximumLength(3)
             .editG.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res      = catch StrConv.parseU32(ed.text())
+                let previous = v.selectedColor
                 v.selectedColor.g = cast(Math.clamp(res.value, 0, 255))
-                v.updateAll()
-                v.sigColorChanged.call(v)
+                v.publishEditedColor(previous)
             }
 
             .editB.setUnsignedIntegerRange(0, 255)
             .editB.setMaximumLength(3)
             .editB.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res      = catch StrConv.parseU32(ed.text())
+                let previous = v.selectedColor
                 v.selectedColor.b = cast(Math.clamp(res.value, 0, 255))
-                v.updateAll()
-                v.sigColorChanged.call(v)
+                v.publishEditedColor(previous)
             }
 
             .editA.setUnsignedIntegerRange(0, 255)
             .editA.setMaximumLength(3)
             .editA.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res      = catch StrConv.parseU32(ed.text())
+                let previous = v.selectedColor
                 v.selectedColor.a = cast(Math.clamp(res.value, 0, 255))
-                v.pickAlpha.setColor(v.selectedColor, false)
-                v.updateEdits(true)
+                v.publishEditedColor(previous)
             }
 
             .editHex.setHexadecimalRange(0, 0xFFFFFFFF)
             .editHex.setMaximumLength(8)
             .editHex.sigCommitted += func|v|(ed)
             {
-                var res = catch StrConv.parseX64(ed.text())
+                var res      = catch StrConv.parseX64(ed.text())
+                let previous = v.selectedColor
                 if not v.flags.has(.AllowAlpha) do
                     res.value |= 0xFF000000
                 v.selectedColor.argb = cast(u32, res.value)
-                v.updateAll()
-                v.sigColorChanged.call(v)
+                v.publishEditedColor(previous)
             }
 
             .radioH.sigChanged += func|v|(_)

@@ -166,32 +166,49 @@ impl NativeSource
         }
     }
 
-    func open(options: SourceOptions)->NativeSource fail
+    func open(options: SourceOptions, shared: *NativeSource? = null)->NativeSource fail
     {
         if options.includeCursor do
             fail UnsupportedFormatError{"DXGI screen capture does not include a separate pointer yet"}
         var result: #returntype
         result.options = options
-        let hr = D3D11CreateDevice(null, D3D_DRIVER_TYPE_HARDWARE, null,
-                                   D3D11_CREATE_DEVICE_BGRA_SUPPORT, null, 0,
-                                   D3D11_SDK_VERSION, &result.device, null, &result.context)
-        if hr < 0 do
-            fail SystemError{"cannot create screen capture graphics device", errorID: cast(u64, cast #bit (u32, hr))}
-
+        if let existing = shared
+        {
+            result.device = existing.device
+            result.context = existing.context
+            result.adapter = existing.adapter
+            let deviceRef = cast(*IUnknown, cast(*void, unwrap result.device))
+            let contextRef = cast(*IUnknown, cast(*void, unwrap result.context))
+            let adapterRef = cast(*IUnknown, cast(*void, unwrap result.adapter))
+            discard deviceRef.lpVtbl.AddRef(deviceRef)
+            discard contextRef.lpVtbl.AddRef(contextRef)
+            discard adapterRef.lpVtbl.AddRef(adapterRef)
+        }
+        else
+        {
+            let hr = D3D11CreateDevice(null, D3D_DRIVER_TYPE_HARDWARE, null,
+                                       D3D11_CREATE_DEVICE_BGRA_SUPPORT, null, 0,
+                                       D3D11_SDK_VERSION, &result.device, null, &result.context)
+            if hr < 0 do
+                fail SystemError{"cannot create screen capture graphics device", errorID: cast(u64, cast #bit (u32, hr))}
+            let device = unwrap result.device
+            let deviceUnknown = cast(*IUnknown, cast(*void, device))
+            var rawDevice: LPVOID
+            let deviceId = IID_IDXGIDevice
+            var statusDevice = deviceUnknown.lpVtbl.QueryInterface(deviceUnknown, &deviceId, &rawDevice)
+            if statusDevice < 0 do
+                fail SystemError{"cannot query screen capture display device", errorID: cast(u64, cast #bit (u32, statusDevice))}
+            let displayDevice = cast(*IDXGIDevice, unwrap rawDevice)
+            defer release(displayDevice)
+            statusDevice = displayDevice.lpVtbl.GetAdapter(displayDevice, &result.adapter)
+            if statusDevice < 0 do
+                fail SystemError{"cannot find screen capture display adapter", errorID: cast(u64, cast #bit (u32, statusDevice))}
+        }
         let device = unwrap result.device
         let unknown = cast(*IUnknown, cast(*void, device))
         var raw: LPVOID
-        let deviceId = IID_IDXGIDevice
-        var status = unknown.lpVtbl.QueryInterface(unknown, &deviceId, &raw)
-        if status < 0 do
-            fail SystemError{"cannot query screen capture display device", errorID: cast(u64, cast #bit (u32, status))}
-        let displayDevice = cast(*IDXGIDevice, unwrap raw)
-        defer release(displayDevice)
-
-        status = displayDevice.lpVtbl.GetAdapter(displayDevice, &result.adapter)
-        if status < 0 do
-            fail SystemError{"cannot find screen capture display adapter", errorID: cast(u64, cast #bit (u32, status))}
         let adapter = unwrap result.adapter
+        var status: HRESULT
         let right  = cast(s64, options.x) + options.width
         let bottom = cast(s64, options.y) + options.height
         var index: u32
@@ -256,7 +273,9 @@ impl NativeSource
         Swag.assert(not .pending)
         .updatedBounds = RECT{}
         .pendingMultiRect = false
-        let duplication = unwrap .duplication
+        if not .duplication do
+            fail SystemError{"screen capture output was lost"}
+        let duplication = .duplication
         var info: DXGI_OUTDUPL_FRAME_INFO
         var resource: *IDXGIResource?
         let acquireStart = Time.monotonicMicroseconds()
@@ -418,9 +437,12 @@ impl NativeSource
         .metrics.copiedPixels += cast(u64, rect.right - rect.left) * cast(u64, rect.bottom - rect.top)
     }
 
-    mtd reopen() fail
+    mtd reopen(shared: *NativeSource? = null) fail
     {
-        var replacement = try NativeSource.open(.options)
+        let options = .options
+        // DXGI permits only one duplication of a given output in this process.
+        .opDrop()
+        var replacement = try NativeSource.open(options, shared)
         Core.swap(me, &replacement)
     }
 
@@ -428,12 +450,19 @@ impl NativeSource
     {
         .abortGrab()
         release(.staging)
+        .staging = null
         release(.duplication)
+        .duplication = null
         release(.output1)
+        .output1 = null
         release(.output)
+        .output = null
         release(.adapter)
+        .adapter = null
         release(.context)
+        .context = null
         release(.device)
+        .device = null
     }
 }
 
@@ -464,8 +493,27 @@ impl Source
             {
                 let native = .sources[beginIndex]
                 discard try native.beginGrab()
-                if .sources.count > 1 do
-                    native.flushReadback()
+            }
+            if .sources.count > 1
+            {
+                for flushIndex in .sources.count
+                {
+                    let native = .sources[flushIndex]
+                    if not native.pending do
+                        continue
+                    var flushed = false
+                    for previous in flushIndex
+                    {
+                        let earlier = .sources[previous]
+                        if earlier.pending and earlier.context == native.context
+                        {
+                            flushed = true
+                            break
+                        }
+                    }
+                    if not flushed do
+                        native.flushReadback()
+                }
             }
 
             for finishIndex in .sources.count

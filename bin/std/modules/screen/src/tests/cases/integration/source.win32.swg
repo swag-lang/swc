@@ -56,6 +56,18 @@ using Core, Pixel
     Swag.require(native.pending)
     native.abortGrab()
     Swag.require(not native.pending and native.pendingResource == null and native.pendingTexture == null)
+    let originalX = native.options.x
+    native.options.x = Env.getSystemMetric(.DesktopX) + Env.getSystemMetric(.DesktopWidth) + 32
+    var rejected = false
+    catch native.reopen() { rejected = true }
+    Swag.require(rejected, "reopening an unavailable output should fail")
+    rejected = false
+    discard catch native.beginGrab() { rejected = true }
+    Swag.require(rejected, "a failed reopen should leave a recoverable source")
+    native.options.x = originalX
+    expect native.reopen()
+    Swag.require(expect native.beginGrab())
+    native.abortGrab()
 }
 
 // A single output reuses its composed frame and updates a stable caller image.
@@ -102,7 +114,14 @@ using Core, Pixel
         return
 
     var source = expect Source.open({left, top, right - left, Math.min(bottom - top, 128), false})
+    Swag.require(source.sources.count >= 2 and
+                 source.sources[0].device == source.sources[1].device and
+                 source.sources[0].context == source.sources[1].context)
     var image: Image
+    discard expect source.grabInto(&image)
+    expect source.reopen()
+    Swag.require(source.sources[0].device == source.sources[1].device and
+                 source.sources[0].context == source.sources[1].context)
     discard expect source.grabInto(&image)
     for native in source.sources do
         Swag.require(not native.pending)

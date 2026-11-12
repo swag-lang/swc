@@ -230,17 +230,11 @@ impl Image
         }
         else
         {
-            let step = cast(s32, Math.floor(cast(f32, N) / M))
-            var w    = 0's32
-            for var i = 0; i < N; i += step
+            for sample in 0 to (M - 1)
             {
-                if w >= M do
-                    break
-                tmp[w] = buf[i]
-                w      += 1
+                let index = cast(s32, (cast(s64, sample) * (N - 1) / (M - 1)))
+                tmp[sample] = buf[index]
             }
-
-            M = w
         }
 
         tmp.sort()

@@ -66,18 +66,18 @@ whole recording loaded at once.
 
 ### app.capture.021 — Loading a capture blocks the interface during decode
 
-- Evidence: Pointer and lens selection now decode through an owned background task, keep the
-  preview visible, wait for a save of the same file without blocking input, discard superseded
-  results, and join at shutdown. `RecentView.select` and `RecentWnd.addRecent(sel: true)` still
-  open synchronously for library and explicit file actions. The first startup capture is also
-  decoded on the interface thread; `selectLoaded` still saves the outgoing edited capture
-  synchronously. A 2341x1903 BGRA8 capture took a few hundred milliseconds.
-- Next: move library/file selection and the initial startup decode to the same asynchronous
-  ownership path, then schedule the outgoing capture save without blocking the interface.
-  Preserve the immediate document handoff needed by capture creation.
-- Done when: every user-triggered recent open keeps input responsive, delayed loads cannot
-  replace a newer selection, failures leave a useful preview and diagnostic, and shutdown joins
-  outstanding work.
+- Evidence: All recent selections, including library opens, explicit file opens, deletion
+  replacements and the first startup document, now decode through an owned background task.
+  The outgoing edited capture is snapshotted before switching and saved on a worker. Other
+  user actions still call full `Capture.load` on the interface thread: inactive metadata edits
+  and library export in `src/librarywnd.selection.swg`, inactive rename and copy in
+  `src/mainwnd.swg`, duplicate and library Save as Image in `src/actions/actionfile.swg`.
+  A 2341x1903 BGRA8 capture took a few hundred milliseconds on that path.
+- Next: move these remaining full loads off the interface thread, or update SCC metadata
+  without decoding pixels where the action only edits the manifest/model. Keep the renderer
+  work of copy and export on its owning thread, and preserve save ordering and failure reports.
+- Done when no user action decodes an inactive capture on the interface thread, and cancel,
+  failure and window-close paths release each background result.
 - Related: app.capture.024, app.capture.025, language.parallelism.001
 
 ### app.capture.024 — Revisiting a recent capture decodes its full image again

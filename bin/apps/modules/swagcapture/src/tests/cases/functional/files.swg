@@ -543,6 +543,9 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.pump()
 
     Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.recentView.selected == Swag.U64.Max)
+    f.main.recentWnd.loadJob!.task.wait()
+    f.gui.pump()
     Swag.require(f.main.recentWnd.recentView.selected == 0)
 
     let duplicatedPath = f.main.recentWnd.recentView.items[0]!.file
@@ -576,6 +579,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     let loaded = expect f.main.recentWnd.addRecent(capturePath, true, true)
     Memory.delete(loaded)
+    f.main.recentWnd.loadJob!.task.wait()
+    f.gui.pump()
     Swag.require(f.main.recentWnd.recentView.selected == 0)
 
     // The library observer is registered after the history observer, as it is when the user
@@ -652,7 +657,10 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     lib.view.focusItem = 0
     f.main.libraryMode = true
 
-    f.main.recentWnd.recentView.select(0)
+    f.main.recentWnd.recentView.requestSelect(0)
+    f.main.recentWnd.loadJob!.task.wait()
+    f.gui.pump()
+    Swag.require(g_CaptureSaves.flush().isEmpty())
 
     let saved = expect Capture.load(editorPath)
     defer Memory.delete(saved)
@@ -711,13 +719,64 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Swag.require(recent.recentView.selected == 1)
     Swag.require(f.main.editWnd.getCapture()!.file == secondPath)
 
-    // An immediate selection supersedes a decode that has already been submitted.
+    // Canceling a submitted decode leaves the active document intact.
     recent.recentView.requestSelect(0)
-    recent.recentView.select(1)
+    recent.cancelRequestedSelection()
     recent.loadJob.task.wait()
     f.gui.pump()
     Swag.require(recent.recentView.selected == 1)
     Swag.require(f.main.editWnd.getCapture()!.file == secondPath)
+}
+
+// Switching after a second edit preserves that final version even when an earlier background
+// save is still using the one writer slot.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let previousPath = testPrepareSavedCapture(f.capture)
+    defer discard catch File.delete(previousPath)
+    f.capture.title   = "Earlier edit"
+    f.capture.changed = true
+    expect f.capture.scheduleSave()
+    f.capture.title   = "Final edit"
+    f.capture.changed = true
+
+    let next = Memory.new'Capture()
+    next.width, next.widthOrg   = 43
+    next.height, next.heightOrg = 31
+    next.backImg               = Gui.Testing.indexedImage(43, 31)
+    next.preview               = Gui.Testing.indexedImage(32, 20)
+    let nextPath = testPrepareSavedCapture(next)
+    defer
+    {
+        discard catch File.delete(nextPath)
+        Memory.delete(next)
+    }
+
+    let recent = f.main.recentWnd
+    recent.addRecent(nextPath, next.preview)
+    recent.recentView.requestSelect(0)
+    recent.loadJob!.task.wait()
+    f.gui.pump()
+
+    // The first save may still own the slot when decode finishes. Let it complete, then
+    // publish the new document after the final outgoing edit has been snapshotted.
+    if recent.selectionTimer
+    {
+        g_CaptureSaves.pending!.task.wait()
+        f.gui.fireTimer(recent.selectionTimer)
+    }
+    Swag.require(recent.recentView.selected == 0)
+    Swag.require(f.main.editWnd.getCapture()!.file == nextPath)
+    Swag.require(g_CaptureSaves.flush().isEmpty())
+
+    let saved = expect Capture.load(previousPath)
+    defer Memory.delete(saved)
+    Swag.require(saved.title == "Final edit")
 }
 
 // A failed background open leaves the existing editor and the recent preview available, and
@@ -787,10 +846,14 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
 
     f.main.recentWnd.addRecent(firstPath, first.preview, front: false)
     f.main.recentWnd.addRecent(secondPath, second.preview, front: false)
-    f.main.recentWnd.recentView.select(0)
+    f.main.recentWnd.recentView.requestSelect(0)
+    f.main.recentWnd.loadJob!.task.wait()
+    f.gui.pump()
     f.main.editWnd.editView.setZoom(1.75)
 
     f.main.recentWnd.addRecent(secondPath, second.preview, front: true, sel: true)
+    f.main.recentWnd.loadJob.task.wait()
+    f.gui.pump()
 
     Swag.require(f.main.recentWnd.recentView.items[0]!.file == secondPath)
     Swag.require(f.main.recentWnd.recentView.items[1]!.file == firstPath)
@@ -798,9 +861,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Swag.require(f.main.recentWnd.recentView.selected == 0)
 }
 
-// Startup must not validate the complete library before showing the recent strip. The newest
-// capture is loaded directly into the editor, while the full library index stays lazy until the
-// user opens the library surface.
+// Startup displays the first preview before decoding its full image, while the complete library
+// index stays lazy until the user opens the library surface.
 #test
 {
     var f: HeadlessFixture
@@ -832,9 +894,15 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.fireTimer(f.main.recentWnd.loadTimer)
     Swag.require(f.main.recentWnd.loadDone)
     Swag.require(f.main.recentWnd.pendingRecentFiles.count == 1)
-    Swag.require(f.main.editWnd.getCapture()!.file == capturePath)
+    Swag.require(f.main.editWnd.getCapture() == null)
+    Swag.require(f.main.recentWnd.recentView.items.count == 1)
+    Swag.require(f.main.recentWnd.loadJob != null)
     Swag.require(not f.main.recentWnd.loadTimer)
     Swag.require((expect Library.enumerateSupportedFiles(root)).count == 1)
+
+    f.main.recentWnd.loadJob.task.wait()
+    f.gui.pump()
+    Swag.require(f.main.editWnd.getCapture()!.file == capturePath)
 
     // The same basename remains an ordinary capture outside the reserved state path.
     let elsewhere = Path.combine(root, "elsewhere")

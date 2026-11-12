@@ -106,6 +106,8 @@ impl MainWnd
     // Switches between the editor and the library.
     mtd swapLibraryMode()
     {
+        if .libraryMode and .recentWnd.returnToEditor do
+            .recentWnd.cancelRequestedSelection()
         .libraryMode = not .libraryMode
 
         // The work area carries the dock, the inspector, the mini-bar and the hint line of the

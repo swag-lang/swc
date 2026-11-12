@@ -217,7 +217,11 @@ impl IActionUI for ActionFile
 
             g_Library.addFile(file)
 
-            catch { Memory.delete(try main.recentWnd.addRecent(file, true, true)) }
+            catch
+            {
+                Memory.delete(try main.recentWnd.addRecent(file))
+                main.recentWnd.recentView.requestSelect(0)
+            }
 
         case .RenameCapture:
 

@@ -552,7 +552,17 @@ impl MainWnd
         var done = false
         for md in imgToLoad.metadata where md.isTag(CaptureFileMetadataTag)
         {
-            catch { Memory.delete(try .recentWnd.addRecent(cast(string, md.toSlice()), true, true)) }
+            let linkedCapture = catch .recentWnd.addRecent(cast(string, md.toSlice())) { break }
+            let linkedFile = String.from(linkedCapture.file)
+            Memory.delete(linkedCapture)
+            let active = .editWnd.getCapture()
+            if not active or active.file != linkedFile do
+                .recentWnd.requestSelection(linkedFile, false, {}, returnToEditor: .libraryMode)
+            elif .libraryMode
+            {
+                .swapLibraryMode()
+                .updateState()
+            }
             done = true
             break
         }
@@ -560,7 +570,7 @@ impl MainWnd
         if not done do
             .newCapture(imgToLoad, arg)
 
-        if .libraryMode
+        if .libraryMode and not done
         {
             .swapLibraryMode()
             .updateState()

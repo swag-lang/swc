@@ -95,6 +95,7 @@ internal struct InfoSheetBlock
     mono:      bool       // Whether the value is a measure, set in the fixed-width face.
     wrapped:   bool       // Whether the value of a reading runs on several lines, from the latest layout.
     id:        WndId?     // Command a link posts.
+    commandId: String     // Owns a dynamically supplied link command for as long as the block exists.
     left:      f32        // Indent of the block in the body, from the latest layout.
     top:       f32        // Top of the block in the body, from the latest layout.
     width:     f32        // Width of a fact, or of the link of a footnote, from the latest layout.
@@ -547,7 +548,9 @@ impl InfoSheet
     // Appends a link in Arc that posts the command `id` when it is clicked.
     mtd addLink(text: string, id: WndId)
     {
-        .blocks.add(InfoSheetBlock{kind: .Link, label: text, id: id, page: .writingPage})
+        .blocks.add(InfoSheetBlock{kind: .Link, label: text, page: .writingPage})
+        .blocks[.blocks.count - 1].commandId = id
+        .blocks[.blocks.count - 1].id        = .blocks[.blocks.count - 1].commandId.toString()
         .relayout()
     }
 
@@ -555,7 +558,12 @@ impl InfoSheet
     // posting the command `id` when `link` is not empty.
     mtd addFootnote(text: string, link: string = "", id: WndId? = null)
     {
-        .blocks.add(InfoSheetBlock{kind: .Footnote, label: text, value: link, id: id, page: .writingPage})
+        .blocks.add(InfoSheetBlock{kind: .Footnote, label: text, value: link, page: .writingPage})
+        if id
+        {
+            .blocks[.blocks.count - 1].commandId = id
+            .blocks[.blocks.count - 1].id        = .blocks[.blocks.count - 1].commandId.toString()
+        }
         .relayout()
     }
 

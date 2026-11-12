@@ -26,6 +26,38 @@ func triCount(pts: [..] Vector2)->u64
     return n
 }
 
+#test
+{
+    // Collinear subdivisions on the far edge cross the pairwise/grid threshold without
+    // changing this concave contour or its near-endpoint intersection.
+    var small: Pixel.Polygon
+    small.add({0, 0})
+    small.add({14.28, 0})
+    small.add({14.285715, -1})
+    small.add({14.285715, 1})
+    small.add({100, 1})
+    small.add({100, 10})
+    small.add({0, 10})
+    small.recompute()
+
+    var large: Pixel.Polygon
+    large.add({0, 0})
+    large.add({14.28, 0})
+    large.add({14.285715, -1})
+    large.add({14.285715, 1})
+    large.add({100, 1})
+    large.add({100, 10})
+    for i in 1 until 44 do
+        large.add({100 * (1 - cast(f32, i) / 44), 10})
+    large.add({0, 10})
+    large.recompute()
+
+    Swag.require(small.points.count == 7 and large.points.count == 50)
+    Swag.require(small.minBounds == large.minBounds and small.maxBounds == large.maxBounds)
+    Swag.require(Math.isEqualEpsilon(small.area, large.area, 0.001))
+    Swag.require(not small.isSimple and not large.isSimple)
+}
+
 // Cached geometry is identical whether the caller stores a conventional contour
 // or repeats the first point as an explicit closing vertex.
 #test

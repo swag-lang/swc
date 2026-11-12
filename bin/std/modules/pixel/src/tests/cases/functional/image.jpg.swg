@@ -260,6 +260,25 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(errorOutcome.value() != null)
 }
 
+#test
+{
+    var image = Image.create(1, 1, .BGR8)
+    var record: ImageMetadata
+    record.signature = 1
+    record.tag.add(0x41'u8)
+    record.tag.add(0'u8)
+    record.tag.add(0x42'u8)
+    record.value = "payload"
+    image.metadata.add(record)
+
+    var encoded:      ConcatBuffer
+    var errorOutcome: Swag.Error
+    catch { encoded = try image.encode("nul-metadata-tag.jpg") } as errorOutcome
+    let error = errorOutcome.value()
+    Swag.require(error is UnsupportedFormatError)
+    Swag.require(Errors.message(error) == "JPEG metadata tags cannot contain NUL")
+}
+
 // Invalid and truncated buffers should fail without producing an image.
 #test
 {

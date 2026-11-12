@@ -71,6 +71,8 @@ impl Encoder
         {
             if md.signature > 15 do
                 fail UnsupportedFormatError{"JPEG metadata signatures must be from 0 through 15"}
+            for c in md.tag where c == 0 do
+                fail UnsupportedFormatError{"JPEG metadata tags cannot contain NUL"}
             if md.tag.count > 65_532 do
                 fail UnsupportedFormatError{"JPEG metadata tag and value exceed the segment size limit"}
             if md.value.count > 65_532 - md.tag.count do

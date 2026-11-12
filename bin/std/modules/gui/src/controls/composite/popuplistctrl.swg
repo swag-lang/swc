@@ -17,6 +17,8 @@ struct PopupListCtrlItem
         // entry without becoming a grid of buttons.
         contentPainter: (func||(*PopupListCtrlItem, *PaintContext, Math.Rectangle, PaintItemFlags))?
     }
+
+    commandId: String     // Owns a dynamically supplied identifier for as long as this item exists.
 }
 
 // Displays a temporary list that commits one highlighted item or reports cancellation.
@@ -467,7 +469,8 @@ impl PopupListCtrl
         {
             .name      = name
             .icon      = icon
-            .id        = id
+            .commandId = id orelse ""
+            .id        = id ? .commandId.toString() : null
             .userData0 = userData0
             .userData1 = userData1
         }

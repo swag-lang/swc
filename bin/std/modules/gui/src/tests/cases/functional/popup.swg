@@ -101,6 +101,20 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     host.pump()
 }
 
+// A popup list item keeps its command identifier after the source string changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 200)
+    let popup    = PopupListCtrl.create(&host.root)
+    let expected = "PopupList.Dynamic.Command.Identifier"
+    var source   = Core.String.from(expected)
+    let item     = popup.addItem("Entry", source.toString())
+    source[0] = 'X'
+
+    Swag.require(item.id == expected)
+}
+
 // The popup lets the scrolling list grow into its right padding without moving its text.
 #test
 {

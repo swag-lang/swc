@@ -64,6 +64,25 @@ using Swag, Core
     }
 }
 
+#test
+{
+    let source  = "<svg width='1e30' viewBox='0 0 1e30 1e30'/>"
+    let drawing = expect Svg.Drawing.parse(source)
+    let size    = drawing.naturalSize()
+    Swag.require(Math.isFinite(size.x) and
+                 Math.isFinite(size.y) and
+                 size.x == 1e30 and
+                 size.y == 1e30)
+    Swag.require((expect Svg.parseImageSize(source)) == size)
+
+    var error: Swag.Error
+    let tooLarge = "<svg width='1e30' viewBox='0 0 1 1e30'/>"
+    discard catch Svg.parseImageSize(tooLarge) as error
+    Swag.require(error.value() is Swag.SystemError)
+    discard catch Svg.Drawing.parse(tooLarge) as error
+    Swag.require(error.value() is Swag.SystemError)
+}
+
 private const ManyStopSvg = """\
     <svg width='20' height='8'>\
     <style>.accent { fill: url(#many); }</style>\

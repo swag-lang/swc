@@ -3584,8 +3584,8 @@ internal impl Shape
 // Parses the root viewport's natural image size in CSS pixels without decoding its contents.
 //
 // The same width, height and view-box rules as [[Pixel.Svg.Drawing.naturalSize]] apply.
-// Missing or nonpositive viewport dimensions fail. Child elements and their resources are
-// deliberately not validated; use [[Pixel.Svg.Drawing.parse]] to prepare the complete drawing.
+// Missing, nonpositive, or unrepresentable natural dimensions fail. Child elements and their
+// resources are deliberately not validated; use [[Pixel.Svg.Drawing.parse]] to prepare the complete drawing.
 func parseImageSize(text: string)->Vector2 fail
 {
     var drawing: Drawing
@@ -3594,8 +3594,14 @@ func parseImageSize(text: string)->Vector2 fail
     try parser.parseContent(root)
     if drawing.width <= 0 or drawing.height <= 0 do
         fail Swag.SystemError{"SVG document has no valid dimensions"}
-    return drawing.naturalSize()
+    let size = drawing.naturalSize()
+    if not validNaturalSize(size) do
+        fail Swag.SystemError{"SVG document has no finite image size"}
+    return size
 }
+
+private func validNaturalSize(size: Vector2)->bool =>
+    size.x > 0 and size.y > 0 and Math.isFinite(size.x) and Math.isFinite(size.y)
 
 impl Drawing
 {
@@ -3614,9 +3620,11 @@ impl Drawing
         if .imageSize.x > 0 and .imageSize.y > 0 do
             return .imageSize
         if .imageSize.x > 0 and .width > 0 do
-            return Vector2{.imageSize.x, .imageSize.x * .height / .width}
+            return Vector2{.imageSize.x,
+                           cast(f32, cast(f64, .imageSize.x) * cast(f64, .height) / cast(f64, .width))}
         if .imageSize.y > 0 and .height > 0 do
-            return Vector2{.imageSize.y * .width / .height, .imageSize.y}
+            return Vector2{cast(f32, cast(f64, .imageSize.y) * cast(f64, .width) / cast(f64, .height)),
+                           .imageSize.y}
         return Vector2{.width, .height}
     }
 
@@ -3633,6 +3641,7 @@ impl Drawing
     // fits a referenced `symbol`'s view box into the size it asks for, and markers are
     // placed on authored vertices with the tangent orientation `orient="auto"` states.
     // A reference to an identifier the document does not define leaves its element alone.
+    // Missing, nonpositive, or unrepresentable natural dimensions fail.
     //
     // `options` confines external image references and selects the typefaces for text;
     // see [[Pixel.Svg.ParseOptions]]. Unknown elements and attributes are ignored.
@@ -3651,6 +3660,8 @@ impl Drawing
 
         if result.width <= 0 or result.height <= 0 do
             fail Swag.SystemError{"SVG document has no valid dimensions"}
+        if not validNaturalSize(result.naturalSize()) do
+            fail Swag.SystemError{"SVG document has no finite image size"}
 
         result.measureItems()
         return result

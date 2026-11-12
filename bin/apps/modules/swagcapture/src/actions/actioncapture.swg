@@ -336,6 +336,7 @@ impl MainWnd
                 .file = Library.newFileName()
         }
 
+        .recentWnd.cancelRequestedSelection()
         .editWnd.editView.setCapture(capture)
         .editWnd.editView.zoomToFit(false)
 

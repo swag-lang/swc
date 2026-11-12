@@ -13,6 +13,7 @@ ui_MenuAlign           Aligner
 ui_MenuArrange         Disposer
 ui_AllCaptures         Tous les éléments
 ui_ImageBadge          IMAGE
+ui_Loading             Chargement…
 ui_CommaSeparatedTags  Étiquettes séparées par des virgules
 ui_Search              Rechercher
 ui_NoMatchingFonts     Aucune police ne correspond à la recherche.

@@ -660,6 +660,98 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Swag.require(f.main.editWnd.getCapture()!.file == otherPath)
 }
 
+// A later recent selection wins while the first file is still decoding, and the editor keeps
+// its current capture until the requested file is ready.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let first = Memory.new'Capture()
+    first.width, first.widthOrg   = 41
+    first.height, first.heightOrg = 29
+    first.backImg                 = Gui.Testing.indexedImage(41, 29)
+    first.preview                 = Gui.Testing.indexedImage(32, 20)
+    let firstPath = testPrepareSavedCapture(first)
+    defer
+    {
+        discard catch File.delete(firstPath)
+        Memory.delete(first)
+    }
+
+    let second = Memory.new'Capture()
+    second.width, second.widthOrg   = 43
+    second.height, second.heightOrg = 31
+    second.backImg                 = Gui.Testing.indexedImage(43, 31)
+    second.preview                 = Gui.Testing.indexedImage(32, 20)
+    let secondPath = testPrepareSavedCapture(second)
+    defer
+    {
+        discard catch File.delete(secondPath)
+        Memory.delete(second)
+    }
+
+    let recent = f.main.recentWnd
+    recent.addRecent(firstPath, first.preview, front: false)
+    recent.addRecent(secondPath, second.preview, front: false)
+    recent.recentView.requestSelect(0)
+    recent.recentView.requestSelect(1)
+
+    // The first decode may finish, but only the last requested file may enter the editor.
+    Swag.require(recent.recentView.selected == Swag.U64.Max)
+    Swag.require(f.main.editWnd.getCapture() == f.capture)
+    recent.loadJob!.task.wait()
+    f.gui.pump()
+    Swag.require(recent.loadJob and recent.loadJob.file == secondPath)
+    recent.loadJob.task.wait()
+    f.gui.pump()
+    Swag.require(recent.loadJob == null)
+    Swag.require(recent.recentView.selected == 1)
+    Swag.require(f.main.editWnd.getCapture()!.file == secondPath)
+
+    // An immediate selection supersedes a decode that has already been submitted.
+    recent.recentView.requestSelect(0)
+    recent.recentView.select(1)
+    recent.loadJob.task.wait()
+    f.gui.pump()
+    Swag.require(recent.recentView.selected == 1)
+    Swag.require(f.main.editWnd.getCapture()!.file == secondPath)
+}
+
+// A failed background open leaves the existing editor and the recent preview available, and
+// reports the file that could not be opened.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 41
+    capture.height, capture.heightOrg = 29
+    capture.backImg                   = Gui.Testing.indexedImage(41, 29)
+    capture.preview                   = Gui.Testing.indexedImage(32, 20)
+    let path = testPrepareSavedCapture(capture)
+    defer Memory.delete(capture)
+
+    let recent = f.main.recentWnd
+    recent.addRecent(path, capture.preview)
+    expect File.delete(path)
+
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    recent.recentView.requestSelect(0)
+    recent.loadJob!.task.wait()
+    f.gui.pump()
+
+    Swag.require(f.gui.autoHandled)
+    Swag.require(recent.recentView.selected == Swag.U64.Max)
+    Swag.require(f.main.editWnd.getCapture() == f.capture)
+    Swag.require(recent.recentView.items.count == 1)
+}
+
 // Moving an existing recent item to the front keeps the old selected item identified while its
 // zoom is saved. The selection index follows the pointer relocation before the new item is opened.
 #test

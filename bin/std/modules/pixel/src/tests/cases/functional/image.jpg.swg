@@ -301,6 +301,36 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 #test
 {
     var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    var sofOffset = Swag.U64.Max
+    for i in bytes.count - 11
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xC0 do
+            sofOffset = i
+    }
+
+    Swag.require(sofOffset != Swag.U64.Max)
+    Swag.require(bytes[sofOffset + 9] == 3)
+    bytes[sofOffset + 13] = bytes[sofOffset + 10]
+    var sosOffset = Swag.U64.Max
+    for i in bytes.count - 7
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+            sosOffset = i
+    }
+
+    Swag.require(sosOffset != Swag.U64.Max)
+    bytes[sosOffset + 7] = bytes[sosOffset + 5]
+    var options: DecodeOptions
+    options.decodePixels = false
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("duplicate-component-id.jpg", bytes.toSlice(), options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+#test
+{
+    var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
     var dhtOffset = Swag.U64.Max
 
     // EXIF thumbnails can define their own Huffman tables before the main image.

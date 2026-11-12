@@ -332,6 +332,12 @@ impl Decoder
         for i in .compsInFrame
         {
             .compIdent[i] = .getBits1(8)
+            for prior in i
+            {
+                if .compIdent[prior] == .compIdent[i] do
+                    fail InvalidFormatError{"JPEG frame component identifiers are duplicated"}
+            }
+
             .compSampH[i] = .getBits1(4)
             .compSampV[i] = .getBits1(4)
             .compQuant[i] = .getBits1(8)

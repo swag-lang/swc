@@ -255,6 +255,8 @@ impl Decoder
 
         // Bits per sample - baseline 8-bit only
         let bpsEntry = ifd.find(TAG_BITS_PER_SAMPLE)
+        if not bpsEntry do
+            fail UnsupportedFormatError{"TIFF default bit depth is not supported"}
         if bpsEntry
         {
             let bps = try readValues(base, last, le, cast(*Entry, (bpsEntry)))

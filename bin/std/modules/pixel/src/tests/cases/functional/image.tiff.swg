@@ -123,7 +123,7 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -152,7 +152,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     let numStrips = cast(u32, stripLens.count)
 
-    var numEntries = 9'u32
+    var numEntries = includeBitsPerSample ? 9'u32 : 8'u32
     if hasPalette do
         numEntries += 1
     if extraSamples do
@@ -171,7 +171,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if stripArraysExternal do
         cursor += numStrips * 4
 
-    let bpsExternal = spp > 1
+    let bpsExternal = spp > 1 and includeBitsPerSample
     let bpsOffset   = cursor
     if bpsExternal do
         cursor += spp * 2
@@ -199,10 +199,14 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     tw16(&cb, le, cast(u16, numEntries))
     entLong(&cb, le, 256, width)
     entLong(&cb, le, 257, height)
-    if bpsExternal do
-        entOffset(&cb, le, 258, 3, spp, bpsOffset)
-    else do
-        entShort(&cb, le, 258, cast(u16, bps))
+    if includeBitsPerSample
+    {
+        if bpsExternal do
+            entOffset(&cb, le, 258, 3, spp, bpsOffset)
+        else do
+            entShort(&cb, le, 258, cast(u16, bps))
+    }
+
     entShort(&cb, le, 259, cast(u16, compression))
     entShort(&cb, le, 262, cast(u16, photo))
     if stripArraysExternal do
@@ -442,6 +446,19 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     const Expected: [3] u8 = [10, 20, 30]
     Swag.require(image.pixelFormat == .RGB8)
     Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
+}
+
+// TIFF omits BitsPerSample by defaulting to one bit; this decoder accepts only explicit 8-bit samples.
+#test
+{
+    const PixelData: [1] u8 = [0x80]
+    let omitted = buildTiff(true, 1, 1, 1, 0, 1, 1, 8, PixelData, null, false, includeBitsPerSample: false)
+    Swag.require(tiffDecodeFails(nnBytes(omitted.toSlice())))
+
+    let explicit = buildTiff(true, 1, 1, 1, 0, 1, 1, 8, PixelData, null, false)
+    let image    = expect decodeTiff(nnBytes(explicit.toSlice()))
+    Swag.require(image.pixelFormat == .BGR8)
+    Swag.require(image.pixels.storage()[0] == 127'u8)
 }
 
 // Decode a PackBits-compressed RGB image (literal run).

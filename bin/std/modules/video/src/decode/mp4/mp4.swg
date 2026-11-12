@@ -189,7 +189,7 @@ private impl Track
 private struct CtsEntry
 {
     sampleCount: u32
-    offset:      s32
+    offset:      s64
 }
 
 // What walking the movie metadata found.
@@ -946,7 +946,7 @@ impl Track
         {
             let sampleCount = try source.readBigEndian'u32()
             let rawOffset   = try source.readBigEndian'u32()
-            let offset      = version == 0 ? cast(s32, Math.min(rawOffset, cast(u32, Swag.S32.Max))) : cast #bit(s32, rawOffset)
+            let offset      = version == 0 ? cast(s64, rawOffset) : cast(s64, cast #bit(s32, rawOffset))
             .ctsEntries.add({sampleCount, offset})
         }
     }
@@ -1157,7 +1157,7 @@ impl Track
             {
                 if index >= result.count do
                     break
-                result[index] += cast(s64, entry.offset)
+                result[index] += entry.offset
                 index         += 1
             }
         }

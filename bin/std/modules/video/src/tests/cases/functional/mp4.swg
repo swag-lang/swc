@@ -33,6 +33,23 @@ func mp4ReadU32(bytes: const [..] u8, offset: u64)->u32 => (cast(u32, bytes[offs
 // Returns a big-endian 64-bit value from an independently inspected container.
 func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32(bytes, offset)) << 32) | cast(u64, mp4ReadU32(bytes, offset + 4))
 
+func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
+{
+    var bytes: [16] u8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
+    bytes[12] = cast(u8, (rawOffset >> 24) & 0xFF)
+    bytes[13] = cast(u8, (rawOffset >> 16) & 0xFF)
+    bytes[14] = cast(u8, (rawOffset >> 8) & 0xFF)
+    bytes[15] = cast(u8, rawOffset & 0xFF)
+
+    var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
+    var track: Mp4.Track
+    track.times.add({1, 1})
+    track.sizes.add(1)
+    try track.parseCompositionOffsets(&source, bytes.count)
+    let times = try track.sampleTimes()
+    Swag.require(times.count == 1 and times[0] == cast(s64, rawOffset))
+}
+
 // FFmpeg puts the movie before its media payload, uses one chunk for ten samples, and identifies
 // Motion JPEG through the generic `mp4v` entry with JPEG object type `0x6c`. It therefore exercises
 // both table expansion and a top-level layout the encoder in this module does not produce.
@@ -51,6 +68,13 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
         expect reader.decodeFrameInto(&frame, index)
         videoAssertFixtureFrame(frame, index, tolerance: 4)
     }
+}
+
+// Version-zero composition offsets are unsigned 32-bit values and retain their full range.
+#test
+{
+    expect mp4AssertUnsignedCompositionOffset(0x8000_0001)
+    expect mp4AssertUnsignedCompositionOffset(Swag.U32.Max)
 }
 
 // A Motion JPEG MP4 written by the module reads back out of order and preserves the exact rate.

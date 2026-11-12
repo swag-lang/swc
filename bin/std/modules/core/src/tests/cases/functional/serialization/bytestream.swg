@@ -123,6 +123,30 @@ using Swag
 
 #test
 {
+    var legalEncoding: [10] u8
+    for index in 9 do
+        legalEncoding[index] = 0xFF
+    legalEncoding[9] = 0x01
+
+    var legalReader = ByteStream.openRead(legalEncoding)
+    Swag.require(expect legalReader.readVarint() == Swag.U64.Max)
+
+    for invalidLastByte in [0x02'u8, 0x81]
+    {
+        var invalidEncoding: [10] u8
+        for index in 9 do
+            invalidEncoding[index] = 0xFF
+        invalidEncoding[9] = invalidLastByte
+
+        var invalidReader = ByteStream.openRead(invalidEncoding)
+        var overflowOutcome: Swag.Error
+        discard catch invalidReader.readVarint() as overflowOutcome
+        Swag.require(overflowOutcome.value() is Errors.OverflowError)
+    }
+}
+
+#test
+{
     var buffer: Array'u8
     var writer = ByteStream.openWrite(&buffer)
     writer.writeLittleEndian(0x1234'u16)

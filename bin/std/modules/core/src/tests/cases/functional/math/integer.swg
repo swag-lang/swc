@@ -51,6 +51,38 @@ func expectedAbs8(value: s8)->s8
 
 #test
 {
+    Swag.require(Math.sign(Swag.S8.Min) == -1's8)
+    Swag.require(Math.sign(Swag.S8.Max) == 1's8)
+    Swag.require(Math.min(Swag.S8.Min, Swag.S8.Max) == Swag.S8.Min)
+    Swag.require(Math.max(Swag.S8.Min, Swag.S8.Max) == Swag.S8.Max)
+
+    Swag.require(Math.sign(Swag.S16.Min) == -1's16)
+    Swag.require(Math.sign(Swag.S16.Max) == 1's16)
+    Swag.require(Math.min(Swag.S16.Min, Swag.S16.Max) == Swag.S16.Min)
+    Swag.require(Math.max(Swag.S16.Min, Swag.S16.Max) == Swag.S16.Max)
+
+    Swag.require(Math.sign(Swag.S32.Min) == -1's32)
+    Swag.require(Math.sign(Swag.S32.Max) == 1's32)
+    Swag.require(Math.min(Swag.S32.Min, Swag.S32.Max) == Swag.S32.Min)
+    Swag.require(Math.max(Swag.S32.Min, Swag.S32.Max) == Swag.S32.Max)
+
+    Swag.require(Math.sign(Swag.S64.Min) == -1's64)
+    Swag.require(Math.sign(Swag.S64.Max) == 1's64)
+    Swag.require(Math.min(Swag.S64.Min, Swag.S64.Max) == Swag.S64.Min)
+    Swag.require(Math.max(Swag.S64.Min, Swag.S64.Max) == Swag.S64.Max)
+
+    Swag.require(Math.min(0'u8, Swag.U8.Max) == 0'u8)
+    Swag.require(Math.max(0'u8, Swag.U8.Max) == Swag.U8.Max)
+    Swag.require(Math.min(0'u16, Swag.U16.Max) == 0'u16)
+    Swag.require(Math.max(0'u16, Swag.U16.Max) == Swag.U16.Max)
+    Swag.require(Math.min(0'u32, Swag.U32.Max) == 0'u32)
+    Swag.require(Math.max(0'u32, Swag.U32.Max) == Swag.U32.Max)
+    Swag.require(Math.min(0'u64, Swag.U64.Max) == 0'u64)
+    Swag.require(Math.max(0'u64, Swag.U64.Max) == Swag.U64.Max)
+}
+
+#test
+{
     Swag.require(Math.isPowerOf2(1'u8))
     Swag.require(Math.isPowerOf2(128'u8))
     Swag.require(Math.isPowerOf2(0x80'u8))

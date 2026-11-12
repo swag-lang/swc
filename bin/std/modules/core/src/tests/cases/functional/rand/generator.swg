@@ -89,6 +89,17 @@ internal impl MaxRandomSource
 
 #test
 {
+    var generator: Random.Generator'MaxRandomSource
+    generator.seedU32(1)
+
+    Swag.require(generator.nextU32(0, 8) == 7)
+    Swag.require(generator.nextU64(0, 16) == 15)
+    Swag.require(generator.nextS32(-4, 4) == 3)
+    Swag.require(generator.nextS64(-8, 8) == 7)
+}
+
+#test
+{
     var generator: Random.Generator
     generator.seedU32(98765)
 

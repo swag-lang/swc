@@ -143,3 +143,22 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
     let family = expect decodeNameRecord(MacRomanFamily, 12, 0)
     Swag.require(family == "é")
 }
+
+// Broken display names fall back without preventing a usable face from loading.
+#test
+{
+    var bytes  = loadFontBytes("arial.ttf")
+    let record = metadataTableRecord(&bytes, TAG_NAME)
+    let table  = cast(u64, readBigU32(&bytes, record + 8))
+    for index in readBigU16(&bytes, table + 2)
+    {
+        let base   = table + 6 + cast(u64, index) * 12
+        let nameId = readBigU16(&bytes, base + 6)
+        if nameId == 1 or nameId == 2 do
+            writeMetadataU16(&bytes, base + 8, 0xFFFF)
+    }
+
+    let face = expect Face.load(bytes.toSlice())
+    defer face.destroy()
+    Swag.require(face.familyName == "Unknown" and face.styleName == "Regular")
+}

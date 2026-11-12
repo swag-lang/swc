@@ -133,8 +133,8 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
 
     let nameTable = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
 
-    var familyName = try decodeBestName(nameTable, NAME_ID_FAMILY)
-    var styleName  = try decodeBestName(nameTable, NAME_ID_STYLE)
+    var familyName = catch decodeBestName(nameTable, NAME_ID_FAMILY)
+    var styleName  = catch decodeBestName(nameTable, NAME_ID_STYLE)
     if familyName.isEmpty() do
         familyName = String.from(fallbackFamilyName.count ? fallbackFamilyName : DEFAULT_FAMILY_NAME)
     if styleName.isEmpty() do

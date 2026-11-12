@@ -30,6 +30,24 @@ func expectNumericArray4(values: Math.NumericArray'(s32, 4'u32), expected: const
 
 #test
 {
+    var values: Math.NumericArray'(s32, 4'u32)
+    values.set(1, 2, 3, 4)
+
+    let fromError = Swag.catchPanic(func||() { discard Math.NumericArray'(s32, 4'u32).from(1, 2, 3) })
+    Swag.require(fromError.raised)
+
+    let setError = Swag.catchPanic(func|&values|() { values.set(5, 6, 7) })
+    Swag.require(setError.raised)
+    expectNumericArray4(values, [1, 2, 3, 4])
+
+    let short: [3] s32 = [5, 6, 7]
+    let sliceError     = Swag.catchPanic(func|&values, short|() { values = short })
+    Swag.require(sliceError.raised)
+    expectNumericArray4(values, [1, 2, 3, 4])
+}
+
+#test
+{
     var left:  Math.NumericArray'(s32, 4'u32)
     var right: Math.NumericArray'(s32, 4'u32)
     left.set(10, 20, 30, 40)

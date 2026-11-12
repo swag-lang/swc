@@ -184,3 +184,65 @@ func scalarUtf16FromUtf8(dest: [..] u16, src: const [..] u8)->u64
         Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
     }
 }
+
+// Malformed UTF-8 at a SIMD boundary must decode exactly like the scalar rune decoder.
+#test
+{
+    var source:   [64] u8
+    var actual:   [128] u16
+    var expected: [128] u16
+    let prefixes: [3] u64 = [15, 16, 17]
+
+    for prefix in prefixes
+    {
+        for index in prefix do
+            source[index] = cast(u8, (97 + index % 26))
+        source[prefix] = 0x80
+
+        for index in actual.count
+        {
+            actual[index]   = 0xBEEF
+            expected[index] = 0xBEEF
+        }
+
+        let continuationSrc      = source[until prefix + 1]
+        let continuationActual   = Utf16.fromUtf8(actual, continuationSrc)
+        let continuationExpected = scalarUtf16FromUtf8(expected, continuationSrc)
+        Swag.require(continuationActual == continuationExpected)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+
+        for index in prefix do
+            source[index] = cast(u8, (97 + index % 26))
+        source[prefix]     = 0xE2
+        source[prefix + 1] = 0x82
+
+        for index in actual.count
+        {
+            actual[index]   = 0xBEEF
+            expected[index] = 0xBEEF
+        }
+
+        let truncatedSrc      = source[until prefix + 2]
+        let truncatedActual   = Utf16.fromUtf8(actual, truncatedSrc)
+        let truncatedExpected = scalarUtf16FromUtf8(expected, truncatedSrc)
+        Swag.require(truncatedActual == truncatedExpected)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+
+        for index in prefix do
+            source[index] = cast(u8, (97 + index % 26))
+        source[prefix]     = 0xC0
+        source[prefix + 1] = 0xAF
+
+        for index in actual.count
+        {
+            actual[index]   = 0xBEEF
+            expected[index] = 0xBEEF
+        }
+
+        let overlongSrc      = source[until prefix + 2]
+        let overlongActual   = Utf16.fromUtf8(actual, overlongSrc)
+        let overlongExpected = scalarUtf16FromUtf8(expected, overlongSrc)
+        Swag.require(overlongActual == overlongExpected)
+        Swag.require(Memory.compare(actual.buffer, expected.buffer, #sizeof(actual)) == 0)
+    }
+}

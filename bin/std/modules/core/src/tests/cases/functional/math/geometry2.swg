@@ -144,8 +144,19 @@ func expectNear(actual, expected: f32)
     Swag.require(collinearOverlap.intersects)
     expectVec2(collinearOverlap.point, {4, 0})
 
+    let reversedOverlap = Math.Geometry.intersectSegments({10, 0}, {0, 0}, {12, 0}, {4, 0})
+    Swag.require(reversedOverlap.intersects)
+    expectVec2(reversedOverlap.point, {4, 0})
+
     let collinearDisjoint = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {12, 0}, {15, 0})
     Swag.require(not collinearDisjoint.intersects)
+
+    let withinEndTolerance = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {10.05, -1}, {10.05, 1}, epsilon: 0.01)
+    Swag.require(withinEndTolerance.intersects)
+    expectVec2(withinEndTolerance.point, {10.05, 0})
+
+    let beyondEndTolerance = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {10.05, -1}, {10.05, 1}, epsilon: 0.001)
+    Swag.require(not beyondEndTolerance.intersects)
 
     let pointOnSegment = Math.Geometry.intersectSegments({2, 0}, {2, 0}, {0, 0}, {4, 0})
     Swag.require(pointOnSegment.intersects)

@@ -105,7 +105,34 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     let inputValueAddress = valueAddress
     let typeEnum          = assume cast(const *TypeInfoEnum, enumTypeInfo)
     let rawType           = unwrap typeEnum.rawType
+    let simpleName        = enumTypeInfo.name
     let isFlags           = hasAttribute(type, EnumFlags)
+
+    // Aggregate enum values have no integer representation to inspect. Compare their stored
+    // value directly, as hasDeclaredValue does for aggregate underlying types.
+    if not isFlags and rawType.kind != .Native
+    {
+        for caseInfo in typeEnum.values
+        {
+            if not caseInfo.value do
+                continue
+            if Swag.memcmp(cast(const [*] void, inputValueAddress),
+                           cast(const [*] void, caseInfo.value),
+                           cast(u64, rawType.sizeof)) == 0
+            {
+                if fullyQualified
+                {
+                    result += simpleName
+                    result += "."
+                }
+
+                result += caseInfo.name
+                return result
+            }
+        }
+
+        return result
+    }
 
     // Read the input using the enum's underlying representation.
     var inputBits: u64
@@ -120,7 +147,6 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     default: return result
     }
 
-    let simpleName  = enumTypeInfo.name
     var coveredBits = 0'u64
 
     for caseInfo in typeEnum.values

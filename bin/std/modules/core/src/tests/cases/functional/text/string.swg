@@ -35,10 +35,10 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
 #test
 {
-    let owned: String = "middle"
-    let equal: string = "middle"
+    let owned:  String = "middle"
+    let equal:  string = "middle"
     let before: string = "before"
-    let after: string = "zebra"
+    let after:  string = "zebra"
 
     Swag.require(equal == owned)
     Swag.require(not (equal != owned))
@@ -122,18 +122,18 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     value[1] = 'Z'u8
     value[2] += 1'u8
     value[2] -= 1'u8
-    Swag.require(assertString(value, "aZcdef"))
+    let expectedText: string = "aZcdef"
+    Swag.require(assertString(value, expectedText))
 
-    var sumBytes:   u32
-    var sumIndexes: u64
+    var visitedCount = 0'u64
     for byte, index in value
     {
-        sumBytes   += cast(u32, byte)
-        sumIndexes += index
+        Swag.require(index < expectedText.count)
+        Swag.require(byte == expectedText[index])
+        visitedCount += 1
     }
 
-    Swag.require(sumBytes == cast(u32, 'a'u8) + cast(u32, 'Z'u8) + cast(u32, 'c'u8) + cast(u32, 'd'u8) + cast(u32, 'e'u8) + cast(u32, 'f'u8))
-    Swag.require(sumIndexes == 15)
+    Swag.require(visitedCount == expectedText.count)
 
     for &byte in value do
         byte[] += 1'u8

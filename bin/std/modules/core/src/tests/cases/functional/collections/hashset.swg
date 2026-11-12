@@ -128,11 +128,19 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.require(values.contains(2))
     Swag.require(values.count == 3)
 
+    let capacity = values.capacity
     values.clear()
     Swag.require(values.isEmpty())
     Swag.require(not values.contains(1))
     Swag.require(not values.contains(2))
     Swag.require(not values.contains(3))
+    Swag.require(values.capacity == capacity)
+
+    values.add(1)
+    values.add(2)
+    values.add(3)
+    Swag.require(values.count == 3)
+    Swag.require(values.contains(1) and values.contains(2) and values.contains(3))
 }
 
 #test

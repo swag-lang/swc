@@ -5,6 +5,26 @@ using Swag, Core
 
 var TabHeadlessSelChangedCount: u32
 
+// Renaming a content-sized tab invalidates the parent layout that measures its tab name.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let tab = Tab.create(row)
+    tab.addItem("A tab label wide enough to expand its content policy")
+    host.pump()
+    let originalWidth = tab.measure({}).preferred.x
+
+    tab.setItemName(0, "A")
+    host.pump()
+    let renamedWidth = tab.measure({}).preferred.x
+    Swag.require(originalWidth != renamedWidth, "Tab rename should change its measured content width")
+    Swag.require(tab.position.width == renamedWidth,
+                 Format.toString("Renamed tab width: measured %, committed %", renamedWidth, tab.position.width).toString())
+}
+
 // Flat tabs keep one contrasted Arc underline while it travels, over the hairline the bar stands
 // on. The tab under the pointer changes its words, never the rule.
 #test

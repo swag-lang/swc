@@ -516,7 +516,7 @@ impl Vector3
     mtd const toSpherical()->{ theta: f32, phi: f32, radius: f32 }
     {
         let radius  = .length()
-        var cosineY = .y / radius
+        var cosineY = normalizedVector3(me).y
         if cosineY > 1 do
             cosineY = 1
         elif cosineY < -1 do

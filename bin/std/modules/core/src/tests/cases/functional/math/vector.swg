@@ -456,6 +456,15 @@ func expectVec4(actual, expected: Math.Vector4)
     Swag.require(cylindrical.height == 4)
 }
 
+// Spherical direction remains representable when the finite radius overflows f32.
+#test
+{
+    let spherical = Math.Vector3{Swag.F32.Max, Swag.F32.Max, Swag.F32.Max}.toSpherical()
+    Swag.require(Math.isEqualEpsilon(spherical.theta, Math.ConstF32.Pi / 4, 0.001))
+    Swag.require(Math.isEqualEpsilon(spherical.phi, Math.acos(1'f32 / Math.sqrt(3'f32)), 0.001))
+    Swag.require(spherical.radius == Swag.F32.Inf)
+}
+
 #test
 {
     expectVec4(Math.Vector4.Zero, {0, 0, 0, 0})

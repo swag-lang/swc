@@ -268,7 +268,10 @@ internal func floatToHalf(value: f32)->u16
     let unbiased = exponent - 127
     if unbiased > 15 do
         return sign | 0x7C00
-    if unbiased < -24 do
+
+    // At -25, values above the exact halfway point can still round to the smallest
+    // subnormal. Smaller exponents are strictly below that midpoint.
+    if unbiased < -25 do
         return sign
 
     if unbiased < -14

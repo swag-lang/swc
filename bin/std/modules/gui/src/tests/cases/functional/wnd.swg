@@ -5,6 +5,39 @@ using Swag, Core
 
 var WndCreateTestId: String
 
+// Creating a new child after the first pump relayouts its parent container.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    discard PushButton.create(row, "First")
+    host.pump()
+
+    let added = PushButton.create(row, "A dynamically added push button with a long caption")
+    host.pump()
+    let measuredWidth = added.measure({}).preferred.x
+    Swag.require(added.position.width == measuredWidth,
+                 Format.toString("Dynamically added child width: measured %, committed %", measuredWidth, added.position.width).toString())
+}
+
+// Parenting to a plain Wnd leaves the child's authored rectangle intact.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 100)
+
+    let parent = Wnd.create'Wnd(&host.root, null, {0, 0, 280, 80})
+    let child  = Wnd.create'Wnd(null, null, {10, 12, 40, 24})
+    host.pump()
+
+    child.setParent(parent)
+    host.pump()
+    Swag.require(child.parent == parent)
+    Swag.require(child.position == Math.Rectangle{10, 12, 40, 24})
+}
+
 // A nested layout remeasures an inner stack after its child's margin changes.
 #test
 {

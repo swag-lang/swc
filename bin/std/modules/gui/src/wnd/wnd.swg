@@ -802,6 +802,7 @@ impl Wnd
             }
 
             who.invalidate()
+            who.invalidateLayout()
         }
         else
         {

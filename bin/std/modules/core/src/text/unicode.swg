@@ -215,19 +215,9 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
     let length      = src.count
     let otherLength = dst.count
 
-    var minLen: u64
-    if len
-    {
-        if length < len do
-            return -1
-        if otherLength < len do
-            return 1
-        minLen = len
-    }
-    else
-    {
-        minLen = Math.min(length, otherLength)
-    }
+    var minLen = Math.min(length, otherLength)
+    if len do
+        minLen = Math.min(minLen, len)
 
     var result: s32
     if ignoreCase
@@ -248,7 +238,7 @@ func compare(src, dst: const [..] rune, ignoreCase = false, len: u64 = 0)->s32
 
     if result != 0 do
         return Math.sign(result)
-    if len do
+    if len and length >= len and otherLength >= len do
         return 0
     return length <=> otherLength
 }

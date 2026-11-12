@@ -76,19 +76,26 @@ impl IWnd for Toast
             x += dot + metrics.toast_Gap
         }
 
-        x += paintTextLine(painter, x, centerY, .message.toString(), font, colors.text)
+        let contentRight = .action.length ? .actionRect.x - metrics.toast_ActionGap : body.right() - metrics.toast_Padding
+        let textRoom     = Math.max(contentRight - x, 0)
+        let messageRoom  = .detail.length ? textRoom * 0.7 : textRoom
+        x += paintTextLine(painter, x, centerY, .message.toString(), font, colors.text, messageRoom, .deviceScale())
         if .detail.length
         {
-            x += metrics.toast_DetailGap
-            x += paintTextLine(painter, x, centerY, ToastDetailMark, font, colors.faintText)
-            x += metrics.toast_DetailGap
-            x += paintTextLine(painter, x, centerY, .detail.toString(), mono, colors.faintText)
+            let markWidth = Painter.measureString(ToastDetailMark, font).width
+            if contentRight - x > 2 * metrics.toast_DetailGap + markWidth
+            {
+                x += metrics.toast_DetailGap
+                x += paintTextLine(painter, x, centerY, ToastDetailMark, font, colors.faintText, markWidth, .deviceScale())
+                x += metrics.toast_DetailGap
+                x += paintTextLine(painter, x, centerY, .detail.toString(), mono, colors.faintText, Math.max(contentRight - x, 0), .deviceScale())
+            }
         }
 
         if .action.length
         {
             let bold = .theme().createDefaultFont(metrics.defaultFontSize, .Bold)
-            painter.drawString(.actionRect.x, bold.opticalLineTop(centerY), .action.toString(), bold, .hotAction ? colors.text : colors.link)
+            discard paintTextLine(painter, .actionRect.x, centerY, .action.toString(), bold, .hotAction ? colors.text : colors.link, .actionRect.width, .deviceScale())
         }
     }
 
@@ -191,12 +198,20 @@ private impl Toast
         {
             let bold  = .theme().createDefaultFont(metrics.defaultFontSize, .Bold)
             let words = Painter.measureString(.action.toString(), bold).width
-            .actionRect = Math.Rectangle{width - metrics.toast_Padding + metrics.toast_ActionGap, 0, words, metrics.toast_Height}
-            width       += metrics.toast_ActionGap + words
+            width += metrics.toast_ActionGap + words
         }
 
         let bounds = parent.clientRect()
-        width = Math.min(Math.ceil(width), bounds.width - 2 * metrics.floating_Inset)
+        width = Math.max(Math.min(Math.ceil(width), bounds.width - 2 * metrics.floating_Inset), 0)
+        if .action.length
+        {
+            let bold        = .theme().createDefaultFont(metrics.defaultFontSize, .Bold)
+            let actionWidth = Painter.measureString(.action.toString(), bold).width
+            let room        = Math.max(width - 2 * metrics.toast_Padding, 0)
+            let clipped     = Math.min(actionWidth, Math.max(room - metrics.toast_ActionGap, 0))
+            .actionRect = Math.Rectangle{Math.max(width - metrics.toast_Padding - clipped, 0), 0, clipped, metrics.toast_Height}
+        }
+
         let x = Math.round(bounds.horzCenter() - width * 0.5)
         let y = bounds.bottom() - metrics.toast_Bottom - metrics.toast_Height
         .setPosition(Math.Rectangle{x, y, width, metrics.toast_Height})

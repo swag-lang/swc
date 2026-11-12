@@ -806,10 +806,12 @@ impl ImageView
     // Selects one image, clamped to the available frame range.
     mtd setFrameIndex(index: s32)
     {
+        let previousIndex = .movie.frameIndex
         .movie.setFrameIndex(index)
         if .movie.isValid() do
             .updateUploadedFrame()
-        .sigFrameChanged.call(me)
+        if .movie.frameIndex != previousIndex do
+            .sigFrameChanged.call(me)
         .invalidate()
     }
 }

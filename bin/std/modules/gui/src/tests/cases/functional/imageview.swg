@@ -105,6 +105,30 @@ using Swag, Core, Pixel
     Swag.require(zoomChanges == 2)
 }
 
+// The frame signal fires only when seeking changes the displayed frame.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    let view = ImageView.create(&host.root, {0, 0, 300, 200})
+    var frameChanges: u32
+    view.sigFrameChanged += func|&frameChanges|(_) { frameChanges += 1 }
+
+    view.setFrameIndex(0)
+    Swag.require(frameChanges == 0)
+
+    let fileName = Path.combine(testSourceRoot(#curlocation), "datas", "imageset-animation.webp")
+    expect view.loadMovie(fileName.toString())
+    view.setFrameIndex(0)
+    view.setFrameIndex(-1)
+    Swag.require(view.movie.frameIndex == 0 and frameChanges == 0)
+
+    view.setFrameIndex(1)
+    Swag.require(view.movie.frameIndex == 1 and frameChanges == 1)
+    view.setFrameIndex(100)
+    Swag.require(view.movie.frameIndex == 2 and frameChanges == 2)
+}
+
 // Exchanging a picture keeps the texture and the view, and hands the previous pixels back.
 #test
 {

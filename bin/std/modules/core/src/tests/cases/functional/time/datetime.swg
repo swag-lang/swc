@@ -113,6 +113,17 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
+    let firstDay = Time.DateTime{1, 1, 1, 0, 0, 0, 0}
+    let lastDay  = Time.DateTime{9999, 12, 31, 0, 0, 0, 0}
+
+    Swag.require(firstDay.isValid())
+    Swag.require(firstDay.dayOfWeek() == Time.DayOfWeek.Monday)
+    Swag.require(lastDay.isValid())
+    Swag.require(lastDay.dayOfWeek() == Time.DayOfWeek.Friday)
+}
+
+#test
+{
     let value    = Time.DateTime{2024, 2, 29, 1, 2, 3, 456}
     let paddedMs = Time.DateTime{2024, 2, 29, 1, 2, 3, 4}
 

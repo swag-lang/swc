@@ -267,6 +267,16 @@ whole recording loaded at once.
   to 20 ms, and fresh-picture encoding from 383 ms to 76 ms; both passes missed three slots.
   Desktop activity varied between passes, so this establishes the avoided full-frame copies,
   not a guaranteed end-to-end throughput gain.
+  The Windows fixture now stays visible above unrelated desktop windows, and monitor tests
+  target the display containing its moving video. A 3840x2160 monitor with a 3200x1800 moving
+  browser scene missed one slot in 90 before setup was separated from the timeline. On the
+  virtual desktop, the first screen grab took up to 161 ms and accounted for four early missed
+  slots. The producer now acquires a frame before starting the pacer, and the HUD clock starts
+  at the accepted video origin. A subsequent 3840x2160 monitor run and a 7680x2169 desktop run
+  each had zero missed slots over 91 frames; both files lasted 3.033 seconds. A six-second
+  1920x1080 browser-area run with sound and a 250 ms interface stall also had zero missed slots
+  and replayed its audio. Another area run missed one slot, so sustained throughput and
+  intermittent OS scheduling delays still need measurement.
   `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
   late producer or audio errors, and returns an editable capture when that prefix is readable.
   A failure toast exposes the retained file in the explorer. On startup and when the library

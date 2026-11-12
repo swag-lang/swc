@@ -56,8 +56,13 @@ struct VideoCaptureSession
     lowStorageStop:           bool
     sourceFailures:           u64
     grabMicroseconds:         u64
+    maxGrabMicroseconds:      u64
     scaleMicroseconds:        u64
+    maxScaleMicroseconds:     u64
     producerWaitMicroseconds: u64
+    maxProducerWaitMicroseconds: u64
+    firstMissedSlot:          u64
+    lastMissedSlot:           u64
     freshFrames:              u64
     submittedFrames:          u64
     submittedRepeats:         u64
@@ -119,6 +124,19 @@ impl VideoCaptureSession
         reduceBgraNearest(&.sourcePicture, &.picture, .sourceColumns.storage())
     }
 
+    // Open the native screen path and acquire its first image before the recording
+    // clock starts. DXGI device creation and its first readback can take several
+    // frame periods; charging that setup to slot zero would manufacture drops.
+    mtd primeSource()
+    {
+        let target = .scaled ? &.sourcePicture : &.picture
+        catch .source.grabInto(target, copyUnchanged: false)
+        {
+            .sourceFailures += 1
+            discard catch .source.reopen()
+        }
+    }
+
     // Captures at most one fresh picture at `tick`, filling every missed frame slot.
     //
     // Returns true only when a fresh screen image was accepted. A repeated or black frame is
@@ -152,6 +170,12 @@ impl VideoCaptureSession
             fail BadParameterError{"video capture pacer moved behind the encoded timeline"}
         if slot.skippedFrames > Swag.U64.Max - .missedSlots do
             fail OverflowError{"video capture missed-slot counter overflows"}
+        if slot.skippedFrames
+        {
+            if not .missedSlots do
+                .firstMissedSlot = slot.index - slot.skippedFrames
+            .lastMissedSlot = slot.index - 1
+        }
         .missedSlots += slot.skippedFrames
         if slot.skippedFrames <= 4
         {
@@ -189,7 +213,9 @@ impl VideoCaptureSession
             return false
         }
 
-        .grabMicroseconds += Time.monotonicMicroseconds() - grabStart
+        let grabDuration = Time.monotonicMicroseconds() - grabStart
+        .grabMicroseconds += grabDuration
+        .maxGrabMicroseconds = Math.max(.maxGrabMicroseconds, grabDuration)
         if not .source.fresh and .submittedFrames
         {
             try .writeFrame(outputSlot, true)
@@ -200,11 +226,15 @@ impl VideoCaptureSession
         {
             let scaleStart = Time.monotonicMicroseconds()
             .reducePicture()
-            .scaleMicroseconds += Time.monotonicMicroseconds() - scaleStart
+            let scaleDuration = Time.monotonicMicroseconds() - scaleStart
+            .scaleMicroseconds += scaleDuration
+            .maxScaleMicroseconds = Math.max(.maxScaleMicroseconds, scaleDuration)
         }
         let encodeStart = Time.monotonicMicroseconds()
         try .writeFrame(outputSlot, false)
-        .producerWaitMicroseconds += Time.monotonicMicroseconds() - encodeStart
+        let submitDuration = Time.monotonicMicroseconds() - encodeStart
+        .producerWaitMicroseconds += submitDuration
+        .maxProducerWaitMicroseconds = Math.max(.maxProducerWaitMicroseconds, submitDuration)
         .freshFrames   += 1
         .nextVideoTime += slot.duration
         return true

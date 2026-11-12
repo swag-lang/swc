@@ -60,3 +60,15 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
     let expectedRune: [5] string = ["", "alpha", "", "beta", ""]
     Swag.require(assertStringArray(byRune, expectedRune))
 }
+
+#test
+{
+    let byRune = Tokenize.split("é🙂🙂x", '🙂'rune, removeEmpty: false)
+    let expectedRune: [3] string = ["é", "", "x"]
+    Swag.require(assertStringArray(byRune, expectedRune))
+
+    let separators:  [2] rune   = ['🙂', 'ü']
+    let byAny = Tokenize.splitAny("éone🙂🙂twoü", separators, removeEmpty: false)
+    let expectedAny: [4] string = ["éone", "", "two", ""]
+    Swag.require(assertStringArray(byAny, expectedAny))
+}

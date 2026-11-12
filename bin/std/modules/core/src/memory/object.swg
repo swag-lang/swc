@@ -12,7 +12,8 @@ private func checkedArraySize(elementSize, count: u64, loc: Swag.SourceCodeLocat
 
 // Allocates a value of the runtime type `type` and default-initializes it.
 //
-// Panics when the type cannot be default-initialized.
+// Panics when the type cannot be default-initialized. Runtime type information does not expose
+// alignment, so pass `alignment` when the concrete type requires more than the default allocator alignment.
 func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*u8
 {
     let userHint = hint orelse type.fullname
@@ -28,7 +29,8 @@ func new(type: typeinfo, allocator: IAllocator? = null, alignment: u32 = 0, hint
 func(T) new(allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->*T
 {
     let userHint = hint orelse #stringof(T)
-    let ptr      = cast(*T, alloc(#sizeof(T), allocator, alignment, userHint, loc))
+    let effectiveAlignment = alignment >= #alignof(T) ? alignment : #alignof(T)
+    let ptr      = cast(*T, alloc(#sizeof(T), allocator, effectiveAlignment, userHint, loc))
     Swag.init(ptr, 1)
     return ptr
 }
@@ -72,8 +74,9 @@ func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     Swag.assert(num > 0)
 
     let userHint  = hint orelse #stringof(T)
+    let effectiveAlignment = alignment >= #alignof(T) ? alignment : #alignof(T)
     let byteCount = checkedArraySize(#sizeof(T), num, loc)
-    let ptr       = cast([*] T, alloc(byteCount, allocator, alignment, userHint, loc))
+    let ptr       = cast([*] T, alloc(byteCount, allocator, effectiveAlignment, userHint, loc))
     Swag.init(ptr, num)
     return ptr
 }

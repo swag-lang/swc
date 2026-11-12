@@ -18,6 +18,19 @@ struct ScratchOverflowAllocator
     storage: [16] u8
 }
 
+struct TypedAllocationAlignmentAllocator
+{
+    requestedAlignment: u32
+    #[Swag.Align(64)]
+    storage: [256] u8
+}
+
+struct OverAlignedMemoryValue
+{
+    #[Swag.Align(64)]
+    value: u8
+}
+
 impl Swag.IAllocator for ScratchOverflowAllocator
 {
     mtd impl alloc(request: *Swag.AllocatorRequest)
@@ -25,6 +38,21 @@ impl Swag.IAllocator for ScratchOverflowAllocator
         .calls += 1
         if .calls == 1 do
             request.address = &.storage[0]
+    }
+
+    mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
+    mtd impl free(_: *Swag.AllocatorRequest) {}
+}
+
+impl Swag.IAllocator for TypedAllocationAlignmentAllocator
+{
+    mtd impl alloc(request: *Swag.AllocatorRequest)
+    {
+        .requestedAlignment = request.alignment
+
+        // Alignment zero promises only native pointer alignment. Make that path observably
+        // different from the 64-byte alignment required by OverAlignedMemoryValue.
+        request.address = request.alignment >= 64 ? &.storage[0] : &.storage[16]
     }
 
     mtd impl realloc(request: *Swag.AllocatorRequest) { request.address = null }
@@ -159,6 +187,35 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     }
 
     Swag.require(runtime.stats().countAlloc == 0)
+}
+
+// Typed object allocation must request enough alignment for T, even when the caller omits it.
+// Before the fix, both calls pass alignment zero and receive the deliberately 16-byte-aligned slot.
+#test
+{
+    #assert(#alignof(OverAlignedMemoryValue) == 64)
+
+    var backing:   TypedAllocationAlignmentAllocator
+    let allocator: Swag.IAllocator = &backing
+
+    let single = Memory.new'OverAlignedMemoryValue(allocator)
+    Swag.require(cast(u64, single) % 64 == 0,
+                 "Memory.new<T> must honor T's alignment")
+    Swag.require(backing.requestedAlignment >= 64,
+                 "Memory.new<T> must request T's alignment")
+}
+
+#test
+{
+    #assert(#alignof(OverAlignedMemoryValue) == 64)
+
+    var backing:   TypedAllocationAlignmentAllocator
+    let allocator: Swag.IAllocator = &backing
+    let items = Memory.new'OverAlignedMemoryValue(2, allocator)
+    Swag.require(cast(u64, items) % 64 == 0,
+                 "Memory.new<T>(count) must honor T's alignment")
+    Swag.require(backing.requestedAlignment >= 64,
+                 "Memory.new<T>(count) must request T's alignment")
 }
 
 // Filling and tracking are allocator diagnostics: only a runtime built with them can enable them.

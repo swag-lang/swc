@@ -56,6 +56,34 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
 #test
 {
+    let text = String.from("A\u00E9\U0001F642")
+    let expectedRunes:       [3] rune = ['A'rune, '\u00E9'rune, '\U0001F642'rune]
+    let expectedByteIndices: [3] u64  = [0, 1, 3]
+
+    var nextCharIndex = 0'u64
+    for value, charIndex, byteIndex in text.runes()
+    {
+        Swag.require(charIndex == nextCharIndex)
+        Swag.require(value == expectedRunes[nextCharIndex])
+        Swag.require(byteIndex == expectedByteIndices[nextCharIndex])
+        nextCharIndex += 1
+    }
+
+    Swag.require(nextCharIndex == expectedRunes.count)
+
+    var empty: String
+    var emptyCount = 0'u64
+    for value, charIndex, byteIndex in empty.runes()
+    {
+        Swag.require(value == 0 and charIndex == emptyCount and byteIndex == 0)
+        emptyCount += 1
+    }
+
+    Swag.require(emptyCount == 0)
+}
+
+#test
+{
     var value: String
     Swag.require(value.isNull())
     Swag.require(value.isEmpty())

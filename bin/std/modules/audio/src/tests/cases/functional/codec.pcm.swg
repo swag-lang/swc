@@ -156,6 +156,17 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
 
 #test
 {
+    // Values beyond the s32 conversion range still saturate by sign, in SIMD blocks and the tail.
+    var src: [9] f32 = [65536.0, 65536.0, 65536.0, 65536.0, 65536.0, 65536.0, 65536.0, 65536.0, 65536.0]
+    let decoded      = expect audioDecodePcmToPcm16(.Float32, cast([..] u8, src), src.count * #sizeof(s16))
+    Swag.require(decoded.progress.bytesWritten == src.count * #sizeof(s16))
+    Swag.require(decoded.progress.bytesRead == src.count * #sizeof(f32))
+    audioAssertSamples(decoded.destination.toSlice(), [
+        32767's16, 32767, 32767, 32767, 32767, 32767, 32767, 32767, 32767])
+}
+
+#test
+{
     expect audioCheckPcmTails(.Pcm8, 1)
     expect audioCheckPcmTails(.Pcm24, 3)
     expect audioCheckPcmTails(.Pcm32, 4)

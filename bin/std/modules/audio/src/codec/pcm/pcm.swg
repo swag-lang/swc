@@ -61,8 +61,12 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
         let scale = Simd.splat(32768.0'f32)
         while remainingSamples >= 8
         {
-            let low  = Simd.truncateToS32(Simd.load(cast(const [*] f32, sourceBytes)) * scale)
-            let high = Simd.truncateToS32(Simd.load(cast(const [*] f32, sourceBytes) + 4) * scale)
+            let minValue    = Simd.splat(-32768.0'f32)
+            let maxValue    = Simd.splat(32767.0'f32)
+            let lowSamples  = Math.min(Math.max(Simd.load(cast(const [*] f32, sourceBytes)) * scale, minValue), maxValue)
+            let highSamples = Math.min(Math.max(Simd.load(cast(const [*] f32, sourceBytes) + 4) * scale, minValue), maxValue)
+            let low         = Simd.truncateToS32(lowSamples)
+            let high        = Simd.truncateToS32(highSamples)
             Simd.store(outputSamples, Simd.packSigned(low, high))
             outputSamples    += 8
             sourceBytes      += 32
@@ -93,8 +97,8 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
 
         case .Float32:
             let input         = cast(const [*] f32, sourceBytes)
-            let sample        = input[0] * 32768.0
-            let clampedSample = Math.clamp(cast #wrap (s32, sample), -32768, 32767)
+            let sample        = Math.clamp(input[0] * 32768.0, -32768.0, 32767.0)
+            let clampedSample = cast #wrap (s32, sample)
             outputSamples[0] = cast(s16, clampedSample)
 
         default:

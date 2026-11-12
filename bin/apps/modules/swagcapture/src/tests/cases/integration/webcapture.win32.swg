@@ -256,6 +256,7 @@ private func webCaptureQuality()->VideoQuality
                                     " coalesced_updates=", metrics.coalescedUpdates,
                                     " multi_rect=", metrics.multiRectFrames,
                                     " copy_us=", metrics.copyMicroseconds,
+                                    " mirrored_pixels=", metrics.mirroredPixels,
                                     " output_us=", metrics.outputMicroseconds,
                                     " compose_us=", metrics.composeMicroseconds)
                 }
@@ -571,6 +572,7 @@ private func webCaptureQuality()->VideoQuality
                                 " coalesced_updates=", metrics.coalescedUpdates,
                                 " multi_rect=", metrics.multiRectFrames,
                                 " copy_us=", metrics.copyMicroseconds,
+                                " mirrored_pixels=", metrics.mirroredPixels,
                                 " output_us=", metrics.outputMicroseconds,
                                 " compose_us=", metrics.composeMicroseconds)
             }

@@ -70,7 +70,11 @@ continues to own media frames and codecs, not desktop access.
   265/1051/258 million and CPU copy time 150/351/170 ms; all three files decoded and missed no
   slots. Readback time was 2.55/4.05/4.82 s, so that comparison does not establish a GPU wait
   improvement. A separate 60-second run with regional copies decoded 1801 pictures, missed no
-  slots and copied 513 million pixels, but desktop load differed from the earlier long run.
+  slots and copied 513 million pixels, but desktop load differed from the earlier long run. The
+  stable caller image now receives those same rectangles instead of their union. A 30-second
+  full-desktop run mirrored 275 million pixels and spent 154 ms in composition, compared with
+  roughly 460-513 ms in the preceding runs that mirrored each union; it decoded 901 pictures
+  with no missed slots. The exact desktop workload varied between runs.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous

@@ -439,6 +439,21 @@ impl NativeSource
 
 impl Source
 {
+    mtd mirrorRect(target: *Image, native: const *NativeSource,
+                   x, bottom: u64, bounds: RECT)
+    {
+        let rowBytes = cast(u64, bounds.right - bounds.left) * 4
+        let left = x + cast(u64, bounds.left)
+        let stride = cast(u64, target.rowStride)
+        for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
+        {
+            let offset = (bottom + cast(u64, native.options.height) - 1 - row) * stride + left * 4
+            Memory.copy(target.pixels.storage() + offset,
+                        .composed.pixels.storage() + offset, rowBytes)
+        }
+        .mirroredPixels += cast(u64, bounds.right - bounds.left) * cast(u64, bounds.bottom - bounds.top)
+    }
+
     // Queue each output's GPU copy before any map waits for pixels on the CPU.
     mtd grabWindows(target: *Image, mirroring: bool)->bool fail
     {
@@ -464,17 +479,14 @@ impl Source
                 fresh = true
                 if mirroring
                 {
-                    let bounds = native.updatedBounds
-                    let rowBytes = cast(u64, bounds.right - bounds.left) * 4
-                    let left = x + cast(u64, bounds.left)
-                    let stride = cast(u64, target.rowStride)
                     let mirrorStart = Time.monotonicMicroseconds()
-                    for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
+                    if native.pendingMultiRect
                     {
-                        let offset = (bottom + cast(u64, native.options.height) - 1 - row) * stride + left * 4
-                        Memory.copy(target.pixels.storage() + offset,
-                                    .composed.pixels.storage() + offset, rowBytes)
+                        for rect in native.changedRects do
+                            .mirrorRect(target, native, x, bottom, rect)
                     }
+                    else do
+                        .mirrorRect(target, native, x, bottom, native.updatedBounds)
                     .composeMicroseconds += Time.monotonicMicroseconds() - mirrorStart
                 }
             }

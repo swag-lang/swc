@@ -193,7 +193,8 @@ private impl ImageView
             .panOffset.y += point.y - (next.y + next.height * ratioY)
         }
 
-        .sigZoomChanged.call(me)
+        if oldZoom != .effectiveZoom() do
+            .sigZoomChanged.call(me)
         .invalidate()
     }
 

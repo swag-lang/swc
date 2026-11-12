@@ -80,6 +80,31 @@ using Swag, Core, Pixel
     Swag.require(not view.uploadedTexture.isValid() and view.rotationQuarterTurns == 0 and not view.isMirrored)
 }
 
+// The zoom signal fires only when the effective scale changes, including at both limits.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
+    var image = Image.create(100, 50, .RGBA8)
+    image.fill(Argb.White)
+    view.setImage(image)
+
+    var zoomChanges: u32
+    view.sigZoomChanged += func|&zoomChanges|(_) { zoomChanges += 1 }
+    view.setZoom(2)
+    Swag.require(zoomChanges == 1)
+    view.setZoom(2)
+    Swag.require(zoomChanges == 1)
+
+    view.setZoom(100)
+    Swag.require(view.effectiveZoom() == 64 and zoomChanges == 2)
+    view.zoomIn()
+    Swag.require(zoomChanges == 2)
+    host.mouseWheel({150, 100}, 1)
+    Swag.require(zoomChanges == 2)
+}
+
 // Exchanging a picture keeps the texture and the view, and hands the previous pixels back.
 #test
 {

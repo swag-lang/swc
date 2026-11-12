@@ -145,7 +145,7 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
 // unaligned row lengths and scalar tails on either side of the SIMD work.
 #test
 {
-    let widths: [5] s32 = [257, 8191, 21845, 21846, 65537]
+    let widths: [9] s32 = [5, 6, 7, 10, 257, 8191, 21845, 21846, 65537]
     for width in widths
     {
         simdTailCheckFilters(.BGR8, width)

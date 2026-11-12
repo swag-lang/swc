@@ -97,6 +97,8 @@ OS screen-grab contracts remain separate platform integrations.
 Its portable `cases/desktop/drawandundo.swg` clicks the Shape tool, drags on the canvas, and uses
 Control+Z and Control+Y through the shared Windows or Linux desktop input backend.
 `cases/desktop/deleteandundo.swg` covers Delete and undo on a preselected mark through native keyboard input.
+The Windows `cases/integration/residenthubfocus.win32.swg` starts an owned child window, clicks it
+through desktop input, and checks that the resident hub leaves when another process takes focus.
 
 Swag Scope's `cases/stress/previewcache.swg` creates 160 local entries in a temporary Films folder
 from real video fixtures and exercises eviction and reload across the 128-texture preview cache.

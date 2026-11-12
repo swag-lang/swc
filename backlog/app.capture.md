@@ -32,11 +32,12 @@ whole recording loaded at once.
   native tray journey chooses a command with keyboard input. A native desktop journey now clicks
   a separate application's window in the same process and checks that the hub leaves. On Windows,
   the hub tracks its own foreground window because process-wide activation stays true in this case.
-  Leaving on a click in another process still has no native observation.
+  A second native journey now owns a small window in a child process, sends it a real desktop
+  click and checks that the hub closes when that process takes focus.
   The charter describes the hub and the menu in words; `imgs/` has no picture of either, and the
   goldens `resident.hub.encre`, `resident.hub.keyboard.papier` and `resident.menu.papier` stand in for one.
-- Next: verify the same dismissal with a click into another process; then draw the charter
-  pictures of the hub and the menu.
+- Next: draw the charter pictures of the hub and the menu, then compare each resident golden
+  against the corresponding composition.
 - Done when: the hub is usable without the pointer, the journey passes on Windows, and each
   golden is compared with its charter picture.
 - Related: std.gui.010

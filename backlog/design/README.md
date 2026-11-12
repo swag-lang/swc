@@ -742,9 +742,10 @@ the screen to its work.
   row of exclusive choices. While a recording runs, both offer to stop or abandon it instead of
   starting another capture. Either leaves on a choice, on `Esc`, and when another application
   takes the desktop; a capture started by its key takes it off the screen first. Leaving the hub
-  without a choice, or closing the window, leaves nothing on screen: the first few times, a
-  silent system notification from the icon says that Swag Capture is still running and how to
-  open it again. It is never a dialog, and it stops once it has been read a few times.
+  without a choice, or closing the window, leaves nothing on screen: a small notification above
+  the icon says that Swag Capture is still running and how to open it again. It has a close button
+  and a check box to stop showing it on later dismissals; until that choice, it appears every time.
+  It is never a dialog.
 - The capture control starts an image area capture directly, and the adjacent Video action starts
   a video area capture. The chevron groups image targets, video targets and GIF, then offers delay
   and cursor choices. Both formats can target the whole desktop, one monitor, an active window or

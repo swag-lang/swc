@@ -102,6 +102,24 @@ func sliderHeadlessReset()
     Swag.require(Math.abs(slider.value() - 1) < 0.01)
 }
 
+// Integer rounding at fractional bounds stays inside the configured inclusive range.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(280, 80)
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
+    slider.setBounds(-9.6, -0.4)
+    slider.flags.add(.Integer)
+
+    slider.setValue(slider.minimum())
+    Swag.require(Math.abs(slider.value() - slider.minimum()) < 0.001)
+    Swag.require(slider.value() >= slider.minimum() - 0.001 and slider.value() <= slider.maximum() + 0.001)
+
+    slider.setValue(slider.maximum())
+    Swag.require(Math.abs(slider.value() - slider.maximum()) < 0.001)
+    Swag.require(slider.value() >= slider.minimum() - 0.001 and slider.value() <= slider.maximum() + 0.001)
+}
+
 // A mouse press jumps the value to the click position and dragging updates it.
 #test
 {

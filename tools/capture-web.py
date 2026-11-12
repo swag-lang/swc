@@ -190,6 +190,7 @@ def main():
                            SWAG_CAPTURE_WEB_MAX_MISSED=str(args.max_missed_frames if args.max_missed_frames is not None else -1),
                            SWAG_CAPTURE_WEB_CURSOR='true' if args.capture_cursor else 'false',
                            SWAG_CAPTURE_WEB_MODE=args.capture_mode,
+                           SWAG_CAPTURE_WEB_MOTION_STRESS='true' if args.motion_stress else 'false',
                            SWAG_CAPTURE_WEB_DURATION=str(args.duration),
                            SWAG_CAPTURE_WEB_QUALITY=args.video_quality)
         print(f'Browser ready: {status}\nEvidence: {output}', flush=True)

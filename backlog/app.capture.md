@@ -95,8 +95,17 @@ whole recording loaded at once.
 - Evidence: `RecentView` retains previews and zoom state in `src/recentwnd.swg`; selecting an
   inactive item calls `Capture.load` again. The historical library sample averaged 7 MB of decoded
   pixels per capture and reached 47 MB, so retaining every decoded capture is not a bounded policy.
-- Next: define a decoded-capture cache bounded by bytes, with ownership of the active editable
-  capture, save completion and on-disk replacement included in its invalidation contract.
+  `RecentWnd.startRequestedSelection` already waits for an in-progress write before loading, but
+  `EditView.setCapture` deletes the outgoing document. An attached `Capture` also owns a renderer
+  texture and its image forms may own more; caching its pointer without detaching those resources
+  would retain GPU memory and leave its view pointer live. `finishRequestedSelection` snapshots
+  an outgoing dirty document before switching, so a cache entry must wait for that save or be
+  invalidated until its on-disk revision is known.
+- Next: transfer clean outgoing captures out of `EditView` after releasing their attached textures,
+  then hold them in a byte-bounded least-recently-used cache keyed by file and validated against
+  the current stored revision. Keep the active capture outside that budget. Invalidate entries on
+  scheduled save, rename, delete, duplicate replacement and external file replacement; only
+  reattach a cached capture after checking its file revision.
 - Done when: revisiting an unchanged cached capture avoids decode, a modified/replaced file
   cannot reuse stale content, and the cache obeys its byte bound after selection and eviction.
 - Related: app.capture.021

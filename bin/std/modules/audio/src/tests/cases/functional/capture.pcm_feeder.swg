@@ -48,6 +48,28 @@ using Swag, Core, Core.Errors
     Swag.require(info.sourceInterrupted and Slice.equals(output.toSlice(), [7's16, 8, 9, 10]))
 }
 
+// Split packet timestamps round offsets once on a fractional sample clock.
+#test
+{
+    var queue = expect CaptureQueue.create(44_100, 1, 12_345, 10_000_000,
+                                           blockFrames: 3, slots: 3, tolerance: 0)
+    var feeder = CapturePcmFeeder.create(&queue)
+    const Input: [8] s16 = [1, 2, 3, 4, 5, 6, 7, 8]
+    expect feeder.pushPcm16(Swag.makeSlice(&Input[0], Input.count), 12_345)
+
+    const ExpectedTicks: [3] u64 = [12_345, 13_025, 13_706]
+    var samples: Array's16
+    var info: CaptureBlock
+    for index in ExpectedTicks.count
+    {
+        Swag.require(queue.pop(&samples, &info))
+        Swag.require(info.startSample == index * 3 and
+                     info.frameCount == (index == 2 ? 2 : 3) and
+                     info.firstTick == ExpectedTicks[index])
+    }
+    Swag.require(not queue.pop(&samples, &info))
+}
+
 // A native silent packet stays zero and restores a lost source at its own timestamp.
 #test
 {

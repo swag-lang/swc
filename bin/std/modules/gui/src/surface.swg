@@ -188,6 +188,23 @@ impl Surface
     // multiply by [[Gui.Surface.dpiScale]] to obtain physical pixels.
     mtd const size()->Math.Point => Math.Point{.position.width / .dpiScale, .position.height / .dpiScale}
 
+    // Writes the notification-area icon bounds in physical screen pixels when available.
+    // Returns false for a missing icon or a tray manager without icon geometry.
+    mtd trayIconBounds(bounds: *Math.Rectangle)->bool
+    {
+        #static if #os == Swag.TargetOs.Windows
+        {
+            var rect: Win32.RECT
+            if .trayIconScreenRect(&rect)
+            {
+                bounds[] = {cast(f32, rect.left), cast(f32, rect.top),
+                            cast(f32, rect.right - rect.left), cast(f32, rect.bottom - rect.top)}
+                return true
+            }
+        }
+        return false
+    }
+
     // Sets the surface scale outside the native creation path.
     //
     // The native layer resolves the scale from the window's monitor; this exists for

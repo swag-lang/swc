@@ -355,7 +355,7 @@ impl IWnd for RecentWnd
                 let item = unwrap .recentView.items[.recentView.selected]
                 .app().renderer.removeTexture(&item.preview)
                 item.preview = .app().renderer.addImage(capture.preview)
-                .invalidate()
+                .invalidateRecentViews()
 
                 .main.libWnd.view.updateRecent(capture)
 
@@ -373,6 +373,13 @@ impl IWnd for RecentWnd
 
 impl RecentWnd
 {
+    // The strip and the detached hub paint the same items on different surfaces.
+    private mtd invalidateRecentViews()
+    {
+        .invalidate()
+        .main.residentPanel?.recents?.invalidate()
+    }
+
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
@@ -401,6 +408,19 @@ impl RecentWnd
         .loadTimer         = .addTimer(1'ms)
     }
 
+    // The hub can size itself once a first valid recent item is present or every candidate
+    // has been tried. A damaged first file must not make the hub grow a moment later.
+    mtd hubSizeReady()->bool => .loadDone and
+                               (not .recentView.items.isEmpty() or .pendingRecentIndex >= .pendingRecentFiles.count)
+
+    private mtd openPendingHub()
+    {
+        if not .main.openHubAfterRecentLoad or not .hubSizeReady() do
+            return
+        .main.openHubAfterRecentLoad = false
+        ResidentPanel.open(.main, .Hub)
+    }
+
     // Drops `file` from the recent strip once the library deleted it.
     mtd onLibraryFileDeleted(file: String)
     {
@@ -426,6 +446,7 @@ impl RecentWnd
                     .recentView.selected -= 1
                 }
 
+                .invalidateRecentViews()
                 break
             }
         }
@@ -455,6 +476,7 @@ impl RecentWnd
         // Enumeration already runs on the deferred startup turn. Open the first candidate
         // now; another timer would allow a redundant empty-editor frame in between.
         .loadNextRecent()
+        .openPendingHub()
     }
 
     mtd scheduleLoadNextRecent()
@@ -492,6 +514,7 @@ impl RecentWnd
 
         .pendingRecentIndex += 1
         .scheduleLoadNextRecent()
+        .openPendingHub()
     }
 
     // Refreshes the selected item of the strip from the capture being edited, and restarts the
@@ -515,7 +538,7 @@ impl RecentWnd
             .duration       = capture.keptDuration()
         }
 
-        .invalidate()
+        .invalidateRecentViews()
     }
 
     mtd removeRecent()
@@ -574,8 +597,12 @@ impl RecentWnd
                 if sel do
                     .recentView.select(idxSel, true)
 
+                .app().renderer.removeTexture(&itn.preview)
+                itn.preview = .app().renderer.addImage(preview)
                 itn.linked   = linked
+                itn.linkedUpToDate = linkedUpToDate
                 itn.duration = duration
+                .invalidateRecentViews()
                 return
             }
         }
@@ -619,6 +646,6 @@ impl RecentWnd
             .recentView.items.count -= 1
         }
 
-        .invalidate()
+        .invalidateRecentViews()
     }
 }

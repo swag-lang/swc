@@ -11,6 +11,70 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     return false
 }
 
+// Startup waits for the recent-file scan before sizing the hub, so its first visible bounds
+// already include a recent row whenever the library has a capture.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.recentWnd.addRecent("recent.scc", testFramePicture(80, 8))
+    Swag.require(not main.recentWnd.loadDone)
+    main.sendCommandEvent(ActionGlobal.ShowHub)
+    Swag.require(main.openHubAfterRecentLoad and main.residentPanel == null)
+    main.recentWnd.loadRecent()
+    Swag.require(not main.openHubAfterRecentLoad and main.residentPanel != null)
+    let panel = main.residentPanel
+    Swag.require(panel.recents != null)
+    let bounds = panel.surface!.position
+    host.pump()
+    Swag.require(main.residentPanel == panel and panel.surface.position == bounds)
+    panel.close()
+}
+
+// The hub repaints as decoded recent thumbnails arrive, including refreshed known files.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.recentWnd.addRecent("first.scc", testFramePicture(40, 8), front: false)
+    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let surface = unwrap panel.surface
+    let recents = unwrap panel.recents
+    surface.show()
+    host.app.runFrame()
+    let width = cast(s32, surface.position.width)
+    let height = cast(s32, surface.position.height)
+    var first = host.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+
+    // Each decoded thumbnail must repaint the hub even after the file scan has started.
+    main.recentWnd.loadDone = true
+    main.recentWnd.addRecent("second.scc", testFramePicture(100, 20), front: false)
+    Swag.require(recents.count() == 2)
+    host.app.runFrame()
+    var second = host.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+    Swag.require(not testSamePixels(&first, &second))
+
+    // Reopening a known file can replace its preview without adding a tile.
+    main.recentWnd.addRecent("second.scc", testFramePicture(180, 34), front: false)
+    Swag.require(recents.count() == 2)
+    host.app.runFrame()
+    var updated = host.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+    Swag.require(not testSamePixels(&second, &updated))
+    panel.close()
+}
+
 // The menu of the notification-area icon carries every capture command, picture and video, with
 // the wait before a capture; a single monitor adds no entry of its own.
 #test
@@ -27,7 +91,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     Swag.require(main.residentPanel == panel)
     for id in [ActionGlobal.ShowHub, ActionGlobal.ShowEditor, ActionCapture.Area, ActionCapture.LastArea,
                ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo,
-               ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record,
+               ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record,
                ActionCapture.CaptureCursor, ActionOptions.Options, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
@@ -68,10 +132,12 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     var panel = testOpenResidentPanel(&host, main, .Hub)
     Swag.require(panel.menu.items[0]!.label)
     for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.LastArea,
-               ActionCapture.RecordVideo, ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow,
+               ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow,
                ActionCapture.Record, ActionGlobal.ShowEditor, ActionGlobal.ShowLibrary,
                ActionOptions.Options, ActionGlobal.Minimize, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
+    for item in panel.menu.items where item and item.id == ActionGlobal.Minimize do
+        Swag.require(item.rightName.raw == Input.formatKeyShortcut(.None, .Escape))
     Swag.require(not testPanelOffers(panel, ActionGlobal.ShowHub))
     Swag.require(panel.recents == null)
 
@@ -129,6 +195,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     }
 
     let surface = unwrap main.surface
+    main.editorOptions.showResidentNotice = false
     surface.hide()
     Swag.require(surface.isHidden)
 
@@ -146,8 +213,8 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     Swag.require(main.residentPanel == null and surface.isHidden)
 }
 
-// Leaving the hub with nothing left on screen says that the application keeps running, the
-// first few times only; the menu of the icon and a hub over the visible window say nothing.
+// Escape from the last visible hub opens a nonmodal reminder beside the icon. Its checkbox
+// disables later reminders, even when an older saved notice count has reached zero.
 #test
 {
     var host: Testing.HeadlessHost
@@ -159,23 +226,28 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     }
 
     let surface = unwrap main.surface
-    let notices = main.editorOptions.residentNotices
-    Swag.require(notices > 0)
-
-    surface.show()
-    testOpenResidentPanel(&host, main, .Hub).choose(null)
-    Swag.require(main.editorOptions.residentNotices == notices)
-
+    main.editorOptions.residentNotices = 0
+    main.editorOptions.showResidentNotice = true
     surface.hide()
-    testOpenResidentPanel(&host, main, .Menu).choose(null)
-    Swag.require(main.editorOptions.residentNotices == notices)
-
-    for left in reversed(notices)
-    {
-        testOpenResidentPanel(&host, main, .Hub).choose(null)
-        Swag.require(main.editorOptions.residentNotices == left)
-    }
-
+    let panel = testOpenResidentPanel(&host, main, .Hub)
+    var escape = KeyEvent{kind: .Pressed, key: .Escape}
+    panel.sendEvent(&escape)
+    Swag.require(escape.accepted and main.residentPanel == null)
+    host.pump()
+    let notice = unwrap main.residentNotice
+    Swag.require(host.app.surfaces.count == 2)
+    Swag.require(notice.surface != surface)
+    let card = notice.children[0]
+    let cardBounds = card.surfaceRect()
+    let choice = unwrap notice.optionCheck
+    let choiceBounds = choice.surfaceRect()
+    Swag.require(choiceBounds.x >= cardBounds.x and choiceBounds.right() <= cardBounds.right() and
+                 choiceBounds.y >= cardBounds.y and choiceBounds.bottom() <= cardBounds.bottom())
+    Swag.require(not choice.isChecked())
+    choice.toggle()
+    Swag.require(not main.editorOptions.showResidentNotice)
+    notice.close()
+    host.pump()
+    Swag.require(host.app.surfaces.count == 1)
     Swag.require(not main.noticeResident())
-    Swag.require(main.editorOptions.residentNotices == 0)
 }

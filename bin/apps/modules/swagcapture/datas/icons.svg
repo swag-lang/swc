@@ -232,4 +232,9 @@
   <g id="TimelineEnd" transform="translate(48 168) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
     <path d="M13 3v10M13 8H3M6 5L3 8l3 3"/>
   </g>
+  <g id="Resident" transform="translate(72 168) scale(1.5)" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2" y="2.5" width="11" height="9" rx="1.25"/>
+    <path d="M2 5h11"/>
+    <circle cx="12" cy="12" r="2.25" fill="#ffffff" stroke="none"/>
+  </g>
 </svg>

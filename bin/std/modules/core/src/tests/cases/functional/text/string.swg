@@ -345,6 +345,13 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(assertString(value.toLower(), "az\u00E9"))
     Swag.require(assertString(String.toUpper("az\u00E9"), "AZ\u00C9"))
     Swag.require(assertString(String.toLower("AZ\u00C9"), "az\u00E9"))
+
+    var reserved: String = "az\u00E9"
+    reserved.reserve(128)
+    let capacity = reserved.capacity
+    reserved.makeUpper(CharacterSet.Unicode)
+    Swag.require(assertString(reserved, "AZ\u00C9"))
+    Swag.require(reserved.capacity >= capacity)
 }
 
 #test

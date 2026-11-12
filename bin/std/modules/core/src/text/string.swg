@@ -686,7 +686,7 @@ impl String
     private mtd setRunes(runes: const [..] rune)
     {
         // Four bytes per rune in the worst case, and one more for the terminator.
-        .reserve(runes.count * 4 + 1)
+        .grow(runes.count * 4 + 1)
         let buffer = unwrap .buffer
         .length         = Utf8.fromUnicode(Swag.makeSlice(buffer, runes.count * 4), runes)
         buffer[.length] = 0

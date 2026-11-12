@@ -218,6 +218,24 @@ const WrittenFrameCount = 300'u64
     }
 }
 
+// An ended writer rejects later frames without changing its count or encoded memory stream.
+#test
+{
+    var buffer: ConcatBuffer
+    let rate   = expect FrameRate.create(30, 1)
+    var writer = expect Writer.createMemory("ended.y4m", &buffer, 2, 2, rate)
+    let frame  = videoGrayImage(2, 2, 80)
+    expect writer.addFrame(frame)
+    expect writer.end()
+
+    let before = buffer.toArray()
+    var rejected: Swag.Error
+    discard catch writer.addFrame(frame) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    Swag.require(writer.frameCount() == 1)
+    Swag.require(Slice.equals(buffer.toSlice(), before.toSlice()))
+}
+
 // Geometry of the stream with a hole. Sixty-nine megabytes is far more than any buffer of this
 // module holds, and one frame payload alone is larger than the read window.
 const HoleWidth      = 320's32

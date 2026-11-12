@@ -48,6 +48,26 @@ func pushButtonHeadlessResetCounters()
     Swag.require(button.text() == "")
 }
 
+// Removing a button icon invalidates the layout that measures its caption width.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 100)
+
+    let row    = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 320, 40})
+    let button = PushButton.create(row, "OK")
+    button.setIcon(host.theme.icon(.Folder, 64))
+    host.pump()
+    let withIcon = button.position.width
+    Swag.require(withIcon > host.theme.metrics.btnPush_Width)
+
+    button.clearIcon()
+    let withoutIcon = button.measure({}).preferred.x
+    Swag.require(withoutIcon < withIcon)
+    host.pump()
+    Swag.require(button.position.width == withoutIcon)
+}
+
 // Space and Enter activate the focused button with the same signal and command as a click.
 #test
 {

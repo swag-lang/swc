@@ -3,6 +3,41 @@
 
 using Swag, Core, Pixel
 
+const LensDynamicCommandId = "lens.dyn"
+var LensDynamicCommandStorage: String
+
+func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
+{
+    if evt is CommandStateEvent as state where state.kind == .Compute and state.id == LensDynamicCommandId
+    {
+        state.name = "Open Dynamic Document"
+        state.updatedFields.add(.Name)
+        state.accepted = true
+        return true
+    }
+
+    return false
+}
+
+// A registered command keeps its identifier after the source string changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    host.root.hookOnEvent = &lensDynamicCommandState
+
+    LensDynamicCommandStorage = Core.String.from(LensDynamicCommandId)
+    let lens = Lens.View.create(&host.root)
+    lens.addCommand("Dynamic", LensDynamicCommandStorage.toString())
+    LensDynamicCommandStorage[0] = 'X'
+
+    lens.open(">open")
+    Swag.require(lens.chosenEntry()!.id == LensDynamicCommandId)
+
+    let menu = lens.createCommandMenu()
+    Swag.require(menu.items.count == 1 and menu.items[0]!.id == LensDynamicCommandId)
+}
+
 // A whole occurrence answers better than characters found in order, and better again at the
 // start of a word; the runs it matched are reported in bytes.
 #test

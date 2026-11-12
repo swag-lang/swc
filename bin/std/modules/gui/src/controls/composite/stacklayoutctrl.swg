@@ -269,6 +269,31 @@ private impl StackLayoutCtrl
             shortage = totalPreferred - availableMain
         }
 
+        // A shared fit size is the water level: children clamped by a minimum or maximum leave
+        // their unused space for the remaining children instead of making the row overflow or
+        // leave a gap when the other children can still grow.
+        var fitSize: f32
+        if .isFitMain()
+        {
+            let availableForItems = Math.max(availableMain - spacingTotal - totalMargins, 0)
+            var low  = 0'f32
+            var high = availableForItems
+            for iteration in 0 until 32
+            {
+                discard iteration
+                let level = (low + high) * 0.5
+                var used: f32
+                for hint in hints do
+                    used += Math.clamp(level, .minimumMain(hint), .maximumMain(hint))
+                if used < availableForItems do
+                    low = level
+                else do
+                    high = level
+            }
+
+            fitSize = (low + high) * 0.5
+        }
+
         var cursor: f32
         if .isReverse() do
             cursor = .isHorizontal() ? client.right() : client.bottom()
@@ -290,8 +315,7 @@ private impl StackLayoutCtrl
             var mainSize = .preferredMain(hint)
             if .isFitMain()
             {
-                let availableForItems = Math.max(availableMain - spacingTotal - totalMargins, 0)
-                mainSize = availableForItems / count
+                mainSize = fitSize
             }
             elif extra > 0 and totalWeight > 0
             {

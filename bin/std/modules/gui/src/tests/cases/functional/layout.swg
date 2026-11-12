@@ -3,6 +3,43 @@
 
 using Swag, Core
 
+// HorizontalFit keeps each child's minimum while redistributing the remaining space.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(140, 80)
+
+    let stack = StackLayoutCtrl.create(&host.root, .HorizontalFit, {0, 0, 100, 40})
+    stack.spacing = 0
+    let first  = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
+    let second = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
+    first.minSize.x  = 80
+    second.minSize.x = 20
+    stack.computeLayout()
+
+    Swag.require(first.position.width == 80)
+    Swag.require(second.position.width == 20)
+    Swag.require(second.position.right() == stack.clientRect().right())
+}
+
+// HorizontalFit redistributes space left by a child that reaches its maximum.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(140, 80)
+
+    let stack = StackLayoutCtrl.create(&host.root, .HorizontalFit, {0, 0, 100, 40})
+    stack.spacing = 0
+    let capped = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
+    let flex   = Wnd.create'Wnd(stack, null, {0, 0, 0, 20})
+    capped.maxSize.x = 20
+    stack.computeLayout()
+
+    Swag.require(capped.position.width == 20)
+    Swag.require(flex.position.width == 80)
+    Swag.require(flex.position.right() == stack.clientRect().right())
+}
+
 // StackLayoutCtrl Top stacks children vertically with spacing.
 #test
 {

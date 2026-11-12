@@ -20,6 +20,20 @@ func timerTestCallback(_: *Time.Timer)
 
 #test
 {
+    var zeroFailure: Swag.Error
+    discard catch Time.Timer.create(0'ms, &timerTestCallback) as zeroFailure
+    Swag.require(zeroFailure.value() is Errors.BadParameterError)
+    Swag.require(Errors.message(zeroFailure.value()) == "timer delay must be positive and finite")
+
+    let tooLong = Time.Duration.fromSeconds(cast(f64, Swag.U32.Max) / 1000.0)
+    var rangeFailure: Swag.Error
+    discard catch Time.Timer.create(tooLong, &timerTestCallback) as rangeFailure
+    Swag.require(rangeFailure.value() is Errors.OverflowError)
+    Swag.require(Errors.message(rangeFailure.value()) == "timer delay must be between 1 and 4294967294 milliseconds")
+}
+
+#test
+{
     let context       = Swag.getContext()
     let previousUser0 = context.user0
     context.user0 = TimerTestMarker

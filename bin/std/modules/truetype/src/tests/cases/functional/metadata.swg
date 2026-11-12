@@ -135,3 +135,11 @@ func writeMetadataU16(bytes: *Array'u8, offset: u64, value: u16)
     bytes.free()
     Swag.require(metadata.typographicFamilyName == "Arial" and metadata.typographicStyleName == "Bold")
 }
+
+// Macintosh platform name strings use MacRoman, not UTF-8.
+#test
+{
+    const MacRomanFamily: [13] u8 = [0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0x8E]
+    let family = expect decodeNameRecord(MacRomanFamily, 12, 0)
+    Swag.require(family == "é")
+}

@@ -4,6 +4,7 @@
 using Swag, Core, Pixel
 
 var InfoSheetTestLinkId: String
+var ToolDockDynamicId:  String
 
 // The dock stands at the leading edge, vertically centred, and keeps exactly one tool active.
 #test
@@ -549,12 +550,18 @@ var InfoSheetTestLinkId: String
     let dock = ToolDock.create(&host.root)
     discard dock.addTool(host.theme.icon(.Edit, 18), "dock.select", "Select")
     let shape = dock.addTool(host.theme.icon(.Plus, 18), "dock.rectangle", "Rectangle")
-    dock.addToGroup(shape, host.theme.icon(.Link, 18), "dock.ellipse", "Ellipse")
+    ToolDockDynamicId = Core.String.from("dock.ellipse")
+    dock.addToGroup(shape, host.theme.icon(.Link, 18), ToolDockDynamicId.toString(), "Ellipse")
+    ToolDockDynamicId[0] = 'X'
     host.root.applyLayout()
     Swag.require(dock.tools.count == 2)
 
+    host.recordCommands()
     Swag.require(dock.selectTool("dock.ellipse"))
     Swag.require(shape.id == "dock.ellipse" and shape.toolTip == "Ellipse" and shape.isChecked)
+    dock.chooseInGroup(shape, "dock.ellipse")
+    host.pump()
+    Swag.require(host.lastCommand == "dock.ellipse")
     Swag.require(dock.selectTool("dock.rectangle") and shape.id == "dock.rectangle")
     Swag.require(not dock.selectTool("dock.unknown"))
 }

@@ -301,6 +301,26 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
 #test
 {
     var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    var sosOffset = Swag.U64.Max
+    for i in bytes.count - 7
+    {
+        if bytes[i] == 0xFF and bytes[i + 1] == 0xDA do
+            sosOffset = i
+    }
+
+    Swag.require(sosOffset != Swag.U64.Max)
+    bytes[sosOffset + 7] = bytes[sosOffset + 5]
+    var options: DecodeOptions
+    options.decodePixels = false
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("duplicate-scan-component.jpg", bytes.toSlice(), options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
+#test
+{
+    var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
     var sofOffset = Swag.U64.Max
     for i in bytes.count - 11
     {

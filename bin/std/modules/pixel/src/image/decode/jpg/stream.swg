@@ -434,6 +434,11 @@ impl Decoder
 
             if ci >= .compsInFrame do
                 fail InvalidFormatError{"bad sos comp id"}
+            for prior in i
+            {
+                if .compList[prior] == cast(u32, ci) do
+                    fail InvalidFormatError{"JPEG scan component identifiers are duplicated"}
+            }
 
             let dcTable = (c >> 4) & 15
             let acTable = c & 15

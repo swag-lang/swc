@@ -63,6 +63,12 @@ func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 // Width/height of 0 in a directory entry means 256
 func dimFromByte(value: u8)->s32 => value == 0 ? 256 : cast(s32, value)
 
+func checkEntryDimensions(entry: IconDirEntry, width, height: s32) fail
+{
+    if width != dimFromByte(entry.width) or height != dimFromByte(entry.height) do
+        fail InvalidFormatError{"icon entry dimensions do not match its directory"}
+}
+
 func isPngSignature(p: const [*] u8, size: u64)->bool
 {
     if size < 8 do
@@ -258,8 +264,10 @@ impl Decoder
         if isPngSignature(imgPtr, imgLen)
         {
             var pngDec: Png.Decoder
-            let itf = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
-            return try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)
+            let itf    = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
+            var result = #move try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)
+            try checkEntryDimensions(bestEntry, result.width, result.height)
+            return #move result
         }
 
         // BMP/DIB-encoded entry
@@ -271,6 +279,7 @@ impl Decoder
             fail UnsupportedFormatError{"unsupported icon header"}
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
             fail InvalidFormatError{"invalid dimensions"}
+        try checkEntryDimensions(bestEntry, dib.width, dib.height / 2)
 
         var result: #returntype
         result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)

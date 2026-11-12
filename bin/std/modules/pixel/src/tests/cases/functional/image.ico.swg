@@ -422,6 +422,14 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let img = expect decodeIco(nnBytes(cb.toSlice()))
     Swag.require(img.width == 3)
     Swag.require(img.height == 2)
+
+    var mismatched = cb.toArray()
+    let entry      = cast(*IcoEntry, mismatched.storage() + #sizeof(IcoDir))
+    entry[].width = 4
+    var errorOutcome:    Swag.Error
+    var mismatchedImage: Image
+    catch { mismatchedImage = try decodeIco(nnBytes(mismatched.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
 }
 
 // Decode metadata only: dimensions populated, no pixels allocated.
@@ -440,6 +448,27 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.height == 2)
     Swag.require(img.pixelFormat == .BGRA8)
     Swag.require(not img.isValid())
+}
+
+// The directory dimensions must match a DIB image's dimensions.
+#test
+{
+    var body: ConcatBuffer
+    for 8 do
+        body.addNative(0'u8)     // 1x1 32-bit XOR and AND masks.
+    var bytes = buildIco(1, 1, 32, 0, nnBytes(body.toSlice()))
+    let entry = cast(*IcoEntry, bytes.storage() + #sizeof(IcoDir))
+    entry[].width = 2
+
+    var decodeOutcome: Swag.Error
+    var image:         #decltype(expect decodeIco(nnBytes(bytes.toSlice())))
+    catch { image = try decodeIco(nnBytes(bytes.toSlice())) } as decodeOutcome
+    Swag.require(decodeOutcome.value() != null)
+
+    var readerOutcome: Swag.Error
+    var reader:        ImageReader
+    catch { reader = try ImageReader.decode("dimension-mismatch.ico", nnBytes(bytes.toSlice())) } as readerOutcome
+    Swag.require(readerOutcome.value() != null)
 }
 
 // Error: directory type is neither icon (1) nor cursor (2).

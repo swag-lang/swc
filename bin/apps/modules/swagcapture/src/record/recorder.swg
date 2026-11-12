@@ -209,7 +209,7 @@ impl Recorder
         let options = &main.captureOptions
         let configs = VideoRecordingAudio.configs(options.recordMicrophone, options.recordSystemSound)
         let rows = cast(u32, (cast(s32, recorder.area.height) + 15) / 16)
-        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), 4'u32, rows)
+        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), 8'u32, rows)
         recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
                                                         try FrameRate.create(VideoCaptureFramesPerSecond, 1),
                                                         options.captureCursor, configs.toSlice(),

@@ -3,6 +3,33 @@
 
 using Swag, Core
 
+// Changing measured column widths invalidates the parent layout.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row    = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let header = Header.create(row, {0, 0, 0, 24})
+    header.addColumn("Name", 120)
+    host.pump()
+    let originalWidth = header.measure({}).preferred.x
+
+    header.addColumn("Count", 75)
+    host.pump()
+    let addedWidth = header.measure({}).preferred.x
+    Swag.require(addedWidth != originalWidth, "Adding a header column should change its measured content width")
+    Swag.require(header.position.width == addedWidth,
+                 Format.toString("Header after add: measured %, committed %", addedWidth, header.position.width).toString())
+
+    header.setItemWidth(0, 250)
+    host.pump()
+    let resizedWidth = header.measure({}).preferred.x
+    Swag.require(resizedWidth != addedWidth, "Changing a header column width should change its measured content width")
+    Swag.require(header.position.width == resizedWidth,
+                 Format.toString("Header after resize: measured %, committed %", resizedWidth, header.position.width).toString())
+}
+
 // Header columns are added with a name and width.
 #test
 {

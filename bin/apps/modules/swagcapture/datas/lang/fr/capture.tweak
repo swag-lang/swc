@@ -484,6 +484,7 @@ key_Ratings            0–5
 hint_Rate              noter
 hint_Filter            filtrer
 hint_LibrarySpace      exporter, étiqueter, noter, déplacer
+hint_EmptySearchSpace  recherche, filtres, dossiers
 ui_LibraryEmpty        Aucune capture ici pour l'instant.
 ui_LibraryNoMatch      Aucune capture ne correspond aux filtres ou à la recherche.
 lens_Tools             Outils

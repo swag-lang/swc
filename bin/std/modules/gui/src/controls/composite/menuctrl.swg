@@ -258,7 +258,7 @@ public impl IWnd for MenuCtrl
 
             // Back selection
             var colorSel: Color
-            let isHot = .hotIdx == idx and not it.disabled
+            let isHot = (.hotIdx == idx or .selectedIdx == idx) and not it.disabled
             if isHot
             {
                 colorSel       = colors.popupItem_HotBk
@@ -378,6 +378,11 @@ public impl IWnd for MenuCtrl
             .dirtyLayout = true
     }
 
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        .handleKeyboard(evt)
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let widgetItem = .widgetItemAt(evt.surfacePos)
@@ -393,7 +398,8 @@ public impl IWnd for MenuCtrl
         {
             .removeTimer()
             .hotIdx      = Swag.U32.Max
-            .selectedIdx = Swag.U32.Max
+            if evt.kind != .Move or evt.delta.x != 0 or evt.delta.y != 0 do
+                .selectedIdx = Swag.U32.Max
             .invalidate()
 
             if widgetTarget
@@ -416,7 +422,7 @@ public impl IWnd for MenuCtrl
         }
 
         let hit = .hitTest(evt.surfacePos)
-        if hit != .hotIdx
+        if (evt.kind != .Move or evt.delta.x != 0 or evt.delta.y != 0) and hit != .hotIdx
         {
             // Timer to auto open/hide sub menus
             if not .bar
@@ -427,6 +433,7 @@ public impl IWnd for MenuCtrl
             }
 
             .hotIdx = hit
+            .selectedIdx = Swag.U32.Max
             .invalidate()
 
             if hit != Swag.U32.Max
@@ -1186,6 +1193,130 @@ public impl MenuCtrl
     // Returns the selected modal command, or null when dismissed or still running.
     mtd const modalResult()->WndId? => .endModalResult
 
+    // Handles popup navigation when the menu or an enclosing panel owns keyboard focus.
+    //
+    // Arrows skip headings, separators, notes, hidden and disabled entries. A hosted widget
+    // receives Left, Right, Enter and Space while its row is selected. The caller observes a
+    // completed choice through [[Gui.MenuCtrl.isModalEnded]] and [[Gui.MenuCtrl.modalResult]].
+    mtd handleKeyboard(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if .bar or .endModal do
+            return
+
+        if evt.kind == .Character and evt.character >= ' 'rune and
+           not evt.modifiers.has(.Control) and not evt.modifiers.has(.Alt)
+        {
+            let letter = Format.toString("%", evt.character)
+            .selectKeyboardLetter(letter.toString())
+            evt.accepted = true
+            return
+        }
+        if evt.kind != .Pressed do
+            return
+
+        if .selectedIdx < .items.count and .items[.selectedIdx]!.widget and
+           (evt.key == .Left or evt.key == .Right or evt.key == .Return or evt.key == .Space)
+        {
+            let widget = unwrap .items[.selectedIdx]!.widget
+            let target = evt.target
+            evt.target = widget
+            widget.processEvent(evt)
+            evt.target = target
+            if evt.accepted do
+                return
+        }
+
+        switch evt.key
+        {
+        case .Up:     .moveKeyboardSelection(forward: false)
+        case .Down:   .moveKeyboardSelection(forward: true)
+        case .Home:   .selectKeyboardEdge(forward: true)
+        case .End:    .selectKeyboardEdge(forward: false)
+        case .Escape: .setEndModal(null)
+        case .Return, .Space:
+            if .selectedIdx == Swag.U32.Max do
+                .selectKeyboardEdge(forward: true)
+            if .selectedIdx < .items.count
+            {
+                let item = unwrap .items[.selectedIdx]
+                if item.popup != null
+                {
+                    .hotIdx = .selectedIdx
+                    .showHotPopup()
+                }
+                elif item.id do
+                    .setEndModal(item.id)
+            }
+        default: return
+        }
+
+        evt.accepted = true
+    }
+
+    private mtd canSelectKeyboard(index: u64)->bool
+    {
+        let item = unwrap .items[index]
+        return not item.hidden and not item.disabled and not item.separator and not item.note and
+               (item.id != null or item.widget != null or item.popup != null)
+    }
+
+    private mtd setKeyboardSelection(index: u64)
+    {
+        .hotIdx = Swag.U32.Max
+        .selectedIdx = cast(u32, index)
+        .invalidate()
+    }
+
+    private mtd moveKeyboardSelection(forward: bool)
+    {
+        let count = .items.count
+        if not count do
+            return
+        let current = .selectedIdx < count ? cast(u64, .selectedIdx) :
+                      (.hotIdx < count ? cast(u64, .hotIdx) : (forward ? count - 1 : 0))
+        for offset in count
+        {
+            let index = forward ? (current + offset + 1) % count : (current + count - offset - 1) % count
+            if .canSelectKeyboard(index)
+            {
+                .setKeyboardSelection(index)
+                return
+            }
+        }
+    }
+
+    private mtd selectKeyboardEdge(forward: bool)
+    {
+        let count = .items.count
+        for offset in count
+        {
+            let index = forward ? offset : count - offset - 1
+            if .canSelectKeyboard(index)
+            {
+                .setKeyboardSelection(index)
+                return
+            }
+        }
+    }
+
+    private mtd selectKeyboardLetter(letter: string)
+    {
+        let count = .items.count
+        if not count do
+            return
+        let current = .selectedIdx < count ? cast(u64, .selectedIdx) : count - 1
+        for offset in count
+        {
+            let index = (current + offset + 1) % count
+            if .canSelectKeyboard(index) and Utf8.startsWith(.items[index]!.name.raw, letter, .UnicodeNoCase)
+            {
+                .setKeyboardSelection(index)
+                return
+            }
+        }
+    }
+
     // Adds and removes presentation options, then invalidates cached layout.
     mtd updateFlags(add: MenuFlags = .None, remove = MenuFlags.None)
     {
@@ -1435,7 +1566,9 @@ public impl MenuCtrl
     // `widget` must already be a direct child of this popup and remain alive while the row is
     // registered. The menu measures it and normally positions it in the text column; set
     // `fullWidth` for a centered toolbar spanning the popup content. Pointer events reach the
-    // child while the popup owns mouse capture, and the row is not an ordinary command selection.
+    // child while the popup owns mouse capture. When the popup handles keyboard navigation, it
+    // forwards Left, Right, Enter and Space to the selected widget row. The row is not an
+    // ordinary command selection.
     // Removing the row hides the child but leaves it attached to the popup. Set `dismissOnClick`
     // when a left-button release inside the child should close the popup.
     #[Swag.Discardable]

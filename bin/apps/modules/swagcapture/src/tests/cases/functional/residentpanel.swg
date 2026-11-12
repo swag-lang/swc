@@ -153,6 +153,55 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     panel.close()
 }
 
+// The hub and tray menu navigate by keyboard, including the hosted recent row.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    for index in 3 do
+        main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 40 * index), 8))
+    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let recents = unwrap panel.recents
+
+    var down = KeyEvent{kind: .Pressed, key: .Down}
+    for item in panel.menu.items
+    {
+        if item!.id == null and not item.disabled and not item.separator and not item.label
+        {
+            panel.sendEvent(&down)
+            break
+        }
+        if not item.disabled and not item.separator and not item.label do
+            panel.sendEvent(&down)
+    }
+
+    var right = KeyEvent{kind: .Pressed, key: .Right}
+    panel.sendEvent(&right)
+    Swag.require(right.accepted and recents.keyboardIndex == 0)
+    panel.sendEvent(&right)
+    Swag.require(recents.keyboardIndex == 1)
+    var left = KeyEvent{kind: .Pressed, key: .Left}
+    panel.sendEvent(&left)
+    Swag.require(recents.keyboardIndex == 0)
+
+    var home = KeyEvent{kind: .Pressed, key: .Home}
+    panel.sendEvent(&home)
+    Swag.require(recents.keyboardIndex == Swag.U64.Max)
+    panel.close()
+
+    let menuPanel = testOpenResidentPanel(&host, main, .Menu)
+    menuPanel.sendEvent(&home)
+    var enter = KeyEvent{kind: .Pressed, key: .Return}
+    menuPanel.sendEvent(&enter)
+    Swag.require(enter.accepted and main.residentPanel == null)
+}
+
 // While a recording runs the panel offers to stop or abandon it, not to start another capture.
 #test
 {

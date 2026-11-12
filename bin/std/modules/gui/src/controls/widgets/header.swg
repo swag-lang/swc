@@ -436,6 +436,7 @@ impl Header
         item.column    = cast(.items.count)
         .items.add(item)
         .invalidate()
+        .invalidateLayout()
         return item
     }
 
@@ -540,6 +541,7 @@ impl Header
         item.width = move
         .sigLayoutChanged.call(me)
         .invalidate()
+        .invalidateLayout()
     }
 
     // Configures inclusive width limits by display-order index and clamps the current width.

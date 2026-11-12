@@ -8,6 +8,7 @@ using Swag, Core.Errors
 // Missing fields retain their initialized value and unknown properties are ignored.
 // Duplicate properties, malformed numbers, trailing commas, and trailing root data fail.
 // Strings support every JSON escape, including UTF-16 surrogate pairs in `\uXXXX` escapes.
+// The input must be valid UTF-8; invalid byte sequences fail with a SyntaxError.
 public struct Json
 {
     internal

@@ -283,3 +283,12 @@ func assertJsonPayload(value: JsonPayload)->bool
         Swag.require(err != null)
     }
 }
+
+#test
+{
+    const InvalidUtf8: [12] u8 = [0x7B, 0x22, 0x74, 0x65, 0x78, 0x74, 0x22, 0x3A, 0x22, 0xFF, 0x22, 0x7D]
+    var decoder:      Serialization.Decoder'Serialization.Read.Json
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, InvalidUtf8) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.SyntaxError)
+}

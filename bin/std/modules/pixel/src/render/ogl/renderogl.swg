@@ -2625,6 +2625,12 @@ impl RenderOgl
         // Small buckets absorb resize jitter without doubling each full-window dimension.
         let bucketWidth  = RenderTarget.pooledExtent(width)
         let bucketHeight = RenderTarget.pooledExtent(height)
+        if not bucketWidth or not bucketHeight
+        {
+            let result = Memory.new'RenderTarget()
+            result.clear()
+            return result
+        }
 
         for rt, i in .stackReleasedRT
         {

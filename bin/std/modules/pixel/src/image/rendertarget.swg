@@ -28,7 +28,11 @@ internal impl RenderTarget
     func pooledExtent(size: s32)->u32
     {
         let extent = cast(u32, size)
-        return extent <= 64 ? Core.Math.roundUpToPowerOf2(extent) : (extent + 63) & ~63'u32
+        if extent <= 64 do
+            return Core.Math.roundUpToPowerOf2(extent)
+
+        let rounded = (cast(u64, extent) + 63) & ~63'u64
+        return rounded <= Swag.S32.Max ? cast(u32, rounded) : 0
     }
 
     // Establishes a descriptor for resources created by a renderer.

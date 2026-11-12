@@ -3367,6 +3367,12 @@ impl RenderCpu
         Swag.assert(width > 0 and height > 0, "acquireRenderTarget needs positive width and height")
         let bucketWidth  = RenderTarget.pooledExtent(width)
         let bucketHeight = RenderTarget.pooledExtent(height)
+        if not bucketWidth or not bucketHeight
+        {
+            let result = Memory.new'RenderTarget()
+            result.clear()
+            return result
+        }
 
         // Match RenderOgl's small buckets and let larger, unused targets expire.
         for rt, idx in .stackReleasedRT

@@ -19,6 +19,18 @@ using Core
     renderer.end()
 }
 
+// Rounding a positive signed width to a 64-pixel bucket must not wrap past s32.Max.
+#test
+{
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.begin({width: 16, height: 16})
+    let target = renderer.acquireRenderTarget(2147483585, 1)
+    Swag.require(not target.colorBuffer.isValid())
+    renderer.releaseRenderTarget(target)
+    renderer.end()
+}
+
 // Keep a hot target between frames, then release it after a frame without a borrower.
 #test
 {

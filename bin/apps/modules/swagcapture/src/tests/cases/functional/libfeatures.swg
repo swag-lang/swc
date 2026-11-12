@@ -163,11 +163,69 @@ using Swag, Core
     Memory.delete(cap)
 
     f.main.copyLibraryImage(path)
+    f.main.copyJob!.task.wait()
+    f.gui.pump()
 
     let image = Clipboard.getImage()
     Swag.require(image.isValid())
     Swag.require(image.width == 20)
     Swag.require(image.height == 14)
+}
+
+// A newer library copy replaces an in-flight request and waits for writes to its file.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let firstPath  = testTempCapturePath()
+    let secondPath = testTempCapturePath()
+    defer
+    {
+        discard catch File.delete(firstPath)
+        discard catch File.delete(secondPath)
+        Clipboard.clear()
+    }
+
+    let first = Memory.new'Capture()
+    first.width, first.widthOrg   = 9
+    first.height, first.heightOrg = 7
+    first.backImg = Gui.Testing.indexedImage(9, 7)
+    first.file = firstPath
+    first.changed = true
+    expect first.save()
+    Memory.delete(first)
+
+    let second = Memory.new'Capture()
+    second.width, second.widthOrg   = 13
+    second.height, second.heightOrg = 7
+    second.backImg = Gui.Testing.indexedImage(13, 7)
+    second.file = secondPath
+    second.changed = true
+    expect second.save()
+    Memory.delete(second)
+
+    f.main.copyLibraryImage(firstPath)
+    let firstJob = unwrap f.main.copyJob
+    let rating = 4'u8
+    f.main.queueCaptureMetadata(secondPath, rating: &rating)
+    f.main.copyLibraryImage(secondPath)
+    firstJob.task.wait()
+    f.gui.pump()
+    Swag.require(f.main.copyJob == null and f.main.copyTimer != null)
+
+    Swag.require(g_CaptureSaves.flush(secondPath).isEmpty())
+    f.gui.fireTimer(f.main.copyTimer)
+    Swag.require(f.main.copyJob and f.main.copyJob.file == secondPath)
+    f.main.copyJob.task.wait()
+    f.gui.pump()
+
+    let copied = Clipboard.getImage()
+    Swag.require(copied.isValid() and copied.width == 13 and copied.height == 7)
+    let stored = expect Capture.load(secondPath, preview: true)
+    defer Memory.delete(stored)
+    Swag.require(stored.rating == 4)
 }
 
 // The page is named after the folder it shows, and its folders are tabs: the library first, its

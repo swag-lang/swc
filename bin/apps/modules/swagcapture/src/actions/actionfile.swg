@@ -249,9 +249,8 @@ impl IActionUI for ActionFile
                     MessageDlg.error(unwrap main.surface, appStrings().msg_FailedCopyCapture, Swag.err)
                     return true
                 }
+                main.confirm(appStrings().msg_Copied)
             }
-
-            main.confirm(appStrings().msg_Copied)
 
         case .CaptureFileLocation:
             if not Env.showInFileExplorer(capture.file) do

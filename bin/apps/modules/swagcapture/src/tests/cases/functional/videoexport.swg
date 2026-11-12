@@ -100,6 +100,8 @@ using Swag, Core, Gui, Pixel, Video
     Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.CopyImage, &copyState))
     Swag.require(copyState.name == appStrings().act_CopyVideoToClipboard)
     f.main.copyLibraryImage(document)
+    f.main.copyJob!.task.wait()
+    f.gui.pump()
     let copied = Clipboard.getFiles()
     Swag.require(copied.count == 1 and not Path.equals(copied[0], source))
     defer

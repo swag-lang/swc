@@ -22,6 +22,40 @@ impl ActionFile
     newCmdId("FileDetails")
 }
 
+// Saves a rendered image using the same options for editor and background library exports.
+internal func saveCaptureImageFile(img: *Image, source: String, target: String) fail
+{
+    // Which encoder runs is the registry's decision, taken from the extension.
+    let ext = Path.lowercaseExtension(target)
+    var optImg: any? = null
+    var optPng: Png.EncodeOptions
+    var optJpg: Jpg.EncodeOptions
+
+    if ext == ".png"
+    {
+        optPng.compressionLevel = Core.Compress.Deflate.CompressionLevel.BestSpeed
+        optPng.filtering        = false
+        optImg = optPng
+    }
+    elif ext == ".jpg" or ext == ".jpeg"
+    {
+        optJpg.quality = 95
+        optImg         = optJpg
+    }
+
+    var md: ImageMetadata
+    md.tag   = CaptureFileMetadataTag
+    md.value = source.toSlice()
+    img.metadata.add(md)
+
+    // The previous destination remains complete if encoding or writing fails.
+    let temporary = Format.toString("%.swag-export-%.tmp", target, Guid128.random())
+    defer discard catch File.delete(temporary)
+    var encoded = try img.encode(target, optImg)
+    try File.writeAllBytes(temporary, encoded)
+    try File.move(target, temporary)
+}
+
 impl IActionUI for ActionFile
 {
     acceptOwnCmdIds()
@@ -61,13 +95,13 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
             evt.name          = capture and capture.media == .Video ? appStrings().act_SaveVideo : appStrings().act_SaveImage
             evt.longName      = capture and capture.media == .Video ? appStrings().act_SaveAsVideo : appStrings().act_SaveAsImage
-            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing) or main.exportJob != null or not main.exportSource.isEmpty()
+            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing) or main.exportJob != null or not main.exportSource.isEmpty() or main.imageWriteJob != null
             evt.icon          = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_SaveAsLinkedImage
-            evt.disabled      = not capture or capture.isTimed() or main.exportJob != null or not main.exportSource.isEmpty()
+            evt.disabled      = not capture or capture.isTimed() or main.exportJob != null or not main.exportSource.isEmpty() or main.imageWriteJob != null
             evt.icon          = main.theme().icon(.Export)
 
         case .OpenImage:
@@ -438,32 +472,7 @@ impl MainWnd
     // encoders, then offers to show the file, or reports why it could not be written.
     mtd doSaveImage(capture: *Capture, img: *Image, nameFile: String)
     {
-        // Which encoder runs is the registry's decision, taken from the extension.
-        // Only the two formats that expose encoding options are tuned here; every other
-        // encoder writes with its own defaults.
-        let ext = Path.lowercaseExtension(nameFile)
-        var optImg: any? = null
-        var optPng: Png.EncodeOptions
-        var optJpg: Jpg.EncodeOptions
-
-        if ext == ".png"
-        {
-            optPng.compressionLevel = Core.Compress.Deflate.CompressionLevel.BestSpeed
-            optPng.filtering        = false
-            optImg = optPng
-        }
-        elif ext == ".jpg" or ext == ".jpeg"
-        {
-            optJpg.quality = 95
-            optImg         = optJpg
-        }
-
-        var md: ImageMetadata
-        md.tag   = CaptureFileMetadataTag
-        md.value = capture.file.toSlice()
-        img.metadata.add(md)
-
-        catch img.save(nameFile, optImg)
+        catch saveCaptureImageFile(img, capture.file, nameFile)
         {
             MessageDlg.error(unwrap .surface, appStrings().msg_FailedSaveFile, Swag.err)
             return

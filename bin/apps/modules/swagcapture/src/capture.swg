@@ -309,6 +309,16 @@ struct CaptureDuplicateJob
     error:  Swag.Error
 }
 
+// An already rendered image is encoded and written without holding the interface thread.
+struct CaptureImageWriteJob
+{
+    task: Swag.Task
+    image: Image
+    source: String
+    target: String
+    error: Swag.Error
+}
+
 // Everything one save writes, snapshotted from the capture so a worker can
 // produce the container while the user keeps editing.
 struct CaptureSaveJob

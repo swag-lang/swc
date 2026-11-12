@@ -155,6 +155,7 @@ struct MainWnd
     exportJob: *CaptureLoadJob?
     exportSource, exportDestination: String
     exportLinked: bool
+    imageWriteJob: *CaptureImageWriteJob?
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -227,6 +228,12 @@ impl IWnd for MainWnd
         if export and evt.task == &export.task
         {
             .finishLibraryExport(export)
+            return
+        }
+        let imageWrite = .imageWriteJob
+        if imageWrite and evt.task == &imageWrite.task
+        {
+            .finishLibraryImageWrite(imageWrite)
             return
         }
         evt.accepted = false
@@ -337,6 +344,14 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        if .imageWriteJob
+        {
+            let job = .imageWriteJob
+            .imageWriteJob = null
+            job.task.cancel()
+            job.task.wait()
+            Memory.delete(job)
+        }
         .stopTimer(&.exportTimer)
         if .exportJob
         {
@@ -468,7 +483,7 @@ impl MainWnd
     // Loads a library document on a worker after the destination has been chosen.
     mtd requestLibraryExport(source: String, destination: String, linked: bool)
     {
-        if .exportJob or not .exportSource.isEmpty() do
+        if .exportJob or not .exportSource.isEmpty() or .imageWriteJob do
             return
         .exportSource = source
         .exportDestination = destination
@@ -523,7 +538,43 @@ impl MainWnd
 
         defer Memory.delete(capture)
         capture.editView = .editWnd.editView
+        if not linked and not capture.isTimed()
+        {
+            .startLibraryImageWrite(capture, destination)
+            return
+        }
         .saveLoadedAsImage(capture, destination, linked)
+    }
+
+    private mtd startLibraryImageWrite(capture: *Capture, destination: String)
+    {
+        var image = capture.toImage()
+        if not image.isValid()
+        {
+            .reportFailure(appStrings().msg_FailedSaveFile, destination)
+            return
+        }
+        let job = Memory.new'CaptureImageWriteJob()
+        job.image  = #move image
+        job.source = capture.file
+        job.target = destination
+        .imageWriteJob = job
+        job.task.submit(func|job|()
+        {
+            catch saveCaptureImageFile(&job.image, job.source, job.target) as job.error
+        }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishLibraryImageWrite(job: *CaptureImageWriteJob)
+    {
+        .imageWriteJob = null
+        let destination = String.from(job.target)
+        let failed = not job.error.isEmpty()
+        Memory.delete(job)
+        if failed do
+            .reportFailure(appStrings().msg_FailedSaveFile, destination)
+        else do
+            .confirmSaved(destination)
     }
 
     // Restores the saved state, once: the options, the placement of the window and the recent

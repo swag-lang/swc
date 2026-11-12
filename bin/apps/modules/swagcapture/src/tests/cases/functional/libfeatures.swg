@@ -311,6 +311,9 @@ using Swag, Core
     Swag.require(f.main.exportJob != null)
     f.main.exportJob.task.wait()
     f.gui.pump()
+    Swag.require(f.main.imageWriteJob != null)
+    f.main.imageWriteJob.task.wait()
+    f.gui.pump()
 
     let image = expect Image.load(target)
     Swag.require(image.width == 19 and image.height == 13)

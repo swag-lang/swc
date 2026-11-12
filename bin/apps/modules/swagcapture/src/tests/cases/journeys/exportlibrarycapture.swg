@@ -15,10 +15,13 @@ using Core, Gui, Pixel
     main.libWnd.view.setFocusItem(0)
 
     var exported = Path.combine(journey.root, "exported.png")
+    var previous = Image.create(3, 2, .BGRA8)
+    previous.fill(Argb.White)
+    expect previous.save(exported)
     main.doSaveAsImage(exported)
     Swag.require(main.exportJob != null)
     journey.waitFor("library image exported", func|main, &exported|()->bool =>
-                    main.exportJob == null and File.exists(exported))
+                    main.exportJob == null and main.imageWriteJob == null and File.exists(exported))
 
     let image = expect Image.load(exported)
     Swag.require(image.width == 41 and image.height == 29)

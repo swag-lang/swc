@@ -442,7 +442,8 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     g_CaptureAnchored = false
 
     var capture: *Capture?
-    if not setGrabBounds(main, captureMode, monitorIndex)
+    let interactiveSelection = not setGrabBounds(main, captureMode, monitorIndex)
+    if interactiveSelection
     {
         capture = try captureRect(main)
     }
@@ -499,6 +500,12 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
         else do
             surface.show()
     }
+
+    // An abandoned selection or recording leaves a hidden launch behind its tray icon again.
+    // A completed picture sent elsewhere also has no Capture, but is not an abandonment.
+    if not capture and wasHidden and surface.isHidden and
+       (interactiveSelection or g_CaptureMedia != .Picture) do
+        main.noticeResident()
 
     if capture do
         main.newCapture(capture.backImg, "", capture)

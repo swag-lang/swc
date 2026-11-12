@@ -44,6 +44,7 @@ struct FormImage
         xc, yc:      s32
         wc, hc:      s32
         texture:     Texture
+        textureApp:  *Application?
         gizmo:       GizmoRect
         textureKind: FormImageKind = .Image
     }
@@ -53,19 +54,32 @@ impl FormImage
 {
     mtd opDrop()
     {
-        if .texture.isValid() do
-            g_App.renderer.removeTexture(&.texture)
+        if .textureApp do
+            .textureApp.renderer.removeTexture(&.texture)
     }
 
     mtd opPostCopy()
     {
         Swag.init(&.texture, 1)
+        .textureApp = null
+    }
+
+    private mtd prepareTextureApp()->*Application
+    {
+        let app = .ownerApp()
+        if .textureApp != app
+        {
+            if .textureApp do
+                .textureApp.renderer.removeTexture(&.texture)
+            .textureApp = app
+        }
+        return app
     }
 
     // Clears the pixels of the image that `mask` leaves out, and uploads the texture again.
     mtd backCaptureMask(mask: *Image)
     {
-        let renderer = g_App.renderer
+        let renderer = .prepareTextureApp().renderer
 
         .image.visitPixels(mask)
         {
@@ -77,14 +91,14 @@ impl FormImage
         }
 
         renderer.removeTexture(&.texture)
-        .texture = g_App.renderer.addImage(.image)
+        .texture = renderer.addImage(.image)
     }
 
     // Copies the background pixels under the form into its image when it is ready to capture,
     // and uploads the texture.
     mtd backCapture()
     {
-        let renderer = g_App.renderer
+        let renderer = .prepareTextureApp().renderer
         let capture  = unwrap .capture
         let x1       = cast(s32, .x - capture.backImagePos.x)
         let y1       = cast(s32, .y - capture.backImagePos.y)
@@ -96,11 +110,13 @@ impl FormImage
             .textureKind      = .kind
             renderer.removeTexture(&.texture)
             .image   = capture.backImg.cropped(x1, y1, .w, .h)
-            .texture = g_App.renderer.addImage(.image)
+            .texture = renderer.addImage(.image)
         }
-        elif .image.isValid()
+        else
         {
-            .texture = g_App.renderer.addImage(.image)
+            renderer.removeTexture(&.texture)
+            if .image.isValid() do
+                .texture = renderer.addImage(.image)
         }
     }
 
@@ -161,7 +177,7 @@ impl FormImage
     // or the effect it applies.
     mtd refreshTexture()
     {
-        let renderer = g_App.renderer
+        let renderer = .prepareTextureApp().renderer
         let capture  = unwrap .capture
         switch .kind
         {
@@ -382,7 +398,10 @@ impl IForm for FormImage
         if not cxt.quickMode do
             .refreshTexture()
 
-        let iconColor = g_App.theme.colors.btnIcon_Icon
+        let iconColor = .ownerApp().theme.colors.btnIcon_Icon
+        var main = g_Main
+        if .capture and .capture.editView do
+            main = .capture.editView.main
 
         // Both axes must use the same operator so degenerate rects render consistently.
         if .borderColor.a and (pp.width <= 2 * bSize or pp.height <= 2 * bSize)
@@ -397,7 +416,7 @@ impl IForm for FormImage
 
             if .kind == .Image do
                 painter.fillRect(pp, .backColor)
-            var icon = g_Main!.icon(kindIcon(.kind), 48)
+            var icon = main!.icon(kindIcon(.kind), 48)
             icon.sizeX, icon.sizeY = 32
             icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
             pp.inflate(-bSize * 0.5)
@@ -410,7 +429,7 @@ impl IForm for FormImage
         elif .kind == .Image and not .image.isValid()
         {
             painter.fillRect(pp, .backColor)
-            let icon = g_Main!.icon(.Image, 48)
+            let icon = main!.icon(.Image, 48)
             icon.paint(painter, pp.horzCenter() - icon.sizeX * 0.5, pp.vertCenter() - icon.sizeY * 0.5, iconColor)
             pp.inflate(-bSize * 0.5)
             painter.drawRect(pp, pen)

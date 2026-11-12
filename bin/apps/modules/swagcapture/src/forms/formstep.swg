@@ -27,6 +27,7 @@ struct FormStep
         isDirty:    bool = true
         cachefSize: f32
         cacheTypeIndex   = FormStepType.Number
+        cacheFace:  *TypeFace?
         pathl:      LinePathList
 
         // Whether the label is being typed in place: the editor writes it, the step does not.
@@ -115,9 +116,9 @@ impl IForm for FormStep
         fSize = Math.max(fSize, 8)
         let backBrush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
 
-        let face = g_App.theme.res.defaultTypeFaceR
+        let face = .ownerApp().theme.res.defaultTypeFaceR
 
-        if fSize != .cachefSize or .typeIndex != .cacheTypeIndex do
+        if fSize != .cachefSize or .typeIndex != .cacheTypeIndex or face != .cacheFace do
             .isDirty = true
 
         if .isDirty
@@ -125,6 +126,7 @@ impl IForm for FormStep
             .isDirty        = false
             .cachefSize     = fSize
             .cacheTypeIndex = .typeIndex
+            .cacheFace      = face
             .pathl.clear()
 
             var t: String

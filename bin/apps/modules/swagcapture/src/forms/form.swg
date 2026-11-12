@@ -108,6 +108,13 @@ struct BaseForm
 
 impl BaseForm
 {
+    internal mtd const ownerApp()->*Application
+    {
+        if .capture and .capture.editView do
+            return .capture.editView.app()
+        return &g_App
+    }
+
     // Whether the form is painted turned; highlighter strokes and pixel
     // selections ignore their angle.
     mtd const isRotated()->bool => .subKind != .Highlight and .subKind != .PixSel and not Math.isZeroEpsilon(.rotate)
@@ -251,7 +258,7 @@ impl BaseForm
             result.dash  = .Dash
         }
 
-        .borderColor = g_App.theme.colors.btnIcon_Icon
+        .borderColor = .ownerApp().theme.colors.btnIcon_Icon
         painter.removeParams(.Antialiased)
         return result
     }

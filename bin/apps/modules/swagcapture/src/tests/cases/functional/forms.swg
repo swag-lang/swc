@@ -530,3 +530,55 @@ func testAssertFormFitsItsMargin(itf: IForm)
     imageCopy.kind = .Blur
     Swag.require(image.IForm.isSame(&imageCopy))
 }
+
+// An attached form uses its own application's theme and keeps texture ownership when
+// another Capture window becomes the module's active global application.
+#test
+{
+    var first: HeadlessFixture
+    first.setup()
+    defer first.shutdown()
+    first.gui.app.theme.setLight()
+
+    var second: HeadlessFixture
+    second.setup()
+    defer second.shutdown()
+    second.gui.app.theme.setDark()
+
+    var image: FormImage
+    image.image = Image.create(8, 8, .BGRA8)
+    image.capture = first.capture
+    Swag.require(image.ownerApp() == &first.gui.app)
+    image.backCapture()
+    Swag.require(image.texture.isValid() and image.textureApp == &first.gui.app)
+    Swag.require(first.gui.app.renderer.readTexturePixels(image.texture, .BGRA8).count ==
+                 image.image.byteCount)
+
+    var painter: Painter
+    painter.begin(layoutOnly: true)
+    let style = image.applyPixSelStyle(&painter, {})
+    Swag.require(style.bSize > 0 and image.borderColor ==
+                 first.gui.app.theme.colors.btnIcon_Icon)
+    Swag.require(image.borderColor != second.gui.app.theme.colors.btnIcon_Icon)
+    painter.end()
+
+    var step: FormStep
+    step.capture = first.capture
+    step.w = 48
+    step.h = 48
+    var context: FormPaintContext
+    context.z = 1
+    painter.begin(layoutOnly: true)
+    step.IForm.paint(&painter, context)
+    painter.end()
+    Swag.require(step.cacheFace == first.gui.app.theme.res.defaultTypeFaceR)
+
+    image.capture = second.capture
+    image.backCapture()
+    Swag.require(image.texture.isValid() and image.textureApp == &second.gui.app)
+    Swag.require(second.gui.app.renderer.readTexturePixels(image.texture, .BGRA8).count ==
+                 image.image.byteCount)
+    image.image = {}
+    image.backCapture()
+    Swag.require(not image.texture.isValid())
+}

@@ -27,8 +27,7 @@ whole recording loaded at once.
 
 ### app.capture.039 — Remove global app dependencies from attached capture content
 
-- Evidence: native user journeys with an independently owned `Gui.Application` found that `Capture.toImage`, capture texture cleanup, and `FormText.resolveFace` read the global `g_App` instead of their attached view's app. Those paths now use the view when attached, but `FormImage`, `FormStep`, and `BaseForm` still read `g_App` for rendering or theme resources.
-- Next: audit each remaining global app access in forms and capture content, then move attached rendering and theme lookup to the owning view while preserving detached model behavior.
+- Evidence: native user journeys with an independently owned `Gui.Application` found that `Capture.toImage`, capture texture cleanup, and `FormText.resolveFace` read the global `g_App` instead of their attached view's app. Those paths now use the view when attached. `BaseForm` resolves its attached application once for theme access, `FormStep` refreshes its cached outline when that application's face changes, and `FormImage` records which application owns each uploaded texture so replacement and destruction release it through the matching renderer. Detached preset forms still use the module application. A two-application functional test exercises texture upload, owner switch, theme color and step face selection.
 - Done when: all attached capture forms render and release resources in an independent native application, with no global renderer or theme dependency.
 
 ### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts

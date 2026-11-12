@@ -101,9 +101,7 @@ impl FormText
         var result = .typeFace
         if not result
         {
-            var app = &g_App
-            if .capture and .capture.editView do
-                app = .capture.editView.app()
+            let app = .ownerApp()
             switch .fontStyle
             {
             case .Regular:    result = app.theme.res.defaultTypeFaceR

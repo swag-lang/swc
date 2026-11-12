@@ -144,6 +144,9 @@ impl ToggleButton
         if .checked == checked do
             return
         .checked = checked
+        if .surface do
+            .app().animator.cancel(me, AnimationChannel.from("Gui.Toggle.Knob"))
+        .knob = checked ? 1 : 0
         .invalidate()
     }
 

@@ -78,6 +78,23 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
     Swag.require(ToggleButtonHeadlessChangedCount == 1 and host.commandCount == 1)
 }
 
+// A programmatic state change shown at once cancels an in-flight knob slide.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    host.setReducedMotion(false)
+
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
+    toggle.toggle()
+    host.advanceAnimations(toggle.themeMetrics().motion_QuickSeconds * 0.5)
+    Swag.require(toggle.isChecked() and toggle.knob > 0 and toggle.knob < 1)
+
+    toggle.setChecked(false)
+    Swag.require(not toggle.isChecked())
+    Swag.require(toggle.knob == 0)
+}
+
 // Hiding a toggle button resets its transient pointer and animated paint state.
 #test
 {

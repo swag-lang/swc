@@ -3,6 +3,47 @@
 
 using Swag, Core
 
+// A natural-height label reflows when wrapping changes its measured height.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 300, 170})
+    let label = Label.create(row, "A long sentence that wraps into several lines when its width is limited", {0, 0, 240, 0})
+    label.preferredSize.y = 0
+    label.invalidateLayout()
+    host.pump()
+    let originalHeight = label.measure({240, 0}).preferred.y
+
+    label.updateFlags(.WordWrap)
+    host.pump()
+    let measuredHeight = label.measure({240, 0}).preferred.y
+    Swag.require(originalHeight != measuredHeight,
+                 Format.toString("Label wrapping heights: original %, measured %", originalHeight, measuredHeight).toString())
+    Swag.require(label.position.height == measuredHeight,
+                 Format.toString("Label height after wrap flag: measured %, committed %", measuredHeight, label.position.height).toString())
+}
+
+// An AutoHeight label grows when wrapping is enabled.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 180)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 300, 170})
+    let label = Label.create(row, "A long sentence that wraps into several lines when its width is limited", {0, 0, 240, 0}, flags: .AutoHeight)
+    host.pump()
+    let originalHeight = label.position.height
+
+    label.updateFlags(.WordWrap)
+    host.pump()
+    let needed = label.itf.measureContent({label.position.width, label.position.height}).y
+    Swag.require(label.position.height > originalHeight, "Enabling wrapping should grow AutoHeight")
+    Swag.require(needed <= label.position.height,
+                 Format.toString("AutoHeight after wrap flag: needed %, committed %", needed, label.position.height).toString())
+}
+
 // A natural-height label reflows when its line limit changes.
 #test
 {

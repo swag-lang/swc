@@ -292,6 +292,7 @@ impl Label
         if add.has(.AutoHeight) do
             .releaseAutomaticHeight()
         .invalidate()
+        .invalidateLayout()
         .updateAutomaticHeight()
     }
 

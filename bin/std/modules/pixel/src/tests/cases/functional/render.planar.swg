@@ -279,3 +279,36 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     Swag.require(image.pixelColor(0, 0).r >= 250)
     Swag.require(image.pixelColor(3, 3).r >= 250)
 }
+
+// Planar updates reject dimensions and chroma layouts incompatible with immutable texture
+// storage, without changing its pixels; a compatible frame still replaces the image.
+#test
+{
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+
+    var firstStorage: Array'u8
+    let first   = flatPlanarPicture(&firstStorage, 2, 2, 16, 128, 128)
+    var texture = renderer.addImage(&first)
+    defer renderer.removeTexture(&texture)
+    let original = renderer.readTexturePixels(texture, .RGB8)
+    Swag.require(texture.width == 2 and texture.height == 2 and original.count == 2 * 2 * 3)
+
+    var secondStorage: Array'u8
+    let second = flatPlanarPicture(&secondStorage, 4, 4, 235, 128, 128)
+    Swag.require(not renderer.updateTexture(texture, &second))
+    var pixels = renderer.readTexturePixels(texture, .RGB8)
+    Swag.require(pixels.count == original.count and Memory.compare(pixels.storage(), original.storage(), original.count) == 0)
+
+    var differentChroma = flatPlanarPicture(&secondStorage, 2, 2, 235, 128, 128)
+    differentChroma.chromaShift = 0
+    Swag.require(not renderer.updateTexture(texture, &differentChroma))
+    pixels = renderer.readTexturePixels(texture, .RGB8)
+    Swag.require(pixels.count == original.count and Memory.compare(pixels.storage(), original.storage(), original.count) == 0)
+
+    var compatible = flatPlanarPicture(&secondStorage, 2, 2, 235, 128, 128)
+    Swag.require(renderer.updateTexture(texture, &compatible))
+    pixels = renderer.readTexturePixels(texture, .RGB8)
+    Swag.require(pixels.count == original.count and pixels[0] >= 250)
+}

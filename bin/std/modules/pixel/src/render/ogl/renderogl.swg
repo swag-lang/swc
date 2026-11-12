@@ -1406,7 +1406,11 @@ impl RenderOgl
     // Replaces the planar picture held by a texture, converting nothing.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
-        if not texture.isValid() or (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
+        if not texture.isValid() or view.width != texture.width or view.height != texture.height do
+            return false
+        if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
+           (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or
+           (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
             return false
         let planes = .chromaPlanes.tryFind(texture.handle)
         if not planes do

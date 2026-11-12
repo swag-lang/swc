@@ -3224,7 +3224,11 @@ impl RenderCpu
     // Converts a planar picture into the surface that holds it.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
-        if not texture.isValid() do
+        if not texture.isValid() or view.width != texture.width or view.height != texture.height do
+            return false
+        if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
+           (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or
+           (texture.pixelFormat != .Yuv420 and texture.pixelFormat != .Yuv444) do
             return false
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")

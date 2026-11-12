@@ -138,7 +138,9 @@ interface IRenderer
 
     // Replaces the planar picture held by a texture created from a view.
     //
-    // Returns false when the backend cannot complete every plane upload.
+    // The view must have the texture's dimensions and chroma subsampling: a texture's storage
+    // geometry is fixed when it is created. Returns false when the view is incompatible or the
+    // backend cannot complete every plane upload.
     mtd updateTexture(texture: Texture, view: const *YuvPlanarView)->bool
 
     // Reads a texture into the requested tightly packed pixel format.

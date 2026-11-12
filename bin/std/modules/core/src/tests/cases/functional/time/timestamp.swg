@@ -217,6 +217,26 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
+    var lastMillisecond = Time.Timestamp.fromDateTime({9999, 12, 31, 23, 59, 59, 999})
+    let dateTime        = lastMillisecond.toDateTime()
+    expectDateTime(dateTime, 9999, 12, 31, 23, 59, 59, 999)
+
+    let addOverflow = Swag.catchPanic(func|&lastMillisecond|()
+    {
+        lastMillisecond.addMilliseconds(1)
+    })
+    Swag.require(addOverflow.raised and addOverflow.message() == "overflow")
+
+    var epoch = Time.Timestamp.fromDateTime({1, 1, 1, 0, 0, 0, 0})
+    let removeOverflow = Swag.catchPanic(func|&epoch|()
+    {
+        epoch.addMilliseconds(-1)
+    })
+    Swag.require(removeOverflow.raised and removeOverflow.message() == "ticks overflow")
+}
+
+#test
+{
     let dateTime  = Time.DateTime.utcNow()
     let timestamp = Time.Timestamp.utcNow()
     Swag.require(dateTime.isValid())

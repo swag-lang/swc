@@ -6,6 +6,40 @@ using Swag, Core
 var BreadcrumbPressedIndex: u64 = Swag.U64.Max
 var BreadcrumbPressedCount: u32
 
+// Measured breadcrumb mutations reflow their parent layout.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(700, 80)
+
+    let row  = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 700, 40})
+    let path = BreadcrumbCtrl.create(row, {0, 0, 0, 32})
+    path.addItem("Root")
+    host.pump()
+    let originalWidth = path.measure({}).preferred.x
+
+    path.addItem("A longer breadcrumb level")
+    host.pump()
+    let addedWidth = path.measure({}).preferred.x
+    Swag.require(addedWidth != originalWidth, "Adding a breadcrumb level should change its measured width")
+    Swag.require(path.position.width == addedWidth,
+                 Format.toString("Breadcrumb width after add: measured %, committed %", addedWidth, path.position.width).toString())
+
+    path.setLayoutMetrics(16, 8, 7)
+    host.pump()
+    let metricsWidth = path.measure({}).preferred.x
+    Swag.require(metricsWidth != addedWidth, "Breadcrumb layout metrics should change its measured width")
+    Swag.require(path.position.width == metricsWidth,
+                 Format.toString("Breadcrumb width after metrics: measured %, committed %", metricsWidth, path.position.width).toString())
+
+    path.removeItemsFrom(1)
+    host.pump()
+    let removedWidth = path.measure({}).preferred.x
+    Swag.require(removedWidth != metricsWidth, "Removing breadcrumb levels should change its measured width")
+    Swag.require(path.position.width == removedWidth,
+                 Format.toString("Breadcrumb width after remove: measured %, committed %", removedWidth, path.position.width).toString())
+}
+
 // The measured width is every level laid out whole, whatever room the control has, so a host can
 // share a line between the path and its neighbours.
 #test

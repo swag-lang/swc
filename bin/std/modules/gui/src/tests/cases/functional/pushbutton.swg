@@ -9,6 +9,27 @@ const PushButtonHeadless_Shortcut = "PushButtonHeadless.Shortcut"
 var PushButtonHeadlessPressedCount:      u32
 var PushButtonHeadlessRightPressedCount: u32
 
+// A content-sized push button reflows when a strong form widens its bold caption.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let btn = PushButton.create(row, "A caption that is wide enough for bold emphasis to change its measure")
+    host.pump()
+    let originalWidth = btn.itf.measureContent({}).x
+
+    btn.setForm(.Strong)
+    host.pump()
+    let measuredWidth = btn.itf.measureContent({}).x
+    let layoutWidth   = btn.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("PushButton form widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(btn.position.width == layoutWidth,
+                 Format.toString("PushButton width after form: measured %, committed %", layoutWidth, btn.position.width).toString())
+}
+
 func pushButtonHeadlessPressed(_: *Button)
 {
     PushButtonHeadlessPressedCount += 1

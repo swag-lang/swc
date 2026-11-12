@@ -258,7 +258,7 @@ enum WndFlags
     // such a control, because the first key its reader pressed would act instead of answering the
     // question; see [[Gui.Dialog.keyboardEntry]].
     ActivatesOnKey
-    NoPointerFocus          // Keeps pointer presses from assigning focus; explicit keyboard focus still works.
+    NoPointerFocus     // Keeps pointer presses from assigning focus; explicit keyboard focus still works.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -303,12 +303,12 @@ struct Wnd
         // consistent.
         readonly children: Array'(*Wnd)
 
-        name:    RichString     // Display text with optional rich spans.
+        name: RichString     // Display text with optional rich spans.
         // Optional stable command, lookup, and persistence identifier. `Wnd.create` copies this
         // value; assignments made directly to the public field remain caller-owned.
         id:      WndId?
-        cursor:  Cursor         // Cursor requested while the pointer is over this window.
-        toolTip: String         // Plain tooltip text; empty disables the tooltip.
+        cursor:  Cursor     // Cursor requested while the pointer is over this window.
+        toolTip: String     // Plain tooltip text; empty disables the tooltip.
 
         keyShortcuts: Array'KeyShortcut     // Key combinations routed from this subtree.
         actions:      Array'IActionUI       // Command actions exposed or consumed by this window.
@@ -674,7 +674,7 @@ impl Wnd
     internal mtd setId(id: WndId?)
     {
         .idStorage = id orelse ""
-        .id = id ? .idStorage.toString() : null
+        .id        = id ? .idStorage.toString() : null
     }
 
     // Destroys this window and its subtree immediately.
@@ -1120,10 +1120,10 @@ impl Wnd
         // Focus rings sit outside controls. Draw them after the root has left every child clip,
         // so a button touching the edge of a panel keeps all four sides of its ring.
         let surface = .surface
-        if not .parent and surface and
+        if not .parent and
+           surface and
            (surface.app.options.showFocusRings or
-            (surface.app.focusVisible and surface.app.keyboardFocusWnd and
-             surface.app.keyboardFocusWnd.surface == surface))
+            (surface.app.focusVisible and surface.app.keyboardFocusWnd and surface.app.keyboardFocusWnd.surface == surface))
         {
             painter.setTransform(curTrs)
             .paintFocusOverlays(painter, .surfaceRect())
@@ -1660,6 +1660,7 @@ impl Wnd
         }
 
         .parent?.sendResizeEvent()
+        .invalidateLayout()
     }
 
     // Replaces all four margins with `value`.
@@ -1684,6 +1685,7 @@ impl Wnd
         }
 
         .sendResizeEvent()
+        .invalidateLayout()
     }
 
     // Replaces all four paddings with `value`.
@@ -2218,6 +2220,7 @@ impl Wnd
                 srfn.app.setFocusVisible(true)
             return
         }
+
         if not .isEnabled() or srfn.isDisabled do
             return
 

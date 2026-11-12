@@ -215,7 +215,7 @@ public func compareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
         }
 
         let denominator = Math.sqrt(levelNorm1 * levelNorm2)
-        if denominator > 1e-10 do
+        if denominator > 0.0 do
             levelSimilarity = Math.abs(levelSimilarity / denominator)
         else do
             levelSimilarity = (levelNorm1 == 0.0 and levelNorm2 == 0.0) ? 1.0 : 0.0
@@ -300,7 +300,7 @@ public func quickCompareHaarCoefficients(haar1, haar2: HaarFeatures)->f32
     }
 
     let denominator = Math.sqrt(norm1 * norm2)
-    if denominator > 1e-10 do
+    if denominator > 0.0 do
         return cast(f32, Math.abs(correlation / denominator))
     return (norm1 == 0.0 and norm2 == 0.0) ? 1.0'f32 : 0.0'f32
 }

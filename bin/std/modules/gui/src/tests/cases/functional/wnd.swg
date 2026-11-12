@@ -5,6 +5,69 @@ using Swag, Core
 
 var WndCreateTestId: String
 
+// A nested layout remeasures an inner stack after its child's margin changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let outer = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let inner = StackLayoutCtrl.create(outer, .Left)
+    let label = Label.create(inner, "A naturally measured nested child")
+    host.pump()
+    let originalWidth = inner.measure({}).preferred.x
+
+    label.setMargin(12, 0, 12, 0)
+    host.pump()
+    let measuredWidth = inner.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("Nested margin widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(inner.position.width == measuredWidth,
+                 Format.toString("Inner stack width after child margin: measured %, committed %", measuredWidth, inner.position.width).toString())
+}
+
+// Changing padding on a natural-size layout reflows that container in its parent.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row    = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let layout = StackLayoutCtrl.create(row, .Left)
+    discard PushButton.create(layout, "A naturally measured child")
+    host.pump()
+    let originalWidth = layout.measure({}).preferred.x
+
+    layout.setPadding(12, 0, 12, 0)
+    host.pump()
+    let measuredWidth = layout.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("StackLayout padding widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(layout.position.width == measuredWidth,
+                 Format.toString("StackLayout width after padding: measured %, committed %", measuredWidth, layout.position.width).toString())
+}
+
+// Changing Wnd padding reflows a naturally sized child in its parent layout.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row   = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let label = Label.create(row, "A label whose measured width includes Wnd padding")
+    host.pump()
+    let originalWidth = label.itf.measureContent({}).x
+
+    label.setPadding(12, 0, 12, 0)
+    host.pump()
+    let measuredWidth = label.itf.measureContent({}).x
+    let layoutWidth   = label.measure({}).preferred.x
+    Swag.require(originalWidth != measuredWidth,
+                 Format.toString("Wnd padding widths: original %, measured %", originalWidth, measuredWidth).toString())
+    Swag.require(label.position.width == layoutWidth,
+                 Format.toString("Label width after Wnd padding: measured %, committed %", layoutWidth, label.position.width).toString())
+}
+
 // Wnd.create owns a dynamic identifier for lookup and command-state queries.
 #test
 {

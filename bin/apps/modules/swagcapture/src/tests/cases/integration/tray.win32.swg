@@ -134,7 +134,19 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel == menu, "the desktop tray menu must stay open")
     }
-    menu.close()
+    // The real keyboard route selects the first menu command and opens the hub.
+    scope
+    {
+        var input = Gui.Testing.DesktopInput.create(journey.app, unwrap menu.surface)
+        input.shortcut(.Down, .None)
+        input.shortcut(.Return, .None)
+    }
+    watch.start()
+    while (main.residentPanel == null or main.residentPanel.kind != .Hub) and watch.elapsedMilliseconds() < 3000 do
+        journey.app.runFrame()
+    Swag.require(main.residentPanel != null and main.residentPanel.kind == .Hub,
+                 "the desktop keyboard must choose the tray menu command")
+    main.residentPanel.close()
     journey.app.runFrame()
 
     Gui.Testing.clickTrayIcon(journey.app, surface, .Left, 2)

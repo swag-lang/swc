@@ -382,7 +382,8 @@ impl IAllocator for LibraryRejectAllocator
     var f: HeadlessFixture
     f.setup()
     defer f.shutdown()
-    let lib  = f.setupLibraryWnd()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib  = f.main.libWnd
     let view = lib.view
 
     discard testAddLibraryItem(view, "alpha.scc", 10, 1, title: "Login screen")
@@ -402,9 +403,13 @@ impl IAllocator for LibraryRejectAllocator
 
     lib.setSearch("nomatch")
     Swag.require(view.items.count == 0)
+    Swag.require(lib.hintLine.hints.count == 2)
+    Swag.require(lib.hintLine.hints[0].text == appStrings().hint_Filter)
+    Swag.require(lib.hintLine.hints[1].text == appStrings().hint_EmptySearchSpace)
 
     lib.setSearch("")
     Swag.require(view.items.count == 3)
+    Swag.require(lib.hintLine.hints.count == 6)
 }
 
 // Filling the date sidebar from a fresh (empty) list must open the year/month/day

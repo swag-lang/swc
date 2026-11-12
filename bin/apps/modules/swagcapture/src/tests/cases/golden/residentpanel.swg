@@ -26,6 +26,36 @@ using Swag, Core, Gui, Pixel
     Pixel.Testing.assertImageGolden(&image, "resident.hub.encre")
 }
 
+// The keyboard moves through the hub into its recent pictures, with one selected tile in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+    for index in 3 do
+        main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 80 * index), 8 + 12 * cast(s32, index)))
+
+    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let recents = unwrap panel.recents
+    var down = KeyEvent{kind: .Pressed, key: .Down}
+    for 9 do
+        panel.sendEvent(&down)
+    var right = KeyEvent{kind: .Pressed, key: .Right}
+    panel.sendEvent(&right)
+    panel.sendEvent(&right)
+    Swag.require(recents.keyboardIndex == 1)
+    var image = host.renderSurface(unwrap panel.surface)
+    Pixel.Testing.assertImageGolden(&image, "resident.hub.keyboard.papier")
+}
+
 // The menu of the notification-area icon on two monitors, in Papier: picture then video
 // commands, the cursor and the waits, then the options and the way out.
 #[Swag.TestTag("golden")]

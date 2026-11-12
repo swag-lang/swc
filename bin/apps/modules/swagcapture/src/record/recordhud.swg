@@ -541,12 +541,9 @@ impl IWnd for RecordScreenChoices
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        evt.accepted = false
-        if evt.kind == .Pressed and evt.key == .Escape
-        {
+        .menu.handleKeyboard(evt)
+        if .menu.isModalEnded() do
             .close()
-            evt.accepted = true
-        }
     }
 }
 

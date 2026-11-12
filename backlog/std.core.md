@@ -369,4 +369,16 @@ new module rather than growth inside `core`.
   cases, a renamed case can keep its identity, and unknown identities are reported rather than
   mapped to a wrong case, with tests at the serializer boundary.
 
+### std.core.039 — `Math.gcd` cannot return every nonnegative result in `s64`
+
+- Evidence: `Math.gcd` accepts signed `s64` inputs and documents a nonnegative result, but
+  `gcd(Swag.S64.Min, 0)` is mathematically 2^63, which `s64` cannot represent. The current
+  implementation reaches `abs(x)` for that case; overflow behavior can leave the result negative
+  or panic, depending on the build's overflow policy.
+- Next: choose the contract for unrepresentable gcd results: widen the return type, report an
+  error or panic on overflow, or narrow the documented guarantee to representable results.
+- Done when: the chosen behavior is documented and tests cover `S64.Min` with zero and the
+  corresponding boundary cases.
+- Related: none.
+
 ---

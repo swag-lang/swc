@@ -157,6 +157,8 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
         case WEBP_FOURCC_ANMF:
             if not seenAnimation or chunkSize < 16 do
                 fail InvalidFormatError{"WebP animation frame has no valid animation header"}
+            if chunkData[15] & 0xFC do
+                fail InvalidFormatError{"WebP animation frame sets reserved flag bits"}
             try options.checkFrameCount(result.frames.count + 1)
             var frame: Frame
             frame.info = {kind: .Animation, x: cast(s32, readU24(chunkData)) * 2, y: cast(s32, readU24(chunkData + 3)) * 2, width: cast(s32, readU24(chunkData + 6)) + 1, height: cast(s32, readU24(chunkData + 9)) + 1, durationSeconds: cast(f64, readU24(chunkData + 12)) / 1000, disposal: (chunkData[15] & 1) ? .Background : .Keep, blend: (chunkData[15] & 2) ? .Replace : .Over}

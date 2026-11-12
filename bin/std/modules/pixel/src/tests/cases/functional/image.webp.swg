@@ -296,6 +296,17 @@ func assertEncodedWebpRoundtrip(source: Image)
     Swag.require(showFrameErrorOutcome.value() != null)
 }
 
+// Error: ANMF flags may only set disposal and blend bits.
+#test
+{
+    var bytes = expect File.readAllBytes(getTestDataPath("imageset-animation.webp"))
+    bytes[67] |= 4     // First ANMF frame flags: only bits 0 and 1 are defined.
+    var reader:       ImageReader
+    var errorOutcome: Swag.Error
+    catch { reader = try ImageReader.decode("reserved-frame-flags.webp", bytes.toSlice()) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode a VP8 fixture and compare it with the official split-plane YCbCr golden image.
 #test
 {

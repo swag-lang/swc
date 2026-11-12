@@ -88,3 +88,24 @@ using Swag
     Swag.require(not Slice.nextPermutation(values))
     Swag.require(Slice.equals(values, [3, 2, 1]))
 }
+
+#test
+{
+    var duplicates: [3] s32 = [1, 1, 2]
+
+    Swag.require(Slice.nextPermutation(duplicates))
+    Swag.require(Slice.equals(duplicates, [1, 2, 1]))
+    Swag.require(Slice.nextPermutation(duplicates))
+    Swag.require(Slice.equals(duplicates, [2, 1, 1]))
+    Swag.require(not Slice.nextPermutation(duplicates))
+    Swag.require(Slice.equals(duplicates, [2, 1, 1]))
+
+    var backing: [1] s32 = [7]
+    var empty = backing[until 0]
+    Swag.require(not Slice.nextPermutation(empty))
+    Swag.require(empty.count == 0 and backing[0] == 7)
+
+    var singleton: [1] s32 = [9]
+    Swag.require(not Slice.nextPermutation(singleton))
+    Swag.require(singleton[0] == 9)
+}

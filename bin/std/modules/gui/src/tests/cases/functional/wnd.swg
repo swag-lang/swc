@@ -5,6 +5,32 @@ using Swag, Core
 
 var WndCreateTestId: String
 
+// Hiding and showing a measured child reflows its StackLayout parent.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(600, 80)
+
+    let row    = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 600, 40})
+    let hidden = PushButton.create(row, "First")
+    let next   = PushButton.create(row, "Second")
+    host.pump()
+    let originalWidth = row.itf.measureContent({}).x
+    Swag.require(next.position.x > hidden.position.x)
+
+    hidden.hide()
+    host.pump()
+    let hiddenWidth = row.itf.measureContent({}).x
+    Swag.require(hiddenWidth < originalWidth, "A hidden child should leave the measured stack width")
+    Swag.require(next.position.x == 0,
+                 Format.toString("Second child x after hide: expected 0, committed %", next.position.x).toString())
+
+    hidden.show()
+    host.pump()
+    Swag.require(row.itf.measureContent({}).x == originalWidth, "Showing the child should restore the measured stack width")
+    Swag.require(next.position.x > hidden.position.x, "Showing the child should restore its position in the stack")
+}
+
 // Creating a new child after the first pump relayouts its parent container.
 #test
 {
@@ -209,19 +235,24 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
-    let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
+    let container        = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
+    let child            = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
+    let originalPosition = child.position
 
     Swag.require(child.isVisible())
     Swag.require(child.isLocallyVisible())
 
     child.hide()
+    host.pump()
     Swag.require(not child.isVisible())
     Swag.require(child.isHidden())
     Swag.require(not child.isLocallyVisible())
+    Swag.require(child.position.x == originalPosition.x and child.position.y == originalPosition.y)
 
     child.show()
+    host.pump()
     Swag.require(child.isVisible())
+    Swag.require(child.position.x == originalPosition.x and child.position.y == originalPosition.y)
 
     // A hidden parent hides the child, but the child keeps its own visible state.
     container.hide()

@@ -831,6 +831,7 @@ impl Wnd
         if not .wndFlags.has(.Hidden) do
             return
         .wndFlags.remove(.Hidden)
+        .parent?.invalidateLayout()
         .parent!.invalidate()
     }
 
@@ -843,6 +844,7 @@ impl Wnd
         .sendHideStateEvent()
         .wndFlags.add(.Hidden)
         .app().unregisterWnd(me)
+        .parent?.invalidateLayout()
         .parent!.invalidate()
     }
 

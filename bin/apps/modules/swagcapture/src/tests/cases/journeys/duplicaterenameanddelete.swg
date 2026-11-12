@@ -14,9 +14,11 @@ using Core, Gui, Pixel
     let capture = unwrap main.editWnd.getCapture()
     capture.title = "Original"
     journey.drawForm(ActionToolMode.Arrow, .Arrow, {5, 5}, {45, 30})
-    main.saveCapture(capture)
+    capture.linkedImage = Path.combine(journey.root, "linked.png")
+    Swag.require(capture.changed, "the active duplicate must include unsaved editor changes")
 
     main.sendCommandEvent(ActionFile.DupCapture)
+    journey.waitFor("active duplicate written", func|main|()->bool => main.duplicateJob == null and g_Library.files.count == 2)
     journey.openLibrary(2)
     var copy: *LibraryItem?
     for item in main.libWnd.view.items where item.fi.fullName != original do
@@ -30,6 +32,7 @@ using Core, Gui, Pixel
     })
 
     let duplicated = unwrap main.editWnd.getCapture()
+    Swag.require(duplicated.linkedImage.isEmpty(), "a duplicate must not keep the original external link")
     var duplicatePath = String.from(duplicated.file)
     var answered: bool
     let app = journey.app

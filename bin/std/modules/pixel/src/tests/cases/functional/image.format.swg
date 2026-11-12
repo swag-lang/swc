@@ -98,6 +98,11 @@ const PackedFormats: [18] PixelFormat = [
     Swag.require(floatToHalf(cast #bit (f32, 0xB87FE000'u32)) == 0x8400)
     Swag.require(floatToHalf(cast #bit (f32, 0xB87FE001'u32)) == 0x8400)
 
+    // The overflow midpoint rounds to infinity, the even neighbor of max finite.
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FEFFF'u32)) == 0x7BFF)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FF000'u32)) == 0x7C00)
+    Swag.require(floatToHalf(cast #bit (f32, 0x477FF001'u32)) == 0x7C00)
+
     for value in [0.0'f32, -0.0'f32, 1.0'f32, -2.0'f32, 0.00006103515625'f32, 0.000000059604645'f32, 65504.0'f32]
     {
         let restored = halfToFloat(floatToHalf(value))

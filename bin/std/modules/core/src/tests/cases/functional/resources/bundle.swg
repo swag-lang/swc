@@ -66,6 +66,31 @@ const EmbeddedOther = [111'u8, 107]
     Swag.require(bundle.has("only/embedded.bin"))
 }
 
+// The first registered folder wins when multiple folders contain the same resource.
+#test
+{
+    let firstRoot  = CoreTests.makeFilesystemTestPath("core_bundle_first_folder")
+    let secondRoot = CoreTests.makeFilesystemTestPath("core_bundle_second_folder")
+    expect Directory.create(firstRoot)
+    expect Directory.create(secondRoot)
+    defer discard catch Directory.delete(firstRoot, recurse: true)
+    defer discard catch Directory.delete(secondRoot, recurse: true)
+
+    discard expect File.writeAllBytes(Path.combine(firstRoot.toString(), "shared.bin"), [1'u8])
+    discard expect File.writeAllBytes(Path.combine(secondRoot.toString(), "shared.bin"), [2'u8])
+
+    var bundle: Resources.Bundle
+    bundle.addFolder(firstRoot.toString())
+    bundle.addFolder(secondRoot.toString())
+    bundle.addEmbedded("shared.bin", [3'u8])
+
+    let bytes = expect bundle.load("shared.bin")
+    Swag.require(bytes.count == 1 and bytes[0] == 1)
+
+    let names = bundle.list("")
+    Swag.require(names.count == 1 and names[0] == "shared.bin")
+}
+
 // Listing merges disk and embedded names, without duplicates, sorted.
 #test
 {

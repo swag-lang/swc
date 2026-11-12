@@ -1502,6 +1502,8 @@ public impl MenuCtrl
         .computeLayoutPopup()
         if button do
             .fitPopupButtonAnchor()
+        .position.width  = Math.ceil(.position.width)
+        .position.height = Math.ceil(.position.height)
 
         // Be sure popup menu is in the client area of the top view
         var pt = .parent!.surfaceToLocal(surfacePos)

@@ -192,6 +192,7 @@ impl Surface
     // Returns false for a missing icon or a tray manager without icon geometry.
     mtd trayIconBounds(bounds: *Math.Rectangle)->bool
     {
+        discard bounds
         #static if #os == Swag.TargetOs.Windows
         {
             var rect: Win32.RECT
@@ -202,6 +203,7 @@ impl Surface
                 return true
             }
         }
+
         return false
     }
 

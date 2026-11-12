@@ -120,6 +120,8 @@ impl Decoder
         var strLen        = 0'u16
 
         var entry: Entry
+        if key != clear do
+            fail InvalidFormatError{"GIF LZW stream does not start with a clear code"}
         while true
         {
             if key == clear

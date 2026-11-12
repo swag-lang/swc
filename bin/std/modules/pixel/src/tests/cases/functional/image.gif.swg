@@ -179,6 +179,30 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(errorOutcome.value() != null)
 }
 
+// GIF LZW streams begin with clear; the minimal clear/literal/end stream still decodes.
+#test
+{
+    const ValidClearCode: [35] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        1, 0, 1, 0, 0x80, 0, 0,
+        0, 0, 0, 255, 255, 255,
+        0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+        2, 2, 0x4C, 0x01, 0, 0x3B]
+    let image = expect Image.decode("initial-clear.gif", ValidClearCode)
+    assertGifPixelAt(image, 0, 0, 255, 255, 255, 255)
+
+    const MissingClearCode: [35] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        1, 0, 1, 0, 0x80, 0, 0,
+        0, 0, 0, 255, 255, 255,
+        0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+        2, 2, 0x49, 0x01, 0, 0x3B]
+    var invalidImage: Image
+    var errorOutcome: Swag.Error
+    catch { invalidImage = try Image.decode("missing-initial-clear.gif", MissingClearCode) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 #test
 {
     var bytes = expect File.readAllBytes(getTestDataPath("test.gif"))

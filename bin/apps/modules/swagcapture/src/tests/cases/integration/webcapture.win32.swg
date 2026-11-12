@@ -172,6 +172,13 @@ impl WebCaptureTone
                     overlay.sendEvent(&pointer)
                     pointer.kind = .Released
                     overlay.sendEvent(&pointer)
+                    if not g_CaptureAnchored or g_CaptureWindow.nativeWindow != cast(u64, browser) do
+                        Console.println("Area link: selected=", g_StartGrabX, ", ", g_StartGrabY,
+                                        " -> ", g_EndGrabX, ", ", g_EndGrabY,
+                                        " anchored=", g_CaptureAnchored,
+                                        " selected_window=", g_CaptureWindow.nativeWindow,
+                                        " browser=", cast(u64, browser),
+                                        " title=", g_CaptureWindow.title)
                     Swag.require(g_CaptureAnchored and g_CaptureWindow.nativeWindow == cast(u64, browser),
                                  "selected area must be linked to the actual browser window")
                     stage[] = 1

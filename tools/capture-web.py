@@ -7,6 +7,7 @@ test; it does not test external mouse hit testing against the shipped executable
 """
 
 import argparse
+import ctypes
 import json
 import os
 from pathlib import Path
@@ -140,6 +141,20 @@ def main():
             time.sleep(.1)
         if args.media and (status['width'], status['height']) != (args.width, args.height):
             raise RuntimeError(f'native source dimensions must match the capture: {status}')
+        user32 = ctypes.WinDLL('user32', use_last_error=True)
+        user32.FindWindowW.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p)
+        user32.FindWindowW.restype = ctypes.c_void_p
+        user32.SetWindowPos.argtypes = (ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int,
+                                         ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint)
+        user32.SetWindowPos.restype = ctypes.c_int
+        fixture_window = user32.FindWindowW(None, 'Swag Capture Web AV Probe')
+        if not fixture_window:
+            raise RuntimeError('the browser fixture window is missing')
+        # Keep the fixture visible when the test HUD hides its own window. Other
+        # desktop applications can otherwise cover it and change area hit testing.
+        if not user32.SetWindowPos(
+                fixture_window, ctypes.c_void_p(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0010):
+            raise RuntimeError('could not raise the browser fixture window')
         command = [sys.executable, str(repo / 'tools/tool.py'), 'apps']
         if args.devmode_compiler:
             command.append('dm')

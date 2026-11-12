@@ -23,6 +23,12 @@ func expectNear(actual, expected: f32)
     Swag.require(not Math.Geometry.ellipseContainsPoint({15.1, 20}, center, 5, 10))
     Swag.require(not Math.Geometry.ellipseContainsPoint({10, 30.1}, center, 5, 10))
     Swag.require(not Math.Geometry.ellipseContainsPoint({14, 28}, center, 5, 10))
+
+    let zeroRadius = Swag.catchPanic(func||() { discard Math.Geometry.ellipseContainsPoint({0, 0}, {0, 0}, 0, 1) })
+    Swag.require(zeroRadius.raised)
+
+    let negativeRadius = Swag.catchPanic(func||() { discard Math.Geometry.ellipseContainsPoint({0, 0}, {0, 0}, 1, -1) })
+    Swag.require(negativeRadius.raised)
 }
 
 #test

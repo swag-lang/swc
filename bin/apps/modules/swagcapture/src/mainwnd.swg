@@ -14,6 +14,15 @@ enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, S
 // object, the face of a text, the counter of a step, or the alignment of several objects.
 enum MiniBarKind { None, Single, Text, Step, Multi }
 
+// An inactive capture is decoded away from the interface before it is composed for the clipboard.
+struct LibraryCopyJob
+{
+    task:    Swag.Task
+    file:    String
+    capture: *Capture?
+    error:   Swag.Error
+}
+
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
@@ -145,6 +154,9 @@ struct MainWnd
     residentNotice: *TrayNotice?
     openHubAfterRecentLoad: bool
     metadataTimer: *Gui.Timer?
+    copyTimer: *Gui.Timer?
+    copyJob: *LibraryCopyJob?
+    copyRequestedFile: String
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -199,8 +211,52 @@ struct MainWnd
 
 impl IWnd for MainWnd
 {
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        let job = .copyJob
+        if not job or evt.task != &job.task
+        {
+            evt.accepted = false
+            return
+        }
+
+        .copyJob = null
+        let loaded = job.capture
+        let file   = job.file
+        Memory.delete(job)
+        if .copyRequestedFile != file
+        {
+            if loaded do
+                Memory.delete(loaded)
+            .startLibraryCopy()
+            return
+        }
+
+        .copyRequestedFile.clear()
+        if not loaded
+        {
+            .reportFailure(appStrings().msg_FailedCopyCapture)
+            return
+        }
+
+        defer Memory.delete(loaded)
+        loaded.editView = .editWnd.editView
+        catch loaded.copyAll()
+        {
+            .reportFailure(appStrings().msg_FailedCopyCapture)
+            return
+        }
+        .confirm(appStrings().msg_Copied)
+    }
+
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .copyTimer
+        {
+            .stopTimer(&.copyTimer)
+            .startLibraryCopy()
+            return
+        }
         if evt.timer != .metadataTimer
         {
             .wnd.IWnd.onTimerEvent(evt)
@@ -286,6 +342,17 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .stopTimer(&.copyTimer)
+        if .copyJob
+        {
+            let job = .copyJob
+            .copyJob = null
+            job.task.cancel()
+            job.task.wait()
+            if job.capture do
+                Memory.delete(job.capture)
+            Memory.delete(job)
+        }
         .stopTimer(&.metadataTimer)
         discard g_CaptureSaves.flush()
         .saveAppState()
@@ -549,24 +616,35 @@ impl MainWnd
         }
     }
 
-    // Places a stored capture in its media format on the clipboard. Used
-    // from the library, where the focused capture is only a lightweight preview: the
-    // complete file is loaded, composed through the editor's render context, and
-    // discarded without touching the active editor selection.
+    // Requests a stored capture for the clipboard. The worker decodes it, then the interface
+    // composes it through the editor's render context without changing the active selection.
     mtd copyLibraryImage(file: String)
     {
-        Cursor.activateWait()
-        .flushCaptureSave(file)
-        catch
+        .copyRequestedFile = file
+        .startLibraryCopy()
+    }
+
+    private mtd startLibraryCopy()
+    {
+        if .copyJob or .copyRequestedFile.isEmpty() do
+            return
+        let failed = g_CaptureSaves.collect()
+        if not failed.isEmpty() do
+            .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        if g_CaptureSaves.writing(.copyRequestedFile)
         {
-            let loaded = try Capture.load(file)
-            defer Memory.delete(loaded)
-            loaded.editView = .editWnd.editView
-            try loaded.copyAll()
+            if not .copyTimer do
+                .copyTimer = .addTimer(16'ms)
+            return
         }
+
+        let job = Memory.new'LibraryCopyJob()
+        job.file = .copyRequestedFile
+        .copyJob = job
+        job.task.submit(func|job|()
         {
-            MessageDlg.error(unwrap .surface, appStrings().msg_FailedCopyCapture, Swag.err)
-        }
+            catch { job.capture = try Capture.load(job.file) } as job.error
+        }, .taskNotifier(&job.task))
     }
 
     // Opens the image file `arg`: the capture it was exported from when Swag Capture wrote it,

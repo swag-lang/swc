@@ -93,3 +93,26 @@ using Swag
     Swag.require(highNegative.hi == -1's64)
     Swag.require(highNegative.lo == 0'u64)
 }
+
+#test
+{
+    let minTimesOne = Math.Int128.mul(Swag.S64.Min, 1)
+    Swag.require(minTimesOne.hi == -1's64)
+    Swag.require(minTimesOne.lo == 0x8000_0000_0000_0000'u64)
+
+    let minTimesNegativeOne = Math.Int128.mul(Swag.S64.Min, -1)
+    Swag.require(minTimesNegativeOne.hi == 0's64)
+    Swag.require(minTimesNegativeOne.lo == 0x8000_0000_0000_0000'u64)
+
+    let minSquared = Math.Int128.mul(Swag.S64.Min, Swag.S64.Min)
+    Swag.require(minSquared.hi == 0x4000_0000_0000_0000's64)
+    Swag.require(minSquared.lo == 0'u64)
+
+    let maxTimesOne = Math.Int128.mul(Swag.S64.Max, 1)
+    Swag.require(maxTimesOne.hi == 0's64)
+    Swag.require(maxTimesOne.lo == cast(u64, Swag.S64.Max))
+
+    let maxTimesNegativeOne = Math.Int128.mul(Swag.S64.Max, -1)
+    Swag.require(maxTimesNegativeOne.hi == -1's64)
+    Swag.require(maxTimesNegativeOne.lo == 0x8000_0000_0000_0001'u64)
+}

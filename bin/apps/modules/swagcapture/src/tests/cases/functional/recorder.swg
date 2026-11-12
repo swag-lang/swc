@@ -18,6 +18,8 @@ internal func testEndRecordingAfter(frames: u32, cancel: bool)
     {
         if g_TestFramesLeft == 0 do
             return
+        if g_Recorder and g_Recorder!.videoMode and not g_Recorder!.videoProducer.hasOrigin() do
+            return
         g_TestFramesLeft -= 1
         if g_TestFramesLeft != 0 or not g_Recorder do
             return
@@ -43,6 +45,8 @@ internal func testStartAndEndVideoAfter(frames: u32)
             g_Recorder!.recordRequested = true
             return
         }
+        if not g_Recorder!.videoProducer.hasOrigin() do
+            return
         if g_TestFramesLeft do
             g_TestFramesLeft -= 1
         if not g_TestFramesLeft do

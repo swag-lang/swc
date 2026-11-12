@@ -227,7 +227,6 @@ impl Recorder
         else
         {
             recorder.state = .Recording
-            recorder.clock.startAt(now)
         }
 
         if prepare and not g_App.surfaces.isEmpty()
@@ -424,7 +423,8 @@ impl Recorder
         if .state == .Counting and Time.monotonicMicroseconds() >= .startsAt
         {
             .state = .Recording
-            .clock.startAt(Time.monotonicMicroseconds())
+            if not .videoMode do
+                .clock.startAt(Time.monotonicMicroseconds())
         }
 
         if .target.window and Time.monotonicMicroseconds() >= .nextTargetCheck
@@ -543,21 +543,19 @@ impl Recorder
     // Reads one video slot and transfers both enabled sound sources into their MP4 tracks.
     private mtd advanceVideo() fail
     {
-        if not .videoProducer.worker.isValid()
-        {
+        if not .videoProducer.worker.isValid() do
             try .videoProducer.start(&.video, VideoCaptureFramesPerSecond)
-            while not .videoProducer.hasOrigin() and not .videoProducer.hasFailed() do
-                Threading.Thread.sleep(1'ms)
-            if .videoProducer.hasOrigin() do
-                .clock.startAt(.video.captureOriginTick())
-        }
         if .videoProducer.hasFailed()
         {
             .stop()
             return
         }
+        if not .videoProducer.hasOrigin() do
+            return
+        if not .clock.running do
+            .clock.startAt(.video.captureOriginTick())
         .dropped = cast(u32, Math.min(.videoProducer.missedFrameSlotCount(), cast(u64, Swag.U32.Max)))
-        if not .videoAudio and .videoProducer.hasOrigin() and
+        if not .videoAudio and
            (.main.captureOptions.recordMicrophone or .main.captureOptions.recordSystemSound)
         {
             .videoAudio = Memory.new'VideoRecordingAudio()

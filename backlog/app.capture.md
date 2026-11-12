@@ -276,7 +276,10 @@ whole recording loaded at once.
   each had zero missed slots over 91 frames; both files lasted 3.033 seconds. A six-second
   1920x1080 browser-area run with sound and a 250 ms interface stall also had zero missed slots
   and replayed its audio. Another area run missed one slot, so sustained throughput and
-  intermittent OS scheduling delays still need measurement.
+  intermittent OS scheduling delays still need measurement. The HUD no longer blocks its
+  interface thread while the producer primes DXGI; its clock remains at zero until the first
+  accepted picture. The native browser journey and eight focused recorder tests cover that
+  start sequence.
   `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
   late producer or audio errors, and returns an editable capture when that prefix is readable.
   A failure toast exposes the retained file in the explorer. On startup and when the library

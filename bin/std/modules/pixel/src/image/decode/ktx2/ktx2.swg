@@ -136,12 +136,18 @@ impl Decoder
                 let key         = cast(string, Swag.makeSlice(buffer.buffer + kvdPosition, separator))
                 let valueOffset = kvdPosition + separator + 1
                 let valueLength = entryLength - separator - 1
-                if key == "KTXorientation" and valueLength >= 2
+                if key == "KTXorientation"
                 {
-                    let vertical = buffer[valueOffset + 1]
-                    if vertical != 'd' and vertical != 'u' do
-                        fail InvalidFormatError{"KTX2 orientation has an invalid vertical direction"}
-                    sourceTopDown = vertical == 'd'
+                    let expectedLength = baseHeight ? (depth ? 3'u64 : 2'u64) : 1'u64
+                    if valueLength != expectedLength do
+                        fail InvalidFormatError{"KTX2 orientation length disagrees with the texture dimensions"}
+                    if expectedLength >= 2
+                    {
+                        let vertical = buffer[valueOffset + 1]
+                        if vertical != 'd' and vertical != 'u' do
+                            fail InvalidFormatError{"KTX2 orientation has an invalid vertical direction"}
+                        sourceTopDown = vertical == 'd'
+                    }
                 }
 
                 kvdPosition = (kvdPosition + entryLength + 3) & ~3'u64

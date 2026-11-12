@@ -82,3 +82,27 @@ func ktx2Roundtrip(source: Image)->Image
     discard catch Image.decode("bad.ktx2", Invalid) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
+
+// Error: KTXorientation needs one direction for each texture dimension.
+#test
+{
+    var source  = Image.create(1, 1, .RGBA8)
+    var encoded = expect source.encode("short-orientation.ktx2")
+    encoded.makeLinear()
+    var bytes     = unwrap encoded.toSlice()
+    let kvdOffset = cast(u32, bytes.count)
+    cast(*u32, bytes.buffer + 56)[] = kvdOffset
+    cast(*u32, bytes.buffer + 60)[] = 20
+
+    var fixture: ConcatBuffer
+    fixture.addBytes(bytes)
+    fixture.addNative(16'u32)     // key plus NUL and one value byte
+    fixture.addBytes("KTXorientation")
+    fixture.addNative(0'u8)
+    fixture.addNative('r')
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("short-orientation.ktx2", nnBytes(fixture.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}

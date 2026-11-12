@@ -421,6 +421,30 @@ impl Writer
         return id
     }
 
+    // Adds a chunk's stored bytes without decoding or recompressing them.
+    //
+    // `source` is the owned result of [[Core.Scc.Reader.readStoredChunk]] or equivalent stored
+    // bytes. The stored size and checksum must match `info`; the writer copies the bytes and
+    // assigns a new offset on [[Core.Scc.Writer.saveAtomic]]. All other chunk metadata,
+    // including an unknown codec identifier, is preserved.
+    mtd addStoredChunk(source: const [..] u8, info: const *ChunkInfo) fail
+    {
+        if info.id.isNull() do
+            fail BadParameterError{"SCC stored chunk needs an identifier"}
+        for chunk in .chunks where chunk.info.id == info.id do
+            fail BadParameterError{"SCC chunk identifiers must be unique"}
+        if source.count != info.storedSize do
+            fail BadParameterError{"SCC stored chunk size does not match its directory entry"}
+        if Hash.Crc32.compute(source) != info.storedChecksum do
+            fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}
+
+        var pending: PendingChunk
+        pending.info = info[]
+        pending.alignment = 8
+        pending.bytes.add(source)
+        .chunks.add(#move pending)
+    }
+
     // Writes the complete container to a temporary peer and atomically replaces `fileName`.
     mtd saveAtomic(fileName: string) fail
     {

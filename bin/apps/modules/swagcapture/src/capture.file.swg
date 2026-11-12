@@ -317,6 +317,98 @@ impl Capture
         try writer.saveAtomic(job.file)
     }
 
+    // Changes library metadata without decoding or recompressing the background, original or
+    // preview images. The model chunk is rewritten so older readers see the same values as the
+    // manifest; every other stored chunk keeps its exact bytes and identifier.
+    func updateFileMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null) fail
+    {
+        if title == null and not tags and not favorite and not rating do
+            return
+
+        var reader: Scc.Reader
+        try reader.initialize(file)
+        if reader.kind() != containerKind() do
+            fail Core.Errors.InvalidFormatError{}
+        if reader.manifest().profileVersion > CaptureProfileVersion do
+            fail Core.Errors.InvalidVersion{wantedVersion: CaptureProfileVersion, foundVersion: reader.manifest().profileVersion}
+
+        let modelInfo = reader.findRole(modelRole())
+        if not modelInfo do
+            fail Core.Errors.InvalidFormatError{}
+        let modelBytes = try reader.readChunk(modelInfo.id)
+        var decoder: Decoder'Read.TagBin
+        decoder.flags |= .IgnoreStructFieldError
+        let model = try decoder.readAll'CaptureFileModel(modelBytes.toSlice())
+        defer Memory.delete(model)
+        let diag = decoder.serializer.diag
+        if diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads != 0 do
+            fail Core.Errors.InvalidFormatError{"Capture metadata update would discard document fields"}
+
+        if title != null do
+            model.title = title
+        if tags do
+            model.tags = tags[]
+        if favorite do
+            model.favorite = favorite[]
+        if rating do
+            model.rating = rating[]
+
+        var writer: Scc.Writer
+        writer.initialize(containerKind())
+        if reader.generation() == Swag.U64.Max do
+            fail Core.Errors.OverflowError{"Capture container generation cannot advance"}
+        writer.setIdentity(reader.id(), reader.generation() + 1)
+        writer.manifest()[] = reader.manifest()[]
+        writer.manifest().modifiedAt = Time.DateTime.now()
+        if title != null do
+            writer.manifest().name = title
+        if tags
+        {
+            writer.manifest().tags = tags[]
+            for &entry in writer.manifest().entries where entry.primaryChunk == modelInfo.id do
+                entry.tags = tags[]
+        }
+
+        if favorite or rating
+        {
+            var metadataDecoder: Decoder'Read.TagBin
+            let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
+            defer Memory.delete(metadata)
+            let metadataDiag = metadataDecoder.serializer.diag
+            if metadataDiag.fieldErrors + metadataDiag.droppedStreamFields + metadataDiag.unknownTypes + metadataDiag.corruptPayloads != 0 do
+                fail Core.Errors.InvalidFormatError{"Capture metadata update would discard library fields"}
+            if favorite do
+                metadata.favorite = favorite[]
+            if rating do
+                metadata.rating = rating[]
+            writer.manifest().profileData = try encodeValue(metadata)
+        }
+
+        let encodedModel = try encodeValue(model)
+        for chunk in reader.chunks()
+        {
+            if chunk.id == modelInfo.id
+            {
+                var options: Scc.ChunkOptions
+                options.id            = chunk.id
+                options.typeId        = chunk.typeId
+                options.roleId        = chunk.roleId
+                options.codecId       = chunk.codecId
+                options.schemaVersion = chunk.schemaVersion
+                options.flags         = chunk.flags
+                discard try writer.addChunk(encodedModel.toSlice(), options)
+            }
+            else
+            {
+                let stored = try reader.readStoredChunk(chunk.id)
+                try writer.addStoredChunk(stored.toSlice(), chunk)
+            }
+        }
+
+        reader.close()
+        try writer.saveAtomic(file)
+    }
+
     // Loads an SCC capture, or its library metadata and preview when `preview` is set.
     //
     // The caller owns the non-null result and releases it with [[Core.Memory.delete]].

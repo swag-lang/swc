@@ -121,15 +121,29 @@ impl LibraryWnd
         return result
     }
 
-    mtd refreshPreviewMetadata(file: String, capture: *Capture)
+    mtd refreshPreviewMetadata(file: String, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
     {
         .view.mutexLoaded.lock()
         defer .view.mutexLoaded.unlock()
         for item in .view.allItems where item!.capture and item.fi.fullName == file
         {
-            item.capture!.tags    = capture.tags
-            item.capture.favorite = capture.favorite
-            item.capture.rating   = capture.rating
+            if tags do
+                item.capture!.tags = tags[]
+            if favorite do
+                item.capture!.favorite = favorite[]
+            if rating do
+                item.capture!.rating = rating[]
+        }
+
+        let active = .main.editWnd.getCapture()
+        if active and active.file == file
+        {
+            if tags do
+                active.tags = tags[]
+            if favorite do
+                active.favorite = favorite[]
+            if rating do
+                active.rating = rating[]
         }
 
         g_DirtyList = true
@@ -146,22 +160,8 @@ impl LibraryWnd
 
         catch
         {
-            let capture = try Capture.load(file)
-            defer Memory.delete(capture)
-            if tags do
-                capture.tags = tags[]
-            if favorite do
-                capture.favorite = favorite[]
-            if rating do
-                capture.rating = rating[]
-            capture.changed = true
-            discard catch capture.save()
-            {
-                MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedSaveMetadata, Swag.err)
-                return
-            }
-
-            .refreshPreviewMetadata(file, capture)
+            try Capture.updateFileMetadata(file, tags: tags, favorite: favorite, rating: rating)
+            .refreshPreviewMetadata(file, tags, favorite, rating)
         }
         {
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedSaveMetadata, Swag.err)

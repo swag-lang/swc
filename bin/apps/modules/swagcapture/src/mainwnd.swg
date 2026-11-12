@@ -462,10 +462,8 @@ impl MainWnd
             MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, failed))
     }
 
-    // Changes the user-defined name of a capture and persists it. The library shows
-    // previews loaded without the background image, so that in-memory copy is never
-    // saved (it would wipe the picture): the real file on disk is updated instead, then
-    // the preview's displayed title.
+    // Changes the user-defined name of a capture and persists it. An inactive capture's SCC
+    // model and header are rewritten without decoding its background image.
     mtd setCaptureTitle(file: String, title: String)
     {
         let editCapture = .editWnd.getCapture()
@@ -481,14 +479,7 @@ impl MainWnd
             // reads the latest landed version of the file.
             .flushCaptureSave(file)
 
-            catch
-            {
-                let loaded = try Capture.load(file)
-                defer Memory.delete(loaded)
-                loaded.title   = title
-                loaded.changed = true
-                .saveCapture(loaded)
-            }
+            catch Capture.updateFileMetadata(file, title: title)
             {
                 MessageDlg.error(unwrap .surface, appStrings().msg_FailedRename, Swag.err)
                 return

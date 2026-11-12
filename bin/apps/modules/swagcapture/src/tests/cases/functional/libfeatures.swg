@@ -57,8 +57,8 @@ using Swag, Core
     discard catch File.delete(restored)
 }
 
-// Renaming a capture that is not the one open in the editor updates the title on disk
-// without destroying the (heavier) data the in-memory copy might not carry.
+// Renaming and marking an inactive capture update its model and library header while preserving
+// the exact compressed background chunk.
 #test
 {
     var f: HeadlessFixture
@@ -75,13 +75,44 @@ using Swag, Core
     expect cap.save()
     Memory.delete(cap)
 
+    var before: Scc.Reader
+    expect before.initialize(path)
+    Swag.require(before.chunks().count == 2)
+    let backgroundId    = before.chunks()[1].id
+    let backgroundCodec = before.chunks()[1].codecId
+    let backgroundBytes = expect before.readStoredChunk(backgroundId)
+    before.close()
+
     f.main.setCaptureTitle(path, "Renamed")
+
+    var tags: Array'String
+    tags.add("reviewed")
+    let favorite = true
+    let rating   = 4'u8
+    let library  = f.setupLibraryWnd()
+    library.updateMetadata(path, tags: &tags, favorite: &favorite, rating: &rating)
 
     let loaded = expect Capture.load(path)
     defer Memory.delete(loaded)
     Swag.require(loaded.title == "Renamed")
     Swag.require(loaded.width == 8)
     Swag.require(loaded.backImg.isValid())
+    Swag.require(loaded.tags.count == 1 and loaded.tags[0] == "reviewed")
+    Swag.require(loaded.favorite and loaded.rating == 4)
+
+    let preview = expect Capture.load(path, preview: true)
+    defer Memory.delete(preview)
+    Swag.require(preview.title == "Renamed")
+    Swag.require(preview.tags.count == 1 and preview.tags[0] == "reviewed")
+    Swag.require(preview.favorite and preview.rating == 4)
+
+    var after: Scc.Reader
+    expect after.initialize(path)
+    Swag.require(after.chunks().count == 2)
+    Swag.require(after.chunks()[1].id == backgroundId)
+    Swag.require(after.chunks()[1].codecId == backgroundCodec)
+    let unchanged = expect after.readStoredChunk(backgroundId)
+    Swag.require(Slice.equals(unchanged.toSlice(), backgroundBytes.toSlice()))
 }
 
 // Copying a stored capture from the library places its full-resolution image on the

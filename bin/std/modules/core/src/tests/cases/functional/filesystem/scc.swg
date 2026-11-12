@@ -118,6 +118,63 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.require(Slice.equals(deflateBytes.toSlice(), "deflate deflate deflate deflate"))
 }
 
+// Stored chunks can be copied without knowing their codec; corruption is rejected before the
+// destination writer accepts the chunk.
+#test
+{
+    let sourcePath = CoreTests.makeFilesystemTestPath("core_scc_stored_source.tmp")
+    let copyPath   = CoreTests.makeFilesystemTestPath("core_scc_stored_copy.tmp")
+    defer
+    {
+        discard catch File.delete(sourcePath)
+        discard catch File.delete(copyPath)
+    }
+
+    let kind = sccTestId("e6f71e08-c56a-4d70-a546-17b4b58b03c2")
+    let role = sccTestId("d8993350-f65a-4992-ac77-600284eaaad6")
+    let type = sccTestId("ecbc60fa-28d7-49e4-86b1-f6c1616fa26e")
+    var codec = ReverseSccCodec{codecId: sccTestId("b9623a96-6cb1-4a35-9ec3-5a99a9c006a1")}
+
+    var original: Scc.Writer
+    original.initialize(kind)
+    original.registerCodec(&codec)
+    original.manifest().name = "Original metadata"
+    let id = expect original.addChunk("payload for an unknown codec", {typeId: type, roleId: role, codecId: codec.codecId})
+    expect original.saveAtomic(sourcePath)
+
+    var source: Scc.Reader
+    expect source.initialize(sourcePath)
+    let info   = unwrap source.findChunk(id)
+    let stored = expect source.readStoredChunk(id)
+
+    var copy: Scc.Writer
+    copy.initialize(kind)
+    copy.setIdentity(source.id(), source.generation() + 1)
+    copy.manifest()[] = source.manifest()[]
+    copy.manifest().name = "Updated metadata"
+
+    var damaged = stored
+    damaged[0] = damaged[0] ^ 1
+    var badChecksum: Swag.Error
+    discard catch copy.addStoredChunk(damaged.toSlice(), info) as badChecksum
+    Swag.require(badChecksum.value() != null)
+    expect copy.addStoredChunk(stored.toSlice(), info)
+    source.close()
+    expect copy.saveAtomic(copyPath)
+
+    var reopened: Scc.Reader
+    expect reopened.initialize(copyPath)
+    Swag.require(reopened.id() == source.id())
+    Swag.require(reopened.generation() == source.generation() + 1)
+    Swag.require(reopened.manifest().name == "Updated metadata")
+    Swag.require(reopened.findChunk(id)!.codecId == codec.codecId)
+    let copiedStored = expect reopened.readStoredChunk(id)
+    Swag.require(Slice.equals(copiedStored.toSlice(), stored.toSlice()))
+    reopened.registerCodec(&codec)
+    let decoded = expect reopened.readChunk(id)
+    Swag.require(Slice.equals(decoded.toSlice(), "payload for an unknown codec"))
+}
+
 // Header limits are enforced before the decoder allocates attacker-controlled sizes.
 #test
 {

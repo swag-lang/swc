@@ -146,6 +146,20 @@ func expectNear(actual, expected: f32)
 
     let collinearDisjoint = Math.Geometry.intersectSegments({0, 0}, {10, 0}, {12, 0}, {15, 0})
     Swag.require(not collinearDisjoint.intersects)
+
+    let pointOnSegment = Math.Geometry.intersectSegments({2, 0}, {2, 0}, {0, 0}, {4, 0})
+    Swag.require(pointOnSegment.intersects)
+    expectVec2(pointOnSegment.point, {2, 0})
+
+    let pointOutside = Math.Geometry.intersectSegments({5, 1}, {5, 1}, {0, 0}, {4, 0})
+    Swag.require(not pointOutside.intersects)
+
+    let samePoint = Math.Geometry.intersectSegments({3, 4}, {3, 4}, {3, 4}, {3, 4})
+    Swag.require(samePoint.intersects)
+    expectVec2(samePoint.point, {3, 4})
+
+    let separatePoints = Math.Geometry.intersectSegments({3, 4}, {3, 4}, {6, 8}, {6, 8})
+    Swag.require(not separatePoints.intersects)
 }
 
 // Horizontal edges do not divide by zero, and winding does not change inside/outside.

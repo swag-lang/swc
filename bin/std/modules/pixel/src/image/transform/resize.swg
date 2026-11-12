@@ -1,5 +1,14 @@
 using Core
 
+// Resolves one aspect-preserving dimension, keeping a positive request at least one pixel.
+private func resizeAspectDimension(sourceSize, sourceBase, targetBase: s32)->s32
+{
+    let scaled = cast(f32, targetBase) * (cast(f32, sourceSize) / cast(f32, sourceBase))
+    Swag.assert(Math.isFinite(scaled) and scaled < 2_147_483_648.0'f32,
+                "resized dimension is outside the supported range")
+    return Math.max(cast(s32, scaled), 1)
+}
+
 public impl Image
 {
     // Resampling filter used when resizing an image.
@@ -19,12 +28,13 @@ public impl Image
         CatmullRom     // Sharper Catmull-Rom cubic reconstruction.
     }
 
-    // Resizes the image, preserving aspect ratio when one dimension is zero.
+    // Resizes the image, preserving aspect ratio when one dimension is zero. A derived dimension
+    // rounds down, with one pixel as the minimum.
     mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Nearest)
     {
         Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
-        let nw = newWidth != 0 ? newWidth : cast(s32, (newHeight * (.width / cast(f32, .height))))
-        let nh = newHeight != 0 ? newHeight : cast(s32, (newWidth * (.height / cast(f32, .width))))
+        let nw = newWidth != 0 ? newWidth : resizeAspectDimension(.width, .height, newHeight)
+        let nh = newHeight != 0 ? newHeight : resizeAspectDimension(.height, .width, newWidth)
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height do
             return
@@ -33,12 +43,13 @@ public impl Image
         .applyWorkingBuffer()
     }
 
-    // Returns a resized copy, preserving aspect ratio when one dimension is zero.
+    // Returns a resized copy, preserving aspect ratio when one dimension is zero. A derived
+    // dimension rounds down, with one pixel as the minimum.
     mtd const resized(newWidth, newHeight: s32, mode = ResizeMode.Nearest)->Image
     {
         Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
-        let nw = newWidth != 0 ? newWidth : cast(s32, (newHeight * (.width / cast(f32, .height))))
-        let nh = newHeight != 0 ? newHeight : cast(s32, (newWidth * (.height / cast(f32, .width))))
+        let nw = newWidth != 0 ? newWidth : resizeAspectDimension(.width, .height, newHeight)
+        let nh = newHeight != 0 ? newHeight : resizeAspectDimension(.height, .width, newWidth)
         Swag.assert(nw > 0 and nh > 0, "resized dimensions round to zero")
         if nw == .width and nh == .height
         {

@@ -101,6 +101,23 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
 
 #test
 {
+    let tall     = Image.create(1, 3, .RGB8)
+    let tallCopy = tall.resized(0, 2, .Nearest)
+    assertImage(tallCopy, 1, 2, .RGB8)
+    var tallInPlace = tall
+    tallInPlace.resize(0, 2, .Nearest)
+    assertImage(tallInPlace, 1, 2, .RGB8)
+
+    let wide     = Image.create(3, 1, .RGB8)
+    let wideCopy = wide.resized(2, 0, .Nearest)
+    assertImage(wideCopy, 2, 1, .RGB8)
+    var wideInPlace = wide
+    wideInPlace.resize(2, 0, .Nearest)
+    assertImage(wideInPlace, 2, 1, .RGB8)
+}
+
+#test
+{
     const rawPixels = [
         10'u8, 20'u8, 30'u8, 40'u8, 50'u8, 60'u8, 70'u8, 80'u8,
         90'u8, 100'u8, 110'u8, 120'u8, 130'u8, 140'u8, 150'u8, 160'u8]

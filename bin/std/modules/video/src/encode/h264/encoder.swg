@@ -27,6 +27,15 @@ private struct EncoderSlicePacket
     bytes: Array'u8
 }
 
+// One scratch set per parallel slice keeps neighbour tables between pictures.
+private struct EncoderSliceScratch
+{
+    motions:       Array'EncoderMotion
+    pcm:           Array'bool
+    nonZero:       Array'u8
+    chromaNonZero: Array'u8
+}
+
 private struct EncoderQuantizedMb
 {
     lumaDc:         [16] s16
@@ -312,6 +321,7 @@ struct Encoder
         framesSinceKey: u32
         previousEnd:    u64
         hasFrame:       bool
+        sliceScratch:   [8] EncoderSliceScratch
     }
 }
 
@@ -388,7 +398,7 @@ impl Encoder
         }
         var packet: Array'u8
         if .sliceCount == 1 do
-            .encodeSlice(frame, key, 0, &packet)
+            .encodeSlice(frame, key, 0, &.sliceScratch[0], &packet)
         else
         {
             var slices: Array'EncoderSlicePacket
@@ -396,7 +406,8 @@ impl Encoder
             let encoder = me
             let slots = slices.storage()
             parallel for |encoder, frame, key, slots| sliceIndex in cast(u64, .sliceCount) do
-                encoder.encodeSlice(frame, key, cast(u32, sliceIndex), &slots[sliceIndex].bytes)
+                encoder.encodeSlice(frame, key, cast(u32, sliceIndex),
+                                    &encoder.sliceScratch[sliceIndex], &slots[sliceIndex].bytes)
             for &slice in slices do
                 packet.add(slice.bytes.toSlice())
         }
@@ -480,7 +491,7 @@ private impl Encoder
 {
     // One independently coded row band. All spatial contexts restart at its first row.
     mtd encodeSlice(frame: const *Nv12Frame, key: bool, sliceIndex: u32,
-                    packet: *Array'u8)
+                    scratch: *EncoderSliceScratch, packet: *Array'u8)
     {
         let sliceStartY = sliceIndex * .mbHeight / .sliceCount
         let sliceEndY = (sliceIndex + 1) * .mbHeight / .sliceCount
@@ -508,26 +519,26 @@ private impl Encoder
 
         var skipped = 0'u32
         var currentQp = 26's32
-        var motions: Array'EncoderMotion
-        var pcm: Array'bool
-        var nonZero: Array'u8
-        var chromaNonZero: Array'u8
+        let motions = &scratch.motions
+        let pcm = &scratch.pcm
+        let nonZero = &scratch.nonZero
+        let chromaNonZero = &scratch.chromaNonZero
         pcm.resize(cast(u64, .mbWidth) * .mbHeight)
-        for &value in pcm do
+        for &value in pcm[] do
             value[] = false
         if not key
         {
             motions.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight))
-            for &value in motions do
+            for &value in motions[] do
                 value[] = {}
         }
         if not key or .quantizationQp
         {
             nonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 16)
-            for &value in nonZero do
+            for &value in nonZero[] do
                 value[] = 0
             chromaNonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 8)
-            for &value in chromaNonZero do
+            for &value in chromaNonZero[] do
                 value[] = 0
         }
         for mbY in sliceStartY until sliceEndY
@@ -552,7 +563,7 @@ private impl Encoder
                         skipped = 0
                     }
                     .storePreviousMb(mbX, mbY)
-                    motions[motionIndex] = {0, 0, true}
+                    motions[][motionIndex] = {0, 0, true}
                     continue
                 }
                 var firstDifferent = 256'u32
@@ -560,7 +571,7 @@ private impl Encoder
                 if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY, sliceStartY)
                 {
                     skipped += 1
-                    motions[motionIndex] = {0, 0, true}
+                    motions[][motionIndex] = {0, 0, true}
                     continue
                 }
                 if not key do
@@ -615,9 +626,9 @@ private impl Encoder
                         bits.used = oldUsed
                         currentQp = oldQp
                         for block in 16'u64 do
-                            nonZero[motionIndex * 16 + block] = 0
+                            nonZero[][motionIndex * 16 + block] = 0
                         for block in 8'u64 do
-                            chromaNonZero[motionIndex * 8 + block] = 0
+                            chromaNonZero[][motionIndex * 8 + block] = 0
                     }
                 }
                 // The flat-source intra shortcut is validated at QP 28 and 36.
@@ -644,7 +655,7 @@ private impl Encoder
                         if coded and written <= 128
                         {
                             .storeQuantizedMb(&quantized, mbX, mbY)
-                            motions[motionIndex] = {}
+                            motions[][motionIndex] = {}
                             skipped = 0
                             continue
                         }
@@ -653,9 +664,9 @@ private impl Encoder
                         bits.used = oldUsed
                         currentQp = oldQp
                         for block in 16'u64 do
-                            nonZero[motionIndex * 16 + block] = 0
+                            nonZero[][motionIndex * 16 + block] = 0
                         for block in 8'u64 do
-                            chromaNonZero[motionIndex * 8 + block] = 0
+                            chromaNonZero[][motionIndex * 8 + block] = 0
                     }
                 }
                 if not key
@@ -667,7 +678,7 @@ private impl Encoder
                         bits.signed(motion.x - prediction.x)
                         bits.signed(motion.y - prediction.y)
                         bits.unsigned(0)             // No residual coefficients.
-                        motions[motionIndex] = motion
+                        motions[][motionIndex] = motion
                         skipped = 0
                         continue
                     }
@@ -706,7 +717,7 @@ private impl Encoder
                             if coded and written < 3_072
                             {
                                 .storeQuantizedMb(&quantized, mbX, mbY)
-                                motions[motionIndex] = residualMotion
+                                motions[][motionIndex] = residualMotion
                                 skipped = 0
                                 continue
                             }
@@ -715,9 +726,9 @@ private impl Encoder
                             bits.used = oldUsed
                             currentQp = oldQp
                             for block in 16'u64 do
-                                nonZero[motionIndex * 16 + block] = 0
+                                nonZero[][motionIndex * 16 + block] = 0
                             for block in 8'u64 do
-                                chromaNonZero[motionIndex * 8 + block] = 0
+                                chromaNonZero[][motionIndex * 8 + block] = 0
                         }
                     }
                     elif not .denseResidualLikelyOversized(frame, mbX, mbY, firstDifferent)
@@ -757,7 +768,7 @@ private impl Encoder
                                               (oldBytes * 8 + oldUsed)
                                 if coded and written < 3_072
                                 {
-                                    motions[motionIndex] = {0, 0, true}
+                                    motions[][motionIndex] = {0, 0, true}
                                     skipped = 0
                                     continue
                                 }
@@ -766,9 +777,9 @@ private impl Encoder
                                 bits.used = oldUsed
                                 currentQp = oldQp
                                 for block in 16'u64 do
-                                    nonZero[motionIndex * 16 + block] = 0
+                                    nonZero[][motionIndex * 16 + block] = 0
                                 for block in 8'u64 do
-                                    chromaNonZero[motionIndex * 8 + block] = 0
+                                    chromaNonZero[][motionIndex * 8 + block] = 0
                             }
 
                             var acLevels: [256] s16
@@ -791,7 +802,7 @@ private impl Encoder
                                               (oldBytes * 8 + oldUsed)
                                 if coded and written < 3_072
                                 {
-                                    motions[motionIndex] = {0, 0, true}
+                                    motions[][motionIndex] = {0, 0, true}
                                     skipped = 0
                                     continue
                                 }
@@ -800,9 +811,9 @@ private impl Encoder
                                 bits.used = oldUsed
                                 currentQp = oldQp
                                 for block in 16'u64 do
-                                    nonZero[motionIndex * 16 + block] = 0
+                                    nonZero[][motionIndex * 16 + block] = 0
                                 for block in 8'u64 do
-                                    chromaNonZero[motionIndex * 8 + block] = 0
+                                    chromaNonZero[][motionIndex * 8 + block] = 0
                             }
                         }
                     }
@@ -810,13 +821,13 @@ private impl Encoder
                 bits.unsigned(key ? 25 : 30)   // I_PCM in I/P slice type spaces.
                 bits.alignZero()
                 .writePcm(&bits, frame, mbX, mbY)
-                pcm[motionIndex] = true
+                pcm[][motionIndex] = true
                 if not key or .quantizationQp
                 {
                     for block in 16'u64 do
-                        nonZero[motionIndex * 16 + block] = 16
+                        nonZero[][motionIndex * 16 + block] = 16
                     for block in 8'u64 do
-                        chromaNonZero[motionIndex * 8 + block] = 16
+                        chromaNonZero[][motionIndex * 8 + block] = 16
                 }
                 skipped = 0
             }

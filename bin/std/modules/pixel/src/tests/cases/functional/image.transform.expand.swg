@@ -58,3 +58,24 @@ using Swag, Core
     })
     Swag.require(rejectedWidth.raised and rejectedHeight.raised)
 }
+
+#test
+{
+    let source     = Image.create(2, 2, .RGBA8)
+    let fill       = Color.fromArgb(255'u8, 4'u8, 5'u8, 6'u8)
+    let horizontal = source.expanded(Swag.S32.Min, 0, Swag.S32.Max, 0, fill)
+    assertImage(horizontal, 1, 2, .RGBA8)
+    assertPixel(horizontal, 0, 0, fill)
+    assertPixel(horizontal, 0, 1, fill)
+
+    let vertical = source.expanded(0, Swag.S32.Max, 0, Swag.S32.Min, fill)
+    assertImage(vertical, 2, 1, .RGBA8)
+    assertPixel(vertical, 0, 0, fill)
+    assertPixel(vertical, 1, 0, fill)
+
+    var inPlace = Image.create(2, 2, .RGBA8)
+    inPlace.expand(Swag.S32.Min, 0, Swag.S32.Max, 0, fill)
+    assertImage(inPlace, 1, 2, .RGBA8)
+    assertPixel(inPlace, 0, 0, fill)
+    assertPixel(inPlace, 0, 1, fill)
+}

@@ -19,15 +19,15 @@ impl Image
 
         // Rows are stored bottom-up, so the first buffer rows are the bottom of the picture: the
         // vertical offset comes from the bottom margin.
-        let dstX = l < 0 ? 0 : l
-        let dstY = b < 0 ? 0 : b
-        let srcX = l < 0 ? -l : 0
-        let srcY = b < 0 ? -b : 0
-
         let retainedWidth  = .width + Math.min(l, 0) + Math.min(r, 0)
         let retainedHeight = .height + Math.min(t, 0) + Math.min(b, 0)
         if retainedWidth <= 0 or retainedHeight <= 0 do
             return
+
+        let dstX = l < 0 ? 0 : l
+        let dstY = b < 0 ? 0 : b
+        let srcX = l < 0 ? -l : 0
+        let srcY = b < 0 ? -b : 0
 
         let srcW = retainedWidth * .bytesPerPixel
         let srcH = retainedHeight

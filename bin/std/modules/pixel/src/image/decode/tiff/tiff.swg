@@ -280,10 +280,14 @@ impl Decoder
         }
         elif samples == 3
         {
+            if photometric != PHOTO_RGB do
+                fail UnsupportedFormatError{"unsupported photometric for RGB image"}
             pf = .RGB8
         }
         else
         {
+            if photometric != PHOTO_RGB do
+                fail UnsupportedFormatError{"unsupported photometric for RGBA image"}
             pf = .RGBA8
         }
 

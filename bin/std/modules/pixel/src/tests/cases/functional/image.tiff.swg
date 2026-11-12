@@ -427,6 +427,23 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(tiffDecodeFails(nnBytes(badCount.toSlice())))
 }
 
+// RGB sample layouts require the RGB photometric interpretation.
+#test
+{
+    const PixelData: [3] u8 = [10, 20, 30]
+    for photometric in [5'u32, 6'u32]
+    {
+        let unsupported = buildTiff(true, 1, 1, 3, photometric, 1, 1, 8, PixelData, null, false)
+        Swag.require(tiffDecodeFails(nnBytes(unsupported.toSlice())))
+    }
+
+    let valid = buildTiff(true, 1, 1, 3, 2, 1, 1, 8, PixelData, null, false)
+    let image = expect decodeTiff(nnBytes(valid.toSlice()))
+    const Expected: [3] u8 = [10, 20, 30]
+    Swag.require(image.pixelFormat == .RGB8)
+    Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
+}
+
 // Decode a PackBits-compressed RGB image (literal run).
 #test
 {

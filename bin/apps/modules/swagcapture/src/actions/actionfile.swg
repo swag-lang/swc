@@ -594,6 +594,11 @@ impl MainWnd
             MessageDlg.error(unwrap .surface, appStrings().msg_VideoExportDifferentFile)
             return
         }
+        if capture.canCopyOriginalVideo()
+        {
+            .startVideoCopy(Capture.mediaPathOf(capture.file, .Video), fileName)
+            return
+        }
         Cursor.activateWait()
         if capture.media == .Video
         {

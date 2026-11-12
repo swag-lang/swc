@@ -1,7 +1,33 @@
 using Core, Core.Errors, Gui, Pixel, Audio, Video
 
+// Copies an unchanged recording without decoding it, then publishes it atomically.
+internal func exportOriginalVideo(source: string, path: string) fail
+{
+    let targetPath = try Path.absolute(path)
+    let sourcePath = try Path.absolute(source)
+    if Path.equals(targetPath, sourcePath) do
+        fail BadParameterError{"choose another file for the exported video"}
+
+    let temporary = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
+    var ownsTemporary = true
+    defer if ownsTemporary do
+        discard catch File.delete(temporary)
+    try File.duplicate(temporary, source)
+    try File.move(path, temporary)
+    ownsTemporary = false
+}
+
 impl Capture
 {
+    mtd const canCopyOriginalVideo()->bool
+    {
+        if .media != .Video or .mediaMissing or not .frames do
+            return false
+        let frames = .frames
+        return .forms.isEmpty() and not .isTrimmed() and
+               .width == frames.width and .height == frames.height
+    }
+
     // Places a standalone MP4 on the clipboard with the kept span and annotations.
     mtd copyVideo() fail
     {
@@ -39,6 +65,13 @@ impl Capture
         if finish <= start do
             fail BadParameterError{"the kept video span is empty"}
 
+        // A capture without edits keeps the original encoded picture and sound bytes.
+        if .canCopyOriginalVideo()
+        {
+            try exportOriginalVideo(source, path)
+            return
+        }
+
         // Publish only a complete MP4. A failed export leaves an earlier destination intact.
         let temporary     = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
         var ownsTemporary = true
@@ -46,18 +79,6 @@ impl Capture
         {
             if ownsTemporary do
                 discard catch File.delete(temporary)
-        }
-
-        // A capture without edits keeps the original encoded picture and sound bytes.
-        if .forms.isEmpty() and
-           not .isTrimmed() and
-           .width == frames.width and
-           .height == frames.height
-        {
-            try File.duplicate(temporary, source)
-            try File.move(path, temporary)
-            ownsTemporary = false
-            return
         }
 
         // Precise trims and timed annotations keep every unaffected compressed passage.

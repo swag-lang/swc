@@ -319,6 +319,15 @@ struct CaptureImageWriteJob
     error: Swag.Error
 }
 
+// An unchanged MP4 is copied without borrowing its editable capture.
+struct CaptureVideoCopyJob
+{
+    task:   Swag.Task
+    source: String
+    target: String
+    error:  Swag.Error
+}
+
 struct CaptureVideoRecoveryJob
 {
     task: Swag.Task

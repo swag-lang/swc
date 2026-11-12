@@ -156,6 +156,7 @@ struct MainWnd
     exportSource, exportDestination: String
     exportLinked: bool
     imageWriteJob: *CaptureImageWriteJob?
+    videoCopyJobs: Array'(*CaptureVideoCopyJob)
     videoRecoveryJob: *CaptureVideoRecoveryJob?
     videoRecoveryFolder: String
     videoRecoveryCount: u64
@@ -237,6 +238,11 @@ impl IWnd for MainWnd
         if imageWrite and evt.task == &imageWrite.task
         {
             .finishLibraryImageWrite(imageWrite)
+            return
+        }
+        for videoCopy in .videoCopyJobs where evt.task == &videoCopy.task
+        {
+            .finishVideoCopy(videoCopy)
             return
         }
         let recovery = .videoRecoveryJob
@@ -353,6 +359,13 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        for job in .videoCopyJobs
+        {
+            job.task.cancel()
+            job.task.wait()
+            Memory.delete(job)
+        }
+        .videoCopyJobs.clear()
         if .videoRecoveryJob
         {
             let job = .videoRecoveryJob
@@ -645,6 +658,34 @@ impl MainWnd
     private mtd finishLibraryImageWrite(job: *CaptureImageWriteJob)
     {
         .imageWriteJob = null
+        let destination = String.from(job.target)
+        let failed = not job.error.isEmpty()
+        Memory.delete(job)
+        if failed do
+            .reportFailure(appStrings().msg_FailedSaveFile, destination)
+        else do
+            .confirmSaved(destination)
+    }
+
+    mtd startVideoCopy(source: String, destination: String)
+    {
+        let job = Memory.new'CaptureVideoCopyJob()
+        job.source = source
+        job.target = destination
+        .videoCopyJobs.add(job)
+        job.task.submit(func|job|()
+        {
+            catch exportOriginalVideo(job.source, job.target) as job.error
+        }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishVideoCopy(job: *CaptureVideoCopyJob)
+    {
+        for item, index in .videoCopyJobs where item == job
+        {
+            .videoCopyJobs.removeAtOrdered(index)
+            break
+        }
         let destination = String.from(job.target)
         let failed = not job.error.isEmpty()
         Memory.delete(job)

@@ -25,23 +25,6 @@ referenced by the capture document, so a save never rewrites it; no memory grows
 duration; and the timeline, trimming and export work from indexes and streams, never from a
 whole recording loaded at once.
 
-### app.capture.042 — Verify desktop dismissal and charter for the resident hub
-
-- Evidence: `MenuCtrl` now navigates detached menus with arrows, Home, End, Enter, Escape and
-  typed initials; `HubRecents` takes Left, Right and Enter through its selected widget row. A
-  native tray journey chooses a command with keyboard input. A native desktop journey now clicks
-  a separate application's window in the same process and checks that the hub leaves. On Windows,
-  the hub tracks its own foreground window because process-wide activation stays true in this case.
-  A second native journey now owns a small window in a child process, sends it a real desktop
-  click and checks that the hub closes when that process takes focus.
-  The charter describes the hub and the menu in words; `imgs/` has no picture of either, and the
-  goldens `resident.hub.encre`, `resident.hub.keyboard.papier` and `resident.menu.papier` stand in for one.
-- Next: draw the charter pictures of the hub and the menu, then compare each resident golden
-  against the corresponding composition.
-- Done when: the hub is usable without the pointer, the journey passes on Windows, and each
-  golden is compared with its charter picture.
-- Related: std.gui.010
-
 ### app.capture.039 — Remove global app dependencies from attached capture content
 
 - Evidence: native user journeys with an independently owned `Gui.Application` found that `Capture.toImage`, capture texture cleanup, and `FormText.resolveFace` read the global `g_App` instead of their attached view's app. Those paths now use the view when attached, but `FormImage`, `FormStep`, and `BaseForm` still read `g_App` for rendering or theme resources.

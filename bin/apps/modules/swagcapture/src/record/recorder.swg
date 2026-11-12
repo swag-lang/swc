@@ -58,7 +58,6 @@ struct Recorder
     hud:         *RecordHud?
     limit:       u64      // Longest recording, in microseconds; zero records until stopped.
     ownsEscape:  bool     // Escape is registered as the cancel hotkey of this recording.
-    ownsStop:    bool     // Ctrl Shift F10 stops a full-screen recording from any window.
     pausedForTarget: bool // The attached window is temporarily not visible.
     recordRequested: bool // The preparation pill has asked to start the video.
     nextTargetCheck: u64
@@ -616,11 +615,6 @@ impl Recorder
         // Escape abandons the recording from any application, for as long as it runs only.
         catch g_App.registerHotKey(.None, .Escape, ActionCapture.CancelRecording, .main)
         .ownsEscape = true
-        if .videoMode
-        {
-            catch g_App.registerHotKey(.CtrlShift, .F10, ActionCapture.RecordVideo, .main)
-            .ownsStop = true
-        }
     }
 
     // Keeps the preparation action visible, then leaves an overlapping X11 control out of
@@ -658,9 +652,6 @@ impl Recorder
         if .ownsEscape do
             discard g_App.unregisterHotKey(.None, .Escape)
         .ownsEscape = false
-        if .ownsStop do
-            discard g_App.unregisterHotKey(.CtrlShift, .F10)
-        .ownsStop = false
 
         .clearEdges()
         .hud?.surface?.destroy()

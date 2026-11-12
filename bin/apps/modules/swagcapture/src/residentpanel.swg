@@ -194,7 +194,7 @@ impl IWnd for ResidentPanel
         }
 
         // A click anywhere else gives the desktop to another application: the hub leaves.
-        if .app().isActivated do
+        if .hasDesktopFocus() do
             .wasActive = true
         elif .wasActive do
             .choose(null)
@@ -224,6 +224,18 @@ impl ResidentPanel
 {
     // Period of the watch for a choice: short enough that a click feels immediate.
     const WatchPeriod: Time.Duration = 30'ms
+
+    // On Windows, activation belongs to the process, so another window in this process can
+    // take the foreground while Application.isActivated remains true.
+    private mtd hasDesktopFocus()->bool
+    {
+        #static if #os == Swag.TargetOs.Windows
+        {
+            if .floating do
+                return Win32.GetForegroundWindow() == .surface!.win32Handle()
+        }
+        return .app().isActivated
+    }
 
     // Opens the panel of `kind` on a surface of its own, in place of the one on screen.
     #[Swag.Discardable]

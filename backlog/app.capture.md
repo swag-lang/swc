@@ -29,13 +29,14 @@ whole recording loaded at once.
 
 - Evidence: `MenuCtrl` now navigates detached menus with arrows, Home, End, Enter, Escape and
   typed initials; `HubRecents` takes Left, Right and Enter through its selected widget row. A
-  native tray journey chooses a command with keyboard input. The panel leaves when
-  `Application.isActivated` falls after having been true, but leaving on a click in another
-  application still has no native observation.
+  native tray journey chooses a command with keyboard input. A native desktop journey now clicks
+  a separate application's window in the same process and checks that the hub leaves. On Windows,
+  the hub tracks its own foreground window because process-wide activation stays true in this case.
+  Leaving on a click in another process still has no native observation.
   The charter describes the hub and the menu in words; `imgs/` has no picture of either, and the
   goldens `resident.hub.encre`, `resident.hub.keyboard.papier` and `resident.menu.papier` stand in for one.
-- Next: add a desktop input journey that opens the hub, clicks another application's window and
-  checks that it left; then draw the charter pictures of the hub and the menu.
+- Next: verify the same dismissal with a click into another process; then draw the charter
+  pictures of the hub and the menu.
 - Done when: the hub is usable without the pointer, the journey passes on Windows, and each
   golden is compared with its charter picture.
 - Related: std.gui.010

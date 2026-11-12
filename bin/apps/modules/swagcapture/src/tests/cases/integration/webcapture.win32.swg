@@ -111,6 +111,18 @@ impl WebCaptureTone
     }
 }
 
+private func webCaptureQuality()->VideoQuality
+{
+    let quality = Env.variable("SWAG_CAPTURE_WEB_QUALITY")
+    if quality == "balanced" do
+        return .Balanced
+    if quality == "compact" do
+        return .Compact
+    if quality == "maximum" do
+        return .Maximum
+    return .Balanced
+}
+
 // tools/capture-web.py supplies a real looping HTML video and its system audio in an isolated
 // browser. Select its area, record with the production HUD, reopen, and play through XAudio2.
 // A second WASAPI recording verifies editor output after the browser has been silenced.
@@ -144,6 +156,7 @@ impl WebCaptureTone
     main.captureOptions.recordCountdown   = false
     main.captureOptions.captureCursor     = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
     main.captureOptions.recordSystemSound = true
+    main.captureOptions.recordVideoQuality = webCaptureQuality()
     main.captureOptions.recordMicrophone  = false
     main.captureOptions.inPlaceEdit       = true
     main.captureOptions.hideEditorBefore  = true
@@ -470,6 +483,7 @@ impl WebCaptureTone
     let outputHeight = maxSide > 4096 ?
                        Math.max(2, cast(s32, Math.floor(cast(f64, videoHeight) * 4096 / maxSide / 2)) * 2) : videoHeight
     let maxMissed = expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_MAX_MISSED"))
+    let durationSeconds = expect StrConv.toU32(Env.variable("SWAG_CAPTURE_WEB_DURATION"))
     let evidence = Env.sandboxRoot()
     Console.println("Full-screen capture: mode=", desktop ? "desktop" : "monitor",
                     " bounds=", expected.x, ", ", expected.y, " ", expected.width, " x ", expected.height)
@@ -481,14 +495,16 @@ impl WebCaptureTone
     main.captureOptions.recordCountdown = false
     main.captureOptions.captureCursor = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
     main.captureOptions.recordSystemSound = false
+    main.captureOptions.recordVideoQuality = webCaptureQuality()
     main.captureOptions.recordMicrophone = false
     main.captureOptions.inPlaceEdit = true
     main.captureOptions.hideEditorBefore = true
     main.captureOptions.sendToEditor = true
     var stage: u32
-    app.sigFrame += func|&journey, desktop, expected, videoWidth, videoHeight, maxMissed, stage = &stage|(_)
+    app.sigFrame += func|&journey, desktop, expected, videoWidth, videoHeight, maxMissed, durationSeconds, stage = &stage|(_)
     {
-        Swag.require(journey.watch.elapsedMilliseconds() < 30_000, "full-screen recording timed out")
+        Swag.require(journey.watch.elapsedMilliseconds() < cast(u64, durationSeconds + 25) * 1_000,
+                     "full-screen recording timed out")
         if not g_Recorder do
             return
         let recorder = unwrap g_Recorder
@@ -518,7 +534,7 @@ impl WebCaptureTone
             stage[] = 1
             hud.pauseButton.sigPressed.call(hud.pauseButton)
         }
-        elif stage[] == 1 and recorder.elapsed() >= 3_000_000
+        elif stage[] == 1 and recorder.elapsed() >= cast(u64, durationSeconds) * 1_000_000
         {
             Swag.require(recorder.edges.isEmpty(), "the screen selection frame must be gone before encoding")
             recorder.videoProducer.close()
@@ -574,7 +590,8 @@ impl WebCaptureTone
     var reader = expect Video.Reader.open(media)
     Console.println("Full-screen file: frames=", reader.frameCount(),
                     " duration=", reader.durationInSeconds())
-    Swag.require(reader.frameCount() >= 90 and reader.durationInSeconds() >= 3.0,
+    Swag.require(reader.frameCount() >= cast(u64, durationSeconds) * 30 and
+                 reader.durationInSeconds() >= durationSeconds,
                  "the recording clock must start with the first captured picture")
     var image: Image
     expect reader.decodeFrameInto(&image, 0)
@@ -586,7 +603,8 @@ impl WebCaptureTone
     expect image.save(Path.combine(evidence, "fullscreen-last.png"))
     Console.println("Full-screen file: frames=", reader.frameCount(),
                     " duration=", reader.durationInSeconds(), " decoded=", image.width, " x ", image.height)
-    discard expect File.writeAllBytes(Path.combine(evidence, "fullscreen.mp4"),
-                                      (expect File.readAllBytes(media)).toSlice())
+    if durationSeconds <= 10 do
+        discard expect File.writeAllBytes(Path.combine(evidence, "fullscreen.mp4"),
+                                          (expect File.readAllBytes(media)).toSlice())
     discard expect File.writeAllText(Path.combine(evidence, "passed"), "full-screen recording decoded")
 }

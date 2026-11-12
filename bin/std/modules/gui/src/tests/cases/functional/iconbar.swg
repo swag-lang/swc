@@ -111,3 +111,26 @@ func iconBarHeadlessReset()
     Swag.require(b.form == .Rectangle)
     Swag.require(b.checkIndicator == .Left)
 }
+
+// Hiding and showing a button updates the bar's content size and trailing gap.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 80)
+
+    let bar         = IconBar.create(&host.root, 24, {20, 20})
+    let first       = bar.addButton({})
+    let second      = bar.addButton({})
+    let singleWidth = first.position.width
+    let fullWidth   = bar.position.width
+
+    second.hide()
+    host.pump()
+    Swag.require(bar.position.width == singleWidth)
+    Swag.require(first.margin.z == 0)
+
+    second.show()
+    host.pump()
+    Swag.require(bar.position.width == fullWidth)
+    Swag.require(first.margin.z == bar.itemSpacing)
+}

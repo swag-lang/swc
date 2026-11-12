@@ -32,6 +32,11 @@ struct IconBar
 
 impl IWnd for IconBar
 {
+    mtd impl onLayout()
+    {
+        .computeLayout()
+    }
+
     mtd impl onComputeStateEvent(evt: *CommandStateEvent)
     {
         evt.accepted = false
@@ -43,24 +48,36 @@ private impl IconBar
 {
     mtd computeLayout()
     {
-        for child, index in .children
+        var itemCount = 0'u64
+        for child in .children
         {
+            if not child.wndFlags.has(.Hidden) do
+                itemCount += 1
+        }
+
+        var visibleIndex = 0'u64
+        for child in .children
+        {
+            if child.wndFlags.has(.Hidden) do
+                continue
+            visibleIndex += 1
+
             if .orientation == .Vertical
             {
                 child.dockStyle = .Top
-                child.margin    = {0, index + 1 < .children.count ? .itemSpacing : 0, 0, 0}
+                child.margin    = {0, visibleIndex < itemCount ? .itemSpacing : 0, 0, 0}
             }
             else
             {
                 child.dockStyle = .Left
-                child.margin    = {0, 0, index + 1 < .children.count ? .itemSpacing : 0, 0}
+                child.margin    = {0, 0, visibleIndex < itemCount ? .itemSpacing : 0, 0}
             }
         }
 
         let paddedIconSize = .iconSize + 2 * .itemPadding
-        let itemCount      = cast(f32, .children.count)
-        let gapCount       = .children.count > 0 ? cast(f32, .children.count - 1) : 0
-        let barLength      = itemCount * paddedIconSize + gapCount * .itemSpacing
+        let itemExtent     = cast(f32, itemCount)
+        let gapCount       = itemCount > 0 ? cast(f32, itemCount - 1) : 0
+        let barLength      = itemExtent * paddedIconSize + gapCount * .itemSpacing
         if .orientation == .Vertical do
             .resize(paddedIconSize, barLength)
         else do

@@ -95,3 +95,28 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     Swag.require(reader.width() == 96 and reader.height() == 64)
     Swag.require(reader.hasPlanarFrames())
 }
+
+// A resync header repeats the forward and backward motion-code ranges. Zero has no legal range
+// and must be rejected here, before motion-vector decoding uses it to choose a shift count.
+#test
+{
+    const ZeroForward:  [3] u8 = [0x06, 0xA8, 0x00]     // P plane, header extension, fcode_forward = 0.
+    const ZeroBackward: [3] u8 = [0x06, 0xB0, 0x20]     // B plane, fcode_forward = 1, fcode_backward = 0.
+
+    var decoder: Mpeg4.Decoder
+    decoder.layer.mbWidth           = 1
+    decoder.layer.mbHeight          = 1
+    decoder.layer.quantPrecision    = 5
+    decoder.layer.timeIncrementBits = 1
+
+    var header:   Mpeg4.PlaneHeader
+    var index  = 0'u64
+    var reader = Mpeg4.BitReader.create(Swag.makeSlice(&ZeroForward[0], ZeroForward.count))
+    var rejected: Swag.Error
+    discard catch decoder.readPacketHeader(&reader, &header, &index) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    reader = Mpeg4.BitReader.create(Swag.makeSlice(&ZeroBackward[0], ZeroBackward.count))
+    discard catch decoder.readPacketHeader(&reader, &header, &index) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}

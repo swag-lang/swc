@@ -408,10 +408,19 @@ impl Decoder
             reader.marker()
             header.codingType       = reader.read(2)
             header.intraDcThreshold = reader.read(3)
-            if header.codingType != VopIntra do
+            if header.codingType != VopIntra
+            {
                 header.fcodeForward = reader.read(3)
-            if header.codingType == VopBidirectional do
+                if not header.fcodeForward do
+                    fail InvalidFormatError{"MPEG-4 video packet states a zero forward code"}
+            }
+
+            if header.codingType == VopBidirectional
+            {
                 header.fcodeBackward = reader.read(3)
+                if not header.fcodeBackward do
+                    fail InvalidFormatError{"MPEG-4 video packet states a zero backward code"}
+            }
         }
     }
 

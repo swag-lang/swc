@@ -2,6 +2,8 @@
 
 using Core, Core.Errors, Pixel, Win32
 
+private const MaxSplitRects = 8'u32
+
 #[Swag.Inline]
 internal func copyMappedBgraRows(destinationBottomRow: [*] u8, destinationStride: u64,
                                  sourceTopRow: const [*] u8, sourceStride: u64,
@@ -33,6 +35,8 @@ private struct ChangedBounds
     known:   bool
     changed: bool
     bounds:  RECT
+    rectCount: u32
+    copiedPixels: u64
 }
 
 // One DXGI duplication and a staging texture for an area on a single output.
@@ -51,6 +55,7 @@ struct NativeSource
     hasLast:      bool
     dirtyRects:   Array'RECT
     moveRects:    Array'DXGI_OUTDUPL_MOVE_RECT
+    changedRects: Array'RECT
     updatedBounds: RECT
     pendingResource:           *IDXGIResource?
     pendingTexture:            *ID3D11Texture2D?
@@ -59,6 +64,7 @@ struct NativeSource
     pendingRight:              u32
     pendingBottom:             u32
     pendingSubmitMicroseconds: u64
+    pendingMultiRect:          bool
     pending:                   bool
     metrics:      SourceMetrics
 }
@@ -97,6 +103,13 @@ impl NativeSource
         let bottom = Math.min(rect.bottom, captureY + .options.height)
         if right <= left or bottom <= top do
             return
+        changed.rectCount += 1
+        if changed.rectCount <= MaxSplitRects
+        {
+            .changedRects.add(RECT{left - captureX, top - captureY,
+                                   right - captureX, bottom - captureY})
+            changed.copiedPixels += cast(u64, right - left) * cast(u64, bottom - top)
+        }
         if not changed.changed
         {
             changed.bounds = RECT{left - captureX, top - captureY,
@@ -118,6 +131,7 @@ impl NativeSource
                               captureX, captureY: s32)->ChangedBounds
     {
         var result: #returntype
+        .changedRects.clear()
         if not metadataSize or metadataSize > 1_048_576 do
             return result
         .dirtyRects.resize(cast(u64, metadataSize) / #sizeof(RECT) + 1)
@@ -241,6 +255,7 @@ impl NativeSource
     {
         Swag.assert(not .pending)
         .updatedBounds = RECT{}
+        .pendingMultiRect = false
         let duplication = unwrap .duplication
         var info: DXGI_OUTDUPL_FRAME_INFO
         var resource: *IDXGIResource?
@@ -300,6 +315,10 @@ impl NativeSource
                 copyTop = cast(u32, changed.bounds.top)
                 copyRight = cast(u32, changed.bounds.right)
                 copyBottom = cast(u32, changed.bounds.bottom)
+                let unionPixels = cast(u64, copyRight - copyLeft) * (copyBottom - copyTop)
+                // Several GPU copy commands pay off only when they avoid most of the union.
+                .pendingMultiRect = changed.rectCount > 1 and changed.rectCount <= MaxSplitRects and
+                                    changed.copiedPixels < unionPixels / 2
                 if copyLeft or copyTop or copyRight != cast(u32, .options.width) or
                    copyBottom != cast(u32, .options.height) do
                     .metrics.partialFrames += 1
@@ -323,9 +342,22 @@ impl NativeSource
         let context = unwrap .context
         let staging = unwrap .staging
         let submitStart = Time.monotonicMicroseconds()
-        context.lpVtbl.CopySubresourceRegion(context, cast(*ID3D11Resource, cast(*void, staging)),
-                                             0, copyLeft, copyTop, 0,
-                                             cast(*ID3D11Resource, cast(*void, texture)), 0, &box)
+        let targetResource = cast(*ID3D11Resource, cast(*void, staging))
+        let sourceResource = cast(*ID3D11Resource, cast(*void, texture))
+        if .pendingMultiRect
+        {
+            for rect in .changedRects
+            {
+                let part = D3D11_BOX{x + cast(u32, rect.left), y + cast(u32, rect.top), 0,
+                                     x + cast(u32, rect.right), y + cast(u32, rect.bottom), 1}
+                context.lpVtbl.CopySubresourceRegion(context, targetResource, 0,
+                                                     cast(u32, rect.left), cast(u32, rect.top), 0,
+                                                     sourceResource, 0, &part)
+            }
+        }
+        else do
+            context.lpVtbl.CopySubresourceRegion(context, targetResource, 0,
+                                                 copyLeft, copyTop, 0, sourceResource, 0, &box)
         .pendingSubmitMicroseconds = Time.monotonicMicroseconds() - submitStart
         .pendingLeft   = copyLeft
         .pendingTop    = copyTop
@@ -352,23 +384,38 @@ impl NativeSource
         .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds, readbackDuration)
         defer context.lpVtbl.Unmap(context, cast(*ID3D11Resource, cast(*void, staging)), 0)
 
-        let rowBytes = cast(u64, .pendingRight - .pendingLeft) * 4
-        let source = cast(const [*] u8, unwrap mapped.pData)
-        let destination = target.pixels.storage()
-        let destinationStride = cast(u64, target.rowStride)
-        let sourceTopRow = source + cast(u64, .pendingTop) * mapped.RowPitch + .pendingLeft * 4
-        let destinationBottomRow = destination +
-                                   (destinationBottom + cast(u64, .options.height) - 1 - .pendingTop) * destinationStride +
-                                   (destinationX + .pendingLeft) * 4
         let copyStart = Time.monotonicMicroseconds()
-        copyMappedBgraRows(destinationBottomRow, destinationStride,
-                           sourceTopRow, cast(u64, mapped.RowPitch), rowBytes,
-                           cast(u64, .pendingBottom - .pendingTop))
+        if .pendingMultiRect
+        {
+            for rect in .changedRects do
+                .copyMappedRect(target, &mapped, destinationX, destinationBottom, rect)
+            .metrics.multiRectFrames += 1
+        }
+        else do
+            .copyMappedRect(target, &mapped, destinationX, destinationBottom,
+                            RECT{cast(s32, .pendingLeft), cast(s32, .pendingTop),
+                                 cast(s32, .pendingRight), cast(s32, .pendingBottom)})
         .metrics.copyMicroseconds += Time.monotonicMicroseconds() - copyStart
-        .metrics.copiedPixels += cast(u64, .pendingRight - .pendingLeft) * (.pendingBottom - .pendingTop)
         .updatedBounds = RECT{cast(s32, .pendingLeft), cast(s32, .pendingTop),
                               cast(s32, .pendingRight), cast(s32, .pendingBottom)}
         .hasLast = true
+    }
+
+    mtd copyMappedRect(target: *Image, mapped: const *D3D11_MAPPED_SUBRESOURCE,
+                       destinationX, destinationBottom: u64, rect: RECT)
+    {
+        let rowBytes = cast(u64, rect.right - rect.left) * 4
+        let source = cast(const [*] u8, unwrap mapped.pData)
+        let destination = target.pixels.storage()
+        let destinationStride = cast(u64, target.rowStride)
+        let sourceTopRow = source + cast(u64, rect.top) * mapped.RowPitch + cast(u64, rect.left) * 4
+        let destinationBottomRow = destination +
+                                   (destinationBottom + cast(u64, .options.height) - 1 - cast(u64, rect.top)) * destinationStride +
+                                   (destinationX + cast(u64, rect.left)) * 4
+        copyMappedBgraRows(destinationBottomRow, destinationStride,
+                           sourceTopRow, cast(u64, mapped.RowPitch), rowBytes,
+                           cast(u64, rect.bottom - rect.top))
+        .metrics.copiedPixels += cast(u64, rect.right - rect.left) * cast(u64, rect.bottom - rect.top)
     }
 
     mtd reopen() fail
@@ -392,6 +439,21 @@ impl NativeSource
 
 impl Source
 {
+    mtd mirrorRect(target: *Image, native: const *NativeSource,
+                   x, bottom: u64, bounds: RECT)
+    {
+        let rowBytes = cast(u64, bounds.right - bounds.left) * 4
+        let left = x + cast(u64, bounds.left)
+        let stride = cast(u64, target.rowStride)
+        for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
+        {
+            let offset = (bottom + cast(u64, native.options.height) - 1 - row) * stride + left * 4
+            Memory.copy(target.pixels.storage() + offset,
+                        .composed.pixels.storage() + offset, rowBytes)
+        }
+        .mirroredPixels += cast(u64, bounds.right - bounds.left) * cast(u64, bounds.bottom - bounds.top)
+    }
+
     // Queue each output's GPU copy before any map waits for pixels on the CPU.
     mtd grabWindows(target: *Image, mirroring: bool)->bool fail
     {
@@ -417,17 +479,14 @@ impl Source
                 fresh = true
                 if mirroring
                 {
-                    let bounds = native.updatedBounds
-                    let rowBytes = cast(u64, bounds.right - bounds.left) * 4
-                    let left = x + cast(u64, bounds.left)
-                    let stride = cast(u64, target.rowStride)
                     let mirrorStart = Time.monotonicMicroseconds()
-                    for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
+                    if native.pendingMultiRect
                     {
-                        let offset = (bottom + cast(u64, native.options.height) - 1 - row) * stride + left * 4
-                        Memory.copy(target.pixels.storage() + offset,
-                                    .composed.pixels.storage() + offset, rowBytes)
+                        for rect in native.changedRects do
+                            .mirrorRect(target, native, x, bottom, rect)
                     }
+                    else do
+                        .mirrorRect(target, native, x, bottom, native.updatedBounds)
                     .composeMicroseconds += Time.monotonicMicroseconds() - mirrorStart
                 }
             }

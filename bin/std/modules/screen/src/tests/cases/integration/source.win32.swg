@@ -4,6 +4,43 @@
 
 using Core, Pixel
 
+// Split readbacks copy only the selected top-down regions into bottom-up image storage.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    var native: NativeSource
+    native.options = {0, 0, 8, 8, false}
+    var pixels: Array'u8
+    pixels.resize(8 * 40)
+    for y in 8'u64
+    {
+        for x in 8'u64
+        {
+            let at = y * 40 + x * 4
+            pixels[at] = cast(u8, y * 8 + x)
+            pixels[at + 1] = 0x31
+            pixels[at + 2] = 0x52
+            pixels[at + 3] = 0xFF
+        }
+    }
+    let mapped = D3D11_MAPPED_SUBRESOURCE{cast(*void, pixels.storage()), 40, 0}
+    var image = Image.create(8, 8, .BGRA8)
+    Memory.set(image.pixels.storage(), 0xAA, image.byteCount)
+    native.copyMappedRect(&image, &mapped, 0, 0, RECT{0, 0, 2, 2})
+    native.copyMappedRect(&image, &mapped, 0, 0, RECT{6, 6, 8, 8})
+    Swag.require(native.metrics.copiedPixels == 8)
+    for y in 8'u64
+    {
+        for x in 8'u64
+        {
+            let at = (7 - y) * 32 + x * 4
+            let selected = (x < 2 and y < 2) or (x >= 6 and y >= 6)
+            Swag.require(image.pixels[at] == (selected ? cast(u8, y * 8 + x) : 0xAA'u8) and
+                         image.pixels[at + 1] == (selected ? 0x31'u8 : 0xAA'u8))
+        }
+    }
+}
+
 // Aborting an in-flight readback releases its DXGI frame and texture.
 #[Swag.TestTag("integration.host.windows")]
 #test

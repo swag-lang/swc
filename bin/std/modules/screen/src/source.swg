@@ -45,7 +45,9 @@ struct SourceMetrics
     public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
     public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
     public partialFrames:        u64 // Frames read through a region smaller than the selected output.
+    public multiRectFrames:      u64 // Frames read through several bounded desktop update regions.
     public copiedPixels:         u64 // Pixels copied from mapped native storage, including full frames.
+    public mirroredPixels:       u64 // Pixels incrementally copied from the native cache into a stable caller image.
 }
 
 // Owns a live desktop source and its most recent image.
@@ -63,6 +65,7 @@ struct Source
         pictures: Array'Image
         composed: Image
         composeMicroseconds: u64
+        mirroredPixels:       u64
         mirroredImage:        u64
         mirroredStorage:      u64
         mirrorReady:          bool
@@ -223,6 +226,7 @@ impl Source
     {
         var result: SourceMetrics
         result.composeMicroseconds = .composeMicroseconds
+        result.mirroredPixels = .mirroredPixels
         for source in .sources
         {
             result.acquiredFrames += source.metrics.acquiredFrames
@@ -237,6 +241,7 @@ impl Source
             result.copyMicroseconds += source.metrics.copyMicroseconds
             result.outputMicroseconds += source.metrics.outputMicroseconds
             result.partialFrames += source.metrics.partialFrames
+            result.multiRectFrames += source.metrics.multiRectFrames
             result.copiedPixels += source.metrics.copiedPixels
         }
         return result

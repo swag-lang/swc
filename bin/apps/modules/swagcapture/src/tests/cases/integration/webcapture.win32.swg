@@ -254,7 +254,9 @@ private func webCaptureQuality()->VideoQuality
                                     " readback_us=", metrics.readbackMicroseconds,
                                     " max_readback_us=", metrics.maxReadbackMicroseconds,
                                     " coalesced_updates=", metrics.coalescedUpdates,
+                                    " multi_rect=", metrics.multiRectFrames,
                                     " copy_us=", metrics.copyMicroseconds,
+                                    " mirrored_pixels=", metrics.mirroredPixels,
                                     " output_us=", metrics.outputMicroseconds,
                                     " compose_us=", metrics.composeMicroseconds)
                 }
@@ -568,7 +570,9 @@ private func webCaptureQuality()->VideoQuality
                                 " readback_us=", metrics.readbackMicroseconds,
                                 " max_readback_us=", metrics.maxReadbackMicroseconds,
                                 " coalesced_updates=", metrics.coalescedUpdates,
+                                " multi_rect=", metrics.multiRectFrames,
                                 " copy_us=", metrics.copyMicroseconds,
+                                " mirrored_pixels=", metrics.mirroredPixels,
                                 " output_us=", metrics.outputMicroseconds,
                                 " compose_us=", metrics.composeMicroseconds)
             }

@@ -59,7 +59,8 @@ impl PlanarFrame
     mtd const isValid()->bool => .width > 0 and .height > 0 and not .luma.isEmpty()
 
     // Returns the number of chroma rows: the luma rows shifted down and rounded up.
-    mtd const chromaHeight()->s32 => (.height + (1 << .chromaShift) - 1) >> .chromaShift
+    mtd const chromaHeight()->s32 =>
+        (.height >> .chromaShift) + ((.height & ((1 << .chromaShift) - 1)) != 0 ? 1 : 0)
 
     // Describes the picture as a borrowed planar view.
     //
@@ -86,8 +87,8 @@ impl PlanarFrame
     mtd resize(width, height: s32, chromaShift = 1's32)
     {
         let round       = (1's32 << chromaShift) - 1
-        let chromaWidth = cast(u32, ((width + round) >> chromaShift))
-        let chromaRows  = cast(u64, ((height + round) >> chromaShift))
+        let chromaWidth = cast(u32, (width >> chromaShift) + ((width & round) != 0 ? 1 : 0))
+        let chromaRows  = cast(u64, (height >> chromaShift) + ((height & round) != 0 ? 1 : 0))
         let lumaSize    = cast(u64, width) * cast(u64, height)
         let chromaSize  = cast(u64, chromaWidth) * chromaRows
 

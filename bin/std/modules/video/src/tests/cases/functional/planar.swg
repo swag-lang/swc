@@ -47,6 +47,25 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
     }
 }
 
+// Chroma plane geometry rounds odd sizes up without overflowing signed dimensions.
+#test
+{
+    var picture: PlanarFrame
+    picture.resize(3, 3)
+    Swag.require(picture.strideChroma == 2 and picture.chromaHeight() == 2)
+    Swag.require(picture.luma.count == 9 and picture.chromaB.count == 4 and picture.chromaR.count == 4)
+
+    picture.resize(4, 2)
+    Swag.require(picture.strideChroma == 2 and picture.chromaHeight() == 1)
+    Swag.require(picture.luma.count == 8 and picture.chromaB.count == 2 and picture.chromaR.count == 2)
+
+    picture.resize(Swag.S32.Max, 0)
+    Swag.require(picture.strideChroma == 1_073_741_824 and picture.luma.isEmpty() and picture.chromaB.isEmpty())
+
+    picture.resize(0, Swag.S32.Max)
+    Swag.require(picture.chromaHeight() == 1_073_741_824 and picture.chromaB.isEmpty())
+}
+
 // A High-profile stream hands its pictures over unconverted.
 #test
 {

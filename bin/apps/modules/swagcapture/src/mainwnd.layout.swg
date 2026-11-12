@@ -897,7 +897,7 @@ impl MainWnd
             for idx in me.monitors.count do
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.screenId(idx))
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordVideo, menuSection: 1)
-            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordFullScreen, menuSection: 1)
+            .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordScreen, menuSection: 1)
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.RecordActiveWindow, menuSection: 1)
             for idx in me.monitors.count do
                 .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.recordScreenId(idx), menuSection: 1)
@@ -948,7 +948,7 @@ impl MainWnd
         }
 
         let capture = results.addSection(appStrings().ui_MenuCapture)
-        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordFullScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
+        .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
 
         let edited = .getCapture()
         let mediaName = edited and edited.media == .Video ? appStrings().ui_MediaVideo :

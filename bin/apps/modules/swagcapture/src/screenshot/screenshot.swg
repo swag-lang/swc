@@ -456,7 +456,10 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
 
         if g_CaptureMedia == .Video
         {
-            capture = try Recorder.recordVideo(main, target, prepare: true)
+            let screenSelection = captureMode == .Monitor or captureMode == .FullScreen
+            let screenIndex = captureMode == .FullScreen ? Swag.U64.Max : monitorIndex
+            capture = try Recorder.recordVideo(main, target, prepare: true,
+                                               screenSelection: screenSelection, screenIndex: screenIndex)
         }
         elif g_CaptureMedia == .Animation
         {

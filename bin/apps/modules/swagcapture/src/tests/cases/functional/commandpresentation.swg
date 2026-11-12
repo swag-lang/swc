@@ -31,7 +31,7 @@ using Swag, Core
     Swag.require(capture.items[0]!.id == ActionCapture.Area)
     Swag.require(capture.items[1 + CaptureModeIds.count + main.monitors.count]!.separator)
     Swag.require(capture.items[2 + CaptureModeIds.count + main.monitors.count]!.id == ActionCapture.RecordVideo)
-    Swag.require(capture.items[3 + CaptureModeIds.count + main.monitors.count]!.id == ActionCapture.RecordFullScreen)
+    Swag.require(capture.items[3 + CaptureModeIds.count + main.monitors.count]!.id == ActionCapture.RecordScreen)
     Swag.require(capture.items[4 + CaptureModeIds.count + main.monitors.count]!.id == ActionCapture.RecordActiveWindow)
     Swag.require(capture.items[captureDirect - 2]!.separator)
     Swag.require(capture.items[captureDirect - 1]!.id == ActionCapture.Record)

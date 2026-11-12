@@ -127,6 +127,7 @@ struct ResidentPanel
     watch:     *Gui.Timer?      // Watches for a choice while the panel floats.
     floating:  bool             // Whether the panel owns its surface, rather than standing in a host.
     wasActive: bool             // Whether the application was the active one since the panel opened.
+    armed:     bool             // Whether the detached menu has claimed pointer input after opening.
 }
 
 impl IWnd for ResidentPanel
@@ -139,8 +140,8 @@ impl IWnd for ResidentPanel
             return
         }
 
-        // The recent captures load after the application started: a hub opened before them
-        // takes their row when the first one arrives, and follows the others.
+        // A hub opened before the recent captures takes their row when the first one arrives.
+        // RecentWnd invalidates this row whenever a later thumbnail changes.
         if let recents = .recents
         {
             if recents.chosen != Swag.U64.Max
@@ -148,16 +149,20 @@ impl IWnd for ResidentPanel
                 .openRecent(recents.chosen)
                 return
             }
-
-            if not .main.recentWnd.loadDone do
-                recents.invalidate()
         }
         elif .kind == .Hub and not g_Recorder and HubRecents.available(.main)
         {
             .rebuild()
         }
 
-        // A click anywhere else gives the desktop to another application: the panel leaves.
+        if .kind == .Menu
+        {
+            if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed) do
+                .choose(null)
+            return
+        }
+
+        // A click anywhere else gives the desktop to another application: the hub leaves.
         if .app().isActivated do
             .wasActive = true
         elif .wasActive do
@@ -190,23 +195,34 @@ impl ResidentPanel
     #[Swag.Discardable]
     func open(main: *MainWnd, kind: ResidentPanelKind)->*ResidentPanel?
     {
+        main.residentNotice?.close()
         main.residentPanel?.close()
 
         // The surface is created where the pointer is, so it takes the scale of that monitor.
         let pointer = Input.mousePosition()
-        let surface = catch main.app().createSurface(cast(s32, pointer.x), cast(s32, pointer.y), 300, 300, .ToolWindow | .TopMost)
-        {
+        let surface = PopupMenuSurface.create(main.app(), pointer)
+        if not surface do
             return null
-        }
 
         let result = create(surface.wnd, main, kind)
         result.floating = true
-        surface.setView(result)
-        result.place(pointer)
-
-        surface.show()
-        surface.bringToFront()
-        result.setFocus()
+        if kind == .Menu
+        {
+            PopupMenuSurface.show(result, result.menu, {pointer.x, pointer.y, 0, 0}, .AtPoint, pointer)
+        }
+        else
+        {
+            surface.setView(result)
+            result.place(pointer)
+            surface.show()
+            surface.bringToFront()
+            #static if #os == Swag.TargetOs.Windows
+            {
+                if surface.win32Handle() do
+                    discard Win32.SetForegroundWindow(surface.win32Handle())
+            }
+            result.setFocus()
+        }
         result.watch = result.addTimer(WatchPeriod)
         return result
     }
@@ -245,15 +261,15 @@ impl ResidentPanel
     {
         let main = .main
         let kind = .kind
-        .close()
 
-        // A hub left without a choice leaves nothing on screen: say where the application is.
-        if not id
-        {
-            if kind == .Hub do
-                main.noticeResident()
+        // Once the hub leaves, the application is resident behind its notification-area icon.
+        let showNotice = kind == .Hub and (not id or id == ActionGlobal.Minimize) and main.surface!.isHidden
+        .close()
+        if showNotice do
+            main.noticeResident()
+
+        if not id do
             return
-        }
 
         // The library and the options stand in the main window, which may be hidden.
         if id == ActionGlobal.ShowLibrary or id == ActionOptions.Options do
@@ -295,7 +311,7 @@ impl ResidentPanel
 
             // The hub says how to leave it and keep the application; the menu is the icon's own.
             if me.kind == .Hub do
-                .addItem(ActionGlobal.Minimize)
+                .addItem(ActionGlobal.Minimize).rightName.set(Input.formatKeyShortcut(.None, .Escape))
             .addItem(ActionGlobal.Exit)
 
             .owner     = me.main
@@ -351,7 +367,7 @@ impl ResidentPanel
 
             .addLabel(texts.ui_HubRecord)
             .addItem(ActionCapture.RecordVideo)
-            .addItem(ActionCapture.RecordFullScreen)
+            .addItem(ActionCapture.RecordScreen)
             .addItem(ActionCapture.RecordActiveWindow)
             .addItem(ActionCapture.Record)
         }
@@ -392,7 +408,7 @@ impl ResidentPanel
 
             .addSeparator()
             .addItem(ActionCapture.RecordVideo)
-            .addItem(ActionCapture.RecordFullScreen)
+            .addItem(ActionCapture.RecordScreen)
             .addItem(ActionCapture.RecordActiveWindow)
             for index in screens do
                 .addItem(ActionCapture.recordScreenId(index))

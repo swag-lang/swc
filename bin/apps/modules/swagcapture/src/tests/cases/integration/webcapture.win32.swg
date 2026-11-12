@@ -455,7 +455,7 @@ impl WebCaptureTone
     main.captureOptions.hideEditorBefore = true
     main.captureOptions.sendToEditor = true
     var stage: u32
-    app.sigFrame += func|&journey, maxMissed, stage = &stage|(_)
+    app.sigFrame += func|&journey, desktop, expected, videoWidth, videoHeight, maxMissed, stage = &stage|(_)
     {
         Swag.require(journey.watch.elapsedMilliseconds() < 30_000, "full-screen recording timed out")
         if not g_Recorder do
@@ -464,12 +464,25 @@ impl WebCaptureTone
         if stage[] == 0
         {
             Swag.require(recorder.state == .Preparing and recorder.target.window == 0)
-            stage[] = 1
             let hud = unwrap recorder.hud
+            if desktop
+            {
+                let screenButton = unwrap hud.screenButton
+                screenButton.sigPressed.call(screenButton)
+                let choices = unwrap hud.screenChoices
+                Swag.require(choices.menu.surface != hud.surface,
+                             "the screen menu must have its own native surface")
+                choices.menu.sigCommandSelected.call(choices.menu, AllScreensChoiceId)
+                choices.close()
+            }
+            Swag.require(recorder.area.x == expected.x and recorder.area.y == expected.y and
+                         recorder.area.width == videoWidth and recorder.area.height == videoHeight)
+            stage[] = 1
             hud.pauseButton.sigPressed.call(hud.pauseButton)
         }
         elif stage[] == 1 and recorder.elapsed() >= 3_000_000
         {
+            Swag.require(recorder.edges.isEmpty(), "the screen selection frame must be gone before encoding")
             recorder.videoProducer.close()
             Console.println("Full-screen recording: frames=", recorder.video.frameCount(),
                             " missed=", recorder.video.missedFrameSlotCount(),
@@ -505,7 +518,7 @@ impl WebCaptureTone
 
     journey.surface.hide()
     if desktop do
-        main.sendCommandEvent(ActionCapture.RecordFullScreen)
+        main.sendCommandEvent(ActionCapture.RecordScreen)
     else do
         main.recordVideoScreen(.Monitor, 0)
     app.runFrame()

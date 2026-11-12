@@ -99,6 +99,7 @@ struct AppStrings
     msg_EraseSelected:         string = "This will permanently erase the selected capture(s)."
     msg_OverwriteLinked:       string = "This will overwrite the original image."     // Confirmation before updating a linked image.
     ui_DoNotAskAgain:          string = "Do not ask again"     // Option of a confirmation that turns it off.
+    ui_DoNotShowResidentAgain: string = "Do not show this reminder again" // Choice in the resident notification.
     ui_CaptureName:            string = "Capture name"         // Field of the capture rename dialog.
     msg_FailedDuplicate:       string = "Failed to duplicate capture"
     msg_FailedLocateCapture:   string = "Failed to locate capture file"
@@ -135,6 +136,8 @@ struct AppStrings
     ui_MediaVideo:             string = "Video"                       // An area recorded to an MP4 file.
     ui_Mp4Video:               string = "MP4 video"                   // File-dialog format for a video export.
     ui_AimCursor:              string = "Cursor"                      // Option of the aiming overlay keeping the cursor in the capture.
+    ui_AimScreen:              string = "Screen %"                    // Monitor selected for video recording.
+    ui_AimAllScreens:          string = "All screens"                 // Records the whole virtual desktop when chosen explicitly.
     ui_AimCountdown:           string = "Countdown"                   // Option of the aiming overlay counting down before a recording.
     ui_AimRate:                string = "% fps"                       // Cadence shown on the recording bar.
     tip_AimRate:               string = "Change recording frame rate" // Action of the cadence control.
@@ -165,7 +168,7 @@ struct AppStrings
     msg_FailedExportCaptures:  string = "Cannot export the selected captures"
     msg_FailedMoveCaptures:    string = "Some captures could not be moved. They are still where they were."
     msg_ShortcutsUnavailableHelp: string = "Another app may own these keys. Restart Swag Capture to try again."
-    msg_ResidentTitle:         string = "Swag Capture is still running"                                                  // Leads the notification shown once the hub or the window is closed.
+    msg_ResidentTitle:         string = "Swag Capture is still running."                                                 // Title of the resident reminder.
     msg_ResidentText:          string = "Double-click its icon in the notification area to open it, right-click for the menu."     // Says where the application went.
     msg_ResetStyles:           string = "This will reset the styles to the default values."     // Confirmation before restoring the default quick styles.
     dlg_TitleRenameCapture:    string = "Rename Capture"     // Title of the capture rename dialog.
@@ -264,7 +267,7 @@ struct AppStrings
     act_CaptureArea:              string = "Capture Area"
     act_RecordAnimation:          string = "Record an Animation"          // Records a short animated picture of an area.
     act_RecordVideo:              string = "Record Video"                 // Records an MP4 of an area, with selected sound tracks.
-    act_RecordFullScreen:        string = "Record All Screens"           // Records the virtual desktop as one MP4.
+    act_RecordScreen:            string = "Record Screen"               // Chooses a monitor before recording an MP4.
     act_RecordActiveWindow:      string = "Record Active Window"        // Records the foreground window as an MP4.
     act_RecordMonitor:           string = "Record Screen %"             // Records one numbered screen.
     act_RecordMonitorSize:       string = "Record Screen % · % × %"     // Records one screen, with its size.

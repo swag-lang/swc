@@ -1027,7 +1027,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
         Swag.require(sections[0]!.entries[0].id == ActionCapture.Area)
         Swag.require(sections[0]!.entries[1].id == ActionCapture.Record)
         Swag.require(sections[0]!.entries[2].id == ActionCapture.RecordVideo)
-        Swag.require(sections[0]!.entries[3].id == ActionCapture.RecordFullScreen)
+        Swag.require(sections[0]!.entries[3].id == ActionCapture.RecordScreen)
         Swag.require(sections[0]!.entries[4].id == ActionCapture.RecordActiveWindow)
         Swag.require(sections[0]!.entries[5].id == ActionCapture.LastArea)
         Swag.require(sections[0]!.entries[6].id == ActionFile.OpenImage)

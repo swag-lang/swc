@@ -78,6 +78,7 @@ enum CaptureIcons
     Video               // Video camera.
     TimelineStart       // Start boundary and the retained timeline after it.
     TimelineEnd         // End boundary and the retained timeline before it.
+    Resident            // Puts the capture window in the notification area.
 }
 
 // The application icon document and the frames rasterized from it, shared by the main window
@@ -141,6 +142,8 @@ struct MainWnd
 
     // The hub or the menu of the notification-area icon, while one is on screen.
     residentPanel: *ResidentPanel?
+    residentNotice: *TrayNotice?
+    openHubAfterRecentLoad: bool
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -378,28 +381,38 @@ impl MainWnd
         .recentWnd.scheduleLoadRecent()
     }
 
-    // Says, from the notification-area icon, that the application keeps running behind it, and
-    // reports whether it did.
-    //
-    // Closing the hub or the window leaves nothing on screen, which reads as quitting. The
-    // notice is shown the first few times only, and never while the window is on screen: it
-    // teaches where the application went, then stays out of the way.
+    // Shows the notification-area reminder after the last application window leaves the screen.
+    // A saved count from older versions never silently disables it.
     #[Swag.Discardable]
     mtd noticeResident()->bool
     {
-        let surface = unwrap .surface
-        if not surface.isHidden or .editorOptions.residentNotices <= 0 do
+        if not .editorOptions.showResidentNotice do
             return false
 
-        .editorOptions.residentNotices -= 1
-        surface.showTrayMessage(appStrings().msg_ResidentTitle, appStrings().msg_ResidentText)
-        .saveAppState()
+        .residentNotice?.close()
+        let texts = appStrings()
+        let notice = TrayNotice.open(unwrap .surface, texts.msg_ResidentTitle, texts.msg_ResidentText,
+                                     texts.ui_DoNotShowResidentAgain)
+        if not notice do
+            return false
+        .residentNotice = notice
+        notice.sigOptionChanged += func|main = me|(_, checked)
+        {
+            main.editorOptions.showResidentNotice = not checked
+            main.saveAppState()
+        }
+        notice.sigDismissed += func|main = me|(dismissed)
+        {
+            if main.residentNotice == dismissed do
+                main.residentNotice = null
+        }
         return true
     }
 
     // Puts the window on screen, in front of the others.
     mtd showWindow()
     {
+        .residentNotice?.close()
         with let surface = unwrap .surface
         {
             if .isMinimized do
@@ -407,6 +420,11 @@ impl MainWnd
             else do
                 .show()
             .bringToFront()
+            #static if #os == Swag.TargetOs.Windows
+            {
+                if .win32Handle() do
+                    discard Win32.SetForegroundWindow(.win32Handle())
+            }
         }
     }
 
@@ -751,7 +769,7 @@ impl MainWnd
             .addSeparator()
             .addItem(ActionCapture.RecordVideo)
             .addItem(ActionCapture.RecordActiveWindow)
-            .addItem(ActionCapture.RecordFullScreen)
+            .addItem(ActionCapture.RecordScreen)
             for index in 0 until main.monitors.count do
                 .addItem(ActionCapture.recordScreenId(index))
             .addSeparator()

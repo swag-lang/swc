@@ -66,6 +66,7 @@ internal struct NativeSurface
 
     // Whether the desktop loop timer is armed for this window.
     inDesktopLoop: bool
+    trayIconVersion4: bool     // The Shell callback layout selected for this icon.
 
     // First-show setup can restore several placements before its content is ready to paint.
     initializing: bool
@@ -89,6 +90,38 @@ internal struct NativeSurface
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
 private const TrayIconID = 1
+private const TrayIconVersion4 = 4
+private const NIN_KEYSELECT = WM_USER + 1
+
+// Decodes the callback layout chosen with NIM_SETVERSION. The modern Shell reports the icon id
+// in the high word of lParam and uses WM_CONTEXTMENU for keyboard context-menu requests.
+internal impl Surface
+{
+    mtd trayActionForNotification(wParam: WPARAM, lParam: LPARAM)->SysUserEvent.TrayAction
+    {
+        var message = cast(u32, lParam)
+        if .native.trayIconVersion4
+        {
+            if message >> 16 != TrayIconID do
+                return .None
+            message &= 0xFFFF
+            switch message
+            {
+            case WM_CONTEXTMENU:   return .ContextMenu
+            case WM_LBUTTONDBLCLK, NIN_KEYSELECT: return .Activate
+            }
+        }
+        elif wParam == TrayIconID
+        {
+            switch message
+            {
+            case WM_RBUTTONUP:     return .ContextMenu
+            case WM_LBUTTONDBLCLK: return .Activate
+            }
+        }
+        return .None
+    }
+}
 
 private impl Surface
 {
@@ -145,15 +178,16 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     {
         if msg == WM_USER
         {
-            var evt = SysUserEvent{}
-            evt.kind = .TrayIcon
-            switch lParam
+            let action = surface.trayActionForNotification(wParam, lParam)
+            if action != .None
             {
-            case WM_LBUTTONDBLCLK: evt.trayAction = .Activate
-            case WM_RBUTTONDOWN:   evt.trayAction = .ContextMenu
+                let evt = Event.create'SysUserEvent()
+                evt.kind = .TrayIcon
+                evt.trayAction = action
+                // The Shell must finish its input and foreground transitions before the
+                // application shows a panel or editor window in response.
+                surface.wnd.view.postEvent(evt)
             }
-
-            surface.wnd.view.sendEvent(&evt)
             return TRUE
         }
 
@@ -878,9 +912,8 @@ impl Surface
     // second call replaces the icon, and the icon is removed automatically when the surface is
     // destroyed. Nothing is shown without a native window or when `icon` cannot be converted.
     //
-    // This uses the legacy (version 0) NOTIFYICON behavior on purpose: the callback carries
-    // the mouse message directly in `lParam`, which is what the window procedure translates.
-    // NIM_SETVERSION/NOTIFYICON_VERSION_4 would change that layout.
+    // NIM_SETVERSION selects the Shell's current callback format. If it is unavailable, the
+    // window procedure continues to recognize the version 0 mouse notifications.
     mtd setTrayIcon(icon: Pixel.Image, tip: string? = null)
     {
         if not .app.renderer.needsNativeWindow() do
@@ -898,7 +931,7 @@ impl Surface
         tnid.cbSize = #sizeof(NOTIFYICONDATAA)
         tnid.hWnd   = .hWnd
         tnid.uID    = TrayIconID
-        tnid.uFlags = NIF_ICON | NIF_MESSAGE
+        tnid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_SHOWTIP
         tnid.uCallbackMessage = WM_USER
         tnid.hIcon  = .trayIcon
 
@@ -910,6 +943,16 @@ impl Surface
         }
 
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
+        {
+            catch DestroyIcon(.trayIcon)
+            .trayIcon = null
+            return
+        }
+
+        tnid.uVersion = TrayIconVersion4
+        catch Shell_NotifyIconA(NIM_SETVERSION, &tnid) do
+            return
+        .native.trayIconVersion4 = true
     }
 
     // Shows a short notification from the notification-area icon of this surface.
@@ -945,6 +988,15 @@ impl Surface
         catch Shell_NotifyIconW(NIM_MODIFY, &tnid)
     }
 
+    // Returns the visible Shell icon bounds for desktop input tests.
+    internal mtd trayIconScreenRect(rect: *RECT)->bool
+    {
+        if not .trayIcon do
+            return false
+        var identifier = NOTIFYICONIDENTIFIER{cbSize: #sizeof(NOTIFYICONIDENTIFIER), hWnd: .hWnd, uID: TrayIconID}
+        return Shell_NotifyIconGetRect(&identifier, rect) == S_OK
+    }
+
     // Removes the notification-area icon owned by this surface, if any.
     mtd removeTrayIcon()
     {
@@ -962,6 +1014,7 @@ impl Surface
 
         catch DestroyIcon(.trayIcon)
         .trayIcon = null
+        .native.trayIconVersion4 = false
     }
 
     // Requests a close through the regular system-command event path.

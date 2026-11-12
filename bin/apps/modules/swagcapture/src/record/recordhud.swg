@@ -11,6 +11,7 @@ const RecordHudRuleHeight = 20.0     // Height of the rule before the commands.
 const RecordHudButton     = 28.0     // Side of one command.
 const RecordHudButtonGap  = 4.0      // Air between two commands.
 const RecordHudGap        = 8.0      // Air between the frame and the pill.
+const AllScreensChoiceId  = "record.screen.all"
 
 struct RecordHud
 {
@@ -27,6 +28,8 @@ struct RecordHud
     late targetLabel:  *Label
     late progress:     *ProgressBar
     late separator:    *Separator
+    screenButton:      *IconButton?     // Screen source chooser during video preparation.
+    screenChoices:     *RecordScreenChoices?
     shownState:        RecorderState = .Stopped
     shownTargetPause:  bool
     hasShownState:     bool
@@ -36,6 +39,22 @@ struct RecordHud
 
 impl IWnd for RecordHud
 {
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        .screenChoices?.close()
+    }
+
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        // The screen below can be as light or dark as either palette. Keep the floating
+        // controls legible against both with a full-contrast outline around their surface.
+        let painter = evt.paintContext.painter
+        painter.setParams(.Antialiased)
+        painter.drawRoundRect(.clientRect(), .themeMetrics().corner_Floating,
+                              .themeMetrics().corner_Floating, .themeColors().text,
+                              .themeMetrics().separator_HairlineSize)
+    }
+
     mtd impl onThemeEvent(evt: *ThemeEvent)
     {
         .wnd.IWnd.onThemeEvent(evt)
@@ -70,6 +89,11 @@ impl IWnd for RecordHud
         {
             var x = RecordHudLeft
             let rowTop = RecordHudHeight + (client.height - RecordHudHeight - .themeMetrics().miniBar_ButtonSize) * 0.5
+            if let screenButton = .screenButton
+            {
+                screenButton.move(x, rowTop)
+                x += screenButton.position.width + .themeMetrics().miniBar_Padding
+            }
             for option in .prepOptions
             {
                 option[].move(x, rowTop)
@@ -87,7 +111,8 @@ impl RecordHud
     func open(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->*RecordHud?
     {
         let preparing = recorder.state == .Preparing
-        let logicalWidth = widthFor(recorder.limit, captureTargetLabel(), preparing)
+        let logicalWidth = widthFor(recorder.limit, recorder.captureLabel(), preparing,
+                                    recorder.screenSelection ? screenChoiceWidth(recorder.main) : 0)
         let logicalHeight = preparing ? RecordHudHeight + recorder.main.themeMetrics().miniBar_ButtonSize + recorder.main.themeMetrics().miniBar_Padding : RecordHudHeight
         let outer        = placement(recorder, frame, scale)
 
@@ -123,40 +148,81 @@ impl RecordHud
     private func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
     {
         let preparing    = recorder.state == .Preparing
-        let logicalWidth = widthFor(recorder.limit, captureTargetLabel(), preparing)
-        let width        = Math.ceil(logicalWidth * scale)
+        let logicalWidth = widthFor(recorder.limit, recorder.captureLabel(), preparing,
+                                    recorder.screenSelection ? screenChoiceWidth(recorder.main) : 0)
         let logicalHeight = preparing ? RecordHudHeight + g_App.theme.metrics.miniBar_ButtonSize + g_App.theme.metrics.miniBar_Padding : RecordHudHeight
-        let height       = Math.ceil(logicalHeight * scale)
-        let gap          = Math.ceil(RecordHudGap * scale)
-        let monitor      = Env.monitorForPoint({frame.horzCenter(), frame.vertCenter()}).physicalWorkArea
+        var monitor      = Env.monitorForPoint({frame.horzCenter(), frame.vertCenter()})
+        var otherScreen: bool
+        var nearest = Swag.F32.Max
+        if recorder.screenSelection and recorder.screenIndex != Swag.U64.Max
+        {
+            let selected = recorder.screenIndex
+            for candidate, index in recorder.main.monitors where index != selected
+            {
+                let candidateScale = candidate.scaleFactor
+                let margin = Math.ceil(g_App.theme.floatingShadowMargin() * candidateScale)
+                let neededWidth = Math.ceil(logicalWidth * candidateScale) +
+                                  2 * margin + Math.ceil(RecordHudGap * candidateScale)
+                let neededHeight = Math.ceil(logicalHeight * candidateScale) +
+                                   2 * margin + Math.ceil(RecordHudGap * candidateScale)
+                if candidate.physicalWorkArea.width < neededWidth or
+                   candidate.physicalWorkArea.height < neededHeight do
+                    continue
+                let work = candidate.physicalWorkArea
+                let dx = frame.horzCenter() - Math.clamp(frame.horzCenter(), work.x, work.right())
+                let dy = frame.vertCenter() - Math.clamp(frame.vertCenter(), work.y, work.bottom())
+                let distance = dx * dx + dy * dy
+                if distance >= nearest do
+                    continue
+                nearest = distance
+                monitor = candidate
+                otherScreen = true
+            }
+        }
+        let barScale     = recorder.screenSelection ? monitor.scaleFactor : scale
+        let width        = Math.ceil(logicalWidth * barScale)
+        let height       = Math.ceil(logicalHeight * barScale)
+        let gap          = Math.ceil(RecordHudGap * barScale)
+        let workArea     = monitor.physicalWorkArea
+
+        if otherScreen
+        {
+            let margin = Math.ceil(g_App.theme.floatingShadowMargin() * barScale)
+            let inset = gap + margin
+            let x = Math.clamp(frame.horzCenter() - width * 0.5,
+                               workArea.x + inset, workArea.right() - width - inset)
+            let y = Math.clamp(frame.vertCenter() - height * 0.5,
+                               workArea.y + inset, workArea.bottom() - height - inset)
+            return {x - margin, y - margin, width + 2 * margin, height + 2 * margin}
+        }
 
         var place = Math.Rectangle{frame.right() - width, frame.bottom() + gap, width, height}
-        if place.bottom() > monitor.bottom() do
+        if place.bottom() > workArea.bottom() do
             place.y = frame.y - gap - height
-        if place.y < monitor.y
+        if place.y < workArea.y
         {
             // A nearly full-height area has no vertical room. Try either side, keeping the
             // controls clear of the recorded pixels even on an X11 root capture.
-            place.y = Math.clamp(frame.bottom() - height, monitor.y, monitor.bottom() - height)
+            place.y = Math.clamp(frame.bottom() - height, workArea.y, workArea.bottom() - height)
             place.x = frame.right() + gap
-            if place.right() > monitor.right() do
+            if place.right() > workArea.right() do
                 place.x = frame.x - gap - width
         }
         else do
-            place.x = Math.max(place.x, monitor.x)
+            place.x = Math.max(place.x, workArea.x)
 
         // A whole-screen recording leaves no outside edge for the pill. On Windows the
         // recording surface's display affinity excludes this control from the video.
-        if place.x < monitor.x or place.right() > monitor.right()
+        if place.x < workArea.x or place.right() > workArea.right()
         {
-            place.x = monitor.right() - width - gap
-            place.y = monitor.y + gap
+            place.x = workArea.right() - width - gap
+            place.y = workArea.y + gap
         }
 
         // A sheet casts the floating shadow into a margin around its body: the window is the pill
         // grown by that margin. It is created where it stands, so it takes the scale of that
         // monitor from the start.
-        let margin  = Math.ceil(g_App.theme.floatingShadowMargin() * scale)
+        let margin  = Math.ceil(g_App.theme.floatingShadowMargin() * barScale)
         return {place.x - margin, place.y - margin, place.width + 2 * margin, place.height + 2 * margin}
     }
 
@@ -170,8 +236,12 @@ impl RecordHud
             .backgroundStyle = .Surface
             .createCommands()
             .createReadout()
-            if recorder.state == .Preparing do
+            if recorder.state == .Preparing
+            {
+                if recorder.screenSelection do
+                    .createScreenChoice()
                 .createPrepOptions()
+            }
             .hasCommands = true
             .refresh()
         }
@@ -184,7 +254,8 @@ impl RecordHud
 
     // Returns the logical width of a pill whose recording has `limit` microseconds at most, zero
     // for none: room for the longest time it can show, so the pill never changes size.
-    func widthFor(limit: u64, targetLabel: string = "", preparing: bool = false)->f32
+    func widthFor(limit: u64, targetLabel: string = "", preparing: bool = false,
+                  screenWidth: f32 = 0)->f32
     {
         var widest = limit ? Capture.clockText(limit) : String.from("0:00:00")
         if limit
@@ -198,7 +269,7 @@ impl RecordHud
 
         let font     = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
         let commands = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
-        let targetWidth = Painter.measureString(targetLabel, font).width
+        let targetWidth = Math.max(Painter.measureString(targetLabel, font).width, screenWidth)
         let readyWidth = Painter.measureString(appStrings().ui_AimReady, font).width
         let contentWidth = preparing ? Math.max(Painter.measureString(widest, font).width, readyWidth) :
                            Painter.measureString(widest, font).width
@@ -209,12 +280,53 @@ impl RecordHud
 
         let texts = appStrings()
         let labels = [texts.ui_AimCursor, texts.ui_AimCountdown, texts.ui_AimMicrophone, texts.ui_AimSystemSound]
-        var optionsWidth = RecordHudLeft + RecordHudRight
+        var optionsWidth = RecordHudLeft + RecordHudRight +
+                           (screenWidth != 0 ? screenWidth + g_App.theme.metrics.miniBar_Padding : 0)
         for label in labels
         {
             optionsWidth += recordOptionWidth(g_App.theme, label) + g_App.theme.metrics.miniBar_Padding
         }
         return Math.ceil(Math.max(normalWidth, optionsWidth))
+    }
+
+    // Fits the screen choice to every connected monitor and the all-screens wording.
+    func screenChoiceWidth(main: *MainWnd)->f32
+    {
+        let metrics = main.themeMetrics()
+        let font    = main.theme().createDefaultFont(metrics.defaultFontSize)
+        var widest  = Painter.measureString(appStrings().ui_AimAllScreens, font).width
+        for index in main.monitors.count do
+            widest = Math.max(widest, Painter.measureString(Format.toString(appStrings().ui_AimScreen, index + 1), font).width)
+        return Math.ceil(2 * metrics.btnIcon_Padding + metrics.menuPopup_IconSize +
+                         metrics.btnIcon_SpacingTextH + widest + metrics.btnIcon_ArrowSize +
+                         metrics.btnIcon_SpacingArrowH)
+    }
+
+    private mtd createScreenChoice()
+    {
+        let metrics = .themeMetrics()
+        let recorder = .recorder
+        with .screenButton = IconButton.create(me, .recorder.main.icon(.Monitor),
+                                               {0, 0, screenChoiceWidth(.recorder.main), metrics.miniBar_ButtonSize},
+                                               flags: .Flat | .CenterContent)
+        {
+            .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+            .setTextPosition(.Right)
+            .setArrowPosition(.RightDownward)
+            .setText(recorder.captureLabel())
+            .sigPressed += func|hud = me|(_) { hud.chooseScreen() }
+        }
+    }
+
+    private mtd chooseScreen()
+    {
+        discard RecordScreenChoices.open(me, unwrap .screenButton)
+    }
+
+    mtd refreshScreenChoice()
+    {
+        .screenButton?.setText(.recorder.captureLabel())
+        .refresh()
     }
 
     // Creates the commands of the recording; [[RecordHud.onResizeEvent]] places them.
@@ -278,7 +390,7 @@ impl RecordHud
             .setTextAlignment(.Left, .Center)
             .setTextColor(.themeColors().critical)
         }
-        with .targetLabel = Label.create(me, captureTargetLabel(), flags: .SecondaryText)
+        with .targetLabel = Label.create(me, .recorder.captureLabel(), flags: .SecondaryText)
         {
             .style.setFont(font, .Regular)
             .setTextAlignment(.Left, .Center)
@@ -338,13 +450,14 @@ impl RecordHud
         var droppedText: String
         if .recorder.dropped and not counting do
             droppedText = Format.toString(appStrings().ui_DroppedCount, .recorder.dropped)
-        let targetText = captureTargetLabel()
+        let targetText = .recorder.captureLabel()
         let needsLayout = .timeLabel.text() != shown or .limitLabel.text() != limitText or
                           .droppedLabel.text() != droppedText or .targetLabel.text() != targetText
         .timeLabel.setText(shown)
         .limitLabel.setText(limitText)
         .droppedLabel.setText(droppedText)
         .targetLabel.setText(targetText)
+        .targetLabel.show(not preparing or not .recorder.screenSelection)
 
         .progress.show((limit != 0 or counting) and not preparing)
         .progress.setValue(counting ? cast(f32, left) / cast(f32, RecordCountdown) :
@@ -402,5 +515,108 @@ impl RecordHud
         }
         else do
             .prepOptions.add(createRecordOption(me, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
+    }
+}
+
+// The screen list lives on its own native surface, so a long list is not clipped to the HUD.
+// It uses the same menu widget and floating surface pattern as the resident icon menu.
+struct RecordScreenChoices
+{
+    using wnd: Wnd
+
+    late hud:   *RecordHud
+    late menu:  *MenuCtrl
+    watch:      *Gui.Timer?
+    wasActive:  bool
+    armed:      bool
+}
+
+impl IWnd for RecordScreenChoices
+{
+    mtd impl onTimerEvent(_: *TimerEvent)
+    {
+        if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed) do
+            .close()
+    }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind == .Pressed and evt.key == .Escape
+        {
+            .close()
+            evt.accepted = true
+        }
+    }
+}
+
+impl RecordScreenChoices
+{
+    const WatchPeriod: Time.Duration = 30'ms
+
+    func open(hud: *RecordHud, button: *IconButton)->*RecordScreenChoices?
+    {
+        hud.screenChoices?.close()
+        let anchorSurface = unwrap hud.surface
+        let buttonRect = button.surfaceRect()
+        var corner = Math.Point{buttonRect.x, buttonRect.y}
+        anchorSurface.surfaceToScreen(&corner)
+        let anchor = Math.Rectangle{corner.x, corner.y,
+                                    buttonRect.width * anchorSurface.dpiScale,
+                                    buttonRect.height * anchorSurface.dpiScale}
+        let surface = PopupMenuSurface.create(anchorSurface.app, {anchor.x, anchor.bottom()})
+        if not surface do
+            return null
+
+        with let choices = Wnd.create'RecordScreenChoices(surface.wnd)
+        {
+            .dockStyle = .Center
+            .backgroundStyle = .Window
+            .focusPolicy = .Click
+            .hud = hud
+            .menu = Wnd.create'MenuCtrl(choices)
+        }
+        let selected = hud.recorder.screenIndex
+        with choices.menu
+        {
+            for index in hud.recorder.main.monitors.count
+            {
+                .addRadioItem(Format.toString(appStrings().ui_AimScreen, index + 1),
+                              Format.toString("record.screen.%", index), checked: selected == index)
+            }
+            .addRadioItem(appStrings().ui_AimAllScreens, AllScreensChoiceId,
+                          checked: selected == Swag.U64.Max)
+            .owner = choices
+            .dockStyle = .Center
+            .padding = 10
+            .setFramePainting(true)
+            .sigCommandSelected += func|choices|(_, id) { choices.select(id) }
+        }
+
+        hud.screenChoices = choices
+        PopupMenuSurface.show(choices, choices.menu, anchor, .BelowAnchor,
+                              {anchorSurface.position.horzCenter(), anchorSurface.position.vertCenter()})
+        excludeCaptureChrome(surface)
+        choices.watch = choices.addTimer(WatchPeriod)
+        return choices
+    }
+
+    private mtd select(id: WndId)
+    {
+        let recorder = .hud.recorder
+        if id == AllScreensChoiceId
+        {
+            recorder.selectScreen(Swag.U64.Max)
+            return
+        }
+        for index in recorder.main.monitors.count where id == Format.toString("record.screen.%", index) do
+            recorder.selectScreen(index)
+    }
+
+    mtd close()
+    {
+        .stopTimer(&.watch)
+        .hud.screenChoices = null
+        .surface?.destroy()
     }
 }

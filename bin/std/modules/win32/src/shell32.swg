@@ -470,6 +470,17 @@ struct NOTIFYICONDATAW
     }
 }
 
+struct NOTIFYICONIDENTIFIER
+{
+    public
+    {
+        cbSize:   DWORD
+        hWnd:     HWND
+        uID:      UINT
+        guidItem: GUID
+    }
+}
+
 internal namespace Shell32Priv
 {
     #[Foreign("shell32", callconv: Swag.CallConv.C)]
@@ -481,6 +492,7 @@ internal namespace Shell32Priv
         func SHGetStockIconInfo(siid: SHSTOCKICONID, uFlags: UINT, psii: *SHSTOCKICONINFO)->SHSTDAPI
         func Shell_NotifyIconA(dwMessage: DWORD, lpData: *NOTIFYICONDATAA)->BOOL
         func Shell_NotifyIconW(dwMessage: DWORD, lpData: *NOTIFYICONDATAW)->BOOL
+        func Shell_NotifyIconGetRect(identifier: const *NOTIFYICONIDENTIFIER, iconLocation: *RECT)->SHSTDAPI
         func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE
         func ShellExecuteW(hwnd: HWND, lpOperation: LPCWSTR, lpFile: LPCWSTR, lpParameters: LPCWSTR, lpDirectory: LPCWSTR, nShowCmd: INT)->HINSTANCE
     }
@@ -556,6 +568,9 @@ const SHCNF_IDLIST       = 0x0000'u32
         if not Shell32Priv.Shell_NotifyIconW(dwMessage, lpData) do
             try failWinError(GetLastError())
     }
+
+    func Shell_NotifyIconGetRect(identifier: const *NOTIFYICONIDENTIFIER, iconLocation: *RECT)->SHSTDAPI =>
+        Shell32Priv.Shell_NotifyIconGetRect(identifier, iconLocation)
 
     func ShellExecuteA(hwnd: HWND, lpOperation: LPCSTR, lpFile: LPCSTR, lpParameters: LPCSTR, lpDirectory: LPCSTR, nShowCmd: INT)->HINSTANCE fail
     {

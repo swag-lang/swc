@@ -82,6 +82,7 @@ msg_RemoveAssociation  L'association avec l'image sera supprimée.
 msg_DeleteCaptures     Le ou les fichiers de capture seront supprimés.
 msg_OverwriteLinked    L'image d'origine sera écrasée.
 ui_DoNotAskAgain       Ne plus demander
+ui_DoNotShowResidentAgain Ne plus afficher cet avertissement
 ui_CaptureName         Nom de la capture
 msg_EraseTrash         Toutes les captures de la corbeille seront définitivement effacées.
 msg_EraseSelected      La ou les captures sélectionnées seront définitivement effacées.
@@ -97,11 +98,13 @@ ui_MediaAnimation      GIF
 ui_MediaVideo          Vidéo
 ui_Mp4Video            Vidéo MP4
 act_RecordVideo        Enregistrer une vidéo
-act_RecordFullScreen   Enregistrer tous les écrans
+act_RecordScreen       Enregistrer un écran
 act_RecordActiveWindow Enregistrer la fenêtre active
 act_RecordMonitor      Enregistrer l'écran %
 act_RecordMonitorSize  Enregistrer l'écran % · % × %
 ui_AimCursor           Curseur
+ui_AimScreen           Écran %
+ui_AimAllScreens       Tous les écrans
 ui_AimCountdown        Compte à rebours
 ui_AimRate             % i/s
 tip_AimRate            Changer la cadence d'enregistrement
@@ -134,7 +137,7 @@ msg_FailedSaveMetadata Impossible d'enregistrer les métadonnées de la capture
 msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
 msg_FailedMoveCaptures Certaines captures n'ont pas pu être déplacées. Elles sont restées à leur place.
 msg_ShortcutsUnavailableHelp Une autre application utilise peut-être ces touches. Relancez Swag Capture pour réessayer.
-msg_ResidentTitle      Swag Capture reste actif
+msg_ResidentTitle      Swag Capture reste actif.
 msg_ResidentText       Double-cliquez sur son icône dans la zone de notification pour l'ouvrir, clic droit pour le menu.
 act_ActualSize         Taille réelle
 act_Arrow              Flèche

@@ -127,7 +127,7 @@ struct Row
 // A command registered on a [[Gui.Lens.View]].
 internal struct Command
 {
-    id:         WndId = ""
+    commandId:  String     // Owns the ID; derive a view only when the registered command is used.
     family:     String
     familyText: MenuLabelResolver?
     aliases:    MenuLabelResolver?
@@ -415,7 +415,7 @@ impl View
                    menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
                    menuSection: u32 = 0, inLens = true, inMenu = true)
     {
-        .commands.add(Command{id: id, family: family, aliases: aliases,
+        .commands.add(Command{commandId: id, family: family, aliases: aliases,
                               menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection,
                               inLens: inLens, inMenu: inMenu})
     }
@@ -427,7 +427,7 @@ impl View
                    menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
                    menuSection: u32 = 0, inLens = true, inMenu = true)
     {
-        .commands.add(Command{id: id, familyText: family, aliases: aliases,
+        .commands.add(Command{commandId: id, familyText: family, aliases: aliases,
                               menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection,
                               inLens: inLens, inMenu: inMenu})
     }
@@ -471,7 +471,7 @@ impl View
         // Resolve localized placement and visibility before allocating any menu branches.
         for &command in .commands where command.inMenu
         {
-            let state = owner.sendComputeCommandStateEvent(command.id)
+            let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
             if state.updatedFields.has(.Hidden) and state.hidden do
                 continue
             if (not state.updatedFields.has(.Name) or state.name.isEmpty()) and
@@ -482,7 +482,7 @@ impl View
                          (command.familyText ? command.familyText() : command.family.toString())
             if not families.contains(family) do
                 families.add(family)
-            entries.add(MenuCommand{command.id, family, command.menuGroup ? command.menuGroup() : "", command.menuSection})
+            entries.add(MenuCommand{command.commandId.toString(), family, command.menuGroup ? command.menuGroup() : "", command.menuSection})
         }
 
         for family in families
@@ -964,7 +964,7 @@ private impl View
             var section: *Section?
             for command in .commands where command.inLens and command.family == family[]
             {
-                let state = owner.sendComputeCommandStateEvent(command.id)
+                let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
                 if state.updatedFields.has(.Hidden) and state.hidden do
                     continue
 
@@ -995,7 +995,7 @@ private impl View
                     section.ranked = true
                 }
 
-                addCommandEntry(section, command.id, title, state)
+                addCommandEntry(section, command.commandId.toString(), title, state)
                 section.entries.backPtr().score        = found.score
                 section.entries.backPtr().matchedAlias = .results.query.count > 0 and found.spans.isEmpty()
             }
@@ -1720,9 +1720,9 @@ private impl View
         var section: *Section?
         for text in .recent
         {
-            for command in .commands where command.inLens and text[] == command.id
+            for command in .commands where command.inLens and text[] == command.commandId.toString()
             {
-                let state = owner.sendComputeCommandStateEvent(command.id)
+                let state = owner.sendComputeCommandStateEvent(command.commandId.toString())
                 if state.updatedFields.has(.Hidden) and state.hidden do
                     break
                 var title: String
@@ -1735,7 +1735,7 @@ private impl View
 
                 if not section do
                     section = .results.addSection(strings().lens_Recent)
-                addCommandEntry(section, command.id, title, &state)
+                addCommandEntry(section, command.commandId.toString(), title, &state)
                 break
             }
         }

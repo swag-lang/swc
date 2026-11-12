@@ -116,8 +116,10 @@ struct EditorOptions
     #[Description("Choose what opens when Swag Capture starts")]
     startup: StartupMode = .Hub
 
-    // How many more times closing the hub or the window says that the application keeps running
-    // behind its icon: often enough to be read once, then never again.
+    #[Description("Show a reminder when Swag Capture continues in the notification area")]
+    showResidentNotice = true
+
+    // Retained for compatibility with saved options from the former three-notice limit.
     #[Hidden]
     residentNotices: s32 = 3
 

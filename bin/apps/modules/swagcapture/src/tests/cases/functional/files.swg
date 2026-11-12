@@ -65,6 +65,34 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Swag.require(saved.title == "Scheduled title")
 }
 
+// The decoded-picture budget evicts the oldest capture when another one would exceed it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    let firstPath = testPrepareSavedCapture(f.capture)
+    defer discard catch File.delete(firstPath)
+    let second = expect Capture.load(firstPath)
+    defer Memory.delete(second)
+    let secondPath = testTempCapturePath()
+    defer discard catch File.delete(secondPath)
+    second.file    = secondPath
+    second.changed = true
+    expect second.save()
+
+    let firstCached = expect Capture.load(firstPath)
+    let secondCached = expect Capture.load(secondPath)
+    var cache: RecentCaptureCache
+    cache.put(firstCached, expect File.info(firstPath))
+    Swag.require(cache.entries.count == 1 and cache.bytes > 0)
+    cache.maxBytes = cache.bytes
+    cache.put(secondCached, expect File.info(secondPath))
+    Swag.require(cache.bytes <= cache.maxBytes)
+    Swag.require(cache.entries.count == 1 and cache.entries[0]!.capture == secondCached)
+}
+
 // New Image uses its real modal dialog, then creates and persists a new capture.
 #test
 {
@@ -668,6 +696,83 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     defer Memory.delete(saved)
     Swag.require(saved.title == "Unsaved editor title")
     Swag.require(f.main.editWnd.getCapture()!.file == otherPath)
+}
+
+// Revisiting an unchanged picture reuses its decoded document; replacing an inactive file
+// forces a new decode instead of reopening stale pixels or metadata.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let first = Memory.new'Capture()
+    first.width, first.widthOrg   = 41
+    first.height, first.heightOrg = 29
+    first.backImg                 = Gui.Testing.indexedImage(41, 29)
+    first.preview                 = Gui.Testing.indexedImage(32, 20)
+    let firstPath = testPrepareSavedCapture(first)
+    defer
+    {
+        discard catch File.delete(firstPath)
+        Memory.delete(first)
+    }
+
+    let second = Memory.new'Capture()
+    second.width, second.widthOrg   = 43
+    second.height, second.heightOrg = 31
+    second.backImg                 = Gui.Testing.indexedImage(43, 31)
+    second.preview                 = Gui.Testing.indexedImage(32, 20)
+    let secondPath = testPrepareSavedCapture(second)
+    defer
+    {
+        discard catch File.delete(secondPath)
+        Memory.delete(second)
+    }
+
+    let recent = f.main.recentWnd
+    recent.addRecent(firstPath, first.preview, front: false)
+    recent.addRecent(secondPath, second.preview, front: false)
+    recent.recentView.requestSelect(0)
+    recent.loadJob!.task.wait()
+    f.gui.pump()
+    let firstOpened = unwrap f.main.editWnd.getCapture()
+
+    recent.recentView.requestSelect(1)
+    recent.loadJob.task.wait()
+    f.gui.pump()
+    Swag.require(recent.captureCache.entries.count == 1)
+    Swag.require(recent.captureCache.entries[0]!.capture == firstOpened)
+    Swag.require(firstOpened.editView == null and not firstOpened.backTexture.isValid())
+
+    // A revisit transfers the same decoded document back without scheduling a decode.
+    recent.recentView.requestSelect(0)
+    Swag.require(recent.loadJob == null)
+    Swag.require(f.main.editWnd.getCapture() == firstOpened)
+    Swag.require(recent.captureCache.entries.count == 1)
+
+    // A replacement of the inactive file invalidates its cached document.
+    second.title   = "A replacement with a longer title"
+    second.changed = true
+    expect second.save()
+    recent.recentView.requestSelect(1)
+    Swag.require(recent.loadJob != null)
+    recent.loadJob.task.wait()
+    f.gui.pump()
+    Swag.require(f.main.editWnd.getCapture()!.title == second.title)
+
+    // An outgoing edit is written from its snapshot and never cached as the old revision.
+    let edited = unwrap f.main.editWnd.getCapture()
+    edited.title   = "Edited again"
+    edited.changed = true
+    recent.recentView.requestSelect(0)
+    Swag.require(f.main.editWnd.getCapture() == firstOpened)
+    Swag.require(recent.captureCache.entries.isEmpty())
+    Swag.require(g_CaptureSaves.flush().isEmpty())
+    let saved = expect Capture.load(secondPath)
+    defer Memory.delete(saved)
+    Swag.require(saved.title == "Edited again")
 }
 
 // A later recent selection wins while the first file is still decoding, and the editor keeps

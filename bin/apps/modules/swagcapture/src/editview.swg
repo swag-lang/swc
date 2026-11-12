@@ -454,4 +454,13 @@ impl EditView
 
         .invalidate()
     }
+
+    // Transfers the previous document to a caller that can retain or delete it.
+    mtd replaceCapture(c: *Capture)->*Capture?
+    {
+        let previous = .capture
+        .capture = null
+        .setCapture(c)
+        return previous
+    }
 }

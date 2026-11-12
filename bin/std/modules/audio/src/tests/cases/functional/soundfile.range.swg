@@ -77,6 +77,30 @@ using Swag, Core
     })
     Swag.require(selected.count == 2_345)
     Swag.require(Slice.equals(selected.toSlice(), whole.toSlice()[12_345 until 14_690]))
+
+    let decodedStart   = 1_024'u64 + 12_345
+    let decodedEnd     = decodedStart + 2_345
+    var packetStart    = 0'u64
+    var touchedPackets = 0'u32
+    for index in sound.packetCount()
+    {
+        let packet    = expect sound.packet(index)
+        let packetEnd = packetStart + packet.sampleFrameCount
+        if packetStart < decodedEnd and packetEnd > decodedStart do
+            touchedPackets += 1
+        packetStart = packetEnd
+    }
+
+    Swag.require(touchedPackets > 1)
+
+    var cancellationCalls = 0'u32
+    expect sound.decodePcm16(12_345, 2_345, func|&cancellationCalls|(_: const [..] s16)->bool
+    {
+        cancellationCalls += 1
+        return false
+    })
+    Swag.require(cancellationCalls == 1)
+
     var failure: Swag.Error
     catch sound.decodePcm16(0, 100, func(_)->bool => true) as failure
     Swag.require(failure.value() != null)

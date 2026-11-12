@@ -120,3 +120,20 @@ func base64Reference(bytes: const [..] u8)->String
     let urlSafe = expect Base64.decode("LS0tX19fLS0tX19fLS0tX19f")
     Swag.require(cast(string, urlSafe.toSlice()) == "---___---___---___")
 }
+
+// An invalid byte in any lane of a later SIMD block falls back to strict scalar validation.
+#test
+{
+    const Encoded = "QUJDREVGR0hJSktMTU5PUFFSU1RVVldY"
+    Swag.require(Encoded.count == 32)
+
+    for lane in 16
+    {
+        var corrupted = String.from(Encoded)
+        corrupted[16 + lane] = '!'
+
+        var error: Swag.Error
+        discard catch Base64.decode(corrupted.toString()) as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+}

@@ -41,6 +41,38 @@ using Swag
     Swag.require(decoded.count <= 128)
 }
 
+// `maxOutputSize` limits bytes appended by this call, independent of the existing prefix.
+#test
+{
+    var original: [4096] u8
+    for &value in original do
+        value[] = 0xA5
+
+    var deflater: Compress.Deflate
+    deflater.init(.BestCompression, flags: .Zero)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, original)
+
+    const Prefix: [4] u8 = [0xDE, 0xAD, 0xBE, 0xEF]
+    var atLimit: Array'u8
+    atLimit.add(Prefix)
+
+    var inflater: Compress.Inflate
+    expect inflater.decompress(&atLimit, compressed.toSlice(), maxOutputSize: original.count)
+    Swag.require(atLimit.count == Prefix.count + original.count)
+    Swag.require(Slice.equals(atLimit.toSlice()[until Prefix.count], Prefix))
+    Swag.require(Slice.equals(atLimit.toSlice()[Prefix.count to], original))
+
+    var tooShort: Array'u8
+    tooShort.add(Prefix)
+    var errorOutcome: Swag.Error
+    catch inflater.decompress(&tooShort, compressed.toSlice(), maxOutputSize: original.count - 1) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.UnsupportedFormatError)
+    Swag.require(tooShort.count >= Prefix.count)
+    Swag.require(tooShort.count - Prefix.count <= original.count - 1)
+    Swag.require(Slice.equals(tooShort.toSlice()[until Prefix.count], Prefix))
+}
+
 // Match distances and lengths around the 8/16-byte copy boundaries round-trip
 // through the exact Deflate producer consumed by Inflate.
 #test

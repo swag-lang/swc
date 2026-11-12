@@ -150,7 +150,7 @@ impl CaptureQueue
 
     // Copies the oldest captured block to `samples` and returns its timing metadata.
     //
-    // The output array is cleared even when the queue is empty. On success it contains exactly
+    // Both outputs are reset when the queue is empty. On success `samples` contains exactly
     // `info.frameCount * channelCount` interleaved samples. `gapFrames` covers missing source
     // samples and blocks dropped because the queue filled. The caller may reuse both outputs.
     mtd pop(samples: *Array's16, info: *CaptureBlock)->bool
@@ -158,8 +158,11 @@ impl CaptureQueue
         .mutex.lock()
         defer .mutex.unlock()
         samples.clear()
-        if not .count do
+        if not .count
+        {
+            Swag.init(info, 1)
             return false
+        }
         let slot = .slots[.head]
         let offset = cast(u64, .head) * .blockFrames * .channels
         samples.add(Swag.makeSlice(&.storage[offset], cast(u64, slot.frameCount) * .channels))

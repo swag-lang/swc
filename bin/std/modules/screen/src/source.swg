@@ -118,7 +118,13 @@ impl Source
         let native = Memory.new'NativeSource()
         catch
         {
-            native[] = try NativeSource.open(options)
+            #static if #os == Swag.TargetOs.Windows
+            {
+                native[] = try NativeSource.open(options,
+                                                 .sources.count ? .sources[0] : null)
+            }
+            else do
+                native[] = try NativeSource.open(options)
         }
         {
             Memory.delete(native)
@@ -250,8 +256,16 @@ impl Source
     // Reopens a source after a display change or native access loss.
     mtd reopen() fail
     {
-        for source in .sources do
-            try source[].reopen()
+        #static if #os == Swag.TargetOs.Windows
+        {
+            for index in .sources.count do
+                try .sources[index].reopen(index ? .sources[0] : null)
+        }
+        else
+        {
+            for source in .sources do
+                try source[].reopen()
+        }
     }
 
     // Releases the native capture handles and cached frames on the opening thread.

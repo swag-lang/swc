@@ -74,7 +74,14 @@ continues to own media frames and codecs, not desktop access.
   stable caller image now receives those same rectangles instead of their union. A 30-second
   full-desktop run mirrored 275 million pixels and spent 154 ms in composition, compared with
   roughly 460-513 ms in the preceding runs that mirrored each union; it decoded 901 pictures
-  with no missed slots. The exact desktop workload varied between runs.
+  with no missed slots. The exact desktop workload varied between runs. Outputs on the same
+  adapter now share one D3D11 device/context and one command flush per capture. Reopening a
+  source releases its old duplication first, as DXGI allows only one duplication per output in
+  a process; native tests cover successful and failed reopen paths. A shared/separate/shared
+  30-second sequence spent 0.67/5.89/0.98 s in readback and missed 0/3/0 slots, but the
+  separate run copied roughly four times as many pixels under higher desktop load, so those
+  timings do not isolate the device-sharing benefit. A 60-second shared run still had a 319 ms
+  readback spike and missed 42 slots; long-tail GPU waits remain open.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous

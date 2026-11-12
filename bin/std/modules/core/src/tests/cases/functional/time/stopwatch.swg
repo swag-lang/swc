@@ -30,10 +30,28 @@ using Swag
 
 #test
 {
-    var timing: Time.FrameTiming
+    var timing = Time.FrameTiming{minimumDeltaSeconds: 0.02, maximumDeltaSeconds: 0.02}
     Swag.require(not timing.isPaused)
+    let initialDelta = timing.deltaSeconds
+
+    timing.update()
+    Swag.require(timing.frameCount == 1)
+    Swag.require(timing.deltaSeconds == initialDelta)
+
+    timing.update()
+    Swag.require(timing.frameCount == 2)
+    Swag.require(timing.deltaSeconds == 0.02)
+
     timing.pause()
     Swag.require(timing.isPaused)
+    let pausedDelta = timing.deltaSeconds
+    timing.update()
+    Swag.require(timing.frameCount == 2)
+    Swag.require(timing.deltaSeconds == pausedDelta)
+
     timing.resume()
     Swag.require(not timing.isPaused)
+    timing.update()
+    Swag.require(timing.frameCount == 3)
+    Swag.require(timing.deltaSeconds == 0.02)
 }

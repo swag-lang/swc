@@ -79,3 +79,29 @@ using Swag, Core
     let equalFeatures = ImageStatistics.quickExtractHaarFeatures(equalSize)
     Swag.require(Math.abs(equalFeatures.coefficients[0] - 32 * (64.0 / 255.0)) < 0.001)
 }
+
+// Normalized correlation distinguishes exact zero vectors from nonzero vectors at any scale.
+#test
+{
+    var tiny: ImageStatistics.HaarFeatures
+    tiny.size   = 1
+    tiny.levels = 0
+    tiny.coefficients.resize(1)
+    tiny.coefficients[0] = 0.000001
+
+    var inverted = tiny
+    inverted.coefficients[0] = -tiny.coefficients[0]
+    var zero: ImageStatistics.HaarFeatures
+    zero.size   = 1
+    zero.levels = 0
+    zero.coefficients.resize(1)
+
+    Swag.require(ImageStatistics.compareHaarCoefficients(tiny, tiny) == 1)
+    Swag.require(ImageStatistics.compareHaarCoefficients(tiny, inverted) == 1)
+    Swag.require(ImageStatistics.quickCompareHaarCoefficients(tiny, tiny) == 1)
+    Swag.require(ImageStatistics.quickCompareHaarCoefficients(tiny, inverted) == 1)
+    Swag.require(ImageStatistics.compareHaarCoefficients(zero, zero) == 1)
+    Swag.require(ImageStatistics.quickCompareHaarCoefficients(zero, zero) == 1)
+    Swag.require(ImageStatistics.compareHaarCoefficients(zero, tiny) == 0)
+    Swag.require(ImageStatistics.quickCompareHaarCoefficients(zero, tiny) == 0)
+}

@@ -167,6 +167,8 @@ struct AppStrings
     msg_FailedOpenLibrary:     string = "Cannot open the library folder"
     msg_FailedSaveMetadata:    string = "Cannot save capture metadata"
     msg_FailedExportCaptures:  string = "Cannot export the selected captures"
+    msg_ExportingCaptures:     string = "Exporting selected captures…"
+    msg_ExportedCaptures:      string = "Selected captures exported"
     msg_FailedMoveCaptures:    string = "Some captures could not be moved. They are still where they were."
     msg_ShortcutsUnavailableHelp: string = "Another app may own these keys. Restart Swag Capture to try again."
     msg_ResidentTitle:         string = "Swag Capture is still running."                                                 // Title of the resident reminder.

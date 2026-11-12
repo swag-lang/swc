@@ -359,3 +359,61 @@ using Swag, Core
     Swag.require(image.width == 24)
     Swag.require(image.height == 16)
 }
+
+// Exporting multiple library pictures decodes each capture on a worker in selection order.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let library = f.setupLibraryWnd()
+
+    let firstPath  = testTempCapturePath()
+    let secondPath = testTempCapturePath()
+    let folder = Path.combine(Library.getFolder(), Format.toString("export-%", Guid64.random()))
+    expect Directory.create(folder)
+    defer
+    {
+        discard catch File.delete(firstPath)
+        discard catch File.delete(secondPath)
+        discard catch Directory.delete(folder, recurse: true)
+    }
+
+    let first = Memory.new'Capture()
+    first.width, first.widthOrg   = 16
+    first.height, first.heightOrg = 10
+    first.backImg = Gui.Testing.indexedImage(16, 10)
+    first.file = firstPath
+    first.changed = true
+    expect first.save()
+    Memory.delete(first)
+
+    let second = Memory.new'Capture()
+    second.width, second.widthOrg   = 19
+    second.height, second.heightOrg = 12
+    second.backImg = Gui.Testing.indexedImage(19, 12)
+    second.file = secondPath
+    second.changed = true
+    expect second.save()
+    Memory.delete(second)
+
+    var files: Array'String
+    files.add(firstPath)
+    files.add(secondPath)
+    library.beginExport(files, folder)
+    Swag.require(library.exporting and library.exportJob != null)
+    for 4
+    {
+        if not library.exporting do
+            break
+        Swag.require(library.exportJob != null)
+        library.exportJob.task.wait()
+        f.gui.pump()
+    }
+    Swag.require(not library.exporting and library.exportJob == null)
+
+    let firstImage = expect Image.load(Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(firstPath) orelse "capture")))
+    let secondImage = expect Image.load(Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(secondPath) orelse "capture")))
+    Swag.require(firstImage.width == 16 and firstImage.height == 10)
+    Swag.require(secondImage.width == 19 and secondImage.height == 12)
+}

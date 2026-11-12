@@ -53,15 +53,6 @@ struct RecentView
     hotItem:        u64 = Swag.U64.Max
 }
 
-// A full capture decode owns its file name and result until the window accepts or discards it.
-struct RecentLoadJob
-{
-    task:    Swag.Task
-    file:    String
-    capture: *Capture?
-    error:   Swag.Error
-}
-
 impl RecentView
 {
     mtd showContextMenu(pos: Math.Point)
@@ -292,7 +283,7 @@ struct RecentWnd
     timer:              *Gui.Timer?
     loadTimer:          *Gui.Timer?
     selectionTimer:     *Gui.Timer?
-    loadJob:            *RecentLoadJob?
+    loadJob:            *CaptureLoadJob?
     readyCapture:       *Capture?
     readyFile:          String
     requestedFile:      String
@@ -554,7 +545,7 @@ impl RecentWnd
             }
         }
 
-        let job  = Memory.new'RecentLoadJob()
+        let job  = Memory.new'CaptureLoadJob()
         job.file = file
         .loadJob = job
         job.task.submit(func|job|()

@@ -14,15 +14,6 @@ enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, S
 // object, the face of a text, the counter of a step, or the alignment of several objects.
 enum MiniBarKind { None, Single, Text, Step, Multi }
 
-// An inactive capture is decoded away from the interface before it is composed for the clipboard.
-struct LibraryCopyJob
-{
-    task:    Swag.Task
-    file:    String
-    capture: *Capture?
-    error:   Swag.Error
-}
-
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
@@ -155,7 +146,7 @@ struct MainWnd
     openHubAfterRecentLoad: bool
     metadataTimer: *Gui.Timer?
     copyTimer: *Gui.Timer?
-    copyJob: *LibraryCopyJob?
+    copyJob: *CaptureLoadJob?
     copyRequestedFile: String
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
@@ -235,7 +226,7 @@ impl IWnd for MainWnd
         .copyRequestedFile.clear()
         if not loaded
         {
-            .reportFailure(appStrings().msg_FailedCopyCapture)
+            .reportFailure(appStrings().msg_FailedCopyCapture, file)
             return
         }
 
@@ -243,7 +234,7 @@ impl IWnd for MainWnd
         loaded.editView = .editWnd.editView
         catch loaded.copyAll()
         {
-            .reportFailure(appStrings().msg_FailedCopyCapture)
+            .reportFailure(appStrings().msg_FailedCopyCapture, file)
             return
         }
         .confirm(appStrings().msg_Copied)
@@ -638,7 +629,7 @@ impl MainWnd
             return
         }
 
-        let job = Memory.new'LibraryCopyJob()
+        let job = Memory.new'CaptureLoadJob()
         job.file = .copyRequestedFile
         .copyJob = job
         job.task.submit(func|job|()
@@ -1139,6 +1130,15 @@ impl MainWnd
             return
         .toastAction = null
         .toast.show(message, detail, .Failure)
+    }
+
+    // Briefly names an operation that continues after its initiating gesture returns.
+    mtd reportProgress(message: string)
+    {
+        if .toast == null do
+            return
+        .toastAction = null
+        .toast.show(message, tone: .None)
     }
 
     // Returns the glyph of a tool, as the dock and the layers of the inspector show it.

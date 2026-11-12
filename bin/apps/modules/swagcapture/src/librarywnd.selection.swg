@@ -233,6 +233,11 @@ impl LibraryWnd
         let capture = try Capture.load(file)
         defer Memory.delete(capture)
 
+        try .exportLoadedCapture(capture, file, folder)
+    }
+
+    private mtd exportLoadedCapture(capture: *Capture, file: String, folder: String) fail
+    {
         var name  = String.from(Path.fileNameWithoutExtension(file) orelse "capture")
         capture.editView = .main.editWnd.editView
         switch capture.media
@@ -289,6 +294,11 @@ impl LibraryWnd
 
     mtd exportSelected()
     {
+        if .exporting
+        {
+            .main.reportProgress(appStrings().msg_ExportingCaptures)
+            return
+        }
         let files = .selectedCaptureFiles()
         if files.isEmpty() do
             return
@@ -304,14 +314,60 @@ impl LibraryWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        Cursor.activateWait()
-        for file in files
+        .beginExport(files, dialog.selectedPath())
+    }
+
+    // Starts one ordered export from an owned selection and destination.
+    mtd beginExport(files: Array'String, folder: String)
+    {
+        if .exporting or files.isEmpty() do
+            return
+        .exportFiles  = files
+        .exportFolder = folder
+        .exportIndex  = 0
+        .exporting    = true
+        .main.reportProgress(appStrings().msg_ExportingCaptures)
+        .startNextExport()
+    }
+
+    private mtd startNextExport()
+    {
+        if not .exporting or .exportJob do
+            return
+        if .exportIndex >= .exportFiles.count
         {
-            discard catch .exportCapture(file, dialog.selectedPath())
-            {
-                MessageDlg.error(.main.surface, appStrings().msg_FailedExportCaptures, Swag.err)
-                return
-            }
+            .finishExport(completed: true)
+            return
         }
+
+        let file   = .exportFiles[.exportIndex]
+        let failed = g_CaptureSaves.collect()
+        if not failed.isEmpty() do
+            .main.reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
+        if g_CaptureSaves.writing(file)
+        {
+            if not .exportTimer do
+                .exportTimer = .addTimer(16'ms)
+            return
+        }
+
+        let job = Memory.new'CaptureLoadJob()
+        job.file = file
+        .exportJob = job
+        job.task.submit(func|job|()
+        {
+            catch { job.capture = try Capture.load(job.file) } as job.error
+        }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishExport(completed = false)
+    {
+        .stopTimer(&.exportTimer)
+        .exportFiles.clear()
+        .exportFolder.clear()
+        .exportIndex = 0
+        .exporting   = false
+        if completed do
+            .main.confirm(appStrings().msg_ExportedCaptures)
     }
 }

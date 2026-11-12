@@ -35,6 +35,7 @@ impl VideoCaptureProducer
         waiter.open()
         catch
         {
+            .session.primeSource()
             while not thread.requestEnd.isRaised()
             {
                 if Atomic.get(&.paused)

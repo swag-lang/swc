@@ -548,6 +548,8 @@ impl Recorder
             try .videoProducer.start(&.video, VideoCaptureFramesPerSecond)
             while not .videoProducer.hasOrigin() and not .videoProducer.hasFailed() do
                 Threading.Thread.sleep(1'ms)
+            if .videoProducer.hasOrigin() do
+                .clock.startAt(.video.captureOriginTick())
         }
         if .videoProducer.hasFailed()
         {

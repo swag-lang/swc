@@ -220,6 +220,11 @@ impl WebCaptureTone
                 Console.println("Web recording: frames=", recorder.video.frameCount(), " duration_us=", recorder.elapsed(), " source_failures=", recorder.video.sourceFailureCount())
                 Console.println("Video missed slots=", recorder.video.missedFrameSlotCount(), " forced_ui_stall_ms=", stallMs)
                 Console.println("Video work: fresh=", recorder.video.freshFrames, " grab_us=", recorder.video.grabMicroseconds, " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds), " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds), " producer_wait_us=", recorder.video.producerWaitMicroseconds, " runtime_workers=", Swag.workerCount())
+                Console.println("Video peaks: grab_us=", recorder.video.maxGrabMicroseconds,
+                                " scale_us=", recorder.video.maxScaleMicroseconds,
+                                " submit_us=", recorder.video.maxProducerWaitMicroseconds,
+                                " first_missed=", recorder.video.firstMissedSlot,
+                                " last_missed=", recorder.video.lastMissedSlot)
                 Console.println("Screen read: dc_us=", recorder.video.source.dcMicroseconds,
                                 " blit_us=", recorder.video.source.blitMicroseconds,
                                 " flush_us=", recorder.video.source.flushMicroseconds,
@@ -514,9 +519,14 @@ impl WebCaptureTone
                             " missed=", recorder.video.missedFrameSlotCount(),
                             " source_failures=", recorder.video.sourceFailureCount(),
                             " grab_us=", recorder.video.grabMicroseconds,
+                            " max_grab_us=", recorder.video.maxGrabMicroseconds,
                             " scale_us=", recorder.video.scaleMicroseconds,
+                            " max_scale_us=", recorder.video.maxScaleMicroseconds,
                             " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds),
                             " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds),
+                            " max_submit_us=", recorder.video.maxProducerWaitMicroseconds,
+                            " first_missed=", recorder.video.firstMissedSlot,
+                            " last_missed=", recorder.video.lastMissedSlot,
                             " dxgi=", recorder.video.source.accelerated != null)
             if let accelerated = recorder.video.source.accelerated
             {
@@ -557,7 +567,8 @@ impl WebCaptureTone
     var reader = expect Video.Reader.open(media)
     Console.println("Full-screen file: frames=", reader.frameCount(),
                     " duration=", reader.durationInSeconds())
-    Swag.require(reader.frameCount() > 0 and reader.durationInSeconds() >= 2.5)
+    Swag.require(reader.frameCount() >= 90 and reader.durationInSeconds() >= 3.0,
+                 "the recording clock must start with the first captured picture")
     var image: Image
     expect reader.decodeFrameInto(&image, 0)
     Swag.require(image.width == outputWidth and image.height == outputHeight)

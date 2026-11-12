@@ -20,9 +20,21 @@ using Swag
 
 #test
 {
-    Swag.require(Math.bigEndianToNative(0x1234'u16) == 0x3412'u16)
-    Swag.require(Math.nativeToBigEndian(0x12345678'u32) == 0x78563412'u32)
-    Swag.require(Math.littleEndianToNative(0x12345678'u32) == 0x12345678'u32)
+    Swag.require(Math.bigEndianToNative(Math.nativeToBigEndian(0x12345678'u32)) == 0x12345678'u32)
+    Swag.require(Math.littleEndianToNative(Math.nativeToLittleEndian(0x12345678'u32)) == 0x12345678'u32)
+
+    #static if BIG_ENDIAN
+    {
+        Swag.require(Math.bigEndianToNative(0x1234'u16) == 0x1234'u16)
+        Swag.require(Math.nativeToBigEndian(0x12345678'u32) == 0x12345678'u32)
+        Swag.require(Math.littleEndianToNative(0x12345678'u32) == 0x78563412'u32)
+    }
+    else
+    {
+        Swag.require(Math.bigEndianToNative(0x1234'u16) == 0x3412'u16)
+        Swag.require(Math.nativeToBigEndian(0x12345678'u32) == 0x78563412'u32)
+        Swag.require(Math.littleEndianToNative(0x12345678'u32) == 0x12345678'u32)
+    }
 }
 
 // Signed fields, and single bytes, travel through the same conversion family.

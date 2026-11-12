@@ -66,6 +66,37 @@ func exrInvalidZipFixture()->ConcatBuffer
     return result
 }
 
+// Error: duplicate EXR channel names are invalid.
+#test
+{
+    var source  = Image.create(1, 1, .RGBAF16)
+    var encoded = expect source.encode("duplicate-channel.exr")
+    encoded.makeLinear()
+    var bytes  = unwrap encoded.toSlice()
+    var offset = 8'u64 + 9 + 7 + 4
+    var found  = false
+    while bytes[offset]
+    {
+        if bytes[offset] == 'A' and bytes[offset + 1] == 0
+        {
+            bytes[offset] = 'R'
+            found         = true
+            break
+        }
+
+        while bytes[offset] do
+            offset += 1
+        offset += 1 + 16
+    }
+
+    Swag.require(found)
+
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("duplicate-channel.exr", bytes) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 #test
 {
     var source  = Image.create(3, 2, .RGBF16)

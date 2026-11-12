@@ -53,6 +53,12 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
             fail UnsupportedFormatError{"OpenEXR UINT channels are not supported"}
         if xSampling != 1 or ySampling != 1 do
             fail UnsupportedFormatError{"OpenEXR subsampled channels are not supported"}
+        for &channel in result
+        {
+            if channel.name.toString() == name.toString() do
+                fail InvalidFormatError{"OpenEXR channel name is duplicated"}
+        }
+
         var channel: Channel
         channel.name      = #move name
         channel.pixelType = pixelType

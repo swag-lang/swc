@@ -123,10 +123,74 @@ struct LibraryWnd
     showUnLinkedImage:        bool = true
     showRatingOverlay:        bool = true
     showLinkOverlay:          bool = true
+
+    exportFiles:  Array'String
+    exportFolder: String
+    exportIndex:  u64
+    exportJob:    *CaptureLoadJob?
+    exportTimer:  *Gui.Timer?
+    exporting:    bool
 }
 
 impl IWnd for LibraryWnd
 {
+    mtd impl onTaskEvent(evt: *TaskEvent)
+    {
+        let job = .exportJob
+        if not job or evt.task != &job.task
+        {
+            evt.accepted = false
+            return
+        }
+
+        .exportJob = null
+        let capture = job.capture
+        let file    = job.file
+        Memory.delete(job)
+        if not capture
+        {
+            .main.reportFailure(appStrings().msg_FailedExportCaptures, file)
+            .finishExport()
+            return
+        }
+
+        defer Memory.delete(capture)
+        catch .exportLoadedCapture(capture, file, .exportFolder)
+        {
+            .main.reportFailure(appStrings().msg_FailedExportCaptures, file)
+            .finishExport()
+            return
+        }
+        .exportIndex += 1
+        .startNextExport()
+    }
+
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer != .exportTimer
+        {
+            .wnd.IWnd.onTimerEvent(evt)
+            return
+        }
+        .stopTimer(&.exportTimer)
+        .startNextExport()
+    }
+
+    mtd impl onDestroyEvent(_: *DestroyEvent)
+    {
+        .stopTimer(&.exportTimer)
+        if .exportJob
+        {
+            let job = .exportJob
+            .exportJob = null
+            job.task.cancel()
+            job.task.wait()
+            if job.capture do
+                Memory.delete(job.capture)
+            Memory.delete(job)
+        }
+    }
+
     // The page keeps its side margins, and its header keeps clear of the strip the window glyph,
     // the title, the window buttons and the task controls float in, or of the band those controls
     // take without a strip.

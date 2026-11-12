@@ -291,6 +291,15 @@ struct Capture
     }
 }
 
+// One decoded capture and its failure remain owned until the requesting window accepts them.
+struct CaptureLoadJob
+{
+    task:    Swag.Task
+    file:    String
+    capture: *Capture?
+    error:   Swag.Error
+}
+
 // Everything one save writes, snapshotted from the capture so a worker can
 // produce the container while the user keeps editing.
 struct CaptureSaveJob

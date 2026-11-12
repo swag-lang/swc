@@ -175,6 +175,47 @@ impl ApTracked
     // The 3 remaining elements are deallocated when 'arr' drops at scope end.
 }
 
+#test
+{
+    g_ApDropCount = 0
+
+    scope
+    {
+        var values: ArrayPtr'ApTracked
+        values.addNew().id = 1
+        values.addNew().id = 2
+        let capacity = values.capacity
+
+        values.clear()
+        Swag.require(values.isEmpty())
+        Swag.require(values.capacity == capacity)
+        Swag.require(g_ApDropCount == 2)
+    }
+
+    Swag.require(g_ApDropCount == 2)
+
+    scope
+    {
+        var values: ArrayPtr'ApTracked
+        let destroyed = values.addNew()
+        destroyed.id = 3
+        let transferred = values.addNew()
+        transferred.id = 4
+
+        values.destroy(destroyed)
+        Swag.require(values.count == 2 and g_ApDropCount == 3)
+
+        values.detachAll()
+        Swag.require(values.isEmpty() and g_ApDropCount == 3)
+        Swag.require(transferred.id == 4)
+
+        values.destroy(transferred)
+        Swag.require(g_ApDropCount == 4)
+    }
+
+    Swag.require(g_ApDropCount == 4)
+}
+
 var g_ApTotal: u64
 
 struct ApFlagged

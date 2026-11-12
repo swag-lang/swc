@@ -169,8 +169,11 @@ public impl RegExp
     // The returned string points into `str`.
     mtd partialMatch(str: string?)->string?
     {
-        if str == null do
+        if str == null
+        {
+            .clearMatchResult("")
             return null
+        }
 
         let subject = str orelse ""
         if not .search(subject, 0, true, false) do
@@ -183,8 +186,11 @@ public impl RegExp
     // The returned string points into `str`.
     mtd grep(str: string?)->string?
     {
-        if str == null do
+        if str == null
+        {
+            .clearMatchResult("")
             return null
+        }
 
         let subject = str orelse ""
         if not .search(subject, 0, false, false) do
@@ -231,8 +237,12 @@ public impl RegExp
         var result: #returntype
 
         let subject = str orelse ""
-        if start > subject.count do
+        if start > subject.count
+        {
+            .clearMatchResult(subject)
             return result
+        }
+
         if not .search(subject, start, false, false) do
             return result
 
@@ -396,6 +406,14 @@ public impl RegExp
 
 private impl RegExp
 {
+    mtd clearMatchResult(subject: string)
+    {
+        .matched    = false
+        .subject    = subject
+        .matchStart = 0
+        .matchEnd   = 0
+    }
+
     // Sets up the scan for a literal every match must contain, when looking for it stops on
     // fewer offsets than looking for the bytes a match can begin with.
     //
@@ -434,8 +452,7 @@ private impl RegExp
     // an automaton refuses it.
     mtd search(subject: string, start: u64, anchored, wholeSubject: bool)->bool
     {
-        .matched = false
-        .subject = subject
+        .clearMatchResult(subject)
 
         if not .compiled do
             return false
@@ -727,8 +744,7 @@ private impl RegExp
         if .prefilter.complete or .anchorOnCandidates or .program.anchoredStart do
             return 0
 
-        .matched = false
-        .subject = subject
+        .clearMatchResult(subject)
 
         let hay   = cast(const [..] u8, subject)
         let limit = subject.count

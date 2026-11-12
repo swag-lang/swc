@@ -1370,6 +1370,32 @@ using Swag
     Swag.require(spans[1].end == 12)
 }
 
+// A failed search from beyond the subject clears captures from the prior subject.
+#test
+{
+    var re  = expect Parser.RegExp.create("(a)")
+    let hit = re.find("a")
+    Swag.require(hit.found and re.getCapture(1) == "a")
+
+    let miss = re.find("x", 2)
+    Swag.require(not miss.found)
+    Swag.require(not re.captureSpan(0).found)
+    Swag.require(re.captures().isEmpty())
+    Swag.require(re.getCapture(1).count == 0)
+}
+
+#test
+{
+    var re = expect Parser.RegExp.create("(a)")
+    Swag.require(re.match("a"))
+    Swag.require(re.grep(null) == null)
+    Swag.require(not re.captureSpan(0).found and re.getCapture(1).count == 0)
+
+    Swag.require(re.match("a"))
+    Swag.require(re.partialMatch(null) == null)
+    Swag.require(not re.captureSpan(0).found and re.getCapture(1).count == 0)
+}
+
 #test
 {
     var parts = expect Parser.RegExp.create(#raw "(\w+)@(\w+)")

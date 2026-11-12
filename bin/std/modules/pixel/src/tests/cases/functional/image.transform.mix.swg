@@ -61,3 +61,49 @@ using Swag, Core
     let outside = dst.mixed(src, 8, -5, .Copy)
     Swag.require(Memory.compare(outside.pixels.storage(), dstPixels.buffer, dstPixels.count) == 0)
 }
+
+// SourceOver keeps small positive floating alpha values; only an exactly transparent result has
+// no color to unassociate.
+#test
+{
+    var dst         = Image.create(1, 1, .RGBAF32)
+    var src         = Image.create(1, 1, .RGBAF32)
+    var dstChannels = cast([*] f32, dst.pixels.storage())
+    var srcChannels = cast([*] f32, src.pixels.storage())
+    for channel in 4
+    {
+        dstChannels[channel] = 0
+        srcChannels[channel] = 0
+    }
+
+    srcChannels[0] = 1
+    srcChannels[3] = 0.00000001'f32
+
+    let mixed         = dst.mixed(src, 0, 0, .SourceOver)
+    let mixedChannels = cast(const [*] f32, mixed.pixels.storage())
+    Swag.require(mixedChannels[0] == 1.0'f32 and mixedChannels[3] == 0.00000001'f32)
+
+    let copied         = dst.mixed(src, 0, 0, .Copy)
+    let copiedChannels = cast(const [*] f32, copied.pixels.storage())
+    Swag.require(copiedChannels[0] == 1.0'f32 and copiedChannels[3] == 0.00000001'f32)
+
+    dst.mix(src, 0, 0, .SourceOver)
+    let inPlaceChannels = cast(const [*] f32, dst.pixels.storage())
+    Swag.require(inPlaceChannels[0] == 1.0'f32 and inPlaceChannels[3] == 0.00000001'f32)
+
+    var transparent         = Image.create(1, 1, .RGBAF32)
+    let transparentChannels = cast([*] f32, transparent.pixels.storage())
+    transparentChannels[0] = 0.7
+    transparentChannels[1] = 0.6
+    transparentChannels[2] = 0.5
+    transparentChannels[3] = 0
+    srcChannels[3]         = 0
+    let zeroResult   = transparent.mixed(src, 0, 0, .SourceOver)
+    let zeroChannels = cast(const [*] f32, zeroResult.pixels.storage())
+    Swag.require(zeroChannels[0] == 0 and zeroChannels[1] == 0 and zeroChannels[2] == 0 and zeroChannels[3] == 0)
+
+    const dstBytes = [0'u8, 0, 0, 0]
+    const srcBytes = [255'u8, 0, 0, 1]
+    let byteMix = makeImage(1, 1, .RGBA8, dstBytes).mixed(makeImage(1, 1, .RGBA8, srcBytes), 0, 0, .SourceOver)
+    assertPixel(byteMix, 0, 0, Color.fromArgb(1'u8, 255'u8, 0'u8, 0'u8))
+}

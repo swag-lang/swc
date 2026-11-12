@@ -105,6 +105,7 @@ impl BreadcrumbCtrl
 
         .items.add(#move it)
         .invalidate()
+        .invalidateLayout()
         return index
     }
 
@@ -128,6 +129,7 @@ impl BreadcrumbCtrl
         .pressEmpty = false
         .hotOverflow, .pressOverflow = false
         .invalidate()
+        .invalidateLayout()
     }
 
     // Changes body padding, icon spacing, and child-arrow padding.
@@ -140,6 +142,7 @@ impl BreadcrumbCtrl
         .iconGap  = iconSpacing
         .arrowPad = arrowPadding
         .invalidate()
+        .invalidateLayout()
     }
 
     // Recomputes per-level bounds in control-local coordinates.

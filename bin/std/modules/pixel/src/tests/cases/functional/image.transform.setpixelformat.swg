@@ -91,3 +91,25 @@ func checkRgbToRgba(width: s32, sourceFormat, destinationFormat: PixelFormat)
         }
     }
 }
+
+// Dropping alpha from a premultiplied byte image first restores its visible straight color.
+#test
+{
+    const pixels = [255'u8, 0, 0, 128]
+    let straight      = makeImage(1, 1, .RGBA8, pixels)
+    let premultiplied = straight.convertedAlphaTo(.Premultiplied)
+
+    let rgb = premultiplied.convertedTo(.RGB8)
+    assertImage(rgb, 1, 1, .RGB8)
+    Swag.require(rgb.alphaMode == .Straight)
+    assertPixel(rgb, 0, 0, Color.fromRgb(255'u8, 0'u8, 0'u8))
+
+    let gray = premultiplied.convertedTo(.Gray8)
+    assertPixel(gray, 0, 0, Color.fromRgb(54'u8, 54'u8, 54'u8))
+
+    var convertedInPlace = premultiplied
+    convertedInPlace.convertTo(.RGB8)
+    assertPixel(convertedInPlace, 0, 0, Color.fromRgb(255'u8, 0'u8, 0'u8))
+    Swag.require(premultiplied.alphaMode == .Premultiplied)
+    assertPixel(premultiplied, 0, 0, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
+}

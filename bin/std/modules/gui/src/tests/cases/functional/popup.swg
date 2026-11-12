@@ -143,19 +143,26 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 // create a scrollbar for content that is supposed to fit without scrolling.
 #test
 {
-    var host: Testing.HeadlessHost
-    host.setup(320, 240)
+    for scale in [1.0'f32, 1.25'f32, 1.5'f32, 1.75'f32, 2.0'f32]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(320, 240, scale)
 
-    let popup = PopupListCtrl.create(&host.root)
-    popup.itemHeight = 24.4
-    popup.addItem("Fractional row")
-    popup.show(20, 20, 100)
+        let popup = PopupListCtrl.create(&host.root)
+        popup.maximumHeight = 240
+        for count in 8
+        {
+            popup.itemHeight = 24.1 + cast(f32, count) * 0.1
+            popup.addItem("Fractional row")
+            popup.show(20, 20, 100)
 
-    Swag.require(popup.scrollWnd.scrollSize.y == 24.4)
-    Swag.require(popup.scrollWnd.scrollSize.y <= popup.scrollWnd.view.position.height)
-    host.app.setMouseCaptureRaw(null)
-    popup.destroy()
-    host.pump()
+            Swag.require(popup.scrollWnd.scrollSize.y <= popup.scrollWnd.view.position.height)
+        }
+
+        host.app.setMouseCaptureRaw(null)
+        popup.destroy()
+        host.pump()
+    }
 }
 
 // A list whose entries are painted samples opens with nothing highlighted.

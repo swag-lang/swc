@@ -16,6 +16,7 @@ struct RecentItem
     linkedUpToDate: bool
     duration:       u64     // Length of an animation, in microseconds; zero for a picture.
     preview:        Texture
+    ownerApp:       *Application?
     rect:           Math.Rectangle
     zoom:           f32
 }
@@ -24,8 +25,8 @@ impl RecentItem
 {
     mtd opDrop()
     {
-        if .preview.isValid() do
-            g_App.renderer.removeTexture(&.preview)
+        if .ownerApp do
+            .ownerApp.renderer.removeTexture(&.preview)
     }
 }
 
@@ -380,7 +381,9 @@ impl IWnd for RecentWnd
             {
                 capture.computePreview()
                 let item = unwrap .recentView.items[.recentView.selected]
-                .app().renderer.removeTexture(&item.preview)
+                if item.ownerApp do
+                    item.ownerApp.renderer.removeTexture(&item.preview)
+                item.ownerApp = .app()
                 item.preview = .app().renderer.addImage(capture.preview)
                 .invalidateRecentViews()
 
@@ -844,7 +847,9 @@ impl RecentWnd
                 if sel do
                     .recentView.requestSelect(idxSel)
 
-                .app().renderer.removeTexture(&itn.preview)
+                if itn.ownerApp do
+                    itn.ownerApp.renderer.removeTexture(&itn.preview)
+                itn.ownerApp = .app()
                 itn.preview = .app().renderer.addImage(preview)
                 itn.linked   = linked
                 itn.linkedUpToDate = linkedUpToDate
@@ -857,6 +862,7 @@ impl RecentWnd
         with let item = .recentView.items.allocate()
         {
             .preview        = me.app().renderer.addImage(preview)
+            .ownerApp       = me.app()
             .file           = file
             .linked         = linked
             .linkedUpToDate = linkedUpToDate

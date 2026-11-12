@@ -83,3 +83,19 @@ using Swag, Core
         }
     }
 }
+
+// A hand-placed AutoHeight label grows when its icon needs more room than the caption.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 160)
+
+    let label = Label.create(&host.root, "", {20, 20, 100, 0}, flags: .AutoHeight)
+    label.setIcon(host.theme.icon(.Folder, 48))
+    var needed = label.itf.measureContent(Math.Point{label.position.width, label.position.height}).y
+    Swag.require(needed <= label.position.height)
+
+    label.setIconPadding({1, 3, 1, 4})
+    needed = label.itf.measureContent(Math.Point{label.position.width, label.position.height}).y
+    Swag.require(needed <= label.position.height)
+}

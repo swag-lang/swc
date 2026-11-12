@@ -58,7 +58,7 @@ impl Image
                     {
                         let destination = readLogicalPixelValue(pixDst, dst.pixelFormat, dst.alphaMode)
                         output.a = source.a + destination.a * (1.0 - source.a)
-                        if Math.isZeroEpsilon(output.a)
+                        if output.a == 0.0
                         {
                             output = {0, 0, 0, 0}
                         }

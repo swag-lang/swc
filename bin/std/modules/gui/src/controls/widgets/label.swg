@@ -389,20 +389,24 @@ impl Label
         .updateAutomaticHeight()
     }
 
-    // Changes icon insets.
+    // Changes icon insets and updates layout and automatic height.
     mtd setIconPadding(padding: Math.Vector4)
     {
         if .iconPadding == padding do
             return
         .iconPadding = padding
         .invalidate()
+        .invalidateLayout()
+        .updateAutomaticHeight()
     }
 
-    // Changes the displayed icon.
+    // Changes the displayed icon and updates layout and automatic height.
     mtd setIcon(icon: Icon)
     {
         .icon = icon
         .invalidate()
+        .invalidateLayout()
+        .updateAutomaticHeight()
     }
 
     // Changes the fallback icon color; transparent restores the theme color.
@@ -421,7 +425,7 @@ impl Label
         .invalidate()
     }
 
-    // Recomputes height from current text, width, font, flags, and text padding.
+    // Recomputes height from current text and icon, width, font, flags, and both paddings.
     //
     // A label under a layout container does not need this: [[Gui.LabelFlags.AutoHeight]]
     // already hands the height to the measure pass. Call it for a label placed by hand,
@@ -450,7 +454,10 @@ impl Label
         var height = .name.boundRect.height
         if not .name.isEmpty() do
             height = Math.max(height, sf.font.regular!.height)
-        height += .padding.y + .textPadding.y + .textPadding.w + .padding.w
+        height += .textPadding.y + .textPadding.w
+        if .icon.isValid() do
+            height = Math.max(height, .icon.sizeY + .iconPadding.y + .iconPadding.w)
+        height += .padding.y + .padding.w
         .position.height = height
         .invalidateLayout()
     }

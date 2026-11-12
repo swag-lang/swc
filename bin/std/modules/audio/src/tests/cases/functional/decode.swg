@@ -113,3 +113,28 @@ func audioPcmPacketSound()->SoundFile fail
     Swag.require(voice.streamCurSeek == 0)
     Swag.require(not voice.stream.isOpen())
 }
+
+// PCM packet ranges accept an exact end boundary and reject overflow or a one-byte overrun.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-pcm-packet-bounds-%.bin", Guid128.random()))
+    defer discard catch File.delete(path)
+
+    const Source: [8] u8 = [1, 2, 3, 4, 5, 6, 7, 8]
+    expect File.writeAllBytes(path.toString(), Source)
+
+    const LastPacket: [1] SoundPacket = [SoundPacket{4, 4, 1}]
+    let valid = expect SoundFile.openPcmPacketStream(path.toString(), .Pcm16, 48_000, 2, LastPacket)
+    let bytes = expect valid.readPayload(0, 4)
+    Swag.require(Slice.equals(bytes.toSlice(), Source[4 to]))
+
+    const PastEnd: [1] SoundPacket = [SoundPacket{5, 4, 1}]
+    var pastEndError: Swag.Error
+    discard catch SoundFile.openPcmPacketStream(path.toString(), .Pcm16, 48_000, 2, PastEnd) as pastEndError
+    Swag.require(pastEndError.value() is Errors.InvalidFormatError)
+
+    const WrappedOffset: [1] SoundPacket = [SoundPacket{Swag.U64.Max, 4, 1}]
+    var wrappedOffsetError: Swag.Error
+    discard catch SoundFile.openPcmPacketStream(path.toString(), .Pcm16, 48_000, 2, WrappedOffset) as wrappedOffsetError
+    Swag.require(wrappedOffsetError.value() is Errors.InvalidFormatError)
+}

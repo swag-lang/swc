@@ -156,3 +156,19 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
         }
     }
 }
+
+// Growing combined capacity preserves the queue's logical order across both segments.
+#test
+{
+    var values: Deque's32
+    values.pushFront(1)
+    values.pushBack(2)
+    values.pushFront(0)
+
+    let expected: [3] s32 = [0, 1, 2]
+    let requested         = values.capacity() + 7
+    values.reserve(requested)
+
+    Swag.require(values.capacity() >= requested)
+    Swag.require(assertDeque(values, expected))
+}

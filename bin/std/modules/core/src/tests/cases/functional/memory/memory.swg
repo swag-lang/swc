@@ -90,3 +90,14 @@ func pushAllocatorAcceptsNull()->bool
     Swag.require(Memory.compare(target, source, 0) == 0)
     Swag.require(target == [5, 6, 7, 8])
 }
+
+#test
+{
+    var bytes: [6] u8 = [1, 2, 3, 4, 5, 6]
+    Memory.copyOverlapping(bytes.buffer + 1, bytes.buffer, 5)
+    Swag.require(bytes == [1, 1, 2, 3, 4, 5])
+
+    bytes = [1, 2, 3, 4, 5, 6]
+    Memory.copyOverlapping(bytes.buffer, bytes.buffer + 1, 5)
+    Swag.require(bytes == [2, 3, 4, 5, 6, 6])
+}

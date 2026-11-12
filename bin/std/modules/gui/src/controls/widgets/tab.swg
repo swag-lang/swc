@@ -801,6 +801,7 @@ impl Tab
         .items[index]!.name = name
         .sendResizeEvent()
         .invalidate()
+        .invalidateLayout()
     }
 
     // Sets the reading after the label of one tab, such as a count, or removes it with `null`,

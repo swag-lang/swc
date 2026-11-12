@@ -303,7 +303,9 @@ impl FilePlacesBar
 // Reports whether `folder` is `place` or lies under it; both are normalized.
 private func isInside(folder, place: string)->bool
 {
-    if not place.count or not Utf8.startsWith(folder, place, .Latin1NoCase) do
+    if not place.count or folder.count < place.count do
+        return false
+    if not Path.equals(folder[until place.count], place) do
         return false
     if folder.count == place.count or place[place.count - 1] == '/'u8 do
         return true

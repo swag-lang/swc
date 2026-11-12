@@ -395,6 +395,33 @@ using Swag, Core, File
     Swag.require(fb.currentFolder.toString() == target)
 }
 
+// Place membership follows target path case rules without confusing case-only siblings.
+#test
+{
+    let root   = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag-place-case-%", Guid64.random().toString()))
+    let place  = Path.combine(root, "Case")
+    let lower  = Path.combine(root, "case")
+    let folder = Path.combine(lower, "child")
+    expect Directory.create(place, recurse: true)
+    if not Path.equals(place.toString(), lower.toString()) do
+        expect Directory.create(lower)
+    expect Directory.create(folder, recurse: true)
+    defer discard catch Directory.delete(root.toString(), recurse: true)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 460)
+    var options: FileDlgOptions
+    options.mode          = .SelectFile
+    options.showDrives    = false
+    options.initialFolder = folder.toString()
+    let browser = FileBrowserCtrl.create(&host.root, options, {0, 0, 600, 400})
+    let places  = unwrap browser.placesBar
+    places.addPlace("Case", place.toString())
+
+    let expectedIndex = Path.equals(place.toString(), lower.toString()) ? places.stops.count - 1 : Swag.U64.Max
+    Swag.require(places.currentIndex() == expectedIndex)
+}
+
 // Drives stay on the main row, and choosing Downloads from More Places navigates to its folder.
 #test
 {

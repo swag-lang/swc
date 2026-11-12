@@ -233,6 +233,14 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
         epoch.addMilliseconds(-1)
     })
     Swag.require(removeOverflow.raised and removeOverflow.message() == "ticks overflow")
+
+    let epochTicks    = epoch.ticks
+    let minimumOffset = Swag.catchPanic(func|&epoch|()
+    {
+        epoch.addMilliseconds(Swag.S32.Min)
+    })
+    Swag.require(minimumOffset.raised and minimumOffset.message() == "ticks overflow")
+    Swag.require(epoch.ticks == epochTicks)
 }
 
 #test

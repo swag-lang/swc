@@ -94,6 +94,21 @@ func expectNear(actual, expected: f32)
     expectVec2(pointAndSegment.first, {2, 2})
     expectVec2(pointAndSegment.second, {2, 0})
     expectNear(pointAndSegment.distance, 2)
+
+    let segmentAndPoint = Math.Geometry.closestPointsBetweenSegments({0, 0}, {4, 0}, {2, 2}, {2, 2})
+    expectVec2(segmentAndPoint.first, {2, 0})
+    expectVec2(segmentAndPoint.second, {2, 2})
+    expectNear(segmentAndPoint.distance, 2)
+
+    let twoPoints = Math.Geometry.closestPointsBetweenSegments({1, 2}, {1, 2}, {4, 6}, {4, 6})
+    expectVec2(twoPoints.first, {1, 2})
+    expectVec2(twoPoints.second, {4, 6})
+    expectNear(twoPoints.distance, 5)
+
+    let reversedPoints = Math.Geometry.closestPointsBetweenSegments({4, 6}, {4, 6}, {1, 2}, {1, 2})
+    expectVec2(reversedPoints.first, {4, 6})
+    expectVec2(reversedPoints.second, {1, 2})
+    expectNear(reversedPoints.distance, 5)
 }
 
 #test

@@ -309,7 +309,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   reliable latency control.
   Reusing per-slice scratch storage took 4.02–4.19 seconds against 4.11 seconds with
   local arrays on one Windows checkout, with identical 15.33 MB packets. The difference
-  is below run variation, so the scratch experiment was removed.
+  is below run variation, so that scratch experiment was removed. Direct, persistent
+  per-slice motion, PCM and residual arrays now avoid allocating those tables for every
+  picture. A later Release 3840x2160 on/off/on run took 2.726/2.920/2.753 seconds for
+  100 changing QP 18 P pictures and 2.799/2.972/2.786 seconds at QP 28, with the same
+  packet byte counts. The 42 focused H.264 functional tests and two 4K stress tests passed;
+  a 30-second full-desktop Swag Capture file decoded 901 pictures without missed slots.
+  The earlier scratch attempt exchanged local arrays; this version accesses encoder-owned
+  arrays directly, and the measured gain is confined to this workload.
 - Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
   quantized luma/chroma residuals and avoid unused result copies on changing screens,
   then remeasure the complete 1080p60 and 4K60 paths.

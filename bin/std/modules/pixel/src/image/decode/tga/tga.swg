@@ -61,6 +61,8 @@ func isMonoType(imageType: u8)->bool => imageType == TYPE_MONO or imageType == T
 
 func isRleType(imageType: u8)->bool => imageType == TYPE_RLE_MAP or imageType == TYPE_RLE_RGB or imageType == TYPE_RLE_MONO
 
+func hasAttributeBits(header: Header)->bool => (header.descriptorByte & DESC_ALPHA_MASK) != 0
+
 func sourcePixelBytes(header: Header)->u8 fail
 {
     if isMappedType(header.imageTypeCode)
@@ -227,7 +229,7 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
     case 15: writeTga16Pixel(dst, cast(const *u16, src)[], false, false)
     case 16: writeTga16Pixel(dst, cast(const *u16, src)[], true, (header.descriptorByte & DESC_ALPHA_MASK) != 0)
     case 24: writeBgrPixel(dst, src[0], src[1], src[2])
-    case 32: writeBgraPixel(dst, src[0], src[1], src[2], src[3])
+    case 32: writeBgraPixel(dst, src[0], src[1], src[2], hasAttributeBits(header) ? src[3] : 255'u8)
     }
 }
 
@@ -264,7 +266,8 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         return
     }
 
-    if header.imageTypeCode == TYPE_RGB and (header.bitsPerPixel == 24 or header.bitsPerPixel == 32)
+    if header.imageTypeCode == TYPE_RGB and
+       (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
     {
         let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
         let rowBytes    = cast(u64, result.width) * pixelBytes
@@ -302,7 +305,8 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     var index: u64
     var p = src
 
-    if header.imageTypeCode == TYPE_RLE_RGB and (header.bitsPerPixel == 24 or header.bitsPerPixel == 32)
+    if header.imageTypeCode == TYPE_RLE_RGB and
+       (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
     {
         let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
         while index < pixelCount

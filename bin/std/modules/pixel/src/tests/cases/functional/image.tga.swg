@@ -317,7 +317,10 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         for rightMode in 2
         {
             var cb: ConcatBuffer
-            addTgaImageHeader(&cb, TGA_TYPE_RGB, bpp, TGA_DESC_TOP | (rightMode ? TGA_DESC_RIGHT : 0), Width, Height)
+            let descriptor = TGA_DESC_TOP |
+                             (rightMode ? TGA_DESC_RIGHT : 0) |
+                             (bpp == 32 ? 8'u8 : 0'u8)
+            addTgaImageHeader(&cb, TGA_TYPE_RGB, bpp, descriptor, Width, Height)
             for pixel in cast(u64, Width) * Height
             {
                 for channel in bytesPerPixel do
@@ -337,6 +340,32 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
                 for channel in bytesPerPixel do
                     Swag.require(img.pixels.storage()[offset + channel] == cast(u8, ((pixel * 29 + channel * 71 + 13) & 0xFF)))
             }
+        }
+    }
+}
+
+// A 32-bit sample's last byte is alpha only when the descriptor declares attribute bits.
+#test
+{
+    for rle in 2
+    {
+        for alphaBits in [0'u8, 8'u8]
+        {
+            var cb: ConcatBuffer
+            let imageType = rle ? TGA_TYPE_RLE_RGB : TGA_TYPE_RGB
+            addTgaImageHeader(&cb, imageType, 32, alphaBits, 1, 1)
+            if rle do
+                cb.addNative(0'u8)     // One raw RLE packet.
+            cb.addNative(10'u8)
+            cb.addNative(20'u8)
+            cb.addNative(30'u8)
+            cb.addNative(37'u8)
+
+            let image = expect Image.decode("alpha-depth.tga", nnBytes(cb.toSlice()), {})
+            Swag.require(image.pixelFormat == .BGRA8)
+            Swag.require(image.pixels.count == 4)
+            Swag.require(image.pixels[0] == 10 and image.pixels[1] == 20 and image.pixels[2] == 30)
+            Swag.require(image.pixels[3] == (alphaBits == 0 ? 255'u8 : 37'u8))
         }
     }
 }
@@ -663,7 +692,9 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         {
             for rightMode in 2
             {
-                let descriptor = (topMode ? TGA_DESC_TOP : 0) | (rightMode ? TGA_DESC_RIGHT : 0)
+                let descriptor = (topMode ? TGA_DESC_TOP : 0) |
+                                 (rightMode ? TGA_DESC_RIGHT : 0) |
+                                 (bpp == 32 ? 8'u8 : 0'u8)
                 var cb:       ConcatBuffer
                 var expected: Array'u8
                 expected.resize(Pixels * bytesPerPixel)

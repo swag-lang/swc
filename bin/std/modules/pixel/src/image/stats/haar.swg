@@ -262,8 +262,8 @@ public func quickExtractHaarFeatures(image: Image, windowSize: u32 = 32)->HaarFe
     grayData.resize(windowSize * windowSize)
     let grayBuf = grayData.storage()
 
-    let stepX = Math.max(1.0, cast(f32, image.width) / cast(f32, windowSize))
-    let stepY = Math.max(1.0, cast(f32, image.height) / cast(f32, windowSize))
+    let stepX = cast(f32, image.width) / cast(f32, windowSize)
+    let stepY = cast(f32, image.height) / cast(f32, windowSize)
 
     for y in windowSize
     {

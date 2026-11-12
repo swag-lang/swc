@@ -41,3 +41,41 @@ using Swag, Core
     Swag.require(largeFeatures.size == 128)
     Swag.require(Math.abs(largeFeatures.coefficients[0] - 128 * (64.0 / 255.0)) < 0.001)
 }
+
+// The quick nearest-neighbor thumbnail scales small images across the full window on both axes.
+#test
+{
+    var vertical   = Image.create(3, 3, .Gray8)
+    var horizontal = Image.create(3, 3, .Gray8)
+    for y in 3
+    {
+        for x in 3
+        {
+            vertical.pixels.storage()[y * 3 + x]   = x == 1 ? 255 : 0
+            horizontal.pixels.storage()[y * 3 + x] = y == 1 ? 255 : 0
+        }
+    }
+
+    let verticalFeatures   = ImageStatistics.quickExtractHaarFeatures(vertical)
+    let horizontalFeatures = ImageStatistics.quickExtractHaarFeatures(horizontal)
+    Swag.require(verticalFeatures.size == 32 and horizontalFeatures.size == 32)
+    Swag.require(Math.abs(verticalFeatures.coefficients[0] - 11) < 0.01)
+    Swag.require(Math.abs(horizontalFeatures.coefficients[0] - 11) < 0.01)
+}
+
+// A one-pixel edge image expands uniformly, and an equal-size thumbnail keeps its luminance.
+#test
+{
+    var single = Image.create(1, 1, .Gray8)
+    single.pixels.storage()[0] = 80
+    let singleFeatures = ImageStatistics.quickExtractHaarFeatures(single)
+    Swag.require(Math.abs(singleFeatures.coefficients[0] - 32 * (80.0 / 255.0)) < 0.001)
+    for index in 1 until singleFeatures.coefficients.count do
+        Swag.require(Math.abs(singleFeatures.coefficients[index]) < 0.001)
+
+    var equalSize = Image.create(32, 32, .Gray8)
+    for index in equalSize.byteCount do
+        equalSize.pixels.storage()[index] = 64
+    let equalFeatures = ImageStatistics.quickExtractHaarFeatures(equalSize)
+    Swag.require(Math.abs(equalFeatures.coefficients[0] - 32 * (64.0 / 255.0)) < 0.001)
+}

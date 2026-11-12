@@ -52,6 +52,20 @@ using Core
 
 #test
 {
+    for invalid in ["http://.example.com/", "http://example..com/", "http://-bad.example/",
+                    "http://bad-.example/", "http://bad_name.example/"]
+    {
+        var error: Swag.Error
+        discard catch Url.parseHttp(invalid) as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+
+    Swag.require(expect Url.parseHttp("http://localhost/").host == "localhost")
+    Swag.require(expect Url.parseHttp("http://example.com./").host == "example.com.")
+}
+
+#test
+{
     for invalid in ["%", "%0", "%GG"]
     {
         var error: Swag.Error

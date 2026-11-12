@@ -52,15 +52,34 @@ func parseHttp(text: string)->HttpTarget fail
     let host      = colon == Swag.U64.Max ? authority : authority[0 until colon]
     if host.count == 0 do
         fail Errors.InvalidFormatError{}
-    for c in host
+    var labelStart = 0'u64
+    var hostIndex  = 0'u64
+    while hostIndex < host.count
     {
-        if not ((c >= 'a' and c <= 'z') or
-                (c >= 'A' and c <= 'Z') or
-                Latin1.isDigit(c) or
-                c == '.' or
-                c == '-') do
-            fail Errors.InvalidFormatError{}
+        let c = host[hostIndex]
+        if c == '.'
+        {
+            if hostIndex == labelStart do
+                fail Errors.InvalidFormatError{}
+            if host[hostIndex - 1] == '-' or hostIndex - labelStart > 63 do
+                fail Errors.InvalidFormatError{}
+            labelStart = hostIndex + 1
+        }
+        else
+        {
+            if not ((c >= 'a' and c <= 'z') or
+                    (c >= 'A' and c <= 'Z') or
+                    Latin1.isDigit(c) or
+                    (c == '-' and hostIndex != labelStart)) do
+                fail Errors.InvalidFormatError{}
+        }
+
+        hostIndex += 1
     }
+
+    if labelStart < host.count and
+       (host.count - labelStart > 63 or host[host.count - 1] == '-') do
+        fail Errors.InvalidFormatError{}
 
     result.host = String.toLower(host)
     if colon != Swag.U64.Max

@@ -250,7 +250,10 @@ private func webCaptureQuality()->VideoQuality
                     Console.println("DXGI work: acquired=", metrics.acquiredFrames,
                                     " unchanged=", metrics.unchangedFrames,
                                     " acquire_us=", metrics.acquireMicroseconds,
+                                    " max_acquire_us=", metrics.maxAcquireMicroseconds,
                                     " readback_us=", metrics.readbackMicroseconds,
+                                    " max_readback_us=", metrics.maxReadbackMicroseconds,
+                                    " coalesced_updates=", metrics.coalescedUpdates,
                                     " copy_us=", metrics.copyMicroseconds,
                                     " output_us=", metrics.outputMicroseconds,
                                     " compose_us=", metrics.composeMicroseconds)
@@ -561,7 +564,10 @@ private func webCaptureQuality()->VideoQuality
                                 " partial=", metrics.partialFrames,
                                 " copied_pixels=", metrics.copiedPixels,
                                 " acquire_us=", metrics.acquireMicroseconds,
+                                " max_acquire_us=", metrics.maxAcquireMicroseconds,
                                 " readback_us=", metrics.readbackMicroseconds,
+                                " max_readback_us=", metrics.maxReadbackMicroseconds,
+                                " coalesced_updates=", metrics.coalescedUpdates,
                                 " copy_us=", metrics.copyMicroseconds,
                                 " output_us=", metrics.outputMicroseconds,
                                 " compose_us=", metrics.composeMicroseconds)

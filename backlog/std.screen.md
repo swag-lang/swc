@@ -59,7 +59,11 @@ continues to own media frames and codecs, not desktop access.
   composition time but coincided with longer GPU readback and more missed slots; that change was
   removed. Multi-output acquisition now submits both GPU readbacks before mapping either staging
   texture. Native tests cover abort and final composed pixels; short full-desktop recordings can
-  run without missed slots, but sustained cadence remains sensitive to machine load.
+  run without missed slots, but sustained cadence remains sensitive to machine load. DXGI now
+  reports coalesced desktop updates and maximum acquisition/readback waits separately. A
+  30-second moving-fixture full-desktop recording decoded 901 pictures at 4096x1156 with no
+  missed slots. A 60-second run decoded 1778 pictures, missed 49 slots, and had one 302 ms
+  readback wait with no source failures; short runs can conceal GPU stalls.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous

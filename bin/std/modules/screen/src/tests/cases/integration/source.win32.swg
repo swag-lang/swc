@@ -34,6 +34,10 @@ using Core, Pixel
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false,
                                         updateChangedOnly: true))
+    let firstMetrics = source.metrics()
+    Swag.require(firstMetrics.maxReadbackMicroseconds > 0 and
+                 firstMetrics.maxReadbackMicroseconds <= firstMetrics.readbackMicroseconds and
+                 firstMetrics.maxAcquireMicroseconds <= firstMetrics.acquireMicroseconds)
     for 12
     {
         discard expect source.grabInto(&image, copyUnchanged: false,

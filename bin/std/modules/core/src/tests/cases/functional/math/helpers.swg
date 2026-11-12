@@ -9,6 +9,7 @@ using Swag
     Swag.require(Math.clamp(-1, 0, 10) == 0)
     Swag.require(Math.clamp(11, 0, 10) == 10)
     Swag.require(Math.clamp(2.5'f32, 3'f32, 4'f32) == 3'f32)
+    Swag.require(Math.clamp(5, 10, 0) == 10)
 
     Swag.require(Math.min(5, 2) == 2)
     Swag.require(Math.max(5, 2) == 5)

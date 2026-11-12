@@ -325,10 +325,18 @@ impl Sps
             // samples on both axes in 4:2:0 and one in 4:4:4, whose chroma planes are the size
             // of luma. Keep luma pixels.
             let unit = 1's32 << .chromaShift()
-            .cropLeft   = cast(s32, bits.ue()) * unit
-            .cropRight  = cast(s32, bits.ue()) * unit
-            .cropTop    = cast(s32, bits.ue()) * unit
-            .cropBottom = cast(s32, bits.ue()) * unit
+            let cropLeft   = cast(u64, bits.ue()) * cast(u64, unit)
+            let cropRight  = cast(u64, bits.ue()) * cast(u64, unit)
+            let cropTop    = cast(u64, bits.ue()) * cast(u64, unit)
+            let cropBottom = cast(u64, bits.ue()) * cast(u64, unit)
+            let codedWidth  = cast(u64, .mbWidth) * 16
+            let codedHeight = cast(u64, .mbHeight) * 16
+            if cropLeft + cropRight >= codedWidth or cropTop + cropBottom >= codedHeight do
+                fail InvalidFormatError{"H.264 cropping exceeds the coded picture"}
+            .cropLeft   = cast(s32, cropLeft)
+            .cropRight  = cast(s32, cropRight)
+            .cropTop    = cast(s32, cropTop)
+            .cropBottom = cast(s32, cropBottom)
         }
 
         // The first VUI fields describe colour range and matrix. Later timing and HRD

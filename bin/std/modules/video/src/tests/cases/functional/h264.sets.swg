@@ -29,3 +29,15 @@ using Core
     Swag.require(full.cropBottom == 6)
     Swag.require(full.width() == 96 and full.height() == 58)
 }
+
+// Extreme 4:4:4 crop offsets must not wrap through signed dimensions and reach frame export.
+#test
+{
+    const OverflowCrop = [0xF4'u8, 0x00, 0x0A, 0x91, 0x97, 0x7C, 0x00, 0x00,
+                          0x00, 0x04, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00,
+                          0x00, 0x08, 0x00, 0x00, 0x00, 0x1D]
+    var sps: H264.Sps
+    var rejected: Swag.Error
+    discard catch sps.parse(OverflowCrop) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}

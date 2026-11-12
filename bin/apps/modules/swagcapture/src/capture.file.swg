@@ -237,6 +237,18 @@ impl Capture
         .changed = false
     }
 
+    // Writes a newly recovered video document without touching the live editor's save lane.
+    // The caller owns this detached capture and has verified the document does not exist.
+    internal mtd saveRecoveredDocument() fail
+    {
+        if File.exists(.file) do
+            fail Core.Errors.BadParameterError{"the recovered capture document already exists"}
+        let job = try .snapshotSave()
+        defer Memory.delete(job)
+        try writeScc(job)
+        .changed = false
+    }
+
     // Captures everything a save writes, so the file can be produced without reading
     // the live capture again. Runs on the interface thread: the document model is
     // encoded now because the forms may change under a worker, and the images are

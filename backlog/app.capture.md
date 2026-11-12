@@ -258,9 +258,14 @@ whole recording loaded at once.
   editor replay and a forced 250 ms interface stall decoded 179 frames and missed one slot. The
   scene and display activity varied, so these timings are diagnostic rather than a throughput
   guarantee.
-  `recordVideo` deletes `fileToDiscard` on failure until adoption succeeds, even when completed
-  MP4 fragments already exist. A stopped process can leave a playable orphan MP4, but library
-  enumeration does not discover it without its capture document and the app has no recovery flow.
+  `recordVideo` now preserves a fragmented MP4 once frames exist, finalizes what it can after
+  late producer or audio errors, and returns an editable capture when that prefix is readable.
+  A failure toast exposes the retained file in the explorer. On startup and when the library
+  folder changes, a serial background scan recognizes orphan `video-<capture-stem>.mp4` files,
+  rebuilds SCC documents for readable prefixes in batches of four, and refreshes the library.
+  A functional test recovers a flushed, unfinalized MP4; a native journey checks the recovered
+  library entry.
+  A separate-process termination/reopen run remains to be done.
   `VideoCaptureSession` inherits one video/AAC packet per fragment and no final random-access
   index. Two hours at 30 fps with one 48 kHz audio track means about 554,000 fragment headers.
   `Video.Reader` scans headers and builds sample tables when opening; the editor decodes on the
@@ -269,10 +274,9 @@ whole recording loaded at once.
   sudden disk errors, source loss and process termination have not been verified as one native
   application lifecycle. Intermittent generated X11 test stalls remain unisolated around startup,
   H.264 access-unit preparation and decode workers; instrumentation changes their location.
-- Next: first retain completed media on recording/finalization/adoption errors and make an orphan
-  MP4 recoverable as a capture; only explicit cancellation should discard useful media. Add a
-  focused fault-injection test and a separate-process termination/reopen scenario.
-  Then measure a moving 1080p30 browser source with audio under sustained load, select a bounded
+- Next: add a separate-process termination/reopen scenario for recovery, including a fragment
+  interrupted in mid-write. Then measure a moving 1080p30 browser source with audio under
+  sustained load, select a bounded
   recording-quality policy, and reduce multi-monitor readback and copying through std.screen.002
   before promising 30 fps for large or multi-monitor areas.
   Group fragments within a stated recovery-loss budget, emit the final key-frame index and use

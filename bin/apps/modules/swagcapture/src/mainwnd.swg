@@ -156,6 +156,9 @@ struct MainWnd
     exportSource, exportDestination: String
     exportLinked: bool
     imageWriteJob: *CaptureImageWriteJob?
+    videoRecoveryJob: *CaptureVideoRecoveryJob?
+    videoRecoveryFolder: String
+    videoRecoveryCount: u64
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -234,6 +237,12 @@ impl IWnd for MainWnd
         if imageWrite and evt.task == &imageWrite.task
         {
             .finishLibraryImageWrite(imageWrite)
+            return
+        }
+        let recovery = .videoRecoveryJob
+        if recovery and evt.task == &recovery.task
+        {
+            .finishVideoRecovery(recovery)
             return
         }
         evt.accepted = false
@@ -344,6 +353,14 @@ impl IWnd for MainWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        if .videoRecoveryJob
+        {
+            let job = .videoRecoveryJob
+            .videoRecoveryJob = null
+            job.task.cancel()
+            job.task.wait()
+            Memory.delete(job)
+        }
         if .imageWriteJob
         {
             let job = .imageWriteJob
@@ -473,13 +490,73 @@ impl IWnd for MainWnd
 
     mtd impl onFrameEvent(evt: *FrameEvent)
     {
-        if evt.firstFrame do
+        if evt.firstFrame
+        {
             .quickWnd.setDefault()
+            .startVideoRecovery()
+        }
     }
 }
 
 impl MainWnd
 {
+    // Recovers only this library's orphan video companions, one at a time on a worker.
+    mtd startVideoRecovery()
+    {
+        if .videoRecoveryJob do
+            return
+        let folder = Library.getFolder()
+        if .videoRecoveryFolder == folder or not Directory.exists(folder) do
+            return
+        .videoRecoveryFolder = folder
+        let job = Memory.new'CaptureVideoRecoveryJob()
+        job.folder = folder
+        .videoRecoveryJob = job
+        job.task.submit(func|job|()
+        {
+            catch { job.recovered = try Library.recoverOrphanVideos(job.folder) } as job.error
+        }, .taskNotifier(&job.task))
+    }
+
+    private mtd finishVideoRecovery(job: *CaptureVideoRecoveryJob)
+    {
+        .videoRecoveryJob = null
+        let count = job.recovered.count
+        let current = Path.equals(job.folder, Library.getFolder())
+        let failed = not job.error.isEmpty()
+        Memory.delete(job)
+        if not current do
+            .videoRecoveryCount = 0
+        if current and count
+        {
+            g_Library.fill()
+            if .libraryMode do
+                .libWnd.fill()
+            .videoRecoveryCount += count
+        }
+        if current and count == VideoRecoveryBatchSize
+        {
+            .videoRecoveryFolder.clear()
+            .startVideoRecovery()
+            return
+        }
+        if .videoRecoveryCount
+        {
+            let total = .videoRecoveryCount
+            .videoRecoveryCount = 0
+            let message = total == 1 ? appStrings().msg_RecoveredVideo :
+                                     Format.toString(appStrings().msg_RecoveredVideos, total)
+            .confirm(message, "", appStrings().act_Library, func|main = me|()
+            {
+                if not main.libraryMode do
+                    main.swapLibraryMode()
+            })
+        }
+        if failed do
+            .reportFailure(appStrings().msg_FailedRecoverVideos)
+        .startVideoRecovery()
+    }
+
     // Loads a library document on a worker after the destination has been chosen.
     mtd requestLibraryExport(source: String, destination: String, linked: bool)
     {
@@ -1358,12 +1435,24 @@ impl MainWnd
     }
 
     // Says in a toast with a critical dot that `message` could not be done.
-    mtd reportFailure(message: string, detail: string = "")
+    mtd reportFailure(message: string, detail: string = "", action: string = "", onAction: (func||())? = null)
     {
         if .toast == null do
             return
-        .toastAction = null
-        .toast.show(message, detail, .Failure)
+        .toastAction = onAction
+        .toast.show(message, detail, .Failure, action)
+    }
+
+    // Keeps the location of an interrupted video available from its failure toast.
+    mtd reportRetainedVideo(path: String)
+    {
+        .savedPaths.add(path)
+        let index = .savedPaths.count - 1
+        .reportFailure(appStrings().msg_VideoKeptAfterError, Path.fileName(path) orelse "",
+                       appStrings().act_Show, func|main = me, index|()
+        {
+            discard Env.showInFileExplorer(main.savedPaths[index])
+        })
     }
 
     // Briefly names an operation that continues after its initiating gesture returns.

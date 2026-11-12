@@ -125,6 +125,10 @@ hint_AimAttach         suivre la fenêtre
 hint_AimFormat         changer le format
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
+msg_VideoKeptAfterError Enregistrement arrêté après une erreur ; le fichier vidéo a été conservé
+msg_RecoveredVideo Un enregistrement vidéo interrompu a été restauré dans la bibliothèque
+msg_RecoveredVideos % enregistrements vidéo interrompus ont été restaurés dans la bibliothèque
+msg_FailedRecoverVideos Impossible de vérifier les enregistrements vidéo interrompus
 msg_VideoStoppedForStorage Enregistrement arrêté car le disque est presque plein
 msg_VideoExportDifferentFile Choisissez un autre fichier pour la vidéo exportée. L'original appartient à cette capture.
 tip_VideoPauseUnavailable La pause n'est pas disponible pour la vidéo

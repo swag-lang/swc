@@ -319,6 +319,14 @@ struct CaptureImageWriteJob
     error: Swag.Error
 }
 
+struct CaptureVideoRecoveryJob
+{
+    task: Swag.Task
+    folder: String
+    recovered: Array'String
+    error: Swag.Error
+}
+
 // Everything one save writes, snapshotted from the capture so a worker can
 // produce the container while the user keeps editing.
 struct CaptureSaveJob

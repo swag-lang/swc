@@ -4,6 +4,23 @@
 
 using Core, Pixel
 
+// Aborting an in-flight readback releases its DXGI frame and texture.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    let monitors = Env.getMonitors()
+    if not monitors.count do
+        return
+    let bounds = monitors[0].physicalBounds
+    var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
+                                     cast(s32, bounds.width), cast(s32, bounds.height), false})
+    let native = source.sources[0]
+    Swag.require(expect native.beginGrab())
+    Swag.require(native.pending)
+    native.abortGrab()
+    Swag.require(not native.pending and native.pendingResource == null and native.pendingTexture == null)
+}
+
 // A single output reuses its composed frame and updates a stable caller image.
 #[Swag.TestTag("integration.host.windows")]
 #test
@@ -46,11 +63,15 @@ using Core, Pixel
     var source = expect Source.open({left, top, right - left, Math.min(bottom - top, 128), false})
     var image: Image
     discard expect source.grabInto(&image)
+    for native in source.sources do
+        Swag.require(not native.pending)
     Swag.require(image.width == right - left and image.height == Math.min(bottom - top, 128))
     Swag.require(image.pixelFormat == .BGRA8 and image.byteCount > 0)
     var untouched = Image.create(image.width, image.height, .BGRA8)
     Memory.set(untouched.pixels.storage(), 0x5A, untouched.byteCount)
     let changed = expect source.grabInto(&untouched, copyUnchanged: false)
+    for native in source.sources do
+        Swag.require(not native.pending)
     if not changed
     {
         for byte in untouched.pixels do
@@ -72,6 +93,8 @@ using Core, Pixel
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false,
                                         updateChangedOnly: true))
+    for native in source.sources do
+        Swag.require(not native.pending)
     Swag.require(image.width == width and image.height == height)
     Swag.require(image.pixelFormat == .BGRA8)
     if source.sources.count > 1
@@ -80,6 +103,8 @@ using Core, Pixel
         {
             discard expect source.grabInto(&image, copyUnchanged: false,
                                            updateChangedOnly: true)
+            for native in source.sources do
+                Swag.require(not native.pending)
             Swag.require(Memory.compare(image.pixels.storage(), source.composed.pixels.storage(),
                                         image.byteCount) == 0,
                          "incremental output differs from the composed desktop")

@@ -52,11 +52,43 @@ struct NativeSource
     dirtyRects:   Array'RECT
     moveRects:    Array'DXGI_OUTDUPL_MOVE_RECT
     updatedBounds: RECT
+    pendingResource:           *IDXGIResource?
+    pendingTexture:            *ID3D11Texture2D?
+    pendingLeft:               u32
+    pendingTop:                u32
+    pendingRight:              u32
+    pendingBottom:             u32
+    pendingSubmitMicroseconds: u64
+    pending:                   bool
     metrics:      SourceMetrics
 }
 
 impl NativeSource
 {
+    mtd abortGrab()
+    {
+        if not .pending do
+            return
+        release(.pendingTexture)
+        release(.pendingResource)
+        let duplication = unwrap .duplication
+        discard duplication.lpVtbl.ReleaseFrame(duplication)
+        .pendingTexture  = null
+        .pendingResource = null
+        .pending         = false
+    }
+
+    mtd flushReadback()
+    {
+        if .pending
+        {
+            let context = unwrap .context
+            let start = Time.monotonicMicroseconds()
+            context.lpVtbl.Flush(context)
+            .pendingSubmitMicroseconds += Time.monotonicMicroseconds() - start
+        }
+    }
+
     private mtd includeChangedRect(changed: *ChangedBounds, rect: RECT, captureX, captureY: s32)
     {
         let left = Math.max(rect.left, captureX)
@@ -204,11 +236,12 @@ impl NativeSource
         return result
     }
 
-    mtd grabInto(target: *Image, destinationX: u64, destinationBottom: u64)->bool fail
+    // Starts GPU readback without waiting for the mapped pixels.
+    mtd beginGrab()->bool fail
     {
+        Swag.assert(not .pending)
         .updatedBounds = RECT{}
         let duplication = unwrap .duplication
-        let firstFrame = not .hasLast
         var info: DXGI_OUTDUPL_FRAME_INFO
         var resource: *IDXGIResource?
         let acquireStart = Time.monotonicMicroseconds()
@@ -224,13 +257,14 @@ impl NativeSource
         }
         if status < 0 do
             fail SystemError{"screen capture output was lost", errorID: cast(u64, cast #bit (u32, status))}
-        defer discard duplication.lpVtbl.ReleaseFrame(duplication)
+        .pending = true
+        .pendingResource = resource
         let frameResource = unwrap resource
-        defer release(frameResource)
         if info.LastPresentTime == 0 and .hasLast
         {
             .metrics.unchangedFrames += 1
             // A pointer-only update does not change desktop pixels.
+            .abortGrab()
             return false
         }
         .metrics.acquiredFrames += 1
@@ -255,6 +289,7 @@ impl NativeSource
                 if not changed.changed
                 {
                     .metrics.unchangedFrames += 1
+                    .abortGrab()
                     return false
                 }
                 copyLeft = cast(u32, changed.bounds.left)
@@ -271,45 +306,63 @@ impl NativeSource
         let textureId = IID_ID3D11Texture2D
         let unknown = cast(*IUnknown, cast(*void, frameResource))
         let queried = unknown.lpVtbl.QueryInterface(unknown, &textureId, &raw)
-        if queried < 0 do
+        if queried < 0
+        {
+            .abortGrab()
             fail SystemError{"screen capture frame is not a texture", errorID: cast(u64, cast #bit (u32, queried))}
+        }
         let texture = cast(*ID3D11Texture2D, unwrap raw)
-        defer release(texture)
+        .pendingTexture = texture
 
         let box = D3D11_BOX{x + copyLeft, y + copyTop, 0,
                             x + copyRight, y + copyBottom, 1}
         let context = unwrap .context
         let staging = unwrap .staging
-        let readbackStart = Time.monotonicMicroseconds()
+        let submitStart = Time.monotonicMicroseconds()
         context.lpVtbl.CopySubresourceRegion(context, cast(*ID3D11Resource, cast(*void, staging)),
                                              0, copyLeft, copyTop, 0,
                                              cast(*ID3D11Resource, cast(*void, texture)), 0, &box)
+        .pendingSubmitMicroseconds = Time.monotonicMicroseconds() - submitStart
+        .pendingLeft   = copyLeft
+        .pendingTop    = copyTop
+        .pendingRight  = copyRight
+        .pendingBottom = copyBottom
+        return true
+    }
+
+    // Maps an earlier GPU copy and writes it into the composed bottom-up image.
+    mtd finishGrab(target: *Image, destinationX: u64, destinationBottom: u64) fail
+    {
+        Swag.assert(.pending)
+        defer .abortGrab()
+        let context = unwrap .context
+        let staging = unwrap .staging
         var mapped: D3D11_MAPPED_SUBRESOURCE
+        let readbackStart = Time.monotonicMicroseconds()
         let mapStatus = context.lpVtbl.Map(context, cast(*ID3D11Resource, cast(*void, staging)), 0,
                                            D3D11_MAP_READ, 0, &mapped)
         if mapStatus < 0 do
             fail SystemError{"cannot read screen capture frame", errorID: cast(u64, cast #bit (u32, mapStatus))}
-        .metrics.readbackMicroseconds += Time.monotonicMicroseconds() - readbackStart
+        .metrics.readbackMicroseconds += .pendingSubmitMicroseconds + Time.monotonicMicroseconds() - readbackStart
         defer context.lpVtbl.Unmap(context, cast(*ID3D11Resource, cast(*void, staging)), 0)
 
-        let rowBytes = cast(u64, copyRight - copyLeft) * 4
+        let rowBytes = cast(u64, .pendingRight - .pendingLeft) * 4
         let source = cast(const [*] u8, unwrap mapped.pData)
         let destination = target.pixels.storage()
         let destinationStride = cast(u64, target.rowStride)
-        let sourceTopRow = source + cast(u64, copyTop) * mapped.RowPitch + copyLeft * 4
+        let sourceTopRow = source + cast(u64, .pendingTop) * mapped.RowPitch + .pendingLeft * 4
         let destinationBottomRow = destination +
-                                   (destinationBottom + cast(u64, .options.height) - 1 - copyTop) * destinationStride +
-                                   (destinationX + copyLeft) * 4
+                                   (destinationBottom + cast(u64, .options.height) - 1 - .pendingTop) * destinationStride +
+                                   (destinationX + .pendingLeft) * 4
         let copyStart = Time.monotonicMicroseconds()
         copyMappedBgraRows(destinationBottomRow, destinationStride,
                            sourceTopRow, cast(u64, mapped.RowPitch), rowBytes,
-                           cast(u64, copyBottom - copyTop))
+                           cast(u64, .pendingBottom - .pendingTop))
         .metrics.copyMicroseconds += Time.monotonicMicroseconds() - copyStart
-        .metrics.copiedPixels += cast(u64, copyRight - copyLeft) * (copyBottom - copyTop)
-        .updatedBounds = RECT{cast(s32, copyLeft), cast(s32, copyTop),
-                              cast(s32, copyRight), cast(s32, copyBottom)}
+        .metrics.copiedPixels += cast(u64, .pendingRight - .pendingLeft) * (.pendingBottom - .pendingTop)
+        .updatedBounds = RECT{cast(s32, .pendingLeft), cast(s32, .pendingTop),
+                              cast(s32, .pendingRight), cast(s32, .pendingBottom)}
         .hasLast = true
-        return firstFrame or info.LastPresentTime != 0
     }
 
     mtd reopen() fail
@@ -320,6 +373,7 @@ impl NativeSource
 
     mtd opDrop()
     {
+        .abortGrab()
         release(.staging)
         release(.duplication)
         release(.output1)
@@ -327,5 +381,56 @@ impl NativeSource
         release(.adapter)
         release(.context)
         release(.device)
+    }
+}
+
+impl Source
+{
+    // Queue each output's GPU copy before any map waits for pixels on the CPU.
+    mtd grabWindows(target: *Image, mirroring: bool)->bool fail
+    {
+        var fresh = false
+        catch
+        {
+            for beginIndex in .sources.count
+            {
+                let native = .sources[beginIndex]
+                discard try native.beginGrab()
+                if .sources.count > 1 do
+                    native.flushReadback()
+            }
+
+            for finishIndex in .sources.count
+            {
+                let native = .sources[finishIndex]
+                if not native.pending do
+                    continue
+                let x = cast(u64, native.options.x - .options.x)
+                let bottom = cast(u64, .options.height - (native.options.y - .options.y) - native.options.height)
+                try native.finishGrab(&.composed, x, bottom)
+                fresh = true
+                if mirroring
+                {
+                    let bounds = native.updatedBounds
+                    let rowBytes = cast(u64, bounds.right - bounds.left) * 4
+                    let left = x + cast(u64, bounds.left)
+                    let stride = cast(u64, target.rowStride)
+                    let mirrorStart = Time.monotonicMicroseconds()
+                    for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
+                    {
+                        let offset = (bottom + cast(u64, native.options.height) - 1 - row) * stride + left * 4
+                        Memory.copy(target.pixels.storage() + offset,
+                                    .composed.pixels.storage() + offset, rowBytes)
+                    }
+                    .composeMicroseconds += Time.monotonicMicroseconds() - mirrorStart
+                }
+            }
+        }
+        {
+            for abortIndex in .sources.count do
+                .sources[abortIndex].abortGrab()
+            fail Swag.err
+        }
+        return fresh
     }
 }

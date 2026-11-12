@@ -163,33 +163,17 @@ impl Source
         }
         .mirrorReady = false
         var fresh = false
-        for index in .sources.count
+        #static if #os == Swag.TargetOs.Windows
         {
-            let source = .sources[index]
-            let x = cast(u64, source.options.x - .options.x)
-            let bottom = cast(u64, .options.height - (source.options.y - .options.y) - source.options.height)
-            #static if #os == Swag.TargetOs.Windows
+            fresh = try .grabWindows(target, mirroring)
+        }
+        else
+        {
+            for index in .sources.count
             {
-                let changed = try source.grabInto(&.composed, x, bottom)
-                fresh = changed or fresh
-                if mirroring and changed
-                {
-                    let bounds = source.updatedBounds
-                    let rowBytes = cast(u64, bounds.right - bounds.left) * 4
-                    let left = x + cast(u64, bounds.left)
-                    let stride = cast(u64, target.rowStride)
-                    let composeStart = Time.monotonicMicroseconds()
-                    for row in cast(u64, bounds.top) until cast(u64, bounds.bottom)
-                    {
-                        let offset = (bottom + cast(u64, source.options.height) - 1 - row) * stride + left * 4
-                        Memory.copy(target.pixels.storage() + offset,
-                                    .composed.pixels.storage() + offset, rowBytes)
-                    }
-                    .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
-                }
-            }
-            else
-            {
+                let source = .sources[index]
+                let x = cast(u64, source.options.x - .options.x)
+                let bottom = cast(u64, .options.height - (source.options.y - .options.y) - source.options.height)
                 let changed = try source.grabInto(&.pictures[index], true)
                 fresh = changed or fresh
                 if not first and not changed do

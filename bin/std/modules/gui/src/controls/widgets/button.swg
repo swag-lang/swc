@@ -236,7 +236,9 @@ impl Button
             }
             elif evt.button == .Right
             {
-                if .isIn do
+                // Like the primary press, the secondary press carries its own position and may
+                // arrive before a pointer-enter event has populated `.isIn`.
+                if .clientRect().contains(pos) do
                     .sigRightPressed.call(me)
             }
 

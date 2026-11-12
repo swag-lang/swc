@@ -319,6 +319,21 @@ func pushButtonHeadlessResetCounters()
     Swag.require(host.app.mouseCaptureWnd == null)
 }
 
+// A secondary press routed directly to the button does not depend on a prior pointer-enter event.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    pushButtonHeadlessResetCounters()
+
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30})
+    button.sigRightPressed += &pushButtonHeadlessRightPressed
+    host.sendMouseEvent(button, .Pressed, {40, 30}, Input.MouseButton.Right, Input.KeyModifiers.None)
+
+    Swag.require(PushButtonHeadlessRightPressedCount == 1)
+    Swag.require(not button.isPressed and not button.isPressing)
+}
+
 #test
 {
     var host: Testing.HeadlessHost

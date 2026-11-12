@@ -482,21 +482,19 @@ func scalarUtf8FromUnicode(dest: [..] u8, src: const [..] rune)->u64
 #test
 {
     let text = "A\u00E9\U0001F642"
-
-    var runeSum:      u32
-    var charIndexSum: u64
-    var byteIndexSum: u64
+    let expectedRunes:       [3] rune = ['A'rune, '\u00E9'rune, '\U0001F642'rune]
+    let expectedByteIndices: [3] u64  = [0, 1, 3]
+    var nextCharIndex = 0'u64
 
     Utf8.visitRunes(text) #code(c, charIndex, byteIndex)
     {
-        runeSum      += cast(u32, c)
-        charIndexSum += charIndex
-        byteIndexSum += byteIndex
+        Swag.require(charIndex == nextCharIndex)
+        Swag.require(c == expectedRunes[nextCharIndex])
+        Swag.require(byteIndex == expectedByteIndices[nextCharIndex])
+        nextCharIndex += 1
     }
 
-    Swag.require(runeSum == cast(u32, 'A'rune) + cast(u32, '\u00E9'rune) + cast(u32, '\U0001F642'rune))
-    Swag.require(charIndexSum == 3)
-    Swag.require(byteIndexSum == 4)
+    Swag.require(nextCharIndex == expectedRunes.count)
 }
 
 #test

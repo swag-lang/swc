@@ -94,6 +94,8 @@ struct ID3D11DeviceContextVtbl
         CopySubresourceRegion: func(*ID3D11DeviceContext, *ID3D11Resource, u32, u32, u32, u32,
                                     *ID3D11Resource, u32, const *D3D11_BOX?)
         CopyResource:          func(*ID3D11DeviceContext, *ID3D11Resource, *ID3D11Resource)
+        beforeFlush:           [63] *void
+        Flush:                 func(*ID3D11DeviceContext)
     }
 }
 
@@ -103,6 +105,7 @@ struct ID3D11DeviceContextVtbl
 #assert(#offsetof(ID3D11DeviceVtbl.GetImmediateContext) == 40 * #sizeof(*void))
 #assert(#offsetof(ID3D11DeviceContextVtbl.Map) == 14 * #sizeof(*void))
 #assert(#offsetof(ID3D11DeviceContextVtbl.CopySubresourceRegion) == 46 * #sizeof(*void))
+#assert(#offsetof(ID3D11DeviceContextVtbl.Flush) == 111 * #sizeof(*void))
 
 #[Foreign("d3d11", callconv: Swag.CallConv.C)]
 {

@@ -57,7 +57,9 @@ continues to own media frames and codecs, not desktop access.
   acquired DXGI frame now counts as fresh even when it carries only pointer metadata. A later
   dual-output live A/B/A check found that parallel copying each changed region reduced isolated
   composition time but coincided with longer GPU readback and more missed slots; that change was
-  removed. The next optimization needs readback timing in the live pipeline.
+  removed. Multi-output acquisition now submits both GPU readbacks before mapping either staging
+  texture. Native tests cover abort and final composed pixels; short full-desktop recordings can
+  run without missed slots, but sustained cadence remains sensitive to machine load.
 - Next: preserve native presentation timestamps and pointer metadata; handle rotation, adapters
   beyond the default adapter and access loss. Add Windows Graphics Capture
   for window targets, including occluded windows. Reduce readback and CPU copying for simultaneous

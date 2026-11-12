@@ -3,6 +3,58 @@
 
 using Swag
 
+struct AtomicCounterShared
+{
+    ready:       u32
+    start:       u32
+    done:        u32
+    value:       u64
+    previousSum: u64
+}
+
+func incrementAtomicCounter(thread: const *Threading.Thread)
+{
+    let shared = cast(*AtomicCounterShared, unwrap thread.userParam)
+    discard Atomic.add(&shared.ready, 1)
+    while Atomic.get(&shared.start) == 0 do
+        Threading.Thread.yield()
+
+    var previousSum = 0'u64
+    for 10000
+    {
+        previousSum += Atomic.add(&shared.value, 1)
+    }
+
+    discard Atomic.add(&shared.previousSum, previousSum)
+    discard Atomic.add(&shared.done, 1)
+}
+
+#test
+{
+    const WorkerCount    = 4'u64
+    const IterationCount = 10000'u64
+    var shared:  AtomicCounterShared
+    var threads: [WorkerCount] Threading.Thread
+
+    for &thread in threads
+    {
+        discard expect thread.init(&incrementAtomicCounter, &shared)
+        discard expect thread.start()
+    }
+
+    while Atomic.get(&shared.ready) != WorkerCount do
+        Threading.Thread.yield()
+    discard Atomic.exchange(&shared.start, 1)
+
+    for &thread in threads do
+        thread.wait()
+
+    let expectedCount = WorkerCount * IterationCount
+    Swag.require(Atomic.get(&shared.value) == expectedCount)
+    Swag.require(Atomic.get(&shared.previousSum) == expectedCount * (expectedCount - 1) / 2)
+    Swag.require(Atomic.get(&shared.done) == WorkerCount)
+}
+
 #test
 {
     var value: s8 = 1

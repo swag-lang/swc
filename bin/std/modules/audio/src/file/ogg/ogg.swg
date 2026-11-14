@@ -320,6 +320,8 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
     var previous    = 0'u64     // Granule position at the end of the previous run.
     var sequence    = Swag.U32.Max
     var hasSequence = false
+    var expectedContinued = false
+    var hasTargetPage = false
     var firstRun    = true
     var header:    PageHeader
     var lookahead: PageHeader
@@ -338,6 +340,10 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             continue
         }
 
+        let continued = (header.flags & ContinuedPacket) != 0
+        if hasTargetPage and continued != expectedContinued do
+            fail InvalidFormatError{"Ogg continued-packet flag disagrees with the preceding page lacing"}
+
         if hasSequence
         {
             if sequence == Swag.U32.Max
@@ -353,6 +359,10 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
         sequence    = header.sequence
         hasSequence = true
+        hasTargetPage = true
+        expectedContinued = false
+        if header.segments do
+            expectedContinued = header.lacing[header.segments - 1] == 255
 
         if run.start == Swag.U64.Max
         {

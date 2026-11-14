@@ -102,6 +102,47 @@ private func oggMoveAudioPageAfterHeaders(source: const [..] u8,
     return result
 }
 
+// Sets an impossible continuation bit on a later page and keeps that page's CRC valid.
+private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
+{
+    var previous: OggTestPage
+    var hasPrevious = false
+    var offset      = 0'u64
+    for
+    {
+        if offset >= source.count do
+            break
+        let header = try Ogg.readPageHeader(source, offset)
+        let page   = OggTestPage{offset, header.totalBytes(), header}
+        if hasPrevious and
+           page.header.serial == previous.header.serial and
+           previous.header.sequence < Swag.U32.Max and
+           page.header.sequence == previous.header.sequence + 1 and
+           page.header.sequence >= 3 and
+           not (page.header.flags & Ogg.ContinuedPacket) and
+           previous.header.segments and
+           previous.header.lacing[previous.header.segments - 1] < 255
+        {
+            var changedPage: Array'u8
+            changedPage.add(source[offset until offset + page.bytes])
+            changedPage[5] |= Ogg.ContinuedPacket
+            oggRefreshTestChecksum(&changedPage)
+
+            var result: #returntype
+            result.add(source[until offset])
+            result.add(changedPage.toSlice())
+            result.add(source[offset + page.bytes to])
+            return result
+        }
+
+        previous = page
+        hasPrevious = true
+        offset += page.bytes
+    }
+
+    fail InvalidFormatError{"Ogg fixture has no eligible page for a continuation flag mutation"}
+}
+
 private func oggDecodePcm16(sound: const *SoundFile)->Array's16 fail
 {
     var result: #returntype
@@ -158,4 +199,19 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     Swag.require(vorbisDecoded.count == 44_160 * 2)
     let vorbisExpected = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.pcm").toString())
     oggAssertMatchesPcm(vorbisDecoded.toSlice(), vorbisExpected.toSlice())
+}
+
+// An inconsistent continuation flag is invalid even when the page checksum is correct.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
+    let broken = expect oggSetUnexpectedContinuation(source.toSlice())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-ogg-continuation-%.opus", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), broken.toSlice())
+
+    var rejected: Swag.Error
+    discard catch SoundFile.load(path.toString()) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
 }

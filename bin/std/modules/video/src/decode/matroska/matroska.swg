@@ -421,6 +421,41 @@ private const ScanReleaseStepBytes = 16 * 1024 * 1024'u64
 
 private impl Layout
 {
+    // Closes an unknown-size Cluster at the next Segment child rather than consuming the whole
+    // Segment. Cluster payloads are ordinary EBML children, so their declared sizes are skipped
+    // before testing the next identifier; bytes inside a Block cannot look like a boundary.
+    mtd boundUnknownCluster(cursor: *Cursor, cluster: Element, segmentEnd: u64)->Element fail
+    {
+        if cluster.id != ClusterId or not cluster.isUnknown do
+            return cluster
+
+        var position = cluster.data
+        while position < segmentEnd
+        {
+            try cursor.seek(position)
+            if cursor.atEnd(segmentEnd) do
+                return Element{cluster.id, cluster.data, position, true}
+
+            let child = try cursor.readElement(segmentEnd)
+            if child.id == SeekHeadId or child.id == InfoId or child.id == TracksId or
+               child.id == ClusterId or child.id == CuesId or child.id == AttachmentsId or
+               child.id == ChaptersId or child.id == TagsId do
+                return Element{cluster.id, cluster.data, position, true}
+            if child.isUnknown do
+                fail InvalidFormatError{"Matroska Cluster contains an unknown-size child"}
+            position = child.end
+        }
+
+        return Element{cluster.id, cluster.data, segmentEnd, true}
+    }
+
+    // Reads a Segment child and resolves an unknown-size Cluster to its next level-one sibling.
+    mtd readSegmentElement(cursor: *Cursor, segment: Element)->Element fail
+    {
+        let element = try cursor.readElement(segment.end)
+        return try .boundUnknownCluster(cursor, element, segment.end)
+    }
+
     // Parses the EBML hierarchy and indexes block payloads without reading them.
     mtd parse(bytes: const [..] u8, cancelled: *u32? = null, indexPictures: bool = true)->bool fail
     {
@@ -540,7 +575,7 @@ private impl Layout
 
             if cancelled and Atomic.get(cancelled) do
                 return false
-            let element = try cursor.readElement(.segment.end)
+            let element = try .readSegmentElement(&cursor, .segment)
             if element.id == ClusterId and not (try .parseCluster(&cursor, element, cancelled, paused)) do
                 return false
             .scanPosition = element.end
@@ -613,7 +648,7 @@ private impl Layout
 
             if cancelled and Atomic.get(cancelled) do
                 return false
-            let element = try cursor.readElement(.segment.end)
+            let element = try .readSegmentElement(&cursor, .segment)
             if element.id == ClusterId and not (try .parseCluster(&cursor, element, cancelled, paused)) do
                 return false
             .scanPosition = element.end
@@ -937,7 +972,7 @@ private impl Layout
         {
             if cancelled and Atomic.get(cancelled) do
                 return false
-            let element = try cursor.readElement(segment.end)
+            let element = try .readSegmentElement(cursor, segment)
             switch element.id
             {
             case InfoId:

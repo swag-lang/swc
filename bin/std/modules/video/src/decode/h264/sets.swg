@@ -276,7 +276,10 @@ impl Sps
 
         .chromaFormat = cast(u8, chromaFormat)
 
-        .log2MaxFrameNum = bits.ue() + 4
+        let log2MaxFrameNumMinus4 = bits.ue()
+        if log2MaxFrameNumMinus4 > 12 do
+            fail InvalidFormatError{"H.264 sequence set declares an out-of-range frame-number size"}
+        .log2MaxFrameNum = log2MaxFrameNumMinus4 + 4
         .pocType         = cast(u8, bits.ue())
         switch .pocType
         {

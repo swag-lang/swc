@@ -3,6 +3,14 @@
 
 using Core
 
+private func assertInvalidFrameNumberSize(payload: const [..] u8)
+{
+    var sps: H264.Sps
+    var rejected: Swag.Error
+    discard catch sps.parse(payload) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
 // Cropping is stated in chroma samples, so the same visible picture is written with a different
 // syntax value in each chroma format, and a decoder that assumes one of them silently returns a
 // picture of the wrong size. Both payloads below are the sequence sets libx264 wrote for the same
@@ -28,6 +36,21 @@ using Core
     Swag.require(full.mbWidth == 6 and full.mbHeight == 4)
     Swag.require(full.cropBottom == 6)
     Swag.require(full.width() == 96 and full.height() == 58)
+}
+
+// The SPS frame-number width is log2_max_frame_num_minus4 + 4 and the syntax value is limited
+// to 12. These are Sps420 with only that Exp-Golomb field replaced: once by 13 and once by the
+// largest value the bit reader can return, which used to wrap when four was added.
+#test
+{
+    const FrameNumTooWide: [20] u8 = [0x42, 0xC0, 0x0A, 0x8E, 0x71, 0x89, 0xF9, 0x21, 0x00, 0x00,
+                                     0x00, 0x01, 0x00, 0x00, 0x00, 0x32, 0x0F, 0x12, 0x27, 0x80]
+    const FrameNumOverflow: [27] u8 = [0x42, 0xC0, 0x0A, 0x80, 0x00, 0x00, 0x00, 0xFF, 0xFF,
+                                       0xFF, 0xFF, 0x71, 0x89, 0xF9, 0x21, 0x00, 0x00, 0x00,
+                                       0x01, 0x00, 0x00, 0x00, 0x32, 0x0F, 0x12, 0x27, 0x80]
+
+    assertInvalidFrameNumberSize(FrameNumTooWide)
+    assertInvalidFrameNumberSize(FrameNumOverflow)
 }
 
 // Extreme 4:4:4 crop offsets must not wrap through signed dimensions and reach frame export.

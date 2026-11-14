@@ -669,6 +669,14 @@ internal impl HtmlView
         return result
     }
 
+    // Distinguishes exact EOF from remaining encoded bytes when the decoded stream reaches its cap.
+    private mtd hasUnreadSourceBytes()->bool
+    {
+        let position = catch .stream.position() { return true }
+        let size     = catch .stream.size() { return true }
+        return position < size
+    }
+
     // Feeds one bounded batch of source into the parser.
     mtd streamStep()
     {
@@ -692,8 +700,15 @@ internal impl HtmlView
             {
                 .parser.feed(chunk.toString())
                 .bytesRead += chunk.length
-                if .bytesRead >= HtmlMaxDocumentSize do
-                    .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
+                if .bytesRead >= HtmlMaxDocumentSize
+                {
+                    // Decoding can expand one bounded input chunk past the limit, even if that
+                    // chunk also reaches EOF. Otherwise, an exact decoded-byte match is only a
+                    // truncation when encoded source bytes remain unread.
+                    if .bytesRead > HtmlMaxDocumentSize or
+                       (.bytesRead == HtmlMaxDocumentSize and .hasUnreadSourceBytes()) do
+                        .finishSource("<p>This document is too large to be displayed in full; the rest of the file was not read.</p>")
+                }
             }
         }
 

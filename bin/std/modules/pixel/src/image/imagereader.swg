@@ -94,13 +94,14 @@ public interface IImageSetDecoder
 public struct ImageReader
 {
     public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.
-    bytes:       Array'u8
-    decoder:     *void?
-    decoderType: const *TypeInfoStruct?
-    options:     DecodeOptions
-    canvas:      Image
-    previous:    Image
-    lastIndex:   s32 = -1
+    bytes:            Array'u8
+    decoder:          *void?
+    decoderType:      const *TypeInfoStruct?
+    decoderAllocator: IAllocator?
+    options:          DecodeOptions
+    canvas:           Image
+    previous:         Image
+    lastIndex:        s32 = -1
 }
 
 impl ImageReader
@@ -112,8 +113,9 @@ impl ImageReader
             let type = unwrap .decoderType
             if type.opDrop do
                 type.opDrop(.decoder)
-            Memory.free(.decoder, cast(u64, type.sizeof))
+            Memory.free(.decoder, cast(u64, type.sizeof), .decoderAllocator)
             .decoder = null
+            .decoderAllocator = null
         }
     }
 
@@ -199,7 +201,8 @@ public impl ImageReader
         result.bytes.add(bytes)
         result.options     = options
         result.decoderType = found.type
-        result.decoder     = Memory.new(found.type)
+        result.decoderAllocator = Swag.getContext().allocator
+        result.decoder = Memory.new(found.type, result.decoderAllocator)
         let multiple = Swag.makeInterface(result.decoder, found.type, IImageSetDecoder)
         if multiple
         {

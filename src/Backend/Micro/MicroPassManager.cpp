@@ -554,12 +554,11 @@ MicroPassManager::MicroPassManager()
     vecLoopPromotePass_        = std::make_unique<MicroVecLoopPromotePass>();
 
     // Post-RA optimization passes
-    postRaPeepholePass_       = std::make_unique<MicroPostRaPeepholePass>();
-    prePrologueDcePass_       = std::make_unique<MicroPostRaDeadCodeElimPass>(true);
-    postRaDeadCodeElimPass_   = std::make_unique<MicroPostRaDeadCodeElimPass>();
-    postRaLoopRotatePass_     = std::make_unique<MicroPostRaLoopRotatePass>();
-    postRaLoopHoistPass_      = std::make_unique<MicroPostRaLoopHoistPass>();
-    guardedCopyVectorizePass_ = std::make_unique<MicroGuardedCopyVectorizePass>();
+    postRaPeepholePass_     = std::make_unique<MicroPostRaPeepholePass>();
+    prePrologueDcePass_     = std::make_unique<MicroPostRaDeadCodeElimPass>(true);
+    postRaDeadCodeElimPass_ = std::make_unique<MicroPostRaDeadCodeElimPass>();
+    postRaLoopRotatePass_   = std::make_unique<MicroPostRaLoopRotatePass>();
+    postRaLoopHoistPass_    = std::make_unique<MicroPostRaLoopHoistPass>();
 }
 
 MicroPassManager::~MicroPassManager()                                      = default;
@@ -725,10 +724,6 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
         // to lose.
         addPostRaOptimPass(*postRaLoopRotatePass_);
     }
-    // Preserve completed scalar forwarding and borrow only dead physical registers.
-    // Versioning before allocation would lengthen live ranges and disturb the hot loops.
-    if (costly)
-        addFinalPass(*guardedCopyVectorizePass_);
     addFinalPass(*prologEpilogSanitizePass_);
     // Last, so the prologue and epilogue rewrites above still read a function that ends
     // with its return.

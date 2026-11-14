@@ -1553,57 +1553,6 @@ SWC_TEST_BEGIN(SlpVectorize_WholeVectorSubtractsPreserveScalarAndPackedResults)
 }
 SWC_TEST_END()
 
-// The runtime guard preserves forward scalar semantics even for partial-byte
-// overlaps. No extra live integer range or callee-saved vector is introduced.
-SWC_TEST_BEGIN(SlpVectorize_GuardedCopiesUseDeadPhysicalCarriers)
-{
-    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
-        for (uint32_t mode = 0; mode < 9; ++mode)
-        {
-            MicroBuilder   builder(ctx);
-            X64Encoder     encoder(ctx);
-            const auto&    conv    = CallConv::swag();
-            const MicroReg source  = conv.intArgRegs[0];
-            const MicroReg target  = mode == 7 ? source : conv.intArgRegs[1];
-            const MicroReg carrier = MicroReg::intReg(10);
-            const uint32_t bytes   = getNumBytes(bits);
-            const uint32_t count   = mode == 8 ? 16 / bytes - 1 : 8;
-            for (uint32_t index = 0; index < count; ++index)
-            {
-                const MicroReg value = mode == 6 && index % 2 ? MicroReg::intReg(11) : carrier;
-                builder.emitLoadRegMem(value, source, index * bytes, bits);
-                builder.emitLoadMemReg(target, index * bytes + (mode == 3 ? bytes : 0), value, bits);
-                if (mode == 4)
-                    builder.emitLoadRegMem(MicroReg::intReg(9), source, 256, bits);
-            }
-            if (mode == 1)
-                for (uint32_t index = 0; index < conv.floatTransientRegs.size(); ++index)
-                    builder.emitLoadMemReg(conv.stackPointer, 512 + index * 16, conv.floatTransientRegs[index], MicroOpBits::B128);
-            if (mode == 2)
-                builder.emitSetCondReg(conv.intReturn, MicroCond::Equal);
-            builder.emitRet();
-            Runtime::BuildCfgBackend cfg{};
-            cfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
-            cfg.vectorize  = mode != 5;
-            builder.setBackendBuildCfg(cfg);
-            MicroPassContext context;
-            context.taskContext             = &ctx;
-            context.builder                 = &builder;
-            context.instructions            = &builder.instructions();
-            context.operands                = &builder.operands();
-            context.encoder                 = &encoder;
-            context.usesIntReturnRegOnRet   = false;
-            context.usesFloatReturnRegOnRet = false;
-            MicroGuardedCopyVectorizePass pass;
-            SWC_RESULT(pass.run(context));
-            const uint32_t vectors = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg);
-            if (context.passChanged != (mode == 0) || vectors != (mode == 0 ? count * bytes / 16 : 0))
-                return Result::Error;
-        }
-    return Result::Continue;
-}
-SWC_TEST_END()
-
 SWC_END_NAMESPACE();
 
 #endif

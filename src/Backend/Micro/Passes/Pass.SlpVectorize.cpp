@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
@@ -2934,159 +2933,6 @@ namespace
         return Result::Continue;
     }
 
-    struct CopyPair
-    {
-        MicroInstrRef load;
-        MicroInstrRef store;
-        MicroReg      value;
-        MicroReg      source;
-        MicroReg      target;
-        MicroOpBits   bits;
-        uint64_t      offset;
-    };
-
-    bool readGuardedCopyPair(CopyPair& pair, const MicroPassContext& context, MicroInstrRef loadRef)
-    {
-        const auto& storage  = *context.instructions;
-        const auto& operands = *context.operands;
-        const auto* load     = storage.ptr(loadRef);
-        if (!load || load->op != MicroInstrOpcode::LoadRegMem || load->numOperands != 4)
-            return false;
-        const auto* loadOps  = load->ops(operands);
-        const auto  storeRef = storage.findNextInstructionRef(loadRef);
-        const auto* store    = storeRef.isValid() ? storage.ptr(storeRef) : nullptr;
-        if (!store || store->op != MicroInstrOpcode::LoadMemReg || store->numOperands != 4)
-            return false;
-        const auto* storeOps = store->ops(operands);
-        if ((loadOps[2].opBits != MicroOpBits::B32 && loadOps[2].opBits != MicroOpBits::B64) || storeOps[2].opBits != loadOps[2].opBits ||
-            !loadOps[0].reg.isInt() || !loadOps[1].reg.isInt() || !storeOps[0].reg.isInt() ||
-            loadOps[0].reg == context.encoder->stackPointerReg() || loadOps[0].reg.isVirtual() || loadOps[1].reg.isVirtual() || storeOps[0].reg.isVirtual() ||
-            loadOps[0].reg != storeOps[1].reg || loadOps[0].reg == loadOps[1].reg || loadOps[0].reg == storeOps[0].reg || loadOps[1].reg == storeOps[0].reg || loadOps[3].valueU64 != storeOps[3].valueU64)
-            return false;
-        pair = {loadRef, storeRef, loadOps[0].reg, loadOps[1].reg, storeOps[0].reg, loadOps[2].opBits, loadOps[3].valueU64};
-        return true;
-    }
-
-    // A forward scalar copy must retain its sequential semantics for overlaps.
-    // A 16-byte load can precede its grouped scalar stores except when the destination
-    // begins 1..15 bytes after the source. Keep that case scalar, including
-    // unaligned overlaps, and only version runs whose fast path pays for the guard.
-    bool vectorizeGuardedCopies(MicroPassContext& context)
-    {
-        if (!context.builder || !context.instructions || !context.operands || !context.encoder)
-            return false;
-        const auto& cfg = context.builder->backendBuildCfg();
-        if (!cfg.optimizes() || !cfg.vectorize)
-            return false;
-
-        auto& storage  = *context.instructions;
-        auto& operands = *context.operands;
-
-        std::optional<MicroPassHelpers::MicroPhysLiveness> liveness;
-        SmallVector<CopyPair, 16>                          run;
-        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
-        {
-            CopyPair first;
-            if (!readGuardedCopyPair(first, context, it.current))
-                continue;
-            run.clear();
-            auto next = first.load;
-            for (uint32_t pairs = 0; pairs < K_MAX_PLAN_INSTRS / 2 && next.isValid(); ++pairs)
-            {
-                CopyPair pair;
-                if (!readGuardedCopyPair(pair, context, next) || pair.source != first.source || pair.target != first.target || pair.bits != first.bits || pair.value != first.value ||
-                    pair.offset != first.offset + pairs * getNumBytes(first.bits))
-                    break;
-                run.push_back(pair);
-                next = storage.findNextInstructionRef(pair.store);
-            }
-            const uint32_t lanes = K_MICRO_128_BIT_BYTES / getNumBytes(first.bits);
-            const uint32_t count = static_cast<uint32_t>(run.size()) / lanes * lanes;
-            // Four guard instructions and one jump over the scalar fallback.
-            if (count * 2 <= count / lanes * 2 + 5 || !next.isValid())
-                continue;
-            if (!liveness)
-            {
-                liveness.emplace();
-                MicroPassHelpers::computePhysicalLiveness(*liveness, context, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
-                if (!liveness->valid)
-                    return false;
-            }
-            const auto lastIndex = context.builder->controlFlowGraph().indexOf(run[count - 1].store);
-            if (liveness->isLiveOut(lastIndex, first.value) || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(*context.builder, run[count - 1].store))
-                continue;
-            MicroReg vector = MicroReg::invalid();
-            for (const auto candidate : CallConv::get(context.callConvKind).floatTransientRegs)
-            {
-                if (!liveness->isLiveOut(lastIndex, candidate))
-                {
-                    vector = candidate;
-                    break;
-                }
-            }
-            if (!vector.isValid())
-                continue;
-            const MicroReg difference = first.value;
-            const uint64_t scalarId   = context.builder->createLabel().get();
-            const uint64_t doneId     = context.builder->createLabel().get();
-            const auto     before     = first.load;
-            const auto     after      = storage.findNextInstructionRef(run[count - 1].store);
-            if (!after.isValid())
-                continue;
-            const auto insert = [&](MicroInstrRef ref, MicroInstrOpcode op, std::span<const MicroInstrOperand> args) {
-                storage.insertDerivedBefore(operands, ref, op, args);
-            };
-            MicroInstrOperand address[4] = {};
-            address[0].reg               = difference;
-            address[1].reg               = first.target;
-            address[2].opBits            = MicroOpBits::B64;
-            address[3].valueU64          = std::numeric_limits<uint64_t>::max();
-            insert(before, MicroInstrOpcode::LoadAddrRegMem, address);
-            MicroInstrOperand subtract[4] = {};
-            subtract[0].reg               = difference;
-            subtract[1].reg               = first.source;
-            subtract[2].opBits            = MicroOpBits::B64;
-            subtract[3].microOp           = MicroOp::Subtract;
-            insert(before, MicroInstrOpcode::OpBinaryRegReg, subtract);
-            MicroInstrOperand compare[3] = {};
-            compare[0].reg               = difference;
-            compare[1].opBits            = MicroOpBits::B64;
-            compare[2].setImmediateValue(ApInt(K_MICRO_128_BIT_BYTES - 2, 64));
-            insert(before, MicroInstrOpcode::CmpRegImm, compare);
-            MicroInstrOperand jump[3] = {};
-            jump[0].cpuCond           = MicroCond::BelowOrEqual;
-            jump[1].opBits            = MicroOpBits::B32;
-            jump[2].valueU64          = scalarId;
-            insert(before, MicroInstrOpcode::JumpCond, jump);
-            for (uint32_t index = 0; index < count; index += lanes)
-            {
-                MicroInstrOperand load[4] = {};
-                load[0].reg               = vector;
-                load[1].reg               = first.source;
-                load[2].opBits            = MicroOpBits::B128;
-                load[3].valueU64          = run[index].offset;
-                insert(before, MicroInstrOpcode::LoadVecRegMem, load);
-                MicroInstrOperand store[4] = {};
-                store[0].reg               = first.target;
-                store[1].reg               = vector;
-                store[2].opBits            = MicroOpBits::B128;
-                store[3].valueU64          = run[index].offset;
-                insert(before, MicroInstrOpcode::StoreVecMemReg, store);
-            }
-            jump[0].cpuCond  = MicroCond::Unconditional;
-            jump[2].valueU64 = doneId;
-            insert(before, MicroInstrOpcode::JumpCond, jump);
-            MicroInstrOperand label[1] = {};
-            label[0].valueU64          = scalarId;
-            insert(before, MicroInstrOpcode::Label, label);
-            label[0].valueU64 = doneId;
-            insert(after, MicroInstrOpcode::Label, label);
-            context.builder->invalidateControlFlowGraph();
-            context.passChanged = true;
-            return true;
-        }
-        return false;
-    }
 }
 
 Result MicroSlpVectorizePass::run(MicroPassContext& context)
@@ -3106,12 +2952,6 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     SWC_RESULT(runSlp(doubleContext, {8}, scan, rewrote));
     SlpVectorize::packRoots(context);
     context.passChanged = exposedScalarValues || context.passChanged || doubleContext.passChanged;
-    return Result::Continue;
-}
-
-Result MicroGuardedCopyVectorizePass::run(MicroPassContext& context)
-{
-    vectorizeGuardedCopies(context);
     return Result::Continue;
 }
 

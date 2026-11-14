@@ -46,7 +46,6 @@ class MicroWebRenamePass;
 class MicroVecLoopPromotePass;
 
 // Post-RA optimization passes (operate on physical registers)
-class MicroGuardedCopyVectorizePass;
 class MicroPostRaPeepholePass;
 class MicroPostRaDeadCodeElimPass;
 class MicroPostRaLoopRotatePass;
@@ -128,12 +127,11 @@ private:
     std::unique_ptr<MicroVecLoopPromotePass>          vecLoopPromotePass_;
 
     // Post-RA optimization passes
-    std::unique_ptr<MicroGuardedCopyVectorizePass> guardedCopyVectorizePass_;
-    std::unique_ptr<MicroPostRaPeepholePass>       postRaPeepholePass_;
-    std::unique_ptr<MicroPostRaDeadCodeElimPass>   prePrologueDcePass_;
-    std::unique_ptr<MicroPostRaDeadCodeElimPass>   postRaDeadCodeElimPass_;
-    std::unique_ptr<MicroPostRaLoopRotatePass>     postRaLoopRotatePass_;
-    std::unique_ptr<MicroPostRaLoopHoistPass>      postRaLoopHoistPass_;
+    std::unique_ptr<MicroPostRaPeepholePass>     postRaPeepholePass_;
+    std::unique_ptr<MicroPostRaDeadCodeElimPass> prePrologueDcePass_;
+    std::unique_ptr<MicroPostRaDeadCodeElimPass> postRaDeadCodeElimPass_;
+    std::unique_ptr<MicroPostRaLoopRotatePass>   postRaLoopRotatePass_;
+    std::unique_ptr<MicroPostRaLoopHoistPass>    postRaLoopHoistPass_;
 };
 
 SWC_END_NAMESPACE();

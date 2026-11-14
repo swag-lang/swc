@@ -64,8 +64,10 @@ private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
     // The frame or sample number is stored the way UTF-8 stores a code point.
     let lead = bytes[offset + 4]
     var size = 5'u64
-    if lead >= 0xFE do
+    if lead == 0xFE do
         size += 6
+    elif lead == 0xFF do
+        return 0
     elif lead >= 0xFC do
         size += 5
     elif lead >= 0xF8 do

@@ -268,8 +268,10 @@ private impl Writer
     func readSampleNumber(packet: const [..] u8)->u64
     {
         let lead = packet[4]
+        if lead == 0xFF do
+            return Swag.U64.Max
         var width = 1'u32
-        if lead >= 0xFE do width = 7
+        if lead == 0xFE do width = 7
         elif lead >= 0xFC do width = 6
         elif lead >= 0xF8 do width = 5
         elif lead >= 0xF0 do width = 4

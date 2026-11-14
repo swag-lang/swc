@@ -1264,7 +1264,7 @@ namespace PostRaPeephole
         if (!ctx.builder || !ctx.builder->backendBuildCfg().math.fma || !ctx.encoder->supportsFusedFloatMultiplyAdd())
             return false;
         FloatBinary product;
-        if (!floatBinary(product, *ctx.instruction(productRef), *ctx.operands) || product.op != MicroOp::FloatMultiply)
+        if (!floatBinary(product, *ctx.instruction(productRef), *ctx.operands, true) || product.op != MicroOp::FloatMultiply)
             return false;
 
         auto scan = MicroStorage::Iterator{ctx.storage, productRef};
@@ -2447,7 +2447,7 @@ namespace PostRaPeephole
             if (!candidate)
                 return false;
 
-            if (candidate->op == MicroInstrOpcode::OpBinaryRegReg)
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegReg || candidate->op == MicroInstrOpcode::OpBinaryRegMem || candidate->op == MicroInstrOpcode::OpBinaryRegAmcMem)
             {
                 const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
                 if (candidateOps && candidateOps[0].reg == dst)
@@ -2491,36 +2491,61 @@ namespace PostRaPeephole
         if (binOps[0].reg != dst)
             return false;
 
+        const bool     indexed = opInst->op == MicroInstrOpcode::OpBinaryRegAmcMem;
+        const bool     memory  = indexed || opInst->op == MicroInstrOpcode::OpBinaryRegMem;
         const MicroReg src2 = binOps[1].reg;
-        if (!src2.isFloat())
+        // A register right operand cannot read the destination before the
+        // removed copy has supplied it. Memory bases are integer registers.
+        if (!memory && (!src2.isFloat() || src2 == dst))
+            return false;
+        if (indexed && binOps[4].opBits != MicroOpBits::B64)
             return false;
 
-        // `dst op= dst` reads the destination as its second source. Folding the
-        // copy away would make that read see the pre-copy value instead of src1,
-        // so this shape stays as it is.
-        if (src2 == dst)
-            return false;
-
-        const MicroOpBits opBits = binOps[2].opBits;
+        const MicroOpBits opBits = binOps[indexed ? 3 : 2].opBits;
+        const MicroOp     op     = binOps[indexed ? 7 : 3].microOp;
         if (opBits != copyOps[2].opBits && copyOps[2].opBits != MicroOpBits::B128)
             return false;
-        if (!foldableIntoThreeOperand(binOps[3].microOp, opBits) ||
+        if (!foldableIntoThreeOperand(op, opBits) ||
             !areFloatUpperLanesDeadAfter(ctx, opRef, dst, copyOps[2].opBits))
+            return false;
+        // Scalar bitwise operations read a full vector in their memory form;
+        // packed operations keep their existing register representation here.
+        if (memory && (opBits == MicroOpBits::B128 || op == MicroOp::FloatAnd || op == MicroOp::FloatXor))
+            return false;
+        // A copy rewrite claims the product for this sweep. Leave it available
+        // when the following contraction can remove the product itself.
+        if (memory && op == MicroOp::FloatMultiply && mayContractFollowingAccumulation(ctx, opRef))
             return false;
 
         if (!ctx.claimAll({copyRef, opRef}))
             return false;
 
-        MicroInstrOperand newOps[5] = {};
+        MicroInstrOperand newOps[8] = {};
         newOps[0].reg               = dst;
         newOps[1].reg               = src1;
         newOps[2].reg               = src2;
         newOps[3].opBits            = opBits;
-        newOps[4].microOp           = binOps[3].microOp;
+        newOps[4].microOp           = op;
+        auto     opcode             = MicroInstrOpcode::OpBinaryRegRegReg;
+        uint32_t numOps             = 5;
+        if (indexed)
+        {
+            newOps[3]         = binOps[2];
+            newOps[4].opBits  = opBits;
+            newOps[5].microOp = op;
+            newOps[6]         = binOps[5];
+            newOps[7]         = binOps[6];
+            opcode            = MicroInstrOpcode::OpBinaryRegRegAmcMem;
+            numOps            = 8;
+        }
+        else if (memory)
+        {
+            newOps[5] = binOps[4];
+            opcode    = MicroInstrOpcode::OpBinaryRegRegMem;
+            numOps    = 6;
+        }
 
-        // Five operands where the original had four, so the rewrite needs a
-        // fresh operand block.
-        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5}, true);
+        ctx.emitRewrite(opRef, opcode, std::span{newOps, numOps}, true);
         ctx.emitErase(copyRef);
         return true;
     }

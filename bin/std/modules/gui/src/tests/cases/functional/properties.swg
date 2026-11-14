@@ -1222,6 +1222,26 @@ impl Gui.IPropertyNotify for ValData
     Swag.require(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
 }
 
+// Dynamic-array bookkeeping must not overwrite the application's public row payload.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(300, 240)
+    var data: PropMoveData
+    data.dyn.resize(1)
+
+    let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
+    prop.addStruct(data)
+    let arrayItem = unwrap findFieldItem(prop, #nameof(PropMoveData.dyn))
+    var payload: s32 = 42
+    arrayItem.userData0 = cast(*void?, &payload)
+
+    prop.appendArrayValue(arrayItem)
+
+    Swag.require(data.dyn.count == 2)
+    Swag.require(arrayItem.userData0 == cast(*void?, &payload))
+}
+
 // The context-menu commands run through the shared gui action system (ActionProperties /
 // IActionUI): update() computes each item's enabled state, execute() performs the change via a
 // real CommandEvent — no hardcoded result-string switch.

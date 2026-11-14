@@ -123,6 +123,9 @@ struct PropertiesItem
     // Grid only: height of the value cell (label + editor) on its own. The row grows below
     // it to host the validation message bar, so we keep the base height to restore/recompute.
     valueCellHeight: f32
+
+    // Dynamic-array editor cache. Keep it separate from the public application payloads.
+    arrayElementCount: u64
 }
 
 // Keeps public row state read-only while allowing the property-grid implementation to update it.

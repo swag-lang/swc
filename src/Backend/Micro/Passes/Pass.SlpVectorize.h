@@ -25,4 +25,13 @@ public:
     Result           run(MicroPassContext& context) override;
 };
 
+// Version long scalar copy runs after allocation, preserving the forwarding and
+// register choices already established for the surrounding loops.
+class MicroGuardedCopyVectorizePass final : public MicroPass
+{
+public:
+    std::string_view name() const override { return "guarded-copy-vectorize"; }
+    Result           run(MicroPassContext& context) override;
+};
+
 SWC_END_NAMESPACE();

@@ -160,6 +160,9 @@ func gcd(a, b: s64)->s64
     var y = b
     while y != 0
     {
+        // `S64.Min % -1` overflows even though the remainder and gcd are both representable.
+        if y == -1 do
+            return 1
         let remainder = x % y
         x = y
         y = remainder

@@ -140,7 +140,7 @@ SWC_DIAG_DEF(sema_err_unknown_public_member, Error, "{what} '{type}' comes from 
 SWC_DIAG_DEF(sema_err_modifier_only_integer, Error, "modifier '{tok}' needs an integer type, found '{type}'")
 SWC_DIAG_DEF(sema_err_modifier_unsupported, Error, "modifier '{what}' is not supported on '{tok}'")
 SWC_DIAG_DEF(sema_err_bit_cast_size, Error, "cannot bit-cast from '{type}' to '{requested-type}'; source is {left} bits, destination is {right} bits")
-SWC_DIAG_DEF(sema_err_bit_cast_invalid_type, Error, "cannot bit-cast from '{type}' to '{requested-type}'; source and destination both need scalar numeric types")
+SWC_DIAG_DEF(sema_err_bit_cast_invalid_type, Error, "cannot bit-cast from '{type}' to '{requested-type}'; bit casts accept numeric scalar pairs or a SIMD vector paired with a vector or typed 16-byte array")
 SWC_DIAG_DEF(sema_err_invalid_enum_type, Error, "type '{type}' cannot be used as an enum underlying type; [help] choose a supported scalar underlying type")
 SWC_DIAG_DEF(sema_err_invalid_enum_flags_type, Error, "type '{type}' cannot be used as a flags enum underlying type; [help] use an unsigned integer type")
 SWC_DIAG_DEF(sema_err_already_defined, Error, "'{tok}' is already defined in this scope")

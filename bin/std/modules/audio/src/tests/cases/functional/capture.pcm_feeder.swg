@@ -102,6 +102,21 @@ using Swag, Core, Core.Errors
     Swag.require(rejected.value() is BadParameterError and queue.sampleEnd() == 0)
 }
 
+// A timestamp overflow in a later split rejects the packet before queue mutation.
+#test
+{
+    var queue = expect CaptureQueue.create(1, 1, 0, Swag.U64.Max,
+                                           blockFrames: 1, slots: 4, tolerance: 0)
+    var feeder = CapturePcmFeeder.create(&queue)
+    const Input: [2] s16 = [10, 20]
+    var rejected: Swag.Error
+    discard catch feeder.pushPcm16(Swag.makeSlice(&Input[0], Input.count),
+                                   Swag.U64.Max - 1, true) as rejected
+    Swag.require(rejected.value() is OverflowError)
+    Swag.require(queue.pendingBlocks() == 0 and queue.sampleEnd() == 0 and
+                 not queue.sourceIsLost())
+}
+
 // Simulated float microphone packets reach AAC with exact 44.1 kHz stereo gap metadata.
 #test
 {

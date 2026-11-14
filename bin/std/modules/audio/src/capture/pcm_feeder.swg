@@ -11,7 +11,8 @@ using Core, Core.Errors
 // The input timestamps and the queue use the same monotonic tick frequency. Float samples outside
 // [-1, 1] are clipped; non-finite samples become zero. A device discontinuity creates a reported
 // loss/restoration boundary before the next block. Each native packet is split at the queue's
-// configured maximum block size. Keep the queue alive while using this adapter.
+// configured maximum block size. Timestamp overflow is rejected before the queue state changes.
+// Keep the queue alive while using this adapter.
 #[Swag.NoCopy]
 struct CapturePcmFeeder
 {
@@ -48,8 +49,9 @@ impl CapturePcmFeeder
     {
         if not samples.count or samples.count % .channels do
             fail BadParameterError{"capture PCM16 packet needs complete nonempty frames"}
-        try .beginPacket(firstTick, discontinuity)
         let frames = samples.count / .channels
+        try .preflightTicks(firstTick, frames)
+        try .beginPacket(firstTick, discontinuity)
         var offset = 0'u64
         while offset < frames
         {
@@ -65,8 +67,9 @@ impl CapturePcmFeeder
     {
         if not samples.count or samples.count % .channels do
             fail BadParameterError{"capture float packet needs complete nonempty frames"}
-        try .beginPacket(firstTick, discontinuity)
         let frames = samples.count / .channels
+        try .preflightTicks(firstTick, frames)
+        try .beginPacket(firstTick, discontinuity)
         var offset = 0'u64
         while offset < frames
         {
@@ -89,6 +92,7 @@ impl CapturePcmFeeder
     {
         if not frames do
             fail BadParameterError{"capture silence packet needs frames"}
+        try .preflightTicks(firstTick, frames)
         try .beginPacket(firstTick, discontinuity)
         var offset = 0'u64
         while offset < frames
@@ -105,6 +109,12 @@ impl CapturePcmFeeder
 
 private impl CapturePcmFeeder
 {
+    mtd preflightTicks(firstTick: u64, frames: u64) fail
+    {
+        let lastOffset = ((frames - 1) / .maximum) * .maximum
+        discard try .tickAt(firstTick, lastOffset)
+    }
+
     mtd beginPacket(firstTick: u64, discontinuity: bool) fail
     {
         if discontinuity do

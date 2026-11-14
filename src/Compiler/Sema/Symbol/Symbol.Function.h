@@ -393,12 +393,9 @@ public:
 
     bool tryMarkCodeGenJobScheduled() noexcept;
 
-    void addCallDependency(const SymbolFunction* sym, bool runtimeCall = true);
+    void addCallDependency(const SymbolFunction* sym);
     void appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
     bool hasCallDependencies() const;
-    void classifySemaLeaf();
-    // The candidate is frozen before SemaCompleted; read it only after that publication.
-    bool isSemaLeafCandidate() const noexcept { return isSemaLeaf() || semaLeafCandidate_; }
 
     void addLifecycleDependency(const SymbolFunction* sym, bool observesEffects = true);
     void appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
@@ -631,8 +628,6 @@ private:
 
     std::vector<SymbolFunction*> callDependencies_;
     PointerSet<SymbolFunction>   callDependencySet_;
-    bool                         hasRuntimeCallDependency_ = false;
-    bool                         semaLeafCandidate_        = false;
 
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleDependencies_;
     std::unique_ptr<std::vector<SymbolFunction*>> lifecycleEffectDependencies_;

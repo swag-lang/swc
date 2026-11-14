@@ -530,9 +530,9 @@ void SymbolFunction::classifyLoweredBody(SmallVector<SymbolFunction*>& outDirect
 Result SymbolFunction::resolveCallClobbers(TaskContext& ctx, uint64_t& outClobbers)
 {
     // Whether this callee is trusted cannot depend on how far its own job has got: only a
-    // callee its callers joined is, and only once it was lowered without any call.
+    // candidate its callers waited for is, and only once it was lowered without any call.
     outClobbers = MicroInstr::K_CALL_CLOBBERS_ALL;
-    if (!isCodeGenPreSolved() || !isLoweredLeaf() || !isSemaLeafCandidate())
+    if (!isSemaLeaf() || !isCodeGenPreSolved() || !isLoweredLeaf())
         return Result::Continue;
 
     outClobbers = callClobbers();
@@ -546,8 +546,8 @@ Result SymbolFunction::resolveCallClobbers(TaskContext& ctx, uint64_t& outClobbe
 
 // An optimized body keeps values across a call in the transient registers its callee leaves
 // alone. Which callee qualifies has to be the same whichever thread emits first: the caller's
-// job publishes its own lowered body, joins its effective source leaves, and then emits. A '#run'
-// batch likewise emits only once every function it holds is lowered.
+// job emits only once the leaf candidates it calls are lowered, and a '#run' batch only once
+// every function it holds is.
 Result SymbolFunction::narrowCallClobbers(TaskContext& ctx, MicroBuilder& builder)
 {
     if (!builder.backendBuildCfg().runsCostlyOptimizations())

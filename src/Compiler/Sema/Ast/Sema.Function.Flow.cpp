@@ -1649,10 +1649,15 @@ namespace
         const bool           isMacroCall = attributes.hasRtFlag(RtAttributeFlagsE::Macro);
 
         auto* currentFn = sema.currentFunction();
-        const bool trackDependency = currentFn && currentFn->decl() && calledFn.decl() && calledFn.declNodeRef().isValid() &&
-                                     !calledFn.isForeign() && !calledFn.isEmpty() && !isMixinCall && !isMacroCall;
-        if (trackDependency)
-            currentFn->addCallDependency(&calledFn, false);
+        if (currentFn &&
+            currentFn->decl() &&
+            calledFn.decl() &&
+            calledFn.declNodeRef().isValid() &&
+            !calledFn.isForeign() &&
+            !calledFn.isEmpty() &&
+            !isMixinCall &&
+            !isMacroCall)
+            currentFn->addCallDependency(&calledFn);
 
         if (calledFn.isFallible())
         {
@@ -1707,11 +1712,6 @@ namespace
             return Result::Continue;
         if (sema.hasSubstitute(sema.curNodeRef()))
             return Result::Continue;
-
-        // Inlining restarts this visit at its expansion root, which has no
-        // substitute of its own. Only an unexpanded call creates a runtime edge.
-        if (trackDependency && !SemaInline::expansionPayload(sema, sema.curNodeRef()))
-            currentFn->addCallDependency(&calledFn);
 
         SWC_RESULT(SemaHelpers::attachIndirectReturnRuntimeStorageIfNeeded(sema, node, calledFn, "__call_runtime_storage"));
 

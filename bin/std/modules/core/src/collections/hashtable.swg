@@ -48,11 +48,11 @@ struct(K, V) HashTable
     }
 }
 
-// Iterates a borrowed hash table by descending storage slot, exposing keys only through const access.
+// Iterates a mutable hash table by descending storage slot, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K, V) ReversedHashTable
 {
-    source: const *HashTable'(K, V)
+    source: *HashTable'(K, V)
 }
 
 impl ReversedHashTable
@@ -76,6 +76,69 @@ impl ReversedHashTable
                     #inject(stmt,
                             key = cast(const *K, &table[tableIndex].key),
                             value = cast(*V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(K) do
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(V) do
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
+                else do
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
+            }
+
+            remain -= 1
+            if not remain do
+                break
+        }
+    }
+}
+
+// Iterates a const borrowed hash table by descending storage slot.
+#[Swag.Opaque]
+struct(K, V) ConstReversedHashTable
+{
+    source: const *HashTable'(K, V)
+}
+
+impl ConstReversedHashTable
+{
+    // Visits borrowed key-value pairs in descending storage-slot order.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(key, value))
+    {
+        let table  = .source.constTablePtr()
+        var remain = .source.count
+        scope(Up)
+        for offset in .source.capacity
+        {
+            let tableIndex = .source.capacity - offset - 1
+            if table[tableIndex].hash < 2'u32 do
+                continue
+
+            scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = cast(const *V, &table[tableIndex].value),
                             break = break to Up,
                             continue = break to Down)
                 elif Reflection.isStruct(K) and Reflection.isStruct(V) do
@@ -231,7 +294,7 @@ impl HashTable
     // The order is unspecified and changes when the table grows. Visiting by address binds the
     // key through a constant pointer and the value through a mutable pointer.
     #[Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(key, value))
+    mtd(ptr: bool) opVisit(stmt: #code(key, value))
     {
         if not .count do
             return
@@ -284,8 +347,66 @@ impl HashTable
         }
     }
 
-    // Returns an immutable zero-allocation view that scans occupied slots in reverse order.
-    mtd const reversed()->ReversedHashTable'(K, V) => {source: me}
+    // Visits entries in storage-slot order through const borrows.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(key, value))
+    {
+        if not .count do
+            return
+
+        let table  = .constTablePtr()
+        var remain = .count
+        scope(Up)
+        for tableIndex in .capacity
+        {
+            if table[tableIndex].hash < HashTable.HASH_FIRST do
+                continue
+
+            scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(K) do
+                    #inject(stmt,
+                            key = cast(const *K, &table[tableIndex].key),
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(V) do
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = cast(const *V, &table[tableIndex].value),
+                            break = break to Up,
+                            continue = break to Down)
+                else do
+                    #inject(stmt,
+                            key = table[tableIndex].key,
+                            value = table[tableIndex].value,
+                            break = break to Up,
+                            continue = break to Down)
+            }
+
+            remain -= 1
+            if not remain do
+                break
+        }
+    }
+
+    // Returns a zero-allocation view that scans occupied slots in reverse order.
+    //
+    // The view preserves whether this table is mutable or const.
+    mtd reversed()->ReversedHashTable'(K, V) => {source: me}
+    mtd const reversed()->ConstReversedHashTable'(K, V) => {source: me}
 
     // Returns the hash of `key`, lifted above the reserved free and deleted slot markers.
     //

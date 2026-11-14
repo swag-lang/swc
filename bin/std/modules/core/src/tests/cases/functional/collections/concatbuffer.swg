@@ -228,6 +228,22 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
 #test
 {
     var buffer: ConcatBuffer
+    buffer.addNative(0xAA'u8)
+    let value = 0x12345678'u32
+    let unalignedPosition = buffer.position()
+    Swag.require(cast(u64, unwrap unalignedPosition.pointer) % #alignof(u32) != 0)
+    buffer.addNative(value)
+
+    var expected: [5] u8
+    expected[0] = 0xAA
+    Memory.copy(&expected[1], &value, #sizeof(u32))
+    let actual = unwrap buffer.toSlice()
+    Swag.require(actual.count == expected.count and Memory.compare(actual.buffer, &expected[0], expected.count) == 0)
+}
+
+#test
+{
+    var buffer: ConcatBuffer
     buffer.setBucketSize(4)
     let first = buffer.reserveInPlace(4)
     Memory.copy(first, "abcd".buffer, 4)

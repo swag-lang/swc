@@ -307,6 +307,17 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     Swag.require(err10 != null)
 }
 
+// The final MCU must be followed by an actual EOI marker, not synthetic EOF padding.
+#test
+{
+    let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
+    Swag.require(bytes.count > 2)
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("missing-eoi.jpg", Swag.makeSlice(bytes.buffer, bytes.count - 2), {}) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 #test
 {
     var bytes     = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))

@@ -13,15 +13,35 @@ const ChaCha20BlockSize = 64
 #[Swag.Inline]
 private func add32(left, right: u32)->u32 => cast(u32, ((cast(u64, left) + right) & 0xFFFF_FFFF))
 
-// The wire format is little-endian, which is the target's byte order: one
-// unaligned word access replaces the byte-at-a-time assembly.
+// Read and write little-endian words without assuming byte-buffer alignment.
 #[Swag.Inline]
-private func load32(data: const [*] u8)->u32 => cast(const *u32, data)[]
+private func load32(data: const [*] u8)->u32
+{
+    var value: u32
+    Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
+    return Math.littleEndianToNative(value)
+}
 
 #[Swag.Inline]
 private func store32(data: [*] u8, value: u32)
 {
-    cast(*u32, data)[] = value
+    let encoded = Math.nativeToLittleEndian(value)
+    Memory.copy(cast([*] void, data), cast(const [*] void, &encoded), #sizeof(encoded))
+}
+
+#[Swag.Inline]
+private func load64(data: const [*] u8)->u64
+{
+    var value: u64
+    Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
+    return Math.littleEndianToNative(value)
+}
+
+#[Swag.Inline]
+private func store64(data: [*] u8, value: u64)
+{
+    let encoded = Math.nativeToLittleEndian(value)
+    Memory.copy(cast([*] void, data), cast(const [*] void, &encoded), #sizeof(encoded))
 }
 
 #[Swag.Inline]
@@ -206,9 +226,9 @@ func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initia
         var i   = 0'u64
         while i + 8 <= count
         {
-            let sourceWord = cast(const *u64, (src + i))[]
-            let streamWord = cast(const *u64, (&block[i]))[]
-            cast(*u64, (dst + i))[] = sourceWord ^ streamWord
+            let sourceWord = load64(src + i)
+            let streamWord = load64(&block[i])
+            store64(dst + i, sourceWord ^ streamWord)
             i += 8
         }
 

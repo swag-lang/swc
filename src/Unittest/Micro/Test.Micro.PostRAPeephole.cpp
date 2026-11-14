@@ -8010,6 +8010,95 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryPreservesLanesAndOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_NarrowLoadConsumersPreserveFullResultsAndFlags)
+{
+    struct Widths
+    {
+        MicroOpBits load;
+        MicroOpBits operation;
+    };
+    constexpr Widths widths[] = {
+        {MicroOpBits::B64, MicroOpBits::B32},
+        {MicroOpBits::B64, MicroOpBits::B16},
+        {MicroOpBits::B32, MicroOpBits::B16},
+        {MicroOpBits::B64, MicroOpBits::B8},
+        {MicroOpBits::B32, MicroOpBits::B8},
+        {MicroOpBits::B16, MicroOpBits::B8},
+        {MicroOpBits::B8, MicroOpBits::B16},
+        {MicroOpBits::B32, MicroOpBits::B64},
+        {MicroOpBits::B16, MicroOpBits::B32},
+    };
+    const MicroReg base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    const MicroReg index       = MicroReg::intReg(8);
+    const MicroReg flags       = MicroReg::intReg(9);
+    const MicroReg loaded      = MicroReg::intReg(10);
+    const MicroReg destination = MicroReg::intReg(11);
+    for (const bool indexed : {false, true})
+        for (const auto width : widths)
+            for (const auto operation : {MicroOp::Add, MicroOp::Subtract, MicroOp::MultiplySigned, MicroOp::And, MicroOp::Or, MicroOp::Xor})
+                for (uint32_t control = 0; control < 3; ++control)
+                    for (const uint64_t input : {uint64_t{0}, uint64_t{0x80008000}, uint64_t{0xFEDCBA9876543210}, UINT64_MAX})
+                    {
+                        if (operation == MicroOp::MultiplySigned && width.operation == MicroOpBits::B8)
+                            continue;
+                        std::array<uint64_t, 8> expected{};
+                        for (const bool optimize : {false, true})
+                        {
+                            std::array<uint64_t, 8> values = {0, 0, input, 0, 0, 0, 0, 0};
+                            MicroBuilder            builder(ctx);
+                            builder.emitLoadRegImm(destination, ApInt(0x8877665544332211, 64), MicroOpBits::B64);
+                            builder.emitLoadRegImm(loaded, ApInt(0xAABBCCDDEEFF0011, 64), MicroOpBits::B64);
+                            builder.emitLoadRegImm(index, ApInt(2, 64), MicroOpBits::B64);
+                            if (indexed)
+                                builder.emitLoadAmcRegMem(loaded, width.load, base, index, 8, 0, MicroOpBits::B64);
+                            else
+                                builder.emitLoadRegMem(loaded, base, 16, width.load);
+                            if (control == 1)
+                                builder.emitLoadMemImm(base, 16, ApInt(9, 64), MicroOpBits::B64);
+                            builder.emitOpBinaryRegReg(destination, loaded, operation, width.operation);
+                            builder.emitSetCondReg(flags, MicroCond::Overflow);
+                            builder.emitLoadMemReg(base, 32, destination, MicroOpBits::B64);
+                            builder.emitLoadMemReg(base, 40, flags, MicroOpBits::B8);
+                            if (control == 2)
+                                builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B64);
+                            builder.emitRet();
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                expected = values;
+                            else
+                            {
+                                const bool folds  = control == 0 && getNumBits(width.operation) < getNumBits(width.load);
+                                const auto opcode = indexed ? MicroInstrOpcode::OpBinaryRegAmcMem : MicroInstrOpcode::OpBinaryRegMem;
+                                if (values != expected || Backend::Unittest::countOpcode(builder, opcode) != (folds ? 1u : 0u))
+                                    return Result::Error;
+                            }
+                        }
+                    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_NarrowMemoryKeepsFrameReloadsAvailable)
+{
+    const auto& conv = CallConv::get(CallConvKind::Swag);
+    const MicroReg local = MicroReg::intReg(12);
+    for (const auto base : {conv.stackPointer, conv.framePointer, local})
+        for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegMem(MicroReg::intReg(10), base, 48, MicroOpBits::B64);
+            builder.emitOpBinaryRegReg(MicroReg::intReg(11), MicroReg::intReg(10), MicroOp::Add, bits);
+            builder.emitLoadMemReg(MicroReg::intReg(9), 0, MicroReg::intReg(11), MicroOpBits::B64);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder, local));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem))
+                return Result::Error;
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_IndexedArithmeticReadsKeepPrecedingFrameStores)
 {
     const auto         base        = CallConv::get(CallConvKind::C).intArgRegs[0];

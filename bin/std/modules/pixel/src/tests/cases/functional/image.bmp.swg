@@ -639,6 +639,44 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.require(img.pixels.buffer[5] == 0'u8)
 }
 
+// Decode 32-bit BI_BITFIELDS pixels using explicit masks and opaque alpha when absent.
+#test
+{
+    var cb: ConcatBuffer
+    var fh: BmpFH
+    fh.bfType    = 0x4D42'u16
+    fh.bfSize    = 126'u32
+    fh.bfOffBits = 122'u32
+    cb.addStruct(fh)
+
+    var bh: Bmp.Header
+    bh.biSize        = 108'u32
+    bh.biWidth       = 1
+    bh.biHeight      = 1
+    bh.biPlanes      = 1'u16
+    bh.biBitCount    = 32'u16
+    bh.biCompression = Bmp.BI_BITFIELDS
+    bh.biSizeImage   = 4'u32
+    cb.addStruct(bh)
+    cb.addNative(0x000000FF'u32)
+    cb.addNative(0x0000FF00'u32)
+    cb.addNative(0x00FF0000'u32)
+    cb.addNative(0'u32)
+    var extension: [52] u8
+    for index in 0 until extension.count do
+        extension[index] = 0
+    cb.addBytes(extension)
+    cb.addNative(0x000000FF'u32)
+
+    let img = expect Image.decode("masked32.bmp", nnBytes(cb.toSlice()))
+    Swag.require(img.pixelFormat == .BGRA8)
+    Swag.require(img.pixels.buffer != null)
+    Swag.require(img.pixels.buffer[0] == 0'u8)
+    Swag.require(img.pixels.buffer[1] == 0'u8)
+    Swag.require(img.pixels.buffer[2] == 255'u8)
+    Swag.require(img.pixels.buffer[3] == 255'u8)
+}
+
 #test
 {
     var cb: ConcatBuffer

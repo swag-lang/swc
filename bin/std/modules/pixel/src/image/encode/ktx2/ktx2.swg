@@ -163,7 +163,7 @@ internal impl IImageEncoder for Encoder
         formatInfo(image.pixelFormat, &vk, &typeSize, &channelIds, &floating)
         let dfdLength  = 28'u64 + cast(u64, image.pixelFormat.channels()) * 16
         let dfdOffset  = HeaderSize + 24
-        let alignment  = cast(u64, Math.lcm(4, image.bytesPerPixel))
+        let alignment  = cast(u64, try Math.lcm(4, image.bytesPerPixel))
         let dataOffset = (dfdOffset + dfdLength + alignment - 1) / alignment * alignment
 
         result.addBytes(Identifier)

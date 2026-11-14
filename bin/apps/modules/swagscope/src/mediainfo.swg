@@ -488,7 +488,7 @@ func videoAspectRatio(width, height: s32)->String
 {
     if width <= 0 or height <= 0 do
         return ""
-    let divisor = Math.gcd(width, height)
+    let divisor = expect Math.gcd(width, height)
     return Format.toString("%:%", width / divisor, height / divisor)
 }
 

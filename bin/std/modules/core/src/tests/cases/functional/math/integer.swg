@@ -332,21 +332,39 @@ func expectedAbs8(value: s8)->s8
 
 #test
 {
-    Swag.require(Math.gcd(48, 18) == 6)
-    Swag.require(Math.gcd(17, 0) == 17)
-    Swag.require(Math.gcd(0, 17) == 17)
-    Swag.require(Math.gcd(0, 0) == 0)
-    Swag.require(Math.gcd(-48, 18) == 6)
-    Swag.require(Math.gcd(48, -18) == 6)
-    Swag.require(Math.gcd(-48, -18) == 6)
-    Swag.require(Math.gcd(Swag.S64.Min, -1) == 1)
-    Swag.require(Math.gcd(-1, Swag.S64.Min) == 1)
-    Swag.require(Math.lcm(4, 6) == 12)
-    Swag.require(Math.lcm(21, 6) == 42)
-    Swag.require(Math.lcm(0, 6) == 0)
-    Swag.require(Math.lcm(6, 0) == 0)
-    Swag.require(Math.lcm(0, 0) == 0)
-    Swag.require(Math.lcm(-4, 6) == 12)
-    Swag.require(Math.lcm(4, -6) == 12)
-    Swag.require(Math.lcm(-4, -6) == 12)
+    Swag.require(expect Math.gcd(48, 18) == 6)
+    Swag.require(expect Math.gcd(17, 0) == 17)
+    Swag.require(expect Math.gcd(0, 17) == 17)
+    Swag.require(expect Math.gcd(0, 0) == 0)
+    Swag.require(expect Math.gcd(-48, 18) == 6)
+    Swag.require(expect Math.gcd(48, -18) == 6)
+    Swag.require(expect Math.gcd(-48, -18) == 6)
+    Swag.require(expect Math.gcd(Swag.S64.Min, -1) == 1)
+    Swag.require(expect Math.gcd(-1, Swag.S64.Min) == 1)
+    Swag.require(expect Math.lcm(4, 6) == 12)
+    Swag.require(expect Math.lcm(21, 6) == 42)
+    Swag.require(expect Math.lcm(0, 6) == 0)
+    Swag.require(expect Math.lcm(6, 0) == 0)
+    Swag.require(expect Math.lcm(0, 0) == 0)
+    Swag.require(expect Math.lcm(-4, 6) == 12)
+    Swag.require(expect Math.lcm(4, -6) == 12)
+    Swag.require(expect Math.lcm(-4, -6) == 12)
+    Swag.require(expect Math.lcm(Swag.S64.Max, 1) == Swag.S64.Max)
+    Swag.require(expect Math.lcm(Swag.S64.Max / 2, 2) == Swag.S64.Max - 1)
+
+    var gcdOverflow: Swag.Error
+    discard catch Math.gcd(Swag.S64.Min, 0) as gcdOverflow
+    Swag.require(gcdOverflow.value() is Errors.OverflowError)
+
+    var gcdOverflowReversed: Swag.Error
+    discard catch Math.gcd(0, Swag.S64.Min) as gcdOverflowReversed
+    Swag.require(gcdOverflowReversed.value() is Errors.OverflowError)
+
+    var lcmOverflow: Swag.Error
+    discard catch Math.lcm(Swag.S64.Min, 1) as lcmOverflow
+    Swag.require(lcmOverflow.value() is Errors.OverflowError)
+
+    var lcmOverflowProduct: Swag.Error
+    discard catch Math.lcm(Swag.S64.Max, 2) as lcmOverflowProduct
+    Swag.require(lcmOverflowProduct.value() is Errors.OverflowError)
 }

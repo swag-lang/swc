@@ -53,12 +53,14 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
     const R = 47
 
     var h       = seed ^ (len * M)
-    let data    = cast(const [*] u64, key)
     let nblocks = len / 8
 
     for i in nblocks
     {
-        var k = data[i]
+        // Independent bytewise little-endian load; do not mirror the production word load.
+        var k = 0'u64
+        for b in 8 do
+            k |= cast(u64, key[i * 8 + b]) << (b * 8)
         k *= M
         k ^= k >> R
         k *= M
@@ -66,7 +68,7 @@ func murmur3Reference(key: const [*] u8, len: u64, seed: u64)->u64
         h *= M
     }
 
-    let data2 = cast(const [*] u8, &data[nblocks])
+    let data2 = key + nblocks * 8
     switch len & 7
     {
     case 7:
@@ -138,6 +140,9 @@ func fillMurmur3Pattern(buffer: [..] u8)
 {
     Swag.require(Hash.murmur3(0x12345678'u32, 0'u32) != Hash.murmur3(0x12345678'u32, 1'u32))
 
+    const LeVector: [8] u8 = [1, 2, 3, 4, 5, 6, 7, 8]
+    Swag.require(Hash.murmur3(cast(const [*] u8, LeVector.buffer), LeVector.count, 0) == 0x88B2_A580_3544_86B7'u64)
+
     for value in 65536
     {
         let value32 = cast(u32, value)
@@ -155,13 +160,30 @@ func fillMurmur3Pattern(buffer: [..] u8)
     assertMurmur3(0x8000_0000_0000_0000'u64)
     assertMurmur3(0xFFFF_FFFF_FFFF_FFFF'u64)
 
-    var data: [33] u8
-    fillMurmur3Pattern(data)
+    var backing: [41] u8
+    let base   = cast(u64, cast(const [*] u8, backing.buffer))
+    let offset = (1 + 8 - (base & 7)) & 7
+    var view   = backing[offset to offset + 33]
+    fillMurmur3Pattern(view)
+    Swag.require((cast(u64, cast(const [*] u8, view.buffer)) & 7) == 1)
+
+    var copiedBacking: [40] u8
+    let copiedBase   = cast(u64, cast(const [*] u8, copiedBacking.buffer))
+    let copiedOffset = (8 - (copiedBase & 7)) & 7
+    var copied       = copiedBacking[copiedOffset to copiedOffset + 33]
+    Swag.require((cast(u64, cast(const [*] u8, copied.buffer)) & 7) == 0)
+    for i in 33 do
+        copied[i] = view[i]
 
     for length in 34
     {
-        let ptr = cast(const [*] u8, data.buffer)
-        Swag.require(Hash.murmur3(ptr, length, 0) == murmur3Reference(ptr, length, 0))
-        Swag.require(Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64) == murmur3Reference(ptr, length, 0x1234_5678_9ABC_DEF0'u64))
+        let ptr = cast(const [*] u8, view.buffer)
+        let alignedPtr = cast(const [*] u8, copied.buffer)
+        let hash0 = Hash.murmur3(ptr, length, 0)
+        let hash1 = Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64)
+        Swag.require(hash0 == murmur3Reference(ptr, length, 0))
+        Swag.require(hash1 == murmur3Reference(ptr, length, 0x1234_5678_9ABC_DEF0'u64))
+        Swag.require(hash0 == Hash.murmur3(alignedPtr, length, 0))
+        Swag.require(hash1 == Hash.murmur3(alignedPtr, length, 0x1234_5678_9ABC_DEF0'u64))
     }
 }

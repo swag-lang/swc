@@ -3,6 +3,39 @@
 
 using Swag, Core
 
+struct ImageReaderDecoderAllocatorProbe
+{
+    upstream:        IAllocator
+    decoder:         *void?
+    ownsDecoder:     bool
+    releasedDecoder: bool
+    releasedForeign: bool
+}
+
+impl IAllocator for ImageReaderDecoderAllocatorProbe
+{
+    mtd impl alloc(request: *AllocatorRequest)   => .upstream.alloc(request)
+    mtd impl realloc(request: *AllocatorRequest) => .upstream.realloc(request)
+
+    mtd impl free(request: *AllocatorRequest)
+    {
+        if request.address == .decoder
+        {
+            if .ownsDecoder
+            {
+                .releasedDecoder = true
+            }
+            else
+            {
+                .releasedForeign = true
+                return
+            }
+        }
+
+        .upstream.free(request)
+    }
+}
+
 #test
 {
     var reader = expect ImageReader.load(getTestDataPath("imageset-restore.apng"))
@@ -232,4 +265,43 @@ using Swag, Core
             Swag.require(truncatedError != null)
         }
     }
+}
+
+// Closing a reader uses the allocator that created its persistent decoder.
+#test
+{
+    var source = Image.create(2, 2, .RGBA8)
+    source.fill(Argb.Red)
+    let bytes = expect source.encode("image.bmp")
+    var ownerBacking, currentBacking: Swag.Allocator
+    ownerBacking.setup()
+    currentBacking.setup()
+    defer ownerBacking.releaseAll()
+    defer currentBacking.releaseAll()
+    var ownerProbe   = ImageReaderDecoderAllocatorProbe{upstream: &ownerBacking}
+    var currentProbe = ImageReaderDecoderAllocatorProbe{upstream: &currentBacking}
+
+    let context = Swag.getContext()
+    let previousAllocator = context.allocator
+    defer context.allocator = previousAllocator
+    let owner:   IAllocator = &ownerProbe
+    let current: IAllocator = &currentProbe
+    context.allocator = owner
+
+    let ownerBaseline   = ownerBacking.stats().countAlloc
+    let currentBaseline = currentBacking.stats().countAlloc
+    var reader = expect ImageReader.decode("image.bmp", nnBytes(bytes.toSlice()))
+    ownerProbe.decoder   = reader.decoder
+    currentProbe.decoder = reader.decoder
+    ownerProbe.ownsDecoder = true
+    let activeOwnerAllocations = ownerBacking.stats().countAlloc
+    Swag.require(activeOwnerAllocations > ownerBaseline)
+    Swag.require(currentBacking.stats().countAlloc == currentBaseline)
+
+    context.allocator = current
+    reader.close()
+    Swag.require(ownerProbe.releasedDecoder)
+    Swag.require(not currentProbe.releasedForeign)
+    Swag.require(ownerBacking.stats().countAlloc < activeOwnerAllocations)
+    Swag.require(currentBacking.stats().countAlloc == currentBaseline)
 }

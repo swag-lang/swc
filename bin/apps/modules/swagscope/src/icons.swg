@@ -4,7 +4,7 @@ using Core, Gui
 // document. The set is rasterized on demand per size and scale through [[Gui.IconSet]], so every
 // glyph stays sharp at any display density.
 //
-// Viewer glyphs follow registry order. Generic action glyphs come from [[Gui.ThemeIcons]], so an
+// Viewer glyphs follow this enum's order. Generic action glyphs come from [[Gui.ThemeIcons]], so an
 // action keeps the same mark in every application.
 enum ViewerIcons
 {
@@ -28,10 +28,11 @@ enum ViewerIcons
     Docx         // Word document reading page.
     Xlsx         // Workbook sheet and cell reader.
     Pptx         // Presentation slide reader.
+    Rtf          // Rich-text document reader.
 }
-const ViewerIconValues: [20] ViewerIcons = [
+const ViewerIconValues: [21] ViewerIcons = [
     .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
-    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx,
+    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf,
 ]
 
 private const IconsSvg = #include("../datas/icons.svg")

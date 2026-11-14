@@ -13,6 +13,7 @@ the intended order, navigation works, search or selection works where meaningful
 input remains bounded, and unsupported content is named rather than silently omitted. The
 [fixture matrix](../bin/apps/modules/swagscope/src/tests/datas/README.md) records named inputs;
 app.scope.viewers.009 tracks the remaining behavior and performance checks per format.
+Implement every viewer and format decoder in Swag without external viewer libraries.
 
 1. Reuse the ZIP, HTML and image readers for EPUB and CBZ, then add safe basic reading for RTF and
    Jupyter notebooks. See [app.scope.document.md](app.scope.document.md). Each format gets a real
@@ -53,8 +54,8 @@ each slice rather than becoming a final integration pass.
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Evidence: the twenty registered viewers have focused tests and viewer-specific goldens. The
-  fixture matrix now names all 109 canonical and variant files, checks
-  each one's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, XLSX and PPTX have
+  fixture matrix now names all 115 canonical and variant files, checks
+  each one's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, RTF, XLSX and PPTX have
   content and damaged-package cases. Five complete, openly licensed published documents add
   content checks for EPUB, Office and PDF, with source URLs and SHA-256 hashes. Text covers queued encoding changes, cancellation and CRLF
   search offsets; shared document outlines have
@@ -229,7 +230,7 @@ each slice rather than becoming a final integration pass.
 | OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
-| RTF | `.rtf` | raw text, recognized from its content | a safe document renderer | — |
+| RTF | `.rtf` | bounded formatted reading with text, styles, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |

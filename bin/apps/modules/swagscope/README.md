@@ -143,6 +143,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Word document` reads the main DOCX body as paragraphs and tables, preserving text-run order,
   line breaks and tabs. It labels embedded images it cannot yet show. Page layout, styles,
   headers, footers and comments are not reproduced.
+- `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
+  tabs and simple tables. It labels embedded pictures and objects it cannot show. Only Windows-1252
+  encoded text is supported; page geometry, fonts, colors, complex tables and fields are not reproduced.
 - `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
   booleans and cached formula values in cell order. It does not calculate formulas or reproduce
   formatting, charts, merged cells or images.

@@ -5,6 +5,16 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.024 — RTF reading omits advanced layout and encoded text variants
+
+- Evidence: the Swag RTF reader now displays paragraphs, common inline styles, alignment, simple
+  tables, Unicode escapes and Windows-1252 text. It names omitted images and embedded objects.
+  It does not reproduce fonts, colors, page geometry, complex tables, fields or other code pages.
+- Next: add a bounded font/color and paragraph model, supported code-page decoders, image extraction
+  and a richer table layout without executing fields or loading linked resources.
+- Done when: representative freely licensed RTF documents retain their reading order and common
+  visual structure, unsupported content remains explicit, and all decoding remains native Swag.
+
 ### app.scope.document.001 — The full Markdown outline lacks reading-position tracking and history
 
 - Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets

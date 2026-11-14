@@ -2,6 +2,15 @@
 
 ## Published reading documents
 
+`viewer.libreoffice.rtf` is an unmodified formatting regression document from LibreOffice's
+RTF import corpus. Its repeated body paragraphs exercise a document produced outside this
+repository, beyond the small format probes.
+
+- Source: [`sw/qa/extras/rtfimport/data/165483.rtf`](https://github.com/LibreOffice/core/blob/34554daa75201720d66f503661ab6a6ea558eb73/sw/qa/extras/rtfimport/data/165483.rtf).
+- Retrieved: 2026-11-14.
+- SHA-256: `0202eae51297de1451e60025ca5d958c0cf3519542cc109e59cdcf0f665e9e63`.
+- License: [LibreOffice's MPL 2.0 and LGPL 3.0 or later licensing](https://github.com/LibreOffice/core/blob/34554daa75201720d66f503661ab6a6ea558eb73/COPYING).
+
 `viewer.christmas-carol.epub` is an unmodified EPUB 3 download of *A Christmas Carol in
 Prose; Being a Ghost Story of Christmas* by Charles Dickens, with the original illustrations
 by John Leech. It tests a complete illustrated book with several spine entries.

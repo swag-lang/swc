@@ -751,7 +751,9 @@ impl String
     }
 
     // Returns a new string holding `str` converted to upper case, like [[Core.String.makeUpper]].
-    func toUpper(str: string, set = CharacterSet.Latin1)->String
+    //
+    // A null input produces an empty string.
+    func toUpper(str: string?, set = CharacterSet.Latin1)->String
     {
         var result: #returntype = str
         result.makeUpper(set)
@@ -767,6 +769,8 @@ impl String
     }
 
     // Returns a new string holding `str` converted to lower case, like [[Core.String.makeLower]].
+    //
+    // A null input produces an empty string.
     func toLower(str: string?, set = CharacterSet.Latin1)->String
     {
         var result: #returntype = str

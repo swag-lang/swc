@@ -185,22 +185,22 @@ impl Source
         {
             for index in .sources.count
             {
-                let source = .sources[index]
-                let x = cast(u64, source.options.x - .options.x)
-                let bottom = cast(u64, .options.height - (source.options.y - .options.y) - source.options.height)
-                let changed = try source.grabInto(&.pictures[index], true)
+                let nativeSource = .sources[index]
+                let x = cast(u64, nativeSource.options.x - .options.x)
+                let bottom = cast(u64, .options.height - (nativeSource.options.y - .options.y) - nativeSource.options.height)
+                let changed = try nativeSource.grabInto(&.pictures[index], true)
                 fresh = changed or fresh
                 if not first and not changed do
                     continue
                 let part = &.pictures[index]
                 let rowBytes = cast(u64, part.width) * 4
-                let composeStart = Time.monotonicMicroseconds()
+                let partComposeStart = Time.monotonicMicroseconds()
                 for row in cast(u64, part.height)
                 {
                     Memory.copy(.composed.pixels.storage() + (bottom + row) * cast(u64, .composed.rowStride) + x * 4,
                                 part.pixels.storage() + row * rowBytes, rowBytes)
                 }
-                .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
+                .composeMicroseconds += Time.monotonicMicroseconds() - partComposeStart
             }
         }
         if not fresh and not copyUnchanged

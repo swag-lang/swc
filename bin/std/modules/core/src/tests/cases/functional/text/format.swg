@@ -45,6 +45,24 @@ func formatReferencedString(value: String)->String => Format.toString("%", value
 
 #test
 {
+    let minimumBinary = Format.toString("%{B}", Swag.S64.Min)
+    Swag.require(minimumBinary.count == 65)
+    Swag.require(minimumBinary.storage()[0] == '-')
+    Swag.require(minimumBinary.storage()[1] == '1')
+    for index in 2 until minimumBinary.count do
+        Swag.require(minimumBinary.storage()[index] == '0')
+
+    let wide = Format.toString("%{D0255}", 7)
+    Swag.require(wide.count == 255)
+    Swag.require(wide.storage()[0] == '0' and wide.storage()[254] == '7')
+
+    let wideSigned = Format.toString("%{+D0255}", 7)
+    Swag.require(wideSigned.count == 255)
+    Swag.require(wideSigned.storage()[0] == '+' and wideSigned.storage()[254] == '7')
+}
+
+#test
+{
     var dest: String
     Format.replaceString(&dest, "fresh %", "value")
     Swag.require(assertFormatString(dest, "fresh value"))

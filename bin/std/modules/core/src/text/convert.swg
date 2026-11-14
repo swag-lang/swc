@@ -425,8 +425,9 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
     }
 
     const Tbl = "0123456789ABCDEF"
-    var tmp: [64] u8
-    var cpt = 63'u32
+    // 255 is the maximum supported width. Leave index 0 available as a leading-sign slot.
+    var tmp: [256] u8
+    var cpt = 255'u32
 
     // Special case for the lower digit of Swag.S64.Min
     // We have 9_223_372_036_854_775_807, and we want -9_223_372_036_854_775_808
@@ -459,8 +460,8 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
     if fmt.padding
     {
         let signWidth = signedValue < 0 or fmt.forceSign ? 1'u32 : 0'u32
-        var curWidth  = 63 - cpt
-        while curWidth < fmt.width and cpt > 1
+        var curWidth  = 255 - cpt
+        while curWidth < fmt.width and cpt > signWidth
         {
             if curWidth + signWidth >= fmt.width do
                 break

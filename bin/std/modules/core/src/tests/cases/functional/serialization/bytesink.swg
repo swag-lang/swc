@@ -200,6 +200,21 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     Swag.require(Slice.equals(actual.toSlice(), [7'u8, 9, 3]))
 }
 
+// Native bytes must not serialize an owned String header whose pointer would outlive the call.
+#test
+{
+    var buffer: ConcatBuffer
+    buffer.addBytes("prefix")
+    var sink = ByteSink.createMemory(&buffer)
+    let value: String = "owned string"
+
+    var errorOutcome: Swag.Error
+    discard catch sink.writeNative(value) as errorOutcome
+    Swag.require(errorOutcome.value() is BadParameterError)
+    Swag.require(sink.position() == 0)
+    Swag.require(buffer.toString() == "prefix")
+}
+
 // A memory sink appends even when the caller previously moved its buffer cursor backwards.
 #test
 {

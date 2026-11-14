@@ -104,6 +104,18 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.require(source.isAtEnd())
 }
 
+// Native reads must reject owned headers before initializing from raw bytes or advancing.
+#test
+{
+    var bytes: [#sizeof(String)] u8
+    var source = ByteSource.openMemory(bytes)
+
+    var errorOutcome: Swag.Error
+    discard catch source.readNative'String() as errorOutcome
+    Swag.require(errorOutcome.value() is BadParameterError)
+    Swag.require(source.position() == 0 and source.remaining() == bytes.count)
+}
+
 // A signed field reads with its exact bit pattern; the ascender and descender of a font table
 // are the shape that exposed this.
 #test

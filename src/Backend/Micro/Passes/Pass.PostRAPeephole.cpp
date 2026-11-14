@@ -120,6 +120,90 @@ namespace
         return false;
     }
 
+    // INC/DEC/NEG already describe the stored value in SF and ZF. A compare
+    // with zero only clears OF/CF. Signed positive/nonpositive branches can
+    // consume SF/ZF separately, avoiding a store-dependent memory reload even
+    // when the arithmetic overflowed. No successor may observe the old flags.
+    bool reuseIndexedResultFlags(MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+        auto&       storage  = *context.instructions;
+        auto&       operands = *context.operands;
+        const auto& cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+        const auto refs = cfg.instructionRefs();
+        for (uint32_t index = 0; index + 3 < refs.size(); ++index)
+        {
+            const auto* producer = storage.ptr(refs[index]);
+            const auto* compare  = storage.ptr(refs[index + 1]);
+            const auto* branch   = storage.ptr(refs[index + 2]);
+            if (producer->op != MicroInstrOpcode::OpUnaryAmcMem || compare->op != MicroInstrOpcode::CmpAmcImm || branch->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* produced = producer->ops(operands);
+            const auto* compared = compare->ops(operands);
+            const auto* branched = branch->ops(operands);
+            if ((produced[7].microOp != MicroOp::Add && produced[7].microOp != MicroOp::Subtract && produced[7].microOp != MicroOp::Negate) ||
+                produced[0].reg != compared[0].reg || produced[1].reg != compared[1].reg ||
+                produced[3].opBits != MicroOpBits::B64 || compared[3].opBits != MicroOpBits::B64 ||
+                produced[4].opBits != compared[2].opBits || produced[5].valueU64 != compared[4].valueU64 ||
+                produced[6].valueU64 != compared[5].valueU64 || compared[6].hasWideImmediateValue() || compared[6].valueU64 != 0)
+                continue;
+            MicroCond condition = branched[0].cpuCond;
+            bool      split     = false;
+            switch (condition)
+            {
+                case MicroCond::Equal:
+                case MicroCond::NotEqual:
+                case MicroCond::Sign:
+                case MicroCond::NotSign:
+                    break;
+                case MicroCond::GreaterOrEqual:
+                    condition = MicroCond::NotSign;
+                    break;
+                case MicroCond::Less:
+                    condition = MicroCond::Sign;
+                    break;
+                case MicroCond::Above:
+                    condition = MicroCond::NotEqual;
+                    break;
+                case MicroCond::BelowOrEqual:
+                    condition = MicroCond::Equal;
+                    break;
+                case MicroCond::Greater:
+                case MicroCond::LessOrEqual:
+                    split = true;
+                    break;
+                default:
+                    continue;
+            }
+            if (!MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, index + 2))
+                continue;
+            std::array<MicroInstrOperand, 3> zeroBranch{};
+            std::copy_n(branched, 3, zeroBranch.begin());
+            if (split)
+            {
+                zeroBranch[0].cpuCond = MicroCond::Equal;
+                if (condition == MicroCond::Greater)
+                {
+                    const MicroLabelRef skip = context.builder->createLabel();
+                    context.builder->placeLabel(skip);
+                    storage.moveBefore(storage.lastInstructionRef(), refs[index + 3]);
+                    zeroBranch[2].valueU64 = skip.get();
+                    condition              = MicroCond::NotSign;
+                }
+                else
+                    condition = MicroCond::Sign;
+                storage.insertDerivedBefore(operands, refs[index + 2], MicroInstrOpcode::JumpCond, zeroBranch);
+            }
+            storage.ptr(refs[index + 2])->ops(operands)[0].cpuCond = condition;
+            storage.erase(refs[index + 1]);
+            return true;
+        }
+        return false;
+    }
+
     // The last store on a guarded edge supplies an exact reload at its join.
     // The other edge still has the value loaded before the guard. Updating its
     // carrier after the store therefore removes the reload on both paths.
@@ -1486,7 +1570,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     if (context.instructions->count() == 0)
         return Result::Continue;
 
-    if (forwardGuardedStore(context) || forwardConditionalSwap(context) || reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
+    if (reuseIndexedResultFlags(context) || forwardGuardedStore(context) || forwardConditionalSwap(context) || reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))
     {
         context.passChanged = true;

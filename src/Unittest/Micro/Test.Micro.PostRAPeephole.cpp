@@ -7857,6 +7857,95 @@ SWC_TEST_BEGIN(PostRAPeephole_ConditionalSwapCarriesBothEdges)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_IndexedResultFlagsIgnoreOverflow)
+{
+    const MicroReg     base    = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg index   = MicroReg::intReg(8);
+    constexpr MicroReg other   = MicroReg::intReg(9);
+    const auto         execute = [&](MicroOpBits bits, MicroOp op, MicroCond condition, uint64_t value, uint32_t mode) -> Result {
+        std::array<uint64_t, 16> reference{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 16> values{};
+            const uint64_t           mask = getBitsMask(bits);
+            values[8]                     = (value & mask) | (0xA5A55A5A12345678ull & ~mask);
+            values[9]                     = 17;
+            MicroBuilder builder(ctx);
+            const auto   taken = builder.createLabel();
+            const auto   done  = builder.createLabel();
+            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(other, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(index, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitNop();
+            const auto                       placeholder = builder.instructions().lastInstructionRef();
+            std::array<MicroInstrOperand, 8> producer{};
+            producer[0].reg      = base;
+            producer[1].reg      = index;
+            producer[3].opBits   = MicroOpBits::B64;
+            producer[4].opBits   = bits;
+            producer[5].valueU64 = 8;
+            producer[6].valueU64 = 64;
+            producer[7].microOp  = mode == 4 ? MicroOp::BitwiseNot : op;
+            builder.instructions().insertDerivedBefore(builder.operands(), placeholder, MicroInstrOpcode::OpUnaryAmcMem, producer);
+            std::array<MicroInstrOperand, 7> compare{};
+            compare[0].reg      = base;
+            compare[1].reg      = mode == 5 ? other : index;
+            compare[2].opBits   = mode == 2 ? MicroOpBits::B32 : bits;
+            compare[3].opBits   = MicroOpBits::B64;
+            compare[4].valueU64 = 8;
+            compare[5].valueU64 = mode == 1 ? 72 : 64;
+            compare[6].setImmediateValue(ApInt(0, getNumBits(compare[2].opBits)));
+            builder.instructions().insertDerivedBefore(builder.operands(), placeholder, MicroInstrOpcode::CmpAmcImm, compare);
+            builder.instructions().erase(placeholder);
+            builder.emitJumpToLabel(condition, MicroOpBits::B32, taken);
+            if (mode == 3 || mode == 6)
+            {
+                builder.emitSetCondReg(other, mode == 3 ? MicroCond::Overflow : MicroCond::Below);
+                builder.emitLoadMemReg(base, 8, other, MicroOpBits::B8);
+            }
+            builder.emitLoadMemImm(base, 0, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+            builder.placeLabel(taken);
+            if (mode == 3 || mode == 6)
+            {
+                builder.emitSetCondReg(other, mode == 3 ? MicroCond::Overflow : MicroCond::Below);
+                builder.emitLoadMemReg(base, 8, other, MicroOpBits::B8);
+            }
+            builder.emitLoadMemImm(base, 0, ApInt(1, 64), MicroOpBits::B64);
+            builder.placeLabel(done);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+            {
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcImm) != (mode ? 1u : 0u))
+                    return Result::Error;
+            }
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+            if (!optimize)
+                reference = values;
+            else if (values != reference)
+                return Result::Error;
+        }
+        return Result::Continue;
+    };
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t sign = 1ull << (getNumBits(bits) - 1);
+        for (const auto op : {MicroOp::Add, MicroOp::Subtract, MicroOp::Negate})
+            for (const auto condition : {MicroCond::Equal, MicroCond::NotEqual, MicroCond::Sign, MicroCond::NotSign,
+                                         MicroCond::GreaterOrEqual, MicroCond::Less, MicroCond::Above, MicroCond::BelowOrEqual,
+                                         MicroCond::Greater, MicroCond::LessOrEqual})
+                for (const uint64_t value : {uint64_t{0}, uint64_t{1}, uint64_t{2}, sign - 1, sign, sign + 1, getBitsMask(bits)})
+                    SWC_RESULT(execute(bits, op, condition, value, 0));
+    }
+    for (uint32_t mode = 1; mode < 7; ++mode)
+        for (const auto condition : {MicroCond::Greater, MicroCond::LessOrEqual})
+            SWC_RESULT(execute(MicroOpBits::B64, MicroOp::Subtract, condition, 0x8000000000000000ull, mode));
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -254,6 +254,7 @@ const HoleFrameCount = 600'u64
     let header      = "YUV4MPEG2 W320 H240 F25:1 Ip C420jpeg\n"
     let payloadSize = cast(u64, HoleWidth) * cast(u64, HoleHeight) * 3 / 2
     let frameSize   = payloadSize + 6
+    Swag.require(payloadSize > ByteSource.WindowSize)
 
     var stream = expect File.openWrite(fileName)
     expect stream.writeAll(cast(const [..] u8, header))
@@ -273,12 +274,18 @@ const HoleFrameCount = 600'u64
     Swag.require(reader.frameCount() == HoleFrameCount)
     Swag.require(Math.isEqualEpsilon(reader.durationInSeconds(), 24.0, 0.0001))
 
+    let decoder = assume cast(*Y4m.Decoder, unwrap reader.decoder)
+    Swag.require(not decoder.payload.count)
+
     var frame: Image
     expect reader.decodeFrameInto(&frame, 0)
     videoAssertGray(frame.pixelColor(0, 0), videoLumaToGray(100))
+    Swag.require(decoder.payload.count == payloadSize)
+    let payloadBuffer = decoder.payload.buffer
 
     expect reader.decodeFrameInto(&frame, HoleFrameCount - 1)
     videoAssertGray(frame.pixelColor(HoleWidth - 1, HoleHeight - 1), videoLumaToGray(200))
+    Swag.require(decoder.payload.count == payloadSize and decoder.payload.buffer == payloadBuffer)
 
     reader.close()
     stream = expect File.open(fileName, .Open, .Write, .Zero)

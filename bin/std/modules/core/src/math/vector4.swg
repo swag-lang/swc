@@ -445,10 +445,9 @@ impl Vector4
     // The result is the zero vector when `other` is near zero.
     mtd const projectedOnto(other: Vector4)->Vector4
     {
-        let otherLengthSq = other.lengthSquared()
-        if Math.isZeroEpsilon(otherLengthSq) do
+        let direction = other.normalizedOrZero()
+        if direction.isZero() do
             return Zero
-        let direction = normalizedVector4(other)
         return direction * .dot(direction)
     }
 

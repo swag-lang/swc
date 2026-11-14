@@ -4,6 +4,15 @@
 // Moving a renderer to its next device generation retires its own textures only.
 #test
 {
+    var onePixel, oddImage: Texture
+    onePixel.attach(cast(TextureHandle, 1), .Yuv420, 1, 1)
+    oddImage.attach(cast(TextureHandle, 2), .Yuv420, 3, 3)
+    Swag.require(onePixel.byteCount() == 3)
+    Swag.require(oddImage.byteCount() == 17)
+}
+
+#test
+{
     var first = TextureGeneration.claim()
     defer first.release()
     var second = TextureGeneration.claim()

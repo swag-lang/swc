@@ -158,7 +158,7 @@ integration around those engines.
 
 - Evidence: `.docx` reads main-body paragraphs, tables, direct run formatting, headings, visible page-break separators and bounded embedded raster images at their declared width with alternative descriptions; `.xlsx` reads ordered sheets,
   shared/inline strings, numbers and cached values with row and column headings, and shows uncached
-  formula expressions or an explicit gap; `.pptx` reads ordered slide text and bounded
+  formula expressions or an explicit gap. The XLSX reading grid stops at 512 columns; `.pptx` reads ordered slide text and bounded
   embedded raster pictures with alternative descriptions, direct bold/italic text and alignment. These
   files are ZIP containers, but showing their raw entries or extracted prose is not a document
   reader. The current HTML projection loses Word pagination and styling, spreadsheet grid and

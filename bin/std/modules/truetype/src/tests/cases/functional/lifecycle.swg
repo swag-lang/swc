@@ -98,6 +98,17 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
 #test
 {
+    var zeroUnitsData: FaceImpl
+    var zeroUnitsFace = &zeroUnitsData.face
+    zeroUnitsFace.setHeader(0, 0, 0, 0, 0)
+    zeroUnitsFace.initializeRecords()
+    var zeroUnitsOutcome: Swag.Error
+    discard catch zeroUnitsFace.setPixelSize(16, 16) as zeroUnitsOutcome
+    Swag.require(zeroUnitsOutcome.value() != null and zeroUnitsFace.size.metrics.xPpem == 0)
+}
+
+#test
+{
     assertFixtureFontLoads("arial.ttf", .None)
     assertFixtureFontLoads("arialbd.ttf", .Bold)
     assertFixtureFontLoads("ariali.ttf", .Italic)

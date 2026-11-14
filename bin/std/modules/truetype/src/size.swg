@@ -73,7 +73,7 @@ impl Size
 private func checkedRoundDiv(value, divisor: s64)->s32 fail
 {
     if not divisor do
-        return 0
+        try fault(0x17)
     var rounded: s64
     if value >= 0 do
         rounded = (value + divisor / 2) / divisor

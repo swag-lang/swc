@@ -589,6 +589,10 @@ new language syntax.
   in preserved transient registers. Machine-code and incremental-function caches retain
   those masks. A body containing a call still publishes the full conservative mask, so
   transitive non-leaf contracts remain unavailable.
+  Expanding candidates to calls erased by inlining reduced Wordfreq partition traffic
+  (27 to 26 instructions, 11 to 10 memory operations), but independent paired timings
+  regressed the whole task by 8.8% to 9.5% beyond unchanged controls. Keep the existing
+  eligibility until the new register assignment and hot dependencies are understood.
 - Next: extend the existing masks to transitive callees and retain caller values in proven
   preserved registers. Lower acyclic callees first; use conservative fixed points or the
   ordinary ABI inside recursive components, preserving the existing leaf path.
@@ -598,6 +602,8 @@ new language syntax.
 - Stability: invalidate callers when contracts change, avoid allocation oscillation, and do not
   infer preservation through unknown calls, instrumentation, or patchable targets. Bound the
   compilation serialization introduced by bottom-up lowering.
+  Joining every direct callee after lowering retained caller bodies and raised fresh core
+  build peak RSS by 21.5%; selective published-candidate joins avoided that memory increase.
 - Elsewhere: [GCC interprocedural register allocation](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#index-fipa-ra)
   exploits registers known not to be clobbered by callees.
 - Done when: noninlined third-party helpers permit fewer caller spills under verified contracts,

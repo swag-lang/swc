@@ -2,20 +2,85 @@
 
 using Swag
 
-// Dynamic identities describe storage ownership, not the value used as a key.
-// Visit fields only for aggregates that contain such identities; ordinary
-// values keep the contiguous byte hashing path.
+// Returns whether `type` contains a string value whose bytes define equality.
 #[ConstExpr, Safety(.All, false)]
-private func hashDynamicStorage(type: typeinfo, data: const [*] u8)->u64
+private func containsContentString(type: typeinfo)->bool
 {
-    if not Reflection.hasDynamicStorage(type) do
-        return murmur3(data, type.sizeof, 0)
+    if Reflection.isString(type) or type == Core.String do
+        return true
+
     switch type.kind
     {
     case .Alias:
         let info = assume cast(const *TypeInfoAlias, type)
-        return hashDynamicStorage(info.rawType, data)
+        return containsContentString(info.rawType)
 
+    case .Array, .TypeListArray:
+        let info = assume cast(const *TypeInfoArray, type)
+        return containsContentString(info.pointedType)
+
+    case .Struct, .TypeListTuple:
+        let info = assume cast(const *TypeInfoStruct, type)
+        for field in info.fields
+        {
+            if field.pointedType and containsContentString(field.pointedType) do
+                return true
+        }
+
+    default:
+        return false
+    }
+
+    return false
+}
+
+// The first two Core.String fields form this non-owning view. Copying the header avoids
+// treating an embedded String as an owned local whose drop would release the original buffer.
+private struct NativeStringView
+{
+    buffer: const [*] u8?
+    count:  u64
+}
+#assert(#sizeof(NativeStringView) == #sizeof(string))
+
+private struct OwnedStringView
+{
+    buffer: [*] u8?
+    length: u64
+}
+
+// Hash dynamic identity fields and strings by their values instead of their storage addresses.
+#[ConstExpr, Safety(.All, false)]
+private func hashDynamicStorage(type: typeinfo, data: const [*] u8)->u64
+{
+    if type.kind == .Alias
+    {
+        let info = assume cast(const *TypeInfoAlias, type)
+        return hashDynamicStorage(info.rawType, data)
+    }
+
+    if Reflection.isString(type)
+    {
+        var value: NativeStringView = {buffer: null, count: 0}
+        Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
+        if not value.count do
+            return murmur3(data, 0, 0)
+        return murmur3(unwrap value.buffer, value.count, 0)
+    }
+
+    if type == Core.String
+    {
+        var value: OwnedStringView = {buffer: null, length: 0}
+        Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
+        if not value.length do
+            return murmur3(data, 0, 0)
+        return murmur3(unwrap value.buffer, value.length, 0)
+    }
+
+    if not Reflection.hasDynamicStorage(type) and not containsContentString(type) do
+        return murmur3(data, type.sizeof, 0)
+    switch type.kind
+    {
     case .Array, .TypeListArray:
         let info   = assume cast(const *TypeInfoArray, type)
         var result = 0'u64
@@ -44,9 +109,9 @@ public interface IHash64
 
 // Returns a 64-bit hash of `value`.
 //
-// A string hashes its bytes. A struct that implements [[Core.Hash.IHash64]] or
-// [[Core.Hash.IHash32]] supplies its own hash; another struct hashes its bytes, skipping
-// the dynamic identity slots it contains. Other values hash their bits.
+// A string and string fields hash their contents. A struct that implements [[Core.Hash.IHash64]]
+// or [[Core.Hash.IHash32]] supplies its own hash; another struct hashes its bytes, skipping the
+// dynamic identity slots it contains. Other values hash their bits.
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash64(value: T)->u64
 {
@@ -56,7 +121,7 @@ public func(T) hash64(value: T)->u64
         #ast("return ", #typeof(T).fullname, ".IHash64.compute(value)")
     elif Reflection.isStruct(T) and #defined(T.IHash32) do
         #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
-    elif Reflection.hasDynamicStorage(T) do
+    elif Reflection.hasDynamicStorage(T) or containsContentString(T) do
         return hashDynamicStorage(T, cast(const [*] u8, &value))
     elif Reflection.isStruct(T) do
         return Hash.murmur3(cast(const [*] u8, &value), #sizeof(T), 0)

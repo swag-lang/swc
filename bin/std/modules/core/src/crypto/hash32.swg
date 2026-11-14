@@ -81,8 +81,8 @@ public func hashBytes32(buffer: const [..] u8?)->u32
 //
 // A string hashes its bytes with [[Core.Hash.hashBytes32]]. A struct that implements
 // [[Core.Hash.IHash32]] or [[Core.Hash.IHash64]] supplies its own hash; another struct hashes
-// its bytes, skipping the dynamic identity slots it contains. Integers use a multiplicative
-// hash, and other values hash their bits.
+// its bytes and string fields by content, skipping dynamic identity slots. Integers use a
+// multiplicative hash, and other values hash their bits.
 #[ConstExpr, Safety(.All, false)]
 public func(T) hash32(value: T)->u32
 {
@@ -92,7 +92,7 @@ public func(T) hash32(value: T)->u32
         #ast("return ", #typeof(T).fullname, ".IHash32.compute(value)")
     elif Reflection.isStruct(T) and #defined(T.IHash64) do
         #ast("return cast(u32, ", #typeof(T).fullname, ".IHash64.compute(value))")
-    elif Reflection.hasDynamicStorage(T) do
+    elif Reflection.hasDynamicStorage(T) or containsContentString(T) do
         return cast(u32, hashDynamicStorage(T, cast(const [*] u8, &value)))
     elif Reflection.isStruct(T) and #sizeof(T) == 8 do
         return cast(u32, murmur3(cast(const *u64, (&value))[]))

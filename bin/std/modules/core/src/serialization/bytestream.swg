@@ -61,8 +61,7 @@ public impl ByteStream
         let wb = unwrap .writeBuffer
         if .seek + #sizeof(T) > wb.count do
             wb.grow(.seek + #sizeof(T))
-        let ptr = cast(*T, (wb.storage() + .seek))
-        ptr[]    = val
+        Memory.copy(wb.storage() + .seek, &val, #sizeof(T))
         .seek    += #sizeof(T)
         wb.count = Math.max(wb.count, .seek)
     }
@@ -104,7 +103,8 @@ public impl ByteStream
     {
         if #sizeof(T) > .length() - .seek do
             fail OverflowError{"byte stream overflow"}
-        let val = cast(const *T, (.data() + .seek))[]
+        var val: T
+        Memory.copy(&val, .data() + .seek, #sizeof(T))
         .seek += #sizeof(T)
         return val
     }

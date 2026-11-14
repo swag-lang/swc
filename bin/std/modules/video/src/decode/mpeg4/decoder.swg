@@ -403,9 +403,9 @@ impl Decoder
                     fail InvalidFormatError{"MPEG-4 video packet states an unbounded time base"}
             }
 
-            reader.marker()
+            try reader.marker()
             discard reader.read(.layer.timeIncrementBits)
-            reader.marker()
+            try reader.marker()
             header.codingType       = reader.read(2)
             header.intraDcThreshold = reader.read(3)
             if header.codingType != VopIntra
@@ -950,7 +950,7 @@ impl Decoder
                     if (value & (1's32 << (size - 1))) == 0 do
                         value -= (1's32 << size) - 1
                     if size > 8 do
-                        reader.marker()
+                        try reader.marker()
                     levels[0] = value
                 }
             }
@@ -964,7 +964,7 @@ impl Decoder
             for 64'u32
             {
                 var event: Coefficient
-                if not readCoefficient(reader, not intra, &event) do
+                if not (try readCoefficient(reader, not intra, &event)) do
                     fail InvalidFormatError{"MPEG-4 block states an unknown coefficient"}
                 at += cast(u64, event.run)
                 if at >= 64 do

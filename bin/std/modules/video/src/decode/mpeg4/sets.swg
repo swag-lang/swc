@@ -58,10 +58,11 @@ impl BitReader
 
     mtd bit()->u32 => .read(1)
 
-    // Reads and discards the marker bit the format inserts to keep start codes out of a header.
-    mtd marker()
+    // Reads the marker bit the format inserts to keep start codes out of a header.
+    mtd marker() fail
     {
-        discard .read(1)
+        if .read(1) != 1 do
+            fail InvalidFormatError{"MPEG-4 marker bit is not set"}
     }
 
     mtd const overran()->bool => .bitPos > .bitEnd
@@ -177,16 +178,16 @@ impl Layer
             {
                 // The buffer parameters describe a decoder's own timing and change no sample.
                 discard reader.read(15)
-                reader.marker()
+                try reader.marker()
                 discard reader.read(15)
-                reader.marker()
+                try reader.marker()
                 discard reader.read(15)
-                reader.marker()
+                try reader.marker()
                 discard reader.read(3)
                 discard reader.read(11)
-                reader.marker()
+                try reader.marker()
                 discard reader.read(15)
-                reader.marker()
+                try reader.marker()
             }
         }
 
@@ -194,9 +195,9 @@ impl Layer
         if .shape != 0 do
             fail UnsupportedFormatError{"video decoder reads rectangular MPEG-4 Part 2 objects only"}
 
-        reader.marker()
+        try reader.marker()
         .timeResolution = reader.read(16)
-        reader.marker()
+        try reader.marker()
         if not .timeResolution do
             fail InvalidFormatError{"MPEG-4 layer states a zero time resolution"}
 
@@ -208,11 +209,11 @@ impl Layer
         if reader.bit() != 0 do
             discard reader.read(.timeIncrementBits)     // fixed_vop_time_increment
 
-        reader.marker()
+        try reader.marker()
         .width = reader.read(13)
-        reader.marker()
+        try reader.marker()
         .height = reader.read(13)
-        reader.marker()
+        try reader.marker()
         if not .width or not .height do
             fail InvalidFormatError{"MPEG-4 layer states an empty picture"}
         if .width > 4096 or .height > 4096 do
@@ -298,9 +299,9 @@ func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHead
             fail InvalidFormatError{"MPEG-4 plane header states an unbounded time base"}
     }
 
-    reader.marker()
+    try reader.marker()
     header.timeIncrement = reader.read(layer.timeIncrementBits)
-    reader.marker()
+    try reader.marker()
 
     header.coded = reader.bit() != 0
     if not header.coded do

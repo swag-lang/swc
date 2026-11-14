@@ -149,6 +149,9 @@ impl ByteSink
     // [[Core.ByteSink.writeBigEndian]] for a persisted or transmitted integer.
     mtd(T) writeNative(value: T) fail
     {
+        if not Reflection.isPod(#typeof(T)) do
+            fail BadParameterError{"byte sink native writes require a POD type"}
+
         var stored = value
         try .write(Swag.makeSlice(cast(const [*] u8, &stored), #sizeof(T)))
     }

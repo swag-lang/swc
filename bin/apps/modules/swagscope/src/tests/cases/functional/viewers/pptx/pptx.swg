@@ -37,6 +37,17 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(presentation.html, "alt=\"Grey &amp; silver arcs\""))
 }
 
+// Direct run styling and paragraph alignment survive the slide reading projection.
+#test
+{
+    let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.formatted.pptx"))
+    Swag.require(presentation.slides == 2 and presentation.omittedImages == 0)
+    Swag.require(Utf8.contains(presentation.html,
+                               "<p style=\"text-align:center\"><b>Opens first</b><i> styled</i></p>"))
+    Swag.require(Utf8.contains(presentation.html,
+                               "<p style=\"text-align:right\">First &amp; final</p>"))
+}
+
 // A PowerPoint deck from the Apache POI corpus keeps the slide sequence and text.
 #test
 {

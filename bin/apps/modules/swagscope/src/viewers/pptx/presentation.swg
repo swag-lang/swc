@@ -90,11 +90,32 @@ private func readPictureExtent(token: const *Package.Token, width, height: *u32)
     }
 }
 
+private func appendRun(paragraph, run: *String, bold, italic: bool)
+{
+    if bold do
+        paragraph[] += "<b>"
+    if italic do
+        paragraph[] += "<i>"
+    paragraph[] += run[]
+    if italic do
+        paragraph[] += "</i>"
+    if bold do
+        paragraph[] += "</b>"
+    run[].clear()
+}
+
 private func appendSlide(result: *Presentation, source: string, images: *Package.ImageCatalog) fail
 {
     var scan = Package.Scanner.create(source)
     var token: Package.Token
     var inText = false
+    var inParagraph = false
+    var inRun = false
+    var bold = false
+    var italic = false
+    var alignment: string = ""
+    var paragraph: String
+    var run: String
     var inPicture = false
     var pictureId: String
     var pictureDescription: String
@@ -108,13 +129,39 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
         {
             if token.isElement("p")
             {
-                result.html += "<p>"
+                inParagraph = true
+                paragraph.clear()
+                alignment = ""
                 paragraphs += 1
+            }
+            elif inParagraph and token.isElement("pPr")
+            {
+                let value = token.attribute("algn") orelse ""
+                if value == "ctr" do
+                    alignment = "center"
+                elif value == "r" do
+                    alignment = "right"
+                elif value == "just" or value == "dist" do
+                    alignment = "justify"
+            }
+            elif inParagraph and token.isElement("r")
+            {
+                inRun = true
+                run.clear()
+                bold = false
+                italic = false
+            }
+            elif inRun and token.isElement("rPr")
+            {
+                let b = token.attribute("b") orelse "0"
+                let i = token.attribute("i") orelse "0"
+                bold = b == "1" or b == "true" or b == "on"
+                italic = i == "1" or i == "true" or i == "on"
             }
             elif token.isElement("t") do
                 inText = true
             elif token.isElement("br") do
-                result.html += "<br>"
+                paragraph += "<br>"
             elif token.isElement("pic")
             {
                 inPicture = true
@@ -144,11 +191,41 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
             }
             if token.empty and token.isElement("t") do
                 inText = false
+            if token.empty and token.isElement("p")
+            {
+                result.html += "<p></p>"
+                inParagraph = false
+            }
+            if token.empty and token.isElement("r")
+            {
+                appendRun(&paragraph, &run, bold, italic)
+                inRun = false
+            }
         }
         elif token.kind == .End
         {
-            if token.isElement("p") do
+            if token.isElement("p")
+            {
+                if inRun do
+                    appendRun(&paragraph, &run, bold, italic)
+                result.html += "<p"
+                if alignment.count
+                {
+                    result.html += " style=\"text-align:"
+                    result.html += alignment
+                    result.html += "\""
+                }
+                result.html += ">"
+                result.html += paragraph
                 result.html += "</p>"
+                inParagraph = false
+                inRun = false
+            }
+            elif token.isElement("r")
+            {
+                appendRun(&paragraph, &run, bold, italic)
+                inRun = false
+            }
             elif token.isElement("t") do
                 inText = false
             elif token.isElement("pic")
@@ -171,9 +248,14 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
                 result.html += "</p>"
             }
         }
-        elif inText do
-            Package.appendHtmlEscaped(&result.html, token.text)
-        if result.html.count > 32 * 1024 * 1024 do
+        elif inText
+        {
+            if inRun do
+                Package.appendHtmlEscaped(&run, token.text)
+            else do
+                Package.appendHtmlEscaped(&paragraph, token.text)
+        }
+        if result.html.count + paragraph.count + run.count > 32 * 1024 * 1024 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
     }
     if scan.damaged or not paragraphs and not pictures do

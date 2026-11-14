@@ -72,3 +72,10 @@ using Core, Gui, Viewers
 {
     picturedViewer(scopeTestDataPath("viewer.pictures.pptx"), false, "viewer.pptx.picture")
 }
+
+// Aligned and styled presentation text in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.formatted.pptx"), true, "viewer.pptx.formatted")
+}

@@ -153,9 +153,10 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   booleans and cached formula values in cell order. It does not calculate formulas or reproduce
   formatting, charts, merged cells or images.
 - `Presentation` reads PPTX slides in declared order and presents their text and bounded embedded
-  PNG, JPEG, GIF and WebP pictures as a continuous reading page. Pictures use their declared size
-  and alternative description; unsupported pictures are labelled. Original slide layout,
-  animation, speaker notes and embedded media are not reproduced.
+  PNG, JPEG, GIF and WebP pictures as a continuous reading page. Direct bold/italic text and
+  paragraph alignment are preserved. Pictures use their declared size and alternative description;
+  unsupported pictures are labelled. Original slide layout, animation, speaker notes and embedded
+  media are not reproduced.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a

@@ -39,7 +39,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.inline.xlsx"))
     Swag.require(workbook.sheets == 1 and workbook.cells == 2)
-    Swag.require(Utf8.contains(workbook.html, "<tr><th>1</th>"))
+    Swag.require(Utf8.contains(workbook.html, "<tr><th style=\"padding-right:8px\">1</th>"))
     Swag.require(Utf8.contains(workbook.html, "<td>Safe &amp; sound</td><td></td><td>12.5</td>"))
 }
 
@@ -57,7 +57,7 @@ using Core, Gui, Gui.Testing, Viewers
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.sparse-rows.xlsx"))
     Swag.require(Utf8.contains(workbook.html, "<th>A</th><th>B</th><th>C</th>"))
     Swag.require(Utf8.contains(workbook.html,
-                               "<tr><th>7</th><td>Safe &amp; sound</td><td></td><td>12.5</td></tr>"))
+                               "<tr><th style=\"padding-right:8px\">7</th><td>Safe &amp; sound</td><td></td><td>12.5</td></tr>"))
 }
 
 // Explicitly empty rows and cells keep their addresses without becoming a damaged sheet.
@@ -65,6 +65,15 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.empty-cells.xlsx"))
     Swag.require(workbook.sheets == 1 and workbook.cells == 3)
-    Swag.require(Utf8.contains(workbook.html, "<tr><th>3</th><td></td><td></td></tr>"))
-    Swag.require(Utf8.contains(workbook.html, "<tr><th>4</th></tr>"))
+    Swag.require(Utf8.contains(workbook.html, "<tr><th style=\"padding-right:8px\">3</th><td></td><td></td></tr>"))
+    Swag.require(Utf8.contains(workbook.html, "<tr><th style=\"padding-right:8px\">4</th></tr>"))
+}
+
+// A formula without a cached result remains inspectable, including a shared-formula gap.
+#test
+{
+    let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.formulas.xlsx"))
+    Swag.require(workbook.cells == 4)
+    Swag.require(Utf8.contains(workbook.html,
+                               "<td>Safe &amp; sound</td><td></td><td>=SUM(2,3)</td><td>[Formula result unavailable]</td><td>4</td>"))
 }

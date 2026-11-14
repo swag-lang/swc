@@ -83,7 +83,10 @@ impl Decoder
         if .readU8() != 4 do
             fail InvalidFormatError{"GIF graphic control extension needs a four-byte payload"}
         let rdit = .readU8()
-        .gce.disposal     = (rdit >> 2) & 3
+        let disposal = (rdit >> 2) & 7
+        if disposal > 3 do
+            fail InvalidFormatError{"GIF graphic control extension has a reserved disposal method"}
+        .gce.disposal     = disposal
         .gce.input        = rdit & 2
         .gce.transparency = rdit & 1
         .gce.delay        = .readU16()

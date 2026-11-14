@@ -312,6 +312,9 @@ impl Decoder
             .getBits1(16)
         }
 
+        if .lastMarkerSynthetic do
+            fail InvalidFormatError{"JPEG data ends before the end-of-image marker"}
+
         .compsInScan = .compsInFrame
         for i in .compsInFrame do
             .compList[i] = i

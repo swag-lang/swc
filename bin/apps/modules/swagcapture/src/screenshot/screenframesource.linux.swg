@@ -25,14 +25,7 @@ impl ScreenFrameSource
             fail BadParameterError{"screen frame source needs positive image dimensions"}
         var result: #returntype
         result.source     = Memory.new'Screen.Source()
-        catch
-        {
-            result.source[] = try Screen.Source.open({x, y, width, height, drawCursor})
-        }
-        {
-            Memory.delete(result.source)
-            fail Swag.err
-        }
+        result.source[]   = try Screen.Source.open({x, y, width, height, drawCursor})
         result.x          = x
         result.y          = y
         result.width      = width
@@ -51,12 +44,13 @@ impl ScreenFrameSource
         if .x != .sourceX or .y != .sourceY
         {
             Memory.delete(.source)
-            .source = null
-            .source = Memory.new'Screen.Source()
+            .source   = null
+            .source   = Memory.new'Screen.Source()
             .source[] = try Screen.Source.open({.x, .y, .width, .height, .drawCursor})
-            .sourceX = .x
-            .sourceY = .y
+            .sourceX  = .x
+            .sourceY  = .y
         }
+
         discard try .source!.grabInto(target)
     }
 
@@ -66,14 +60,16 @@ impl ScreenFrameSource
         if .x != .sourceX or .y != .sourceY
         {
             Memory.delete(.source)
-            .source = null
-            .source = Memory.new'Screen.Source()
+            .source   = null
+            .source   = Memory.new'Screen.Source()
             .source[] = try Screen.Source.open({.x, .y, .width, .height, .drawCursor})
-            .sourceX = .x
-            .sourceY = .y
+            .sourceX  = .x
+            .sourceY  = .y
         }
-        else do
+        else
+        {
             try .source!.reopen()
+        }
     }
 
     mtd opDrop() => Memory.delete(.source)

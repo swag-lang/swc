@@ -237,8 +237,13 @@ private impl Reader
             .setRunProperty(token)
         elif token.isElement("t") do
             .inText = not token.empty
-        elif token.isElement("br") do
-            .appendInline("<br>")
+        elif token.isElement("br")
+        {
+            if token.attribute("type") == "page" do
+                .appendInline("<hr>")
+            else do
+                .appendInline("<br>")
+        }
         elif token.isElement("tab") do
             .appendInline("&emsp;")
     }

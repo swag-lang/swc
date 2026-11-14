@@ -186,6 +186,9 @@ func frameChunkId(index: u32, a, b: u32)->u32 => fourCc('0'u32 + index / 10, '0'
 // Reads one chunk header and reports where its payload and its successor start.
 private func readChunk(source: *ByteSource, end: u64)->Chunk fail
 {
+    if source.position() > end or ChunkHeaderSize > end - source.position() do
+        fail InvalidFormatError{"AVI chunk header runs past the end of its list"}
+
     var result: #returntype
     result.id   = try source.readLittleEndian'u32()
     result.size = cast(u64, (try source.readLittleEndian'u32()))
@@ -558,7 +561,29 @@ private impl Decoder
             let isGroup = chunk.id == ListId and
                           chunk.size >= FourCcSize and
                           (try source.readLittleEndian'u32()) == RecordListId
-            position = isGroup ? chunk.data + FourCcSize : chunk.next
+            if isGroup
+            {
+                let groupEnd = chunk.data + chunk.size
+                var nestedPosition = chunk.data + FourCcSize
+                while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
+                {
+                    try source.seek(nestedPosition)
+                    let nested = try readChunk(source, groupEnd)
+                    if nested.id == audioId and nested.size
+                    {
+                        if nested.size % track.format.blockAlign do
+                            fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
+                        packets.add(SoundPacket{nested.data, cast(u32, nested.size), cast(u32, (nested.size / track.format.blockAlign))})
+                    }
+
+                    nestedPosition = nested.next
+                }
+                if nestedPosition != groupEnd do
+                    fail InvalidFormatError{"AVI record list ends with a partial chunk"}
+                position = chunk.next
+            }
+            else do
+                position = chunk.next
         }
     }
 
@@ -692,7 +717,24 @@ private impl Decoder
             let isGroup = chunk.id == ListId and
                           chunk.size >= FourCcSize and
                           (try source.readLittleEndian'u32()) == RecordListId
-            position = isGroup ? chunk.data + FourCcSize : chunk.next
+            if isGroup
+            {
+                let groupEnd = chunk.data + chunk.size
+                var nestedPosition = chunk.data + FourCcSize
+                while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
+                {
+                    try source.seek(nestedPosition)
+                    let nested = try readChunk(source, groupEnd)
+                    if nested.id == dataId or nested.id == compressedId do
+                        .frames.add(FrameEntry{nested.data, nested.size, .frames.isEmpty()})
+                    nestedPosition = nested.next
+                }
+                if nestedPosition != groupEnd do
+                    fail InvalidFormatError{"AVI record list ends with a partial chunk"}
+                position = chunk.next
+            }
+            else do
+                position = chunk.next
         }
     }
 

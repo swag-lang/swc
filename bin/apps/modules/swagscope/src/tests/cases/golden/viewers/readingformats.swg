@@ -31,6 +31,13 @@ using Core, Gui, Viewers
     picturedViewer(scopeTestDataPath("viewer.formatted.docx"), false, "viewer.docx.formatted")
 }
 
+// An authored Word page break in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.pagebreak.docx"), true, "viewer.docx.pagebreak")
+}
+
 // A Word document with an embedded photo in Papier.
 #[Swag.TestTag("golden")]
 #test

@@ -30,6 +30,7 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(document.paragraphs >= 3)
     Swag.require(Utf8.contains(document.html, "I am a test document"))
     Swag.require(Utf8.contains(document.html, "This is page two"))
+    Swag.require(Utf8.contains(document.html, "<hr>"))
 }
 
 // Split text runs, tabs, line breaks and escaped characters retain a readable order.
@@ -49,6 +50,13 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(document.html, "<h1 style=\"text-align:center\"><b>Styled title</b></h1>"))
     Swag.require(Utf8.contains(document.html, "<p>Plain &amp; <i>italic</i> and <u><s>marked</s></u> text.</p>"))
     Swag.require(Utf8.contains(document.html, "<h2 style=\"text-align:right\">Second heading</h2>"))
+}
+
+// An authored page break remains visible between text runs.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.pagebreak.docx"))
+    Swag.require(Utf8.contains(document.html, "line<hr>Page two"))
 }
 
 // Local image relationships render inline; an external relationship stays an explicit omission.

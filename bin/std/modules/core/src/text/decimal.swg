@@ -389,6 +389,7 @@ impl Decimal
         var sawdot        = false
         var sawDigits     = false
         var ndMant        = 0
+        var integerDigits = 0's64
 
         .nd = 0
         .dp = 0
@@ -401,7 +402,7 @@ impl Decimal
                 if sawdot do
                     break
                 sawdot = true
-                .dp    = .nd
+                .dp    = integerDigits
             }
             elif '0' <= c and c <= '9'
             {
@@ -412,6 +413,8 @@ impl Decimal
                 }
                 else
                 {
+                    if not sawdot do
+                        integerDigits += 1
                     if .nd < (.d).count
                     {
                         .d[.nd] = c
@@ -447,7 +450,7 @@ impl Decimal
         if not sawDigits do
             fail SyntaxError{}
         if not sawdot do
-            .dp = .nd
+            .dp = integerDigits
 
         // Exponent
         if cpt < countof do

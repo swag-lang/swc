@@ -926,16 +926,20 @@ namespace
             else
                 appendCompareParts(codeGen, parts, compareType, 0);
 
-            const bool isWiderThanRegister = compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
-            const bool hasPadding          = parts.size() != 1 || parts.front().offset != 0 || parts.front().size != compareType.sizeOf(codeGen.ctx());
-            if (isWiderThanRegister || hasOwnAnswerPart(parts.span()) || hasPadding)
+            const uint64_t size = compareType.sizeOf(codeGen.ctx());
+            // A scalar comparison must cover exactly one native integer width.
+            // Rounding a small aggregate up would read and compare its neighbours.
+            const bool hasRegisterSize = size <= sizeof(uint64_t) && std::has_single_bit(size);
+            const bool hasPadding      = parts.size() != 1 || parts.front().offset != 0 || parts.front().size != size;
+            if (!hasRegisterSize || hasOwnAnswerPart(parts.span()) || hasPadding)
             {
                 auto materializeAddress = [&](CodeGenNodePayload& payload, AstNodeRef operandRef, TypeRef operandTypeRef) {
                     if (payload.isAddress())
                         return;
                     const uint64_t size = codeGen.typeMgr().get(operandTypeRef).sizeOf(codeGen.ctx());
-                    // Wide ABI values already carry an address, including typed null constants.
-                    if (size > sizeof(uint64_t) || size == 0)
+                    // Aggregates without a native register width already carry an ABI
+                    // address, including typed null constants.
+                    if (size > sizeof(uint64_t) || !std::has_single_bit(size))
                     {
                         payload.setIsAddress();
                         return;

@@ -399,3 +399,18 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
                  sound.decoderConfig[0] == 0x11 and
                  sound.decoderConfig[1] == 0xB0)
 }
+
+// The reader rejects ADTS packets with multiple raw data blocks, which the packet decoder cannot decode.
+#test
+{
+    var bytes    = expect File.readAllBytes(audioGetTestDataPath("aac-lc-stereo-44100.aac"))
+    bytes[6]     = (bytes[6] & 0xFC) | 1
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-aac-multiblock-%.aac", Guid128.random()))
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary) as error
+    Swag.require(error.value() is Errors.UnsupportedFormatError)
+}

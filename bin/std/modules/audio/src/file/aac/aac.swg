@@ -106,6 +106,8 @@ internal func openFile(path: string)->SoundFile fail
         try source.seek(byteOffset)
         let probe  = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
         let header = try readAdtsHeader(probe)
+        if header.blocks != 1 do
+            fail UnsupportedFormatError{"ADTS frames with multiple raw data blocks are not supported"}
         if header.frameBytes > fileBytes - byteOffset do
             break
 

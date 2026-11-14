@@ -117,6 +117,45 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     Swag.require(Slice.equals(actual[until 256], expected[until 256]))
 }
 
+#test
+{
+    // Exercise arbitrary source/destination byte offsets in the scalar word path,
+    // including exact in-place operation.
+    const TestCount = Crypto.ChaCha20BlockSize
+    let key     = testKey()
+    let nonce   = testNonce()
+
+    var sourceBacking: [TestCount + 8] u8
+    let sourceBase   = cast(u64, cast(const [*] u8, sourceBacking.buffer))
+    let sourceOffset = (1 + 8 - (sourceBase & 7)) & 7
+    var source       = sourceBacking[sourceOffset to sourceOffset + TestCount]
+    for i in TestCount do
+        source[i] = cast(u8, ((i * 37 + 11) & 0xFF))
+    Swag.require((cast(u64, cast(const [*] u8, source.buffer)) & 7) == 1)
+
+    var expected: [TestCount] u8
+    scalarChaCha20Xor(key, nonce, source[until TestCount], expected[until TestCount], 17)
+
+    var destinationBacking: [TestCount + 8] u8
+    let destinationBase   = cast(u64, cast(const [*] u8, destinationBacking.buffer))
+    let destinationOffset = (3 + 8 - (destinationBase & 7)) & 7
+    var destination       = destinationBacking[destinationOffset to destinationOffset + TestCount]
+    Swag.require((cast(u64, cast(const [*] u8, destination.buffer)) & 7) == 3)
+    expect Crypto.chacha20Xor(key, nonce, source, destination, 17)
+    for i in TestCount do
+        Swag.require(destination[i] == expected[i])
+
+    var inPlaceBacking: [TestCount + 8] u8
+    let inPlaceBase   = cast(u64, cast(const [*] u8, inPlaceBacking.buffer))
+    let inPlaceOffset = (1 + 8 - (inPlaceBase & 7)) & 7
+    var inPlace       = inPlaceBacking[inPlaceOffset to inPlaceOffset + TestCount]
+    Memory.copy(cast([*] void, inPlace.buffer), cast(const [*] void, source.buffer), TestCount)
+    Swag.require((cast(u64, cast(const [*] u8, inPlace.buffer)) & 7) == 1)
+    expect Crypto.chacha20Xor(key, nonce, inPlace, inPlace, 17)
+    for i in TestCount do
+        Swag.require(inPlace[i] == expected[i])
+}
+
 // Native partitions match the single-block definition, including unaligned buffers, tails,
 // exact in-place XOR and the final legal counter. Sentinels protect both ends of every view.
 #[Swag.TestTag("parallel")]

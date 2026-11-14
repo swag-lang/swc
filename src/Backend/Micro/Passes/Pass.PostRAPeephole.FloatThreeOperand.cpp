@@ -104,6 +104,9 @@ namespace PostRaPeephole
                 return false;
             if (!lateFloatMemory && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
                 return ops[1].reg == loaded && ops[0].reg != loaded;
+            if (lateFloatMemory && isFloat && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4 &&
+                ops[2].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[3].microOp) && !isPackedFloatBinaryMicroOp(ops[3].microOp))
+                return ops[0].reg == loaded && ops[1].reg != loaded;
             if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
             {
                 if (lateFloatMemory)
@@ -1478,7 +1481,9 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (fused || (isFloat && threeOperand && (packed || consumerOps[0].reg != consumerOps[1].reg) && (consumerOps[0].reg != loaded || packed)))
+        const uint32_t leftIndex  = threeOperand ? 1 : 0;
+        const uint32_t rightIndex = threeOperand ? 2 : 1;
+        if (fused || (isFloat && (threeOperand || packed) && (packed || consumerOps[0].reg != consumerOps[leftIndex].reg) && (consumerOps[0].reg != loaded || packed)))
         {
             // This VEX memory form uses a full-width base and index. A
             // narrowed address would wrap before dereferencing instead.
@@ -1490,7 +1495,7 @@ namespace PostRaPeephole
             // Keep that product in registers until its accumulation is settled.
             if ((op == MicroOp::FloatMultiply || op == MicroOp::VecMulF32 || op == MicroOp::VecMulF64) && mayContractFollowingAccumulation(ctx, opRef))
                 return false;
-            const bool commute = !fused && consumerOps[1].reg == loaded;
+            const bool commute        = !fused && consumerOps[leftIndex].reg == loaded;
             const bool integerCommute = op == MicroOp::VecAdd32 || op == MicroOp::VecAnd || op == MicroOp::VecOr || op == MicroOp::VecXor;
             if (commute && !integerCommute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply && op != MicroOp::VecAddF32 && op != MicroOp::VecAddF64 && op != MicroOp::VecMulF32 && op != MicroOp::VecMulF64) || !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN || !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
                 return false;
@@ -1499,7 +1504,7 @@ namespace PostRaPeephole
 
             MicroInstrOperand direct[8] = {};
             direct[0]                   = consumerOps[0];
-            direct[1]                   = consumerOps[commute ? 2 : 1];
+            direct[1]                   = consumerOps[commute ? rightIndex : leftIndex];
             direct[2].reg               = base;
             direct[3].opBits            = opBits;
             direct[4].microOp           = op;

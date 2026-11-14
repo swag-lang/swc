@@ -8008,6 +8008,54 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryPreservesLanesAndOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_DestructivePackedIntegerMemoryPreservesLanesAndOrder)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg index  = MicroReg::intReg(8);
+    for (const auto op : {MicroOp::VecAdd32, MicroOp::VecSub32, MicroOp::VecAnd, MicroOp::VecOr, MicroOp::VecXor})
+        for (const bool indexed : {false, true})
+            for (uint32_t barrier = 0; barrier < 4; ++barrier)
+            {
+                std::array<uint64_t, 12> reference{};
+                for (const bool optimize : {false, true})
+                {
+                    std::array<uint64_t, 12> values = {0x80000000FFFFFFFFull, 0x7FFFFFFF01234567ull, UINT64_MAX,
+                                                       0xFFFFFFFF00000001ull, 0x7654321080000000ull};
+                    MicroBuilder             builder(ctx);
+                    builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                    if (indexed)
+                        builder.emitLoadAmcRegMem(loaded, MicroOpBits::B128, base, index, 8, 24, MicroOpBits::B64);
+                    else
+                        builder.emitLoadVecRegMem(loaded, base, 24, MicroOpBits::B128);
+                    if (barrier == 1)
+                        builder.emitLoadMemReg(base, 24, left, MicroOpBits::B128);
+                    if (barrier == 2)
+                        builder.emitLoadMemReg(base, 80, loaded, MicroOpBits::B128);
+                    if (barrier == 3)
+                        builder.emitLoadVolatileRegMem(index, base, 16, MicroOpBits::B64);
+                    builder.emitOpBinaryRegReg(loaded, left, op, MicroOpBits::B128);
+                    builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B128);
+                    builder.emitLoadMemReg(base, 64, left, MicroOpBits::B128);
+                    builder.emitRet();
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        reference = values;
+                    else
+                    {
+                        const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) +
+                                                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
+                        if (values != reference || folded != (barrier == 0 && op != MicroOp::VecSub32 ? 1u : 0u))
+                            return Result::Error;
+                    }
+                }
+            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryKeepsBarriers)
 {
     constexpr MicroReg base   = MicroReg::intReg(0);

@@ -332,7 +332,8 @@ public impl Face
     // Selects the pixel dimensions used by subsequent glyph loads.
     //
     // Pass zero for one dimension to copy the other dimension. Fails when both are
-    // zero or either exceeds 65535. Scaled metrics are exposed through [[TrueType.Face.size]].
+    // zero, either exceeds 65535, or the resulting scale and metrics cannot fit their
+    // 16.16 and 26.6 fields. Scaled metrics are exposed through [[TrueType.Face.size]].
     mtd setPixelSize(pixelWidth, pixelHeight: u32) fail
     {
         if (not pixelWidth and not pixelHeight) or
@@ -347,7 +348,7 @@ public impl Face
         if not height do
             height = width
 
-        .size.setPixelMetrics(width, height)
+        try .size.setPixelMetrics(width, height)
     }
 
     // Returns whether the face contains supported kerning pairs.

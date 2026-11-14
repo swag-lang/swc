@@ -376,6 +376,23 @@ func convertFloat(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat
     Dtoa.append(buf, value64, fmt.fmt, cast(s64, fmt.precision), fmt.forceSign)
 }
 
+// Appends a floating-point value using invariant signs and a decimal point.
+public func convertFloatInvariant(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatFloat)
+{
+    let kindof = assume cast(const *Swag.TypeInfoNative, Swag.kindOf(value))
+    Swag.assert(kindof.flags & TypeInfoFlags.Float != 0, "value to convert is not a float")
+
+    let dataof = value.buffer
+    var value64: f64
+    switch kindof.nativeKind
+    {
+    case .F32: value64 = cast(f64, cast(const *f32, unwrap dataof)[])
+    case .F64: value64 = cast(const *f64, unwrap dataof)[]
+    }
+
+    Dtoa.appendInvariant(buf, value64, fmt.fmt, cast(s64, fmt.precision), fmt.forceSign)
+}
+
 // Appends the text of the integer `value` to `buf`, formatted by `fmt`.
 func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
 {

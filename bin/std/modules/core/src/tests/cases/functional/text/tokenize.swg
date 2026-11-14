@@ -63,6 +63,22 @@ func assertStringArray(values: Array'(string), expected: const [..] string)->boo
 
 #test
 {
+    let byteKeep = Tokenize.split("", ','u8, removeEmpty: false)
+    Swag.require(byteKeep.count == 1 and byteKeep[0] == "")
+    Swag.require(Tokenize.split("", ','u8).isEmpty())
+
+    let stringKeep = Tokenize.split("", "", removeEmpty: false)
+    Swag.require(stringKeep.count == 1 and stringKeep[0] == "")
+    Swag.require(Tokenize.split("", "").isEmpty())
+
+    const Separators: [2] rune = [','rune, ';'rune]
+    let runeSetKeep = Tokenize.splitAny("", Separators, removeEmpty: false)
+    Swag.require(runeSetKeep.count == 1 and runeSetKeep[0] == "")
+    Swag.require(Tokenize.splitAny("", Separators).isEmpty())
+}
+
+#test
+{
     let byRune = Tokenize.split("é🙂🙂x", '🙂'rune, removeEmpty: false)
     let expectedRune: [3] string = ["é", "", "x"]
     Swag.require(assertStringArray(byRune, expectedRune))

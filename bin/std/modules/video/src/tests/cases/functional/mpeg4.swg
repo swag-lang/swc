@@ -54,6 +54,41 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     Swag.require(worst <= worstLimit)
 }
 
+// Finds the VOL marker bit after its shape field, following the optional header fields first.
+func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
+{
+    var reader = Mpeg4.BitReader.create(bytes[bodyOffset until bytes.count])
+    discard reader.bit()
+    discard reader.read(8)
+    if reader.bit() != 0
+    {
+        discard reader.read(4)
+        discard reader.read(3)
+    }
+    if reader.read(4) == 15 do
+        discard reader.read(16)
+    if reader.bit() != 0
+    {
+        discard reader.read(2)
+        discard reader.bit()
+        if reader.bit() != 0
+        {
+            for 3
+            {
+                discard reader.read(15)
+                discard reader.bit()
+            }
+            discard reader.read(3)
+            discard reader.read(11)
+            discard reader.bit()
+            discard reader.read(15)
+            discard reader.bit()
+        }
+    }
+    discard reader.read(2)
+    return bodyOffset * 8 + reader.bitPos
+}
+
 // Simple Profile: intra and predicted planes, the H.263 quantiser, half-sample motion, and four
 // motion vectors where the encoder chose them.
 #test
@@ -94,6 +129,33 @@ func mpeg4AssertStream(name: string, container: string, width, height: s32, fram
     var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-simple.mkv"))
     Swag.require(reader.width() == 96 and reader.height() == 64)
     Swag.require(reader.hasPlanarFrames())
+}
+
+// Marker bits in a VOL are required to be one; flip the parser-located bit without shifting any
+// other field and verify that the otherwise valid configuration is rejected.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-mpeg4-simple.mkv").toString())
+    const VolStartCode: [4] u8 = [0, 0, 1, 0x20]
+    let volStart = Slice.findSubslice(bytes.toSlice(), VolStartCode)
+    Swag.require(volStart != Swag.U64.Max)
+    let volEnd = Mpeg4.nextStartCode(bytes.toSlice(), volStart + VolStartCode.count)
+    Swag.require(volEnd > volStart + VolStartCode.count)
+
+    var valid: Mpeg4.Decoder
+    expect valid.configure(bytes.toSlice()[volStart until volEnd])
+
+    let markerBit = mpeg4VolMarkerBit(bytes.toSlice(), volStart + VolStartCode.count)
+    let byteOffset = markerBit >> 3
+    let bitShift = cast(u32, 7 - (markerBit & 7))
+    let bitMask = cast(u8, 1'u32 << bitShift)
+    Swag.require((bytes[byteOffset] & bitMask) != 0)
+    bytes[byteOffset] = bytes[byteOffset] & (0xFF'u8 - bitMask)
+
+    var invalid: Mpeg4.Decoder
+    var rejected: Swag.Error
+    discard catch invalid.configure(bytes.toSlice()[volStart until volEnd]) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
 }
 
 // A resync header repeats the forward and backward motion-code ranges. Zero has no legal range

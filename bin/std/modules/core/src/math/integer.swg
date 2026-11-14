@@ -152,9 +152,10 @@ func hasByte(value: u64, byte: u8)->bool => hasZeroByte(value ^ makeRepeat64(byt
 
 // Returns the greatest common divisor of `a` and `b`.
 //
-// The result is never negative, and `gcd(0, 0)` is 0.
+// The result is never negative, and `gcd(0, 0)` is 0. Fails with [[Core.Errors.OverflowError]]
+// when the result is 2^63 and cannot fit in an `s64`.
 #[ConstExpr]
-func gcd(a, b: s64)->s64
+func gcd(a, b: s64)->s64 fail
 {
     var x = a
     var y = b
@@ -168,16 +169,33 @@ func gcd(a, b: s64)->s64
         y = remainder
     }
 
+    if x == Swag.S64.Min do
+        fail Errors.OverflowError{"greatest common divisor does not fit in s64"}
     return abs(x)
 }
 
 // Returns the least common multiple of `a` and `b`, or 0 when either is 0.
 //
-// The result is never negative.
+// The result is never negative. Fails with [[Core.Errors.OverflowError]] when the result does not
+// fit in an `s64`.
 #[ConstExpr]
-func lcm(a, b: s64)->s64
+func lcm(a, b: s64)->s64 fail
 {
     if a == 0 or b == 0 do
         return 0
-    return abs(a / gcd(a, b) * b)
+
+    let divisor = cast(u64, try gcd(a, b))
+    let left    = integerMagnitude(a) / divisor
+    let right   = integerMagnitude(b)
+    if left > cast(u64, Swag.S64.Max) / right do
+        fail Errors.OverflowError{"least common multiple does not fit in s64"}
+    return cast(s64, left * right)
+}
+
+#[ConstExpr]
+func integerMagnitude(value: s64)->u64
+{
+    if value >= 0 do
+        return cast(u64, value)
+    return cast(u64, -(value + 1)) + 1
 }

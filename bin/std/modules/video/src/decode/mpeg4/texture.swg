@@ -57,7 +57,7 @@ func runMax(inter: bool, last: u32, level: u32)->u32
 //
 // A table entry states a run, a level, and whether the block ends there; the escape code says the
 // event is outside what the table holds, in one of three widening forms.
-func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->bool
+func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->bool fail
 {
     let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
 
@@ -66,7 +66,7 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
     {
         let mark = reader.bitPos
         if reader.read(TcoefEscapeLen) == TcoefEscapeCod do
-            return readEscape(reader, inter, result)
+            return try readEscape(reader, inter, result)
         reader.bitPos = mark
     }
 
@@ -91,7 +91,7 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
 //
 // The first form widens the level by the largest the table codes for that run, the second widens
 // the run by the largest it codes for that level, and the third states both outright.
-private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->bool
+private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->bool fail
 {
     let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
 
@@ -135,9 +135,9 @@ private func readEscape(reader: *BitReader, inter: bool, result: *Coefficient)->
     // cannot look like a start code.
     result.last = reader.read(1) != 0
     result.run  = reader.read(6)
-    reader.marker()
+    try reader.marker()
     var level = cast(s32, reader.read(12))
-    reader.marker()
+    try reader.marker()
     if level >= 2048 do
         level -= 4096
     if not level do

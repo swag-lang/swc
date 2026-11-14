@@ -79,13 +79,28 @@ private func readSlides(source, relationships: string)->Array'Slide fail
     return result
 }
 
-private func appendSlide(result: *Presentation, source: string) fail
+private func readPictureExtent(token: const *Package.Token, width, height: *u32)
+{
+    let cx = catch StrConv.toU64(token.attribute("cx") orelse "") { return; }
+    let cy = catch StrConv.toU64(token.attribute("cy") orelse "") { return; }
+    if cx >= 9525 and cy >= 9525 and cx <= 39_014_400 and cy <= 39_014_400
+    {
+        width[] = cast(u32, (cx + 4762) / 9525)
+        height[] = cast(u32, (cy + 4762) / 9525)
+    }
+}
+
+private func appendSlide(result: *Presentation, source: string, images: *Package.ImageCatalog) fail
 {
     var scan = Package.Scanner.create(source)
     var token: Package.Token
     var inText = false
+    var inPicture = false
+    var pictureId: String
+    var pictureWidth: u32
+    var pictureHeight: u32
+    var pictures = 0'u64
     var paragraphs = 0'u64
-    let imagesBefore = result.omittedImages
     while scan.next(&token)
     {
         if token.kind == .Start
@@ -101,6 +116,21 @@ private func appendSlide(result: *Presentation, source: string) fail
                 result.html += "<br>"
             elif token.isElement("pic")
             {
+                inPicture = true
+                pictureId.clear()
+                pictureWidth = 0
+                pictureHeight = 0
+                pictures += 1
+            }
+            elif inPicture and token.isElement("blip")
+            {
+                pictureId = token.attribute("r:embed") orelse ""
+            }
+            elif inPicture and token.isElement("ext") and not pictureWidth do
+                readPictureExtent(&token, &pictureWidth, &pictureHeight)
+            if token.empty and token.isElement("pic")
+            {
+                inPicture = false
                 result.omittedImages += 1
                 result.html += "<p>"
                 Package.appendHtmlEscaped(&result.html, texts().ui_ImageOmitted)
@@ -115,13 +145,27 @@ private func appendSlide(result: *Presentation, source: string) fail
                 result.html += "</p>"
             elif token.isElement("t") do
                 inText = false
+            elif token.isElement("pic")
+            {
+                inPicture = false
+                result.html += "<p>"
+                let image = images.html(pictureId, pictureWidth, pictureHeight)
+                if image.isEmpty()
+                {
+                    result.omittedImages += 1
+                    Package.appendHtmlEscaped(&result.html, texts().ui_ImageOmitted)
+                }
+                else do
+                    result.html += image
+                result.html += "</p>"
+            }
         }
         elif inText do
             Package.appendHtmlEscaped(&result.html, token.text)
         if result.html.count > 32 * 1024 * 1024 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
     }
-    if scan.damaged or not paragraphs and result.omittedImages == imagesBefore do
+    if scan.damaged or not paragraphs and not pictures do
         fail Errors.InvalidFormatError{texts().err_Invalid}
 }
 
@@ -142,7 +186,14 @@ impl Presentation
             result.html += "<h2>"
             result.html += Format.toString(texts().ui_Slide, result.slides)
             result.html += "</h2>"
-            try appendSlide(&result, try readPart(fileName, &archive, slide.path))
+            let directory = Package.parentPath(slide.path)
+            var relationsPath = String.from(directory.toString())
+            relationsPath += "/_rels/"
+            relationsPath += Path.fileName(slide.path) orelse ""
+            relationsPath += ".rels"
+            var images = try Package.ImageCatalog.load(fileName, &archive, directory, relationsPath,
+                                                       texts().err_Invalid, texts().err_TooLarge)
+            try appendSlide(&result, try readPart(fileName, &archive, slide.path), &images)
         }
         result.html += "</body></html>"
         return result

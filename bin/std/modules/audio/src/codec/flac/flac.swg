@@ -266,8 +266,10 @@ private impl Codec
         // length. Its value only matters when seeking, which the container index already does.
         let lead       = reader.read(8)
         var extraBytes = 0'u32
-        if lead >= 0xFE do
+        if lead == 0xFE do
             extraBytes = 6
+        elif lead == 0xFF do
+            fail InvalidFormatError{"FLAC frame number is malformed"}
         elif lead >= 0xFC do
             extraBytes = 5
         elif lead >= 0xF8 do

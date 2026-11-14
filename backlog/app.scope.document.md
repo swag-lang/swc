@@ -157,10 +157,11 @@ integration around those engines.
 ### app.scope.document.020 — Office Open XML rendering remains partial
 
 - Evidence: `.docx` reads main-body paragraphs, tables, direct run formatting, headings, visible page-break separators and bounded embedded raster images at their declared width; `.xlsx` reads ordered sheets,
-  shared/inline strings, numbers and cached values, and `.pptx` reads ordered slide text. These
+  shared/inline strings, numbers and cached values, and `.pptx` reads ordered slide text and bounded
+  embedded raster pictures. These
   files are ZIP containers, but showing their raw entries or extracted prose is not a document
   reader. The current HTML projection loses Word pagination and styling, spreadsheet grid and
-  cell formatting, and slide geometry and pictures. Focused tests cover run and slide order,
+  cell formatting, and slide geometry and unsupported picture types. Focused tests cover run and slide order,
   sparse cells and damaged packages; they do not establish visual fidelity.
 - Next: render authored page, grid and slide geometry with relationships, bounded pictures,
   text styles and backgrounds. Use real producer documents for visual comparisons, then add

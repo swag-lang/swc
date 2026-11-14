@@ -359,15 +359,17 @@ impl Decimal
         }
     }
 
-    mtd readF64(str: const [..] u8)->u32 fail
+    mtd readF64(str: const [..] u8)->u32 fail => try .readF64(str, g_CultureInfo.numberFormat)
+
+    mtd readF64(str: const [..] u8, numberFormat: NumberFormatInfo)->u32 fail
     {
         var cpt     = 0'u32
         let countof = str.count
         var buffer  = str.buffer
 
-        let negSign  = g_CultureInfo.numberFormat.negativeSign
-        let plusSign = g_CultureInfo.numberFormat.positiveSign
-        let dotSign  = g_CultureInfo.numberFormat.decimalSeparator
+        let negSign  = numberFormat.negativeSign
+        let plusSign = numberFormat.positiveSign
+        let dotSign  = numberFormat.decimalSeparator
 
         var c = buffer[]
         if c == negSign

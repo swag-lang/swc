@@ -111,7 +111,7 @@ func day8B()
 
     var steps = stepsToFirstEnd[0]
     for i in 1 until stepsToFirstEnd.count do
-        steps = Math.lcm(cast(s64, steps), cast(s64, stepsToFirstEnd[i]))
+        steps = expect Math.lcm(cast(s64, steps), cast(s64, stepsToFirstEnd[i]))
 
     Swag.assert(steps == 16187743689077)
 }

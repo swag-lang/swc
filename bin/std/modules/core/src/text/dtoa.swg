@@ -9,7 +9,7 @@
 
 using Globalization
 
-func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, mant: u64, exp: s64)
+func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, mant: u64, exp: s64, numberFormat: NumberFormatInfo)
 {
     var prec = precision
 
@@ -50,19 +50,19 @@ func dtoa(dst: *ConcatBuffer, precision: s64, fmt: u8, neg, forceSign: bool, man
         digs.dp = d.dp
     }
 
-    formatDigits(dst, shortest, neg, forceSign, digs, prec, fmt)
+    formatDigits(dst, shortest, neg, forceSign, digs, prec, fmt, numberFormat)
 }
 
-func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs: DecimalSlice, precision: s64, fmt: u8)
+func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs: DecimalSlice, precision: s64, fmt: u8, numberFormat: NumberFormatInfo)
 {
     var prec = precision
     switch fmt
     {
     case 'e'u8, 'E'u8:
-        return fmtE(dst, neg, forceSign, digs, prec, fmt)
+        return fmtE(dst, neg, forceSign, digs, prec, fmt, numberFormat)
 
     case 'f'u8:
-        return fmtF(dst, neg, forceSign, digs, prec)
+        return fmtF(dst, neg, forceSign, digs, prec, numberFormat)
 
     case 'g'u8, 'G'u8:
 
@@ -81,22 +81,22 @@ func formatDigits(dst: *ConcatBuffer, shortest: bool, neg, forceSign: bool, digs
         {
             if prec > digs.nd do
                 prec = digs.nd
-            return fmtE(dst, neg, forceSign, digs, prec - 1, cast(u8, (fmt + 'e'u8 - 'g'u8)))
+            return fmtE(dst, neg, forceSign, digs, prec - 1, cast(u8, (fmt + 'e'u8 - 'g'u8)), numberFormat)
         }
 
         if prec > digs.dp do
             prec = digs.nd
-        return fmtF(dst, neg, forceSign, digs, Math.max(prec - digs.dp, 0))
+        return fmtF(dst, neg, forceSign, digs, Math.max(prec - digs.dp, 0), numberFormat)
     }
 }
 
-func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, fmt: u8)
+func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, fmt: u8, numberFormat: NumberFormatInfo)
 {
     // sign
     if neg do
-        dst.addNative(g_CultureInfo.numberFormat.negativeSign)
+        dst.addNative(numberFormat.negativeSign)
     elif forceSign do
-        dst.addNative(g_CultureInfo.numberFormat.positiveSign)
+        dst.addNative(numberFormat.positiveSign)
 
     // first digit
     var ch = '0'u8
@@ -107,7 +107,7 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     // .moredigits
     if prec > 0
     {
-        dst.addNative(g_CultureInfo.numberFormat.decimalSeparator)
+        dst.addNative(numberFormat.decimalSeparator)
         var i = 1's64
         let m = Math.min(d.nd, prec + 1)
         if i < m
@@ -158,13 +158,13 @@ func fmtE(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, 
     }
 }
 
-func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
+func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64, numberFormat: NumberFormatInfo)
 {
     // sign
     if neg do
-        dst.addNative(g_CultureInfo.numberFormat.negativeSign)
+        dst.addNative(numberFormat.negativeSign)
     elif forceSign do
-        dst.addNative(g_CultureInfo.numberFormat.positiveSign)
+        dst.addNative(numberFormat.positiveSign)
 
     // integer, padded with zeros as needed.
     if d.dp > 0
@@ -185,7 +185,7 @@ func fmtF(dst: *ConcatBuffer, neg, forceSign: bool, d: DecimalSlice, prec: s64)
     // fraction
     if prec > 0
     {
-        dst.addNative(g_CultureInfo.numberFormat.decimalSeparator)
+        dst.addNative(numberFormat.decimalSeparator)
         for i in prec
         {
             var ch = '0'u8
@@ -366,6 +366,18 @@ func roundShortest(d: *Decimal, mant: u64, exp: s64)
 // writes the sign of a positive value. A NaN is written `NaN` and an infinity `+Inf` or `-Inf`.
 public func append(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
 {
+    appendWithFormat(buf, val, fmt, precision, forceSign, g_CultureInfo.numberFormat)
+}
+
+// Appends a float with JSON's culture-independent decimal point and signs.
+public func appendInvariant(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool)
+{
+    var numberFormat: NumberFormatInfo
+    appendWithFormat(buf, val, fmt, precision, forceSign, numberFormat)
+}
+
+func appendWithFormat(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceSign: bool, numberFormat: NumberFormatInfo)
+{
     let bits: u64 = cast #bit (u64, val)
 
     var prec = precision
@@ -421,7 +433,7 @@ public func append(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceS
             case 'g'u8, 'G'u8: prec = digs.nd
             }
 
-            return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt)
+            return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt, numberFormat)
         }
     }
     elif fmt != 'f'u8
@@ -451,9 +463,9 @@ public func append(buf: *ConcatBuffer, val: f64, fmt: u8, precision: s64, forceS
             var f = FloatExt{mant, exp - cast(s64, Swag.F64.MantBits), neg}
             ok = f.fixedDecimal(&digs, digits)
             if ok do
-                return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt)
+                return formatDigits(buf, shortest, neg, forceSign, digs, prec, fmt, numberFormat)
         }
     }
 
-    return dtoa(buf, prec, fmt, neg, forceSign, mant, exp)
+    return dtoa(buf, prec, fmt, neg, forceSign, mant, exp, numberFormat)
 }

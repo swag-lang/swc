@@ -24,7 +24,7 @@ struct XmlTextPayload
 }
 
 // Fields are elements in declaration order, a sequence holds blank-separated values, and text
-// decodes the predefined entities.
+// decodes predefined entities and XML character references.
 #test
 {
     let source: String = "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<payload>\n  <id>7</id>\n  <active>true</active>\n  <name>a &lt;b&gt; &amp; &quot;c&apos;</name>\n  <counts> -1 0 4 </counts>\n  <pair><x>3</x><y>-2</y></pair>\n</payload>\n"
@@ -79,6 +79,25 @@ struct XmlTextPayload
     Swag.require(errorOutcome.value() is SyntaxError)
 }
 
+#test
+{
+    let numericEntities: String = "<p><value>&#233;&#x1F600;</value></p>"
+    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    let decoded = expect decoder.readAll'XmlTextPayload(numericEntities.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.value == "é😀")
+
+    const InvalidReferences = [
+        "&#;", "&#x;", "&#0;", "&#1;", "&#xD800;", "&#xDFFF;", "&#x110000;", "&#999999999999999999999999;", "&#233"]
+    for reference in InvalidReferences
+    {
+        let invalidXml = Format.toString("<p><value>[[%]]</value></p>", reference)
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, invalidXml)) as errorOutcome
+        Swag.require(errorOutcome.value() is SyntaxError)
+    }
+}
+
 // XML 1.0 rejects forbidden controls but permits tab, line feed, and carriage return in text.
 #test
 {
@@ -131,6 +150,18 @@ func(T) xmlRejectsOverflow(input: string)->bool
     xmlAssertNative(" 65000<", 65000'u16)
     xmlAssertNative(" 4000000000<", 4000000000'u32)
     xmlAssertNative(" 18000000000000000000<", 18000000000000000000'u64)
+}
+
+#test
+{
+    let culture           = Globalization.currentCulture()
+    let previousNumberFmt = culture.numberFormat
+    defer culture.numberFormat = previousNumberFmt
+    culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
+
+    xmlAssertNative(" 1.5<", 1.5'f32)
+    xmlAssertNative(" -2.5<", -2.5'f64)
+    Swag.require(culture.numberFormat.decimalSeparator == ',')
 }
 
 // Numeric overflow must fail instead of returning the parser's saturated value.

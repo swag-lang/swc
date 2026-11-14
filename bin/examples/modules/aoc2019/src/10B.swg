@@ -129,7 +129,7 @@ func day10B()
     {
         let dx  = cast(s64, it.pos.x) - cast(s64, posStart.x)
         let dy  = cast(s64, it.pos.y) - cast(s64, posStart.y)
-        let gcd = Math.gcd(dx, dy)
+        let gcd = expect Math.gcd(dx, dy)
         it.dirX  = dx / gcd
         it.dirY  = dy / gcd
         it.dist2 = (dx * dx) + (dy * dy)

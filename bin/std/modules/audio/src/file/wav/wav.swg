@@ -453,6 +453,9 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     let bytesPerSample = format.bitsPerSample / 8
     if not bytesPerSample do
         fail InvalidFormatError{"invalid wav"}
+    let bytesPerFrame = cast(u64, format.blockAlign)
+    if not bytesPerFrame or layout.dataSize % bytesPerFrame do
+        fail InvalidFormatError{"WAV audio data is not aligned to sample frames"}
 
     with var result: #returntype
     {
@@ -474,7 +477,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     result.availableFields |= .Data | .FrameCount | .Duration
     result.dataOffset      = layout.dataOffset
     result.dataSize        = layout.dataSize
-    result.frameCount      = layout.dataSize / (format.channels * bytesPerSample)
+    result.frameCount      = layout.dataSize / bytesPerFrame
     result.durationSeconds = cast(f32, (result.frameCount / cast(f64, format.sampleRate)))
     if preloadData
     {

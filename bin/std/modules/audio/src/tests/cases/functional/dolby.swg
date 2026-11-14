@@ -65,6 +65,35 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     return result
 }
 
+// Dolby 2/1 audio uses the back-center speaker position rather than front-center.
+#test
+{
+    var ac3Frame: [128] u8
+    ac3Frame[0] = 0x0B
+    ac3Frame[1] = 0x77
+    ac3Frame[6] = 0x80     // acmod 4 (2/1), without LFE.
+    let ac3Path = Path.combine(Env.getSpecialDirectory(.Temp),
+                               Format.toString("dolby-acmod4-%.ac3", Guid128.random()))
+    defer discard catch File.delete(ac3Path)
+    discard expect File.writeAllBytes(ac3Path, ac3Frame)
+
+    var ac3 = expect SoundFile.load(ac3Path)
+    Swag.require(ac3.numChannels() == 3 and ac3.speakerChannelMask() == 0x0103)
+
+    var eac3Frame: [128] u8
+    eac3Frame[0] = 0x0B
+    eac3Frame[1] = 0x77
+    eac3Frame[3] = 63
+    eac3Frame[4] = 0x08     // acmod 4 (2/1), without LFE.
+    let eac3Path = Path.combine(Env.getSpecialDirectory(.Temp),
+                                Format.toString("dolby-acmod4-%.eac3", Guid128.random()))
+    defer discard catch File.delete(eac3Path)
+    discard expect File.writeAllBytes(eac3Path, eac3Frame)
+
+    var eac3 = expect SoundFile.load(eac3Path)
+    Swag.require(eac3.numChannels() == 3 and eac3.speakerChannelMask() == 0x0103)
+}
+
 // The native AC-3 path decodes complete sync frames, preserves all 5.1 channels, and reorders
 // AC-3's L,C,R,Ls,Rs,LFE bit-stream layout to the WAVE L,R,C,LFE,BL,BR speaker order.
 #test

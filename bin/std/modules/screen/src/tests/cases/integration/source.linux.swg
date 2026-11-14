@@ -29,6 +29,17 @@ private func sharedSegmentCount()->u64 fail
     return segments.count - 1
 }
 
+// A region outside the connected X11 screen is rejected while opening the source.
+#[Swag.TestTag("integration.host.linux")]
+#test
+{
+    var capture = expect X11Capture.create()
+    let x = cast(s32, capture.desktopWidth())
+    var failure: Swag.Error
+    discard catch Source.open({x, 0, 1, 1, false}) as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
+}
+
 // Runs against an X11 server such as Xvfb, including its shared-memory path.
 #[Swag.TestTag("integration.host.linux")]
 #test

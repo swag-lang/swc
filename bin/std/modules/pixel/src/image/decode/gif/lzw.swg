@@ -77,11 +77,11 @@ impl Decoder
         if y < p do
             return y * 8
         y -= p
-        p = (h - 5) / 8 + 1
+        p = h > 4 ? (h - 5) / 8 + 1 : 0
         if y < p do
             return y * 8 + 4
         y -= p
-        p = (h - 3) / 4 + 1
+        p = h > 2 ? (h - 3) / 4 + 1 : 0
         if y < p do
             return y * 4 + 2
         y -= p

@@ -658,6 +658,46 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.require(img.pixels.buffer[3] == 6'u8)
 }
 
+// A 16-bit indexed palette's high bit is alpha only when the descriptor declares it.
+#test
+{
+    for rle in 2
+    {
+        for alphaDeclared in 2
+        {
+            var cb: ConcatBuffer
+            var h:  TgaH
+            h.colorMapType   = 1'u8
+            h.imageTypeCode  = rle ? TGA_TYPE_RLE_MAP : TGA_TYPE_MAP
+            h.colorMapLength = 2'u16
+            h.colorMapBpp    = 16'u8
+            h.width          = 2'u16
+            h.height         = 1'u16
+            h.bitsPerPixel   = 8'u8
+            h.descriptorByte = alphaDeclared ? 1'u8 : 0'u8
+            cb.addStruct(h)
+            cb.addNative(0x7C00'u16)
+            cb.addNative(0xFC00'u16)
+            if rle do
+                cb.addNative(0x01'u8)
+            cb.addNative(0'u8)
+            cb.addNative(1'u8)
+
+            let img = expect Image.decode("memory.tga", nnBytes(cb.toSlice()), {})
+            Swag.require(img.pixelFormat == .BGRA8)
+            let pixels = img.pixels.storage()
+            Swag.require(pixels[0] == 0'u8)
+            Swag.require(pixels[1] == 0'u8)
+            Swag.require(pixels[2] == 255'u8)
+            Swag.require(pixels[3] == (alphaDeclared ? 0'u8 : 255'u8))
+            Swag.require(pixels[4] == 0'u8)
+            Swag.require(pixels[5] == 0'u8)
+            Swag.require(pixels[6] == 255'u8)
+            Swag.require(pixels[7] == 255'u8)
+        }
+    }
+}
+
 // Decode RLE true-color packets.
 #test
 {

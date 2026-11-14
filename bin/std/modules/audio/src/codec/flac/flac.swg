@@ -72,20 +72,32 @@ private impl BitReader
         return result
     }
 
-    // Reads `count` bits as a two's-complement value. `count` is at most 32.
-    mtd readSigned(count: u32)->s32
+    // Reads a two's-complement sample, including the 33-bit side channel of 32-bit stereo FLAC.
+    mtd readSigned(count: u32)->s64
     {
+        if count > 32
+        {
+            // FLAC decorrelation can add one bit to a 32-bit sample. Consume the sign bit
+            // separately so the remaining 32 bits retain their full range in the reader.
+            let sign  = .read(1)
+            let lower = .read(32)
+            let value = (cast(u64, sign) << 32) | cast(u64, lower)
+            if sign do
+                return cast(s64, value) - (1's64 << 33)
+            return cast(s64, value)
+        }
+
         let value = .read(count)
         if count == 32 do
-            return cast(s32, value)
+            return cast(s64, cast #bit(s32, value))
 
         // A negative value is `value - 2^count`. Subtracting the sign bit twice reaches it without
         // ever leaving the range of either type: the usual `(value ^ sign) - sign` is one unsigned
         // subtraction below zero, which is a fault here rather than a wrap.
         let sign = 1'u32 << (count - 1)
         if not (value & sign) do
-            return cast(s32, value)
-        return cast(s32, (value - sign)) - cast(s32, sign)
+            return cast(s64, value)
+        return cast(s64, cast(s32, (value - sign))) - cast(s64, sign)
     }
 
     // Counts the zero bits before the next set bit, and consumes that set bit.
@@ -163,8 +175,8 @@ internal struct Codec
     using base: Audio.Codec
 
     info:     StreamInfo
-    channels: [MaxChannels] Array's32
-    residual: Array's32
+    channels: [MaxChannels] Array's64
+    residual: Array's64
     capacity: u32
 }
 
@@ -347,10 +359,10 @@ private impl Codec
                 while index < end
                 {
                     let quotient = reader.unary()
-                    let value    = (quotient << param) | reader.read(param)
+                    let value    = (cast(u64, quotient) << param) | cast(u64, reader.read(param))
 
                     // Residuals are zig-zag coded: the low bit is the sign.
-                    output[index] = cast(s32, (value >> 1)) ^ -cast(s32, (value & 1))
+                    output[index] = cast(s64, value >> 1) ^ -cast(s64, value & 1)
                     index         += 1
                 }
             }
@@ -358,7 +370,7 @@ private impl Codec
     }
 
     // Decodes one subframe of `blockSize` samples at `bitsPerSample` into `target`.
-    mtd readSubframe(reader: *BitReader, target: [*] s32, blockSize, bitsPerSample: u32) fail
+    mtd readSubframe(reader: *BitReader, target: [*] s64, blockSize, bitsPerSample: u32) fail
     {
         if reader.read(1) do
             fail InvalidFormatError{"FLAC subframe sets the reserved leading bit"}
@@ -412,7 +424,7 @@ private impl Codec
             if shift < 0 do
                 fail InvalidFormatError{"FLAC linear predictor shift is negative"}
 
-            var coefficients: [MaxLpcOrder] s32
+            var coefficients: [MaxLpcOrder] s64
             for index in order do
                 coefficients[index] = reader.readSigned(precision)
 
@@ -434,7 +446,7 @@ private impl Codec
     }
 
     // Restores the samples of a fixed-predictor subframe from its residual.
-    mtd predictFixed(target: [*] s32, order, blockSize: u32)
+    mtd predictFixed(target: [*] s64, order, blockSize: u32)
     {
         let source = .residual.storage()
         for index in order do
@@ -467,9 +479,8 @@ private impl Codec
     // Restores the samples of a linear-predictor subframe from its residual.
     //
     // The accumulator is 64-bit because the format allows thirty-two coefficients of fifteen
-    // bits each over samples of up to thirty-two bits, which overflows a 32-bit sum long before
-    // the shift brings it back into range.
-    mtd predictLinear(target: [*] s32, coefficients: const [*] s32, order, blockSize, shift: u32)
+    // bits each over samples of up to thirty-three bits in a decorrelated stereo side channel.
+    mtd predictLinear(target: [*] s64, coefficients: const [*] s64, order, blockSize, shift: u32)
     {
         let source = .residual.storage()
         for index in order do
@@ -479,8 +490,8 @@ private impl Codec
         {
             var sum = 0's64
             for tap in order do
-                sum += cast(s64, coefficients[tap]) * cast(s64, target[index - 1 - tap])
-            target[index] = source[index] + cast(s32, (sum >> shift))
+                sum += coefficients[tap] * target[index - 1 - tap]
+            target[index] = source[index] + (sum >> shift)
         }
     }
 
@@ -559,7 +570,7 @@ private impl Codec
             {
                 let value  = .channels[channel][sample]
                 var scaled = shift > 0 ? value >> cast(u32, shift) : value << cast(u32, -shift)
-                scaled = Math.clamp(scaled, -32768, 32767)
+                scaled = Math.clamp(scaled, -32768's64, 32767's64)
                 destination[index] = cast(s16, scaled)
                 index  += 1
             }

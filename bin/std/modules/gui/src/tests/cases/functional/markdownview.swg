@@ -657,6 +657,15 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
     Swag.require(Markdown.renderInline("snake_case_name") == "snake_case_name")
 }
 
+// Markdown escapes ASCII punctuation, but preserves a backslash before ordinary text.
+#test
+{
+    Swag.require(Markdown.renderInline("\\*literal\\*") == "*literal*")
+    Swag.require(Markdown.renderInline("\\$5") == "$5")
+    Swag.require(Markdown.renderInline("\\\n") == "\n")
+    Swag.require(Markdown.renderInline("\\alpha") == "\\alpha")
+}
+
 // Code blocks preserve the author's indentation; only the space a wrap leaves behind is dropped.
 #test
 {

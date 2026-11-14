@@ -272,7 +272,7 @@ impl String
 
     // Visits each byte with its index, in storage order.
     #[Macro]
-    mtd(ptr: bool) const opVisit(stmt: #code(var item, var index: u64))
+    mtd(ptr: bool) opVisit(stmt: #code(var item, var index: u64))
     {
         if not .length do
             return
@@ -281,6 +281,22 @@ impl String
         {
             #static if ptr do
                 #inject(stmt, item = cast(*u8, (buffer + index)), index = index)
+            else do
+                #inject(stmt, item = buffer[index], index = index)
+        }
+    }
+
+    // Visits each byte with its index through const borrows.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(var item, var index: u64))
+    {
+        if not .length do
+            return
+        let buffer = cast(const [*] u8, unwrap .buffer)
+        for index in .length
+        {
+            #static if ptr do
+                #inject(stmt, item = cast(const *u8, buffer + index), index = index)
             else do
                 #inject(stmt, item = buffer[index], index = index)
         }

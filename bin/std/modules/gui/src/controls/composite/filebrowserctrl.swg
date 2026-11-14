@@ -949,12 +949,13 @@ impl FileBrowserCtrl
                 if fileBrowser.options.showDrives
                 {
                     let volumes = catch Directory.drives()
-                    for &v in volumes
+                    for volume in volumes
                     {
-                        let path = String.from(v.toString())
-                        if v.count > 1 do
-                            v.removeBack()
-                        .addPlace(v.toString(), path.toString())
+                        var name = String.from(volume.toString())
+                        let path = String.from(volume.toString())
+                        if name.count > 1 do
+                            name.removeBack()
+                        .addPlace(name.toString(), path.toString())
                     }
                 }
 

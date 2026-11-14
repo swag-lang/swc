@@ -151,3 +151,22 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
         decode16Row(srcPix, dst, result.width, masks)
     }
 }
+
+func decode32(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bool) fail
+{
+    let stride = rowStride(result.width, 32)
+    try checkBuffer(src, last, stride * cast(u64, result.height))
+
+    for y in result.height
+    {
+        let dstY   = topDown ? result.height - y - 1 : y
+        var srcPix = src + stride * cast(u64, y)
+        var dst    = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
+        for result.width
+        {
+            writeMaskedPixel(dst, cast(const *u32, srcPix)[], masks, true)
+            srcPix += 4
+            dst    += 4
+        }
+    }
+}

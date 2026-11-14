@@ -144,6 +144,97 @@ using Core, Pixel
     Swag.require(resident.sizeAlloc < initial.sizeAlloc + 128 * 1024 * 1024)
 }
 
+// The document limit is inclusive at EOF: a legacy-encoded source whose decoded content is
+// exactly 48 MiB must not be reported as cut merely because the final bounded read meets it.
+// A final chunk that decodes past the same limit must still report truncation, including at EOF.
+func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
+{
+    let prefix = "<html><head><meta charset=\"windows-1252\"></head><body>"
+    let suffix = "</body></html>"
+    var stream = expect File.open(fileName, .CreateNew, .Write, .Zero)
+    try stream.writeAll(cast(const [..] u8, prefix))
+
+    // Windows-1252 byte 0x80 decodes to a three-byte UTF-8 euro sign. Closed comments keep
+    // that expanded source out of the document tree while still exercising the real decoder,
+    // stream chunking, parser and decoded-byte limit. Write bounded blocks, not a huge string.
+    const EuroBytes = 16 * 1024'u64
+    var comment: Array'u8
+    for character in "<!--" do
+        comment.add(character)
+    for EuroBytes do
+        comment.add(0x80)
+    for character in "-->" do
+        comment.add(character)
+
+    let blockDecodedSize = 7 + EuroBytes * 3
+    let prefixSize       = cast(const [..] u8, prefix).count
+    let suffixSize       = cast(const [..] u8, suffix).count
+    var remaining        = decodedSize - prefixSize - suffixSize
+    var fullBlocks       = remaining / blockDecodedSize
+    var tailSize         = remaining - fullBlocks * blockDecodedSize
+    if tailSize < 7
+    {
+        fullBlocks -= 1
+        tailSize += blockDecodedSize
+    }
+
+    for fullBlocks do
+        try stream.writeAll(comment.toSlice())
+
+    comment.clear()
+    for character in "<!--" do
+        comment.add(character)
+    let tailEuroCount = (tailSize - 7) / 3
+    for tailEuroCount do
+        comment.add(0x80)
+    for character in "-->" do
+        comment.add(character)
+    try stream.writeAll(comment.toSlice())
+
+    let trailingSpaces = (tailSize - 7) % 3
+    for trailingSpaces do
+        try stream.writeAll(cast(const [..] u8, " "))
+    try stream.writeAll(cast(const [..] u8, suffix))
+    stream.close()
+}
+
+#[Swag.TestTag("stress")]
+#test
+{
+    const DocumentLimit = 48 * 1024 * 1024'u64
+
+    for decodedSize in [DocumentLimit, DocumentLimit + 3]
+    {
+        let path = Testing.tempFilePath("html_limit-", ".html")
+        defer discard catch File.delete(path)
+        expect writeHtmlAtDecodedSize(path, decodedSize)
+
+        let info = expect File.info(path)
+        Swag.require(info.size > 2 * 1024 * 1024 and info.size < DocumentLimit)
+
+        var host: Testing.HeadlessHost
+        host.setup(640, 360)
+
+        let view = HtmlView.createFile(&host.root, path)
+        view.resize(640, 360)
+        view.applyLayout()
+        Swag.require(view.encoding == Text.Encoding.Windows1252 and not view.virtualSource)
+
+        var steps = 0'u32
+        while view.isLoading() and steps < 3_000
+        {
+            view.streamStep()
+            steps += 1
+        }
+
+        Swag.require(not view.isLoading() and view.bytesRead == decodedSize)
+        let truncated = view.findText("too large to be displayed in full")
+        Swag.require(truncated == (decodedSize > DocumentLimit))
+        view.destroy()
+        host.pump()
+    }
+}
+
 // Large ordinary HTML is bounded too, even when it has no generated-source `<pre>` shape. The
 // generic window may start at a recovery boundary, but it must never make file size become DOM
 // size and revisiting one byte offset must choose the same resident source.

@@ -200,3 +200,34 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
     Swag.require(drifted.packetCount() == even.packetCount())
     Swag.require(drifted.sampleFrameCount() == even.sampleFrameCount())
 }
+
+// A version-zero single edit trims AAC priming and final padding on classic sample-table tracks.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("glint-aac-mjpeg.mp4").toString())
+    let firstEdit = mp4FindTag(bytes.toSlice(), "elst")
+    Swag.require(firstEdit < bytes.count)
+    let secondStart = firstEdit + 4
+    let secondEdit  = secondStart + mp4FindTag(bytes.toSlice()[secondStart until], "elst")
+    Swag.require(secondEdit < bytes.count and bytes[secondEdit + 4] == 0)
+
+    // This fixture's second edit list belongs to its AAC track. Keep version zero, start after
+    // one 1024-frame priming packet, and make the audible duration leave less than one packet of
+    // padding. The unedited sample table contains 19 AAC packets (19456 frames).
+    let raw = cast([*] u8, bytes.storage())
+    raw[secondEdit + 12] = 0
+    raw[secondEdit + 13] = 0
+    raw[secondEdit + 14] = 1
+    raw[secondEdit + 15] = 0x90 // 400 movie ticks = 17640 frames at 44.1 kHz / 1 kHz.
+    raw[secondEdit + 16] = 0
+    raw[secondEdit + 17] = 0
+    raw[secondEdit + 18] = 4
+    raw[secondEdit + 19] = 0
+
+    let path = videoTempPath("mp4-version-zero-audio-edit", "mp4")
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+    var reader = expect Reader.open(path)
+    Swag.require(reader.audioTrackCount() == 1)
+    Swag.require((unwrap reader.audioTrack(0)).sampleFrameCount() == 17_640)
+}

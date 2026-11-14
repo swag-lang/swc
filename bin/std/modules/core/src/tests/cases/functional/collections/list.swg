@@ -55,6 +55,19 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     return code
 }
 
+func assertConstReversedListBorrows(values: const *List's32)->s32
+{
+    var total = 0
+    for &item, node, index in values[].reversed()
+    {
+        #assert(#typeof(item) == const *s32)
+        #assert(#typeof(node) == const *ListEntry's32)
+        Swag.require(node.value == item[])
+        total += item[] + cast(s32, index)
+    }
+    return total
+}
+
 #test
 {
     var values: List's32
@@ -134,6 +147,8 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
     values.addBack(1)
     values.addBack(2)
     values.addBack(3)
+
+    Swag.require(assertConstReversedListBorrows(&values) == 9)
 
     for &value, node in values
     {

@@ -28,11 +28,11 @@ struct(T) List
     }
 }
 
-// Iterates a borrowed list from its tail to its head.
+// Iterates a mutable borrowed list from its tail to its head.
 #[Swag.Opaque]
 struct(T) ReversedList
 {
-    source: const *List'T
+    source: *List'T
 }
 
 impl ReversedList
@@ -52,6 +52,56 @@ impl ReversedList
                 #static if ptr do
                     #inject(stmt,
                             item = cast(*T, &current.value),
+                            node = current,
+                            index = index,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(T) do
+                    #inject(stmt,
+                            item = cast(const *T, &current.value),
+                            node = current,
+                            index = index,
+                            break = break to Up,
+                            continue = break to Down)
+                else do
+                    #inject(stmt,
+                            item = current.value,
+                            node = current,
+                            index = index,
+                            break = break to Up,
+                            continue = break to Down)
+            }
+
+            node  = current.prev
+            index += 1
+        }
+    }
+}
+
+// Iterates a const borrowed list from its tail to its head.
+#[Swag.Opaque]
+struct(T) ConstReversedList
+{
+    source: const *List'T
+}
+
+impl ConstReversedList
+{
+    // Visits const borrowed list elements from tail to head, with a zero-based traversal index.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(item, node, index: u64))
+    {
+        var node: const *ListEntry'T? = .source.tail
+        var index: u64
+        scope(Up)
+        while node
+        {
+            let current = node orelse cast(const *ListEntry'T, 1'u64)
+            scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt,
+                            item = cast(const *T, &current.value),
                             node = current,
                             index = index,
                             break = break to Up,
@@ -157,8 +207,9 @@ impl List
         }
     }
 
-    // Returns an immutable zero-allocation view that traverses the list from tail to head.
-    mtd const reversed()->ReversedList'T => {source: me}
+    // Returns a reverse view with mutable or const element borrows matching this list.
+    mtd reversed()->ReversedList'T => {source: me}
+    mtd const reversed()->ConstReversedList'T => {source: me}
 
     // Deletes every node and leaves the list empty.
     mtd clear()

@@ -80,6 +80,24 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     return score
 }
 
+func assertConstArrayBorrows(values: const *Array's32)->s32
+{
+    var total = 0
+    for &item, index in values[]
+    {
+        #assert(#typeof(item) == const *s32)
+        total += item[] + cast(s32, index)
+    }
+
+    for item, index in values[].reversed()
+    {
+        #assert(#typeof(item) == s32)
+        total += item + cast(s32, index)
+    }
+
+    return total
+}
+
 #[Swag.Safety(.BoundCheck, true), Swag.Safety(.Overflow, false)]
 func callArrayPtr2(values: *Array's32, x, y, w: u64)
 {
@@ -414,6 +432,8 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     var values: Array's32
     let seed:   [4] s32 = [10, 20, 30, 40]
     values.add(seed)
+
+    Swag.require(assertConstArrayBorrows(&values) == 212)
 
     var reverseIndex = Swag.U64.Max
     for value, index in values.reversed()

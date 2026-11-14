@@ -25,6 +25,7 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
     var totalFrames  = 0'u64
     var sampleRate   = 0'u32
     var channelCount = 0'u32
+    var speakerMask  = 0'u32
 
     for
     {
@@ -42,8 +43,11 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
         {
             sampleRate   = info.sampleRate
             channelCount = info.channels
+            speakerMask  = info.speakerMask
         }
-        elif info.sampleRate != sampleRate or info.channels != channelCount
+        elif info.sampleRate != sampleRate or
+             info.channels != channelCount or
+             info.speakerMask != speakerMask
         {
             // A stream that changes shape mid-file is not one this reader indexes.
             break
@@ -70,5 +74,6 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
                                           channelCount,
                                           totalFrames,
                                           packets.toSlice(),
-                                          config.toSlice())
+                                          config.toSlice(),
+                                          {speakerMask: speakerMask})
 }

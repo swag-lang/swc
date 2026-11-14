@@ -135,11 +135,15 @@ private impl AnimationWriter
         if not .globalTable.isEmpty() do
             try .sink.write(.globalTable.toSlice())
 
-        try .sink.write([0x21'u8, 0xFF, 0x0B])
-        try .sink.write("NETSCAPE2.0")
-        try .sink.write([0x03'u8, 0x01])
-        try .sink.writeLittleEndian(.loopCount)
-        try .sink.writeByte(0)
+        if .loopCount != 1
+        {
+            try .sink.write([0x21'u8, 0xFF, 0x0B])
+            try .sink.write("NETSCAPE2.0")
+            try .sink.write([0x03'u8, 0x01])
+            let repeatCount = .loopCount ? .loopCount - 1 : 0'u16
+            try .sink.writeLittleEndian(repeatCount)
+            try .sink.writeByte(0)
+        }
     }
 
     // Keeps the area of `image` at `x, y` waiting for its duration, without its alpha channel.

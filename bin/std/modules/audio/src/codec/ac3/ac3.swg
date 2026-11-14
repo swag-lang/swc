@@ -73,6 +73,9 @@ private struct Ac3Block
     lfeBap:      [7] s32
 }
 
+// `chbwcod` is defined from 0 through 60; larger six-bit values are reserved.
+private const MaxChannelBandwidthCode = 60'u32
+
 private struct Ac3Codec
 {
     using base: Codec
@@ -313,8 +316,13 @@ private impl Ac3Codec
         if bsi.lfeon do
             block.lfeExpStrategy = reader.read(1)
 
-        for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0 and not block.channelCoupled[channel] do
-            block.channelBandwidth[channel] = reader.read(6)
+        for channel in bsi.nfchans where block.channelExpStrategy[channel] != 0 and not block.channelCoupled[channel]
+        {
+            let bandwidth = reader.read(6)
+            if bandwidth > MaxChannelBandwidthCode do
+                fail InvalidFormatError{"AC-3 channel bandwidth code is reserved"}
+            block.channelBandwidth[channel] = bandwidth
+        }
 
         if block.coupling
         {

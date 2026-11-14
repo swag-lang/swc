@@ -242,7 +242,10 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= cast(const *u64, unwrap src + cur)[] << #wrap nb
+                var chunk: u64
+                Memory.copy(cast([*] void, &chunk), cast(const [*] void, unwrap src + cur), #sizeof(chunk))
+                chunk = Math.littleEndianToNative(chunk)
+                cb  |= chunk << #wrap nb
                 cur += cast(u64, ((63 - nb) >> 3))
                 nb  |= 56
             }
@@ -432,7 +435,7 @@ impl Inflate
                 var dst = count
                 while dst < end
                 {
-                    cast(*u64, (obuf + dst))[] = cast(const *u64, (obuf + from))[]
+                    Memory.copy(cast([*] void, obuf + dst), cast(const [*] void, obuf + from), 8)
                     dst  += 8
                     from += 8
                 }

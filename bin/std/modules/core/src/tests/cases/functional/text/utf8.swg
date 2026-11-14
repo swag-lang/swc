@@ -385,6 +385,12 @@ func utf8SequenceAfterAsciiPrefixIsValid(prefixLength: u64, sequence: const [..]
 
 #test
 {
+    let unalignedAscii: [9] u8 = ['x', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    Swag.require(Utf8.isValid(unalignedAscii[1 until 9]))
+}
+
+#test
+{
     Swag.require(Utf8.isValid("abcdefghijklmnopqrstuvwxyz"))
 
     let invalidStart: [1] u8  = [0x80]

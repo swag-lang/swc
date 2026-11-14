@@ -4,12 +4,19 @@
 
 using Core
 
+#[Swag.CallingConvention(.C)]
 private alias XTestMotion = func(*void, s32, s32, s32, u64)->s32
+#[Swag.CallingConvention(.C)]
 private alias XTestButton = func(*void, u32, s32, u64)->s32
+#[Swag.CallingConvention(.C)]
 private alias XTestKey = func(*void, u32, s32, u64)->s32
+#[Swag.CallingConvention(.C)]
 private alias XKeysymToKeycode = func(*void, u64)->u8
+#[Swag.CallingConvention(.C)]
 private alias XSetInputFocus = func(*void, u64, s32, u64)->s32
+#[Swag.CallingConvention(.C)]
 private alias XGetInputFocus = func(*void, *u64, *s32)->s32
+#[Swag.CallingConvention(.C)]
 private alias XSync = func(*void, s32)->s32
 
 internal struct NativeDesktopInput

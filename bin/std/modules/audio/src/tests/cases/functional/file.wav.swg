@@ -24,6 +24,28 @@ using Swag, Core
     }
 }
 
+// PCM audio data must contain a whole number of sample frames across all channels.
+#test
+{
+    let source    = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-wav-frame-alignment-%.wav", Guid128.random()))
+    defer discard catch File.delete(temporary)
+
+    var bytes  = source
+    bytes.add([0x7F'u8, 0])
+    var writer = ByteStream.openWrite(&bytes)
+    writer.setPosition(4)
+    writer.writeLittleEndian(46'u32)
+    writer.setPosition(40)
+    writer.writeLittleEndian(9'u32)
+    discard expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    var error: Swag.Error
+    discard catch SoundFile.load(temporary) as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
 // PCM and float WAVE headers must describe the same frame layout as their sample format.
 #test
 {

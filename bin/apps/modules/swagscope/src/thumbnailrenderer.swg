@@ -40,7 +40,7 @@ impl ThumbnailRenderer
         return {canvas: #move canvas, bodyFont: body, titleFont: title}
     }
 
-    // Renders a bounded text sample or a compact byte map into the same portrait page.
+    // Renders a bounded text sample or neutral file facts into the same portrait page.
     mtd render(path, viewerName: string, textual: bool)->Image fail
     {
         let painter = &.canvas.painter
@@ -73,7 +73,18 @@ impl ThumbnailRenderer
         }
         else
         {
-            try .drawByteMap(path, painter)
+            let info = try File.info(path)
+            var name = String.from(Path.fileName(path) orelse path)
+            name.replace('<', "‹")
+            name.replace('>', "›")
+            var content: RichString = Format.toString("%\n%", name, StrConv.toDisplaySize(info.size))
+            var format:  RichStringFormat
+            format.font.regular  = unwrap .bodyFont
+            format.palette       = [Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62), Color.fromRgb(52, 57, 62)]
+            format.minLineHeight = .bodyFont.height + 3
+            format.maxLines      = 5
+            format.flags         = .WordWrap | .Clip
+            painter.drawRichString({18, 50, 220, 120}, &content, format)
         }
 
         return try .canvas.toImage()
@@ -85,23 +96,4 @@ impl ThumbnailRenderer
         return try stream.readUtf8Chunk(ThumbnailSourceSize)
     }
 
-    private mtd drawByteMap(path: string, painter: *Painter) fail
-    {
-        var stream = try File.openReadLive(path)
-        var bytes: Array'u8
-        bytes.resize(32 * 64)
-        let count = try stream.read(bytes.toSlice())
-        bytes.resize(count)
-
-        for byte, index in bytes
-        {
-            let value = cast(u32, byte)
-            let x     = 18 + cast(f32, index % 32) * 6.8
-            let y     = 50 + cast(f32, index / 32) * 3.8
-            let color = Color.fromRgb(cast(u8, 24 + value / 8),
-                                      cast(u8, 48 + value / 5),
-                                      cast(u8, 78 + value / 3))
-            painter.fillRect({x, y, 5.2, 2.8}, color)
-        }
-    }
 }

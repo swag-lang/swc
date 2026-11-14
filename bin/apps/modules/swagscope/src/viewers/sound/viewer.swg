@@ -17,12 +17,48 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Sound)
         .create       = &createViewer
+        .thumbnail    = &loadThumbnail
         .smokeFixture = "pacman_beginning.wav"
     }
 
     let extensions = SoundFile.decodableExtensions()
     result.addSelectors(extensions.toSlice())
     return result
+}
+
+// Draws a bounded waveform from the same PCM decoder and reducer as the sound viewer.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    let sound  = try SoundFile.load(fileName, preloadData: false)
+    let width  = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
+    let height = width / 2
+    let frames = Math.min(sound.sampleFrameCount(), cast(u64, sound.sampleRateHz()) * 10)
+    var canvas = try ImageCanvas.create(width, height)
+    canvas.clear(Color.fromRgb(248, 249, 250))
+    if not frames do
+        return try canvas.toImage()
+
+    var points: Array'WaveformPoint
+    points.resize(Math.min(frames, cast(u64, width - 16)))
+    var reducer = WaveformReducer{&points, frames, points.count, sound.numChannels()}
+    try sound.decodePcm16(0, frames, func|reducer = &reducer|(samples: const [..] s16)->bool
+    {
+        reducer.consume(samples)
+        return true
+    })
+    reducer.finish()
+
+    let painter = &canvas.painter
+    let middle  = cast(f32, height) * 0.5
+    for point, index in points
+    {
+        let x    = 8 + cast(f32, index)
+        let peak = Math.max(1'f32, point.peak * (middle - 8))
+        let body = Math.max(1'f32, point.body * (middle - 8))
+        painter.fillRect({x, middle - peak, 1, peak * 2}, Color.fromRgb(150, 165, 177))
+        painter.fillRect({x, middle - body, 1, body * 2}, Color.fromRgb(48, 80, 104))
+    }
+    return try canvas.toImage()
 }
 
 private

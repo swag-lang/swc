@@ -17,7 +17,7 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.require(window.searchTimer == null)
 }
 
-// Markdown paints under the caption strip; the shared find bar stays below it and its arrows act.
+// Markdown and the other viewers reserve a strip for find; its arrows act on the document.
 #test
 {
     var host: Testing.HeadlessHost
@@ -32,9 +32,8 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.applyLayout()
 
     window.showSearch()
-    let area = window.documentArea()
-    let top  = Math.max(area.y, window.stripInset()) + window.themeMetrics().floating_Inset * 0.5
-    Swag.require(window.searchBar.position.y >= top - 1)
+    Swag.require(window.searchBar.parent == window.documentHost and window.searchBar.dockStyle == .Top)
+    Swag.require(window.documentPanel.position.y >= window.searchBar.position.bottom())
     Swag.require(window.searchBar.radius() == window.themeMetrics().corner_Floating)
 
     window.searchBox.setText("Heading")

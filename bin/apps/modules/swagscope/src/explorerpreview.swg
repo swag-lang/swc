@@ -182,6 +182,8 @@ impl ExplorerPreview
                     if not localArtwork.isEmpty() do
                         .image = catch .service.render(localArtwork, .settings)
                     if not .image.isValid() do
+                        .image = catch .service.render(file, .settings)
+                    if not .image.isValid() do
                         .image = Image.create(1, 1, .RGBA8)
                     let tags = SoundTags.read(file)
                     labelLocalMusic(&.image, &tags)

@@ -157,10 +157,10 @@ impl ViewerWindow
         }
     }
 
-    // Puts an explored folder or archive at the head of the folders the home offers.
+    // Puts an explored directory at the head of the folders the home offers.
     mtd rememberExplored(location: string)
     {
-        if .thumbnailMode or not location.count do
+        if .thumbnailMode or not Directory.exists(location) do
             return
         for one, index in .exploredFolders where Utf8.compare(one.toSlice(), location, .Latin1NoCase) == 0
         {
@@ -462,7 +462,7 @@ impl ViewerWindow
             .recentOpened.removeAtOrdered(i)
         }
 
-        for i in reversed(.exploredFolders.count) where not Directory.exists(.exploredFolders[i]) and not File.exists(.exploredFolders[i]) do
+        for i in reversed(.exploredFolders.count) where not Directory.exists(.exploredFolders[i]) do
             .exploredFolders.removeAtOrdered(i)
 
         .historyChanged()

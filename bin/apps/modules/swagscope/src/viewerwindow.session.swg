@@ -248,7 +248,8 @@ impl ViewerWindow
         {
             .home.hide()
             .hintLine.hide()
-            .explorer!.setShown(true)
+            .searchBox.setText(.explorer!.filter.text(), notify: false)
+            .explorer.setShown(true)
             if .infoSheet.isLocallyVisible() do
                 .refreshInformation()
         }

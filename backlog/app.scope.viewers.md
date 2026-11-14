@@ -31,6 +31,21 @@ viewer packages, helper binaries, or network service required to open supported 
 
 ## Entries
 
+### app.scope.viewers.015 — Explorer thumbnails do not yet reflect every reader
+
+- Evidence: Image, Video, Comic, PDF and Sound can supply content thumbnails. Text, Code,
+  Markdown, HTML, RTF, Subtitle and Table still show a bounded source sample; Archive, Binary,
+  DOCX, EPUB, Font, Hex, MIDI, PPTX and XLSX show neutral file facts. The old fallback's byte map
+  was misleading for binary documents and is no longer used.
+- Next: give each remaining visual reader a bounded thumbnail callback using its own decoded
+  model: EPUB cover or first spine page, Office first page/slide/sheet, font specimen, MIDI score
+  or timeline, and parsed HTML/RTF/Markdown/Table content. Keep archive and hexadecimal previews
+  explicitly neutral when no single rendered page represents the file.
+- Done when: every registered viewer either supplies a representative content image through its
+  own decoder or deliberately declares a neutral preview; first-visible-preview latency,
+  cancellation, damaged-file fallback, and both themes have focused coverage.
+- Related: app.scope.viewers.009
+
 ### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes
 
 - Evidence: Markdown theme, reading width and zoom, and Video subtitle presentation already persist

@@ -24,8 +24,7 @@ impl ViewerWindow
         }
     }
 
-    // Builds the find bar floating at the top of the document while the reader searches: the
-    // options of the search, the query, and the way through its matches.
+    // Builds a search strip that reserves space above the document when it is shown.
     private mtd createSearchBar()
     {
         let iconSize              = themeActionIconSize(.themeMetrics())
@@ -34,8 +33,9 @@ impl ViewerWindow
         let searchNavigationWidth = 2 * actionSize + SearchCountWidth + 8
         let searchBarWidth        = dropDownWidth + SearchFieldWidth + searchNavigationWidth + 2 * SearchGroupSpacing
 
-        with .searchBar = FloatingPanel.create(me, {0, 0, searchBarWidth, actionSize}, "scope.search")
+        with .searchBar = FloatingPanel.create(.documentHost, {0, 0, searchBarWidth, actionSize + 12}, "scope.search")
         {
+            .dockStyle = .Top
             .padding = {8, 6, 8, 6}
             .hide()
         }

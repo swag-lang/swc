@@ -173,7 +173,7 @@ struct ViewerWindow
     recentOpened:        Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
     folderHistory:       Array'ViewerFolderHistory
     resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
-    exploredFolders:     Array'String                // Folders and archives explored lately, most recent first.
+    exploredFolders:     Array'String                // Directories explored lately, most recent first.
     systemPlaces:        Array'String                // The system's own folders a first launch offers to explore.
     folderFilter:        String
     preferences:         Array'ViewerPreference
@@ -750,7 +750,7 @@ impl ViewerWindow
         .forwardCaptionButton.show(exploring)
         .upCaptionButton.show(exploring)
         .refreshCaptionButton.show(exploring)
-        .findCaptionButton.show(exploring)
+        .findCaptionButton.hide()
         .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen and videoControls)
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
         let openFile = not .isExploring() and not .currentFile.isEmpty()
@@ -911,8 +911,7 @@ impl ViewerWindow
         return result
     }
 
-    // Places every part floating over the document: its commands at its foot, the find bar at
-    // its top, the hint at its foot while it is empty.
+    // Places the floating commands and hint, then sizes the reserved search strip.
     mtd layoutFloatingParts()
     {
         .layoutViewerBar()
@@ -920,33 +919,24 @@ impl ViewerWindow
         .explorer?.layoutFilter()
     }
 
-    // Places the find bar at the center of the page, clear of the information sheet.
+    // Centers the search controls in their own strip above the document.
     mtd layoutSearchBar()
     {
         let metrics = .themeMetrics()
-        var area    = .documentArea()
+        var rightInset = 0'f32
         if .infoSheet.isLocallyVisible() do
-            area.width = Math.max(Math.min(area.right(), .infoSheet.position.x - metrics.floating_Inset) - area.x, 0)
+            rightInset = Math.max(.documentHost.surfaceRect().right() - .infoSheet.surfaceRect().x + metrics.floating_Inset, 0)
+        if .searchBar.margin.z != rightInset
+        {
+            .searchBar.margin.z = rightInset
+            .documentHost.applyLayout()
+        }
+        let area    = .searchBar.clientRect()
         let pad     = .searchBar.padding
         let group   = .searchGroup.itf.measureContent({})
         let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
-        let height  = .searchGroup.position.height + pad.y + pad.w
-        var top     = Math.max(area.y, .stripInset()) + metrics.floating_Inset * 0.5
-
-        // Over a folder, the bar floats over the page under the line of the path, leaving the
-        // path and the menus beside it in reach.
-        if .explorer and .explorer.isVisible() and .searchBar.parent
-        {
-            let header = .explorer.header.surfaceRect()
-            let below  = .searchBar.parent.surfaceToLocal(Math.Point{header.x, header.bottom() - Explorer.HeaderGap})
-            top = Math.max(top, below.y + metrics.floating_Inset * 0.5)
-        }
-
-        .searchBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), top, width + pad.x + pad.z, height}, computeLayout: false)
-        .searchGroup.setPosition(Math.Rectangle{pad.x, pad.y, width, .searchGroup.position.height}, computeLayout: false)
+        .searchGroup.setPosition(Math.Rectangle{Math.round((area.width - width) * 0.5), pad.y, width, .searchGroup.position.height}, computeLayout: false)
         .searchGroup.computeLayout()
-        if .searchBar.isLocallyVisible() do
-            .searchBar.bringToFront()
     }
 
     // Enters or leaves a borderless monitor-sized presentation without losing the reader's
@@ -1341,7 +1331,8 @@ impl ViewerWindow
 
         if .isExploring()
         {
-            surface.setTitle(.explorer!.locationName())
+            let status = .explorer!.status.text()
+            surface.setTitle(status.count ? Format.toString("% · %", ProductName, status) : ProductName)
             return
         }
 
@@ -1414,6 +1405,7 @@ impl ViewerWindow
         .rememberExplored(source)
         .closeFile(forExplorer: true)
         .home.hide()
+        .searchBox.setText(.explorer.filter.text(), notify: false)
         .explorer.setShown(true)
         .explorer.navigate(source)
         .surface?.clearFocus()

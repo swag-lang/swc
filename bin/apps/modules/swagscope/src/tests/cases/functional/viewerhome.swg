@@ -36,7 +36,7 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)
 
     let datas = Path.directoryName(homeFixture(Names[0])) orelse ""
     window.systemPlaces.clear()
-    window.rememberExplored(Path.combine(datas, "viewer.archive.zip"))
+    window.rememberExplored(Path.directoryName(datas) orelse "")
     window.rememberExplored(datas)
     window.home.now = HomeNow
     window.showEmpty(appStrings().ui_DropTitle)
@@ -44,6 +44,41 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)
     window.applyLayout()
     completeHomePreviews(host, window.home)
     return window
+}
+
+// Archives are files in recent history, even when the Archive alternative has explored them.
+// Older saved folder histories can contain archives and must not draw them as places.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = homeWindow(&host, false, height: 760)
+    let datas  = Path.directoryName(homeFixture("viewer.epub")) orelse ""
+    let zip    = homeFixture("viewer.archive.zip")
+    let cbz    = homeFixture("viewer.comic.cbz")
+    let epub   = homeFixture("viewer.epub")
+
+    window.exploredFolders.clear()
+    window.systemPlaces.clear()
+    window.rememberExplored(zip)
+    window.rememberExplored(cbz)
+    window.rememberExplored(epub)
+    Swag.require(window.exploredFolders.isEmpty())
+
+    window.exploredFolders.add(zip)
+    window.exploredFolders.add(cbz)
+    window.exploredFolders.add(epub)
+    window.home.refresh()
+    Swag.require(not window.home.explored and window.home.places.isEmpty())
+
+    window.systemPlaces.add(datas)
+    window.home.refresh()
+    Swag.require(not window.home.explored and window.home.places.count == 1)
+
+    window.rememberExplored(datas)
+    window.rememberRecent(cbz)
+    window.home.refresh()
+    Swag.require(window.home.explored and window.home.places.count == 1)
+    Swag.require(window.home.placeName(0) == "datas" and window.home.rows[0].file == cbz)
 }
 
 // Lets every picture the home asked for arrive, so a capture does not depend on worker speed.

@@ -99,7 +99,6 @@ struct Explorer
     {
         window:      *ViewerWindow
         header:      *Wnd
-        summary:     *Label
         tools:       *StackLayoutCtrl
         filterPanel: *FloatingPanel
         address:     *PathBar
@@ -107,6 +106,7 @@ struct Explorer
         status:      *Label
         failure:     *ViewerErrorView
         extractAll:  *IconButton
+        queryButton: *IconButton
         kindMenu:    *IconButton
         sortMenu:    *IconButton
         modeMenu:    *IconButton
@@ -175,7 +175,6 @@ impl Explorer
     const TitleFontSize    = 36'u32
     const MinTitleFontSize = 28'u32
     const ToolHeight       = 32.0
-    const SummaryHeight    = 24.0
 
     func create(parent: *Wnd, window: *ViewerWindow)->*Explorer
     {
@@ -297,24 +296,14 @@ impl Explorer
         return result
     }
 
-    // Builds one compact head for the breadcrumb, folder name, count, filters and sort menus.
+    // Gives the location its own line above the listing controls.
     private mtd createHeader()
     {
-        with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, ToolHeight + HeaderGap}, "scope.explorer.header")
+        with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 2 * ToolHeight + HeaderGap}, "scope.explorer.header")
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .padding         = Math.Vector4{PageMargin, 0, PageMargin, HeaderGap}
-        }
-
-        // An archive writes what it holds and weighs on a mono line under its title.
-        with .summary = Label.create(.header, "", {0, 0, 0, SummaryHeight}, null, .SecondaryText | .Ellipsis)
-        {
-            .dockStyle = .Bottom
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
-            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
-            .setTextAlignment(.Left, .OpticalCenter)
-            .hide()
         }
 
         with let line = Wnd.create'Wnd(.header)
@@ -323,11 +312,19 @@ impl Explorer
             .backgroundStyle = .Transparent
         }
 
-        // The tools stand at the end of the line of the path.
+        // The tools stand below the path, where their labels cannot read as path components.
         with .tools = StackLayoutCtrl.create(line, .Left, {0, 0, 0, 0})
         {
             .backgroundStyle = .Transparent
             .spacing         = 8
+        }
+
+        // Keep the current filename filter visible even after the search strip closes.
+        with .queryButton = IconButton.createQuiet(line)
+        {
+            .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
+            .toolTip = appStrings().ui_FilterFiles
+            .sigPressed += func|view = me|(_) { view.revealFilter() }
         }
 
         with .status = Label.create(.tools, "", {0, 0, 0, ToolHeight}, null, .SecondaryText)
@@ -358,6 +355,7 @@ impl Explorer
             .sigTextChanged += func|view = me|(_)
             {
                 view.fill()
+                view.layoutTools()
             }
 
             .sigSubmitted += func|view = me|(_)
@@ -452,8 +450,7 @@ impl Explorer
         .filterPanel.applyLayout()
     }
 
-    // The path and the tools share one line above the page: the path at the left, and at the
-    // right what the page holds, its order, its kinds and its view.
+    // The path and the listing controls have separate lines above the page.
     mtd fitHeader() => .layoutTools()
 
     mtd layoutTools()
@@ -472,35 +469,27 @@ impl Explorer
         .scroll.margin.x  = .list.margin.x
         .scroll.margin.z  = .list.margin.z
 
-        let album = .grid.board == .Album and .scroll.isLocallyVisible()
         .title.hide()
         .tools.show()
+        .queryButton.show(not .window.searchShown)
         .extractAll.show(.listing.isArchive)
-        .status.show(not album and not .listing.isArchive and not .status.name.raw.isEmpty())
+        .status.hide()
 
-        // Counts and failures of an archive move under the line instead of disappearing.
-        let summary = .listing.isArchive and not album and .status.text().count != 0
-        .summary.setText(summary ? .status.text() : "")
-        .summary.show(summary)
-        .header.position.height = ToolHeight + HeaderGap + (summary ? SummaryHeight : 0)
+        // The count belongs to the window title, so it is never repeated below the path.
+        .header.position.height = 2 * ToolHeight + HeaderGap
         .applyLayout()
 
-        // The tools keep their words while the path keeps most of the line; past that the count
-        // goes first, then the words, the glyphs naming what each menu holds.
+        // Keep the words of the controls while they have their own line.
         let line  = unwrap .tools.parent
         let space = line.clientRect().width
-        let room  = Math.max(space - Math.min(.address.breadcrumb.itf.measureContent({}).x, space * 0.45), 0)
+        let room  = space
         .tools.spacing = 8
+        .queryButton.setQuietText(.filter.text().count ? .filter.text() : appStrings().ui_FilterFiles)
+        .queryButton.setIconColor(.filter.text().count ? .themeColors().arc : Color{})
         .sortMenu.setQuietText(.sortName())
         .kindMenu.setQuietText(.filterKindName())
         .modeMenu.setQuietText(.viewName())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if width > room and .status.isLocallyVisible()
-        {
-            .status.hide()
-            width = Math.ceil(.tools.itf.measureContent({}).x)
-        }
-
         if width > room
         {
             .sortMenu.setQuietText("")
@@ -514,9 +503,17 @@ impl Explorer
         // of it by its own padding, as a hovered row does.
         let padX  = .address.breadcrumb.padX
         let right = Math.max(space - width, 0)
-        .tools.setPosition({right, 0, width, ToolHeight})
+        let queryRoom = Math.max(right - 16, 0)
+        var queryWidth = Math.ceil(.queryButton.itf.measureContent({}).x)
+        if queryWidth > queryRoom
+        {
+            .queryButton.setQuietText("")
+            queryWidth = Math.ceil(.queryButton.itf.measureContent({}).x)
+        }
+        .queryButton.setPosition({0, ToolHeight + 4, Math.min(queryWidth, queryRoom), ToolHeight})
+        .tools.setPosition({right, ToolHeight + 4, width, ToolHeight})
         .tools.computeLayout()
-        .address.setPosition({-padX, 0, Math.max(right - metrics.infoSheet_BlockGap + padX, 0), ToolHeight})
+        .address.setPosition({-padX, 0, space + padX, ToolHeight})
         .address.refreshPath()
         .layoutFilter()
     }
@@ -663,6 +660,8 @@ impl Explorer
     {
         let text = appStrings()
         let size = themeRowIconSize(.themeMetrics())
+        .queryButton.setIcon(.theme().icon(.Search, size))
+        .queryButton.toolTip = text.ui_FilterFiles
         .sortMenu.setIcon(.theme().icon(.Sort, size))
         .kindMenu.setIcon(.theme().icon(.Filter, size))
         .modeMenu.setIcon(.theme().icon(.viewIcon(), size))
@@ -773,6 +772,7 @@ impl Explorer
         .status.setText(text)
         .status.position.width = Math.ceil(.status.itf.measureContent({}).x)
         .layoutTools()
+        .window.refreshTitle()
     }
 
     mtd refreshMediaOptions()
@@ -1522,7 +1522,6 @@ impl Explorer
         .showMediaInfo()
         .updateBreadcrumb()
 
-        .filter.setText("", notify: false)
         .list.header.setSortIndicator(.sortColumn, .descending ? .Descending : .Ascending)
         if entering do
             .setMode(.Details)

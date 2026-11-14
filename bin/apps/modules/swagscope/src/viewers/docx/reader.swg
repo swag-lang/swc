@@ -24,6 +24,7 @@ private struct Reader
     inText:                bool
     inImage:               bool
     imageId:               String
+    imageDescription:      String
     imageWidth:            u32
     imageHeight:           u32
 }
@@ -42,18 +43,24 @@ private impl Reader
     {
         if not .inImage do
             return
-        let image = .images.html(.imageId, .imageWidth, .imageHeight)
+        let image = .images.html(.imageId, .imageWidth, .imageHeight, .imageDescription)
         if image.isEmpty()
         {
             .document.omittedImages += 1
             var notice: String
             Package.appendHtmlEscaped(&notice, texts().ui_ImageOmitted)
+            if not .imageDescription.isEmpty()
+            {
+                notice += ": "
+                Package.appendHtmlEscaped(&notice, .imageDescription)
+            }
             .appendInline(notice)
         }
         else do
             .appendInline(image)
         .inImage = false
         .imageId.clear()
+        .imageDescription.clear()
         .imageWidth = 0
         .imageHeight = 0
     }
@@ -189,6 +196,11 @@ private impl Reader
                 let id = token.attribute("r:id")
                 if id do
                     .imageId = id
+            }
+            elif token.isElement("docPr")
+            {
+                let description = token.attribute("descr") orelse token.attribute("title") orelse ""
+                .imageDescription = description
             }
             return
         }

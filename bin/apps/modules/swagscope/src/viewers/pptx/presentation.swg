@@ -97,6 +97,7 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
     var inText = false
     var inPicture = false
     var pictureId: String
+    var pictureDescription: String
     var pictureWidth: u32
     var pictureHeight: u32
     var pictures = 0'u64
@@ -118,6 +119,7 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
             {
                 inPicture = true
                 pictureId.clear()
+                pictureDescription.clear()
                 pictureWidth = 0
                 pictureHeight = 0
                 pictures += 1
@@ -125,6 +127,10 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
             elif inPicture and token.isElement("blip")
             {
                 pictureId = token.attribute("r:embed") orelse ""
+            }
+            elif inPicture and token.isElement("cNvPr")
+            {
+                pictureDescription = token.attribute("descr") orelse token.attribute("title") orelse ""
             }
             elif inPicture and token.isElement("ext") and not pictureWidth do
                 readPictureExtent(&token, &pictureWidth, &pictureHeight)
@@ -149,11 +155,16 @@ private func appendSlide(result: *Presentation, source: string, images: *Package
             {
                 inPicture = false
                 result.html += "<p>"
-                let image = images.html(pictureId, pictureWidth, pictureHeight)
+                let image = images.html(pictureId, pictureWidth, pictureHeight, pictureDescription)
                 if image.isEmpty()
                 {
                     result.omittedImages += 1
                     Package.appendHtmlEscaped(&result.html, texts().ui_ImageOmitted)
+                    if not pictureDescription.isEmpty()
+                    {
+                        result.html += ": "
+                        Package.appendHtmlEscaped(&result.html, pictureDescription)
+                    }
                 }
                 else do
                     result.html += image

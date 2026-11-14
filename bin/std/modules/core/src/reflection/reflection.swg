@@ -54,12 +54,12 @@ using Swag
     func isPointerArithmetic(t: typeinfo?) => t and t.flags & .PointerArithmetic
 
     // Returns whether `t` is an enum marked with `#[Swag.EnumFlags]`.
-    func isFlagsEnum(t: typeinfo?)->bool => isEnum(t) and hasAttribute(t, EnumFlags)
+    func isFlagsEnum(t: typeinfo?)->bool => Reflection.isEnum(t) and Reflection.hasAttribute(t, EnumFlags)
 
     // Returns whether `t` is a native type other than `any` and `string`.
     func isSimpleNative(t: typeinfo?)->bool
     {
-        if not isNative(t) do
+        if not Reflection.isNative(t) do
             return false
 
         let tt = assume cast(const *TypeInfoNative, t)
@@ -69,7 +69,7 @@ using Swag
     // Returns whether `t` is the native `rune` type.
     func isRune(t: typeinfo?)->bool
     {
-        if not isNative(t) do
+        if not Reflection.isNative(t) do
             return false
 
         let tt = assume cast(const *TypeInfoNative, t)
@@ -79,7 +79,7 @@ using Swag
     // Returns whether `t` is the native `any` type.
     func isAny(t: typeinfo?)->bool
     {
-        if not isNative(t) do
+        if not Reflection.isNative(t) do
             return false
 
         let tt = assume cast(const *TypeInfoNative, t)
@@ -89,7 +89,7 @@ using Swag
     // Returns whether `t` is the native `bool` type.
     func isBool(t: typeinfo?)->bool
     {
-        if not isNative(t) do
+        if not Reflection.isNative(t) do
             return false
 
         let tt = assume cast(const *TypeInfoNative, t)
@@ -99,7 +99,7 @@ using Swag
     // Returns whether `t` is the native `string` type.
     func isString(t: typeinfo?)->bool
     {
-        if not isNative(t) do
+        if not Reflection.isNative(t) do
             return false
 
         let tt = assume cast(const *TypeInfoNative, t)

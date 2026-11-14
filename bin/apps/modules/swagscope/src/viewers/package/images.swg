@@ -53,7 +53,7 @@ impl ImageCatalog
     }
 
     // Produces a self-contained image only after a bounded metadata decode succeeds.
-    internal mtd html(id: string, width, height: u32)->String
+    internal mtd html(id: string, width, height: u32, description: string)->String
     {
         if not id.count or .archive == null do
             return {}
@@ -83,11 +83,14 @@ impl ImageCatalog
             options.maxDecodedBytes = 64 * 1024 * 1024
             discard catch Image.decode(path, bytes.toSlice(), options) { return {} }
             .encodedBytes += bytes.count
-            var result: String = "<img style=\"max-width:100%;height:auto\" src=\"data:"
+            var result: String = "<img style=\"max-width:100%;height:auto\""
             if width and height
             {
-                result = Format.toString("<img width=\"%\" height=\"%\" style=\"max-width:100%%;height:auto\" src=\"data:", width, height)
+                result = Format.toString("<img width=\"%\" height=\"%\" style=\"max-width:100%%;height:auto\"", width, height)
             }
+            result += " alt=\""
+            appendHtmlEscaped(&result, description)
+            result += "\" src=\"data:"
             result += mediaType
             result += ";base64,"
             result += Base64.encode(bytes.toSlice())

@@ -143,9 +143,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Word document` reads the main DOCX body as paragraphs and tables, preserving text-run order,
   direct bold, italic, underline and strike formatting, heading levels, alignment, line breaks,
   visible page-break separators and tabs. Bounded embedded PNG, JPEG, GIF and WebP pictures appear
-  inline at their declared width; other images are labelled, and external image relationships are
-  never loaded. Page layout, inherited styles,
-  headers, footers and comments are not reproduced.
+  inline at their declared width with any available description as alternative text; other images
+  are labelled with their description, and external image relationships are never loaded. Page
+  layout, inherited styles, headers, footers and comments are not reproduced.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. It labels embedded pictures and objects it cannot show. Only Windows-1252
   encoded text is supported; page geometry, fonts, colors, complex tables and fields are not reproduced.
@@ -153,9 +153,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   booleans and cached formula values in cell order. It does not calculate formulas or reproduce
   formatting, charts, merged cells or images.
 - `Presentation` reads PPTX slides in declared order and presents their text and bounded embedded
-  PNG, JPEG, GIF and WebP pictures as a continuous reading page. Pictures use their declared size;
-  unsupported pictures are labelled. Original slide layout, animation, speaker notes and embedded
-  media are not reproduced.
+  PNG, JPEG, GIF and WebP pictures as a continuous reading page. Pictures use their declared size
+  and alternative description; unsupported pictures are labelled. Original slide layout,
+  animation, speaker notes and embedded media are not reproduced.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a

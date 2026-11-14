@@ -54,8 +54,8 @@ private func readEncoderInfo(frame: const [..] u8, header: const *FrameHeader)->
 {
     var result: #returntype
 
-    // The tag sits right after the side information of the frame that carries it.
-    let tagOffset = 4 + header.sideInfoBytes
+    // A protected frame places its CRC word between the header and side information.
+    let tagOffset = 4 + (header.hasCrc ? 2 : 0) + header.sideInfoBytes
     if tagOffset + 8 > frame.count do
         return result
     let isXing = frame[tagOffset] == 'X' and

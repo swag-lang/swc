@@ -12,7 +12,7 @@ struct Texts
     ui_TipPrevious:            string = "Previous Image"               // Tooltip of the previous-file button.
     ui_TipNext:                string = "Next Image"                   // Tooltip of the next-file button.
     ui_TipFit:                 string = "Fit Image"                    // Zoom-menu entry fitting the picture to the window.
-    ui_ZoomMenu:               string = "Zoom Options"                 // Tooltip of the zoom value menu.
+    ui_ZoomMenu:               string = "Zoom…"                        // Tooltip of the zoom value menu.
     ui_TipTransform:           string = "Image Orientation"            // Tooltip of the orientation menu button.
     ui_TipPlay:                string = "Play or Pause"                // Tooltip of the animation transport button.
     ui_RotateClockwise:        string = "Rotate Clockwise"             // Clockwise menu action.

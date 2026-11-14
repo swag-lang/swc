@@ -42,7 +42,7 @@ using Core, Pixel, Gui, Viewers
     {
         let light  = index % 2 == 1
         var host: Testing.HeadlessHost
-        let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 128
+        let height = Utf8.endsWith(file.toString(), ".mkv") ? 800 : 420
         let window = framedViewerWindow(&host, file.toString(), light, 1280, height)
         Swag.require(window.choices.count != 0 and window.activeChoiceIndex < window.choices.count,
                      "return strip fixture must open in a document viewer")

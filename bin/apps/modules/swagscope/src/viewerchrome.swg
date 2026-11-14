@@ -21,18 +21,6 @@ impl IWnd for ViewerReadingLine
         if .details != null do
             .computeLayout()
     }
-
-    // The readings answer for the open file, so pointing at them offers what the file offers.
-    mtd impl onMouseEvent(evt: *MouseEvent)
-    {
-        if evt.kind != .Released or evt.button != .Right
-        {
-            evt.accepted = false
-            return
-        }
-
-        viewerWindowFor(me).showCurrentFileActions(evt.surfacePos)
-    }
 }
 
 impl ViewerReadingLine

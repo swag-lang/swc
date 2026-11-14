@@ -408,8 +408,8 @@ impl RollView
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
             if x > .scrollPos.x + .clientRect().width do
                 break
-            let height   = Math.max(.rowHeight - 2, 1)
-            let width    = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+            let height = Math.max(.rowHeight - 2, 1)
+            let width  = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
             if x + width < .scrollPos.x + .keyboardWidth do
                 continue
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
@@ -477,7 +477,7 @@ impl IWnd for RollView
             return
         }
 
-        if evt.modifiers == .Control
+        if evt.modifiers == (.Control | .Shift)
         {
             switch evt.key
             {
@@ -491,22 +491,32 @@ impl IWnd for RollView
 
         switch evt.key
         {
-        case .Add, .OemPlus:       .zoomIn()
-        case .Subtract, .OemMinus: .zoomOut()
-        case .PageUp:              .scroll.setScrollPos(.scrollPos.x, .scrollPos.y - .clientRect().height)
-        case .PageDown:            .scroll.setScrollPos(.scrollPos.x, .scrollPos.y + .clientRect().height)
-        case .F:                   .zoomToFit()
-        case .Left:                .scroll.setScrollPos(.scrollPos.x - 96, .scrollPos.y)
-        case .Right:               .scroll.setScrollPos(.scrollPos.x + 96, .scrollPos.y)
-        case .Home:                .scroll.setScrollPos(0, .scrollPos.y)
-        case .End:                 .scroll.setScrollPos(.timelineWidth, .scrollPos.y)
-        default:                   evt.accepted = false
+        case .Add, .OemPlus where evt.modifiers == .Control:       .zoomIn()
+        case .Subtract, .OemMinus where evt.modifiers == .Control: .zoomOut()
+        case .D0 where evt.modifiers == .Control:                  .applyZoom(1)
+        case .PageUp:                                              .scroll.setScrollPos(.scrollPos.x, .scrollPos.y - .clientRect().height)
+        case .PageDown:                                            .scroll.setScrollPos(.scrollPos.x, .scrollPos.y + .clientRect().height)
+        case .F:                                                   .zoomToFit()
+        case .Left:                                                .scroll.setScrollPos(.scrollPos.x - 96, .scrollPos.y)
+        case .Right:                                               .scroll.setScrollPos(.scrollPos.x + 96, .scrollPos.y)
+        case .Home:                                                .scroll.setScrollPos(0, .scrollPos.y)
+        case .End:                                                 .scroll.setScrollPos(.timelineWidth, .scrollPos.y)
+        default:                                                   evt.accepted = false
         }
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        if evt.kind == .Wheel and evt.modifiers.has(.Control)
+        if evt.kind == .Wheel and evt.modifiers == .Control
+        {
+            if evt.delta.y > 0 do
+                .zoomIn()
+            elif evt.delta.y < 0 do
+                .zoomOut()
+            return
+        }
+
+        if evt.kind == .Wheel and evt.modifiers == (.Control | .Shift)
         {
             if evt.delta.y > 0 do
                 .applyPitchZoom(.pitchZoom * 1.25)

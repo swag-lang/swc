@@ -137,12 +137,13 @@ struct DocumentView
     fontBytes: Array'u8
     face:      *Face?
 
-    cells:     Array'DocumentCell
-    layout:    DocumentLayout
-    history:   Array'u32
-    pageStart: u32
-    pageEnd:   u32
-    hasNext:   bool
+    cells:      Array'DocumentCell
+    layout:     DocumentLayout
+    pageStarts: Array'u32
+    pageIndex:  u64
+    pageStart:  u32
+    pageEnd:    u32
+    hasNext:    bool
 }
 
 private impl DocumentView
@@ -530,24 +531,28 @@ impl DocumentView
     {
         if not .hasNext do
             return
-        .history.add(.pageStart)
+        .pageIndex += 1
         .loadPage(.pageEnd + 1)
         .revealCharacterMap()
     }
 
     mtd previousPage()
     {
-        if .history.isEmpty() do
+        if not .pageIndex or .pageStarts.isEmpty() do
             return
-        .loadPage(.history.popBack())
+        .pageIndex -= 1
+        .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
     }
 
     mtd goToCharacterPage(start: u32)
     {
-        if start != .pageStart do
-            .history.add(.pageStart)
-        .loadPage(start)
+        if .pageStarts.isEmpty() do
+            return
+        .pageIndex = 0
+        for page, index in .pageStarts where page <= start do
+            .pageIndex = index
+        .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
     }
 

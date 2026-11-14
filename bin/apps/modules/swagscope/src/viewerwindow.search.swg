@@ -79,9 +79,8 @@ impl ViewerWindow
             .searchOptionsButton.setIcon(.theme().icon(.MatchWholeWord, themeActionIconSize(.themeMetrics())))
             .searchOptionsButton.toolTip = appStrings().ui_SearchOptions
             .searchNavigation.hide()
-            .searchGroup.spacing = SearchGroupSpacing
             .searchBox.resize(SearchFieldWidth, 36)
-            .searchGroup.computeLayout()
+            .searchGroup.applyLayout()
             .layoutSearchBar()
             return
         }
@@ -133,10 +132,9 @@ impl ViewerWindow
         // With no options button, let the enlarged field meet navigation directly. Keeping the
         // usual inter-group gap as well would leave an empty button-sized visual group.
         let hasMenu = presentation.useTextOptions or presentation.canFilter
-        .searchGroup.spacing = hasMenu ? SearchGroupSpacing : 0
         .searchBox.resize(hasMenu ? SearchFieldWidth : SearchNoOptionsFieldWidth, 36)
         discard .searchBox.revalidate()
-        .searchGroup.computeLayout()
+        .searchGroup.applyLayout()
         .layoutSearchBar()
     }
 
@@ -305,6 +303,7 @@ impl ViewerWindow
     // an invalid pattern, a running count, no match, or the current position.
     private mtd refreshSearchReadout()
     {
+        defer .layoutSearchBar()
         if .isExploring()
         {
             .searchCountLabel.setText("")
@@ -450,9 +449,10 @@ impl ViewerWindow
             return
         .searchShown = true
         .searchBar.show()
+        .updateDocumentInsets()
         .documentHost.applyLayout()
+        .layoutFloatingParts()
         .explorer?.layoutTools()
-        .layoutSearchBar()
         .searchBox.setFocus()
         .searchBox.selectAll()
     }
@@ -463,13 +463,16 @@ impl ViewerWindow
     {
         .searchShown = false
         .searchBar.hide()
+        .updateDocumentInsets()
         .documentHost.applyLayout()
+        .layoutFloatingParts()
         if .isExploring()
         {
             .explorer!.layoutTools()
             .explorer.focusContent()
             return
         }
+
         .viewerFocusTarget()?.setFocus()
     }
 
@@ -478,7 +481,25 @@ impl ViewerWindow
     // forwarding helper declines and the original event follows its normal path.
     mtd routeSearchNavigationKey(evt: *KeyEvent)->bool
     {
-        if .forwardingViewerKey or evt.kind != .Pressed or .searchIndex >= .searchMatches.count do
+        if .forwardingViewerKey or evt.kind != .Pressed do
+            return false
+        let focus     = .focusedWindow()
+        let searching = .searchBar.isLocallyVisible() and focus and .searchBar.isOwnerOf(focus)
+        if searching and evt.key == .Escape
+        {
+            .hideSearch()
+            return true
+        }
+
+        if searching and evt.key == .Return and evt.modifiers == .Shift
+        {
+            .findPrevious()
+            return true
+        }
+
+        if Viewer.pageKeyDirection(evt) do
+            return .forwardKeyToViewer(evt, takeFocus: false)
+        if .searchIndex >= .searchMatches.count do
             return false
 
         let pageKey         = evt.modifiers == .None and (evt.key == .PageUp or evt.key == .PageDown)
@@ -506,6 +527,7 @@ impl ViewerWindow
         .searchBox.enable(available)
         .searchOptionsButton.enable(available)
         .searchBar.show(available and .searchShown)
+        .updateDocumentInsets()
         .documentHost.applyLayout()
         .currentActions?.show()
         .layoutSearchBar()

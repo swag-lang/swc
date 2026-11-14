@@ -76,10 +76,7 @@ private impl Panel
     // an arbitrary reference width it stands at means nothing to a reader.
     mtd refreshZoom()
     {
-        if .roll.fit do
-            .zoomLabel.setText(texts().ui_FitShort)
-        else do
-            .zoomLabel.setText(Format.toString("% %%", cast(u32, Math.round(.roll.zoom * 100))))
+        .zoomLabel.setText(Viewer.zoomText(cast(u32, Math.round(.roll.zoom * 100))))
     }
 
     mtd retranslate()
@@ -114,10 +111,10 @@ private impl Panel
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25%", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("50%", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100%", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200%", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("100 %", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
+        menu.addItem("200 %", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
@@ -178,6 +175,9 @@ impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, shortcut: Input.formatKeyShortcut(.Control, .D0))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
     }
 

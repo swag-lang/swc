@@ -3,45 +3,23 @@
 
 using Core, Pixel, Gui
 
-// The veils are drawn over the picture, which is dark whatever palette the window wears: their
-// ground is black fading out, their words white, so they read the same on Encre and on Papier.
-private
-{
-    const VeilInk:      Color = 0xFFFFFFFF     // Words and glyphs written on a veil.
-    const VeilSoftInk:  Color = 0x99FFFFFF     // What a veil writes second: a length, a fact.
-    const VeilTrack:    Color = 0x38FFFFFF     // The part of the timeline still to come.
-    const VeilBuffered: Color = 0x66FFFFFF     // The part of the timeline already read.
-    const VeilTick:     Color = 0x99FFFFFF     // The mark of a chapter on the timeline.
-    const VeilTipBk: Color = 0xE0101114     // Ground of the time read under the pointer.
-    const VeilShade: Color = 0xB8000000     // Darkest end of a veil's shade.
-    const VeilClear: Color = 0x00000000     // Clear end of a veil's shade.
-}
+// The timeline and controls follow the host's palette and bottom action panel.
+private const VeilInk:   Color = 0xFFFFFFFF
+private const VeilTipBk: Color = 0xE0101114
 
-// Measures of the veils, after `scope.video`.
-const VeilInset      = 28.0       // Air between a veil's words and the edges of the window.
-const TopVeilHeight  = 120.0      // Height of the top veil's shade.
-const TitleY         = 32.0       // Centre of the title's line, from the top of the window.
-const TitleSize      = 16'u32     // Size of the title.
-const FactsGap       = 14.0       // Air between the title and the facts after it.
-const BottomHeight   = 140.0      // Height of the bottom veil's shade.
-const TimelineBottom = 83.0       // Distance from the bottom of the window to the timeline's centre.
-const TimelineHeight = 24.0       // Height the timeline takes for the pointer.
-const RowBottom      = 38.0       // Distance from the bottom of the window to the centre of the row.
-const RowGap         = 12.0       // Air between two parts of the row.
-const VolumeWidth    = 88.0       // Width of the sound control beside mute.
-const TrackSize      = 3.0        // Thickness of the timeline.
-const KnobSize       = 14.0       // Diameter of the timeline's knob.
+// Geometry of the shared two-row media panel.
+const VeilInset      = 12.0     // Air between a veil's words and the edges of the window.
+const BottomHeight   = 72.0     // Height of the bottom veil's shade.
+const TimelineBottom = 56.0     // Distance from the bottom of the window to the timeline's centre.
+const TimelineHeight = 24.0     // Height the timeline takes for the pointer.
+const RowBottom      = 18.0     // Distance from the bottom of the window to the centre of the row.
+const RowGap         = 12.0     // Air between two parts of the row.
+const TrackSize      = 3.0      // Thickness of the timeline.
+const KnobSize       = 14.0     // Diameter of the timeline's knob.
+const VolumeWidth    = 88.0
 const KnobInset      = KnobSize * 0.5 + 1     // Room for the knob and its outline at either endpoint.
-const TickHeight     = 9.0        // Height of a chapter mark.
-const TipGap         = 16.0       // Air between the timeline and the time read under the pointer.
-
-// Fills `rect` with a veil's shade, from `dark` at the edge it stands against to clear inside.
-private func paintShade(painter: *Painter, rect: Math.Rectangle, fromTop: bool)
-{
-    let top    = fromTop ? VeilShade : VeilClear
-    let bottom = fromTop ? VeilClear : VeilShade
-    painter.fillRect(rect, Brush.createLinearGradient(rect.x, rect.y, rect.x, rect.bottom(), top, bottom))
-}
+const TickHeight     = 9.0      // Height of a chapter mark.
+const TipGap         = 16.0     // Air between the timeline and the time read under the pointer.
 
 /*
 The timeline of a film, as the bottom veil draws it.
@@ -142,11 +120,11 @@ impl IWnd for VideoTimeline
         let track   = Math.Rectangle{rail.x, centerY - TrackSize * 0.5, rail.width, TrackSize}
 
         painter.setParams(.Antialiased)
-        painter.fillRoundRect(track, TrackSize * 0.5, TrackSize * 0.5, VeilTrack)
+        painter.fillRoundRect(track, TrackSize * 0.5, TrackSize * 0.5, .themeColors().line)
         if .buffered >= .minimum
         {
             let right = .positionOf(.buffered)
-            painter.fillRoundRect(Math.Rectangle{track.x, track.y, right - track.x, TrackSize}, TrackSize * 0.5, TrackSize * 0.5, VeilBuffered)
+            painter.fillRoundRect(Math.Rectangle{track.x, track.y, right - track.x, TrackSize}, TrackSize * 0.5, TrackSize * 0.5, .themeColors().softText)
         }
 
         let knobX = .positionOf(.current)
@@ -155,10 +133,10 @@ impl IWnd for VideoTimeline
         for chapter in .chapters
         {
             let x = Math.round(.positionOf(chapter))
-            painter.fillRect(Math.Rectangle{x, centerY - TickHeight * 0.5, 1, TickHeight}, VeilTick)
+            painter.fillRect(Math.Rectangle{x, centerY - TickHeight * 0.5, 1, TickHeight}, .themeColors().faintText)
         }
 
-        painter.fillCircle(knobX, centerY, KnobSize * 0.5 + 1, VeilShade)
+        painter.fillCircle(knobX, centerY, KnobSize * 0.5 + 1, .themeColors().faintText)
         painter.fillCircle(knobX, centerY, KnobSize * 0.5, VeilInk)
     }
 
@@ -198,67 +176,6 @@ impl IWnd for VideoTimeline
 }
 
 /*
-The veil at the top of the picture: the name of the film and its facts in mono, on a shade that
-keeps them legible over any picture.
-*/
-struct TopVeil
-{
-    using wnd: Wnd
-
-    title: String
-    facts: String
-}
-
-impl TopVeil
-{
-    // The surface owns caption geometry, including the return action shown over a film.
-    mtd titleRoom()->Math.Rectangle
-    {
-        let chrome = assume cast(*SurfaceWnd, .surface!.wnd)
-        var room   = chrome.captionContentRect()
-        if room.height > 0
-        {
-            let origin = .surfaceToLocal(chrome.localToSurface(Math.Point{room.x, room.y}))
-            room.x = origin.x
-            room.y = origin.y
-            return room
-        }
-
-        return {VeilInset, 0, Math.max(.clientRect().width - 2 * VeilInset, 0), TitleY * 2}
-    }
-}
-
-impl IWnd for TopVeil
-{
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        let painter = evt.paintContext.painter
-        let room    = .clientRect()
-        paintShade(painter, room, fromTop: true)
-
-        let title      = .theme().createDefaultFont(TitleSize, .Bold)
-        let mono       = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize - 1)
-        var content    = .titleRoom()
-        let titleWidth = Painter.measureString(.title, title).width
-        let factsWidth = Painter.measureString(.facts, mono).width
-        if titleWidth + FactsGap + factsWidth <= content.width
-        {
-            painter.drawString(content.x + titleWidth + FactsGap, mono.opticalLineTop(content.vertCenter()), .facts, mono, VeilSoftInk)
-            content.width -= factsWidth + FactsGap
-        }
-
-        var text:   RichString = .title.toString()
-        var format: RichStringFormat
-        format.font          = .theme().createDefaultFontFamily(TitleSize)
-        format.fontStyle     = .Bold
-        format.palette[0]    = VeilInk
-        format.vertAlignment = .Center
-        format.flags         = .Ellipsis
-        painter.drawRichString(content, &text, format)
-    }
-}
-
-/*
 The veil at the bottom of the picture: the timeline, then a row of the play button, the time in
 mono and the chapter on the left, and on the right the options, tracks, sound and full screen.
 */
@@ -284,15 +201,11 @@ struct BottomVeil
 
 impl BottomVeil
 {
-    // Creates a glyph button of the row, its glyph white over the veil.
+    // Creates a themed action button, matching the other viewers.
     private func createGlyph(parent: *Wnd, icon: ThemeIcons, id: WndId, flags = IconButtonFlags.None)->*IconButton
     {
-        let metrics = parent.themeMetrics()
-        let size    = themeActionButtonSize(metrics)
-        let glyph   = parent.theme().icon(icon, themeActionIconSize(metrics))
-        let button  = IconButton.create(parent, glyph, Math.Rectangle{0, 0, size, size}, id, flags: flags | .Overlay)
-        button.setIconColor(VeilInk)
-        button.setTextColor(VeilInk)
+        let button = Viewer.createActionButton(parent, icon, flags)
+        button.id = id
         return button
     }
 
@@ -304,18 +217,18 @@ impl BottomVeil
             .wndFlags        |= .TopMost
         }
 
-        result.timeline         = Wnd.create'VideoTimeline(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
-        result.playButton       = createGlyph(result, .Play, "scope.video.play")
-        result.optionsButton    = createGlyph(result, .Settings, "scope.video.options")
-        result.tracksButton     = createGlyph(result, .AudioTracks, "scope.video.tracks")
-        result.muteButton       = createGlyph(result, .Volume, "scope.video.mute", .Toggle)
+        result.timeline      = Wnd.create'VideoTimeline(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
+        result.playButton    = createGlyph(result, .Play, "scope.video.play")
+        result.optionsButton = createGlyph(result, .Settings, "scope.video.options")
+        result.tracksButton  = createGlyph(result, .AudioTracks, "scope.video.tracks")
+        result.muteButton    = createGlyph(result, .Volume, "scope.video.mute", .Toggle)
         with result.volumeSlider = Slider.create(result, Math.Rectangle{0, 0, VolumeWidth, parent.themeMetrics().slider_Height}, "scope.video.volume")
         {
-            .style.addStyleSheetColors("slider_BkRight 0x38FFFFFF\nslider_HilightBk $arc\nslider_Mark 0xFFFFFFFF\nslider_MarkBorder 0xB8000000\nslider_HotMark 0xFFFFFFFF\nslider_DisabledBk 0x38FFFFFF\nslider_DisabledMark 0x66FFFFFF")
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
             .enable(false)
         }
+
         result.fullScreenButton = createGlyph(result, .FullScreen, "scope.video.fullScreen")
         result.muteButton.setCheckIndicator(.Ink)
         return result
@@ -339,6 +252,8 @@ impl BottomVeil
     {
         let room  = .clientRect()
         let width = Math.max(room.width - 2 * VeilInset, 1)
+        .volumeSlider.show(width >= 580)
+        .fullScreenButton.show(width >= 360)
         let lineY = room.bottom() - RowBottom
         let glyph = .playButton.position.width
         .timeline.setPosition(Math.Rectangle{room.x + VeilInset - KnobInset,
@@ -349,10 +264,18 @@ impl BottomVeil
 
         // The right end of the row reads from the edge inwards: full screen, volume, mute, tracks and options.
         var right = room.right() - VeilInset + glyph * 0.25
-        right -= glyph
-        .fullScreenButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
-        right -= RowGap + VolumeWidth
-        .volumeSlider.setPosition(Math.Rectangle{right, lineY - .volumeSlider.position.height * 0.5, VolumeWidth, .volumeSlider.position.height})
+        if .fullScreenButton.isLocallyVisible()
+        {
+            right -= glyph
+            .fullScreenButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
+        }
+
+        if .volumeSlider.isLocallyVisible()
+        {
+            right -= RowGap + VolumeWidth
+            .volumeSlider.setPosition(Math.Rectangle{right, lineY - .volumeSlider.position.height * 0.5, VolumeWidth, .volumeSlider.position.height})
+        }
+
         right -= glyph + RowGap * 0.5
         .muteButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
         right -= glyph + RowGap
@@ -374,22 +297,21 @@ impl IWnd for BottomVeil
     {
         let painter = evt.paintContext.painter
         let room    = .clientRect()
-        paintShade(painter, room, fromTop: false)
 
         let metrics = .themeMetrics()
         let mono    = .theme().createDefaultFontFs(metrics.defaultFixedFontSize)
-        let strong  = .theme().createDefaultFontFs(metrics.defaultFixedFontSize, .Bold)
         let words   = .theme().createDefaultFont(metrics.defaultFontSize)
         let lineY   = room.bottom() - RowBottom
 
         var x = .playButton.position.right() + RowGap
-        painter.drawString(x, strong.opticalLineTop(lineY), .elapsed, strong, VeilInk)
-        x += Painter.measureString(.elapsed, strong).width
+        painter.drawString(x, mono.opticalLineTop(lineY), .elapsed, mono, .themeColors().softText)
+        x += Painter.measureString(.elapsed, mono).width
         let length = Format.toString(" / %", .length)
-        painter.drawString(x, mono.opticalLineTop(lineY), length, mono, VeilSoftInk)
+        painter.drawString(x, mono.opticalLineTop(lineY), length, mono, .themeColors().faintText)
         x += Painter.measureString(length, mono).width + 2 * RowGap
-        if not .chapter.isEmpty() do
-            painter.drawString(x, words.opticalLineTop(lineY), .chapter, words, VeilSoftInk)
+        let textEnd = .optionsButton.position.x
+        if not .chapter.isEmpty() and x + Painter.measureString(.chapter, words).width + RowGap < textEnd do
+            painter.drawString(x, words.opticalLineTop(lineY), .chapter, words, .themeColors().faintText)
 
         // The time under the pointer reads in a dark tip above the timeline.
         let timeline = .timeline

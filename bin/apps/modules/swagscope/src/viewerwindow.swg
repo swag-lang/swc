@@ -40,13 +40,14 @@ struct ViewerWindow
         kindButton:                  *IconButton
         closeFilesButton:            *IconButton
         closeFoldersButton:          *IconButton
-        searchBar:                   *FloatingPanel
-        searchGroup:                 *StackLayoutCtrl
-        searchNavigation:            *StackLayoutCtrl
+        searchBar:                   *Wnd
+        searchGroup:                 *Wnd
+        searchNavigation:            *Wnd
         searchBox:                   *EditBox
         searchCountLabel:            *Label
         searchPrevious:              *IconButton
         searchNext:                  *IconButton
+        searchCloseButton:           *IconButton
         searchOptionsButton:         *IconButton
         appearanceButton:            *AppearanceButton
         outlineCaptionButton:        *CaptionButton
@@ -173,8 +174,8 @@ struct ViewerWindow
     recentOpened:        Array'u64     // Local ticks each entry of `recent` was last opened at, in the same order; zero when unknown.
     folderHistory:       Array'ViewerFolderHistory
     resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
-    exploredFolders:     Array'String                // Directories explored lately, most recent first.
-    systemPlaces:        Array'String                // The system's own folders a first launch offers to explore.
+    exploredFolders:     Array'String     // Directories explored lately, most recent first.
+    systemPlaces:        Array'String     // The system's own folders a first launch offers to explore.
     folderFilter:        String
     preferences:         Array'ViewerPreference
     musicChoices:        Array'MusicChoice
@@ -642,7 +643,7 @@ impl ViewerWindow
     const SearchFieldWidth          = 180.0
     const SearchNoOptionsFieldWidth = 256.0
     const SearchCountWidth          = 52.0
-    const SearchGroupSpacing        = 16.0
+    const SearchGroupSpacing        = 8.0
 
     // Search reads the file one chunk at a time. A match that may continue into the next chunk
     // waits for it, so each chunk keeps the query span plus this margin of the one before.
@@ -712,7 +713,7 @@ impl ViewerWindow
     mtd applyTheme(index: u32)
     {
         .themeIndex = Math.min(index, cast(u32, AppearanceTheme.System))
-    .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
+        .appearanceButton.setAppearanceTheme(AppearanceThemeValues[.themeIndex])
     }
 
     mtd applyLanguage()
@@ -739,11 +740,8 @@ impl ViewerWindow
     mtd refreshExplorerCaption()
     {
         let text = appStrings()
-        var videoControls = true
-        if .currentView is Viewers.Film.Panel as film do
-            videoControls = film.veilsShown
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
-        .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen and videoControls)
+        .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
 
         let exploring = .isExploring() and not .fullScreen
         .backCaptionButton.show(exploring)
@@ -751,16 +749,17 @@ impl ViewerWindow
         .upCaptionButton.show(exploring)
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.hide()
-        .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen and videoControls)
+        .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen)
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
-        let openFile = not .isExploring() and not .currentFile.isEmpty()
-        .viewerCaptionButton.show((openFile or archiveFile) and not .fullScreen and videoControls)
+        let openFile    = not .isExploring() and not .currentFile.isEmpty()
+        .viewerCaptionButton.show((openFile or archiveFile) and not .fullScreen)
         var alternateViewer = openFile and .activeChoiceIndex < .choices.count and .activeChoiceIndex != 0
         if archiveFile
         {
             let choices = .index.choices((unwrap .explorer).listing.path)
             alternateViewer = not choices.isEmpty() and choices[0].key != "archive"
         }
+
         .viewerCaptionButton.setIconColor(alternateViewer ? .themeColors().caution : Color{})
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
@@ -836,12 +835,7 @@ impl ViewerWindow
 
         .viewerBarShown = false
         .layoutViewerBar()
-        if .currentView is Viewers.Film.Panel as film
-        {
-            if film.veilsShown do
-                return
-        }
-        if not .imageCommandsStayVisible() do
+        if .fullScreen do
             .setPointerHidden(true)
     }
 
@@ -854,11 +848,6 @@ impl ViewerWindow
         .showPointer()
         .revealViewerBar()
     }
-
-    // Keeps a still picture's one-shot commands visible while other viewer bars may rest away.
-    mtd imageCommandsStayVisible()->bool => .playMode == .Once and
-                                            .activeChoiceIndex < .choices.count and
-                                            .choices[.activeChoiceIndex].key == "image"
 
     // Hides the system pointer with the resting viewer chrome, then restores it on activity.
     mtd setPointerHidden(hidden: bool)
@@ -876,10 +865,8 @@ impl ViewerWindow
     mtd layoutViewerBar()
     {
         let commands = .currentCommands
-        let visible  = commands != null and (.viewerBarShown or .imageCommandsStayVisible())
+        let visible  = commands != null and (not .fullScreen or .viewerBarShown)
         .viewerBar.show(visible)
-        if .imageCommandsStayVisible() do
-            .showPointer()
         if not commands do
             return
 
@@ -891,13 +878,11 @@ impl ViewerWindow
         let wanted  = commands.preferredSize.x > 0 ? commands.preferredSize.x : room
         let width   = Math.min(wanted, room)
         let height  = commands.position.height + pad.y + pad.w
-        let bottom  = area.bottom() - (.readingLine.isLocallyVisible() ? metrics.miniBar_Distance : inset)
+        let bottom  = area.bottom() + .documentPanel.margin.w - (.readingLine.isLocallyVisible() ? metrics.miniBar_Distance : inset)
         .viewerBar.setPosition(Math.Rectangle{Math.round(area.horzCenter() - (width + pad.x + pad.z) * 0.5), bottom - height, width + pad.x + pad.z, height}, computeLayout: false)
         commands.dockStyle = .None
         commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
         commands.applyLayout()
-        if visible do
-            .viewerBar.bringToFront()
     }
 
     // Returns the rectangle the document takes in the window, below the strip and beside the
@@ -919,24 +904,70 @@ impl ViewerWindow
         .explorer?.layoutFilter()
     }
 
-    // Centers the search controls in their own strip above the document.
+    // Aligns the query and its controls to the document's right edge, above its viewport.
     mtd layoutSearchBar()
     {
         let metrics = .themeMetrics()
-        var rightInset = 0'f32
-        if .infoSheet.isLocallyVisible() do
-            rightInset = Math.max(.documentHost.surfaceRect().right() - .infoSheet.surfaceRect().x + metrics.floating_Inset, 0)
-        if .searchBar.margin.z != rightInset
+        let inset   = metrics.floating_Inset
+        let height  = themeActionButtonSize(metrics)
+        var area    = .documentArea()
+        var sheetBelowSearch = false
+        if .infoSheet.isLocallyVisible()
         {
-            .searchBar.margin.z = rightInset
-            .documentHost.applyLayout()
+            let beside = Math.max(Math.min(area.right(), .infoSheet.position.x - inset) - area.x, 0)
+            sheetBelowSearch = beside < 320
+            if not sheetBelowSearch do
+                area.width = beside
         }
-        let area    = .searchBar.clientRect()
-        let pad     = .searchBar.padding
-        let group   = .searchGroup.itf.measureContent({})
-        let width   = Math.min(group.x, Math.max(area.width - 2 * metrics.floating_Inset - pad.x - pad.z, 0))
-        .searchGroup.setPosition(Math.Rectangle{Math.round((area.width - width) * 0.5), pad.y, width, .searchGroup.position.height}, computeLayout: false)
-        .searchGroup.computeLayout()
+
+        let width       = Math.min(640'f32, Math.max(area.width - 2 * inset, 0))
+        let top         = (.fullScreen ? 0 : .stripInset()) + inset * 0.5
+        let compact     = width < 480 and .searchNavigation.isLocallyVisible()
+        let rowY        = compact ? height + SearchGroupSpacing : 0
+        let totalHeight = height + rowY
+        let resized     = .searchBar.position.height != totalHeight
+        let sheetInset  = sheetBelowSearch and .searchBar.isLocallyVisible() ? totalHeight + inset : 0
+        if .infoSheet.margin.y != sheetInset
+        {
+            .infoSheet.margin.y = sheetInset
+            .infoSheet.itf.onLayout()
+        }
+
+        .searchBar.setPosition({area.right() - inset - width, top, width, totalHeight}, computeLayout: false)
+        .searchGroup.setPosition({0, 0, width, totalHeight}, computeLayout: false)
+
+        var right = compact ? width : width - height
+        .searchCloseButton.setPosition({x: width - height, y: 0, width: height, height: height}, computeLayout: false)
+        if .searchOptionsButton.isLocallyVisible()
+        {
+            let options = themeDropDownButtonWidth(metrics)
+            right -= options + SearchGroupSpacing
+            .searchOptionsButton.setPosition({right, rowY, options, height}, computeLayout: false)
+        }
+
+        if .searchNavigation.isLocallyVisible()
+        {
+            let count = Math.max(SearchCountWidth,
+                                 Painter.measureString(.searchCountLabel.text(), unwrap .searchCountLabel.font().regular).width + SearchGroupSpacing)
+            let navigation = count + 2 * height
+            right -= navigation + SearchGroupSpacing
+            .searchNavigation.setPosition({right, rowY, navigation, height}, computeLayout: false)
+            .searchCountLabel.setPosition({0, 0, count, height}, computeLayout: false)
+            .searchPrevious.setPosition({x: count, y: 0, width: height, height: height}, computeLayout: false)
+            .searchNext.setPosition({x: count + height, y: 0, width: height, height: height}, computeLayout: false)
+        }
+
+        let fieldWidth = compact ? width - height - SearchGroupSpacing : right - SearchGroupSpacing
+        .searchBox.setPosition({0, 0, Math.max(fieldWidth, 0), height})
+        if .searchBar.isLocallyVisible()
+        {
+            .searchBar.bringToFront()
+            if resized
+            {
+                .updateDocumentInsets()
+                .documentHost.applyLayout()
+            }
+        }
     }
 
     // Enters or leaves a borderless monitor-sized presentation without losing the reader's
@@ -1056,7 +1087,7 @@ impl ViewerWindow
 
         with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)
         {
-            .toolTip    = appStrings().cmd_Information
+            .toolTip = appStrings().cmd_Information
             .updateFlags(.Toggle)
             .sigCheckedChanged += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
             .hide()
@@ -1266,6 +1297,7 @@ impl ViewerWindow
         .searchNext.toolTip     = texts.ui_SearchNext
         .refreshExplorerCaption()
         .searchOptionsButton.toolTip = texts.ui_SearchOptions
+        .searchCloseButton.toolTip   = texts.ui_CloseSearch
         .refreshOutlineCaption()
         .refreshSearchPresentation()
         .refreshSearchReadout()
@@ -1331,8 +1363,8 @@ impl ViewerWindow
 
         if .isExploring()
         {
-            let status = .explorer!.status.text()
-            surface.setTitle(status.count ? Format.toString("% · %", ProductName, status) : ProductName)
+            let path = .explorer!.listing.path
+            surface.setTitle(Path.fileName(path) orelse path)
             return
         }
 

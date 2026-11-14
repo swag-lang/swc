@@ -10,7 +10,7 @@ using Core, Gui
 struct Texts
 {
     ui_OnThisPage: string = "On This Page"     // Section label of the outline in the right margin of a page.
-    ui_ZoomMenu:   string = "Document Zoom Options"     // Tooltip of the zoom value menu.
+    ui_ZoomMenu:   string = "Zoom…"            // Tooltip of the zoom value menu.
     ui_Details:    string = "HTML"             // Summary the host shows beside the file size.
 }
 

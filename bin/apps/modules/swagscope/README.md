@@ -27,10 +27,9 @@ information sheet.
 
 ## Explore folders and archives
 
-Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows it as a page: the path has its own
-line, the window title reports how much the location holds, and a second line keeps the active
-filename filter and quiet menus choosing the order and the way of showing it —
-names, sortable details, or small, medium and large thumbnails. ZIP files use the same navigation.
+Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows its path, filter and quiet layout
+menus in one row. The menus choose the order and presentation: names, sortable details, or
+small, medium and large thumbnails. ZIP files use the same navigation.
 Every tile has the same size and the grid fills the page: a mixed folder shows each file on a
 tile a little wider than tall, a folder of films its posters upright, with the name and one mono
 line of facts under each. A slash or Ctrl+F opens the search strip above the page. The filename
@@ -179,15 +178,15 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   orientation its camera recorded asks, in the viewer and in its thumbnail. Ctrl+C, or Copy image in
   the orientation menu, puts the upright picture on the clipboard. PSD layer effects and masks are not rendered;
   unsupported compression and image layouts report a decoder error. Its centered lower group
-  provides sibling navigation, orientation commands, and playback. A picture played once keeps that group
-  on screen; in the modes that move on to the next file, it comes with the pointer. The clickable
-  percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
+  provides sibling navigation, orientation commands, and playback. Image sets use the shared page
+  arrows and current/total readout. Like every viewer, the panel stays visible in a window and follows
+  pointer activity in full screen. The clickable percentage provides zoom presets, fit, and actual size. The transform button indicates a temporary
+  orientation and describes it in its tooltip.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
-  mute, volume, and matching keyboard controls, plus one options button gathering the play mode,
-  a 0.25x-2x playback rate whose pitch follows the rate and whose time labels stay in source time,
-  the sound track, and the subtitle tracks, style and delay. The rate shows beside the button
-  while it is not the normal one.
+  mute, volume, and matching keyboard controls. The options button groups playback settings;
+  the track button groups audio and subtitles. The 0.25x-2x playback rate changes pitch, and its
+  time labels stay in source time. These controls share the same bottom panel as other viewers.
   It indexes packets without decoding the file up front and keeps bounded picture and audio
   queues alongside codec reference buffers.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
@@ -213,7 +212,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
   packed, its size and date in mono. EPUB, CBZ, DOCX, XLSX and PPTX offer their reading viewers first;
-  Archive remains available to inspect their package members. The count under the title adds the packed and extracted
+  Archive remains available to inspect their package members. The count in the bottom line adds the packed and extracted
   weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
   Opening an entry asynchronously prepares a bounded temporary
   copy, verifies its declared size and CRC-32, and opens it through the ordinary viewer registry.
@@ -267,15 +266,19 @@ one and the recent files and folders (`/`), the viewers the file can be seen in,
 options, full screen, the play modes, the explored folder's history and order, the theme, the
 language and About, and every command of the viewer on screen under its name. The readings of the
 open file are in the information sheet (`I`) and, faint, on the line at the foot of the document;
-the viewer's own controls float over that foot while the pointer moves; the search strip reserves
-space above the document on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
-the work when asked for.
+the viewer's controls share a persistent, centered panel in a reserved area above that line.
+Search (`Ctrl+F`) opens a row above the content with the query, result count, previous/next,
+options and Close (`Esc`). At narrow widths it uses two rows to preserve a usable query field.
+The files beside the open one and the viewer's side panel stand as cards beside the work when
+asked for. To show the recent-files and current-folder panel, open the lens (`Ctrl+Space`) and
+choose **Files Beside This One**; its visibility is remembered.
 
 The explorer keeps Back, Forward, Parent Folder and Refresh in the window chrome, with the path
-on the first content line and Filter Files, sort, kind and view on the second. The view menu and the lens
+beside Filter Files, sort, kind and view in one compact row. The view menu and the lens
 share the same choices and checked state, including automatic layout, grid, covers and posters.
-At narrow widths, counts move below the title and actions take their own line; an album
-stacks its cover and tracks when the information sheet needs the space beside it.
+Counts and other statistics use the same read-only bottom line as file viewers, with the full
+text available in its tooltip. At narrow widths, secondary labels collapse to icons; an album stacks
+its cover and tracks when the information sheet needs the space beside it.
 
 Without a file the window is its home, a page of what was read lately. The last file stands as a
 card with its preview, its folder and when it was opened, and the action that takes it up again
@@ -300,8 +303,12 @@ and accepts one file dropped anywhere on the surface. The recent and current-fol
 glyph of each file's default viewer; the current-folder heading opens the recent-folder menu and
 returns to the last file viewed in the selected folder. Audio and video claim bare Left/Right for
 ten-second seeks while active, and use Space for play/pause, M for mute, Up/Down for volume, and
-Home for the start. An
-installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
+Home for the start. Paged viewers share Previous, `page / total`, and Next in the bottom command
+panel, with `Ctrl+PageUp` / `Ctrl+PageDown`; endpoints are disabled. EPUB chapters and comic pages
+use this group too, and their embedded reader contributes controls to the same footer. Zoom is always a percentage
+at the right of the bottom line, with `Ctrl++`, `Ctrl+-`, `Ctrl+0` and `Ctrl+Wheel`. In MIDI,
+`Ctrl+Shift++`, `Ctrl+Shift+-` and `Ctrl+Shift+Wheel` change pitch spacing separately.
+An installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
 
 The image and video controls offer the same play-mode button, and the lens the same modes. They decide what follows a file
 that has been played through: stop there, play it again, continue with the next file of the same
@@ -344,7 +351,9 @@ libraries is already safe or supported.
 Put the implementation under `src/viewers/<format>/` and give the folder three things: one
 `func <format>ViewerPlugin()->Viewer.Plugin` describing the viewer, one
 `func create<Format>Viewer(host: Viewer.Host)` building it, and a `localization.swg` owning its
-own strings. Then add one `register` line to `createViewerPluginRegistry`, in the position the
+own strings. Use `Viewer.createZoomButton` for zoom and the shared page controls from `src/api/navigation.swg`
+for pagination. The host owns search, reading statistics and command placement; plugins supply
+their content and existing actions. Then add one `register` line to `createViewerPluginRegistry`, in the position the
 viewer should be offered from. That is the only file outside the folder that changes.
 
 The descriptor carries a stable lowercase key, a static or resolved display name, the vector
@@ -357,9 +366,9 @@ language before any file is opened.
 The creation callback calls `attachView` for its document and can create at most one action,
 information, and command group through the host, plus one optional side panel: the window writes
 the information and action groups on the faint line at the foot of the document, floats the
-command group over it while the pointer moves, and names the side panel in the lens. The window
-has no toolbar. A viewer whose only command is its options puts them on the line of readings,
-before its zoom, with `Viewer.createInfoOptionsButton`, rather than floating a group of one button
+command group in a reserved bottom panel, and names the side panel in the lens. Full screen
+lets the shared panel fade while the pointer rests. A viewer whose only command is its options
+puts them on the line of readings, before its zoom, with `Viewer.createInfoOptionsButton`, rather than floating a group of one button
 over the document. A viewer gives the lens a row for every command it offers through
 `setLensSource`, answering a `Viewer.LensEntries` under its name. It declares
 optional search and progressive-lifecycle behavior through `setSearch` and `setLifecycle`;

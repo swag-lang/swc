@@ -58,13 +58,14 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
         painter.fillRect({x, middle - peak, 1, peak * 2}, Color.fromRgb(150, 165, 177))
         painter.fillRect({x, middle - body, 1, body * 2}, Color.fromRgb(48, 80, 104))
     }
+
     return try canvas.toImage()
 }
 
 private
 {
     const SeekSeconds  = 10.0
-    const CommandWidth = 820.0
+    const CommandWidth = 720.0
 
     // Slices the payload is reduced to. It is read back one column of pixels at a time, so it only
     // has to stay ahead of the widest plot a window can give it; past that the columns repeat.
@@ -353,14 +354,6 @@ private impl IWnd for WaveformView
                 painter.fillRoundRect(Math.Rectangle{x, center - height * 0.5, BarWidth, height}, BarWidth * 0.5, BarWidth * 0.5, color)
             }
         }
-
-        let mono    = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize)
-        let strong  = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize, .Bold)
-        let timesY  = bars.bottom() + TimesGap + TimesHeight * 0.5
-        let elapsed = Viewer.timeText(.progress * .duration)
-        let total   = Viewer.durationText(.duration)
-        painter.drawString(room.x, strong.opticalLineTop(timesY), elapsed, strong, colors.text)
-        painter.drawString(room.right() - Painter.measureString(total, mono).width, mono.opticalLineTop(timesY), total, mono, colors.faintText)
     }
 
     // A click on the wave plays from the place it chose.
@@ -424,7 +417,7 @@ struct Panel
     coverImage: Image         // The sleeve found beside the file, decoded by the open worker.
     cover:      Texture       // That sleeve, uploaded once the open has finished.
     details:    String
-    services: Viewer.HostServices
+    services:   Viewer.HostServices
 }
 
 impl Panel
@@ -448,16 +441,16 @@ impl Panel
         if .openFinished do
             return
 
-        .openFinished      = true
-        .sound             = try .openTask.take()
+        .openFinished = true
+        .sound        = try .openTask.take()
         if .coverImage.isValid() and not .thumbnail
         {
             .cover      = .app().renderer.addImage(.coverImage)
             .coverImage = {}
         }
 
-        .opened            = true
-        .duration          = .sound.durationInSeconds()
+        .opened   = true
+        .duration = .sound.durationInSeconds()
         .waveform.duration = .duration
         .arrangeWave()     // The tags read beside the sound may add a line of credits.
         if .duration > 0 do
@@ -957,8 +950,8 @@ impl IWnd for Panel
 
 impl Panel
 {
-    // Creates the transport in the command group: transport and seek buttons on the left, the
-    // sound controls and the clock on the right, and the timeline between them.
+    // Uses the shared media arrangement: timeline above, play and clock at the left,
+    // secondary transport after them, and sound controls at the right.
     //
     // Every control starts disabled; opening the sound enables what the engine can serve.
     mtd createTransportBar()
@@ -1014,26 +1007,31 @@ impl Panel
             .dockStyle = .Right
             .margin.x  = 8
             .toolTip   = texts().ui_TipMute
-            .setCheckIndicator(.Frame)
+            .setCheckIndicator(.Ink)
             .enable(false)
             .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
         }
 
-        with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
+        with .timeLabel = Label.create(.commands, "", {0, 0, 128, 36}, null, .SecondaryText)
         {
-            .dockStyle = .Right
-            .margin.x  = 8
-            .setTextAlignment(.Right, .Center)
+            .dockStyle = .Left
+            .margin.x  = 12
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with .timeline = Slider.create(.commands, {0, 0, 0, 36})
+        with .timeline = Slider.create(.commands, {0, 0, 0, 28})
         {
-            .dockStyle = .Center
-            .margin    = {12, 1, 12, 1}
+            .dockStyle = .Top
+            .margin    = {12, 0, 12, 8}
             .toolTip   = texts().ui_TipSeek
             .enable(false)
             .sigEndChange += func|view = me|(slider) { view.seekSeconds(slider.value()) }
         }
+
+        .timeLabel.sendToBack()
+        .playButton.sendToBack()
+        .timeline.sendToBack()
     }
 
     // Builds the sound panel: commands, transport bar and waveform view, then opens the file in
@@ -1050,7 +1048,21 @@ impl Panel
         }
 
         result.commands = host.createCommandGroup(CommandWidth)
+        result.commands.resize(CommandWidth, 72)
         result.createTransportBar()
+        result.commands.hookOnEvent = func|view = result|(_, evt)->bool
+        {
+            if evt is ResizeEvent
+            {
+                let width = view.commands.position.width
+                view.volumeSlider.show(width >= 580)
+                view.stopButton.show(width >= 520)
+                view.backwardButton.show(width >= 520)
+                view.forwardButton.show(width >= 520)
+            }
+
+            return false
+        }
 
         with result.waveform = Wnd.create'WaveformView(result, "scope.sound.waveform")
         {
@@ -1131,7 +1143,7 @@ func localSleeve(fileName: string)->Image
         let info = catch File.info(candidate)
         if info.size > MaxBytes do
             continue
-        var image = catch Image.load(candidate) { continue }
+        var image   = catch Image.load(candidate) { continue }
         let side    = cast(s32, CoverSize * 2)
         let largest = Math.max(image.width, image.height)
         if largest > side

@@ -34,16 +34,15 @@ func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
     {
-        .key             = "markdown"
-        .staticName      = "Markdown"
-        .attach          = &registerTexts
-        .iconAtlas       = viewerIcons()
-        .iconIndex       = cast(s32, ViewerIcons.Markdown)
-        .create          = &createViewer
-        .options         = &addViewerOptions
-        .textual         = true
-        .showReadingLine = false
-        .smokeFixture    = "comprehensive.md"
+        .key          = "markdown"
+        .staticName   = "Markdown"
+        .attach       = &registerTexts
+        .iconAtlas    = viewerIcons()
+        .iconIndex    = cast(s32, ViewerIcons.Markdown)
+        .create       = &createViewer
+        .options      = &addViewerOptions
+        .textual      = true
+        .smokeFixture = "comprehensive.md"
         .addSelectors(".markdown;.md;.mdown;.mdwn;.mkd;.mkdn;.rmd")
     }
 
@@ -441,10 +440,10 @@ impl ZoomButton
         g_ViewerSettings.zoomPercent = bounded
     }
 
-    // The page shows no line of readings, so the menu takes the place of the lens.
+    // The zoom menu opens from the same readout whether reached by pointer or lens.
     mtd showZoomMenu()
     {
-        let percent = Viewer.pickZoom(.view, Lens.followUpPoint(.view, 0), .AnchorTopCenter, .zoomPercent)
+        let percent = Viewer.pickZoom(.view, me, .zoomPercent)
         if percent do
             .applyZoom(percent)
     }
@@ -455,7 +454,7 @@ impl ZoomButton
         with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
-            .dockStyle   = .Center
+            .dockStyle   = .Right
             .margin      = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
             .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
             .toolTip     = texts().ui_ZoomMenu
@@ -499,12 +498,12 @@ const ThemeCount = 6'u32
 // Opens how the document reads: its measure and its appearance. Both choices are remembered, and
 // the keyboard returns to the document when it opened the sheet from there.
 //
-// The page shows no line of readings, so the sheet takes the place of the lens.
-func showOptions(anchor: *Wnd, view: *Markdown.View, zoom: *ZoomButton)
+// Pointer and lens commands open the same anchored options sheet.
+func showOptions(anchor: *IconButton, view: *Markdown.View, zoom: *ZoomButton)
 {
     let returnFocus = view.hasFocus()
-    let sheet = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
-    sheet.doModal(Lens.followUpPoint(view, view.themeMetrics().optionSheet_Width), autoDestroy: true)
+    let sheet       = OptionSheet.View.create(anchor, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
+    sheet.doModal(anchor, autoDestroy: true)
     if returnFocus do
         view.setFocus()
 }
@@ -587,13 +586,13 @@ func createViewer(host: Viewer.Host)
         showOptions(button, view, zoomButton)
     }
 
-    host.setLensSource(func|view, zoomButton|(entries)
+    host.setLensSource(func|view, zoomButton, optionsButton|(entries)
     {
         entries.addZoom(.In, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.In, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Out, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Out, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Reset, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Reset, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|zoomButton|() { zoomButton.showZoomMenu() })
-        entries.add(appStrings().cmd_Options, .Settings, func|view, zoomButton|() { showOptions(view, view, zoomButton) })
+        entries.add(appStrings().cmd_Options, .Settings, func|view, zoomButton, optionsButton|() { showOptions(optionsButton, view, zoomButton) })
     })
 
     view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)

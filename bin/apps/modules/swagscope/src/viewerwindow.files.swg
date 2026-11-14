@@ -2,8 +2,7 @@ impl ViewerWindow
 {
     mtd isExploring()->bool => .explorerActive and .explorer and .explorer.isLocallyVisible()
 
-    // Reports whether the viewer in front takes the whole window, as a film does: its document
-    // reaches under the strip and no line of readings stands over it.
+    // Reports whether the selected plugin explicitly requests an edge-to-edge presentation.
     mtd isEdgeToEdge()->bool
     {
         if .isExploring() or .activeChoiceIndex >= .choices.count do
@@ -14,6 +13,8 @@ impl ViewerWindow
     // Reports whether the selected viewer asks for the host's line of readings at the document foot.
     mtd canShowReadingLine()->bool
     {
+        if .isExploring() do
+            return true
         if .activeChoiceIndex >= .choices.count do
             return true
         return .index.plugins[.choices[.activeChoiceIndex].pluginIndex].showReadingLine
@@ -37,7 +38,7 @@ impl ViewerWindow
         }
 
         .readingLine.details.setText(line)
-        .readingLine.details.toolTip = ""
+        .readingLine.details.toolTip = line
     }
 
     mtd updateFileInfo(details: string)
@@ -80,13 +81,7 @@ impl ViewerWindow
     // Carries a document's ground through the window instead of leaving a caption band above it.
     mtd refreshReadingAppearance()
     {
-        if .currentView is Viewers.Film.Panel
-        {
-            var player = Viewers.Film.videoChromePalette()
-            .surface?.wnd.setChromePalette(&player)
-            .style.setStyleSheetColors("ground 0xFF000000")
-        }
-        elif .currentView is Markdown.View as markdown where Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
+        if .currentView is Markdown.View as markdown where Viewers.MarkdownText.g_ViewerSettings.themeIndex != 0
         {
             let colors   = markdown.themeColors()
             var document = colors.view_Bk.relativeLuminance() <= 0.5 ?
@@ -596,6 +591,7 @@ impl ViewerWindow
                 current = index
                 break
             }
+
             .navigateAmong(delta, files.toSlice(), current)
             return
         }
@@ -639,6 +635,7 @@ impl ViewerWindow
             if .index.namePlugin(file[], &pluginIndex) and .index.plugins[pluginIndex].key == "image" do
                 result.add(file[])
         }
+
         return result
     }
 }

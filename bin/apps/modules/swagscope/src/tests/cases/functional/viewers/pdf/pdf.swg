@@ -26,8 +26,7 @@ internal func createPdfFixture()->String
         "viewer.object-stream.pdf",
         "viewer.rotation.pdf",
         "viewer.jpeg.pdf",
-        "viewer.ccitt.pdf",
-    ]
+        "viewer.ccitt.pdf"]
     for name in Cases
     {
         var reader = expect Pdf.Reader.open(scopeTestDataPath(name))
@@ -43,7 +42,7 @@ internal func createPdfFixture()->String
     var reader = expect Pdf.Reader.open(scopeTestDataPath("viewer.openmp-reference.pdf"))
     Swag.require(reader.pageCount() == 67)
     let first = expect reader.loadPage(0)
-    let last = expect reader.loadPage(66)
+    let last  = expect reader.loadPage(66)
     Swag.require(first.width > 0 and first.height > 0)
     Swag.require(last.width > 0 and last.height > 0)
 }
@@ -61,7 +60,7 @@ internal func createPdfFixture()->String
     host.notify(.ThemeChanged)
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.require(result.view != null and result.commands == null and result.info != null)
+    Swag.require(result.view != null and result.commands != null and result.info != null)
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
@@ -84,7 +83,7 @@ internal func createPdfFixture()->String
     Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
 
     let beforeZoomOut = pdf.effectiveZoom()
-    var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract}
+    var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract, modifiers: .Control}
     view.sendEvent(&zoomOut)
     Swag.require(pdf.effectiveZoom() < beforeZoomOut)
     var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
@@ -111,7 +110,7 @@ internal func createPdfFixture()->String
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.require(view.pageLabel.toolTip == PdfDocument.texts().ui_GoToPage and view.pageLabel.toolTip != oldTip)
-    Swag.require(view.previousButton.toolTip == PdfDocument.texts().ui_Previous and view.nextButton.toolTip == PdfDocument.texts().ui_Next)
+    Swag.require(view.previousButton.toolTip == appStrings().ui_PreviousPage and view.nextButton.toolTip == appStrings().ui_NextPage)
     Swag.require(view.zoomLabel.toolTip == PdfDocument.texts().ui_ZoomMenu)
     Swag.require(pdf.pageIndex == 1 and pdf.effectiveZoom() == oldZoom and pdf.zoomMode == .FitPage)
     expect host.app.setLanguage(ReferenceLanguage)
@@ -131,7 +130,7 @@ internal func createPdfFixture()->String
     var host: HeadlessHost
     host.setup(640, 420)
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.require(result.view != null and result.commands == null)
+    Swag.require(result.view != null and result.commands != null)
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.require(not view.failureReason.isEmpty())

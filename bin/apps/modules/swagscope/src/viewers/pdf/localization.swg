@@ -13,7 +13,7 @@ struct Texts
     ui_Fit:        string = "Fit Page"                          // Zoom menu action that fits a whole page.
     ui_FitWidth:   string = "Fit Width"                         // Zoom menu action that fits the page width.
     ui_Actual:     string = "Actual Size"                       // Tooltip of the actual-size button.
-    ui_ZoomMenu:   string = "Zoom Options"                      // Tooltip of the zoom value menu.
+    ui_ZoomMenu:   string = "Zoom…"                             // Tooltip of the zoom value menu.
     ui_GoToPage:   string = "Go to Page"                        // Title and tooltip of direct page navigation.
     ui_PageRange:  string = "Page number from 1 to %."          // Direct page navigation prompt.
     ui_Continuous: string = "Continuous"                        // Layout action that scrolls every page in one column.

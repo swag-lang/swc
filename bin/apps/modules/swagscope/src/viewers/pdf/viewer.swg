@@ -32,29 +32,12 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     var reader = try Pdf.Reader.open(fileName)
     if not reader.pageCount() do
         fail Errors.InvalidFormatError{texts().err_NoPage}
-    var page = try reader.loadPage(0)
+    var page    = try reader.loadPage(0)
     let largest = Math.max(page.width, page.height, 1)
     let side    = Math.max(maxSide, 1'u32)
     return try page.render({scale: cast(f32, side) / largest,
                             maxDimension: cast(s32, side),
                             maxPixels: cast(u64, side) * side})
-}
-
-private const PageWidth = 76.0
-
-private func infoWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + PageWidth + Viewer.ZoomSlotWidth + 16
-
-// Keeps the page controls and zoom selector in one fixed-width run. Their authored cells are
-// wider than their current text and icons, so measuring each child by its contents would let the
-// host shrink the group until the left- and right-docked controls overlap.
-private struct InfoControls
-{
-    using wnd: Wnd
-}
-
-private impl IWnd for InfoControls
-{
-    mtd impl measureContent(_: Math.Point)->Math.Point => .preferredSize
 }
 
 // What the details line says about a document: its length, the size of its first page, and the
@@ -164,6 +147,7 @@ struct Panel
 
     late
     {
+        commands:       *Wnd
         info:           *Wnd
         pdfView:        *PdfView
         previousButton: *IconButton
@@ -185,8 +169,8 @@ private impl IWnd for Panel
                 .margin.invalidate()
             }
 
-            .previousButton.toolTip = texts().ui_Previous
-            .nextButton.toolTip     = texts().ui_Next
+            .previousButton.toolTip = appStrings().ui_PreviousPage
+            .nextButton.toolTip     = appStrings().ui_NextPage
             .pageLabel.toolTip      = texts().ui_GoToPage
             .zoomLabel.toolTip      = texts().ui_ZoomMenu
             if .facts.pageCount
@@ -249,11 +233,11 @@ private impl IWnd for Panel
 
         switch evt.key
         {
-        case .Add, .OemPlus:                        .pdfView.zoomIn()
-        case .Subtract, .OemMinus:                  .pdfView.zoomOut()
-        case .D0 where evt.modifiers.has(.Control): .pdfView.actualSize()
-        case .F where evt.modifiers == .None:       .pdfView.zoomToFit()
-        case .W where evt.modifiers == .None:       .pdfView.zoomToFitWidth()
+        case .Add, .OemPlus where evt.modifiers == .Control:       .pdfView.zoomIn()
+        case .Subtract, .OemMinus where evt.modifiers == .Control: .pdfView.zoomOut()
+        case .D0 where evt.modifiers.has(.Control):                .pdfView.actualSize()
+        case .F where evt.modifiers == .None:                      .pdfView.zoomToFit()
+        case .W where evt.modifiers == .None:                      .pdfView.zoomToFitWidth()
         default: evt.accepted = false
         }
     }
@@ -324,7 +308,7 @@ private impl Panel
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
-        .pageLabel.setText(Format.toString("% / %", .pdfView.pageIndex + 1, .pdfView.pageCount()))
+        .pageLabel.setText(Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount()))
         .placeMargin()
     }
 
@@ -354,11 +338,11 @@ private impl Panel
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
-        entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() })
-        entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() })
+        entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+        entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
-        entries.add(strings.ui_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.None, .Add))
-        entries.add(strings.ui_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.None, .Subtract))
+        entries.add(strings.ui_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(strings.ui_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
@@ -384,11 +368,11 @@ private impl Panel
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("50%", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts().ui_Actual, "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("125%", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
-        menu.addItem("150%", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200%", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        menu.addItem("50 %", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("100 %", "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
+        menu.addItem("125 %", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        menu.addItem("150 %", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        menu.addItem("200 %", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
         menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())), rightName: "W", checked: .pdfView.zoomMode == .FitWidth)
@@ -409,20 +393,35 @@ private impl Panel
         }
     }
 
-    // Creates the page view of `fileName`, with its page and zoom controls in `info`, and starts
+    // Creates the page view of `fileName`, with pagination in `commands` and zoom in `info`, and starts
     // opening the document in the background.
-    func create(contentParent, info: *Wnd, fileName: string, services: Viewer.HostServices = {})->*Panel
+    func create(contentParent, info, commands: *Wnd, fileName: string, services: Viewer.HostServices = {})->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.pdf")
         {
             .backgroundStyle = .View
             .services        = services
             .info            = info
+            .commands        = commands
         }
 
         result.createPageControls()
         result.createZoomControl()
         result.createPageView()
+        result.hookOnChildEvent = func|view = result|(_, evt)->bool
+        {
+            if evt is KeyEvent as key
+            {
+                let direction = Viewer.pageKeyDirection(key)
+                if direction < 0 do
+                    view.pdfView.previousPage()
+                elif direction > 0 do
+                    view.pdfView.nextPage()
+                return direction != 0
+            }
+
+            return false
+        }
 
         // The outline stands in the margin beside the page; choosing a part shows it.
         with result.margin = OutlineMargin.create(result, "scope.pdf.margin")
@@ -448,7 +447,7 @@ private impl Panel
     mtd createPageControls()
     {
         let actionSize = themeActionButtonSize(.themeMetrics())
-        with .previousButton = Viewer.createActionButton(.info, .ChevronLeft)
+        with .previousButton = Viewer.createPageStep(.commands, -1)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
@@ -456,18 +455,12 @@ private impl Panel
             .sigPressed      += func|view = me|(_) { view.pdfView.previousPage() }
         }
 
-        with .pageLabel = IconButton.create(.info, {}, {0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
+        with .pageLabel = Viewer.createPageReadout(.commands, "scope.pdf.page", texts().ui_GoToPage)
         {
-            .dockStyle       = .Left
-            .preferredSize.x = PageWidth
-            .margin.x        = 8
-            .toolTip         = texts().ui_GoToPage
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().createDefaultFontFs(11), .Regular)
             .sigPressed += func|view = me|(_) { view.promptGoToPage() }
         }
 
-        with .nextButton = Viewer.createActionButton(.info, .ChevronRight)
+        with .nextButton = Viewer.createPageStep(.commands, 1)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
@@ -483,7 +476,7 @@ private impl Panel
         {
             .dockStyle       = .Right
             .preferredSize.x = Viewer.ZoomButtonWidth
-            .margin          = {Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
+            .margin          = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
             .sigPressed      += func|view = me|(_) { view.showZoomMenu() }
         }
     }
@@ -539,17 +532,10 @@ impl Panel
 
 func createViewer(host: Viewer.Host)
 {
-    let services  = host.services()
-    let infoWidth = infoWidth(host.contentParent().themeMetrics())
-
-    with let info = Wnd.create'InfoControls(host.createInfoGroup(infoWidth), Math.Rectangle{0, 0, infoWidth, 36})
-    {
-        .dockStyle       = .Left
-        .backgroundStyle = .Transparent
-        .preferredSize.x = infoWidth
-    }
-
-    let view = Panel.create(host.contentParent(), info, host.fileName(), services)
+    let services = host.services()
+    let info     = host.createInfoGroup(Viewer.ZoomSlotWidth)
+    let commands = host.createCommandGroup(Viewer.pageControlWidth(host.contentParent().themeMetrics()))
+    let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index)

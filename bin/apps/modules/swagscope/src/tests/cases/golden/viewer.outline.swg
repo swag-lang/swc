@@ -26,7 +26,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    Swag.require(not window.readingLine.isLocallyVisible())
+    Swag.require(window.readingLine.isLocallyVisible())
     Swag.require(not window.viewerBar.isLocallyVisible())
     let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     let outline = unwrap zoom.outline
@@ -97,6 +97,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.setFullScreen(false)
     Swag.require(window.currentSidePanelHost.isVisible())
     Swag.require(window.outlineCaptionButton.isLocallyVisible())
-    Swag.require(not window.readingLine.isLocallyVisible())
+    Swag.require(window.readingLine.isLocallyVisible())
     Swag.require(not window.viewerBar.isLocallyVisible())
 }

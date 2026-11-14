@@ -177,8 +177,9 @@ interface Host
     // Creates a child host that can display files through the application's viewer registry.
     //
     // `parent` takes ownership of the child window. The returned interface borrows that child and
-    // remains valid until `parent` is destroyed.
-    mtd createEmbedded(parent: *Wnd)->Embedded
+    // remains valid until `parent` is destroyed. An optional `readings` group, owned by the same
+    // viewer session, places the child's controls on the outer reading line without a second footer.
+    mtd createEmbedded(parent: *Wnd, readings: *Wnd? = null)->Embedded
 
     // Creates and registers the plugin's compact action-bar group.
     mtd createActionGroup(width: f32)->*Wnd

@@ -45,15 +45,19 @@ func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
     {
-        .key          = "archive"
-        .staticName   = "Archive"
-        .resolveName  = func()->string => texts().ui_Name
-        .attach       = &registerTexts
-        .iconAtlas    = viewerIcons()
-        .iconIndex    = cast(s32, ViewerIcons.Archive)
-        .create       = &createViewer
-        .probe        = &pluginProbe
-        .smokeFixture = "viewer.archive.zip"
+        .key         = "archive"
+        .staticName  = "Archive"
+        .resolveName = func()->string => texts().ui_Name
+        .attach      = &registerTexts
+        .iconAtlas   = viewerIcons()
+        .iconIndex   = cast(s32, ViewerIcons.Archive)
+        .create      = &createViewer
+
+        // Interactive archives use Explorer. The thumbnail fallback owns one reading line
+        // for either its listing or the open entry, never both at once.
+        .showReadingLine = false
+        .probe           = &pluginProbe
+        .smokeFixture    = "viewer.archive.zip"
         .addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.cbz;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
     }
 
@@ -116,7 +120,7 @@ impl ZipEntryExtract
     }
 }
 
-// Shows the entries of a ZIP archive as a folder tree beside a preview of the selected file.
+// Shows the entries of a ZIP archive, then the opened entry in the same content area.
 //
 // The preview opens the extracted entry through the ordinary viewer registry.
 struct Panel
@@ -129,6 +133,10 @@ struct Panel
         treePane:      *Wnd
         list:          *ListCtrl
         previewPane:   *Wnd
+        backButton:    *IconButton
+        returnBar:     *Wnd
+        entryName:     *Label
+        facts:         *Label
         previewStatus: *Label
     }
 
@@ -141,6 +149,7 @@ struct Panel
     pendingPreview:     u64 = Swag.U64.Max
     awaitingRetirement: bool     // The previous preview is still retiring; the next task event below the panel asks again.
     retiring:           bool
+    returningToEntries: bool
     activePreview:      u64 = Swag.U64.Max
     previewFile:        String
     sourceFile:         String
@@ -210,6 +219,8 @@ private impl Panel
                                       entries,
                                       StrConv.toDisplaySize(.archive.uncompressedSize),
                                       StrConv.toDisplaySize(.archive.compressedSize))
+        .facts.setText(text)
+        .facts.toolTip = text
         .services.showDetails(me, text)
     }
 
@@ -310,9 +321,18 @@ private impl Panel
     {
         if index >= .archive.entries.count or .archive.entries[index].isDirectory do
             return
-        if index == .pendingPreview or index == .activePreview do
+        .splitter.setPaneVisible(0, false)
+        .splitter.setPaneVisible(1, true)
+        .splitter.applyLayout()
+        .backButton.enable(true)
+        .facts.hide()
+        .entryName.setText(.archive.entries[index].path)
+        .returnBar.show()
+        .applyLayout()
+        if not .returningToEntries and (index == .pendingPreview or index == .activePreview) do
             return
-        .pendingPreview = index
+        .returningToEntries = false
+        .pendingPreview     = index
         .showPreviewStatus(texts().ui_Previewing)
         .continuePreview()
     }
@@ -348,6 +368,21 @@ private impl Panel
     {
         if .retiring do
             return
+
+        if .returningToEntries
+        {
+            if not .extract.retire() do
+                return
+            if not .embedded.retire()
+            {
+                .awaitingRetirement = true
+                return
+            }
+
+            .clearPreviewFile()
+            .returningToEntries = false
+            return
+        }
 
         if .extract.started
         {
@@ -508,6 +543,15 @@ private impl Panel
             .services        = services
         }
 
+        with result.facts = Label.create(result, "", {0, 0, 0, ViewerReadingLine.Height}, null, .Ellipsis | .SecondaryText)
+        {
+            .dockStyle = .Bottom
+            .margin    = {result.themeMetrics().floating_Inset, 0, result.themeMetrics().floating_Inset, 4}
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
+        }
+
         result.splitter = SplitterCtrl.create(result)
         result.splitter.dockStyle = .Center
         result.createEntryTree()
@@ -517,11 +561,48 @@ private impl Panel
         {
             .size         = TreeWidth
             .minimumSize  = 260
-            .maximumSize  = 560
             .preserveSize = true
         }
 
-        result.splitter.addPane(result.previewPane).minimumSize = 320
+        result.splitter.addPane(result.previewPane).minimumSize = 0
+        result.splitter.setPaneVisible(1, false)
+        result.splitter.flags = .HideDividers
+        with result.returnBar = Wnd.create'Wnd(result, {0, 0, 0, 36})
+        {
+            .dockStyle       = .Top
+            .backgroundStyle = .Transparent
+            .hide()
+        }
+
+        result.returnBar.sendToBack()
+        with result.backButton = Viewer.createActionButton(result.returnBar, .ChevronLeft)
+        {
+            .dockStyle = .Left
+            .toolTip   = appStrings().cmd_ReturnToExplorer
+            .enable(false)
+            .sigPressed += func|result|(_)
+            {
+                result.splitter.setPaneVisible(1, false)
+                result.splitter.setPaneVisible(0, true)
+                result.splitter.applyLayout()
+                result.backButton.enable(false)
+                result.returnBar.hide()
+                result.facts.show()
+                result.applyLayout()
+                result.list.setFocus()
+                result.pendingPreview     = Swag.U64.Max
+                result.returningToEntries = true
+                result.continuePreview()
+            }
+        }
+
+        with result.entryName = Label.create(result.returnBar, "", {}, null, .Ellipsis | .SecondaryText)
+        {
+            .dockStyle = .Center
+            .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Left, .OpticalCenter)
+        }
+
         result.hookOnChildEvent = func|viewer = result|(_, evt)
         {
             if evt is TaskEvent do
@@ -534,12 +615,12 @@ private impl Panel
         return result
     }
 
-    // Creates the entry tree, which previews the file a reader selects, double-clicks, or confirms with Enter.
+    // Creates the entry tree. Double-click or Enter opens a file; selection only selects it.
     mtd createEntryTree()
     {
         with .treePane = Wnd.create'Wnd(me.splitter)
         {
-            .backgroundStyle = .Panel
+            .backgroundStyle = .Transparent
             .padding         = {8, 8, 8, 8}
         }
 
@@ -554,11 +635,6 @@ private impl Panel
             .header.form = .Transparent
             .addColumn(texts().ui_ColName, 170)
             .addColumn(texts().ui_ColSize, 60)
-            .sigSelectionChanged += func|viewer = me|(_)
-            {
-                viewer.previewSelectedEntry()
-            }
-
             .sigLeftDoubleClicked += func|viewer = me|(_, _)
             {
                 viewer.previewSelectedEntry()

@@ -20,7 +20,6 @@ func viewerPlugin()->Viewer.Plugin
         .options      = &addViewerOptions
         .thumbnail    = &loadThumbnail
         .smokeFixture = "glint-aac-mjpeg.mp4"
-        .edgeToEdge   = true
     }
 
     for format in Reader.decodableFormats() do
@@ -161,13 +160,13 @@ struct Panel
 {
     using wnd: Wnd
 
-    // The picture, and the two veils that come over it while the hand moves: the title at the top,
-    // the timeline and the controls at the bottom. The controls are the bottom veil's, named here once.
+    // The picture and subtitle overlay live in the document. Transport belongs to the host's
+    // bottom command panel; its controls are named here for playback and option handling.
     late
     {
         imageView:        *ImageView
         subtitleOverlay:  *SubtitleOverlay
-        topVeil:          *TopVeil
+        commands:         *Wnd
         bottomVeil:       *BottomVeil
         timeline:         *VideoTimeline
         playButton:       *IconButton
@@ -799,13 +798,11 @@ private impl Panel
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
 
-        // At rest nothing stands over the picture, so the facts read in the top veil, not at the foot.
-        .topVeil.facts = .facts()
-        .topVeil.invalidate()
-        .services.showDetails(me, .details)
+        // Technical facts use the host footer; the title only identifies the file.
+        .services.showDetails(me, .facts())
     }
 
-    // Returns the facts the top veil writes after the title: the picture, its rate and its length.
+    // Returns the facts for the shared bottom reading line: the picture, its rate and its length.
     mtd facts()->String
     {
         if not .video.isOpen() do
@@ -966,19 +963,11 @@ private impl Panel
         entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
     }
 
-    // Creates the two veils over the picture, hidden: the title and its facts at the top, the
-    // timeline and the controls at the bottom.
+    // Creates the transport inside the host's command group.
     mtd createVeils()
     {
-        with .topVeil = Wnd.create'TopVeil(me, "scope.video.title", Math.Rectangle{0, 0, 0, TopVeilHeight})
-        {
-            .backgroundStyle = .Transparent
-            .wndFlags        |= .TopMost | .Disabled
-            .hide()
-        }
-
-        .bottomVeil = BottomVeil.create(me)
-        .bottomVeil.hide()
+        .bottomVeil = BottomVeil.create(.commands)
+        .bottomVeil.dockStyle = .Center
 
         .timeline         = .bottomVeil.timeline
         .playButton       = .bottomVeil.playButton
@@ -997,17 +986,17 @@ private impl Panel
         .muteButton.enable(false)
         .muteButton.sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
 
-        .volumeSlider.toolTip = strings.ui_TipVolume
+        .volumeSlider.toolTip    = strings.ui_TipVolume
         .volumeSlider.sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
 
         .fullScreenButton.toolTip    = strings.ui_TipFullScreen
         .fullScreenButton.sigPressed += func|view = me|(_) { view.toggleFullScreen() }
 
-        .tracksButton.toolTip  = strings.ui_TipTracks
+        .tracksButton.toolTip = strings.ui_TipTracks
         .tracksButton.enable(false)
         .tracksButton.sigPressed += func|view = me|(_) { view.showTracks() }
 
-        .optionsButton.toolTip = strings.ui_TipOptions
+        .optionsButton.toolTip    = strings.ui_TipOptions
         .optionsButton.sigPressed += func|view = me|(_) { view.showOptions() }
 
         // A drag may cross hundreds of frames. Decode its final position once instead of
@@ -1032,21 +1021,20 @@ private impl Panel
             {
                 let target   = mouse.target
                 let overVeil = target != null and
-                               (target == view.topVeil or view.topVeil.isAncestorOf(target) or
-                                target == view.bottomVeil or view.bottomVeil.isAncestorOf(target))
+                               (target == view.bottomVeil or view.bottomVeil.isAncestorOf(target))
                 view.notePointer(mouse.surfacePos, overVeil)
             }
 
             return false
         }
+
+        .commands.hookOnChildEvent = .hookOnChildEvent
     }
 
-    // Places the veils across the top and the bottom of the picture.
+    // Sizes the transport inside its host, independently of the video viewport.
     mtd arrangeVeils()
     {
-        let room = .clientRect()
-        .topVeil.setPosition(Math.Rectangle{room.x, room.y, room.width, TopVeilHeight})
-        .bottomVeil.setPosition(Math.Rectangle{room.x, room.bottom() - BottomHeight, room.width, BottomHeight})
+        .commands.applyLayout()
         .bottomVeil.arrange()
     }
 
@@ -1070,18 +1058,6 @@ private impl Panel
             return
         .veilsShown = true
         .services.chromeChanged(me)
-
-        // They fade in over a state change, at once reachable by the hand.
-        let animator = &.app().animator
-        var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
-        options.easing   = .EaseOut
-        for veil in [cast(*Wnd, .topVeil), cast(*Wnd, .bottomVeil)]
-        {
-            veil.show()
-            veil.bringToFront()
-            discard animator.animateF32(veil, AnimationChannel.from("Gui.Float.Opacity"), veil.presentationOpacity, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
-        }
     }
 
     // Lets the veils leave once the hand has been still for `stillMs` milliseconds, unless the
@@ -1102,10 +1078,7 @@ private impl Panel
         if not .veilsShown do
             return
         .veilsShown = false
-        .setPointerHidden(true)
         .services.chromeChanged(me)
-        discard .app().animator.leave(.topVeil)
-        discard .app().animator.leave(.bottomVeil)
     }
 
     // Hides the pointer with the veils and restores it on movement or when the viewer leaves.
@@ -1148,16 +1121,17 @@ private impl Panel
             .services        = services
         }
 
-        result.imageView           = ImageView.create(result)
+        result.imageView = ImageView.create(result)
         result.imageView.dockStyle = .Center
         result.style.setStyleSheetColors(BackdropColors)
         result.imageView.style.setStyleSheetColors(BackdropColors)
         result.subtitleOverlay = SubtitleOverlay.create(result)
+        result.commands        = host.createCommandGroup(720)
+        result.commands.resize(720, BottomHeight)
         result.createVeils()
 
         result.refreshTransport()
-        result.openFileName  = host.fileName()
-        result.topVeil.title = Path.fileNameWithoutExtension(host.fileName()) orelse host.fileName()
+        result.openFileName = host.fileName()
 
         // The sound device comes online while the file opens, so the first picture does not
         // wait for it; see [[Sound.warmEngine]].
@@ -1174,6 +1148,7 @@ private impl Panel
             result.decodeExecutor.start()
             result.decode.submit(func|view = result|() { runViewerDecode(view) }, result.taskNotifier(&result.decode), executor: &result.decodeExecutor)
         }
+
         result.timer = result.addTimer(10'ms)
         result.applyLayout()
         result.arrangeVeils()
@@ -1235,7 +1210,7 @@ func createViewer(host: Viewer.Host)
     {
         let view = try Panel.create(host)
         host.attachView(view)
-        host.setDetails(view.details)
+        host.setDetails(view.facts())
         host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
         host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 

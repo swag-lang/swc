@@ -33,7 +33,7 @@ func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)-
 {
     with let result = IconButton.create(info, {}, Math.Rectangle{0, 0, width, 32}, id, .CenterContent)
     {
-        .dockStyle = .Center
+        .dockStyle = .Right
         .margin    = {ZoomButtonInset, 0, ZoomButtonInset, 0}
         .toolTip   = toolTip
         .setText(zoomText(100))
@@ -49,7 +49,7 @@ func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)-
 // resets it.
 func isZoomKey(key: const *KeyEvent)->bool
 {
-    if key.kind != .Pressed or not key.modifiers.has(.Control) do
+    if key.kind != .Pressed or key.modifiers != .Control do
         return false
     switch key.key
     {
@@ -78,11 +78,11 @@ private struct ZoomPreset
 }
 
 private const ZoomPresets: [5] ZoomPreset = [
-    ZoomPreset{75, "75%", "scope.zoom75"},
-    ZoomPreset{100, "100%", "scope.zoom100"},
-    ZoomPreset{125, "125%", "scope.zoom125"},
-    ZoomPreset{150, "150%", "scope.zoom150"},
-    ZoomPreset{200, "200%", "scope.zoom200"}]
+    ZoomPreset{75, "75 %", "scope.zoom75"},
+    ZoomPreset{100, "100 %", "scope.zoom100"},
+    ZoomPreset{125, "125 %", "scope.zoom125"},
+    ZoomPreset{150, "150 %", "scope.zoom150"},
+    ZoomPreset{200, "200 %", "scope.zoom200"}]
 
 // Shows the zoom menu of a reading viewer beside `anchor`, with the level in use checked, and
 // returns the level the reader picked, or 0 when the menu closed without a choice.

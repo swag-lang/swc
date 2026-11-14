@@ -24,39 +24,21 @@ impl ViewerWindow
         }
     }
 
-    // Builds a search strip that reserves space above the document when it is shown.
+    // Builds the shared search row. The host reserves its space above the document.
     private mtd createSearchBar()
     {
-        let iconSize              = themeActionIconSize(.themeMetrics())
-        let actionSize            = themeActionButtonSize(.themeMetrics())
-        let dropDownWidth         = themeDropDownButtonWidth(.themeMetrics())
-        let searchNavigationWidth = 2 * actionSize + SearchCountWidth + 8
-        let searchBarWidth        = dropDownWidth + SearchFieldWidth + searchNavigationWidth + 2 * SearchGroupSpacing
-
-        with .searchBar = FloatingPanel.create(.documentHost, {0, 0, searchBarWidth, actionSize + 12}, "scope.search")
+        let height = themeActionButtonSize(.themeMetrics())
+        with .searchBar = Wnd.create'Wnd(me, "scope.search")
         {
-            .dockStyle = .Top
-            .padding = {8, 6, 8, 6}
+            .backgroundStyle = .Transparent
             .hide()
         }
 
-        with .searchGroup = StackLayoutCtrl.create(.searchBar, .Center, Math.Rectangle{0, 0, searchBarWidth, actionSize})
+        .searchGroup = Wnd.create'Wnd(.searchBar)
+        .searchGroup.backgroundStyle = .Transparent
+        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, height}, flags: .ClearButton)
         {
-            .backgroundStyle = .Transparent
-            .spacing         = SearchGroupSpacing
-        }
-
-        with .searchOptionsButton = Viewer.createActionDropDown(.searchGroup, .MatchWholeWord)
-        {
-            .layoutSpec.alignY = .Center
-            .toolTip = appStrings().ui_SearchOptions
-            .setArrowPosition(.RightDownward)
-            .sigPressed += func|window = me|(_) { window.showSearchOptionsMenu() }
-        }
-
-        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
-        {
-            .setIcon(me.theme().icon(.Search, iconSize))
+            .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = me|(edit)->EditBoxCheckResult => window.validateSearchEdit(edit))
             .sigTextChanged += func|window = me|(_) { window.restartSearch() }
@@ -65,33 +47,39 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with .searchNavigation = StackLayoutCtrl.create(.searchGroup, .Center, Math.Rectangle{0, 0, searchNavigationWidth, actionSize})
+        .searchNavigation = Wnd.create'Wnd(.searchGroup)
+        .searchNavigation.backgroundStyle = .Transparent
+        with .searchCountLabel = Label.create(.searchNavigation, "", {}, null, .SecondaryText)
         {
-            .backgroundStyle = .Transparent
-            .spacing         = 0
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Center, .OpticalCenter)
         }
 
         with .searchPrevious = Viewer.createActionButton(.searchNavigation, .SearchPrevious)
         {
-            .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchPrevious
-            .sigPressed        += func|window = me|(_) { window.findPrevious() }
+            .toolTip    = appStrings().ui_SearchPrevious
+            .sigPressed += func|window = me|(_) { window.findPrevious() }
             .enable(false)
         }
 
         with .searchNext = Viewer.createActionButton(.searchNavigation, .SearchNext)
         {
-            .layoutSpec.alignY = .Center
-            .toolTip           = appStrings().ui_SearchNext
-            .sigPressed        += func|window = me|(_) { window.findNext() }
+            .toolTip    = appStrings().ui_SearchNext
+            .sigPressed += func|window = me|(_) { window.findNext() }
             .enable(false)
         }
 
-        with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, SearchCountWidth, 36}, null, .SecondaryText)
+        with .searchOptionsButton = Viewer.createActionDropDown(.searchGroup, .MatchWholeWord)
         {
-            .margin.x = 8
-            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
-            .setTextAlignment(.Left, .OpticalCenter)
+            .toolTip = appStrings().ui_SearchOptions
+            .setArrowPosition(.RightDownward)
+            .sigPressed += func|window = me|(_) { window.showSearchOptionsMenu() }
+        }
+
+        with .searchCloseButton = Viewer.createActionButton(.searchGroup, .WndClose)
+        {
+            .toolTip    = appStrings().ui_CloseSearch
+            .sigPressed += func|window = me|(_) { window.hideSearch() }
         }
     }
 
@@ -371,14 +359,24 @@ impl ViewerWindow
     // and the panels beside it the floating inset away from the top as well, as the sheet stands.
     mtd updateDocumentInsets()
     {
-        let strip = .fullScreen or .isEdgeToEdge() ? 0 : .stripInset()
-        let top   = strip + .themeMetrics().floating_Inset
-        .documentHost.padding = Math.Vector4{0, strip, 0, 0}
+        let strip  = .fullScreen or .isEdgeToEdge() ? 0 : .stripInset()
+        let top    = strip + .themeMetrics().floating_Inset
+        let search = .searchBar != null and .searchBar.isLocallyVisible() ?
+                     Math.max(.searchBar.position.height, themeActionButtonSize(.themeMetrics())) + .themeMetrics().floating_Inset : 0
+        .documentHost.padding = Math.Vector4{0, strip + search, 0, 0}
         if .currentView is Markdown.View as markdown
         {
             // The page paints under the chrome; only its scroll viewport keeps clear of it.
             .documentHost.padding.y = 0
-            markdown.padding.y      = strip
+            markdown.padding.y      = strip + search
+        }
+
+        if .viewerBar != null
+        {
+            let commands = .currentCommands
+            .documentPanel.margin.w = commands and not .fullScreen ?
+                                      commands.position.height + .viewerBar.padding.y + .viewerBar.padding.w +
+                                      2 * .themeMetrics().miniBar_Distance : 0
         }
 
         .filePanelHost.padding.y = top

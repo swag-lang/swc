@@ -18,12 +18,12 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(roll.pitchLabel(60) == "C4")
     Swag.require(roll.pitchZoom == 1 and roll.scroll.scrollSize.y <= roll.clientRect().height + 1)
 
-    var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control}
+    var zoomIn = KeyEvent{kind: .Pressed, key: .OemPlus, modifiers: .Control | .Shift}
     roll.sendEvent(&zoomIn)
     Swag.require(roll.pitchZoom == 1.25 and roll.rowHeight > fittedRowHeight)
     Swag.require(roll.scroll.scrollSize.y > roll.clientRect().height)
 
-    host.mouseWheel(roll.surfaceRect().center(), 120, .Control)
+    host.mouseWheel(roll.surfaceRect().center(), 120, .Control | .Shift)
     Swag.require(roll.pitchZoom == 1.5625)
     var pageDown = KeyEvent{kind: .Pressed, key: .PageDown}
     roll.sendEvent(&pageDown)
@@ -52,7 +52,7 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     let viewer  = assume cast(*Midi.Panel, session.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.require(viewer.roll.pitchLabel(60) == "C4" and viewer.roll.keyboardWidth == 72)
-    Swag.require(viewer.zoomLabel.toolTip.contains("Page Up/Down"))
+    Swag.require(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
 
     viewer.setPitchLabelMode(.MidiNumber)
     Swag.require(viewer.roll.pitchLabelMode == .MidiNumber and viewer.roll.pitchLabel(60) == "60")
@@ -68,6 +68,6 @@ internal func midiZoomFixturePath()->String => scopeTestDataPath("viewer.mid")
     var options: OptionSheet.Page
     viewer.describeOptions(&options)
     Swag.require(options.rows[2].value == "Nombres MIDI" and options.rows[3].value == "Large")
-    Swag.require(viewer.zoomLabel.toolTip.contains("Page précédente/suivante"))
+    Swag.require(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
     expect host.app.setLanguage(ReferenceLanguage)
 }

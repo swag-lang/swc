@@ -92,9 +92,9 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     var random = 0x12345678'u32
     for index in candidate.image.pixels.count
     {
-        random = random ^ (random << 13)
-        random = random ^ (random >> 17)
-        random = random ^ (random << 5)
+        random        = random ^ (random << 13)
+        random        = random ^ (random >> 17)
+        random        = random ^ (random << 5)
         pixels[index] = cast(u8, random >> 24)
     }
 
@@ -216,7 +216,7 @@ internal func waitForVideoFrame(view: *Film.Panel)
         attempts += 1
     }
 
-    Swag.require(view.openFinished and not view.awaitingFrame)
+    Swag.require(view.openFinished and not view.awaitingFrame, Format.toString("open % · state % · waiting % · playing % · frame % · failure %", view.openFinished, Atomic.get(&view.openState), view.awaitingFrame, view.playing, view.hasFrame, view.openFailure))
 }
 
 // Withholds every free slot and drains any in-flight decode, so a test can observe a loading state.
@@ -563,7 +563,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     var host: Testing.HeadlessHost
     host.setup(1280, 720)
     var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
-    Swag.require(result.view != null and result.commands == null)
+    Swag.require(result.view != null and result.commands != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
     view.dockStyle = .Center
@@ -572,16 +572,15 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
         view.togglePlayback()
 
     Swag.require(not view.veilsShown and
-                 not view.topVeil.isLocallyVisible() and
-                 not view.bottomVeil.isLocallyVisible())
+                 view.bottomVeil.isLocallyVisible())
     let picturePoint = view.localToSurface(Math.Point{640, 300})
     host.moveMouse(picturePoint)
-    Swag.require(view.veilsShown and view.bottomVeil.isLocallyVisible() and view.topVeil.isLocallyVisible())
-    Swag.require(view.timeline.position.width == view.clientRect().width - 2 * Film.VeilInset + 16)
+    Swag.require(view.veilsShown and view.bottomVeil.isLocallyVisible())
+    Swag.require(view.timeline.position.width == view.commands.clientRect().width - 2 * Film.VeilInset + 16)
 
     // Still over the picture, the veils leave.
     view.settleVeils(10_000)
-    Swag.require(not view.veilsShown and not view.bottomVeil.isLocallyVisible() and view.app().isCursorHidden())
+    Swag.require(not view.veilsShown and view.bottomVeil.isLocallyVisible() and not view.app().isCursorHidden())
 
     // Another move event at the same position is not new movement. The next pixel is.
     host.moveMouse(picturePoint)
@@ -589,7 +588,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     host.moveMouse(picturePoint + Math.Point{1, 0})
     Swag.require(view.veilsShown and not view.app().isCursorHidden())
     view.settleVeils(10_000)
-    Swag.require(not view.veilsShown and view.app().isCursorHidden())
+    Swag.require(not view.veilsShown and not view.app().isCursorHidden())
 
     // The first movement brings the veils back, the next one lands on their controls.
     host.moveMouse(view.playButton.surfaceRect().center())
@@ -609,6 +608,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.settleVeils(10_000)
     Swag.require(view.veilsShown)
     view.timelineChanging = false
+    host.moveMouse(picturePoint + Math.Point{3, 0})
     view.settleVeils(10_000)
     Swag.require(not view.veilsShown)
 
@@ -657,7 +657,9 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
         Swag.require(entry.glyph.isValid(), entry.title)
 
     // Playback options open the speed choices, with the current rate checked.
-    Swag.require(view.optionsButton.isEnabled() and not view.tracksButton.isEnabled() and not view.volumeSlider.isEnabled())
+    Swag.require(view.optionsButton.isEnabled() and
+                 not view.tracksButton.isEnabled() and
+                 not view.volumeSlider.isEnabled())
     var speeds: OptionSheet.Page
     view.describeSpeeds(&speeds)
     host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
@@ -686,7 +688,9 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.describeOptions(&options)
     for row in options.rows do
         Swag.require(row.label != Film.texts().ui_OptionAudio)
-    Swag.require(not view.muteButton.isEnabled() and not view.volumeSlider.isEnabled() and not view.tracksButton.isEnabled())
+    Swag.require(not view.muteButton.isEnabled() and
+                 not view.volumeSlider.isEnabled() and
+                 not view.tracksButton.isEnabled())
 
     host.setReducedMotion(false)
     view.showSeekFeedback(10)
@@ -739,7 +743,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &captureVideoFailure})
-    Swag.require(result.view != null and result.commands == null)
+    Swag.require(result.view != null and result.commands != null)
     let view = assume cast(*Film.Panel, result.view)
     var failure: String
     view.userData = &failure

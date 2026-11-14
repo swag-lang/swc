@@ -14,6 +14,7 @@ func openVideoLensChoice(host: *Testing.HeadlessHost, view: *Film.Panel, title: 
         entry.run!()
         return
     }
+
     Swag.require(false, title)
 }
 
@@ -22,6 +23,7 @@ func openVideoLensChoice(host: *Testing.HeadlessHost, view: *Film.Panel, title: 
 #[Swag.TestTag("golden")]
 #test
 {
+    Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)

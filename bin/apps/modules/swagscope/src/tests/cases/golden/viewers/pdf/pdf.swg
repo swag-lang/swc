@@ -13,29 +13,28 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
 
     var host: HeadlessHost
-    host.setup(ViewerWindow.MinWidth, ViewerReadingLine.Height)
+    host.setup(ViewerWindow.MinWidth, ViewerReadingLine.Height + ViewerWindow.BarHeight)
     host.root.backgroundStyle = .View
     host.root.padding         = {8, 0, 8, 0}
 
     let document = Wnd.create'Wnd(&host.root)
     document.hide()
-    with let layout = ViewerReadingLine.create(&host.root)
-    {
-        .dockStyle = .Center
-        .details.setText("PDF · 1 page")
-    }
+    let foot   = createTestViewerFoot(&host.root)
+    let layout = foot.readings
+    layout.details.setText("PDF · 2 pages")
 
-    var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
+    var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: foot.commands, infoParent: layout)
     Swag.require(result.view != null and result.info != null)
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     host.root.applyLayout()
     layout.computeLayout()
+    standTestCommands(foot, unwrap result.commands)
 
-    Swag.require(result.info.position.width == 2 * themeActionButtonSize(view.themeMetrics()) + 76 + 96 + 16)
+    Swag.require(result.info.position.width == Viewer.ZoomSlotWidth)
     Swag.require(view.previousButton.position.right() <= view.pageLabel.position.x)
     Swag.require(view.pageLabel.position.right() <= view.nextButton.position.x)
-    Swag.require(view.nextButton.position.right() <= view.zoomLabel.position.x)
+    Swag.require(view.nextButton.surfaceRect().bottom() <= view.zoomLabel.surfaceRect().y)
 
     var image = host.render(&host.root)
     assertScopeImageGolden(&image, "viewer.pdf.info-bar")

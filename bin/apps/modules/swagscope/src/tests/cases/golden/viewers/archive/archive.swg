@@ -54,7 +54,10 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
         visibleIndex = index
     Swag.require(visibleIndex != Swag.U32.Max)
     viewer.list.selectLine(visibleIndex)
+    Swag.require(viewer.treePane.isLocallyVisible() and not viewer.previewPane.isLocallyVisible())
     viewer.requestPreview(1)
+    Swag.require(not viewer.treePane.isLocallyVisible() and viewer.previewPane.isLocallyVisible())
+    Swag.require(not viewer.facts.isLocallyVisible() and not window.readingLine.isLocallyVisible())
     Swag.require(viewer.pendingPreview == Swag.U64.Max)
 
     viewer.extract.task.wait()
@@ -91,4 +94,12 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     Swag.require(viewer.list.header.itemAt(1).name.raw == Archive.texts().ui_ColSize)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
+
+    host.clickWnd(viewer.backButton)
+    host.pump()
+    Swag.require(viewer.treePane.isLocallyVisible() and not viewer.previewPane.isLocallyVisible())
+    Swag.require(viewer.facts.isLocallyVisible() and not viewer.returnBar.isLocallyVisible())
+    Swag.require(embedded.currentView == null and viewer.previewFile.isEmpty())
+    var entries = host.renderSettled(window)
+    assertScopeImageGolden(&entries, "viewer.archive.entries")
 }

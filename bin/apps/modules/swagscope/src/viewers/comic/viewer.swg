@@ -19,6 +19,7 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "viewer.comic.cbz"
         .addSelectors(".cbz")
     }
+
     return result
 }
 
@@ -37,7 +38,8 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
         let largest = Math.max(drawing.width, drawing.height, 1)
         let scale   = Math.min(cast(f32, maxSide) / largest, 1)
         return drawing.rasterize(cast(s32, Math.max(Math.round(drawing.width * scale), 1)),
-                                 cast(s32, Math.max(Math.round(drawing.height * scale), 1)), 2)
+                                 cast(s32, Math.max(Math.round(drawing.height * scale), 1)),
+                                 2)
     }
 
     var image = try Image.decode(entry.path, bytes.toSlice())
@@ -47,8 +49,10 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     {
         let scale = cast(f32, maxSide) / cast(f32, largest)
         image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
-                     Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
+                     Math.max(1, cast(s32, cast(f32, image.height) * scale)),
+                     .Bilinear)
     }
+
     return image
 }
 
@@ -67,7 +71,7 @@ impl Book
         var result: #returntype
         result.archive = try Archive.Zip.load(fileName)
         for &entry, index in result.archive.entries where not entry.isDirectory and
-                                                    (Image.canLoad(entry.path) or Path.lowercaseExtension(entry.path) == ".svg") do
+                                                          (Image.canLoad(entry.path) or Path.lowercaseExtension(entry.path) == ".svg") do
             result.pages.add(index)
         if result.pages.isEmpty() do
             fail Errors.InvalidFormatError{texts().err_NoPages}
@@ -101,7 +105,7 @@ struct Panel
         status:         *Label
         previousButton: *IconButton
         nextButton:     *IconButton
-        pageLabel:      *IconButton
+        pageLabel:      *Label
     }
 }
 
@@ -114,6 +118,7 @@ private impl IWnd for Panel
             .continuePage()
             return
         }
+
         if not .load.claim(evt)
         {
             evt.accepted = false
@@ -139,12 +144,20 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
         .stopTimer(&.retryTimer)
         .continuePage()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        let direction = Viewer.pageKeyDirection(evt)
+        if direction
+        {
+            .turn(direction)
+            return
+        }
+
         if evt.kind != .Pressed or evt.modifiers != .None
         {
             evt.accepted = false
@@ -163,10 +176,11 @@ private impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged
         {
-            .previousButton.toolTip = texts().ui_Previous
-            .nextButton.toolTip     = texts().ui_Next
+            .previousButton.toolTip = appStrings().ui_PreviousPage
+            .nextButton.toolTip     = appStrings().ui_NextPage
             .refreshNavigation()
         }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -175,11 +189,11 @@ private impl Panel
 {
     mtd refreshNavigation()
     {
-        let page = .pendingPage != Swag.U64.Max ? .pendingPage : .activePage
+        let page    = .pendingPage != Swag.U64.Max ? .pendingPage : .activePage
         let hasPage = page != Swag.U64.Max
         .previousButton.enable(hasPage and page > 0)
         .nextButton.enable(hasPage and page + 1 < .book.pages.count)
-        .pageLabel.setText(hasPage ? Format.toString("% / %", page + 1, .book.pages.count) : "")
+        .pageLabel.setText(hasPage ? Viewer.pageText(page, .book.pages.count) : "")
         if hasPage do
             .services.showDetails(me, Format.toString(texts().ui_Details, page + 1, .book.pages.count))
     }
@@ -243,6 +257,7 @@ private impl Panel
                     .services.failed(me, Viewer.failureText(Swag.err))
                     return
                 }
+
                 .status.hide()
                 .services.loadingChanged(me)
                 return
@@ -260,10 +275,10 @@ private impl Panel
         .clearPreviewFile()
         .activePage  = .pendingPage
         .pendingPage = Swag.U64.Max
-        let entry    = &.book.archive.entries[.book.pages[.activePage]]
+        let entry     = &.book.archive.entries[.book.pages[.activePage]]
         let extension = Path.lowercaseExtension(entry.path)
-        var name = Format.toString("swagscope-comic-%", Guid64.random())
-        name += extension
+        var name      = Format.toString("swagscope-comic-%", Guid64.random())
+        name         += extension
         .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), name)
         .extract.start(.sourceFile, entry, .previewFile, me)
         .refreshNavigation()
@@ -296,39 +311,35 @@ private impl Panel
 
     func create(host: Viewer.Host)->*Panel
     {
-        let services = host.services()
+        let services    = host.services()
         with let result = Wnd.create'Panel(host.contentParent(), "scope.comic")
         {
             .backgroundStyle = .View
+            .focusPolicy     = .Tab
             .sourceFile      = host.fileName()
             .services        = services
         }
 
-        let info = host.createInfoGroup(168)
+        let info       = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
         let actionSize = themeActionButtonSize(result.themeMetrics())
-        with result.previousButton = Viewer.createActionButton(info, .ChevronLeft)
+        with result.previousButton = Viewer.createPageStep(info, -1)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Previous
+            .toolTip         = appStrings().ui_PreviousPage
             .sigPressed      += func|view = result|(_) { view.turn(-1) }
         }
-        with result.pageLabel = IconButton.create(info, {}, {0, 0, 80, 32}, "scope.comic.page", .CenterContent)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = 80
-            .margin.x        = 8
-            .setForm(.Rectangle)
-        }
-        with result.nextButton = Viewer.createActionButton(info, .ChevronRight)
+
+        result.pageLabel = Viewer.createPageLabel(info)
+        with result.nextButton = Viewer.createPageStep(info, 1)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Next
+            .toolTip         = appStrings().ui_NextPage
             .sigPressed      += func|view = result|(_) { view.turn(1) }
         }
 
-        result.embedded = host.createEmbedded(result)
+        result.embedded = host.createEmbedded(result, host.createInfoGroup(256))
         with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
@@ -336,8 +347,19 @@ private impl Panel
             .backgroundStyle = .View
             .setTextAlignment(.Center, .Center)
         }
+
         result.hookOnChildEvent = func|result|(_, evt)
         {
+            if evt is KeyEvent as key
+            {
+                let direction = Viewer.pageKeyDirection(key)
+                if direction
+                {
+                    result.turn(direction)
+                    return true
+                }
+            }
+
             if evt is TaskEvent do
                 result.retryPreview()
             return false
@@ -360,7 +382,8 @@ func createViewer(host: Viewer.Host)
     {
         .isLoading = func|view|()->bool => view.load.isPending() or view.extract.started or view.embedded.isLoading()
         .needsLoadingOverlay = func|view|()->bool => view.load.isPending()
-        .retire = func|view|()->bool => view.retire()
+        .retire    = func|view|()->bool => view.retire()
     }
+
     host.setLifecycle(lifecycle)
 }

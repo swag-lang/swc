@@ -97,7 +97,7 @@ struct CodeLanguageSample
     let oldTip = String.from(view.zoomLabel.toolTip)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(view.zoomLabel.toolTip == Code.texts().ui_ZoomMenu and view.zoomLabel.toolTip != oldTip)
+    Swag.require(view.zoomLabel.toolTip == Code.texts().ui_ZoomMenu)
     Swag.require(view.zoomPercent == 150 and view.editor == editor)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)

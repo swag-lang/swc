@@ -23,7 +23,7 @@ struct Texts
     ui_EndianLittle:           string = "Little Endian"                                                                                       // Little-endian byte-order choice.
     ui_EndianBig:              string = "Big Endian"                                                                                          // Big-endian byte-order choice.
     ui_ByteOrder:              string = "Byte Order"                                                                                          // Option choosing the byte order of multi-byte values.
-    ui_ZoomMenu:               string = "Byte View Zoom Options"                                                                              // Tooltip of the zoom value menu.
+    ui_ZoomMenu:               string = "Zoom…"                                                                                               // Tooltip of the zoom value menu.
     ui_Empty:                  string = "This file is empty."                                                                                 // Message painted when the file has no bytes.
     ui_GoTo:                   string = "Go to Offset"                                                                                        // Dialog title and menu entry of the jump command.
     ui_GoToMessage:            string = "Hexadecimal or 0d decimal offset, percentage, caret, filesize, or signed caret-relative offset."     // Question of the jump dialog.

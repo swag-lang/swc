@@ -69,11 +69,11 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
         let address = explorer.address.surfaceRect()
         let tools   = explorer.tools.surfaceRect()
         Swag.require(not explorer.title.isLocallyVisible())
-        Swag.require(address.bottom() <= tools.y and address.width > 0)
+        Swag.require(address.right() <= tools.x and address.width > 0)
 
         host.clickWnd(explorer.queryButton)
         Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
-        Swag.require(Math.abs(window.searchBar.surfaceRect().horzCenter() - window.documentPanel.surfaceRect().horzCenter()) < 1)
+        Swag.require(Math.abs(window.searchBar.position.right() - (window.documentArea().right() - window.themeMetrics().floating_Inset)) < 1)
         window.searchBox.setText("missing")
         Swag.require(explorer.shown.isEmpty())
         host.settleAnimations(window)

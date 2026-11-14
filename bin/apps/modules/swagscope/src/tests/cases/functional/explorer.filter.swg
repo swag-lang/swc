@@ -18,8 +18,9 @@ using Core, Gui
     Swag.require(window.searchShown and window.searchBox.hasFocus())
     Swag.require(window.searchBar.isLocallyVisible())
     Swag.require(not explorer.queryButton.isLocallyVisible())
-    let bar = window.searchBar.surfaceRect()
-    Swag.require(window.documentPanel.position.y >= window.searchBar.position.bottom())
+    let area = window.documentArea()
+    let bar  = window.searchBar.position
+    Swag.require(Math.abs(bar.right() - (area.right() - window.themeMetrics().floating_Inset)) < 1)
     window.searchBox.setText("Alpha")
     Swag.require(explorer.shown.count == 1)
     window.toggleInformation()
@@ -97,9 +98,9 @@ using Core, Gui
     window.setFilePanelVisible(true)
     window.applyLayout()
 
-    let area = window.documentPanel.surfaceRect()
-    let bar  = window.searchBar.surfaceRect()
-    Swag.require(Math.abs(bar.horzCenter() - area.horzCenter()) < 1)
+    let area = window.documentArea()
+    let bar  = window.searchBar.position
+    Swag.require(Math.abs(bar.right() - (area.right() - window.themeMetrics().floating_Inset)) < 1)
     Swag.require(bar.x >= area.x and bar.right() <= area.right())
     Swag.require(window.searchBox.hasFocus())
 }

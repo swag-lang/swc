@@ -2,16 +2,16 @@
 
 using Core, Gui
 
-private const EmbeddedHeaderHeight = 32.0
+private const EmbeddedHeaderHeight = ViewerReadingLine.Height
 
 // Application implementation of [[Viewer.Embedded]].
 //
-// It stands on the window's model with no band of its own: a quiet line names the entry in faint
-// mono, its readings and the viewer it is seen in at the end of that line, and the viewer's
-// commands float on a mini-bar at the foot of the document.
+// Entries use the same bottom readings and reserved command area as the main window.
+// The enclosing archive supplies the entry name and the return action.
 struct EmbeddedViewer
 {
-    using wnd: Wnd
+    using wnd:        Wnd
+    externalReadings: bool
 
     late
     {
@@ -52,6 +52,13 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
     for &instance in embeddedViewerFor(view).instances where instance.view == view
     {
         instance.details = details
+        let embedded = embeddedViewerFor(view)
+        if embedded.currentView == view
+        {
+            embedded.titleLabel.setText(details)
+            embedded.titleLabel.toolTip = details
+        }
+
         return
     }
 }
@@ -97,7 +104,7 @@ impl Viewer.Embedded for EmbeddedViewer
             fail Errors.UnsupportedFormatError{}
 
         .instances.resize(.choices.count)
-        .titleLabel.setText(title)
+        .titleLabel.toolTip = title
         .viewerMenu.show(.choices.count > 1)
         if not .activate(0) do
             fail Errors.InvalidFormatError{}
@@ -162,6 +169,8 @@ private impl EmbeddedViewer
         .currentSidePanel  = instance.sidePanelHost
         .currentSideButton = instance.sidePanelButton
         .activeIndex       = index
+        .titleLabel.setText(instance.details)
+        .titleLabel.toolTip = instance.details
         let plugin = &.owner.index.plugins[.choices[index].pluginIndex]
         .viewerMenu.setQuietText(plugin.displayName())
 
@@ -171,7 +180,7 @@ private impl EmbeddedViewer
         if instance.sidePanelButton
         {
             infoWidth += themeActionButtonSize(.themeMetrics()) + 8
-            instance.sidePanelButton.dockStyle = .Right
+            instance.sidePanelButton.dockStyle = .Left
         }
 
         .infoLane.position.width = infoWidth
@@ -217,13 +226,19 @@ private impl EmbeddedViewer
             return
         let commands = .currentCommands
         bar.show(commands != null)
+        let reserve = commands ? commands.position.height + bar.padding.y + bar.padding.w + 2 * .themeMetrics().miniBar_Distance : 0
+        if .sideSplitter.margin.w != reserve
+        {
+            .sideSplitter.margin.w = reserve
+            .applyLayout()
+        }
+
         if not commands do
             return
 
         let metrics = .themeMetrics()
         var area    = .clientRect()
-        area.y      += .header.position.height
-        area.height = Math.max(area.height - .header.position.height, 0)
+        area.height = Math.max(area.height - (.externalReadings ? 0 : .header.position.height), 0)
         let inset  = metrics.floating_Inset
         let pad    = bar.padding
         let room   = Math.max(area.width - 2 * inset - pad.x - pad.z, 0)
@@ -234,7 +249,6 @@ private impl EmbeddedViewer
         commands.dockStyle = .None
         commands.setPosition(Math.Rectangle{pad.x, pad.y, width, commands.position.height}, computeLayout: false)
         commands.applyLayout()
-        bar.bringToFront()
     }
 
     // Shows the viewer of `choices[index]`, creating its instance on first use and keeping it for
@@ -314,10 +328,9 @@ private impl EmbeddedViewer
         }
     }
 
-    // Builds the embedded viewer: a quiet line holding the entry title, its readings and the
-    // viewer it is seen in, the document area where the active instance docks, and the mini-bar
-    // its commands float on.
-    internal func create(parent: *Wnd, owner: *ViewerWindow)->*EmbeddedViewer
+    // Builds the entry document with bottom readings and a reserved command panel.
+    // The enclosing archive owns the name and return action.
+    internal func create(parent: *Wnd, owner: *ViewerWindow, readings: *Wnd? = null)->*EmbeddedViewer
     {
         with let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")
         {
@@ -337,16 +350,18 @@ private impl EmbeddedViewer
 
         result.commandBar = commandBar
 
-        with result.header = Wnd.create'Wnd(result, {0, 0, 0, EmbeddedHeaderHeight})
+        result.externalReadings = readings != null
+        with result.header = Wnd.create'ViewerInfoGroup(readings orelse cast(*Wnd, result), {0, 0, 0, EmbeddedHeaderHeight})
         {
-            .dockStyle       = .Top
+            .dockStyle       = readings ? .Center : .Bottom
             .backgroundStyle = .Transparent
-            .padding         = {16, 0, 8, 0}
+            if not readings do
+                .margin = {result.themeMetrics().floating_Inset, 0, result.themeMetrics().floating_Inset, 4}
         }
 
         with result.viewerMenu = IconButton.createQuiet(result.header)
         {
-            .dockStyle = .Right
+            .dockStyle = .Left
             .toolTip   = appStrings().ui_Viewer
             .hide()
             .sigPressed += func|embedded = result|(_) { embedded.showViewerMenu() }
@@ -356,7 +371,6 @@ private impl EmbeddedViewer
         {
             .dockStyle       = .Right
             .backgroundStyle = .Transparent
-            .margin.z        = 8
             .hide()
         }
 
@@ -369,6 +383,7 @@ private impl EmbeddedViewer
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
+        result.titleLabel.show(not result.externalReadings)
         with result.sideSplitter = SplitterCtrl.create(result)
         {
             .dockStyle       = .Center

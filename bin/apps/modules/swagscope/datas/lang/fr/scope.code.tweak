@@ -1,6 +1,6 @@
 # French strings of the Swag Scope source viewer. A key omitted here keeps its English value.
 
-ui_ZoomMenu Options de zoom du code
+ui_ZoomMenu Zoom…
 ui_Details  % · UTF-8
 
 err_Read     impossible de lire le fichier source

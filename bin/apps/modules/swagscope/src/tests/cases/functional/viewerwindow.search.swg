@@ -32,9 +32,12 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.applyLayout()
 
     window.showSearch()
-    Swag.require(window.searchBar.parent == window.documentHost and window.searchBar.dockStyle == .Top)
-    Swag.require(window.documentPanel.position.y >= window.searchBar.position.bottom())
-    Swag.require(window.searchBar.radius() == window.themeMetrics().corner_Floating)
+    let area = window.documentArea()
+    let top  = window.stripInset() + window.themeMetrics().floating_Inset * 0.5
+    Swag.require(window.searchBar.position.bottom() <= area.y + window.currentView!.padding.y)
+    Swag.require(window.searchBar.position.y >= top - 1)
+    Swag.require(window.searchBar.backgroundStyle == .Transparent)
+    Swag.require(window.searchCloseButton.isVisible())
 
     window.searchBox.setText("Heading")
     completeFind(&host, window)

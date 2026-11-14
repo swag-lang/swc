@@ -12,7 +12,7 @@ ui_FormatUns     Non signé
 ui_FormatSigned  Signé
 ui_FormatFloat   Flottant
 ui_ByteOrder     Ordre des octets
-ui_ZoomMenu      Options de zoom des octets
+ui_ZoomMenu Zoom…
 ui_Empty         Ce fichier est vide.
 ui_GoTo          Aller au décalage
 ui_GoToMessage   Décalage hexadécimal ou décimal préfixé par 0d, pourcentage, caret, filesize, ou décalage signé depuis le curseur.

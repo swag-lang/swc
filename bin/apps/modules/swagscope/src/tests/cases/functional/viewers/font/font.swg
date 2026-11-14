@@ -45,14 +45,14 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     view.document.previousPage()
     Swag.require(view.document.pageStart == firstStart)
     view.document.goToCharacterPage(0x370)
-    Swag.require(view.document.pageStart >= 0x370 and not view.document.history.isEmpty())
+    Swag.require(view.document.pageStart <= 0x370 and view.document.pageEnd >= 0x370)
 
     let oldPlaceholder = String.from(view.sampleEdit.name.raw)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.require(view.sampleEdit.name.raw == Typeface.texts().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
-    Swag.require(view.previousButton.toolTip == Typeface.texts().ui_PreviousPage)
-    Swag.require(view.nextButton.toolTip == Typeface.texts().ui_NextPage)
+    Swag.require(view.previousButton.toolTip == appStrings().ui_PreviousPage)
+    Swag.require(view.nextButton.toolTip == appStrings().ui_NextPage)
 }
 
 #test

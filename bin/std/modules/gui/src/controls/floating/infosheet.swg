@@ -117,7 +117,8 @@ impl IWnd for InfoSheet
         let bounds    = parent.clientRect()
         let inset     = metrics.floating_Inset
         let width     = Math.min(metrics.infoSheet_Width, bounds.width - 2 * inset)
-        let top       = bounds.y + Math.max(inset, parent.stripInset())
+        // The host can reserve a top row while document search is open.
+        let top       = bounds.y + Math.max(inset, parent.stripInset()) + .margin.y
         .contentHeight = .measureBody(width)
         let height    = Math.min(.contentHeight, bounds.bottom() - inset - top)
         .scrollOffset = Math.clamp(.scrollOffset, 0, Math.max(.contentHeight - height, 0))

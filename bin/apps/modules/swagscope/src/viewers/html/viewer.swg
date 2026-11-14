@@ -124,7 +124,7 @@ private impl Panel
         let column = .column()
         .address.setPosition(Math.Rectangle{column.x, 0, column.width, BandHeight - AddressGap}, computeLayout: false)
         let left = column.x + column.width + 48
-        let top = .band.isLocallyVisible() ? BandHeight : 0
+        let top  = .band.isLocallyVisible() ? BandHeight : 0
         .margin.place(left, top + 24, .clientRect().width - left - 24)
     }
 
@@ -226,6 +226,7 @@ func createViewer(host: Viewer.Host)
     {
         .dockStyle       = .Top
         .backgroundStyle = .Transparent
+        .hide()
     }
 
     with result.address = Label.create(result.band, addressOf(host.fileName()), {}, null, .Ellipsis)
@@ -234,6 +235,7 @@ func createViewer(host: Viewer.Host)
         .style.addStyleSheetColors("label_Text $label_TextFaint")
         .setTextAlignment(.Left, .Bottom)
     }
+
     if host.isEmbedded() do
         result.band.hide()
 

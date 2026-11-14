@@ -18,6 +18,7 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "viewer.epub"
         .addSelectors(".epub")
     }
+
     return result
 }
 
@@ -41,7 +42,7 @@ struct Panel
         status:         *Label
         previousButton: *IconButton
         nextButton:     *IconButton
-        chapterLabel:   *IconButton
+        chapterLabel:   *Label
     }
 }
 
@@ -54,12 +55,14 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
         let failure = .load.finish(&.book)
         if not failure.isEmpty()
         {
             .services.failed(me, failure)
             return
         }
+
         .showChapter(0)
         .services.loadingChanged(me)
     }
@@ -71,33 +74,32 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
         .stopTimer(&.retryTimer)
         .continueChapter()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind != .Pressed or evt.modifiers != .Control
+        let direction = Viewer.pageKeyDirection(evt)
+        if direction
         {
-            evt.accepted = false
+            .turn(direction)
             return
         }
-        switch evt.key
-        {
-        case .PageUp:   .turn(-1)
-        case .PageDown: .turn(1)
-        default:        evt.accepted = false
-        }
+
+        evt.accepted = false
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged
         {
-            .previousButton.toolTip = texts().ui_Previous
-            .nextButton.toolTip     = texts().ui_Next
+            .previousButton.toolTip = appStrings().ui_PreviousPage
+            .nextButton.toolTip     = appStrings().ui_NextPage
             .refreshNavigation()
         }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -106,11 +108,11 @@ private impl Panel
 {
     mtd refreshNavigation()
     {
-        let current = .pendingChapter != Swag.U64.Max ? .pendingChapter : .chapter
+        let current    = .pendingChapter != Swag.U64.Max ? .pendingChapter : .chapter
         let hasChapter = current != Swag.U64.Max
         .previousButton.enable(hasChapter and current > 0)
         .nextButton.enable(hasChapter and current + 1 < .book.chapters.count)
-        .chapterLabel.setText(hasChapter ? Format.toString("% / %", current + 1, .book.chapters.count) : "")
+        .chapterLabel.setText(hasChapter ? Viewer.pageText(current, .book.chapters.count) : "")
         if hasChapter do
             .services.showDetails(me, Format.toString(texts().ui_Details, current + 1, .book.chapters.count))
     }
@@ -148,15 +150,16 @@ private impl Panel
             return
         }
 
-        .chapter = .pendingChapter
+        .chapter        = .pendingChapter
         .pendingChapter = Swag.U64.Max
         let entry = &.book.chapters[.chapter]
-        let path = Path.combine(.book.root, entry.path)
+        let path  = Path.combine(.book.root, entry.path)
         catch .embedded.open(path, entry.path)
         {
             .services.failed(me, Viewer.failureText(Swag.err))
             return
         }
+
         .status.hide()
         .refreshNavigation()
     }
@@ -190,32 +193,30 @@ private impl Panel
         with let result = Wnd.create'Panel(host.contentParent(), "scope.epub")
         {
             .backgroundStyle = .View
+            .focusPolicy     = .Tab
             .services        = host.services()
         }
-        let info = host.createInfoGroup(168)
+
+        let info       = host.createCommandGroup(Viewer.pageControlWidth(result.themeMetrics()))
         let actionSize = themeActionButtonSize(result.themeMetrics())
-        with result.previousButton = Viewer.createActionButton(info, .ChevronLeft)
+        with result.previousButton = Viewer.createPageStep(info, -1)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Previous
+            .toolTip         = appStrings().ui_PreviousPage
             .sigPressed      += func|view = result|(_) { view.turn(-1) }
         }
-        with result.chapterLabel = IconButton.create(info, {}, {0, 0, 80, 32}, "scope.epub.chapter", .CenterContent)
-        {
-            .dockStyle       = .Left
-            .preferredSize.x = 80
-            .margin.x        = 8
-            .setForm(.Rectangle)
-        }
-        with result.nextButton = Viewer.createActionButton(info, .ChevronRight)
+
+        result.chapterLabel = Viewer.createPageLabel(info)
+        with result.nextButton = Viewer.createPageStep(info, 1)
         {
             .dockStyle       = .Left
             .preferredSize.x = actionSize
-            .toolTip         = texts().ui_Next
+            .toolTip         = appStrings().ui_NextPage
             .sigPressed      += func|view = result|(_) { view.turn(1) }
         }
-        result.embedded = host.createEmbedded(result)
+
+        result.embedded = host.createEmbedded(result, host.createInfoGroup(256))
         with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
@@ -223,12 +224,24 @@ private impl Panel
             .backgroundStyle = .View
             .setTextAlignment(.Center, .Center)
         }
+
         result.hookOnChildEvent = func|result|(_, evt)
         {
+            if evt is KeyEvent as key
+            {
+                let direction = Viewer.pageKeyDirection(key)
+                if direction
+                {
+                    result.turn(direction)
+                    return true
+                }
+            }
+
             if evt is TaskEvent do
                 result.retryChapter()
             return false
         }
+
         result.refreshNavigation()
         result.load.start(host.fileName(), &Book.load, result)
         result.applyLayout()
@@ -245,7 +258,8 @@ func createViewer(host: Viewer.Host)
     {
         .isLoading = func|view|()->bool => view.load.isPending() or view.embedded.isLoading()
         .needsLoadingOverlay = func|view|()->bool => view.load.isPending()
-        .retire = func|view|()->bool => view.retire()
+        .retire    = func|view|()->bool => view.retire()
     }
+
     host.setLifecycle(lifecycle)
 }

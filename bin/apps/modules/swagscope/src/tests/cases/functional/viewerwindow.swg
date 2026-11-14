@@ -1184,7 +1184,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(window.backgroundStyle == .Application and window.padding.y == 0)
     Swag.require(window.mainSplitter.dockStyle == .Center)
     Swag.require(window.appearanceButton.parent == &host.surfaceWnd and not window.appearanceButton.isLocallyVisible())
-    Swag.require(window.searchBar.parent == window.documentHost and window.searchBar.dockStyle == .Top and
+    Swag.require(window.searchBar.parent == window and
+                 window.searchBar.dockStyle == .None and
                  not window.searchBar.isLocallyVisible())
     Swag.require(window.searchGroup.parent == window.searchBar)
     Swag.require(window.searchBox.parent == window.searchGroup and window.searchNavigation.parent == window.searchGroup)
@@ -1257,7 +1258,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(window.viewerBar.isLocallyVisible())
     window.notePointer({20, 20})
     host.fireTimer(window.viewerBarTimer)
-    Swag.require(not window.viewerBar.isLocallyVisible() and window.app().isCursorHidden())
+    Swag.require(window.viewerBar.isLocallyVisible() and not window.app().isCursorHidden())
     window.notePointer({21, 20})
     Swag.require(not window.app().isCursorHidden())
     window.currentCommands = null
@@ -1288,22 +1289,21 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(not window.searchBar.isLocallyVisible() and window.searchBox.isEnabled())
     window.sendCommandEvent(ViewerCommands.Find)
     Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.hasFocus())
-    Swag.require(window.documentPanel.position.y >= window.searchBar.position.bottom())
-    Swag.require(Math.abs(window.searchGroup.position.horzCenter() - window.searchBar.clientRect().horzCenter()) <= 1)
+    let area = window.documentArea()
+    Swag.require(Math.abs(window.searchBar.position.right() - (area.right() - window.themeMetrics().floating_Inset)) <= 1)
+    Swag.require(window.searchBar.position.x >= area.x and window.searchBar.position.right() <= area.right())
+    Swag.require(window.searchBar.position.bottom() <= area.y)
     let actionSize = themeActionButtonSize(window.themeMetrics())
     Swag.require(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == themeActionIconSize(window.themeMetrics()))
     Swag.require(window.searchOptionsButton.position.height == actionSize)
     Swag.require(window.searchPrevious.icon.sizeX == themeActionIconSize(window.themeMetrics()) and window.searchNext.icon.sizeX == themeActionIconSize(window.themeMetrics()))
     Swag.require(window.searchPrevious.position.height == actionSize and window.searchNext.position.height == actionSize)
-    Swag.require(window.searchGroup.children.count == 3)
-    Swag.require(window.searchGroup.children[0] == window.searchOptionsButton)
-    Swag.require(window.searchGroup.children[1] == window.searchBox)
-    Swag.require(window.searchGroup.children[2] == window.searchNavigation)
-    Swag.require(window.searchNavigation.children.count == 3)
-    Swag.require(window.searchNavigation.children[0] == window.searchPrevious)
-    Swag.require(window.searchNavigation.children[1] == window.searchNext)
-    Swag.require(window.searchNavigation.children[2] == window.searchCountLabel)
-    Swag.require(window.searchCountLabel.textHorizontalAlignment == .Left)
+    Swag.require(window.searchBox.surfaceRect().right() <= window.searchCountLabel.surfaceRect().x)
+    Swag.require(window.searchCountLabel.surfaceRect().right() <= window.searchPrevious.surfaceRect().x)
+    Swag.require(window.searchPrevious.surfaceRect().right() <= window.searchNext.surfaceRect().x)
+    Swag.require(window.searchNext.surfaceRect().right() <= window.searchOptionsButton.surfaceRect().x)
+    Swag.require(window.searchOptionsButton.surfaceRect().right() <= window.searchCloseButton.surfaceRect().x)
+    Swag.require(window.searchCountLabel.textHorizontalAlignment == .Center)
 
     // A viewer without search puts the bar away and the keyboard back.
     let midiFile = Path.combine(Path.combine(testSourceRoot(#curlocation), "datas"), "viewer.mid")
@@ -1437,6 +1437,7 @@ func downwardArrows(wnd: *Wnd)->u64
         if button.arrowPosition == .RightDownward do
             result += 1
     }
+
     for child in wnd.children do
         result += downwardArrows(child[])
     return result
@@ -2237,7 +2238,9 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     window.sendCommandEvent(ViewerCommands.Lens)
 
     // Plain text keeps its options on the line of readings: no floating group comes with the lens.
-    Swag.require(window.lens.isOpen() and window.currentCommands == null and not window.viewerBar.isLocallyVisible())
+    Swag.require(window.lens.isOpen() and
+                 window.currentCommands == null and
+                 not window.viewerBar.isLocallyVisible())
     window.lens.setQuery(">")
     Swag.require(lensHasEntry(window, PlainText.texts().ui_Wrap) and lensHasEntry(window, appStrings().cmd_ZoomIn))
     Swag.require(lensHasEntry(window, appStrings().cmd_Options))

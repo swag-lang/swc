@@ -455,9 +455,8 @@ func isDateCell(text: string)->bool
     return text[4] == '-' or text[4] == '/'
 }
 
-// The table viewer: the file as a page — its name as the title over a mono line of what it holds,
-// then its rows under the name and the kind of each column, numbers in mono on the right, a
-// hairline between two rows — and where the current search match lies.
+// The table viewer: rows under each column's name and kind, quantities aligned on the right,
+// and search matches highlighted in place. File and selection facts use the host's reading line.
 struct Panel
 {
     using wnd: Wnd
@@ -608,7 +607,7 @@ private impl Panel
 
         .list.header.fitHeight()
         .title.setText(Path.fileName(.fileName) orelse "")
-        .title.show(.fileName.length != 0)
+        .title.hide()
 
         .order.clear()
         .rowLines.clear()
@@ -620,14 +619,13 @@ private impl Panel
     }
 
     // Keeps the table as wide as its columns, its hairlines ending with its last column, and the
-    // words of its first column on the edge of the title: the ground of a row reaches out of that
-    // edge by its own inset, as a hovered row does.
+    // words of its first column on the page margin. The row ground extends by its own inset.
     mtd fitWidth()
     {
         if .list.header.items.isEmpty() do
             return
         let textLeft = .list.header.surfaceRect().x + .list.header.itemPositionForColumn(0) + .list.header.itemPadding
-        let delta    = Math.round(textLeft - .head.surfaceRect().x)
+        let delta    = Math.round(textLeft - .localToSurface(Math.Point{.padding.x, 0}).x)
         if delta != 0
         {
             .list.margin.x -= delta
@@ -755,19 +753,18 @@ private impl Panel
         .list.invalidate()
     }
 
-    // Writes what the table holds under its title, and at the foot only what the title line does
-    // not say: the row the keyboard is on and the sum of the column of quantities.
+    // Reports structure, selected row and numeric summary together on the host's reading line.
     mtd refreshDetails()
     {
         let rows    = countText(.document.rows.count, texts().ui_Row, texts().ui_Rows)
         let columns = countText(.document.columns.count, texts().ui_OneColumn, texts().ui_Columns)
         .facts.setText(Format.toString("% · % · % · UTF-8", rows, columns, delimiterKind(.document.delimiter)))
 
-        var foot: String
+        var foot: String = .facts.text()
         if .list.focusIndex < .document.rows.count
         {
             let row = &.document.rows[.documentRow(.list.focusIndex)]
-            foot = Format.toString(texts().ui_RowAt, .list.focusIndex + 1)
+            foot = Format.toString("% · %", foot, Format.toString(texts().ui_RowAt, .list.focusIndex + 1))
             if row.cells.count and row.cells[0].length do
                 foot = Format.toString("% · %", foot, row.cells[0].toString())
         }
@@ -778,6 +775,7 @@ private impl Panel
             let sum = Format.toString("Σ % %", .document.columns[column].toString(), .sumText(column))
             foot = foot.isEmpty() ? sum : Format.toString("% · %", foot, sum)
         }
+
         .services.showDetails(me, foot)
     }
 
@@ -846,6 +844,7 @@ private impl Panel
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
+            .hide()
         }
 
         with result.facts = Label.create(result.head, "", Math.Rectangle{0, 0, 0, 24}, null, .Ellipsis)

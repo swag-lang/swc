@@ -79,9 +79,8 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     assertVideoRendererGolden(&image, golden, options)
 }
 
-// The film in the window, against `scope.video`: the picture alone at rest, and under the
-// pointer the top veil with the title and its facts, the bottom veil with the timeline, the
-// time under the pointer, the play button, the time in mono and the chips.
+// Film shares the window title, bottom facts and persistent command panel. Hover adds
+// the time under the pointer without moving the picture or covering its content.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -92,8 +91,8 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
     let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
 
-    // The film writes its title in the top veil, so the strip leaves it out.
-    Swag.require(host.surfaceWnd.titleHidden)
+    // Film uses the shared title, statistics and bottom commands.
+    Swag.require(not host.surfaceWnd.titleHidden)
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
     pinVideoFrame(view, 5)
@@ -123,9 +122,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 
     // Returning to Explorer adds a leading action; the film's own title uses its new inset.
     window.returnExplorerCaptionButton.show()
-    let titleRoom  = view.topVeil.titleRoom()
-    let titleStart = view.topVeil.localToSurface(Math.Point{titleRoom.x, titleRoom.y})
-    Swag.require(titleStart.x > window.returnExplorerCaptionButton.surfaceRect().right())
+    Swag.require(not host.surfaceWnd.titleHidden)
     var returning = host.renderSettled(&host.surfaceWnd)
     assertVideoRendererGolden(&returning, "viewer.video.return.ink")
 }
@@ -168,7 +165,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    with let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 88})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window

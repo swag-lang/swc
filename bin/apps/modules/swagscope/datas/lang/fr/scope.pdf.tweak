@@ -7,7 +7,7 @@ ui_ZoomIn    Agrandir
 ui_Fit       Ajuster la page
 ui_FitWidth  Ajuster à la largeur
 ui_Actual    Taille réelle
-ui_ZoomMenu  Options de zoom
+ui_ZoomMenu Zoom…
 ui_GoToPage  Aller à la page
 ui_PageRange Numéro de page entre 1 et %.
 ui_Continuous Continu

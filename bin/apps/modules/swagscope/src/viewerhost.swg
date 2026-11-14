@@ -174,10 +174,10 @@ impl Viewer.Host for ViewerPluginHost
     mtd impl icon()->Icon                    => .pluginIcon
     mtd impl services()->Viewer.HostServices => .hostServices
 
-    mtd impl createEmbedded(parent: *Wnd)->Viewer.Embedded
+    mtd impl createEmbedded(parent: *Wnd, readings: *Wnd?)->Viewer.Embedded
     {
         Swag.assert(.window != null, "embedded viewers need an application window")
-        return EmbeddedViewer.create(parent, .window)
+        return EmbeddedViewer.create(parent, .window, readings)
     }
 
     mtd impl createActionGroup(width: f32)->*Wnd

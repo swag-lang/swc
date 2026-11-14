@@ -46,10 +46,11 @@ private const CommandWidth = 512.0
 #[Swag.NoCopy]
 struct ViewerContent
 {
-    bytes:    Array'u8
-    face:     *Face?
-    typeFace: *TypeFace?
-    details:  String
+    bytes:      Array'u8
+    face:       *Face?
+    typeFace:   *TypeFace?
+    details:    String
+    pageStarts: Array'u32
 }
 
 impl ViewerContent
@@ -76,6 +77,18 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         result.details = Format.toString(texts().ui_DetailsSingle, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm)
     else do
         result.details = Format.toString(texts().ui_DetailsCollection, result.face.familyName, style, result.face.glyphCount, result.face.unitsPerEm, faceCount)
+    var start = 0x20'u32
+    while start < 0x110000
+    {
+        let page = characterPage(result.face, start)
+        if page.characters.isEmpty() do
+            break
+        result.pageStarts.add(cast(u32, page.characters[0]))
+        if not page.hasNext do
+            break
+        start = page.end + 1
+    }
+
     return result
 }
 
@@ -104,11 +117,26 @@ struct Panel
 
 private impl Panel
 {
+    mtd handlePageKey(key: *KeyEvent)->bool
+    {
+        let direction = Viewer.pageKeyDirection(key)
+        if not direction or .load.isPending() or .document == null do
+            return false
+        if direction < 0 do
+            .document.previousPage()
+        else do
+            .document.nextPage()
+        .refreshPageCommands()
+        return true
+    }
+
     mtd refreshPageCommands()
     {
-        .previousButton.enable(not .document.history.isEmpty())
+        .pageLabel.enable(not .document.pageStarts.isEmpty())
+        .previousButton.enable(.document.pageIndex > 0)
         .nextButton.enable(.document.hasNext)
-        .pageLabel.setText(Format.toString("U+%{X04}–U+%{X04}", .document.pageStart, .document.pageEnd))
+        .pageLabel.setText(Viewer.pageText(.document.pageIndex, .document.pageStarts.count))
+        .pageLabel.toolTip = Format.toString("% · U+%{X04}–U+%{X04}", texts().ui_CharacterRange, .document.pageStart, .document.pageEnd)
     }
 
     mtd retranslate()
@@ -119,8 +147,8 @@ private impl Panel
             .sampleEdit.setText(.sampleDefault)
 
         .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
-        .previousButton.toolTip = texts().ui_PreviousPage
-        .nextButton.toolTip     = texts().ui_NextPage
+        .previousButton.toolTip = appStrings().ui_PreviousPage
+        .nextButton.toolTip     = appStrings().ui_NextPage
         if not .load.isPending() do
             .document.invalidate()
     }
@@ -141,7 +169,8 @@ private impl Panel
                         view.document.previousPage()
                         view.refreshPageCommands()
                     },
-                    disabled: not .previousButton.isEnabled())
+                    disabled: not .previousButton.isEnabled(),
+                    shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(strings.ui_NextPage,
                     .ChevronRight,
                     func|view = me|()
@@ -149,7 +178,8 @@ private impl Panel
                         view.document.nextPage()
                         view.refreshPageCommands()
                     },
-                    disabled: not .nextButton.isEnabled())
+                    disabled: not .nextButton.isEnabled(),
+                    shortcut: Input.formatKeyShortcut(.Control, .PageDown))
 
         const Ranges: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
         let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
@@ -191,6 +221,11 @@ private impl Panel
 
 private impl IWnd for Panel
 {
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = .handlePageKey(evt)
+    }
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if not .load.claim(evt)
@@ -207,15 +242,14 @@ private impl IWnd for Panel
             return
         }
 
-        .document    = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
-        content.face = null
-        .details     = #move content.details
+        .document            = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
+        .document.pageStarts = #move content.pageStarts
+        content.face         = null
+        .details             = #move content.details
         .refreshPageCommands()
         .applyLayout()
 
-        // The specimen page already names the family, its style, its glyphs and its units: the
-        // line at the foot keeps the weight of the file alone.
-        .services.showDetails(me, "")
+        .services.showDetails(me, .details)
         .services.loadingChanged(me)
     }
 
@@ -248,6 +282,12 @@ impl Panel
         }
 
         result.createCommandBar()
+        result.hookOnChildEvent = func|view = result|(_, evt)->bool
+        {
+            if evt is KeyEvent as key do
+                return view.handlePageKey(key)
+            return false
+        }
 
         result.applyLayout()
         result.load.start(fileName, &loadViewerContent, result)
@@ -257,23 +297,10 @@ impl Panel
     // Creates the sample field and the character-page controls in the command group.
     private mtd createCommandBar()
     {
-        with .sampleEdit = EditBox.create(.commands, .sampleDefault, {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with .previousButton = Viewer.createPageStep(.commands, -1)
         {
             .dockStyle = .Left
-            .setMaximumLength(128)
-            .setPlaceholder(texts().ui_SamplePlaceholder)
-            .sigTextChanged += func|view = me|(_)
-            {
-                if not view.load.isPending() do
-                    view.document.invalidate()
-            }
-        }
-
-        with .previousButton = Viewer.createActionButton(.commands, .ChevronLeft)
-        {
-            .dockStyle  = .Left
-            .margin.x   = 8
-            .toolTip    = texts().ui_PreviousPage
+            .enable(false)
             .sigPressed += func|view = me|(_)
             {
                 view.document.previousPage()
@@ -281,10 +308,15 @@ impl Panel
             }
         }
 
-        with .nextButton = Viewer.createActionButton(.commands, .ChevronRight)
+        with .pageLabel = Viewer.createPageReadout(.commands, "scope.font.range", texts().ui_CharacterRange)
         {
-            .dockStyle  = .Left
-            .toolTip    = texts().ui_NextPage
+            .enable(false)
+            .sigPressed += func|view = me|(_) { view.showRangeMenu() }
+        }
+
+        with .nextButton = Viewer.createPageStep(.commands, 1)
+        {
+            .enable(false)
             .sigPressed += func|view = me|(_)
             {
                 view.document.nextPage()
@@ -292,15 +324,17 @@ impl Panel
             }
         }
 
-        with .pageLabel = IconButton.create(.commands, {}, {0, 0, 164, 36}, "scope.font.range", .CenterContent)
+        with .sampleEdit = EditBox.create(.commands, .sampleDefault, {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_CharacterRange
-            .setArrowPosition(.RightUpward)
-            .setForm(.Rectangle)
-            .style.setFont(me.theme().res.fontDefaultFs)
-            .sigPressed += func|view = me|(_) { view.showRangeMenu() }
+            .dockStyle = .Center
+            .margin.x  = 16
+            .setMaximumLength(128)
+            .setPlaceholder(texts().ui_SamplePlaceholder)
+            .sigTextChanged += func|view = me|(_)
+            {
+                if not view.load.isPending() do
+                    view.document.invalidate()
+            }
         }
     }
 }

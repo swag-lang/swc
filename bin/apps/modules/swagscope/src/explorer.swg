@@ -5,8 +5,8 @@ using Core, Gui, Pixel, Video
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 enum ExplorerKindFilter { All, Videos, Images, Audio, Documents, Subtitles, Archives, Folders }
 enum ExplorerArtworkSource { Online, Local }
-const ExplorerModeValues: [5] ExplorerMode = [.Names, .Details, .Small, .Medium, .Large]
-const ExplorerKindFilterValues: [8] ExplorerKindFilter = [.All, .Videos, .Images, .Audio, .Documents, .Subtitles, .Archives, .Folders]
+const ExplorerModeValues:          [5] ExplorerMode          = [.Names, .Details, .Small, .Medium, .Large]
+const ExplorerKindFilterValues:    [8] ExplorerKindFilter    = [.All, .Videos, .Images, .Audio, .Documents, .Subtitles, .Archives, .Folders]
 const ExplorerArtworkSourceValues: [2] ExplorerArtworkSource = [.Online, .Local]
 
 // The shape the tiles of a folder take, read from what most of it holds.
@@ -17,6 +17,7 @@ enum ExplorerBoard
     Covers      // Music: square covers, the album then who made it and when.
     Album       // One album: the cover large, then its tracks.
 }
+
 const ExplorerBoardValues: [4] ExplorerBoard = [.Grid, .Posters, .Covers, .Album]
 
 // Width over height of a tile's picture: a page for a folder of documents, a screen for a folder
@@ -126,7 +127,7 @@ struct Explorer
     requested:       String
     requestedFolder: String
     load:            ExplorerListingLoad
-    previews:        Array'*ExplorerPreview    // Stable task storage while the runtime owns each preview.
+    previews:        Array'*ExplorerPreview     // Stable task storage while the runtime owns each preview.
     generation:      u64
     selected:        u64 = Swag.U64.Max
     pendingOpen:     u64 = Swag.U64.Max
@@ -147,7 +148,7 @@ struct Explorer
     toast:           *Toast?
     forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
     forced:          bool
-    holdsMedia:      bool              // Whether the page shows films or albums, whose pictures may come from online.
+    holdsMedia:      bool     // Whether the page shows films or albums, whose pictures may come from online.
 }
 
 // Returns the glyph of the kinds of file `filter` keeps.
@@ -285,8 +286,8 @@ impl Explorer
 
         with result.failure = ViewerErrorView.create(result, "", .Folder)
         {
-            .dockStyle       = .Center
-            .margin          = Math.Vector4{PageMargin, 0, PageMargin, 0}
+            .dockStyle = .Center
+            .margin    = Math.Vector4{PageMargin, 0, PageMargin, 0}
             .hide()
         }
 
@@ -323,7 +324,7 @@ impl Explorer
         with .queryButton = IconButton.createQuiet(line)
         {
             .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
-            .toolTip = appStrings().ui_FilterFiles
+            .toolTip    = appStrings().ui_FilterFiles
             .sigPressed += func|view = me|(_) { view.revealFilter() }
         }
 
@@ -450,7 +451,7 @@ impl Explorer
         .filterPanel.applyLayout()
     }
 
-    // The path and the listing controls have separate lines above the page.
+    // The path and quiet listing controls share one row above the page.
     mtd fitHeader() => .layoutTools()
 
     mtd layoutTools()
@@ -474,17 +475,15 @@ impl Explorer
         .queryButton.show(not .window.searchShown)
         .extractAll.show(.listing.isArchive)
         .status.hide()
-
-        // The count belongs to the window title, so it is never repeated below the path.
-        .header.position.height = 2 * ToolHeight + HeaderGap
+        .header.position.height = ToolHeight + HeaderGap
         .applyLayout()
 
         // Keep the words of the controls while they have their own line.
         let line  = unwrap .tools.parent
         let space = line.clientRect().width
-        let room  = space
+        let room  = space * 0.55
         .tools.spacing = 8
-        .queryButton.setQuietText(.filter.text().count ? .filter.text() : appStrings().ui_FilterFiles)
+        .queryButton.setQuietText(.filter.text())
         .queryButton.setIconColor(.filter.text().count ? .themeColors().arc : Color{})
         .sortMenu.setQuietText(.sortName())
         .kindMenu.setQuietText(.filterKindName())
@@ -501,19 +500,22 @@ impl Explorer
 
         // The words of the path stand on the edge of the grid; the ground of a level reaches out
         // of it by its own padding, as a hovered row does.
-        let padX  = .address.breadcrumb.padX
-        let right = Math.max(space - width, 0)
-        let queryRoom = Math.max(right - 16, 0)
+        let padX       = .address.breadcrumb.padX
+        let right      = Math.max(space - width, 0)
+        let queryRoom  = Math.max(right - 144, 0)
         var queryWidth = Math.ceil(.queryButton.itf.measureContent({}).x)
         if queryWidth > queryRoom
         {
             .queryButton.setQuietText("")
             queryWidth = Math.ceil(.queryButton.itf.measureContent({}).x)
         }
-        .queryButton.setPosition({0, ToolHeight + 4, Math.min(queryWidth, queryRoom), ToolHeight})
-        .tools.setPosition({right, ToolHeight + 4, width, ToolHeight})
+
+        let query  = .queryButton.isLocallyVisible() ? Math.min(queryWidth, queryRoom) : 0
+        let queryX = Math.max(right - query - 8, 0)
+        .queryButton.setPosition({queryX, 0, query, ToolHeight})
+        .tools.setPosition({right, 0, width, ToolHeight})
         .tools.computeLayout()
-        .address.setPosition({-padX, 0, space + padX, ToolHeight})
+        .address.setPosition({-padX, 0, Math.max(queryX - 8 + padX, 0), ToolHeight})
         .address.refreshPath()
         .layoutFilter()
     }
@@ -764,13 +766,21 @@ impl Explorer
         .window.teachHints(visible)
         .showMediaInfo()
         .window.updateSearchAvailability()
+        if visible do
+            .setStatus(.status.text())
     }
 
-    // Reports what the location holds, or why it holds nothing, on the title's line.
+    // Reports what the location holds, or why it holds nothing, on the shared bottom line.
     mtd setStatus(text: string)
     {
         .status.setText(text)
         .status.position.width = Math.ceil(.status.itf.measureContent({}).x)
+        if .isLocallyVisible()
+        {
+            .window.showFileInfo(text, "")
+            .window.layoutFileInfo()
+        }
+
         .layoutTools()
         .window.refreshTitle()
     }
@@ -961,8 +971,10 @@ impl Explorer
                 sheet.setSecondaryAction(strings.cmd_Extract, ViewerCommands.ExtractChosen)
         }
 
-        if includeTechnical do
+        if includeTechnical
+        {
             .describeSelectedTechnical(sheet, includeFile: includeFile)
+        }
         elif includeFile
         {
             sheet.addSection(strings.explore_FileProperties)
@@ -1086,9 +1098,9 @@ impl Explorer
 
     // A media selection has a second page for its file and decoded measurements.
     mtd hasMediaSelection()->bool => .selected < .entries.count and
-                                    (not .entries[.selected].movie.title.isEmpty() or
-                                     not .entries[.selected].music.title.isEmpty() or
-                                     not .entries[.selected].music.track.isEmpty())
+                                     (not .entries[.selected].movie.title.isEmpty() or
+                                      not .entries[.selected].music.title.isEmpty() or
+                                      not .entries[.selected].music.track.isEmpty())
 
     // Adds the technical page of the chosen item: what its thumbnail measured, then its file.
     //
@@ -1300,6 +1312,7 @@ impl Explorer
             entry.duration  = 0
             entry.technical = {}
         }
+
         .startCacheClearWhenIdle()
     }
 
@@ -1670,7 +1683,7 @@ impl Explorer
         .grid.hovered = Swag.U64.Max
         .shown.clear()
         .list.clear()
-        let query = .filter.text()
+        let query   = .filter.text()
         var options = Viewer.SearchOptions{matchCase: .window.searchMatchCaseOption,
                                            wholeWord: .window.searchWholeWordOption,
                                            regularExpression: .window.searchRegexOption}
@@ -1701,6 +1714,7 @@ impl Explorer
                 if matches.isEmpty() do
                     continue
             }
+
             .shown.add(index)
         }
 
@@ -1714,7 +1728,9 @@ impl Explorer
         for index in .shown
         {
             let entry = &.entries[index]
-            if isFilmFile(entry) or not entry.albumTrack.isEmpty() or (not entry.directory and albumAudio(entry.name))
+            if isFilmFile(entry) or
+               not entry.albumTrack.isEmpty() or
+               (not entry.directory and albumAudio(entry.name))
             {
                 .holdsMedia = true
                 break
@@ -2005,9 +2021,9 @@ impl Explorer
     mtd previewSlot(index: u64)->u64
     {
         for preview, slot in .previews where preview.started and
-                                              not preview.opening and
-                                              preview.generation == .generation and
-                                              preview.index == index do
+                                             not preview.opening and
+                                             preview.generation == .generation and
+                                             preview.index == index do
             return slot
         return Swag.U64.Max
     }
@@ -2115,14 +2131,18 @@ impl Explorer
         preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
-        if not opening and not online and preview.archivePath.isEmpty() and
-           not albumAudio(entry.path) and Reader.canOpen(entry.path)
+        if not opening and
+           not online and
+           preview.archivePath.isEmpty() and
+           not albumAudio(entry.path) and
+           Reader.canOpen(entry.path)
         {
             let settings = catch ThumbnailSettings.decode(preview.settings)
             if settings.onlineMovies and not settings.localArtworkOnly do
                 online = true
         }
-        preview.online = online
+
+        preview.online  = online
         entry.attempted = true
         if online do
             entry.onlinePending = false
@@ -2306,6 +2326,7 @@ impl IWnd for Explorer
             preview.wait()
             Memory.delete(preview)
         }
+
         .cacheClear.task.cancel()
         .cacheClear.wait()
         .clearTextures()
@@ -2355,7 +2376,11 @@ private func fillsTile(glyph: Icon, texture: Texture, tile: Math.Rectangle)->boo
     const MaxStretch = 1.4'f32
     if glyph.index != cast(s32, ThemeIcons.FileVideo) and glyph.index != cast(s32, ThemeIcons.FileAudio) do
         return false
-    if not texture.isValid() or texture.width <= 1 or texture.height <= 1 or tile.width <= 0 or tile.height <= 0 do
+    if not texture.isValid() or
+       texture.width <= 1 or
+       texture.height <= 1 or
+       tile.width <= 0 or
+       tile.height <= 0 do
         return false
     let picture = cast(f32, texture.width) / cast(f32, texture.height)
     let cell    = tile.width / tile.height
@@ -2389,7 +2414,7 @@ struct ExplorerGrid
     posters:       bool     // Whether the tiles stand upright, as the posters of a folder of films.
     tile:          Math.Point = {160, 142}
     board:         ExplorerBoard
-    places:        Array'Math.Rectangle       // Where each album track stands.
+    places:        Array'Math.Rectangle     // Where each album track stands.
     contentHeight: f32
     albumCover:    Math.Rectangle
     albumText:     Math.Rectangle
@@ -2595,16 +2620,16 @@ impl ExplorerGrid
     // The virtual grid supplies data and custom document previews; Gui owns the tile rendering.
     mtd paintTile(painter: *Painter, row: u64)
     {
-        let index   = .explorer.shown[row]
-        let entry   = &.explorer.entries[index]
-        let tile    = .tileRect(row)
-        let glyph   = .theme().fileGlyph(entry.name, entry.directory, 32)
-        let name    = safeMediaText(.tileName(entry))
-        let facts   = .reading(entry)
-        let size    = .sizeText(entry)
-        let badge   = entry.duration and not .posters ? formatDuration(entry.duration) : String{}
-        let ext     = entry.directory ? "" : (Path.extension(entry.name) orelse "")
-        let slot    = .explorer.previewSlot(index)
+        let index = .explorer.shown[row]
+        let entry = &.explorer.entries[index]
+        let tile  = .tileRect(row)
+        let glyph = .theme().fileGlyph(entry.name, entry.directory, 32)
+        let name  = safeMediaText(.tileName(entry))
+        let facts = .reading(entry)
+        let size  = .sizeText(entry)
+        let badge = entry.duration and not .posters ? formatDuration(entry.duration) : String{}
+        let ext   = entry.directory ? "" : (Path.extension(entry.name) orelse "")
+        let slot  = .explorer.previewSlot(index)
         var content: FileTile.Content
         content.texture     = entry.texture
         content.icon        = glyph
@@ -2651,8 +2676,7 @@ impl ExplorerGrid
         // Keep the generic tile under the spinner until a local image or online artwork is ready.
         // A queued online music pass has no worker slot yet, but is still busy.
         let eligible = not entry.path.isEmpty() and
-                       (not entry.directory or not entry.albumTrack.isEmpty() or
-                        (.board == .Covers and entry.children == Swag.U64.Max))
+                       (not entry.directory or not entry.albumTrack.isEmpty() or (.board == .Covers and entry.children == Swag.U64.Max))
         if not entry.texture.isValid() and
            (slot != Swag.U64.Max or entry.onlinePending or (eligible and not entry.attempted))
         {
@@ -2661,9 +2685,10 @@ impl ExplorerGrid
             let spinner = .spinners[.spinnerUse]
             spinner.setPosition(Math.Rectangle{tile.right() - size - metrics.fileTile_Inset,
                                                tile.y + metrics.fileTile_Inset,
-                                               size, size}, computeLayout: false)
+                                               size, size},
+                                computeLayout: false)
             .busy[.spinnerUse] = true
-            .spinnerUse += 1
+            .spinnerUse        += 1
         }
     }
 
@@ -2964,6 +2989,7 @@ impl ExplorerGrid
                 if explorer.listing.isArchive and entry.archiveIndex < explorer.listing.archive.entries.count
                 {
                     let member = &explorer.listing.archive.entries[entry.archiveIndex]
+
                     // The bar measures what packing saved: a stored member keeps an empty track, so a
                     // full bar never reads as a member that did not pack at all.
                     if member.uncompressedSize

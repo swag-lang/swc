@@ -27,11 +27,13 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const InfoWidth      = 156.0
+private const InfoWidth      = Viewer.ZoomSlotWidth
 private const SvgRasterLimit = 2048.0
 
-private func commandWidth(metrics: const *ThemeMetrics)->f32         => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
-private func imageSetCommandWidth(metrics: const *ThemeMetrics)->f32 => commandWidth(metrics) + themeActionButtonSize(metrics) + 10 + 128 + 12 + 58
+private func commandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
+private func imageSetCommandWidth(metrics: const *ThemeMetrics, animated: bool)->f32 =>
+    Viewer.pageControlWidth(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16 + 128 + 12 +
+    (animated ? themeActionButtonSize(metrics) + 10 : 0)
 
 // What the worker decodes for the picture viewer, handed to the view in one move.
 struct ViewerContent
@@ -201,6 +203,8 @@ struct Panel
         playModeButton:  *Viewer.PlaybackButton
         playButton:      *IconButton
         timeline:        *Slider
+        previousPage:    *IconButton
+        nextPage:        *IconButton
         frameLabel:      *Label
     }
 
@@ -219,22 +223,19 @@ impl Panel
         .information.describe(sheet)
     }
 
-    // Shows the zoom in the zoom label, with the rotation and mirroring when the image is
-    // transformed.
+    // Keeps the zoom readout numeric and reports orientation at the transform menu.
     mtd refreshZoom()
     {
-        let zoom = cast(s32, Math.round(.imageView.effectiveZoom() * 100))
+        let zoom = cast(u32, Math.round(.imageView.effectiveZoom() * 100))
+        .zoomLabel.setText(Viewer.zoomText(zoom))
+        .transformButton.setIconColor(.imageView.rotationQuarterTurns != 0 or .imageView.isMirrored ? .themeColors().arc : .themeColors().softText)
+        .transformButton.toolTip = texts().ui_TipTransform
         if .imageView.rotationQuarterTurns or .imageView.isMirrored
         {
             let angle = .imageView.rotationQuarterTurns * 90
+            .transformButton.toolTip = Format.toString("% · %°", texts().ui_TipTransform, angle)
             if .imageView.isMirrored do
-                .zoomLabel.setText(Format.toString("% % · %° · %", zoom, "%", angle, texts().word_Mirrored))
-            else do
-                .zoomLabel.setText(Format.toString("% % · %°", zoom, "%", angle))
-        }
-        else
-        {
-            .zoomLabel.setText(Viewer.zoomText(zoom))
+                .transformButton.toolTip = Format.toString("% · %", .transformButton.toolTip, texts().word_Mirrored)
         }
 
         .services.chromeChanged(me)
@@ -248,7 +249,9 @@ impl Panel
         if movie.frameCount <= 1 do
             return
         .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
-        .frameLabel.setText(Format.toString("% / %", movie.frameIndex + 1, movie.frameCount))
+        .frameLabel.setText(Viewer.pageText(cast(u64, movie.frameIndex), cast(u64, movie.frameCount)))
+        .previousPage.enable(movie.frameIndex > 0)
+        .nextPage.enable(movie.frameIndex + 1 < movie.frameCount)
         .playButton.setIcon(.theme().icon(movie.isPaused ? .Play : .Pause, themeActionIconSize(.themeMetrics())))
 
         // The movie records elapsed cycles independently of frame seeks and encoded loop limits.
@@ -281,12 +284,14 @@ impl Panel
 
     mtd showPlayback()
     {
-        let width = imageSetCommandWidth(.themeMetrics())
+        let width = imageSetCommandWidth(.themeMetrics(), .imageView.movie.isAnimated())
         .actions.preferredSize.x = width
         .actions.resize(width, themeActionButtonSize(.themeMetrics()))
         .playButton.show(.imageView.movie.isAnimated())
         .timeline.show()
         .frameLabel.show()
+        .previousPage.show()
+        .nextPage.show()
         .timeline.setBounds(0, cast(f32, .imageView.movie.frameCount) - 1, 1)
         .refreshFrame()
         .services.chromeChanged(me)
@@ -364,7 +369,15 @@ impl Panel
         if .imageView.picture() do
             entries.add(texts.ui_CopyImage, .Copy, func|view = me|() { view.copyPicture() }, shortcut: Input.formatKeyShortcut(.Control, .C))
         entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(lens.cmd_ZoomReset, .ActualSize, func|view = me|() { view.imageView.actualSize() })
+        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(lens.cmd_ZoomReset, .ActualSize, func|view = me|() { view.imageView.actualSize() }, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        if .imageView.movie.frameCount > 1
+        {
+            entries.add(lens.ui_PreviousPage, .ChevronLeft, func|view = me|() { view.turnPage(-1) }, disabled: not .previousPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+            entries.add(lens.ui_NextPage, .ChevronRight, func|view = me|() { view.turnPage(1) }, disabled: not .nextPage.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+        }
+
         entries.add(lens.cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
         if .playButton.isLocallyVisible()
         {
@@ -398,10 +411,10 @@ impl Panel
     mtd showZoomMenu()
     {
         let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25%", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("50%", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100%", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200%", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        menu.addItem("25 %", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("50 %", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
+        menu.addItem("100 %", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
+        menu.addItem("200 %", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
         menu.addSeparator()
         menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
@@ -423,6 +436,8 @@ private impl IWnd for Panel
         {
             .previousButton.toolTip  = texts().ui_TipPrevious
             .nextButton.toolTip      = texts().ui_TipNext
+            .previousPage.toolTip    = appStrings().ui_PreviousPage
+            .nextPage.toolTip        = appStrings().ui_NextPage
             .transformButton.toolTip = texts().ui_TipTransform
             .playButton.toolTip      = texts().ui_TipPlay
             .zoomLabel.toolTip       = texts().ui_ZoomMenu
@@ -475,8 +490,8 @@ private impl IWnd for Panel
             .imageView.takeImage(&content.image)
         }
 
-        .facts   = #move content.facts
-        .details = .facts.text()
+        .facts       = #move content.facts
+        .details     = .facts.text()
         .information = #move content.information
         .refreshZoom()
         .applyLayout()
@@ -511,16 +526,16 @@ private impl IWnd for Panel
             else do
                 evt.accepted = false
 
-        case .Add, .OemPlus:
+        case .Add, .OemPlus where evt.modifiers == .Control:
             .imageView.zoomIn()
 
-        case .Subtract, .OemMinus:
+        case .Subtract, .OemMinus where evt.modifiers == .Control:
             .imageView.zoomOut()
 
         case .D0 where evt.modifiers.has(.Control):
             .imageView.actualSize()
 
-        case .F:
+        case .F where evt.modifiers == .None:
             .imageView.zoomToFit()
 
         case .R where evt.modifiers == .None:
@@ -574,14 +589,47 @@ private impl Panel
             result.actions = Wnd.create'Wnd(result)
             result.actions.hide()
         }
-        else do
+        else
+        {
             result.actions = host.createCommandGroup(commandWidth(result.themeMetrics()))
-        result.info        = host.createInfoGroup(InfoWidth)
+        }
+
+        result.info = host.createInfoGroup(InfoWidth)
 
         result.createCommandBar(services.playback)
         result.createFrameControls()
         result.createZoomControl()
         result.createImageView()
+        result.actions.hookOnEvent = func|view = result|(_, evt)->bool
+        {
+            if evt is ResizeEvent
+            {
+                let paged = view.imageView.movie.frameCount > 1
+                let width = view.actions.position.width
+                view.timeline.show(paged and width >= imageSetCommandWidth(view.themeMetrics(), view.imageView.movie.isAnimated()))
+                view.previousButton.show(not paged)
+                view.nextButton.show(not paged)
+                view.transformButton.show(not paged or width >= Viewer.pageControlWidth(view.themeMetrics()) + themeDropDownButtonWidth(view.themeMetrics()) + 8)
+                view.playModeButton.show(not paged or width >= imageSetCommandWidth(view.themeMetrics(), false) - 128 - 12 + (view.imageView.movie.isAnimated() ? themeActionButtonSize(view.themeMetrics()) + 10 : 0))
+            }
+
+            return false
+        }
+
+        result.hookOnChildEvent = func|view = result, nested = host.isEmbedded()|(_, evt)->bool
+        {
+            if evt is KeyEvent as key
+            {
+                let direction = Viewer.pageKeyDirection(key)
+                if direction and not nested and view.imageView.movie.frameCount > 1
+                {
+                    view.turnPage(direction)
+                    return true
+                }
+            }
+
+            return false
+        }
 
         result.applyLayout()
         result.load.start(host.fileName(), &loadViewerContent, result)
@@ -647,12 +695,39 @@ private impl Panel
             .sigChanged += func|view = me|(slider) { view.imageView.setFrameIndex(cast(s32, Math.round(slider.value()))) }
         }
 
-        with .frameLabel = Label.create(.actions, "", {0, 0, 58, 36}, null, .SecondaryText)
+        with .previousPage = Viewer.createPageStep(.actions, -1)
+        {
+            .hide()
+            .sigPressed += func|view = me|(_) { view.turnPage(-1) }
+        }
+
+        with .frameLabel = Label.create(.actions, "", {0, 0, Viewer.PageReadoutWidth, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
-            .setTextAlignment(.Center, .Center)
+            .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
+            .setTextAlignment(.Center, .OpticalCenter)
             .hide()
         }
+
+        with .nextPage = Viewer.createPageStep(.actions, 1)
+        {
+            .hide()
+            .sigPressed += func|view = me|(_) { view.turnPage(1) }
+        }
+
+        .timeline.sendToBack()
+        .playButton.sendToBack()
+        .nextPage.sendToBack()
+        .frameLabel.sendToBack()
+        .previousPage.sendToBack()
+    }
+
+    // Changes the existing image-set page or animation frame without wrapping at its ends.
+    mtd turnPage(direction: s32)
+    {
+        let movie = &.imageView.movie
+        if movie.frameCount > 1 do
+            .imageView.setFrameIndex(Math.clamp(movie.frameIndex + direction, 0, movie.frameCount - 1))
     }
 
     // Creates the zoom menu button in the information group.

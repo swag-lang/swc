@@ -14,7 +14,7 @@ struct Texts
     ui_ZoomIn:           string = "Zoom In"
     ui_Fit:              string = "Fit Complete Score"
     ui_FitShort:         string = "Fit"
-    ui_ZoomMenu:         string = "Horizontal Zoom · Ctrl wheel: pitch zoom · Page Up/Down: scroll"
+    ui_ZoomMenu:         string = "Zoom…"
     ui_PitchLabels:      string = "Pitch Labels"
     ui_PitchReference:   string = "C4 = MIDI 60"
     ui_PitchScientific:  string = "C4 Names"

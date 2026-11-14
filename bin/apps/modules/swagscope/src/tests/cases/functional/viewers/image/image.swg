@@ -115,9 +115,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         let frameIndex = view.imageView.movie.frameIndex
         expect host.app.setLanguage("fr")
         host.notify(.LanguageChanged)
-        Swag.require(view.transformButton.toolTip == Picture.texts().ui_TipTransform and view.transformButton.toolTip != oldTip)
+        Swag.require(Utf8.startsWith(view.transformButton.toolTip, Picture.texts().ui_TipTransform) and view.transformButton.toolTip != oldTip)
         Swag.require(view.zoomLabel.toolTip == Picture.texts().ui_ZoomMenu and view.playButton.toolTip == Picture.texts().ui_TipPlay)
-        Swag.require(Utf8.contains(view.zoomLabel.text(), Picture.texts().word_Mirrored))
+        Swag.require(Utf8.contains(view.transformButton.toolTip, Picture.texts().word_Mirrored))
         Swag.require(view.details != oldDetails)
         Swag.require(view.imageView.zoom == 1.5 and
                      view.imageView.isMirrored and
@@ -172,9 +172,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     view.navigate(1)
     Swag.require(navigation == 0)
     view.rotateCounterClockwise()
-    Swag.require(view.imageView.rotationQuarterTurns == 3 and Utf8.contains(view.zoomLabel.text(), "270"))
+    Swag.require(view.imageView.rotationQuarterTurns == 3 and Utf8.contains(view.transformButton.toolTip, "270"))
     view.mirrorHorizontally()
-    Swag.require(view.imageView.isMirrored and Utf8.contains(view.zoomLabel.text(), Picture.texts().word_Mirrored))
+    Swag.require(view.imageView.isMirrored and Utf8.contains(view.transformButton.toolTip, Picture.texts().word_Mirrored))
     view.resetTransform()
     Swag.require(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
     var rotate = KeyEvent{kind: .Pressed, key: .R}
@@ -236,20 +236,19 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require(Math.abs(window.currentInfo.position.right() - window.readingLine.clientRect().right()) < 0.01)
     Swag.require(window.currentCommands != null and window.currentCommands.parent == window.viewerBar)
 
-    // A picture played once has nothing coming after it: its commands stay on screen. In a mode
-    // that moves on to the next file, they wait for the pointer like every other viewer's.
+    // Windowed controls stay visible in every playback mode, like the other viewers.
     Swag.require(window.playMode == .Once and window.viewerBar.isLocallyVisible())
     window.concealViewerBar()
     Swag.require(window.viewerBar.isLocallyVisible() and not window.app().isCursorHidden())
     window.setPlayMode(.Folder)
-    Swag.require(not window.viewerBar.isLocallyVisible())
+    Swag.require(window.viewerBar.isLocallyVisible())
     window.revealViewerBar()
     Swag.require(window.viewerBar.isLocallyVisible() and window.viewerBar.position.height == ViewerWindow.BarHeight)
     Swag.require(not window.searchBar.isLocallyVisible())
     Swag.require(Math.abs(window.currentCommands.position.horzCenter() - window.viewerBar.paddedClientRect().horzCenter()) < 0.01)
     Swag.require(Math.abs(window.viewerBar.position.horzCenter() - window.documentArea().horzCenter()) <= 1)
     window.concealViewerBar()
-    Swag.require(not window.viewerBar.isLocallyVisible() and window.app().isCursorHidden())
+    Swag.require(window.viewerBar.isLocallyVisible() and not window.app().isCursorHidden())
     window.notePointer(window.pointerPosition + Math.Point{1, 0})
     Swag.require(not window.app().isCursorHidden())
 }

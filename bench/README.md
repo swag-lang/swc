@@ -44,6 +44,17 @@ python -m unittest discover -s bench/tests
 recording a campaign or regenerating reports. Omit `--toolchains` to check every available tool.
 The checks and build diagnostics go to `out/<host>/smoke.json`. A failed build/check exits nonzero.
 
+For a quick Linux runtime campaign across all twelve tasks, without a frozen reference:
+
+```sh
+python bench/bench.py measure --quick --run --no-reference --swc /absolute/path/to/swc --swc-cores 3 --out /absolute/external/path/quick.json
+```
+
+This takes one sample per available runtime and writes no official history. `--run` still builds
+programs outside the measurement, but avoids the hello-build and full standard-library edit-loop
+sections (documentation generation can be lengthy even with `--quick`). Missing tools are skipped;
+build/check failures are retained in the raw result and make the command exit nonzero.
+
 For Linux campaigns, first build Swag with `tools/linux-build.py` into an external directory,
 then use `python bench/bench.py campaign --no-build --swc /absolute/path/to/swc`. Freeze a **Linux**
 reference separately before measuring progress. Windows continues to use `tools/bench.bat` and

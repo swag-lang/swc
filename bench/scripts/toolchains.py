@@ -562,9 +562,10 @@ def make_hello_runs(t, installs, cores=0):
         "lua5.4": ([t["lua"], os.path.join(hello, "hello.lua")], {}),
         "python3.12": ([t["py"], *(["-3"] if os.name == "nt" else []), os.path.join(hello, "hello.py")], {}),
         "php": (php_command(t, os.path.join(hello, "hello.php")), {}),
-        "php-jit": (php_command(t, os.path.join(hello, "hello.php"), True), {}),
         "ruby": ([t["ruby"], "--disable-gems", os.path.join(hello, "hello.rb")], {}),
     }
+    if t.get("php") and t.get("php_opcache"):
+        runs["php-jit"] = (php_command(t, os.path.join(hello, "hello.php"), True), {})
     out = {k: {"cmd": cmd, "env": env, "marker": "hi", "state": None} for k, (cmd, env) in runs.items()}
     for rt in SWAG_JIT + ["ref-jit-release", "ref-jit-devmode"]:
         install = installs.get(ROLE_OF[rt])

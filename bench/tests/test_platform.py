@@ -15,6 +15,10 @@ import toolchains
 
 
 class DiscoveryTests(unittest.TestCase):
+    def test_missing_php_does_not_block_hello_planning(self):
+        tools = dict.fromkeys(['node', 'luajit', 'lua', 'py', 'php', 'php_opcache', 'ruby'])
+        self.assertNotIn('php-jit', toolchains.make_hello_runs(tools, {}, 3))
+
     def test_process_facade_forwards_private_accounting_helpers(self):
         import process
         with mock.patch.object(process, '_backend', mock.Mock()) as backend:
@@ -78,6 +82,9 @@ class DiscoveryTests(unittest.TestCase):
 class LinuxProcessTests(unittest.TestCase):
     def test_output_marker_exit_and_memory_contract(self):
         import linuxproc
+        import process
+        self.assertEqual(process.PIN_MASK, linuxproc.PIN_MASK)
+        self.assertEqual(linuxproc.PIN_MASK.bit_count(), 1)
         r = linuxproc.run([sys.executable, '-c', 'print("READY", flush=True)'], first_stdout_match='READY', pin=True)
         self.assertEqual(r['exit'], 0)
         self.assertIn('READY', r['stdout'])

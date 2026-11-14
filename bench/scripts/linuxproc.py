@@ -6,6 +6,8 @@ import subprocess
 import threading
 import time
 
+PIN_MASK = 1 << min(os.sched_getaffinity(0))
+
 
 def _system_times():
     ticks = list(map(int, Path('/proc/stat').read_text().splitlines()[0].split()[1:9]))
@@ -18,7 +20,7 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None, capture_first_stdout=
     start = time.perf_counter()
     # taskset establishes affinity before exec, including for compiler subprocesses.
     if pin:
-        cmd = ['taskset', '-c', str(min(os.sched_getaffinity(0))), *cmd]
+        cmd = ['taskset', '-c', str(PIN_MASK.bit_length() - 1), *cmd]
     p = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, start_new_session=True)
     output, errors, first = [], [], [None]

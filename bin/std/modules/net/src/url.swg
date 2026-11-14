@@ -21,7 +21,8 @@ struct HttpTarget
 // This deliberately accepts only ASCII host names and IPv4 literals as hosts. User information,
 // IPv6 literals, relative references and non-ASCII URL text are rejected. The path and query stay
 // percent-encoded, an absent path becomes `/`, and a fragment is omitted. Invalid escapes,
-// malformed ports, spaces and control characters fail.
+// malformed ports, overlong DNS names, spaces and control characters fail. DNS names have labels
+// of at most 63 characters and a total of at most 253 characters, excluding an optional final dot.
 func parseHttp(text: string)->HttpTarget fail
 {
     var result: #returntype
@@ -79,6 +80,10 @@ func parseHttp(text: string)->HttpTarget fail
 
     if labelStart < host.count and
        (host.count - labelStart > 63 or host[host.count - 1] == '-') do
+        fail Errors.InvalidFormatError{}
+
+    let hostLength = host.count - (host[host.count - 1] == '.' ? 1 : 0)
+    if hostLength > 253 do
         fail Errors.InvalidFormatError{}
 
     result.host = String.toLower(host)

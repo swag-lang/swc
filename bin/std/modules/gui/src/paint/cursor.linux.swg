@@ -33,6 +33,8 @@ public impl Cursor
     // Shared cursor resources are released when the GUI connection closes.
     func activate(cursor: Cursor)
     {
+        if LinuxDesktop.current() == null do
+            return
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
         let shape      = cursor.isHidden() ? CursorShape.Hidden : cursor.cursor ? cursor.cursor[] : CursorShape.Arrow
@@ -61,7 +63,7 @@ public impl Cursor
                 pixel[2] = 0
                 pixel[3] = 0
                 expect LinuxDesktop.check(context,
-                                       context.xcb_put_image_checked(connection, 2, bitmap, gc, 1, 1, 0, 0, 0, 1, cast(u32, pixel.count), pixel.buffer))
+                                          context.xcb_put_image_checked(connection, 2, bitmap, gc, 1, 1, 0, 0, 0, 1, cast(u32, pixel.count), pixel.buffer))
 
                 let id = context.xcb_generate_id(connection)
                 expect LinuxDesktop.check(context, context.xcb_create_cursor_checked(connection, id, bitmap, bitmap, 0, 0, 0, 0, 0, 0, 0, 0))

@@ -259,19 +259,6 @@ new language syntax.
 - Done when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
 
-### compiler.optimization.105 — Prove lz77's remaining signed remainder bounds
-
-- Evidence: `GuardedCounterRanges` bounds conditional nonnegative steps under dominating signed
-  guards, including signed minimum selections and early exits. The remaining `p` remainder uses
-  a dynamic seed `i + 1` and upper bound `i + best`; its two-input sum is outside the current
-  range query. Swag's truncating remainder and Zig's floor modulo differ for negative inputs.
-- Next: propagate no-wrap sums of bounded nonnegative SSA values into the inner counter proof.
-  Preserve bounds through pure selections and joins without assuming that two program pointers
-  cannot alias. Keep negative seeds/steps, overflow in the seed, sum or guard, alternate entries,
-  unresolved control flow, and live-flags controls before removing the correction.
-- Done when: every removed sign correction has a sound range proof, exact checksums, unrelated
-  positive/negative coverage, and no generated-code loss elsewhere.
-
 ### compiler.optimization.125 — Finish the AVX boundary cost and caller-state audit
 
 - Evidence: native, JIT, foreign-return and callback dirty-AVX-state probes match

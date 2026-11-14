@@ -23,8 +23,15 @@ func reference(outerLimit, stopAt: s64)->s64
         if matched > best do
             best = matched
         total ^= counter % 32768
-        if best >= 4 do
+        if best >= 4
+        {
+            for position in counter + 1 until counter + best
+            {
+                if position + 4 <= limit do
+                    total ^= position % 32768
+            }
             counter += best
+        }
         else do
             counter += 1
         rounds += 1
@@ -56,8 +63,15 @@ func optimized(outerLimit, stopAt: s64)->s64
         if matched > best do
             best = matched
         total ^= counter % 32768
-        if best >= 4 do
+        if best >= 4
+        {
+            for position in counter + 1 until counter + best
+            {
+                if position + 4 <= limit do
+                    total ^= position % 32768
+            }
             counter += best
+        }
         else do
             counter += 1
         rounds += 1

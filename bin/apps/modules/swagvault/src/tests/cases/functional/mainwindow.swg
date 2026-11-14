@@ -93,16 +93,20 @@ internal func useTestDestination(window: *MainWindow)
     window.drive.setSelectedIndex(0, notify: false)
 }
 
+const PictureMountedPath = #os == Swag.TargetOs.Windows ? "C:\\Users\\vault\\papiers.bin" : "/home/vault/papiers.bin"
+const PictureLockedPath  = #os == Swag.TargetOs.Windows ? "C:\\vault.bin" : "/vault.bin"
+const PictureArchivePath = #os == Swag.TargetOs.Windows ? "E:\\archives-2025.bin" : "/archives-2025.bin"
+
 // Fills the list the way the charter pictures it: one vault mounted, two at rest.
 internal func fillPictureList(window: *MainWindow)
 {
     useTestDestination(window)
     window.privacyMode = false
     window.applyPrivacyControl()
-    window.vaults.add(KnownVault{"C:\\Users\\vault\\papiers.bin", "D:", false})
-    window.vaults.add(KnownVault{"C:\\vault.bin", "D:", false})
-    window.vaults.add(KnownVault{"E:\\archives-2025.bin", "D:", false})
-    window.mountedDrives.drives.add(MountedDrive{null, "C:\\Users\\vault\\papiers.bin", "P:", "P:", true, false, false, 2 * 1024 * 1024 * 1024, 780 * 1024 * 1024})
+    window.vaults.add(KnownVault{PictureMountedPath, "D:", false})
+    window.vaults.add(KnownVault{PictureLockedPath, "D:", false})
+    window.vaults.add(KnownVault{PictureArchivePath, "D:", false})
+    window.mountedDrives.drives.add(MountedDrive{null, PictureMountedPath, "P:", "P:", true, false, false, 2 * 1024 * 1024 * 1024, 780 * 1024 * 1024})
     window.refreshVaults()
 }
 
@@ -330,7 +334,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.createButton.text() == "Créer le coffre chiffré")
     Swag.require(window.mountButton.text() == "Monter")
     Swag.require(window.optionsPage.head.title.text() == "Vie privée")
-    Swag.require(Utf8.startsWith(window.vaultIdentity("C:\\Users\\vault\\papiers.bin"), "monté sur P:"))
+    Swag.require(Utf8.startsWith(window.vaultIdentity(PictureMountedPath), "monté sur P:"))
 
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
     host.notify(.LanguageChanged)
@@ -703,7 +707,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         Swag.require(state.updatedFields.has(.Icon) and state.icon.isValid())
     }
 
-    window.openVault("C:\\vaults\\locked")
+    let lockedPath = Path.combine(Env.getSpecialDirectory(.Temp), "vaults", "locked")
+    let otherPath  = Path.combine(Env.getSpecialDirectory(.Temp), "vaults", "other.bin")
+    window.openVault(lockedPath)
     window.lens.open(">")
     for title in [texts.ui_NewVault, texts.ui_OpenFile, texts.ui_VaultsTitle, texts.cmd_Options,
                   texts.ui_Mount, texts.ui_ReadOnly, texts.ui_ProtectHidden, texts.ui_ChangePassword,
@@ -713,7 +719,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.lens.close()
 
     // A mounted vault offers what applies to a drive instead.
-    window.mountedDrives.drives.add(MountedDrive{null, "C:\\vaults\\locked", "D:", "X:", true, false, false, 0, 0})
+    window.mountedDrives.drives.add(MountedDrive{null, lockedPath, "D:", "X:", true, false, false, 0, 0})
     window.refreshVaults()
     window.lens.open(">")
     Swag.require(lensHasEntry(window, texts.ui_Unmount))
@@ -732,16 +738,16 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     window.lens.close()
 
     // The vaults answer a query by name.
-    window.addVault("C:\\vaults\\other.bin")
+    window.addVault(otherPath)
     window.lens.open("other")
     Swag.require(lensHasEntry(window, "other.bin"))
     window.lens.close()
 
     // Protecting the hidden volume is a choice of the next mount, said on the vault's line.
-    window.chooseVault("C:\\vaults\\other.bin")
+    window.chooseVault(otherPath)
     discard window.runCommand(VaultCommands.ProtectHidden)
     Swag.require(window.protectHiddenOnMount)
-    Swag.require(Utf8.contains(window.vaultIdentity("C:\\vaults\\other.bin"), texts.ui_StateProtected))
+    Swag.require(Utf8.contains(window.vaultIdentity(otherPath), texts.ui_StateProtected))
 }
 
 // Boxes contain only the change being made. Current password and key files stay on the unfolded
@@ -870,14 +876,14 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.require(mounted.open.isLocallyVisible() and mounted.unmount.isLocallyVisible())
     Swag.require(mounted.unmount.position.right() <= mounted.position.width - RowOutset + 0.5)
     Swag.require(not window.list.rows[1].open.isLocallyVisible())
-    Swag.require(window.vaultIdentity("C:\\Users\\vault\\papiers.bin") == "mounted on P: · 2 GiB · read and write")
-    Swag.require(Utf8.endsWith(window.vaultIdentity("E:\\archives-2025.bin"), "locked"))
+    Swag.require(window.vaultIdentity(PictureMountedPath) == "mounted on P: · 2 GiB · read and write")
+    Swag.require(Utf8.endsWith(window.vaultIdentity(PictureArchivePath), "locked"))
 
     // In the list, the line under a name leaves out what the row already shows: the drive is the
     // large figure, the room is the thread, the state is the dot and its group.
-    Swag.require(window.vaultPlace("C:\\Users\\vault\\papiers.bin", 0) == "C:\\Users\\vault · read and write")
-    Swag.require(window.vaultPlace("E:\\archives-2025.bin", 0) == "E:\\")
-    Swag.require(window.vaultPlace("E:\\archives-2025.bin", 4 * 1024 * 1024 * 1024) == "E:\\ · 4 GiB")
+    Swag.require(window.vaultPlace(PictureMountedPath, 0) == (#os == Swag.TargetOs.Windows ? "C:\\Users\\vault · read and write" : "/home/vault · read and write"))
+    Swag.require(window.vaultPlace(PictureArchivePath, 0) == (#os == Swag.TargetOs.Windows ? "E:\\" : "/"))
+    Swag.require(window.vaultPlace(PictureArchivePath, 4 * 1024 * 1024 * 1024) == (#os == Swag.TargetOs.Windows ? "E:\\ · 4 GiB" : "/ · 4 GiB"))
     Swag.require(mounted.position.height == VaultRow.MountedHeight and window.list.rows[1].position.height == VaultRow.Height)
 
     // The rows stand under the title, one under the other, in the order of the list.
@@ -885,14 +891,14 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.require(window.list.rows[1].position.y >= window.list.rows[0].position.bottom())
 
     // Unfolding a locked vault lays the card over its row and the others recede.
-    window.chooseVault("C:\\vault.bin")
+    window.chooseVault(PictureLockedPath)
     Swag.require(window.list.card.panel.isLocallyVisible())
     Swag.require(not window.list.rows[1].isLocallyVisible())
     Swag.require(window.list.card.panel.position.y == window.list.rows[1].position.y)
     Swag.require(window.list.rows[2].position.y >= window.list.card.panel.position.bottom())
 
     // Choosing the mounted one folds the card: a mounted vault has nothing to unlock.
-    window.chooseVault("C:\\Users\\vault\\papiers.bin")
+    window.chooseVault(PictureMountedPath)
     Swag.require(not window.list.card.panel.isLocallyVisible())
 }
 
@@ -906,13 +912,13 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     // A vault mounted after the others still heads the list.
     window.vaults.removeAtOrdered(0)
-    window.vaults.add(KnownVault{"C:\\Users\\vault\\papiers.bin", "D:", false})
+    window.vaults.add(KnownVault{PictureMountedPath, "D:", false})
     window.refreshVaults()
 
     let list = window.list
     Swag.require(list.title.isLocallyVisible() and not list.welcome.isLocallyVisible())
-    Swag.require(list.rows[0].path == "C:\\Users\\vault\\papiers.bin")
-    Swag.require(list.rows[1].path == "C:\\vault.bin" and list.rows[2].path == "E:\\archives-2025.bin")
+    Swag.require(list.rows[0].path == PictureMountedPath)
+    Swag.require(list.rows[1].path == PictureLockedPath and list.rows[2].path == PictureArchivePath)
     Swag.require(list.mountedCount == 1)
 
     // Beside vaults, both ways are secondary, and they end the title's line on the column's edge.
@@ -1013,7 +1019,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     let list  = window.list
     let below = list.rows[2]
-    window.chooseVault("C:\\vault.bin")
+    window.chooseVault(PictureLockedPath)
     Swag.require(window.mountPassword.hasFocus())
     let open = list.card.measureHeight(list.rowWidth())
     host.advanceAnimations(0.05)
@@ -1266,7 +1272,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     window.privacyMode = false
-    window.startupVaults.add(StartupVault{"C:\\vault.bin", "mount-x", true, false, true})
+    window.startupVaults.add(StartupVault{PictureLockedPath, "mount-x", true, false, true})
     var keyFiles: Array'String
     window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
     window.protectHiddenOnMount = true

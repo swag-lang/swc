@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     explorer.setPosition(Math.Rectangle{0, 0, 960, 640})
-    explorer.listing.path = "C:/"
+    explorer.listing.path = #os == Swag.TargetOs.Windows ? "C:/" : "/"
     Swag.require(not explorer.canGoUp())
     explorer.goUp()
     Swag.require(explorer.requested.isEmpty())
@@ -125,6 +125,8 @@ using Core, Gui, Pixel
 // its current segment opens editing.
 #test
 {
+    const Root = #os == Swag.TargetOs.Windows ? "Z:/" : "/"
+    let location = Path.combine(Root, "Films")
     for light in [false, true]
     {
         var host: Testing.HeadlessHost
@@ -134,13 +136,13 @@ using Core, Gui, Pixel
         host.notify(.ThemeChanged)
         let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         let explorer = Explorer.create(window.documentPanel, window)
-        explorer.listing.path = "Z:/Films"
+        explorer.listing.path = location
         explorer.updateBreadcrumb()
         explorer.layoutTools()
         window.applyLayout()
         let address = explorer.address
         Swag.require(address.breadcrumb.items.count == 2)
-        Swag.require(address.breadcrumb.items[0].name == "Z:/")
+        Swag.require(address.breadcrumb.items[0].name == Root)
         Swag.require(address.breadcrumb.items[1].name == "Films")
         Swag.require(address.breadcrumb.scrollPos.x == 0)
         Swag.require(address.isLocallyVisible())
@@ -151,7 +153,7 @@ using Core, Gui, Pixel
         var point = address.breadcrumb.localToSurface(address.breadcrumb.items.back().bodyRect.center())
         host.surface.surfaceToScreen(&point)
         host.click(point)
-        Swag.require(address.edit.isLocallyVisible() and address.edit.text() == "Z:/Films")
+        Swag.require(address.edit.isLocallyVisible() and address.edit.text() == location)
         host.keyPress(.Escape)
         Swag.require(not address.edit.isLocallyVisible())
     }

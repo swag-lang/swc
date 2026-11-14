@@ -3,6 +3,27 @@
 
 using Swag, Core
 
+// Explicit speaker masks contain one supported WAVE position for every channel.
+#test
+{
+    const Config: [2] u8 = [0x11, 0x90]
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("speaker-mask-%.bin", Guid128.random()))
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, [0x00'u8])
+
+    var packets: Array'SoundPacket
+    packets.add({0, 1, 1})
+    for mask in [0x0003'u32, 0x0004_0000'u32]
+    {
+        var outcome: Swag.Error
+        discard catch SoundFile.openPacketStream(path, .AacLc, 48_000, 1, 1,
+                                                 packets.toSlice(), Config,
+                                                 PacketStreamOptions{speakerMask: mask}) as outcome
+        Swag.require(outcome.value() is Errors.BadParameterError)
+    }
+}
+
 // PCM ranges address audible frames, preserve interleaving and do not call back for an empty span.
 #test
 {

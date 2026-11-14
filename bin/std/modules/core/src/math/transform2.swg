@@ -137,8 +137,8 @@ impl Transform2
     {
         with var result: #returntype
         {
-            .x = Math.sqrt(me.m11 * me.m11 + me.m12 * me.m12)
-            .y = Math.sqrt(me.m21 * me.m21 + me.m22 * me.m22)
+            .x = Vector2{me.m11, me.m12}.length()
+            .y = Vector2{me.m21, me.m22}.length()
         }
 
         return result

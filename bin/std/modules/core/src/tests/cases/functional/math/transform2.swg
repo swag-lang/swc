@@ -66,6 +66,15 @@ func expectTransform(actual, expected: Math.Transform2)
 
 #test
 {
+    let large = Math.Transform2{Swag.F32.Max, 0, 0, Swag.F32.Max, 0, 0}.axisScale()
+    Swag.require(large.x == Swag.F32.Max and large.y == Swag.F32.Max)
+
+    let tiny = Math.Transform2{1e-30, 0, 0, 1e-30, 0, 0}.axisScale()
+    Swag.require(tiny.x == 1e-30 and tiny.y == 1e-30)
+}
+
+#test
+{
     let rotate = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
     expectTransform(rotate, {0, 1, -1, 0, 0, 0})
     expectVec2(rotate.transformPoint({1, 0}), {0, 1})

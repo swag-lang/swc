@@ -19,11 +19,12 @@ func checkThemeRaster(source: const [..] u8, bytes: const [..] u8, size: s32, un
     Swag.require(actual.width == expected.width and actual.height == expected.height)
     Swag.require(actual.byteCount == expected.byteCount)
     Swag.require(actual.pixelFormat == expected.pixelFormat and actual.alphaMode == expected.alphaMode)
-    #static if #cfg != "release" do
+    const UsesFusedMath = #run Swag.compiler().getBuildCfg()!.backend.math.fma
+    #static if not UsesFusedMath do
         Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
     else
     {
-        // DevMode generates the assets, matching the GUI goldens. Release floating-point
+        // DevMode generates the assets, matching the GUI goldens. Fused floating-point
         // code can round coverage one level differently; all other channels still agree.
         for i in actual.byteCount
         {

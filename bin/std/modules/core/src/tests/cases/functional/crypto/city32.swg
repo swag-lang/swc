@@ -45,7 +45,11 @@ func assertCity32(buffer: const [..] u8, expected: u32)
         0x521295AD, 0x44266C93, 0x7157544E, 0x26B7CD38, 0x52EFAE99, 0xA90120A4, 0xDEF646C1, 0x35C1A025,
         0x47ABEE44]
 
-    var data: [80] u8
+    var backing: [84] u8
+    let base   = cast(u64, cast(const [*] u8, backing.buffer))
+    let offset = (1 + 4 - (base & 3)) & 3
+    var data   = backing[offset to offset + 80]
+    Swag.require((cast(u64, cast(const [*] u8, data.buffer)) & 3) == 1)
     fillCity32Pattern(data)
 
     for length in expected.count

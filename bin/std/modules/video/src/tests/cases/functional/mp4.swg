@@ -50,6 +50,19 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
     Swag.require(times.count == 1 and times[0] == cast(s64, rawOffset))
 }
 
+// A fixed-size `stsz` table has no per-sample payload to bound its count, so reject an
+// unreasonable count before expanding the track's sample-size array.
+#test
+{
+    var bytes: [12] u8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0x10, 0, 1]
+    var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
+    var track: Mp4.Track
+    var rejected: Swag.Error
+    discard catch track.parseSampleSizes(&source, bytes.count) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+    Swag.require(track.sizes.count == 0)
+}
+
 // FFmpeg puts the movie before its media payload, uses one chunk for ten samples, and identifies
 // Motion JPEG through the generic `mp4v` entry with JPEG object type `0x6c`. It therefore exercises
 // both table expansion and a top-level layout the encoder in this module does not produce.

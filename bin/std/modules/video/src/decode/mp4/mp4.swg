@@ -1,6 +1,6 @@
 //! Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component.
 //! Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits.
-//! Not supported: Complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
+//! Not supported: Classic tracks with more than 1,048,576 samples, complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC.
 //! Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.
 //
 #global namespace Mp4
@@ -70,6 +70,8 @@ const BoxHeaderSize   = 8'u64
 const FullBoxSize     = 4'u64
 const NoFrameIndex    = Swag.U64.Max
 const AacFrameSamples = 1024'u32
+// Bound classic sample-table expansion before allocating per-sample metadata.
+const MaxClassicSampleCount = 1_048_576'u32
 
 // One bounded box in the stream.
 struct Box
@@ -1065,6 +1067,8 @@ impl Track
         discard readFullBox(source)
         let fixedSize = source.readBigEndian'u32()
         let count     = source.readBigEndian'u32()
+        if count > MaxClassicSampleCount do
+            fail UnsupportedFormatError{"MP4 sample count exceeds the supported range"}
         if not fixedSize and cast(u64, count) * 4 > end - source.position() do
             fail InvalidFormatError{"MP4 sample-size table is truncated"}
         .sizes.resize(count)

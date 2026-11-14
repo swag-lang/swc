@@ -284,9 +284,10 @@ impl Sps
         if .bitDepthLuma > 10 or .bitDepthChroma > 10 or .bitDepthLuma != .bitDepthChroma do
             fail UnsupportedFormatError{"HEVC decoder requires matching luma and chroma bit depths from 8 to 10"}
 
-        .log2MaxPocLsb = reader.ue() + 4
-        if .log2MaxPocLsb > 16 do
+        let log2MaxPocLsbMinus4 = reader.ue()
+        if log2MaxPocLsbMinus4 > 12 do
             fail InvalidFormatError{"HEVC picture order count range is out of bounds"}
+        .log2MaxPocLsb = log2MaxPocLsbMinus4 + 4
 
         let subLayerOrdering = reader.bit() != 0
         for (subLayerOrdering ? 0'u32 : maxSubLayersMinus1) to maxSubLayersMinus1

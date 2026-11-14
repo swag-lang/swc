@@ -3,6 +3,16 @@
 
 using Core, Core.Errors, Pixel
 
+private func assertInvalidPocLsbMinus4(payload: const [..] u8)
+{
+    var reader: BitReader
+    reader.init(payload)
+    var sps: Hevc.Sps
+    var rejected: Swag.Error
+    discard catch sps.read(&reader) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
 // A complete reference NAL must not let the reference check hide a truncated following length.
 #test
 {
@@ -17,6 +27,33 @@ using Core, Core.Errors, Pixel
     var failure: Swag.Error
     discard catch stream.isReferenceAccessUnit(cast(const [..] u8, truncated)) as failure
     Swag.require(failure.value() is Errors.InvalidFormatError)
+}
+
+// The fixture SPS has log2_max_pic_order_cnt_lsb_minus4 = 4. Replacing only that UE field with
+// 13 or U32.Max - 1 must fail before adding the syntax bias and deriving POC shifts.
+#test
+{
+    const ValidSps: [33] u8 = [0x01, 0x01, 0x60, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00, 0x00, 0x00,
+                               0x00, 0x1E, 0xA0, 0x30, 0x81, 0x05, 0x96, 0x56, 0x69, 0x24, 0xCA,
+                               0xE6, 0x80, 0x80, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x0C, 0x84]
+    const PocLsbTooWide: [34] u8 = [0x01, 0x01, 0x60, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x1E, 0xA0, 0x30, 0x81, 0x05, 0x8E, 0x95, 0x9A,
+                                    0x49, 0x32, 0xB9, 0xA0, 0x20, 0x00, 0x00, 0x00, 0x20, 0x00,
+                                    0x00, 0x03, 0x21, 0x00]
+    const PocLsbOverflow: [41] u8 = [0x01, 0x01, 0x60, 0x00, 0x00, 0x00, 0x90, 0x00, 0x00, 0x00,
+                                    0x00, 0x00, 0x1E, 0xA0, 0x30, 0x81, 0x05, 0x80, 0x00, 0x00,
+                                    0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x95, 0x9A, 0x49, 0x32, 0xB9,
+                                    0xA0, 0x20, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x03, 0x21,
+                                    0x00]
+
+    var validReader: BitReader
+    validReader.init(ValidSps)
+    var valid: Hevc.Sps
+    expect valid.read(&validReader)
+    Swag.require(valid.valid and valid.log2MaxPocLsb == 8)
+
+    assertInvalidPocLsbMinus4(PocLsbTooWide)
+    assertInvalidPocLsbMinus4(PocLsbOverflow)
 }
 
 // Prediction-weight chroma offsets stay in their eight-bit syntax domain for Main 10. The

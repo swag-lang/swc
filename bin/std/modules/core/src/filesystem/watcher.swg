@@ -100,6 +100,8 @@ func watch(root: string, options: WatchOptions)->Watcher fail
 {
     if not options.filter do
         fail Errors.BadParameterError{}
+    if (options.filter & ~WatchFilter.All) != cast(WatchFilter, 0) do
+        fail Errors.BadParameterError{}
     if options.bufferSize < 4 * 1024 or options.bufferSize > 64 * 1024 do
         fail Errors.BadParameterError{}
 

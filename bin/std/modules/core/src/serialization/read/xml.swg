@@ -61,8 +61,8 @@ public impl Xml
             fail .getError(Format.toString("invalid end tag [[%]] for [[%]]", tag, start))
     }
 
-    // Reads the predefined entity after an '&' and returns the character it stands for.
-    internal mtd readEntity()->u8 fail
+    // Reads a predefined entity or XML character reference after an '&'.
+    internal mtd readEntity()->rune fail
     {
         const Names = ["lt;", "gt;", "amp;", "quot;", "apos;"]
         const Chars = "<>&\"'"
@@ -72,11 +72,69 @@ public impl Xml
             if Utf8.startsWith(rest, Names[index])
             {
                 .stream.advance(Names[index].count)
-                return Chars[index]
+                return cast(rune, Chars[index])
             }
         }
 
-        fail .getError("unknown entity, expected [[&lt;]], [[&gt;]], [[&amp;]], [[&quot;]], or [[&apos;]]")
+        if .stream.peekU8() != '#' do
+            fail .getError("unknown XML entity")
+        .stream.advance()
+
+        var radix = 10'u32
+        if .stream.peekU8() == 'x'
+        {
+            radix = 16
+            .stream.advance()
+        }
+
+        var value  = 0'u32
+        var digits = 0'u32
+        while true
+        {
+            let c = .stream.peekU8()
+            if c == ';' do
+                break
+
+            var digit: u32
+            if '0' <= c and c <= '9'
+            {
+                digit = cast(u32, c - '0')
+            }
+            elif radix == 16 and 'a' <= c and c <= 'f'
+            {
+                digit = cast(u32, c - 'a' + 10)
+            }
+            elif radix == 16 and 'A' <= c and c <= 'F'
+            {
+                digit = cast(u32, c - 'A' + 10)
+            }
+            else
+            {
+                fail .getError("malformed XML character reference")
+            }
+
+            if digit >= radix or value > (0x10FFFF - digit) / radix do
+                fail .getError("XML character reference is outside the Unicode range")
+            value = value * radix + digit
+            digits += 1
+            .stream.advance()
+        }
+
+        if not digits do
+            fail .getError("empty XML character reference")
+        .stream.advance() // semicolon
+
+        // XML 1.0 Char: #x9 | #xA | #xD | [#x20-#xD7FF] |
+        // [#xE000-#xFFFD] | [#x10000-#x10FFFF].
+        if not (value == 0x9 or value == 0xA or value == 0xD or
+                (0x20 <= value and value <= 0xD7FF) or
+                (0xE000 <= value and value <= 0xFFFD) or
+                (0x10000 <= value and value <= 0x10FFFF))
+        {
+            fail .getError("XML character reference names a character forbidden by XML 1.0")
+        }
+
+        return cast(rune, value)
     }
 
     internal mtd getError(val: string)->SyntaxError
@@ -244,7 +302,7 @@ public impl Xml
                         .stream.advance()
                 }
                 elif c == '&' do
-                    result += try .readEntity()
+                    result.append(try .readEntity())
                 else do
                     result += c
                 c = .stream.peekU8()

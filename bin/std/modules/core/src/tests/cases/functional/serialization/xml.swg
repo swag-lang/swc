@@ -24,7 +24,7 @@ struct XmlTextPayload
 }
 
 // Fields are elements in declaration order, a sequence holds blank-separated values, and text
-// decodes the predefined entities.
+// decodes predefined entities and XML character references.
 #test
 {
     let source: String = "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<payload>\n  <id>7</id>\n  <active>true</active>\n  <name>a &lt;b&gt; &amp; &quot;c&apos;</name>\n  <counts> -1 0 4 </counts>\n  <pair><x>3</x><y>-2</y></pair>\n</payload>\n"
@@ -77,6 +77,25 @@ struct XmlTextPayload
     var errorOutcome: Swag.Error
     catch decoder.startRead(invalidXml) as errorOutcome
     Swag.require(errorOutcome.value() is SyntaxError)
+}
+
+#test
+{
+    let numericEntities: String = "<p><value>&#233;&#x1F600;</value></p>"
+    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    let decoded = expect decoder.readAll'XmlTextPayload(numericEntities.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.value == "é😀")
+
+    const InvalidReferences = [
+        "&#;", "&#x;", "&#0;", "&#1;", "&#xD800;", "&#xDFFF;", "&#x110000;", "&#999999999999999999999999;", "&#233"]
+    for reference in InvalidReferences
+    {
+        let invalidXml = Format.toString("<p><value>[[%]]</value></p>", reference)
+        var errorOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, invalidXml)) as errorOutcome
+        Swag.require(errorOutcome.value() is SyntaxError)
+    }
 }
 
 // XML 1.0 rejects forbidden controls but permits tab, line feed, and carriage return in text.

@@ -312,7 +312,7 @@ private func lineIntersectionFactors(start0, end0, start1, end1: Vector2, epsilo
                       (end1.x - start1.x) * (end0.y - start0.y)
 
     // Parallel or coincident lines have no single crossing.
-    if Math.abs(denominator) < epsilon do
+    if denominator == 0 or Math.abs(denominator) < epsilon do
         return result
 
     result.intersects   = true

@@ -138,3 +138,27 @@ func audioPcmPacketSound()->SoundFile fail
     discard catch SoundFile.openPcmPacketStream(path.toString(), .Pcm16, 48_000, 2, WrappedOffset) as wrappedOffsetError
     Swag.require(wrappedOffsetError.value() is Errors.InvalidFormatError)
 }
+
+// A complete PCM frame larger than the normal read window is still delivered to the consumer.
+#test
+{
+    const ChannelCount = 131_073'u32
+    const FrameBytes   = ChannelCount * 2
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-pcm-large-frame-%.bin", Guid128.random()))
+    defer discard catch File.delete(path)
+
+    var bytes: Array'u8
+    bytes.resize(FrameBytes)
+    bytes.fill(0)
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    const Packet: [1] SoundPacket = [SoundPacket{0, FrameBytes, 1}]
+    let sound = expect SoundFile.openPcmPacketStream(path.toString(), .Pcm16, 48_000, ChannelCount, Packet)
+    var decodedSamples = 0'u64
+    expect sound.decodePcm16(func|&decodedSamples|(samples: const [..] s16)->bool
+    {
+        decodedSamples += samples.count
+        return true
+    })
+    Swag.require(decodedSamples == ChannelCount)
+}

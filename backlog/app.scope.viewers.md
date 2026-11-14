@@ -13,7 +13,8 @@ meaningful, large or damaged input remains bounded, and unsupported content is n
 silently omitted. The [fixture matrix](../bin/apps/modules/swagscope/src/tests/datas/README.md)
 records named and real-world variants; app.scope.viewers.009 tracks the remaining behavior and
 performance checks per format. Implement every viewer and decoder in Swag without external viewer
-libraries.
+libraries. Ship the built-in readers in one executable, with no separately installed codecs,
+viewer packages, helper binaries, or network service required to open supported local files.
 
 1. Deepen the shipped document readers, especially DOCX layout and styles, XLSX grid and cell
    formatting, PPTX slide geometry, EPUB navigation, and CBZ page handling. Keep the true reading
@@ -45,7 +46,7 @@ libraries.
 
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
-- Evidence: the twenty registered viewers have focused tests and viewer-specific goldens. The
+- Evidence: the twenty-one registered viewers have focused tests and viewer-specific goldens. The
   fixture matrix now names all 118 canonical and variant files, checks
   each one's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, RTF, XLSX and PPTX have
   content and damaged-package cases. Five complete, openly licensed published documents add
@@ -57,10 +58,27 @@ libraries.
   selection-to-first-content latency under rapid adjacent-file browsing.
 - Next: publish one matrix per registered viewer with representative public fixtures, required
   malformed cases, bounded-resource assertions, interaction checks, visual states, and time-to-first-
-  content budgets for cold open, warm open, and replacement before the previous viewer settles.
+  content budgets for cold open, warm open, and replacement before the previous viewer settles;
+  measure peak resident memory, bytes read before first content, and adjacent-file navigation.
+  Benchmark the same real corpus on the same machine against the category reference and record
+  absolute thresholds before enforcing regressions.
 - Done when: the application smoke validates every registered viewer in light and dark themes,
   the matrix names unsupported variants honestly, corpus licences are recorded, and regressions in
   format choice, cancellation, accessibility, resource bounds, or preview latency fail a focused suite.
+
+### app.scope.viewers.014 — A lone release executable is not a verified delivery contract
+
+- Evidence: the [application README](../bin/apps/modules/swagscope/README.md) says the build contains
+  every viewer in one executable but allows the publisher to place standard-module runtime files
+  beside it. No clean, offline launch check proves that the executable alone opens every supported
+  format. Separately packaged viewer support would also violate the product boundary.
+- Next: inventory the release executable's non-OS imports and run it from an otherwise empty
+  directory on a clean offline Windows profile. Statically include or embed required Swag runtime,
+  codec, font, and viewer assets; keep any parser worker as a mode of the same executable.
+- Done when: one `swagscope.exe` with no adjacent payload opens representative fixtures for all
+  twenty-one registered viewers offline, including after a clean reboot; a release gate checks its
+  import closure and installed-file manifest, and no reader calls an external decoder or service.
+- Related: app.scope.viewers.009, app.scope.viewers.011
 
 ### app.scope.viewers.005 — Automatic reload does not classify changes or offer a snapshot policy
 
@@ -83,7 +101,7 @@ libraries.
 - Evidence: Image and Video already publish grouped metadata through the shared `MediaInfoPanel`,
   with translated property labels, row selection and a copy command. The host also shows size and
   a viewer-supplied summary. Canonical path, timestamps, file identity, hashes, detection evidence
-  and warnings still lack one contract available across all twenty viewers.
+  and warnings still lack one contract available across all twenty-one viewers.
 - Next: extend the existing information surface with host-owned file facts and optional viewer
   properties and warnings, including cancellable hashing and links back to the described content.
 - Done when: facts are selectable and copyable, byte sizes and dates have exact forms, format
@@ -98,30 +116,14 @@ libraries.
   process that owns the window, history, clipboard access, and ordinary user token. Read-only and
   offline prevent intentional document actions, but they do not contain a parser defect.
 - Next: define a brokered open/render/report contract over host-owned read-only ranges, then move one
-  high-risk decoder family into a disposable worker with CPU, memory, time, file, network, process,
-  and write limits before generalizing the boundary.
+  high-risk decoder family into a disposable mode of the same executable with CPU, memory, time,
+  file, network, process, and write limits before generalizing the boundary.
 - Done when: decoder crash, hang, resource exhaustion, and malformed output cannot terminate or
   corrupt the main window; the worker cannot open arbitrary paths, write, use the network, or spawn
   processes; results are versioned and size-checked; cancellation kills only the affected job; and
   failure leaves the file available through bounded hexadecimal inspection.
 - Related: app.scope.viewers.004, app.scope.viewers.009, platform.portability.040,
   platform.portability.072
-
-### app.scope.viewers.012 — The viewer API cannot load an external viewer
-
-- Evidence: `Viewer.Plugin` already carries an API version, stable key, selectors, icon, localized
-  name, smoke fixture, and creation callback, but `createViewerPluginRegistry` names every plugin in
-  source and the README explicitly records no runtime index, dynamic library, exported entry point,
-  or ABI adapter. Adding separately distributed formats first needs the isolation boundary in
-  app.scope.viewers.011 and a versioned contract.
-- Next: define a local manifest and capability-negotiated wire contract on top of
-  app.scope.viewers.011, including publisher identity, package provenance, selector precedence,
-  compatibility ranges, resource limits, translations, icons, and an explicit install/update policy.
-- Done when: a separately packaged viewer can be installed, disabled, updated, and removed
-  without rebuilding Swag Scope; incompatible, crashing, and duplicate-key packages are quarantined
-  with an exact reason; built-ins retain deterministic precedence; and no external viewer executes
-  in the application or shell-host process.
-- Related: app.scope.viewers.011, platform.portability.072, platform.portability.073
 
 ### app.scope.viewers.013 — Three decoder families cannot claim files independently of their extension
 
@@ -136,7 +138,7 @@ libraries.
   per module, then add the missing probes.
 - Done when: a raster image, a video container, and a sound file are each offered their own viewer through a copy renamed to an extension
   nothing claims, and every viewer a probe offers can open the file it claimed.
-- Related: app.scope.image.001, app.scope.viewers.012
+- Related: app.scope.image.001
 
 ### app.scope.viewers.002 — A document cannot be printed
 
@@ -218,10 +220,13 @@ libraries.
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
-| Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
+| DOCX | `.docx` | paragraphs, simple tables and images in reading order | page geometry, styles, notes and fidelity | [app.scope.document.020](app.scope.document.md) |
+| XLSX | `.xlsx` | ordered sheets and values in a bounded grid | formatted cells, authored layout and navigation | [app.scope.document.025](app.scope.document.md) |
+| PPTX | `.pptx` | ordered slide text and pictures | slide geometry, masters, notes and presentation | [app.scope.document.026](app.scope.document.md) |
 | OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
-| EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
+| EPUB | `.epub` | spine chapters through `HtmlView` | TOC, book search, saved position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
+| Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
 | RTF | `.rtf` | bounded formatted reading with text, styles, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
@@ -251,7 +256,7 @@ libraries.
 | Compressed audio | `.mp3` `.flac` `.aac` `.ac3` `.eac3` `.ec3` `.dts` `.ogg` `.oga` `.opus` | full, streamed | professional transport/analysis | [app.scope.audio.001](app.scope.audio.md) |
 | Video containers | `.mp4` `.mkv` `.webm` `.mov` `.avi` | AVI structure; others identified | ISO-BMFF and EBML trees | [app.scope.binary.011](app.scope.binary.md) |
 | Video playback | `.avi` `.mp4` `.m4v` `.mov` `.mkv` | Motion JPEG, uncompressed AVI, H.264, H.265, MPEG-4 Part 2 | professional transport/inspection; VP9 and AV1 | [app.scope.video.001](app.scope.video.md), [std.video.010](std.video.md), [std.video.011](std.video.md) |
-| MIDI | `.mid` `.midi` | piano roll and structure | playback, event lanes, scalable timeline | [app.scope.midi.001](app.scope.midi.md) |
+| MIDI | `.mid` `.midi` | piano roll and structure | playback, event lanes, scalable timeline, optional score | [app.scope.midi.001](app.scope.midi.md), [app.scope.midi.014](app.scope.midi.md) |
 
 #### Binaries, containers, and developer artifacts
 
@@ -263,7 +268,7 @@ libraries.
 | WebAssembly | `.wasm` | structure | — | — |
 | RIFF | `.wav` `.avi` | structure | — | — |
 | Swag chunk container | `.scc` | structure through `Core.Scc` | — | — |
-| ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested archive provenance, encryption, more methods | [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.010](app.scope.binary.md) |
+| ZIP family | `.zip` `.jar` `.apk` `.vsix` | full tree and stored/Deflate entry preview | nested provenance, archive-wide integrity, encrypted/variant policy | [app.scope.binary.008](app.scope.binary.md), [app.scope.binary.015](app.scope.binary.md) |
 | Other archives | `.7z` `.rar` `.tar` `.gz` `.xz` `.zst` `.cab` `.msi` | signature | listing, `tar`/`gzip` first | [app.scope.binary.010](app.scope.binary.md) |
 | TrueType fonts | `.ttf` `.ttc` | specimen and first-face character map | face selector, glyph/metric/coverage inspection | [app.scope.font.001](app.scope.font.md) |
 | CFF and web fonts | `.otf` `.woff` `.woff2` | CFF OpenType structure; WOFF/WOFF2 signatures | CFF specimen registration; WOFF containers | [app.scope.font.013](app.scope.font.md), std.truetype.001, std.truetype.002 |

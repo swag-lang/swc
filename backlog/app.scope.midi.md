@@ -5,6 +5,19 @@ duration, and a zoomable/filterable piano roll. It deliberately has no synthesis
 backlog owns professional sequence inspection and optional audition; structured chunk/event bytes
 remain available in the Binary viewer.
 
+### app.scope.midi.014 — MIDI has no optional notation reading view
+
+- Evidence: the piano roll accurately shows pitch and time but cannot present familiar staff
+  notation. [Synthesia](https://www.synthesiagame.com/support/guide/displaySheetMusic) offers a
+  score beside its falling notes. MIDI has no authoritative spelling, voices or engraved rhythm,
+  so notation must be labelled as an interpretation of events.
+- Next: define bounded, reversible quantization and clef/voice choices over the existing note and
+  meter timeline, then render one track as a score synchronized with the piano roll.
+- Done when: common monophonic and simple polyphonic MIDI reads as a navigable score with visible
+  quantization assumptions; ambiguous passages stay inspectable in the piano roll and raw events,
+  and score generation never delays the initial piano-roll view.
+- Related: app.scope.midi.003, app.scope.midi.006
+
 ### app.scope.midi.012 — MIDI event reports and piano-roll images cannot be exported
 
 - Evidence: the viewer has no copy-note/event, CSV/JSON event export, tempo-map export, or piano-roll

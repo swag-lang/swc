@@ -381,6 +381,8 @@ grouping in an area folder such as `functional/viewers/<viewer>`. Shared fixture
 `src/tests/datas`, and image goldens in `src/tests/goldens`. Viewer plans use
 `assertScopeImageGolden` to compare that shared image corpus. External fixtures record their source URLs, license, and hashes in
 `datas/THIRDPARTY.md`.
+The [feature audit](FEATURE_AUDIT.md) maps every registered viewer to its category references and
+remaining backlog work.
 Run a focused test with:
 
 ```text

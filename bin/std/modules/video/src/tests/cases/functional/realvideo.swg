@@ -54,6 +54,32 @@ func realVideoCompare(name: string)
 #test { realVideoCompare("rv40-legacy-clock") }
 #test { realVideoCompare("rv40-slices") }
 
+// A late RealVideo clock correction must not renumber a picture the caller already received.
+#test
+{
+    var stream: RealVideo.Stream
+    stream.frames.add([SampleEntry{0, 1, 0, true}, SampleEntry{1, 1, 80, false}])
+    stream.rebuildOrder()
+    // Model the stream after ranks 0 and 1 were returned from the two-sample window.
+    stream.nextRank       = 2
+    stream.emitRank       = 2
+    stream.nextDecode     = 2
+    stream.maxEmittedTime = 80
+    stream.hasEmittedTime = true
+
+    const LateClock: [1] SampleEntry = [SampleEntry{2, 1, 40, false}]
+    var error: Swag.Error
+    discard catch stream.appendFrames(LateClock) as error
+    Swag.require(error.value() is InvalidFormatError)
+    Swag.require(stream.frames.count == 2 and stream.nextRank == 2)
+
+    // Equal timestamps are stable-appended after existing ranks and do not invalidate them.
+    const EqualClock: [1] SampleEntry = [SampleEntry{2, 1, 80, false}]
+    expect stream.appendFrames(EqualClock)
+    Swag.require(stream.sampleAtRank[0] == 0 and stream.sampleAtRank[1] == 1)
+    Swag.require(stream.nextRank == 2)
+}
+
 // A player behind its clock jumps forward to the next clean picture, never back to the last one.
 #test
 {

@@ -9,6 +9,7 @@ using Core, Gui, Gui.Testing, Viewers
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.xlsx"))
     Swag.require(workbook.sheets == 2 and workbook.cells == 6)
     Swag.require(Utf8.contains(workbook.html, "Summary &amp; totals"))
+    Swag.require(Utf8.contains(workbook.html, "<tr><th></th><th>A</th><th>B</th><th>C</th></tr>"))
     Swag.require(Utf8.contains(workbook.html, "<td>Expense &amp; income</td><td>4</td><td>TRUE</td>"))
     Swag.require(Utf8.contains(workbook.html, "<td>Hello world</td>"))
     Swag.require(Utf8.contains(workbook.html, "<td>Second sheet</td><td></td><td>42</td>"))
@@ -38,6 +39,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.inline.xlsx"))
     Swag.require(workbook.sheets == 1 and workbook.cells == 2)
+    Swag.require(Utf8.contains(workbook.html, "<tr><th>1</th>"))
     Swag.require(Utf8.contains(workbook.html, "<td>Safe &amp; sound</td><td></td><td>12.5</td>"))
 }
 
@@ -47,4 +49,22 @@ using Core, Gui, Gui.Testing, Viewers
     var loadError: Swag.Error
     discard catch Xlsx.Workbook.load(scopeTestDataPath("viewer.damaged.xlsx")) as loadError
     Swag.require(loadError.value() is Errors.InvalidFormatError)
+}
+
+// A sparse worksheet retains its authored row and column coordinates.
+#test
+{
+    let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.sparse-rows.xlsx"))
+    Swag.require(Utf8.contains(workbook.html, "<th>A</th><th>B</th><th>C</th>"))
+    Swag.require(Utf8.contains(workbook.html,
+                               "<tr><th>7</th><td>Safe &amp; sound</td><td></td><td>12.5</td></tr>"))
+}
+
+// Explicitly empty rows and cells keep their addresses without becoming a damaged sheet.
+#test
+{
+    let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.empty-cells.xlsx"))
+    Swag.require(workbook.sheets == 1 and workbook.cells == 3)
+    Swag.require(Utf8.contains(workbook.html, "<tr><th>3</th><td></td><td></td></tr>"))
+    Swag.require(Utf8.contains(workbook.html, "<tr><th>4</th></tr>"))
 }

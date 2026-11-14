@@ -22,3 +22,13 @@
     host.app.setCursorHidden(false)
     Swag.require(not host.app.isCursorHidden())
 }
+
+// Cursor state can be selected before a renderer creates any native resources.
+#test
+{
+    var app: Application
+    app.setCursorHidden(true)
+    Swag.require(app.isCursorHidden())
+    app.setCursorHidden(false)
+    Swag.require(not app.isCursorHidden())
+}

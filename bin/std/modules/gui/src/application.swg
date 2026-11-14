@@ -1865,6 +1865,10 @@ impl Application
     mtd setCursorHidden(hidden: bool)
     {
         .cursorHidden = hidden
+
+        // Headless renderers have no native pointer or display connection.
+        if .renderer == null or not .renderer.needsNativeWindow() do
+            return
         if hidden do
             Cursor.activate(Cursor.from(CursorShape.Hidden))
         else do

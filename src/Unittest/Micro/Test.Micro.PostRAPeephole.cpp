@@ -7742,7 +7742,7 @@ SWC_TEST_BEGIN(PostRAPeephole_GuardedAdjacentValueExecutes)
                             builder.emitSetCondReg(current, MicroCond::Below);
                         builder.placeLabel(join);
                         builder.emitLoadAmcRegMem(result, MicroOpBits::B64, base, element, scale, test == Case::ReloadOtherAddress ? 72 : 64, MicroOpBits::B64);
-                        builder.emitLoadAmcRegMem(temporary, test == Case::PartialKill ? MicroOpBits::B16 : MicroOpBits::B64, base, current, 1, 0, test == Case::PartialKill ? MicroOpBits::B16 : MicroOpBits::B64);
+                        builder.emitLoadAmcRegMem(temporary, test == Case::PartialKill ? MicroOpBits::B16 : MicroOpBits::B64, base, current, 1, 0, MicroOpBits::B64);
                         builder.emitCmpRegReg(temporary, result, MicroOpBits::B64);
                         builder.emitSetCondReg(current, MicroCond::BelowOrEqual);
                         builder.emitLoadMemReg(base, 0, element, MicroOpBits::B64);
@@ -7773,6 +7773,86 @@ SWC_TEST_BEGIN(PostRAPeephole_GuardedAdjacentValueExecutes)
                 }
             }
         }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ConditionalSwapCarriesBothEdges)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg a      = MicroReg::intReg(8);
+    constexpr MicroReg b      = MicroReg::intReg(9);
+    constexpr MicroReg indexA = MicroReg::intReg(10);
+    constexpr MicroReg indexB = MicroReg::intReg(11);
+    constexpr MicroReg other  = MicroReg::intReg(0);
+    enum class Case
+    {
+        Direct,
+        PartialOverlap,
+        ExternalEntry,
+        NarrowLanes,
+        OtherStore,
+        LastStore
+    };
+    for (const auto test : {Case::Direct, Case::PartialOverlap, Case::ExternalEntry, Case::NarrowLanes, Case::OtherStore, Case::LastStore})
+        for (const auto condition : {MicroCond::AboveOrEqual, MicroCond::GreaterOrEqual, MicroCond::Equal})
+            for (const bool alias : {false, true})
+                for (const bool retainsA : {false, true})
+                    for (const bool gap : {false, true})
+                        for (const uint64_t value : {0ull, 17ull, 0x8000000000000000ull, 0xFFFFFFFFFFFFFFFFull})
+                        {
+                            std::array<uint64_t, 16> reference{};
+                            for (const bool optimize : {false, true})
+                            {
+                                std::array<uint64_t, 16> values{};
+                                values[8]            = value;
+                                values[9]            = 17;
+                                values[10]           = 23;
+                                const auto     bits  = test == Case::NarrowLanes ? MicroOpBits::B32 : MicroOpBits::B64;
+                                const uint64_t scale = test == Case::PartialOverlap ? 4 : 8;
+                                MicroBuilder   builder(ctx);
+                                const auto     join = builder.createLabel();
+                                builder.emitLoadRegImm(indexA, ApInt(0, 64), MicroOpBits::B64);
+                                builder.emitLoadRegImm(indexB, ApInt(alias ? 0 : 1, 64), MicroOpBits::B64);
+                                builder.emitLoadRegImm(other, ApInt(2, 64), MicroOpBits::B64);
+                                if (test == Case::ExternalEntry)
+                                {
+                                    builder.emitCmpRegImm(other, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                                }
+                                if (test == Case::LastStore)
+                                    builder.emitLoadAmcRegMem(b, bits, base, indexB, scale, 64, MicroOpBits::B64);
+                                builder.emitLoadAmcRegMem(a, bits, base, indexA, scale, 64, MicroOpBits::B64);
+                                if (test != Case::LastStore)
+                                    builder.emitLoadAmcRegMem(b, bits, base, indexB, scale, 64, MicroOpBits::B64);
+                                builder.emitCmpRegReg(a, b, bits);
+                                builder.emitJumpToLabel(condition, MicroOpBits::B32, join);
+                                builder.emitLoadAmcMemReg(base, indexB, scale, test == Case::OtherStore ? 72 : 64, MicroOpBits::B64, a, bits);
+                                builder.emitLoadAmcMemReg(base, indexA, scale, 64, MicroOpBits::B64, b, bits);
+                                builder.placeLabel(join);
+                                if (gap)
+                                    builder.emitLoadAmcRegMem(retainsA ? b : a, bits, base, other, 8, 64, MicroOpBits::B64);
+                                builder.emitLoadAmcRegMem(retainsA ? a : b, bits, base, retainsA ? indexA : indexB, scale, 64, MicroOpBits::B64);
+                                builder.emitSetCondReg(other, MicroCond::Below);
+                                builder.emitLoadMemReg(base, 0, a, MicroOpBits::B64);
+                                builder.emitLoadMemReg(base, 8, b, MicroOpBits::B64);
+                                builder.emitLoadMemReg(base, 16, other, MicroOpBits::B8);
+                                builder.emitRet();
+                                X64Encoder encoder(ctx);
+                                if (optimize)
+                                {
+                                    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) !=
+                                        (test == Case::Direct || (test == Case::LastStore && retainsA && !gap) ? 2u : 3u) + (gap ? 1u : 0u))
+                                        return Result::Error;
+                                }
+                                SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+                                if (!optimize)
+                                    reference = values;
+                                else if (values != reference)
+                                    return Result::Error;
+                            }
+                        }
     return Result::Continue;
 }
 SWC_TEST_END()

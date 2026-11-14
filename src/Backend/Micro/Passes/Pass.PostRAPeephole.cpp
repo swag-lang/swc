@@ -120,6 +120,167 @@ namespace
         return false;
     }
 
+    // The last store on a guarded edge supplies an exact reload at its join.
+    // The other edge still has the value loaded before the guard. Updating its
+    // carrier after the store therefore removes the reload on both paths.
+    bool forwardGuardedStore(MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+        auto&       storage  = *context.instructions;
+        auto&       operands = *context.operands;
+        const auto& cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+        const auto refs = cfg.instructionRefs();
+        for (uint32_t index = 0; index + 5 < refs.size(); ++index)
+        {
+            const auto* load    = storage.ptr(refs[index]);
+            const auto* compare = storage.ptr(refs[index + 1]);
+            const auto* branch  = storage.ptr(refs[index + 2]);
+            if (load->op != MicroInstrOpcode::LoadAmcRegMem || compare->op != MicroInstrOpcode::CmpRegReg || branch->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto*    loaded   = load->ops(operands);
+            const auto*    branched = branch->ops(operands);
+            const MicroReg carrier  = loaded[0].reg;
+            if (!carrier.isInt() || loaded[3].opBits != MicroOpBits::B64 || loaded[4].opBits != MicroOpBits::B64 ||
+                loaded[1].reg == carrier || loaded[2].reg == carrier || branched[0].cpuCond == MicroCond::Unconditional)
+                continue;
+            uint32_t join = index + 3;
+            while (join < refs.size() && storage.ptr(refs[join])->op == MicroInstrOpcode::LoadAmcMemReg)
+                ++join;
+            if (join == index + 3 || join + 1 >= refs.size() || storage.ptr(refs[join])->op != MicroInstrOpcode::Label ||
+                cfg.indexOfLabel(branched[2].valueU64) != join)
+                continue;
+            const auto* store = storage.ptr(refs[join - 1])->ops(operands);
+            if (store[0].reg != loaded[1].reg || store[1].reg != loaded[2].reg || !store[2].reg.isInt() ||
+                store[3].opBits != MicroOpBits::B64 || store[4].opBits != MicroOpBits::B64 ||
+                store[5].valueU64 != loaded[5].valueU64 || store[6].valueU64 != loaded[6].valueU64)
+                continue;
+            const auto& predecessors = cfg.predecessors(join);
+            if (predecessors.size() != 2 || predecessors[0] != index + 2 || predecessors[1] != join - 1 ||
+                std::ranges::find(cfg.addressTakenLabelIndices(), join) != cfg.addressTakenLabelIndices().end())
+                continue;
+            const auto* reload = storage.ptr(refs[join + 1]);
+            if (reload->op != MicroInstrOpcode::LoadAmcRegMem)
+                continue;
+            const auto* reloaded = reload->ops(operands);
+            bool        same     = true;
+            for (uint32_t operand = 0; operand < 7; ++operand)
+            {
+                if (operand < 3)
+                    same &= loaded[operand].reg == reloaded[operand].reg;
+                else if (operand < 5)
+                    same &= loaded[operand].opBits == reloaded[operand].opBits;
+                else
+                    same &= loaded[operand].valueU64 == reloaded[operand].valueU64;
+            }
+            if (!same)
+                continue;
+            std::array<MicroInstrOperand, 3> copy{};
+            copy[0].reg    = carrier;
+            copy[1].reg    = store[2].reg;
+            copy[2].opBits = MicroOpBits::B64;
+            storage.insertDerivedBefore(operands, refs[join], MicroInstrOpcode::LoadRegReg, copy);
+            storage.erase(refs[join + 1]);
+            return true;
+        }
+        return false;
+    }
+
+    // A strict comparison guards a swap of two equally sized indexed lanes.
+    // On the swapping edge the lanes cannot alias: equal addresses would have
+    // produced equal values. Keep the reloaded lane in its original carrier on
+    // that edge, so the closed join no longer needs to read it from memory.
+    bool forwardConditionalSwap(MicroPassContext& context)
+    {
+        if (!context.builder)
+            return false;
+        auto&       storage  = *context.instructions;
+        auto&       operands = *context.operands;
+        const auto& cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+        const auto refs = cfg.instructionRefs();
+        for (uint32_t index = 0; index + 7 < refs.size(); ++index)
+        {
+            const auto at = [&](uint32_t offset) {
+                return storage.ptr(refs[index + offset]);
+            };
+            if (at(0)->op != MicroInstrOpcode::LoadAmcRegMem || at(1)->op != MicroInstrOpcode::LoadAmcRegMem ||
+                at(2)->op != MicroInstrOpcode::CmpRegReg || at(3)->op != MicroInstrOpcode::JumpCond ||
+                at(4)->op != MicroInstrOpcode::LoadAmcMemReg || at(5)->op != MicroInstrOpcode::LoadAmcMemReg ||
+                at(6)->op != MicroInstrOpcode::Label)
+                continue;
+            const auto*     a           = at(0)->ops(operands);
+            const auto*     b           = at(1)->ops(operands);
+            const auto*     compare     = at(2)->ops(operands);
+            const auto*     branch      = at(3)->ops(operands);
+            const auto*     firstStore  = at(4)->ops(operands);
+            const auto*     secondStore = at(5)->ops(operands);
+            const MicroCond condition   = branch[0].cpuCond;
+            if (condition != MicroCond::Equal && condition != MicroCond::AboveOrEqual && condition != MicroCond::BelowOrEqual &&
+                condition != MicroCond::GreaterOrEqual && condition != MicroCond::LessOrEqual)
+                continue;
+            if (!a[0].reg.isInt() || !b[0].reg.isInt() || a[0].reg == b[0].reg ||
+                a[3].opBits != MicroOpBits::B64 || a[4].opBits != MicroOpBits::B64 ||
+                b[3].opBits != MicroOpBits::B64 || b[4].opBits != MicroOpBits::B64 ||
+                a[1].reg != b[1].reg || a[5].valueU64 != 8 || b[5].valueU64 != 8 || a[6].valueU64 != b[6].valueU64 ||
+                compare[0].reg != a[0].reg || compare[1].reg != b[0].reg || compare[2].opBits != MicroOpBits::B64 ||
+                cfg.indexOfLabel(branch[2].valueU64) != index + 6)
+                continue;
+            const auto stableAddress = [&](const MicroInstrOperand* load) {
+                return load[1].reg != a[0].reg && load[1].reg != b[0].reg &&
+                       load[2].reg != a[0].reg && load[2].reg != b[0].reg;
+            };
+            const auto matchesStore = [&](const MicroInstrOperand* store, const MicroInstrOperand* load, MicroReg value) {
+                return store[0].reg == load[1].reg && store[1].reg == load[2].reg && store[2].reg == value &&
+                       store[3].opBits == MicroOpBits::B64 && store[4].opBits == MicroOpBits::B64 &&
+                       store[5].valueU64 == load[5].valueU64 && store[6].valueU64 == load[6].valueU64;
+            };
+            if (!stableAddress(a) || !stableAddress(b) ||
+                !matchesStore(firstStore, b, a[0].reg) || !matchesStore(secondStore, a, b[0].reg))
+                continue;
+            const auto& predecessors = cfg.predecessors(index + 6);
+            if (predecessors.size() != 2 || predecessors[0] != index + 3 || predecessors[1] != index + 5 ||
+                std::ranges::find(cfg.addressTakenLabelIndices(), index + 6) != cfg.addressTakenLabelIndices().end())
+                continue;
+            for (uint32_t gap = 0; gap < 2 && index + 7 + gap < refs.size(); ++gap)
+            {
+                const auto* reload = at(7 + gap);
+                if (reload->op != MicroInstrOpcode::LoadAmcRegMem)
+                    break;
+                const auto* loaded      = reload->ops(operands);
+                const auto  matchesLoad = [&](const MicroInstrOperand* old) {
+                    return loaded[0].reg == old[0].reg && loaded[1].reg == old[1].reg && loaded[2].reg == old[2].reg &&
+                           loaded[3].opBits == old[3].opBits && loaded[4].opBits == old[4].opBits &&
+                           loaded[5].valueU64 == old[5].valueU64 && loaded[6].valueU64 == old[6].valueU64;
+                };
+                const bool retainsA = matchesLoad(a);
+                const bool retainsB = matchesLoad(b);
+                if (!retainsA && !retainsB)
+                    continue;
+                const MicroReg carrier = retainsA ? a[0].reg : b[0].reg;
+                const MicroReg value   = retainsA ? b[0].reg : a[0].reg;
+                if (gap)
+                {
+                    const auto* crossed = at(7)->ops(operands);
+                    if (crossed[0].reg == carrier || crossed[0].reg == loaded[1].reg || crossed[0].reg == loaded[2].reg ||
+                        crossed[1].reg == carrier || crossed[2].reg == carrier)
+                        continue;
+                }
+                std::array<MicroInstrOperand, 3> copy{};
+                copy[0].reg    = carrier;
+                copy[1].reg    = value;
+                copy[2].opBits = MicroOpBits::B64;
+                storage.insertDerivedBefore(operands, refs[index + 6], MicroInstrOpcode::LoadRegReg, copy);
+                storage.erase(refs[index + 7 + gap]);
+                return true;
+            }
+        }
+        return false;
+    }
+
     // A register comparison and its branch preserve the loaded value. Either
     // outgoing edge may reuse it, provided no other edge enters the reload.
     bool eraseGuardedReload(MicroPassContext& context)
@@ -1325,7 +1486,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     if (context.instructions->count() == 0)
         return Result::Continue;
 
-    if (reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
+    if (forwardGuardedStore(context) || forwardConditionalSwap(context) || reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))
     {
         context.passChanged = true;

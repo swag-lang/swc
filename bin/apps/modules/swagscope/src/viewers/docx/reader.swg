@@ -7,7 +7,7 @@ using Core
 private struct Reader
 {
     document:              Document
-    images:                ImageCatalog
+    images:                Package.ImageCatalog
     paragraph:             String
     run:                   String
     alignment:             string = ""

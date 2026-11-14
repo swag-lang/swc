@@ -65,3 +65,10 @@ using Core, Gui, Viewers
 {
     picturedViewer(scopeTestDataPath("viewer.pptx"), true, "viewer.pptx.slide")
 }
+
+// A presentation with an embedded photo in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.pictures.pptx"), false, "viewer.pptx.picture")
+}

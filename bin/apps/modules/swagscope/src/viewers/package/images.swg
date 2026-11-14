@@ -1,5 +1,5 @@
 #global internal
-#global namespace Viewers.Docx
+#global namespace Viewers.Package
 
 using Core, Pixel
 
@@ -20,14 +20,15 @@ struct ImageCatalog
 
 impl ImageCatalog
 {
-    func load(fileName: string, archive: const *Archive.Zip)->ImageCatalog fail
+    func load(fileName: string, archive: const *Archive.Zip, baseDirectory, relationsPath,
+              invalidMessage, tooLargeMessage: string)->ImageCatalog fail
     {
         var result = ImageCatalog{fileName: fileName, archive: archive}
-        let entry = archive.tryFindEntry("word/_rels/document.xml.rels")
+        let entry = archive.tryFindEntry(relationsPath)
         if not entry do
             return result
         if entry.uncompressedSize > 1024 * 1024 do
-            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+            fail Errors.UnsupportedFormatError{tooLargeMessage}
         let bytes = try Archive.Zip.loadEntry(fileName, entry)
         var scan = Package.Scanner.create(cast(string, bytes.toSlice()))
         var token: Package.Token
@@ -40,14 +41,14 @@ impl ImageCatalog
                 continue
             let id = token.attribute("Id") orelse ""
             let target = token.attribute("Target") orelse ""
-            let path = Package.resolveRelationshipTarget("word", target)
+            let path = resolveRelationshipTarget(baseDirectory, target)
             if id.count and not path.isEmpty() do
                 result.links.add(ImageLink{String.from(id), path})
             if result.links.count > 1024 do
-                fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                fail Errors.UnsupportedFormatError{tooLargeMessage}
         }
         if scan.damaged do
-            fail Errors.InvalidFormatError{texts().err_Invalid}
+            fail Errors.InvalidFormatError{invalidMessage}
         return result
     }
 

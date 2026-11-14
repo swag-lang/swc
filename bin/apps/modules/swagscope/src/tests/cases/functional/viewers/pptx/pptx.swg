@@ -24,6 +24,18 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.view != null and view.presentation.slides == 1)
 }
 
+// An embedded slide picture appears inline in the declared slide order.
+#test
+{
+    let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.pictures.pptx"))
+    Swag.require(presentation.slides == 2 and presentation.omittedImages == 0)
+    let first = Utf8.indexOf(presentation.html, "Opens first")
+    let image = Utf8.indexOf(presentation.html, "data:image/jpeg;base64,")
+    let second = Utf8.indexOf(presentation.html, "First &amp; final")
+    Swag.require(first < image and image < second)
+    Swag.require(Utf8.contains(presentation.html, "width=\"320\" height=\"240\""))
+}
+
 // A PowerPoint deck from the Apache POI corpus keeps the slide sequence and text.
 #test
 {

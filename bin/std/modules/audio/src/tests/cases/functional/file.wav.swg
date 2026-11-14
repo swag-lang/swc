@@ -2,6 +2,18 @@
 
 using Swag, Core
 
+// RIFF numeric fields are little-endian independently of the host's native byte order.
+#test
+{
+    const Header: [8] u8 = ['R'u8, 'I', 'F', 'F', 36, 0, 0, 0]
+    let parsed = expect Wav.decodeChunkHeader(Swag.makeSlice(&Header[0], Header.count))
+    Swag.require(parsed.chunkSize == 36)
+    Swag.require(Memory.compare(&parsed.chunkID, "RIFF".buffer, 4) == 0)
+
+    const Fact: [4] u8 = [0x78, 0x56, 0x34, 0x12]
+    Swag.require(expect Wav.decodeFactFrameCount(Swag.makeSlice(&Fact[0], Fact.count)) == 0x12345678)
+}
+
 // A data chunk cannot extend beyond the declared RIFF container or the physical file.
 #test
 {

@@ -136,6 +136,25 @@ private func readU32(bytes: const [..] u8, offset: u64)->u32
     return Math.make32(high, low)
 }
 
+// Reads the FourCC in its native byte representation and the RIFF size as little-endian.
+internal func decodeChunkHeader(bytes: const [..] u8)->ChunkHeader fail
+{
+    if bytes.count < 8 do
+        fail InvalidFormatError{"truncated RIFF chunk header"}
+    var result: #returntype
+    Memory.copy(&result.chunkID, bytes.buffer, 4)
+    result.chunkSize = readU32(bytes, 4)
+    return result
+}
+
+// RIFF's fact sample-frame count is little-endian on every host.
+internal func decodeFactFrameCount(bytes: const [..] u8)->u32 fail
+{
+    if bytes.count < 4 do
+        fail InvalidFormatError{"truncated WAVE fact sample count"}
+    return readU32(bytes, 0)
+}
+
 private func encodingOf(tag, bitsPerSample: u32)->SoundFileEncoding fail
 {
     switch tag
@@ -292,8 +311,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
             fail InvalidFormatError{"invalid wav"}
         if riffEnd - headerOffset < #sizeof(ChunkHeader) do
             fail InvalidFormatError{"invalid wav"}
-        if not (try stream.readValue(&header)) do
+        var rawHeader: [8] u8
+        if try stream.read(Swag.makeSlice(&rawHeader[0], rawHeader.count)) != rawHeader.count do
             fail InvalidFormatError{"invalid wav"}
+        header = try decodeChunkHeader(Swag.makeSlice(&rawHeader[0], rawHeader.count))
         let payloadOffset = try stream.position()
 
         // Each chunk's odd-sized payload has one padding byte inside the RIFF boundary.
@@ -351,10 +372,10 @@ private func readLayout(stream: *File.FileStream)->Layout fail
         case .SND_WAV_FOURCC_fact:
             if header.chunkSize >= 4
             {
-                var frameCount: u32
-                if not (try stream.readValue(&frameCount)) do
+                var rawFrameCount: [4] u8
+                if try stream.read(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count)) != rawFrameCount.count do
                     fail InvalidFormatError{"invalid wav"}
-                result.factFrames = frameCount
+                result.factFrames = try decodeFactFrameCount(Swag.makeSlice(&rawFrameCount[0], rawFrameCount.count))
                 try stream.skip(header.chunkSize - 4)
             }
             else

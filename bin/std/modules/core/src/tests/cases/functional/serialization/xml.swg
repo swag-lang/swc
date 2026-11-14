@@ -152,6 +152,18 @@ func(T) xmlRejectsOverflow(input: string)->bool
     xmlAssertNative(" 18000000000000000000<", 18000000000000000000'u64)
 }
 
+#test
+{
+    let culture           = Globalization.currentCulture()
+    let previousNumberFmt = culture.numberFormat
+    defer culture.numberFormat = previousNumberFmt
+    culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
+
+    xmlAssertNative(" 1.5<", 1.5'f32)
+    xmlAssertNative(" -2.5<", -2.5'f64)
+    Swag.require(culture.numberFormat.decimalSeparator == ',')
+}
+
 // Numeric overflow must fail instead of returning the parser's saturated value.
 #test
 {

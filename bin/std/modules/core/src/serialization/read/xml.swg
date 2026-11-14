@@ -314,8 +314,8 @@ public impl Xml
             var parsed: {value: NT, eat: u32, ovf: bool}
             #static switch NT
             {
-            case f32: parsed = try StrConv.parseF32(.stream.remainingString())
-            case f64: parsed = try StrConv.parseF64(.stream.remainingString())
+            case f32: parsed = try StrConv.parseF32Invariant(.stream.remainingString())
+            case f64: parsed = try StrConv.parseF64Invariant(.stream.remainingString())
             case s8:  parsed = try StrConv.parseS8(.stream.remainingString())
             case s16: parsed = try StrConv.parseS16(.stream.remainingString())
             case s32: parsed = try StrConv.parseS32(.stream.remainingString())

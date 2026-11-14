@@ -650,6 +650,7 @@ impl ViewerWindow
         with var pluginHost: ViewerPluginHost
         {
             .thumbnail       = me.thumbnailMode
+            .embedded        = false
             .session         = &next
             .documentParent  = me.documentPanel
             .sidePanelParent = splitter
@@ -735,8 +736,11 @@ impl ViewerWindow
             return
         }
 
-        if index == .activeChoiceIndex do
+        if index == .activeChoiceIndex
+        {
+            .rememberPreferredViewer(index)
             return
+        }
         if not .activateChoice(index) do
             return
         .rememberPreferredViewer(index)
@@ -751,11 +755,13 @@ impl ViewerWindow
     {
         if index >= .choices.count do
             return
+        .setPreferredViewer(.choices[0].key, .choices[index].key)
+    }
 
-        // A kind opening in its own viewer is what the application does anyway, so choosing it
-        // back is the removal of a decision rather than one more.
-        let kind      = .choices[0].key.toString()
-        let viewer    = .choices[index].key.toString()
+    // A kind opening in its own viewer is what the application does anyway. Picking it again
+    // removes the remembered alternative, including one chosen from an archive explorer.
+    mtd setPreferredViewer(kind, viewer: string)
+    {
         let isDefault = kind == viewer
 
         for &one, entry in .preferences where one.kind == kind

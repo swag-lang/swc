@@ -156,6 +156,9 @@ interface Host
     // Reports an offscreen thumbnail session, which must not play media or change user preferences.
     mtd isThumbnail()->bool
 
+    // Reports a viewer nested inside another document's reading surface.
+    mtd isEmbedded()->bool
+
     // Returns the application that owns the viewer surface.
     mtd application()->*Application
 

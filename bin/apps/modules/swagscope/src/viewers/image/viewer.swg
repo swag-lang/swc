@@ -569,7 +569,13 @@ private impl Panel
             .services        = services
         }
 
-        result.actions     = host.createCommandGroup(commandWidth(result.themeMetrics()))
+        if host.isEmbedded()
+        {
+            result.actions = Wnd.create'Wnd(result)
+            result.actions.hide()
+        }
+        else do
+            result.actions = host.createCommandGroup(commandWidth(result.themeMetrics()))
         result.info        = host.createInfoGroup(InfoWidth)
 
         result.createCommandBar(services.playback)

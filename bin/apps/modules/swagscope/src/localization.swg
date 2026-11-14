@@ -202,6 +202,7 @@ struct AppStrings
     ui_OpenStopped:                    string = "The file could not be shown."                // A viewer refused the file it claimed.
     ui_ViewerError:                    string = "This viewer could not decode the file."      // Heading above a viewer's exact decoder error.
     ui_ViewAsChoice:                   string = "View as %"                                   // Action under a viewer's failure showing the file in another viewer, named after it.
+    ui_DefaultViewerChoice:            string = "% (Default)"                               // First viewer in the selector, restoring the file kind's original reader.
     ui_FailureNotFound:                string = "The file could not be found."                // A file that is gone, above the technical detail.
     ui_FailureUnreadable:              string = "The file could not be read."                 // A file the system or a decoder could not read, above the technical detail.
     ui_FailureFormat:                  string = "The file is damaged, or its format is not supported."     // A file whose content a decoder refused, above the technical detail.

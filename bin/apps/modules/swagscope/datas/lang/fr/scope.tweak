@@ -141,6 +141,7 @@ lens_Find Rechercher
 lens_View Affichage
 lens_ViewAs Voir comme
 ui_ViewAsChoice Voir comme %
+ui_DefaultViewerChoice % (par défaut)
 lens_Playback Lecture
 lens_Folder Dossier
 lens_InFolder Dans ce dossier

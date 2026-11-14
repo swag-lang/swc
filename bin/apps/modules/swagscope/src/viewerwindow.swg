@@ -57,6 +57,7 @@ struct ViewerWindow
         refreshCaptionButton:        *CaptionButton
         findCaptionButton:           *CaptionButton
         informationCaptionButton:    *CaptionButton
+        viewerCaptionButton:         *CaptionButton
         lens:                        *Lens.View
         lensLauncher:                *Lens.Launcher
         infoSheet:                   *InfoSheet
@@ -751,12 +752,23 @@ impl ViewerWindow
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.show(exploring)
         .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen and videoControls)
+        let archiveFile = exploring and .explorer and .explorer.listing.isArchive
+        let openFile = not .isExploring() and not .currentFile.isEmpty()
+        .viewerCaptionButton.show((openFile or archiveFile) and not .fullScreen and videoControls)
+        var alternateViewer = openFile and .activeChoiceIndex < .choices.count and .activeChoiceIndex != 0
+        if archiveFile
+        {
+            let choices = .index.choices((unwrap .explorer).listing.path)
+            alternateViewer = not choices.isEmpty() and choices[0].key != "archive"
+        }
+        .viewerCaptionButton.setIconColor(alternateViewer ? .themeColors().caution : Color{})
         .backCaptionButton.toolTip        = text.explore_Back
         .forwardCaptionButton.toolTip     = text.explore_Forward
         .upCaptionButton.toolTip          = text.explore_Up
         .refreshCaptionButton.toolTip     = text.explore_Refresh
         .findCaptionButton.toolTip        = text.ui_FilterFiles
         .informationCaptionButton.toolTip = text.cmd_Information
+        .viewerCaptionButton.toolTip      = text.lens_ViewAs
         .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible())
         if not .explorer do
             return
@@ -1057,6 +1069,13 @@ impl ViewerWindow
             .toolTip    = appStrings().cmd_Information
             .updateFlags(.Toggle)
             .sigCheckedChanged += func|window = result|(_) { discard window.runCommand(ViewerCommands.Information) }
+            .hide()
+        }
+
+        with result.viewerCaptionButton = CaptionButton.create(result.surface, .Duplicate, "scope.viewer.choices")
+        {
+            .toolTip    = appStrings().lens_ViewAs
+            .sigPressed += func|window = result|(_) { window.showViewerChoicesMenu() }
             .hide()
         }
 

@@ -1,0 +1,7 @@
+ui_Name = "Classeur"
+ui_Preparing = "Préparation du classeur…"
+ui_Details = "Classeur · % feuilles · % cellules"
+ui_True = "VRAI"
+ui_False = "FAUX"
+err_Invalid = "La structure de ce classeur est endommagée."
+err_TooLarge = "Ce classeur est trop volumineux pour être ouvert sans risque."

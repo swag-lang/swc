@@ -25,10 +25,13 @@ enum ViewerIcons
     Archive      // Compressed-archive browser.
     Comic        // Sequential comic-book reader.
     Epub         // Book with a declared reading spine.
+    Docx         // Word document reading page.
+    Xlsx         // Workbook sheet and cell reader.
+    Pptx         // Presentation slide reader.
 }
-const ViewerIconValues: [17] ViewerIcons = [
+const ViewerIconValues: [20] ViewerIcons = [
     .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
-    .Midi, .Subtitle, .Archive, .Comic, .Epub,
+    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx,
 ]
 
 private const IconsSvg = #include("../datas/icons.svg")

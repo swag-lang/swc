@@ -130,6 +130,8 @@ private struct StreamInfo
     headerPackets: u32     // Packets the codec setup occupies before the sound starts.
     preSkip:       u64     // Opus priming frames omitted before audible frame zero.
     speakerMask:   u32
+    firstAudioSequence:       u32
+    headerPacketsOnAudioPage:  u32
 }
 
 // Reads the identification packet at the start of a first page's body.
@@ -249,22 +251,49 @@ private func findStream(walker: *Walker)->StreamInfo fail
     fail UnsupportedFormatError{"Ogg file carries no Vorbis or Opus stream"}
 }
 
+private struct HeaderEnd
+{
+    configEnd: u64     // End of the page containing the last header packet.
+    audioStart: u64    // Start of that page when audio follows its headers; otherwise `configEnd`.
+}
+
 // Advances past the pages holding the codec's header packets and returns where the sound starts.
-private func skipHeaders(walker: *Walker, info: const *StreamInfo)->u64 fail
+private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
 {
     var completed = 0'u32
     var header: PageHeader
     while try walker.next(&header)
     {
+        let pageOffset = walker.offset
         if header.serial == info.serial
         {
-            for index in header.segments where header.lacing[index] < 255 do
-                completed += 1
+            var completedOnPage = 0'u32
+            for index in header.segments
+            {
+                if header.lacing[index] < 255
+                {
+                    completed += 1
+                    completedOnPage += 1
+                    if completed == info.headerPackets
+                    {
+                        let pageEnd = pageOffset + header.totalBytes()
+                        if index + 1 < cast(u64, header.segments)
+                        {
+                            info.firstAudioSequence      = header.sequence
+                            info.headerPacketsOnAudioPage = completedOnPage
+                            walker.offset = pageOffset
+                            return HeaderEnd{pageEnd, pageOffset}
+                        }
+
+                        info.firstAudioSequence = header.sequence == Swag.U32.Max ? 0 : header.sequence + 1
+                        walker.offset = pageEnd
+                        return HeaderEnd{pageEnd, pageEnd}
+                    }
+                }
+            }
         }
 
         walker.offset += header.totalBytes()
-        if completed >= info.headerPackets do
-            return walker.offset
     }
 
     fail InvalidFormatError{"Ogg stream ends inside its header packets"}
@@ -325,27 +354,36 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
         sequence    = header.sequence
         hasSequence = true
 
-        if run.start == Swag.U64.Max do
+        if run.start == Swag.U64.Max
+        {
             run.start = pageOffset
+            run.open  = (header.flags & ContinuedPacket) != 0
+        }
         run.bytes += pageBytes
 
         if info.kind == .Opus
         {
             let body = try walker.body(&header)
             var at   = 0'u64
+            var headersToSkip = header.sequence == info.firstAudioSequence ? info.headerPacketsOnAudioPage : 0'u32
             for index in header.segments
             {
                 let size = cast(u64, header.lacing[index])
                 if not run.open
                 {
-                    let frames = Opus.packetFrames(body[at until at + size])
-                    if not frames do
-                        fail InvalidFormatError{"Opus packet has an invalid table of contents"}
-                    if run.frames > Swag.U64.Max - frames do
-                        fail OverflowError{"Ogg Opus run sample count overflows"}
-                    run.frames += frames
+                    if not headersToSkip
+                    {
+                        let frames = Opus.packetFrames(body[at until at + size])
+                        if not frames do
+                            fail InvalidFormatError{"Opus packet has an invalid table of contents"}
+                        if run.frames > Swag.U64.Max - frames do
+                            fail OverflowError{"Ogg Opus run sample count overflows"}
+                        run.frames += frames
+                    }
                 }
 
+                if size < 255 and headersToSkip do
+                    headersToSkip -= 1
                 run.open = size == 255
                 at       += size
             }
@@ -440,14 +478,15 @@ func openFile(path: string)->SoundFile fail
     walker.source = ByteSource.openFile(path)
     walker.table  = buildChecksumTable()
 
-    let info  = findStream(&walker)
-    let start = skipHeaders(&walker, &info)
+    var info = findStream(&walker)
+    let headerEnd = skipHeaders(&walker, &info)
+    walker.offset = headerEnd.audioStart
     let total = indexRuns(&walker, &info)
     if walker.packets.isEmpty() do
         fail InvalidFormatError{"Ogg stream carries no sound page"}
 
     var config: Array'u8
-    config.resize(start)
+    config.resize(headerEnd.configEnd)
     walker.source.seek(0)
     walker.source.readExact(config.toSlice())
     walker.source.close()

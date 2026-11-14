@@ -1365,7 +1365,7 @@ namespace PostRaPeephole
         if (!isFloat && !ctx.encoder)
             return false;
 
-        const MicroOpBits opBits = loadOps[indexed ? 3 : 2].opBits;
+        MicroOpBits opBits = loadOps[indexed ? 3 : 2].opBits;
         if (isFloat ? (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64 && !(lateFloatMemory && opBits == MicroOpBits::B128)) : !isStandardIntBits(opBits))
             return false;
 
@@ -1465,6 +1465,16 @@ namespace PostRaPeephole
             return false;
         const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
         const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
+        // The carrier dies below, so an integer consumer can read just its
+        // original low bytes. Keep floating loads and every widening unchanged.
+        if (!isFloat && isStandardIntBits(consumerBits) && getNumBits(consumerBits) < getNumBits(opBits))
+        {
+            // A full-width frame reload can still be carried in a register by
+            // frame forwarding. A narrower memory use prevents that reuse.
+            if (ctx.isPrivateFrameBase(base))
+                return false;
+            opBits = consumerBits;
+        }
         const bool        packed        = opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(op);
         const bool        integerPacked = packed && !isPackedFloatBinaryMicroOp(op);
         if (packed && indexed && !integerPacked)

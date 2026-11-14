@@ -455,6 +455,8 @@ namespace
         ENCODE_CASE("op_binary_reg_reg_mem_fsub_b32_extended", "C4 41 2A 5C 8D 34 12 00 00", b.emitOpBinaryRegRegMem(XMM9, XMM10, R13, 0x1234, MicroOp::FloatSubtract, MicroOpBits::B32););
         ENCODE_CASE("op_binary_reg_reg_mem_fmul_b64_stack", "C5 EB 59 0C 24", b.emitOpBinaryRegRegMem(XMM1, XMM2, RSP, 0, MicroOp::FloatMultiply, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_mem_fdiv_b32_rip", "C5 F2 5E 05 00 00 00 00", b.emitOpBinaryRegRegMem(XMM0, XMM1, MicroReg::instructionPointer(), 0, MicroOp::FloatDivide, MicroOpBits::B32); emitRipConstantRelocation(b););
+        ENCODE_CASE("op_binary_reg_reg_mem_vec_add_f32", "C5 F0 58 41 08", b.emitOpBinaryRegRegMem(XMM0, XMM1, RCX, 8, MicroOp::VecAddF32, MicroOpBits::B128););
+        ENCODE_CASE("op_binary_reg_reg_mem_vec_mul_f64", "C5 E9 59 0C 24", b.emitOpBinaryRegRegMem(XMM1, XMM2, RSP, 0, MicroOp::VecMulF64, MicroOpBits::B128););
         ENCODE_CASE("op_binary_reg_reg_amc_mem_fadd_b64", "C5 F3 58 04 D1", b.emitOpBinaryRegRegAmcMem(XMM0, XMM1, RCX, RDX, 8, 0, MicroOp::FloatAdd, MicroOpBits::B64););
         ENCODE_CASE("op_binary_reg_reg_amc_mem_fsub_b32_extended", "C4 01 2A 5C 8C 95 34 12 00 00", b.emitOpBinaryRegRegAmcMem(XMM9, XMM10, R13, R10, 4, 0x1234, MicroOp::FloatSubtract, MicroOpBits::B32););
         ENCODE_CASE("op_binary_reg_reg_amc_mem_fmul_b64_stack", "C4 A1 6B 59 0C 4C", b.emitOpBinaryRegRegAmcMem(XMM1, XMM2, RSP, R9, 2, 0, MicroOp::FloatMultiply, MicroOpBits::B64););

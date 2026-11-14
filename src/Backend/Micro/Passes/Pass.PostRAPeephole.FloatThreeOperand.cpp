@@ -107,7 +107,7 @@ namespace PostRaPeephole
             if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
             {
                 if (lateFloatMemory)
-                    return ops[0].reg != ops[1].reg && ops[0].reg != loaded &&
+                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) && ops[0].reg != loaded &&
                            ((ops[2].reg == loaded && ops[1].reg != loaded) || (ops[1].reg == loaded && ops[2].reg != loaded));
                 return ops[2].reg == loaded &&
                        ((ops[0].reg == ops[1].reg && ops[0].reg != loaded) || (ops[0].reg == loaded && ops[1].reg != loaded));
@@ -1426,9 +1426,12 @@ namespace PostRaPeephole
             return false;
         const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
         const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
-        if (consumerBits != opBits || (opBits == MicroOpBits::B128 && !fused))
+        const bool        packed       = opBits == MicroOpBits::B128 && isPackedFloatBinaryMicroOp(op);
+        if (packed && indexed)
             return false;
-        if (isFloat ? (!(fused ? isFusedFloatMicroOp(op) : hasThreeOperandForm(op)) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
+        if (consumerBits != opBits || (opBits == MicroOpBits::B128 && !fused && !packed))
+            return false;
+        if (isFloat ? (!(fused ? isFusedFloatMicroOp(op) : packed || hasThreeOperandForm(op)) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
         // FloatAnd/FloatXor use the packed 128-bit SSE memory form even for a
         // scalar value. A scalar load may read only four or eight bytes from
@@ -1438,7 +1441,7 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (fused || (isFloat && threeOperand && consumerOps[0].reg != consumerOps[1].reg && consumerOps[0].reg != loaded))
+        if (fused || (isFloat && threeOperand && (packed || consumerOps[0].reg != consumerOps[1].reg) && consumerOps[0].reg != loaded))
         {
             // This VEX memory form uses a full-width base and index. A
             // narrowed address would wrap before dereferencing instead.
@@ -1448,10 +1451,10 @@ namespace PostRaPeephole
                 return false;
             // A queued copy rewrite can expose contraction on the next sweep.
             // Keep that product in registers until its accumulation is settled.
-            if (op == MicroOp::FloatMultiply && mayContractFollowingAccumulation(ctx, opRef))
+            if ((op == MicroOp::FloatMultiply || op == MicroOp::VecMulF32 || op == MicroOp::VecMulF64) && mayContractFollowingAccumulation(ctx, opRef))
                 return false;
             const bool commute = !fused && consumerOps[1].reg == loaded;
-            if (commute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply) ||
+            if (commute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply && op != MicroOp::VecAddF32 && op != MicroOp::VecAddF64 && op != MicroOp::VecMulF32 && op != MicroOp::VecMulF64) ||
                             !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN ||
                             !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
                 return false;

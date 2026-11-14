@@ -3747,10 +3747,19 @@ void X64Encoder::encodeOpBinaryRegRegMem(MicroReg regDst, MicroReg regLeft, Micr
 {
     SWC_ASSERT(regDst.isFloat() && regLeft.isFloat());
     SWC_ASSERT(memBase.isInt() || memBase.isInstructionPointer());
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
+    if (isPackedFloatBinaryMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128);
+        const VecOpEncoding encoding = vecOpEncoding(op);
+        emitVex(store_, encoding.prefix, encoding.map, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), microRegToX64Reg(memBase));
+        emitCpuOp(store_, encoding.opcode);
+        emitMemoryOperand(store_, memOffset, encodeReg(regDst), memBase);
+        return;
+    }
     SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
     SWC_ASSERT(op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
                op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
-    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
 
     const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : 0xF3;
     emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), microRegToX64Reg(memBase));

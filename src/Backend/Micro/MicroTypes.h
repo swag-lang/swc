@@ -336,6 +336,11 @@ inline bool isVecMicroOp(const MicroOp op)
     return op >= MicroOp::VecAdd32;
 }
 
+inline bool isPackedFloatBinaryMicroOp(const MicroOp op)
+{
+    return op >= MicroOp::VecAddF32 && op <= MicroOp::VecMaxF64;
+}
+
 // Map packed FMA to its scalar operation to share operand-role decisions.
 inline MicroOp scalarFusedFloatOp(const MicroOp op)
 {

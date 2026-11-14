@@ -7,34 +7,26 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 
 ## Reading-first delivery plan
 
-Prioritize opening and reading real files across common formats before adding professional
-inspection or editing tools. A format counts as readable only when its primary content opens in
-the intended order, navigation works, search or selection works where meaningful, large or damaged
-input remains bounded, and unsupported content is named rather than silently omitted. The
-[fixture matrix](../bin/apps/modules/swagscope/src/tests/datas/README.md) records named inputs;
-app.scope.viewers.009 tracks the remaining behavior and performance checks per format.
-Implement every viewer and format decoder in Swag without external viewer libraries.
+Complete the formats already registered before adding more. A format counts as readable only when
+its primary content opens in the intended order, navigation works, search or selection works where
+meaningful, large or damaged input remains bounded, and unsupported content is named rather than
+silently omitted. The [fixture matrix](../bin/apps/modules/swagscope/src/tests/datas/README.md)
+records named and real-world variants; app.scope.viewers.009 tracks the remaining behavior and
+performance checks per format. Implement every viewer and decoder in Swag without external viewer
+libraries.
 
-1. Reuse the ZIP, HTML and image readers for EPUB and CBZ, then add safe basic reading for RTF and
-   Jupyter notebooks. See [app.scope.document.md](app.scope.document.md). Each format gets a real
-   reading surface; recognizing a container or showing its raw parts is insufficient.
-2. Read the common Office Open XML formats (`.docx`, `.xlsx`, `.pptx`), followed by OpenDocument
-   (`.odt`, `.ods`, `.odp`). Preserve paragraph, sheet and slide order, text, tables and bounded
-   images first; state layout limitations explicitly. See [app.scope.document.md](app.scope.document.md).
-3. Make the shipped readers dependable, starting with partial PDF pages, cancellation and fixed
-   rendering expectations in [std.gui.pdf.md](std.gui.pdf.md), then the common open, navigation and
-   failure paths. Keep the first-content latency and memory limits visible in the matrix.
-4. Fill modern image and video format gaps: AVIF, HEIC, JPEG XL, embedded RAW previews, VP9 and
-   AV1. Add other inexpensive formats when the owning decoder can meet the same reading contract.
-   See [app.scope.image.md](app.scope.image.md) and [std.video.md](std.video.md).
-5. Choose specialized formats such as DjVu, XPS, CBR, other archive families and legacy Office
-   from measured reader demand and backend feasibility. After broad basic reading is established,
-   deepen PDF navigation, printing, forms, annotations and signatures through
-   [app.scope.document.md](app.scope.document.md).
-
-The first implementation slice is EPUB, CBZ and basic Office reading. Format
-selection, previews, keyboard use, Encre/Papier presentation and failure recovery stay part of
-each slice rather than becoming a final integration pass.
+1. Deepen the shipped document readers, especially DOCX layout and styles, XLSX grid and cell
+   formatting, PPTX slide geometry, EPUB navigation, and CBZ page handling. Keep the true reading
+   surface ahead of each package's raw archive view. See [app.scope.document.md](app.scope.document.md).
+2. Make the shipped readers dependable across representative real files: partial PDF pages,
+   cancellation, navigation, search, first-content latency, memory bounds, and explicit failures.
+   See [std.gui.pdf.md](std.gui.pdf.md) and the fixture matrix. Verify Encre and Papier across
+   sibling scenarios, including previews and keyboard use.
+3. Reassess new format selectors only after their existing neighbors meet this reading contract.
+   Recorded candidates include Jupyter notebooks, OpenDocument (`.odt`, `.ods`, `.odp`), AVIF,
+   HEIC, JPEG XL, embedded RAW previews, VP9, AV1, DjVu, XPS, CBR, other archives and legacy
+   Office files. Keep those leads in their owning backlogs; do not schedule them ahead of fixes to
+   current readers. See [app.scope.image.md](app.scope.image.md) and [std.video.md](std.video.md).
 
 ## Entries
 

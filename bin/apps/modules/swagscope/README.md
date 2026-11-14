@@ -152,7 +152,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
   booleans and cached formula values at their row and column coordinates, with visible headings.
   Formulas without cached values show their expression or an explicit unavailable-result label.
-  It does not calculate formulas or reproduce formatting, charts, merged cells or images.
+  The reading grid is capped at 512 columns. It does not calculate formulas or reproduce formatting,
+  charts, merged cells or images.
 - `Presentation` reads PPTX slides in declared order and presents their text and bounded embedded
   PNG, JPEG, GIF and WebP pictures as a continuous reading page. Direct bold/italic text and
   paragraph alignment are preserved. Pictures use their declared size and alternative description;

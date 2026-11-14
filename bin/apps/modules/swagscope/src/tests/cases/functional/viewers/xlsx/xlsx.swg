@@ -77,3 +77,11 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(workbook.html,
                                "<td>Safe &amp; sound</td><td></td><td>=SUM(2,3)</td><td>[Formula result unavailable]</td><td>4</td>"))
 }
+
+// A column outside the bounded reading grid cannot be silently shifted into view.
+#test
+{
+    var loadError: Swag.Error
+    discard catch Xlsx.Workbook.load(scopeTestDataPath("viewer.wide-column.xlsx")) as loadError
+    Swag.require(loadError.value() is Errors.UnsupportedFormatError)
+}

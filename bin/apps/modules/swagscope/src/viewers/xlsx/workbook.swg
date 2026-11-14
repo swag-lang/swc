@@ -143,6 +143,16 @@ private func cellColumn(reference: string)->u64
     return result ? result - 1 : Swag.U64.Max
 }
 
+private func checkedCellColumn(reference: string)->u64 fail
+{
+    let column = cellColumn(reference)
+    if column != Swag.U64.Max or not reference.count do
+        return column
+    if reference[0] >= 'A'u8 and reference[0] <= 'Z'u8 do
+        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+    fail Errors.InvalidFormatError{texts().err_Invalid}
+}
+
 private func sheetColumns(source: string)->u64 fail
 {
     var scan = Package.Scanner.create(source)
@@ -157,7 +167,7 @@ private func sheetColumns(source: string)->u64 fail
             nextColumn = 0
         elif token.isElement("c")
         {
-            let column = cellColumn(token.attribute("r") orelse "")
+            let column = try checkedCellColumn(token.attribute("r") orelse "")
             if column != Swag.U64.Max and column > nextColumn do
                 nextColumn = column
             nextColumn += 1
@@ -258,7 +268,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                 kind = typeName ? typeName : ""
                 let referenceName = token.attribute("r")
                 let reference = referenceName ? referenceName : ""
-                let column = cellColumn(reference)
+                let column = try checkedCellColumn(reference)
                 if column != Swag.U64.Max and column > nextColumn
                 {
                     while nextColumn < column

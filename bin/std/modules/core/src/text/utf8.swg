@@ -1379,7 +1379,8 @@ func isValid(buffer: const [..] u8)->bool
     // Quick zap ascii characters
     while countof >= 8
     {
-        let first64 = cast(const *u64, p)[]
+        var first64: u64
+        Memory.copy(&first64, p, #sizeof(u64))
         if first64 & 0x80808080_80808080 do
             break
         p       += 8

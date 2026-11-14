@@ -185,6 +185,9 @@ impl ByteSource
     // [[Core.ByteSource.readBigEndian]] for a persisted or transmitted integer.
     mtd(T) readNative()->T fail
     {
+        if not Reflection.isPod(#typeof(T)) do
+            fail BadParameterError{"byte source native reads require a POD type"}
+
         var result: T
         try .readExact(Swag.makeSlice(cast([*] u8, &result), #sizeof(T)))
         return result

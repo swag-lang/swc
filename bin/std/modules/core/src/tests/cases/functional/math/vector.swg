@@ -458,6 +458,16 @@ func expectVec4(actual, expected: Math.Vector4)
     Swag.require(cylindrical.height == 4)
 }
 
+// Cylindrical radii use the stable 2D length for both large and tiny finite components.
+#test
+{
+    let large = Math.Vector3{Swag.F32.Max, 0, 0}.toCylindrical()
+    Swag.require(large.radius == Swag.F32.Max)
+
+    let tiny = Math.Vector3{1e-30, 0, 0}.toCylindrical()
+    Swag.require(tiny.radius == 1e-30)
+}
+
 // Spherical direction remains representable when the finite radius overflows f32.
 #test
 {

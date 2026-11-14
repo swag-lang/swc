@@ -471,6 +471,22 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(readerOutcome.value() != null)
 }
 
+// An icon DIB uses BITMAPINFOHEADER and requires exactly one color plane.
+#test
+{
+    var body: ConcatBuffer
+    for 8 do
+        body.addNative(0'u8)     // 1x1 32-bit XOR and AND masks.
+    var bytes = buildIco(1, 1, 32, 0, nnBytes(body.toSlice()))
+    let dib = cast(*IcoDib, bytes.storage() + #sizeof(IcoDir) + #sizeof(IcoEntry))
+    dib[].planes = 2
+
+    var errorOutcome: Swag.Error
+    var image:        Image
+    catch { image = try decodeIco(nnBytes(bytes.toSlice())) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Error: directory type is neither icon (1) nor cursor (2).
 #test
 {

@@ -73,6 +73,31 @@ using Swag
     Swag.require(Slice.equals(tooShort.toSlice()[until Prefix.count], Prefix))
 }
 
+#test
+{
+    // Shift the compressed input and existing output prefix by one byte to exercise
+    // both Inflate's bulk input refill and its unaligned distance>=8 output copy.
+    var original: [2048] u8
+    for i in original.count do
+        original[i] = cast(u8, ((i % 11) * 17 + 3))
+
+    var deflater: Compress.Deflate
+    deflater.init(.BestCompression, flags: .Zero)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, original)
+
+    var shifted: Array'u8
+    shifted.add(0xEE)
+    shifted.add(compressed.toSlice())
+
+    var decoded: Array'u8
+    decoded.add(0xDD)
+    var inflater: Compress.Inflate
+    expect inflater.decompress(&decoded, shifted.toSlice()[1 to])
+    Swag.require(decoded[0] == 0xDD)
+    Swag.require(Slice.equals(decoded.toSlice()[1 to], original))
+}
+
 // Match distances and lengths around the 8/16-byte copy boundaries round-trip
 // through the exact Deflate producer consumed by Inflate.
 #test

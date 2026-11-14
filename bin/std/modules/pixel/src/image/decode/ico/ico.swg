@@ -277,6 +277,8 @@ impl Decoder
         let dib = cast(const *DibHeader, imgPtr)[]
         if dib.size < #sizeof(DibHeader) do
             fail UnsupportedFormatError{"unsupported icon header"}
+        if dib.planes != 1 do
+            fail UnsupportedFormatError{"icon DIB must have one color plane"}
         if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
             fail InvalidFormatError{"invalid dimensions"}
         try checkEntryDimensions(bestEntry, dib.width, dib.height / 2)

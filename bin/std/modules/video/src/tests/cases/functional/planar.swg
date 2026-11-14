@@ -66,6 +66,55 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
     Swag.require(picture.chromaHeight() == 1_073_741_824 and picture.chromaB.isEmpty())
 }
 
+// A planar picture is valid only when every plane covers its visible rows and supported chroma mode.
+#test
+{
+    var picture: PlanarFrame
+    picture.resize(3, 3)
+    Swag.require(picture.isValid())
+
+    picture.luma.resize(0)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    picture.chromaB.resize(0)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    picture.chromaR.resize(0)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    picture.chromaR.resize(3)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    picture.luma.resize(8)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    picture.strideLuma = 2
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3)
+    picture.strideChroma = 1
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3, 2)
+    Swag.require(not picture.isValid())
+
+    picture.resize(3, 3, 0)
+    Swag.require(picture.isValid())
+
+    picture.resize(3, 3)
+    picture.strideLuma   = 4
+    picture.strideChroma = 3
+    picture.luma.resize(11)
+    picture.chromaB.resize(5)
+    picture.chromaR.resize(5)
+    Swag.require(picture.isValid())
+}
+
 // A High-profile stream hands its pictures over unconverted.
 #test
 {

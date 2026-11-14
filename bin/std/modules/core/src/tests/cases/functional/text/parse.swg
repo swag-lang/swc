@@ -38,6 +38,15 @@ using Swag
     Swag.require(positive is Errors.ParseIncompleteError)
 }
 
+// A number ending exactly at the slice boundary needs no trailing byte or sentinel.
+#test
+{
+    const Digits: [1] u8 = ['1']
+    let text = Swag.makeString(&Digits[0], Digits.count)
+    let {value, eat, ovf: _} = expect StrConv.parseF64(text)
+    Swag.require(value == 1 and eat == 1)
+}
+
 // An empty text is not a number, whatever its type.
 #test
 {

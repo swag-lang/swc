@@ -24,6 +24,13 @@ using Core, Gui, Viewers
     picturedViewer(scopeTestDataPath("viewer.docx"), true, "viewer.docx.page")
 }
 
+// Word headings and styled runs in Encre.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.formatted.docx"), false, "viewer.docx.formatted")
+}
+
 // Styled rich text in Encre.
 #[Swag.TestTag("golden")]
 #test

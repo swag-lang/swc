@@ -439,8 +439,13 @@ internal impl IImageDecoder for Decoder
         if isMappedType(header.imageTypeCode) and not palette.count do
             fail InvalidFormatError{"missing palette"}
 
+        let width      = cast(s32, header.width)
+        let height     = cast(s32, header.height)
+        let format     = try pixelFormat(header, palette)
+        try options.checkImage(width, height, format)
+
         var result: #returntype
-        result.init(header.width, header.height, try pixelFormat(header, palette))
+        result.init(width, height, format)
 
         if not options.decodePixels do
             return result

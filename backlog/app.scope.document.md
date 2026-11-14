@@ -156,7 +156,7 @@ integration around those engines.
 
 ### app.scope.document.020 — Office Open XML rendering remains partial
 
-- Evidence: `.docx` reads main-body paragraphs and tables, `.xlsx` reads ordered sheets,
+- Evidence: `.docx` reads main-body paragraphs, tables, direct run formatting and headings; `.xlsx` reads ordered sheets,
   shared/inline strings, numbers and cached values, and `.pptx` reads ordered slide text. These
   files are ZIP containers, but showing their raw entries or extracted prose is not a document
   reader. The current HTML projection loses Word pagination and styling, spreadsheet grid and

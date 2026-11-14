@@ -10,10 +10,10 @@ using Core, Pixel
 // are through [[Pixel.IRenderer.addImage]]. The resulting texture is drawn with
 // [[Pixel.Painter.drawTexture]]; a shader backend converts it while sampling.
 //
-// Rows are tightly packed: `strideLuma` is `width`, and `strideChroma` and the chroma row count
-// are the picture size shifted right by `chromaShift`, rounded up. That shift is one for a 4:2:0
-// picture and none for a 4:4:4 one. Storage is reused across frames, so a caller decoding a whole
-// stream allocates one picture in total.
+// `resize` creates tightly packed rows, while the public strides also describe padded planes when
+// their buffers cover every visible row. The chroma width and row count are the picture size
+// shifted right by `chromaShift`, rounded up. That shift is one for 4:2:0 and none for 4:4:4.
+// Storage is reused across frames, so a caller decoding a whole stream allocates one picture in total.
 //
 // ```swag
 // var picture: PlanarFrame
@@ -37,8 +37,8 @@ struct PlanarFrame
         width:  s32     // Visible picture width in luma samples.
         height: s32     // Visible picture height in luma samples.
 
-        strideLuma:   u32     // Bytes between luma rows, equal to `width`.
-        strideChroma: u32     // Bytes between chroma rows.
+        strideLuma:   u32     // Bytes between luma rows; at least `width`.
+        strideChroma: u32     // Bytes between chroma rows; at least the chroma width.
 
         // How far a pixel coordinate shifts right to address the chroma planes: one for 4:2:0, none for 4:4:4.
         chromaShift: s32 = 1
@@ -55,8 +55,27 @@ struct PlanarFrame
 
 impl PlanarFrame
 {
-    // Returns whether the picture holds samples.
-    mtd const isValid()->bool => .width > 0 and .height > 0 and not .luma.isEmpty()
+    // Reports whether all planes contain the samples described by this picture.
+    mtd const isValid()->bool
+    {
+        if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1) do
+            return false
+
+        let width  = cast(u64, .width)
+        let height = cast(u64, .height)
+        let chromaWidth  = .chromaShift == 0 ? width : width / 2 + width % 2
+        let chromaHeight = .chromaShift == 0 ? height : height / 2 + height % 2
+        let lumaStride   = cast(u64, .strideLuma)
+        let chromaStride = cast(u64, .strideChroma)
+        if lumaStride < width or chromaStride < chromaWidth do
+            return false
+
+        let lumaSize   = (height - 1) * lumaStride + width
+        let chromaSize = (chromaHeight - 1) * chromaStride + chromaWidth
+        return .luma.count >= lumaSize and
+               .chromaB.count >= chromaSize and
+               .chromaR.count >= chromaSize
+    }
 
     // Returns the number of chroma rows: the luma rows shifted down and rounded up.
     mtd const chromaHeight()->s32 =>

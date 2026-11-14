@@ -89,6 +89,23 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
 
 #test
 {
+    // Exercise the bulk refill from a byte slice whose address is not u64-aligned.
+    var backing: [72] u8
+    let base   = cast(u64, cast(const [*] u8, backing.buffer))
+    let offset = (1 + 8 - (base & 7)) & 7
+    var input   = backing[offset to offset + 64]
+    for i in 64 do
+        input[i] = cast #bit (u8, (i * 173 + 41))
+    Swag.require((cast(u64, cast(const [*] u8, input.buffer)) & 7) == 1)
+
+    var stream: Compress.BitStream
+    stream.reset(input)
+    for i in 64 do
+        Swag.require(stream.readBits(8) == cast(u32, input[i]))
+}
+
+#test
+{
     let input: [2] u8 = [0b11010110, 0xAB]
 
     var stream: Compress.BitStream

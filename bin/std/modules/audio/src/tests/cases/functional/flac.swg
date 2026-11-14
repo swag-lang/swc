@@ -34,6 +34,73 @@ private func flacDecodeAll(sound: const *SoundFile)->Array'u8 fail
     return result
 }
 
+private func flacTestHeaderCrc8(bytes: const [..] u8)->u8
+{
+    var crc = 0'u8
+    for value in bytes
+    {
+        crc ^= value
+        for 8 do
+            crc = (crc & 0x80) != 0 ? cast(u8, ((crc << 1) ^ 0x07)) : cast(u8, (crc << 1))
+    }
+    return crc
+}
+
+private func flacTestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u64, count: u32)
+{
+    for bit in count
+    {
+        if not (bitCount[] & 7) do
+            bytes.add(0)
+        let shift = count - 1 - bit
+        if (value >> shift) & 1 do
+            bytes[bitCount[] >> 3] |= cast(u8, 1'u32 << (7 - cast(u32, bitCount[] & 7)))
+        bitCount[] += 1
+    }
+}
+
+private func flacWideStereoTestConfig()->Array'u8
+{
+    var config: Array'u8
+    config.add(0)
+    config.add(1) // Min block size: one sample.
+    config.add(0)
+    config.add(1) // Max block size: one sample.
+    for 6 do
+        config.add(0) // Min/max frame sizes are unknown.
+    let description = (48_000'u64 << 44) | (1'u64 << 41) | (31'u64 << 36) | 1
+    for byte in 8 do
+        config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
+    for 16 do
+        config.add(0) // MD5 is not consulted by the frame decoder.
+    return config
+}
+
+private func flacWideMidSideFrame()->Array'u8
+{
+    var frame: Array'u8
+    frame.add(0xFF)
+    frame.add(0xF9) // Variable-block strategy.
+    frame.add(0x60) // One-sample block size, sample rate from STREAMINFO.
+    frame.add(0xA0) // Two-channel mid/side decorrelation, 32-bit samples from STREAMINFO.
+    frame.add(0)    // Sample number.
+    frame.add(0)    // Block size minus one.
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0, 8)                  // Constant mid subframe.
+    flacTestAppendBits(&frame, &bitCount, 0xFFFF_FFFF, 32)       // Mid = -1.
+    flacTestAppendBits(&frame, &bitCount, 0, 8)                  // Constant side subframe.
+    flacTestAppendBits(&frame, &bitCount, 0xFFFF_FFFF, 33)       // Side = 2^32 - 1.
+    while bitCount & 7 do
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
 // FLAC is lossless, so the only acceptable result is the exact stream that was encoded.
 //
 // The reference is the interleaved 16-bit PCM the fixture was produced from, not this module's own
@@ -69,6 +136,21 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 #test
 {
     flacAssertLossless("flac-5.1-48000", 48_000, 6)
+}
+
+// The side subframe of 32-bit mid/side stereo needs 33 bits to reconstruct the full PCM range.
+#test
+{
+    var codec: Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flacWideStereoTestConfig()
+    expect decoder.initialize(config.toSlice(), 48_000, 2)
+
+    var decoded: [2] s16
+    let frame = flacWideMidSideFrame()
+    let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), frame.toSlice())
+    Swag.require(bytes == 2 * #sizeof(s16))
+    Swag.require(decoded[0] == Swag.S16.Max and decoded[1] == Swag.S16.Min)
 }
 
 // Opening a file walks its frame headers rather than its audio, and the index it builds agrees

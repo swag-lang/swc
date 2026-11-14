@@ -1,0 +1,11 @@
+# French strings of the EPUB reader.
+
+ui_Name               Livre EPUB
+ui_Previous           Chapitre précédent
+ui_Next               Chapitre suivant
+ui_Preparing          Préparation du livre…
+ui_Details            EPUB · chapitre % sur %
+err_Invalid          La structure de ce livre EPUB est endommagée.
+err_TooLarge         Ce livre EPUB est trop volumineux pour être ouvert sans risque.
+err_UnsupportedChapter Ce livre EPUB contient un format de chapitre illisible.
+err_NoChapters       Ce livre EPUB ne contient aucun chapitre lisible.

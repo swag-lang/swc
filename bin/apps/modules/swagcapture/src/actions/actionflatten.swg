@@ -24,6 +24,7 @@ impl IActionUI for ActionFlatten
     {
         let main    = mainWndOf(cxt)
         let capture = unwrap main.getCapture()
+        main.timeline?.stop()
 
         var undo: *Undo
         switch cxt.id

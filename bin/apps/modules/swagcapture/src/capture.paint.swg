@@ -493,23 +493,46 @@ impl Capture
         let editView = unwrap .editView
         let renderer = editView.app().renderer
 
-        if not .backTexture.isValid() and .backImg.width > 0
+        if .playbackPlanar
         {
-            .backTexture       = renderer.addImage(.backImg)
-            .serialBackTexture += 1
+            if .dirtyBackImg or not .backTexture.isValid()
+            {
+                let planes = .playbackPlanes.view()
+                if not .backTexturePlanar or not .backTexture.isValid() or
+                   not renderer.updateTexture(.backTexture, &planes)
+                {
+                    if .backTexture.isValid() do
+                        renderer.removeTexture(&.backTexture)
+                    .backTexture = renderer.addImage(&planes)
+                }
+                .backTexturePlanar = true
+                .dirtyBackImg = false
+                .serialBackTexture += 1
+            }
         }
-
-        if .backTexture.isValid()
+        else
         {
+            if .backTexturePlanar and .backTexture.isValid() do
+                renderer.removeTexture(&.backTexture)
+            .backTexturePlanar = false
+            if not .backTexture.isValid() and .backImg.width > 0
+            {
+                .backTexture       = renderer.addImage(.backImg)
+                .serialBackTexture += 1
+            }
+
             // Re-upload the texture after a background edit.
-            if .dirtyBackImg
+            if .backTexture.isValid() and .dirtyBackImg
             {
                 renderer.removeTexture(&.backTexture)
                 .backTexture       = renderer.addImage(.backImg)
                 .dirtyBackImg      = false
                 .serialBackTexture += 1
             }
+        }
 
+        if .backTexture.isValid()
+        {
             var backRect: Math.Rectangle
             if .inPlaceEdit
             {
@@ -522,8 +545,8 @@ impl Capture
             {
                 backRect.x      = (.backImagePos.x * z) + x
                 backRect.y      = (.backImagePos.y * z) + y
-                backRect.width  = .backImg.width * z
-                backRect.height = .backImg.height * z
+                backRect.width  = (me.playbackPlanar ? me.width : me.backImg.width) * z
+                backRect.height = (me.playbackPlanar ? me.height : me.backImg.height) * z
             }
 
             painter.setInterpolationMode(.Linear)

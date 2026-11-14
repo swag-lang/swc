@@ -5,6 +5,35 @@ Swag Scope viewers. A capability owned by one viewer lives in its `app.scope.<vi
 window lifecycle and document management live in [app.scope.md](app.scope.md), while operating-system
 integration belongs to [platform.portability.md](platform.portability.md). Reusable engine work remains in the owning standard-module backlog.
 
+## Reading-first delivery plan
+
+Prioritize opening and reading real files across common formats before adding professional
+inspection or editing tools. A format counts as readable only when its primary content opens in
+the intended order, navigation works, search or selection works where meaningful, large or damaged
+input remains bounded, and unsupported content is named rather than silently omitted. The
+compatibility matrix in app.scope.viewers.009 records fixtures and these outcomes per format.
+
+1. Make the shipped readers dependable, starting with partial PDF pages, cancellation and fixed
+   rendering expectations in [std.gui.pdf.md](std.gui.pdf.md), then the common open, navigation and
+   failure paths. Keep the first-content latency and memory limits visible in the matrix.
+2. Reuse the ZIP, HTML and image readers for EPUB and CBZ, then add safe basic reading for RTF and
+   Jupyter notebooks. See [app.scope.document.md](app.scope.document.md). Each format gets a real
+   reading surface; recognizing a container or showing its raw parts is insufficient.
+3. Read the common Office Open XML formats (`.docx`, `.xlsx`, `.pptx`), followed by OpenDocument
+   (`.odt`, `.ods`, `.odp`). Preserve paragraph, sheet and slide order, text, tables and bounded
+   images first; state layout limitations explicitly. See [app.scope.document.md](app.scope.document.md).
+4. Fill modern image and video format gaps: AVIF, HEIC, JPEG XL, embedded RAW previews, VP9 and
+   AV1. Add other inexpensive formats when the owning decoder can meet the same reading contract.
+   See [app.scope.image.md](app.scope.image.md) and [std.video.md](std.video.md).
+5. Choose specialized formats such as DjVu, XPS, CBR, other archive families and legacy Office
+   from measured reader demand and backend feasibility. After broad basic reading is established,
+   deepen PDF navigation, printing, forms, annotations and signatures through
+   [app.scope.document.md](app.scope.document.md).
+
+The first implementation slice is dependable PDF page reading, EPUB, CBZ and basic DOCX. Format
+selection, previews, keyboard use, Encre/Papier presentation and failure recovery stay part of
+each slice rather than becoming a final integration pass.
+
 ## Entries
 
 ### app.scope.viewers.003 — Viewer state is forgotten when a file or application closes

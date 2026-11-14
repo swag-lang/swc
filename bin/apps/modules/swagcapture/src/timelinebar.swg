@@ -9,6 +9,13 @@ const TimelineButton    = 28.0      // Side of the play command.
 const TimelineTextWidth = 104.0     // Room for the time reading.
 const TimelineGap       = 8.0       // Air between the bar and the hint line.
 const TimelineThumbnails = 6        // Fixed decoding budget for the visible passage.
+const TimelineVideoSlots = 5         // Five 4K YUV420 pictures stay below 64 MiB.
+
+struct TimelineVideoSlot
+{
+    index:  u64
+    planes: PlanarFrame
+}
 
 struct TimelineBar
 {
@@ -18,6 +25,7 @@ struct TimelineBar
     late panel:      *FloatingPanel     // The floating ground the bar stands on, placed by the main window.
     late playButton: *IconButton
     playTimer:       *Gui.Timer?
+    seekTimer:       *Gui.Timer?
     playStart:       u64     // Monotonic time playback started, in microseconds.
     playFrom:        u64     // Capture time playback started from, in microseconds.
     audioReader:     *Video.Reader?
@@ -38,6 +46,24 @@ struct TimelineBar
     thumbStart:      u64
     thumbSpan:       u64
     thumbsReady:     bool
+    videoSlots:      [TimelineVideoSlots] TimelineVideoSlot
+    videoReady:      StaticArray'(u32, TimelineVideoSlots)
+    videoFree:       StaticArray'(u32, TimelineVideoSlots)
+    videoLock:       Swag.Mutex
+    videoWake:       Sync.Event
+    videoReleased:   Sync.Event
+    videoTask:       Swag.Task
+    videoExecutor:   Swag.Executor
+    videoPath:       String
+    videoGeneration: u32
+    videoFrom:       u64
+    videoNext:       u64
+    videoCount:      u64
+    videoActive:     bool
+    videoFailed:     bool
+    videoBusy:       bool
+    videoBusySlot:   u32
+    videoReleaseRequested: bool
 }
 
 // What a press on the track drags.
@@ -55,6 +81,16 @@ impl IWnd for TimelineBar
 {
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .stopTimer(&.seekTimer)
+        if .videoTask.isPending()
+        {
+            .videoTask.cancel()
+            .videoWake.signal()
+            .videoTask.wait()
+            .videoExecutor.close()
+            .videoWake.release()
+            .videoReleased.release()
+        }
         .disposeAudio()
         .clearThumbnails()
     }
@@ -202,6 +238,22 @@ impl IWnd for TimelineBar
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .seekTimer
+        {
+            let capture = .capture()
+            if not capture or not capture.frames or .videoDecodeFailed()
+            {
+                .stopTimer(&.seekTimer)
+                return
+            }
+            if .presentVideoFrame(capture, .videoFrom)
+            {
+                .stopTimer(&.seekTimer)
+                .revealTime(capture.frames.timeOf(capture.playhead))
+                .invalidate()
+            }
+            return
+        }
         if evt.timer != .playTimer do
             return
 
@@ -214,6 +266,23 @@ impl IWnd for TimelineBar
 
         // Playback loops over the kept part, as the exported animation does.
         let frames = capture.frames
+        if capture.media == .Video and not Swag.jit()
+        {
+            if .videoDecodeFailed()
+            {
+                .stop()
+                .main.reportFailure(appStrings().msg_RecordingPlaybackFailed, Capture.clockText(.playFrom, tenths: true))
+                return
+            }
+            if not .playStart
+            {
+                if not .videoBuffered() do
+                    return
+                catch .startAudio(.playFrom)
+                .playStart = Time.monotonicMicroseconds()
+            }
+        }
+
         let now = Time.monotonicMicroseconds()
         var time = .playFrom + (now - .playStart)
         if .audioVoiceCount and .audioVoices[0] and .audioReader
@@ -241,14 +310,30 @@ impl IWnd for TimelineBar
         {
             .playFrom  = capture.trimStart()
             time       = .playFrom
+            if capture.media == .Video and not Swag.jit()
+            {
+                .stopAudio()
+                .requestVideoFrames(capture, frames.frameAt(time))
+                .playStart = 0
+                return
+            }
             catch .startAudio(time)
             .playStart = Time.monotonicMicroseconds()
         }
 
         let frame = frames.frameAt(time)
+        if capture.media == .Video and not Swag.jit()
+        {
+            if .presentVideoFrame(capture, frame)
+            {
+                .revealTime(frames.timeOf(capture.playhead))
+                .invalidate()
+            }
+            return
+        }
         if frame != capture.playhead
         {
-            catch capture.showFrame(frame)
+            catch capture.showPlaybackFrame(frame)
             {
                 .stop()
                 .main.reportFailure(appStrings().msg_RecordingPlaybackFailed, Capture.clockText(time, tenths: true))
@@ -282,6 +367,15 @@ impl TimelineBar
         {
             .toolTip    = appStrings().tip_PlayAnimation
             .sigPressed += func|bar = result|(_) { bar.togglePlay() }
+        }
+
+        if not Swag.jit()
+        {
+            result.videoWake.init()
+            result.videoReleased.init()
+            result.videoExecutor.start()
+            result.videoTask.submit(func|bar = result|() { runTimelineVideoDecoder(bar) },
+                                    result.taskNotifier(&result.videoTask), executor: &result.videoExecutor)
         }
 
         return result
@@ -318,7 +412,7 @@ impl TimelineBar
         {
             if .viewCapture
             {
-                .stop()
+                .stop(materialize: false)
                 .disposeAudio()
             }
             .clearThumbnails()
@@ -383,7 +477,7 @@ impl TimelineBar
     {
         if .isPlaying()
         {
-            .stop()
+            .stop(materialize: false)
             return
         }
 
@@ -391,19 +485,34 @@ impl TimelineBar
         if not capture or not capture.frames do
             return
 
-        .playFrom = capture.frames.timeOf(capture.playhead)
-        catch .startAudio(.playFrom)
-        .playStart = Time.monotonicMicroseconds()
+        let frame = .seekTimer ? .videoFrom : capture.playhead
+        .playFrom = capture.frames.timeOf(frame)
+        if capture.media == .Video and not Swag.jit()
+        {
+            .stopTimer(&.seekTimer)
+            .requestVideoFrames(capture, frame)
+            .playStart = 0
+        }
+        else
+        {
+            catch .startAudio(.playFrom)
+            .playStart = Time.monotonicMicroseconds()
+        }
         .playTimer = .addTimer(Time.Duration.fromSeconds(1.0 / 60))
         .playButton.setIcon(.theme().icon(.Pause))
         .playButton.toolTip = appStrings().tip_PauseAnimation
     }
 
     // Stops playback, leaving the playhead where it is.
-    mtd stop()
+    mtd stop(materialize = true)
     {
         .stopTimer(&.playTimer)
+        .stopTimer(&.seekTimer)
         .stopAudio()
+        .stopVideoFrames()
+        let capture = .main.getCapture()
+        if materialize and capture and capture == .viewCapture and capture.playbackPlanar do
+            catch capture.showFrame(capture.playhead)
         .playButton.setIcon(.theme().icon(.Play))
         .playButton.toolTip = appStrings().tip_PlayAnimation
     }
@@ -659,12 +768,35 @@ impl TimelineBar
 
         let frames = capture.frames
         let frame  = frames.frameAt(.timeAt(x))
+        if capture.media == .Video and not Swag.jit()
+        {
+            .requestVideoFrames(capture, frame)
+            if .isPlaying()
+            {
+                .stopAudio()
+                .playFrom  = frames.timeOf(frame)
+                .playStart = 0
+            }
+            elif not .seekTimer do
+                .seekTimer = .addTimer(10'ms)
+            .invalidate()
+            return
+        }
         catch capture.showFrame(frame)
         if .isPlaying()
         {
             .playFrom = frames.timeOf(frame)
-            catch .startAudio(.playFrom)
-            .playStart = Time.monotonicMicroseconds()
+            if capture.media == .Video and not Swag.jit()
+            {
+                .stopAudio()
+                .requestVideoFrames(capture, frame)
+                .playStart = 0
+            }
+            else
+            {
+                catch .startAudio(.playFrom)
+                .playStart = Time.monotonicMicroseconds()
+            }
         }
 
         .invalidate()

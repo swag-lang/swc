@@ -324,7 +324,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.finishSubtitles()
     view.refreshSubtitle()
     Swag.require(view.subtitleOverlay.sidecars.count == 1 and view.subtitleSource == .Sidecar)
-    Swag.require(view.subtitleReady and view.subtitleChip.isLocallyVisible())
+    Swag.require(view.subtitleReady)
     let trackName    = Film.subtitleTrackName(0, view.subtitleOverlay.sidecars[0])
     let languageText = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")
     Swag.require(Utf8.contains(languageText, "<p2> (fr)</p>"))
@@ -342,24 +342,24 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.subtitleSettingsChanged()
     Swag.require(view.subtitleOverlay.text == "Opening caption")
 
-    // The options reach every subtitle setting: a style two pages deep, the delay stepped in
+    // The track menu reaches every subtitle setting: a style two pages deep, the delay stepped in
     // place, and the track.
     let strings = Film.texts()
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
     host.thenActivateOptionRow(strings.ui_SubtitleSize)
     host.thenActivateOptionRow(strings.ui_SubtitleSizeLarge)
-    view.showOptions()
+    view.showTracks()
     Swag.require(host.autoHandled)
     Swag.require(Film.g_SubtitleSettings.size == .Large)
 
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
     host.thenActivateOptionRow(strings.ui_SubtitleDelay, step: 10)
-    view.showOptions()
+    view.showTracks()
     Swag.require(Math.isEqualEpsilon(Film.g_SubtitleSettings.delay, 0.5, 0.0001))
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
     host.thenActivateOptionRow(strings.ui_SubtitleDelayReset)
     host.thenActivateOptionRow(strings.ui_SubtitleOff)
-    view.showOptions()
+    view.showTracks()
     Swag.require(Film.g_SubtitleSettings.delay == 0)
     Swag.require(view.subtitleSource == .Off and view.subtitleOverlay.text.isEmpty())
     Film.g_SubtitleSettings = {}
@@ -648,20 +648,22 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Video", host.theme)
     view.describeLens(&entries)
-    Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 3)
+    Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 4)
     Swag.require(results.sections[0]!.entries[0].title == appStrings().cmd_Play)
     Swag.require(results.sections[0]!.entries[1].title == Film.texts().cmd_Speed)
-    Swag.require(results.sections[0]!.entries[2].title == appStrings().cmd_FullScreen)
+    Swag.require(results.sections[0]!.entries[2].title == appStrings().cmd_Options)
+    Swag.require(results.sections[0]!.entries[3].title == appStrings().cmd_FullScreen)
     for &entry in results.sections[0]!.entries do
         Swag.require(entry.glyph.isValid(), entry.title)
 
-    // The speed chip opens the speeds, the one in force checked.
-    Swag.require(view.speedChip.text() == "1×" and not view.audioChip.isLocallyVisible())
+    // Playback options open the speed choices, with the current rate checked.
+    Swag.require(view.optionsButton.isEnabled() and not view.tracksButton.isEnabled() and not view.volumeSlider.isEnabled())
     var speeds: OptionSheet.Page
     view.describeSpeeds(&speeds)
-    host.activateOptionRowWhenShown("1.5×")
-    view.speedChip.sigPressed.call(view.speedChip)
-    Swag.require(view.playbackRate == 1.5 and view.speedChip.text() == "1.5×")
+    host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
+    host.thenActivateOptionRow("1.5×")
+    view.optionsButton.sigPressed.call(view.optionsButton)
+    Swag.require(view.playbackRate == 1.5)
 }
 
 // The seek feedback is a Voltage mark with an ink keyline over the picture, which reads over a
@@ -684,7 +686,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.describeOptions(&options)
     for row in options.rows do
         Swag.require(row.label != Film.texts().ui_OptionAudio)
-    Swag.require(not view.muteButton.isEnabled())
+    Swag.require(not view.muteButton.isEnabled() and not view.volumeSlider.isEnabled() and not view.tracksButton.isEnabled())
 
     host.setReducedMotion(false)
     view.showSeekFeedback(10)
@@ -763,16 +765,21 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(view.muteButton.icon.isValid() and
                  view.muteButton.flags.has(.Toggle) and
                  view.muteButton.isEnabled())
+    Swag.require(view.volumeSlider.isEnabled() and view.volumeSlider.toolTip == Film.texts().ui_TipVolume)
     Swag.require(view.audio != null and view.voice != null and view.video.audioTrackCount() == 1)
     Swag.require(view.playing and view.voice.isPlaying())
     view.setVolume(0.35)
     Swag.require(Math.isEqualEpsilon(expect view.voice.volume(), 0.35, 0.001))
-    Swag.require(view.volume == 0.35)
+    Swag.require(view.volume == 0.35 and Math.isEqualEpsilon(view.volumeSlider.value(), 0.35, 0.001))
+    view.volumeSlider.setValue(0.6)
+    Swag.require(Math.isEqualEpsilon(view.volume, 0.6, 0.001) and
+                 Math.isEqualEpsilon(expect view.voice.volume(), 0.6, 0.001))
+    view.setVolume(0.35)
     view.setMuted(true)
-    Swag.require(view.muted and view.muteButton.isChecked)
+    Swag.require(view.muted and view.muteButton.isChecked and not view.volumeSlider.isEnabled())
     Swag.require(Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))
     view.setMuted(false)
-    Swag.require(Math.isEqualEpsilon(expect view.voice.volume(), 0.35, 0.001))
+    Swag.require(view.volumeSlider.isEnabled() and Math.isEqualEpsilon(expect view.voice.volume(), 0.35, 0.001))
 
     holdVideoProducer(view)
     view.timeline.setValue(cast(f32, view.frameSeconds(5)))
@@ -803,25 +810,25 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    Swag.require(view.speedChip.text() == "1×")
+    Swag.require(view.optionsButton.isEnabled())
     Swag.require(view.audio != null and view.voice != null)
 
-    // The speed chip says the rate in force, but not while its own page is open over it.
-    view.optionsOpen = true
+    // Playback options read the current rate after each change.
     view.setPlaybackRate(1.5)
-    Swag.require(view.speedChip.text() == "1×")
-    view.optionsOpen = false
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    Swag.require(options.rows[1].value == "1.5×")
     view.setPlaybackRate(1.25)
-    Swag.require(view.speedChip.text() == "1.25×")
+    var changedOptions: OptionSheet.Page
+    view.describeOptions(&changedOptions)
+    Swag.require(changedOptions.rows[1].value == "1.25×")
     view.setPlaybackRate(1)
-    Swag.require(view.speedChip.text() == "1×")
 
     // The speed entry rescales the voice with the clock, and the summary declares the rate.
     host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
     host.thenActivateOptionRow("2×")
     view.showOptions()
     Swag.require(view.playbackRate == 2)
-    Swag.require(view.speedChip.text() == "2×")
     Swag.require(Math.isEqualEpsilon(expect view.voice.frequencyRatio(), 2, 0.001))
     Swag.require(view.details.indexOf("2×") != Swag.U64.Max)
     view.setPlaybackRate(1)
@@ -895,7 +902,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
         let view = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
         waitForVideoFrame(view)
         Swag.require(window.currentView == view and view.playing)
-        Swag.require(view.speedChip.parent == view.bottomVeil)
+        Swag.require(view.optionsButton.parent == view.bottomVeil and view.tracksButton.parent == view.bottomVeil)
 
         // The clip is shorter than the walk through the sheet, so it waits while the reader chooses.
         view.togglePlayback()
@@ -1096,9 +1103,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(Film.audioTrackName(1, unwrap view.video.audioTrack(1)) == "Alternate")
     Swag.require(Film.audioDetailsText(unwrap view.video.audioTrack(1)) == "AAC-LC · 2 ch · 44.1 kHz")
     Swag.require(Format.toString(Film.texts().ui_AudioTrackLang, "fre") == "<p2> (fre)</p>")
-    Swag.require(view.muteButton.isEnabled() and
-                 view.audioChip.isLocallyVisible() and
-                 view.audioChip.text() == "Primary 2.0")
+    Swag.require(view.muteButton.isEnabled() and view.volumeSlider.isEnabled() and view.tracksButton.isEnabled())
     Swag.require(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
     Swag.require(Film.audioEncodingText(.Ac3) == "AC-3" and Film.audioEncodingText(.Eac3) == "E-AC-3")
     Swag.require(Film.audioEncodingText(.Dts) == "DTS" and
@@ -1109,6 +1114,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
                  Film.audioEncodingText(.AdpcmIma) == "IMA ADPCM")
     view.setVolume(0.4)
     view.setMuted(true)
+    Swag.require(not view.volumeSlider.isEnabled())
 
     // This fixture lasts only 800 ms. Inspect the popup while paused, then exercise the same
     // handoff while playing at an explicitly held position, independent of menu/render latency.
@@ -1120,7 +1126,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 
     host.activateOptionRowWhenShown(Film.texts().ui_OptionAudio)
     host.thenActivateOptionRow("Alternate")
-    view.showOptions()
+    view.showTracks()
     Swag.require(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
     Swag.require(view.voice != null and view.voice != previousVoice)
     Swag.require(not view.playing and not view.voice.isPlaying())
@@ -1132,7 +1138,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(switchedSample >= seekSample and sampleDrift < 4_410)
 
     view.setMuted(false)
-    Swag.require(Math.isEqualEpsilon(expect view.voice.volume(), 0.4, 0.001))
+    Swag.require(view.volumeSlider.isEnabled() and Math.isEqualEpsilon(expect view.voice.volume(), 0.4, 0.001))
     view.togglePlayback()
     Swag.require(view.playing and view.voice.isPlaying())
     view.clock.reset()
@@ -1150,7 +1156,9 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(view.audioChip.toolTip == "Piste audio")
+    Swag.require(view.volumeSlider.toolTip == "Volume")
+    Swag.require(view.tracksButton.toolTip == "Audio et sous-titres")
+    Swag.require(view.optionsButton.toolTip == "Options de lecture")
     Swag.require(Film.texts().ui_OptionAudio == "Piste audio")
     Swag.require(Film.audioDetailsText(unwrap view.video.audioTrack(1)).indexOf("can.") != Swag.U64.Max)
     Swag.require(view.details.indexOf("2 can.") != Swag.U64.Max)

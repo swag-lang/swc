@@ -1204,6 +1204,7 @@ impl MainWnd
     // move or delete it.
     mtd releaseCaptureMedia(file: string)
     {
+        .timeline?.releaseCaptureMedia(file)
         let edited = .editWnd.getCapture()
         if edited and edited.isStoredIn(file) do
             edited.closeMedia()

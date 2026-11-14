@@ -99,7 +99,10 @@ impl VideoCaptureSession
         result.minimumFreeSpace = minimumFreeSpace
         result.source           = try ScreenFrameSource.create(drawCursor, cast(s32, area.x), cast(s32, area.y), width, height)
         result.pacer            = try FramePacer.create(rate, 1_000_000, 90_000)
-        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, quantizationQp: quantizationQp, sliceCount: sliceCount)
+        // Complete video and sound fragments within about one second so a stopped recording
+        // retains a recent playable prefix. The final index makes key-frame seeks direct.
+        const Mp4Options = Mp4.FragmentedOptions{30, 4 * 1_024 * 1_024, 40, true}
+        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, keyInterval: 30, options: Mp4Options, quantizationQp: quantizationQp, sliceCount: sliceCount)
         result.audioConfigs.add(audioConfigs)
         result.picture = Image.create(outputWidth, outputHeight, .BGRA8)
         result.scaled = outputWidth != width or outputHeight != height

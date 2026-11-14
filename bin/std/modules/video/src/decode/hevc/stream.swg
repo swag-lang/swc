@@ -626,13 +626,15 @@ impl HevcStream
             offset += length
         }
 
+        try .validateAccessUnitEnd(data, offset)
         return count
     }
 
     // Reports whether an access unit can be referenced by a later picture.
-    private mtd isReferenceAccessUnit(data: const [..] u8)->bool fail
+    mtd isReferenceAccessUnit(data: const [..] u8)->bool fail
     {
         var hasPicture = false
+        var hasReference = false
         var offset     = 0'u64
         while offset + cast(u64, .lengthSize) <= data.count
         {
@@ -644,15 +646,16 @@ impl HevcStream
             {
                 hasPicture = true
                 if isReferenceNal(nalType) do
-                    return true
+                    hasReference = true
             }
 
             offset += length
         }
 
+        try .validateAccessUnitEnd(data, offset)
         if not hasPicture do
             fail InvalidFormatError{"H.265 access unit carries no picture"}
-        return false
+        return hasReference
     }
 
     // Keeps in-band parameter sets from a discarded non-reference picture.
@@ -667,6 +670,8 @@ impl HevcStream
                 discard try decoder.readNalUnit(data[offset until offset + length])
             offset += length
         }
+
+        try .validateAccessUnitEnd(data, offset)
     }
 
     private mtd prepareAccessUnit(decoder: *Decoder, data: const [..] u8)->bool fail
@@ -681,6 +686,7 @@ impl HevcStream
             offset += length
         }
 
+        try .validateAccessUnitEnd(data, offset)
         return picture
     }
 
@@ -707,7 +713,15 @@ impl HevcStream
             offset += length
         }
 
+        try .validateAccessUnitEnd(data, offset)
         return try decoder.finishPicture()
+    }
+
+    // Rejects a dangling length prefix after the final complete NAL unit.
+    private mtd validateAccessUnitEnd(data: const [..] u8, offset: u64) fail
+    {
+        if offset != data.count do
+            fail InvalidFormatError{"H.265 access unit ends with a truncated network abstraction layer length"}
     }
 
     private mtd unitLength(data: const [..] u8, offset: *u64)->u64 fail

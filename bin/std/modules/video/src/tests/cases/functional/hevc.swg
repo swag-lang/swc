@@ -3,6 +3,22 @@
 
 using Core, Core.Errors, Pixel
 
+// A complete reference NAL must not let the reference check hide a truncated following length.
+#test
+{
+    var stream: Hevc.HevcStream
+    stream.lengthSize = 4
+
+    let accessUnit  = [0'u8, 0, 0, 2, 0x02, 0x01]
+    let truncated   = [0'u8, 0, 0, 2, 0x02, 0x01, 0x00]
+    let isReference = expect stream.isReferenceAccessUnit(cast(const [..] u8, accessUnit))
+    Swag.require(isReference)
+
+    var failure: Swag.Error
+    discard catch stream.isReferenceAccessUnit(cast(const [..] u8, truncated)) as failure
+    Swag.require(failure.value() is Errors.InvalidFormatError)
+}
+
 // Prediction-weight chroma offsets stay in their eight-bit syntax domain for Main 10. The
 // reconstruction path applies the bit-depth scale exactly once after this derivation.
 #test

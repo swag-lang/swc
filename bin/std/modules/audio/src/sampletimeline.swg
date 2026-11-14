@@ -120,7 +120,7 @@ impl SampleTimeline
     // Places a suffix after clipping source frames covered by committed silence. The source
     // timestamp may precede the monotonic silence endpoint, so preserve its sample-grid position
     // directly rather than replacing it with that endpoint.
-    mtd placeClipped(tick: u64, skippedFrames, frameCount: u64)->SamplePlacement fail
+    internal mtd placeClipped(tick: u64, skippedFrames, frameCount: u64)->SamplePlacement fail
     {
         if not frameCount do
             fail BadParameterError{"sample timeline blocks must contain frames"}

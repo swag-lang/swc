@@ -47,6 +47,14 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(r)
 }
 
+private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
+{
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("limited.tga", bytes, options) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode every 16-bit word plus an odd tail, with unaligned buffers and sentinels.
 // Both directions and alpha modes must match the scalar expansion exactly.
 #test
@@ -854,6 +862,34 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     Swag.require(img.height == 2)
     Swag.require(img.pixelFormat == .BGR8)
     Swag.require(not img.isValid())
+}
+
+// TGA decoding enforces pixel and decoded-byte limits before allocation and metadata return.
+#test
+{
+    var cb: ConcatBuffer
+    addTgaImageHeader(&cb, TGA_TYPE_RGB, 24'u8, 0'u8, 2'u16, 2'u16)
+    for i in 12 do
+        cb.addNative(cast(u8, i))
+    let bytes = nnBytes(cb.toSlice())
+
+    var options: DecodeOptions
+    options.maxPixels = 3
+    requireTgaDecodeFails(bytes, options)
+
+    options = {}
+    options.maxDecodedBytes = 11
+    requireTgaDecodeFails(bytes, options)
+
+    options = {}
+    options.decodePixels = false
+    options.maxPixels = 3
+    requireTgaDecodeFails(bytes, options)
+
+    options = {}
+    options.decodePixels = false
+    options.maxDecodedBytes = 11
+    requireTgaDecodeFails(bytes, options)
 }
 
 // Error: RLE packet cannot exceed the destination image.

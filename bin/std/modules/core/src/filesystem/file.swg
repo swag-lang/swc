@@ -81,6 +81,14 @@ func touch(fullName: string) fail
 // is returned. `Append` moves the initial cursor to the end but permits later explicit seeks.
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
+    if not access.has(.Read) and not access.has(.Write) do
+        fail BadParameterError{"file access must request reading, writing, or both"}
+    if (access & ~FileAccess.ReadWrite) != cast(FileAccess, 0) do
+        fail BadParameterError{"file access contains an unknown flag"}
+    let validShare = FileShare.ReadWrite | .Delete | .Inheritable
+    if (share & ~validShare) != .Zero do
+        fail BadParameterError{"file sharing contains an unknown flag"}
+
     if mode != .Open or access.has(.Write) do
         try Env.guardWrite(fullName)
 

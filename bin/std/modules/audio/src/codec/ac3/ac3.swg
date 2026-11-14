@@ -607,10 +607,11 @@ impl IPacketCodec for Ac3Codec
 // What one sync frame says about the stream it belongs to.
 internal struct FrameInfo
 {
-    frameBytes: u64
-    sampleRate: u32
-    channels:   u32
-    frames:     u32     // Sample frames the frame decodes to.
+    frameBytes:  u64
+    sampleRate:  u32
+    channels:    u32
+    speakerMask: u32
+    frames:      u32     // Sample frames the frame decodes to.
 }
 
 // The channels each `acmod` names, before the low frequency effects channel is counted.
@@ -654,7 +655,8 @@ internal func ac3FrameInfo(packet: const [..] u8)->FrameInfo fail
     if acmod == 2 do
         skip += 2
     let lfe = (cast(u32, packet[6]) >> (7 - skip)) & 1
-    result.channels = AcmodChannels[cast(u64, acmod)] + lfe
+    result.channels    = AcmodChannels[cast(u64, acmod)] + lfe
+    result.speakerMask = dolbySpeakerMask(acmod, lfe != 0)
     return result
 }
 

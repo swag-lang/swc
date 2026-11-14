@@ -165,6 +165,40 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     Swag.require(bare.leadingTrim == 0)
 }
 
+// A CRC-protected Xing frame includes the CRC word before its side information.
+#test
+{
+    let sourcePath = audioGetTestDataPath("mp3-stereo-44100.mp3")
+    let source     = expect File.readAllBytes(sourcePath)
+    Swag.require(source[0] == 'I' and source[1] == 'D' and source[2] == '3')
+    let audioOffset = 10'u64 +
+                      (cast(u64, (source[6] & 0x7F)) << 21) +
+                      (cast(u64, (source[7] & 0x7F)) << 14) +
+                      (cast(u64, (source[8] & 0x7F)) << 7) +
+                      cast(u64, (source[9] & 0x7F))
+    let header = expect Mp3.readHeader(source[audioOffset to])
+    Swag.require(not header.hasCrc and header.frameBytes > 6)
+
+    var protected: Array'u8
+    protected.add(source[until audioOffset + 4])
+    // CRC validation is unsupported; the two-byte word exercises the protected-frame layout.
+    protected.add([0'u8, 0])
+    protected.add(source[audioOffset + 4 until audioOffset + header.frameBytes - 2])
+    protected.add(source[audioOffset + header.frameBytes to])
+    protected[audioOffset + 1] &= 0xFE
+
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-mp3-crc-%.mp3", Guid64.random()))
+    defer discard catch File.delete(temporary)
+    discard expect File.writeAllBytes(temporary, protected.toSlice())
+
+    let original = expect SoundFile.load(sourcePath)
+    let decoded  = expect SoundFile.load(temporary)
+    Swag.require(decoded.leadingTrim == 1105)
+    Swag.require(decoded.packetCount() == original.packetCount())
+    Swag.require((expect decoded.packet(0)).sourceOffset == audioOffset + header.frameBytes)
+}
+
 // A file that is not one fails on its own terms rather than being decoded into noise.
 #test
 {

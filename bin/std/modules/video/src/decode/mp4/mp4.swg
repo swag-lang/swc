@@ -645,13 +645,26 @@ impl Track
                     fail InvalidFormatError{"MP4 edit list is truncated"}
                 let version = try readFullBox(source)
                 let count = try source.readBigEndian'u32()
-                if version == 1 and count == 1 and box.end - source.position() >= 20
+                if version == 0 and count == 1 and box.end - source.position() >= 12
                 {
-                    .editDuration = try source.readBigEndian'u64()
-                    let mediaTime = try source.readBigEndian'u64()
+                    let duration  = try source.readBigEndian'u32()
+                    let mediaTime = cast #bit(s32, (try source.readBigEndian'u32()))
                     let rate = try source.readBigEndian'u32()
-                    if mediaTime <= cast(u64, Swag.S64.Max) and rate == 0x0001_0000 and .editDuration
+                    if mediaTime >= 0 and rate == 0x0001_0000 and duration
                     {
+                        .editDuration  = duration
+                        .editMediaTime = mediaTime
+                        .hasSingleEdit = true
+                    }
+                }
+                elif version == 1 and count == 1 and box.end - source.position() >= 20
+                {
+                    let duration  = try source.readBigEndian'u64()
+                    let mediaTime = try source.readBigEndian'u64()
+                    let rate      = try source.readBigEndian'u32()
+                    if mediaTime <= cast(u64, Swag.S64.Max) and rate == 0x0001_0000 and duration
+                    {
+                        .editDuration  = duration
                         .editMediaTime = cast(s64, mediaTime)
                         .hasSingleEdit = true
                     }
@@ -1395,7 +1408,31 @@ impl IDecoder for Decoder
                 else
                 {
                     let packetLayout = try audioTrack.buildSoundPackets(source.size())
-                    let sound        = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice())
+                    var options: PacketStreamOptions
+                    if audioTrack.hasSingleEdit and layout.movieTimescale and audioTrack.timescale and
+                       audioTrack.editMediaTime >= 0 and
+                       audioTrack.editDuration <= Swag.U64.Max / audioTrack.sampleRate
+                    {
+                        let mediaStartFrames = Math.round(cast(f64, audioTrack.editMediaTime) *
+                                                          cast(f64, audioTrack.sampleRate) /
+                                                          cast(f64, audioTrack.timescale))
+                        let scaled        = audioTrack.editDuration * audioTrack.sampleRate
+                        let audibleFrames  = scaled / layout.movieTimescale +
+                                             (scaled % layout.movieTimescale != 0 ? 1'u64 : 0)
+                        let decodedFrames  = packetLayout.frameCount
+                        if mediaStartFrames >= 0 and mediaStartFrames < cast(f64, decodedFrames)
+                        {
+                            let leading = cast(u64, mediaStartFrames)
+                            if audibleFrames and audibleFrames <= decodedFrames - leading and
+                               decodedFrames - leading - audibleFrames < AacFrameSamples
+                            {
+                                options.leadingTrimFrames  = leading
+                                options.trailingTrimFrames = decodedFrames - leading - audibleFrames
+                            }
+                        }
+                    }
+
+                    let sound = try SoundFile.openPacketStream(path, .AacLc, audioTrack.sampleRate, audioTrack.channelCount, packetLayout.frameCount, packetLayout.packets.toSlice(), audioTrack.aacConfig.toSlice(), options)
                     .soundTracks.add(#move sound)
                 }
             }

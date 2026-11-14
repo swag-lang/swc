@@ -2,6 +2,20 @@
 
 using Core, Pixel
 
+// Checks an X11 capture rectangle without opening a display connection.
+internal func validateCaptureRect(options: SourceOptions, desktopWidth, desktopHeight: u16) fail
+{
+    if options.x < 0 or options.y < 0 or
+       options.x > 32767 or options.y > 32767 or
+       options.width <= 0 or options.height <= 0 do
+        fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
+
+    let right  = cast(s64, options.x) + cast(s64, options.width)
+    let bottom = cast(s64, options.y) + cast(s64, options.height)
+    if right > desktopWidth or bottom > desktopHeight do
+        fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
+}
+
 // X11 uses an independent XCB connection and MIT-SHM when available.
 #[Swag.NoCopy]
 struct NativeSource
@@ -18,6 +32,7 @@ impl NativeSource
         var result: #returntype
         result.options = options
         result.capture = try X11Capture.create()
+        try validateCaptureRect(options, result.capture.desktopWidth(), result.capture.desktopHeight())
         return result
     }
 

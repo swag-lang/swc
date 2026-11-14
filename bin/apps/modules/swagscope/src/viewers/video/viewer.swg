@@ -171,10 +171,10 @@ struct Panel
         bottomVeil:       *BottomVeil
         timeline:         *VideoTimeline
         playButton:       *IconButton
-        subtitleChip:     *IconButton
-        audioChip:        *IconButton
-        speedChip:        *IconButton
+        optionsButton:    *IconButton
+        tracksButton:     *IconButton
         muteButton:       *IconButton
+        volumeSlider:     *Slider
         fullScreenButton: *IconButton
     }
 
@@ -379,13 +379,13 @@ private impl Panel
         .playButton.toolTip       = .playing ? strings.ui_TipPause : strings.ui_TipPlay
         .timeline.toolTip         = strings.ui_TipSeek
         .muteButton.toolTip       = strings.ui_TipMute
+        .volumeSlider.toolTip     = strings.ui_TipVolume
         .fullScreenButton.toolTip = strings.ui_TipFullScreen
-        .subtitleChip.toolTip     = strings.ui_OptionSubtitles
-        .audioChip.toolTip        = strings.ui_OptionAudio
-        .speedChip.toolTip        = strings.ui_OptionSpeed
+        .tracksButton.toolTip     = strings.ui_TipTracks
+        .optionsButton.toolTip    = strings.ui_TipOptions
 
         .refreshDetails()
-        .refreshChips()
+        .refreshControls()
     }
 }
 
@@ -432,8 +432,6 @@ impl Panel
         // keeps correcting the picture back onto the sound.
         if .voice do
             catch .voice.setFrequencyRatio(cast(f32, rate))
-        if not .optionsOpen do
-            .refreshChips()
         .refreshDetails()
     }
 
@@ -585,6 +583,7 @@ impl Panel
         .muted = muted
         .muteButton.setChecked(muted)
         .muteButton.setIcon(.theme().icon(muted ? .VolumeMute : .Volume, themeActionIconSize(.themeMetrics())))
+        .volumeSlider.enable(.audioReady and not muted)
         if .voice do
             catch .voice.setVolume(muted ? 0 : .volume)
     }
@@ -594,6 +593,7 @@ impl Panel
     {
         let requested = Math.clamp(volume, 0, 1)
         .volume = requested
+        .volumeSlider.setValueWithoutGesture(requested)
         if .voice and not .muted do
             catch .voice.setVolume(.volume)
     }
@@ -886,6 +886,7 @@ private impl Panel
         {
             .audioReady = true
             .muteButton.enable(true)
+            .volumeSlider.enable(not .muted)
             if not Sound.acquireEngine() do
                 fail UnsupportedFormatError{texts().err_AudioEngine}
             .audioEngineAcquired = true
@@ -911,31 +912,18 @@ private impl Panel
         .subtitleSource      = .subtitleOverlay.sidecars.isEmpty() ? .Embedded : .Sidecar
         .subtitleTrackIndex  = 0
         .subtitleLastSeconds = -1
-        .refreshChips()
+        .refreshControls()
         .refreshInformation()
         .refreshDetails()
     }
 
-    // Writes on the chips what is in force: the subtitles, the sound track and the speed. A chip
-    // whose choice the film does not offer is not shown.
-    mtd refreshChips()
+    // Enables the track choices once the film offers a sound or subtitle choice.
+    mtd refreshControls()
     {
         if .optionsOpen do
             return
 
-        let strings = texts()
-        .subtitleChip.show(.subtitleReady)
-        if .subtitleReady
-        {
-            let track = .subtitleTrack()
-            let name  = track ? subtitleChipName(track) : String.from(strings.ui_SubtitleOff)
-            .subtitleChip.setQuietText(Format.toString(strings.ui_SubtitleChip, name))
-        }
-
-        .audioChip.show(.audio != null)
-        if .audio do
-            .audioChip.setQuietText(audioChipName(.audioTrackIndex, .audio))
-        .speedChip.setQuietText(Format.toString("%×", .playbackRate))
+        .tracksButton.enable(.subtitleReady or .video.audioTrackCount() > 1)
         .bottomVeil.arrange()
     }
 
@@ -945,18 +933,20 @@ private impl Panel
         let texts = appStrings()
         let ready = .playButton.isEnabled()
 
-        // At rest the lens is a palette of what a film is watched with: playing it, its subtitles,
-        // its sound track, its speed and the whole screen. Only what applies to this film shows.
+        // At rest the lens offers what the film can use without a search query.
         if entries.query.isEmpty()
         {
             let strings = Film.texts()
             if ready do
                 entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, shortcut: Input.formatKeyShortcut(.None, .Space))
             if .subtitleReady do
-                entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChip(view.subtitleChip, func|view|(page) { view.describeSubtitles(page) }) })
+                entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) })
             if .audio and .video.audioTrackCount() > 1 do
-                entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChip(view.audioChip, func|view|(page) { view.describeAudioTracks(page) }) })
-            entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChip(view.speedChip, func|view|(page) { view.describeSpeeds(page) }) })
+                entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) })
+            if .tracksButton.isEnabled() do
+                entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() })
+            entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) })
+            entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
             entries.add(texts.cmd_FullScreen, .FullScreen, func|view = me|() { view.toggleFullScreen() }, shortcut: Input.formatKeyShortcut(.None, .F))
             return
         }
@@ -968,6 +958,11 @@ private impl Panel
         entries.add(texts.cmd_PreviousFrame, .ChevronLeft, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
         entries.add(texts.cmd_NextFrame, .ChevronRight, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
+        let strings = Film.texts()
+        entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, disabled: not .subtitleReady)
+        entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) }, disabled: not .audio or .video.audioTrackCount() < 2)
+        entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() }, disabled: not .tracksButton.isEnabled())
+        entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) })
         entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
     }
 
@@ -987,10 +982,10 @@ private impl Panel
 
         .timeline         = .bottomVeil.timeline
         .playButton       = .bottomVeil.playButton
-        .subtitleChip     = .bottomVeil.subtitleChip
-        .audioChip        = .bottomVeil.audioChip
-        .speedChip        = .bottomVeil.speedChip
+        .optionsButton    = .bottomVeil.optionsButton
+        .tracksButton     = .bottomVeil.tracksButton
         .muteButton       = .bottomVeil.muteButton
+        .volumeSlider     = .bottomVeil.volumeSlider
         .fullScreenButton = .bottomVeil.fullScreenButton
 
         let strings = texts()
@@ -1002,12 +997,18 @@ private impl Panel
         .muteButton.enable(false)
         .muteButton.sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
 
+        .volumeSlider.toolTip = strings.ui_TipVolume
+        .volumeSlider.sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
+
         .fullScreenButton.toolTip    = strings.ui_TipFullScreen
         .fullScreenButton.sigPressed += func|view = me|(_) { view.toggleFullScreen() }
 
-        .subtitleChip.sigPressed += func|view = me|(chip) { view.showChoices(chip, func|view|(page) { view.describeSubtitles(page) }) }
-        .audioChip.sigPressed    += func|view = me|(chip) { view.showChoices(chip, func|view|(page) { view.describeAudioTracks(page) }) }
-        .speedChip.sigPressed    += func|view = me|(chip) { view.showChoices(chip, func|view|(page) { view.describeSpeeds(page) }) }
+        .tracksButton.toolTip  = strings.ui_TipTracks
+        .tracksButton.enable(false)
+        .tracksButton.sigPressed += func|view = me|(_) { view.showTracks() }
+
+        .optionsButton.toolTip = strings.ui_TipOptions
+        .optionsButton.sigPressed += func|view = me|(_) { view.showOptions() }
 
         // A drag may cross hundreds of frames. Decode its final position once instead of
         // serially decoding every intermediate value queued by the pointer movement.
@@ -1121,22 +1122,15 @@ private impl Panel
         .postCommandEvent(ViewerCommands.FullScreen)
     }
 
-    // Brings the veils and opens one page of the options on the chip that names it, as a press on
-    // the chip does; the lens does this for a chip it offers.
-    mtd showChip(chip: *IconButton, build: OptionSheet.Builder)
-    {
-        .showChoices(chip, build)
-    }
-
-    // Opens one page of the options, joined to the chip that names it.
-    mtd showChoices(chip: *IconButton, build: OptionSheet.Builder)
+    // Opens one page of choices above the button that owns them.
+    mtd showChoices(anchor: *IconButton, build: OptionSheet.Builder)
     {
         .pointerMoved()
-        let sheet = OptionSheet.View.create(chip, build, owner: me)
+        let sheet = OptionSheet.View.create(anchor, build, owner: me)
         .optionsOpen = true
-        sheet.doModal(chip, autoDestroy: true)
+        sheet.doModal(anchor, autoDestroy: true)
         .optionsOpen = false
-        .refreshChips()
+        .refreshControls()
         .veilClock.restart()
     }
 
@@ -1183,7 +1177,7 @@ private impl Panel
         result.timer = result.addTimer(10'ms)
         result.applyLayout()
         result.arrangeVeils()
-        result.refreshChips()
+        result.refreshControls()
         return result
     }
 }

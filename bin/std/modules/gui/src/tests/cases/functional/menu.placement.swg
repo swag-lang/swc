@@ -27,8 +27,9 @@ using Core
                 let popup    = MenuCtrl.createPopup(&host.root)
                 popup.addItem("Illustrations", "open", host.theme.icon(.Folder, 16))
                 popup.addItem("Documents", "documents", host.theme.icon(.Folder, 16))
+                let verifyIconCenter = width == 44 and edge == 1
                 var checked: bool
-                host.app.sigFrame += func|host = &host, popup, button, original, up, checked = &checked|(_)
+                host.app.sigFrame += func|host = &host, popup, button, original, up, verifyIconCenter, checked = &checked|(_)
                 {
                     if checked[] do
                         return
@@ -39,6 +40,12 @@ using Core
                     Swag.require(body.x >= margin and body.right() <= host.root.position.width - margin)
                     Swag.require(body.y >= margin and body.bottom() <= host.root.position.height - margin)
                     Swag.require(Math.abs((up ? original.y - body.bottom() : body.y - original.bottom()) - gap) < 0.01)
+                    if verifyIconCenter
+                    {
+                        // Icon-only popups center on their opener; Wnd.move rounds the
+                        // popup position to whole logical units, allowing a half-unit residual.
+                        Swag.require(Math.abs(body.horzCenter() - original.horzCenter()) <= 0.5)
+                    }
                     checked[] = true
                     popup.setEndModal(null)
                 }

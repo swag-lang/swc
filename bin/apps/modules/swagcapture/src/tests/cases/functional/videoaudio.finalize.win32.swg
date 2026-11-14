@@ -40,4 +40,42 @@ using Core, Pixel, Video, Audio
     Swag.require(reader.audioTrackCount() == 2)
     for index in 2'u32 do
         Swag.require(reader.audioTrack(index)!.sampleFrameCount() == 11_520)
+    var index = expect Mp4.FragmentedIndex.open(path)
+    Swag.require(index.entryCount() == 1)
+}
+
+// Capture groups about one second of pictures per recoverable fragment and publishes seek points.
+#test
+{
+    let path = Gui.Testing.tempFilePath("capture-video-index-", ".mp4")
+    defer discard catch File.delete(path)
+    var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16},
+                                                    expect FrameRate.create(30, 1), false)
+    for frame in 61'u64 do
+        discard expect session.captureAt(frame * 33_334)
+    expect session.end()
+
+    var cursor = expect Mp4.FragmentedPacketCursor.open(path)
+    var packet: Mp4.FragmentedCursorPacket
+    var fragmentOffset: u64
+    var fragmentCount: u32
+    var frameCount: u64
+    while expect cursor.nextPacket(&packet)
+    {
+        Swag.require(packet.isVideo)
+        if packet.fragmentOffset != fragmentOffset
+        {
+            fragmentOffset = packet.fragmentOffset
+            fragmentCount += 1
+        }
+        frameCount += 1
+    }
+    Swag.require(frameCount == 61 and fragmentCount == 3)
+
+    var index = expect Mp4.FragmentedIndex.open(path)
+    Swag.require(index.entryCount() == 3)
+    for point in 3'u32 do
+        Swag.require((expect index.point(point)).decodeTime == cast(u64, point) * 90_000)
+    var reader = expect Video.Reader.open(path)
+    Swag.require(reader.frameCount() == 61)
 }

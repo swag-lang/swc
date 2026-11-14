@@ -224,15 +224,16 @@ impl Library
 
     // Soft-delete: move the capture to the recycle bin rather than erasing it. The
     // observers (recent strip, library grid) still see it leave the library through
-    // onDeleteFile; it can be brought back from the trash view.
-    mtd removeFile(name: string)
+    // onDeleteFile; it can be brought back from the trash view. Returns false if the source
+    // is invalid, is absent from the library index, or could not be moved.
+    mtd removeFile(name: string)->bool
     {
         // An observer can destroy the object that supplied `name` (the recent strip does
         // exactly that). Take a view, whose borrow does not cover the text, and keep an owned
         // path alive until every observer has returned.
         let stableName = String.from(name)
         if not Capture.isFile(stableName) do
-            return
+            return false
 
         // A background save may still be writing this capture; if the move happened
         // first, the save would land its temporary right back at the removed path. The editor
@@ -250,11 +251,13 @@ impl Library
                     .files.removeAtOrdered(idx)
                     .revision += 1
                     .onDeleteFile.call(stableName)
+                    return true
                 }
 
                 break
             }
         }
+        return false
     }
 
     // Moves the capture or the image `name` to `folder` and returns where it went, empty when it

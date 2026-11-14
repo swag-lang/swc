@@ -62,4 +62,8 @@ impl TimedReader
     // Decodes video directly into a caller's reusable picture buffer.
     mtd readVideoInto(target: *Image, frame: u64) fail
         => try .video.decodeFrameInto(target, frame)
+
+    // Keeps the decoder's YUV planes for direct presentation by the renderer.
+    mtd readVideoPlanesInto(target: *PlanarFrame, frame: u64) fail
+        => try .video.decodeFramePlanesInto(target, frame)
 }

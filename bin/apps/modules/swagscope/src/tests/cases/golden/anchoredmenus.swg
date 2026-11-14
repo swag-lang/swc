@@ -50,12 +50,11 @@ func captureScopeContextMenu(host: *Testing.HeadlessHost, golden: string)
 }
 
 // Exercise the shipped opener and modal path, keeping the surrounding view in the image.
-internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *ViewerWindow, button: *IconButton, golden: string)
+internal func assertScopeAnchoredMenuWith(host: *Testing.HeadlessHost, window: *ViewerWindow, golden: string, open: func||())
 {
     window.revealViewerBar()
     window.applyLayout()
     host.finishAnimations()
-    Swag.require(button.isVisible())
     var captured: bool
     host.app.sigFrame += func|host, golden, captured = &captured|(_)
     {
@@ -80,10 +79,19 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
             sheet!.close()
     }
 
-    button.sigPressed.call(cast(*Button, button))
+    open()
     host.app.sigFrame.clear()
     Swag.require(captured)
     host.pump()
+}
+
+internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *ViewerWindow, button: *IconButton, golden: string)
+{
+    assertScopeAnchoredMenuWith(host, window, golden, func|button|()
+    {
+        Swag.require(button.isVisible())
+        button.sigPressed.call(cast(*Button, button))
+    })
 }
 
 #[Swag.TestTag("golden")]
@@ -187,27 +195,6 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     let view = assume cast(*Hex.Panel, window.currentView)
     assertScopeAnchoredMenu(&host, window, unwrap view.zoomLabel, "menus.hex.zoom")
     assertScopeAnchoredMenu(&host, window, view.optionsButton, "menus.hex.options")
-}
-
-#[Swag.TestTag("golden")]
-#test
-{
-    defer Sound.releaseEngine()
-    var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
-    let view   = assume cast(*Film.Panel, window.currentView)
-    waitForVideoFrame(view)
-    waitForVideoAudio(view, 2)
-    view.veilsHeld = true
-    pinVideoFrame(view, 5)
-    view.timeline.setValueWithoutGesture(cast(f32, view.elapsed))
-    host.moveMouse(view.timeline.surfaceRect().center())
-    host.finishAnimations()
-    assertScopeAnchoredMenu(&host, window, view.speedChip, "menus.video.speed")
-    assertScopeAnchoredMenu(&host, window, view.audioChip, "menus.video.audio")
-    view.subtitleOverlay.sidecars.add(expect Video.Subtitle.Track.loadOwned(scopeTestDataPath("viewer.srt")))
-    view.finishSubtitles()
-    assertScopeAnchoredMenu(&host, window, view.subtitleChip, "menus.video.subtitles")
 }
 
 #[Swag.TestTag("golden")]

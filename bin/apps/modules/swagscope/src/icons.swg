@@ -23,10 +23,12 @@ enum ViewerIcons
     Midi         // Piano-roll viewer.
     Subtitle     // Timed subtitle viewer.
     Archive      // Compressed-archive browser.
+    Comic        // Sequential comic-book reader.
+    Epub         // Book with a declared reading spine.
 }
-const ViewerIconValues: [15] ViewerIcons = [
+const ViewerIconValues: [17] ViewerIcons = [
     .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
-    .Midi, .Subtitle, .Archive,
+    .Midi, .Subtitle, .Archive, .Comic, .Epub,
 ]
 
 private const IconsSvg = #include("../datas/icons.svg")

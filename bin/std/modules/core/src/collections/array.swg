@@ -169,7 +169,7 @@ impl Array
     // Visiting by address binds `item` to a mutable pointer. Otherwise a struct element is bound
     // through a constant pointer and any other element by value.
     #[Macro]
-    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
     {
         if not .count do
             return
@@ -184,6 +184,30 @@ impl Array
 
             #static if ptr do
                 #inject(stmt, item = cast(*T, scan), index = visitIdx)
+            elif Reflection.isStruct(T) do
+                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
+            else do
+                #inject(stmt, item = scan[0], index = visitIdx)
+        }
+    }
+
+    // Visits every element in order through const borrows.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
+    {
+        if not .count do
+            return
+        let buffer = cast(const [*] T, unwrap .buffer)
+
+        // The cursor advances at the top of the loop, so a 'continue' in the visited code cannot skip it.
+        var scan = buffer - 1
+
+        for visitIdx in .count
+        {
+            scan += 1
+
+            #static if ptr do
+                #inject(stmt, item = cast(const *T, scan), index = visitIdx)
             elif Reflection.isStruct(T) do
                 #inject(stmt, item = cast(const *T, scan), index = visitIdx)
             else do

@@ -40,6 +40,7 @@ impl IActionUI for ActionUndo
     {
         let main    = mainWndOf(cxt)
         let capture = unwrap main.getCapture()
+        main.timeline?.stop()
 
         switch cxt.id
         {

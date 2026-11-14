@@ -61,6 +61,9 @@ impl IWnd for EditView
         if not .capture do
             return
 
+        if evt.button == .Left and (evt.kind == .Pressed or evt.kind == .DoubleClick) do
+            .main.timeline?.stop()
+
         .followPointerNearEdges(evt)
 
         // A double click on a form with words types them in place.

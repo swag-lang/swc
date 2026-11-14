@@ -759,7 +759,8 @@ internal func eac3FrameInfo(packet: const [..] u8)->FrameInfo fail
 
     let acmod = cast(u32, (packet[4] >> 1)) & 7
     let lfe   = cast(u32, packet[4]) & 1
-    result.channels = AcmodChannels[cast(u64, acmod)] + lfe
+    result.channels    = AcmodChannels[cast(u64, acmod)] + lfe
+    result.speakerMask = dolbySpeakerMask(acmod, lfe != 0)
     return result
 }
 

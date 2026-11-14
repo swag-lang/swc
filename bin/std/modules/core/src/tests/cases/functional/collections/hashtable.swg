@@ -42,6 +42,23 @@ func assertHashTableBorrowTypes(table: *HashTable'(s32, s32))
     }
 }
 
+func assertConstHashTableBorrowTypes(table: const *HashTable'(s32, s32))
+{
+    for &key, value in table[]
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == const *s32)
+        Swag.require(table[].find(key[]).value == value[])
+    }
+
+    for &key, value in table[].reversed()
+    {
+        #assert(#typeof(key) == const *s32)
+        #assert(#typeof(value) == const *s32)
+        Swag.require(table[].find(key[]).value == value[])
+    }
+}
+
 struct RejectHashTableGrowthAllocator {}
 
 impl Swag.IAllocator for RejectHashTableGrowthAllocator
@@ -96,6 +113,7 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     table[3] = 30
 
     assertHashTableBorrowTypes(&table)
+    assertConstHashTableBorrowTypes(&table)
 
     Swag.require(table.count == 2)
     Swag.require(table.contains(1))

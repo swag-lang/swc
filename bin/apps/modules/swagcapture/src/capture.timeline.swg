@@ -335,8 +335,38 @@ impl Capture
             let picture = try .frames!.read(frame)
             .backImg = picture[]
         }
+        .playbackPlanar = false
         .playhead     = frame
         .dirtyBackImg = true
+        .editView?.invalidate()
+    }
+
+    // Presents video without converting its decoded YUV planes to RGB on the interface thread.
+    // The editable RGB image is restored when an edit or an explicit seek needs it.
+    mtd showPlaybackFrame(frame: u64) fail
+    {
+        if .media != .Video or not .frames!.video.hasPlanarFrames()
+        {
+            try .showFrame(frame)
+            return
+        }
+
+        try .frames!.readVideoPlanesInto(&.playbackPlanes, frame)
+        .playbackPlanar = true
+        .playhead       = frame
+        .dirtyBackImg   = true
+        .editView?.invalidate()
+    }
+
+    // Takes a decoded playback picture without copying its full-resolution planes.
+    mtd presentPlaybackFrame(planes: *PlanarFrame, frame: u64)
+    {
+        var spare = #move .playbackPlanes
+        .playbackPlanes = #move planes[]
+        planes[] = #move spare
+        .playbackPlanar = true
+        .playhead       = frame
+        .dirtyBackImg   = true
         .editView?.invalidate()
     }
 

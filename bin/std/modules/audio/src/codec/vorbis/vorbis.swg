@@ -691,6 +691,7 @@ private struct Codec
 
     serial:             u32
     firstAudioSequence: u32
+    headerPacketsOnAudioPage: u32
     granule:            u64
     granuleKnown:       bool
 }
@@ -860,6 +861,7 @@ private impl Codec
                 if hasSerial and page.serial == .serial
                 {
                     var at = 0'u64
+                    var completedOnPage = 0'u32
                     for index in page.segments
                     {
                         let size = cast(u64, page.lacing[index])
@@ -868,9 +870,19 @@ private impl Codec
                         if size < 255
                         {
                             completed += 1
+                            completedOnPage += 1
                             if completed == 3
                             {
-                                .firstAudioSequence = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
+                                if index + 1 < cast(u64, page.segments)
+                                {
+                                    .firstAudioSequence = page.sequence
+                                    .headerPacketsOnAudioPage = completedOnPage
+                                }
+                                else
+                                {
+                                    .firstAudioSequence = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
+                                    .headerPacketsOnAudioPage = 0
+                                }
                                 break
                             }
                         }
@@ -1525,6 +1537,7 @@ private impl Codec
                     lastGranule = page.granule
                 let body = run[offset + page.headerBytes until offset + pageBytes]
                 var at   = 0'u64
+                var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
                 for index in page.segments
                 {
                     let size = cast(u64, page.lacing[index])
@@ -1532,7 +1545,11 @@ private impl Codec
                     at += size
                     if size < 255
                     {
-                        if .packet.count do
+                        if headersToSkip
+                        {
+                            headersToSkip -= 1
+                        }
+                        elif .packet.count do
                             produced += try .decodeAudioPacket(.packet.toSlice())
                         .packet.clear()
                     }

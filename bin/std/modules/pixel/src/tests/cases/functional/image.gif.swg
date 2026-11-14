@@ -203,6 +203,21 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(errorOutcome.value() != null)
 }
 
+// Interlaced two-row GIFs skip empty passes without mapping a row outside the frame.
+#test
+{
+    const Bytes: [35] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        1, 0, 2, 0, 0x80, 0, 0,
+        0, 0, 0, 255, 255, 255,
+        0x2C, 0, 0, 0, 0, 1, 0, 2, 0, 0x40,
+        2, 2, 0x44, 0x0A, 0, 0x3B]
+    let image = expect Image.decode("interlaced-two-row.gif", Bytes)
+    Swag.require(image.width == 1 and image.height == 2)
+    assertGifPixelAt(image, 0, 1, 0, 0, 0, 255)
+    assertGifPixelAt(image, 0, 0, 255, 255, 255, 255)
+}
+
 #test
 {
     var bytes = expect File.readAllBytes(getTestDataPath("test.gif"))

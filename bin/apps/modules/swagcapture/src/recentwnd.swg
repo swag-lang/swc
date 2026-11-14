@@ -838,13 +838,15 @@ impl RecentWnd
             return
 
         let item = unwrap .recentView.items[.recentView.selected]
+        let file = String.from(item.file)
 
         // Be sure there's no pending save
         .stopTimer(&.timer)
         .timer = null
 
         // Delete file
-        g_Library.removeFile(item.file)
+        if not g_Library.removeFile(file) do
+            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedMoveCaptures)
     }
 
     mtd addRecent(file: String, front = true, sel = false)->*Capture fail

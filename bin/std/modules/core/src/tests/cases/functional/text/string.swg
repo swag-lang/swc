@@ -3,6 +3,18 @@
 
 using Swag
 
+func assertConstStringByteBorrows(value: const *String)->u64
+{
+    var count = 0'u64
+    for &byte, index in value[]
+    {
+        #assert(#typeof(byte) == const *u8)
+        Swag.require(byte[] == value[][index])
+        count += 1
+    }
+    return count
+}
+
 func assertString(value: String, expected: string)->bool
 {
     let text  = value.toString()
@@ -162,6 +174,7 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     }
 
     Swag.require(visitedCount == expectedText.count)
+    Swag.require(assertConstStringByteBorrows(&value) == expectedText.count)
 
     for &byte in value do
         byte[] += 1'u8

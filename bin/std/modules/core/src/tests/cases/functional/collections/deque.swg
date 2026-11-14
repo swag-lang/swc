@@ -53,6 +53,27 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
     return true
 }
 
+func assertConstDequeBorrow(values: const *Deque's32)->s32
+{
+    var total = 0
+    for &item, index in values[]
+    {
+        #assert(#typeof(item) == const *s32)
+        total += item[] + cast(s32, index)
+    }
+    return total
+}
+
+func assertMutableDequeBorrow(values: *Deque's32)
+{
+    for &item in values[]
+    {
+        #assert(#typeof(item) == *s32)
+        item[] += 1
+        item[] -= 1
+    }
+}
+
 #test
 {
     var values: Deque's32
@@ -63,6 +84,8 @@ func assertDeque(values: Deque's32, expected: const [..] s32)->bool
 
     let expected: [4] s32 = [0, 1, 2, 3]
     Swag.require(assertDeque(values, expected))
+    Swag.require(assertConstDequeBorrow(&values) == 12)
+    assertMutableDequeBorrow(&values)
     Swag.require(values.front() == 0 and values.back() == 3)
     values[1] = 10
     Swag.require(values[1] == 10)

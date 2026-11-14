@@ -32,6 +32,7 @@ impl IActionUI for ActionPixSel
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main = mainWndOf(cxt)
+        main.timeline?.stop()
 
         switch cxt.id
         {

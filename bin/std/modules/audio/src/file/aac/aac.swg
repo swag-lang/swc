@@ -50,14 +50,14 @@ private func readAdtsHeader(bytes: const [..] u8)->AdtsHeader fail
     result.rateIndex = cast(u32, (bytes[2] >> 2)) & 15
     if result.rateIndex >= 13 do
         fail InvalidFormatError{"ADTS frame states a reserved sampling frequency"}
+    if result.rateIndex == 12 do
+        fail UnsupportedFormatError{"AAC decoder does not support a 7350 Hz sampling frequency"}
     result.sampleRate = AdtsRates[cast(u64, result.rateIndex)]
 
     result.channelIndex = (cast(u32, (bytes[2] & 1)) << 2) | (cast(u32, (bytes[3] >> 6)) & 3)
-    if not result.channelIndex or result.channelIndex > 7 do
-        fail UnsupportedFormatError{"ADTS frame states a channel configuration this reader does not carry"}
-
-    // Configuration seven is 7.1, whose eighth channel is the low frequency effects one.
-    result.channels = result.channelIndex == 7 ? 8 : result.channelIndex
+    if not result.channelIndex or result.channelIndex > 6 do
+        fail UnsupportedFormatError{"audio decoder supports AAC channel configurations 1 through 6"}
+    result.channels = result.channelIndex
 
     result.frameBytes = (cast(u64, (bytes[3] & 3)) << 11) | (cast(u64, bytes[4]) << 3) | (cast(u64, bytes[5]) >> 5)
     result.blocks     = (cast(u32, bytes[6]) & 3) + 1
@@ -106,6 +106,8 @@ internal func openFile(path: string)->SoundFile fail
         try source.seek(byteOffset)
         let probe  = try source.peek(Math.min(HeaderBytes, fileBytes - byteOffset))
         let header = try readAdtsHeader(probe)
+        if header.blocks != 1 do
+            fail UnsupportedFormatError{"ADTS frames with multiple raw data blocks are not supported"}
         if header.frameBytes > fileBytes - byteOffset do
             break
 

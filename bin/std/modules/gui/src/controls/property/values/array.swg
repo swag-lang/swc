@@ -50,9 +50,9 @@ internal impl Properties
     mtd refreshArray(item: *PropertiesItem)
     {
         let arrData = cast(*Array'u8, unwrap item.data)
-        if arrData.count == cast(u64, item.userData0) do
+        if arrData.count == item.arrayElementCount do
             return
-        item.userData0 = cast(*void?, arrData.count)
+        item.arrayElementCount = arrData.count
 
         .reconstructArray(item)
         setDescEditBox(item)
@@ -162,7 +162,7 @@ internal impl Properties
         let arrData   = cast(*Array'u8, unwrap data)
         var newData   = arrData.buffer
 
-        item.userData0 = cast(*void?, arrData.count)
+        item.arrayElementCount = arrData.count
 
         for i in arrData.count
         {

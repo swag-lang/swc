@@ -132,6 +132,27 @@ func sameColors(decoded: Image, source: Image)->bool
     Swag.require(sameColors(expect reader.read(3), frames[4]))
 }
 
+// Finite loop counts describe total plays rather than repeats after the first play.
+#test
+{
+    const LoopCounts: [2] u16 = [1, 2]
+    let frame = animationFrame(1, Color.fromArgb(255, 220, 40, 40))
+    for loopCount in LoopCounts
+    {
+        let name = Format.toString("gif-loop-count-%-%.gif", loopCount, Guid64.random())
+        let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+        defer discard catch File.delete(path)
+
+        var writer = expect Gif.AnimationWriter.create(path, 40, 30, {loopCount: loopCount})
+        expect writer.addFrame(frame, 100_000)
+        expect writer.end()
+
+        let bytes  = expect File.readAllBytes(path)
+        let reader = expect ImageReader.decode("loop-count.gif", bytes.toSlice())
+        Swag.require(reader.info.loopCount == cast(u32, loopCount))
+    }
+}
+
 // Ending before the first frame still writes a complete GIF stream.
 #test
 {

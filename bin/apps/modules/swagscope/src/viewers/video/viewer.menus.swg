@@ -68,7 +68,7 @@ impl Panel
         }
 
         .refreshDetails()
-        .refreshChips()
+        .refreshControls()
     }
 
     mtd const subtitleTrack()->const *Subtitle.Track?
@@ -88,7 +88,7 @@ impl Panel
         .subtitleLastSeconds = -1
         .subtitleNextChange  = 0
         .refreshSubtitle()
-        .refreshChips()
+        .refreshControls()
     }
 
     // Shows the subtitle for the current position shifted by the user's delay, recomputing it only
@@ -121,15 +121,21 @@ impl Panel
         catch g_App.saveState()
     }
 
-    // Opens the options of the film above the chip of the speed: play mode, speed, sound track and
-    // subtitles. The veils come with it, since the sheet stands on one.
+    // Opens playback options above their button: play mode and speed.
     mtd showOptions()
     {
         .pointerMoved()
-        .showChoices(.speedChip, func|view = me|(page) { view.describeOptions(page) })
+        .showChoices(.optionsButton, func|view = me|(page) { view.describeOptions(page) })
     }
 
-    // Describes the first page of the options: one row per setting, with the value in force.
+    // Opens the sound and subtitle choices above their button.
+    mtd showTracks()
+    {
+        .pointerMoved()
+        .showChoices(.tracksButton, func|view = me|(page) { view.describeTracks(page) })
+    }
+
+    // Describes the playback options: one row per setting, with the value in force.
     mtd describeOptions(page: *OptionSheet.Page)
     {
         let strings  = texts()
@@ -138,8 +144,15 @@ impl Panel
 
         .services.playback.addOptionRows(page, me)
         page.addLink(strings.ui_OptionSpeed, playbackRateText(.playbackRate), func|view = me|(speeds) { view.describeSpeeds(speeds) }, theme.icon(.PlaybackSpeed, iconSize))
+    }
 
-        // A film with one sound track names it, so the reader knows what plays, but offers no choice.
+    // Describes the available sound track and subtitle choices.
+    mtd describeTracks(page: *OptionSheet.Page)
+    {
+        let strings  = texts()
+        let theme    = .theme()
+        let iconSize = themeRowIconSize(.themeMetrics())
+
         let audioCount = .video.audioTrackCount()
         if audioCount and .audio
         {
@@ -147,7 +160,8 @@ impl Panel
             page.addLink(strings.ui_OptionAudio, current, func|view = me|(tracks) { view.describeAudioTracks(tracks) }, theme.icon(.AudioTracks, iconSize), disabled: audioCount < 2)
         }
 
-        page.addLink(strings.ui_OptionSubtitles, .subtitleText(), func|view = me|(subtitles) { view.describeSubtitles(subtitles) }, theme.icon(.Wrap, iconSize), disabled: not .subtitleReady)
+        if .subtitleReady do
+            page.addLink(strings.ui_OptionSubtitles, .subtitleText(), func|view = me|(subtitles) { view.describeSubtitles(subtitles) }, theme.icon(.Wrap, iconSize))
     }
 
     mtd describeSpeeds(page: *OptionSheet.Page)

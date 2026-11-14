@@ -188,7 +188,7 @@ func paletteIndex(src: const [*] u8, bpp: u8)->u32
     return src[0]
 }
 
-func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
+func writePalettePixel(dst: [*] u8, palette: Palette, index: u32, alphaFromBit: bool) fail
 {
     if index < palette.first or index >= cast(u32, palette.first) + palette.count do
         fail InvalidFormatError{"invalid palette index"}
@@ -198,7 +198,7 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
     switch palette.bitsPerPixel
     {
     case 15: writeTga16Pixel(dst, cast(const *u16, entry)[], false, false)
-    case 16: writeTga16Pixel(dst, cast(const *u16, entry)[], true, true)
+    case 16: writeTga16Pixel(dst, cast(const *u16, entry)[], true, alphaFromBit)
     case 24: writeBgrPixel(dst, entry[0], entry[1], entry[2])
     case 32: writeBgraPixel(dst, entry[0], entry[1], entry[2], entry[3])
     }
@@ -210,7 +210,7 @@ func writeSourcePixel(result: *Image, header: Header, palette: Palette, pixelInd
 
     if isMappedType(header.imageTypeCode)
     {
-        try writePalettePixel(dst, palette, paletteIndex(src, header.bitsPerPixel))
+        try writePalettePixel(dst, palette, paletteIndex(src, header.bitsPerPixel), hasAttributeBits(header))
         return
     }
 

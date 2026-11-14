@@ -309,10 +309,14 @@ whole recording loaded at once.
   A functional test recovers a flushed, unfinalized MP4; a native journey checks the recovered
   library entry.
   A separate-process termination/reopen run remains to be done.
-  `VideoCaptureSession` inherits one video/AAC packet per fragment and no final random-access
-  index. Two hours at 30 fps with one 48 kHz audio track means about 554,000 fragment headers.
-  `Video.Reader` scans headers and builds sample tables when opening; the editor decodes on the
-  interface thread. A sampled random seek in a 1510x950 recording takes about 416 ms.
+  `VideoCaptureSession` now groups up to 30 video or 40 AAC packets per fragment, with a 4 MiB
+  payload cap and a final key-frame index. H.264 uses one-second key-frame intervals. Completed
+  fragments retain roughly a one-second recovery bound; the editor decodes ahead on a worker.
+  A pre-change 12.27-second 3840x2160 recording had 944 `moof`/`mdat` pairs, seven key frames
+  two seconds apart and no final index. A packet-identical remux into a standard indexed MP4
+  reduced PyAV open time from roughly 100-135 ms to 26 ms and made its seek at four seconds
+  land on the four-second key frame instead of the two-second key frame. `Video.Reader` still
+  scans fragment headers and builds its frame table when opening long recordings.
   The low-space path checks once per second with a 64 MiB reserve and can finalize a prefix;
   sudden disk errors, source loss and process termination have not been verified as one native
   application lifecycle. Intermittent generated X11 test stalls remain unisolated around startup,
@@ -322,8 +326,8 @@ whole recording loaded at once.
   sustained load, select a bounded
   recording-quality policy, and reduce multi-monitor readback and copying through std.screen.002
   before promising 30 fps for large or multi-monitor areas.
-  Group fragments within a stated recovery-loss budget, emit the final key-frame index and use
-  it for fast opening/seeking through std.video.016. Preserve the resumable media prefix.
+  Use the final index for fast opening/seeking through std.video.016 without scanning all
+  fragments. Preserve the resumable media prefix.
   Add an explicit two-hour native endurance runner with a visible time code and synchronized
   sound markers; sample drift, RSS, CPU, byte rate, free space, actual/repeated pictures and queue
   losses at the beginning, middle and end. Its checks must include recording stop, reopen, seeking

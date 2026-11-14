@@ -224,7 +224,44 @@ impl Deque
 
     // Iterates elements in logical order from front to back.
     #[Macro]
-    func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
+    mtd(ptr: bool) opVisit(stmt: #code(item, index: u64))
+    {
+        scope(Up)
+        for itemIndex in .count
+        {
+            var itemPtr: [*] T
+            if itemIndex < .frontItems.count do
+                itemPtr = .frontItems.storage() + .frontItems.count - itemIndex - 1
+            else do
+                itemPtr = .backItems.storage() + itemIndex - .frontItems.count
+
+            scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt,
+                            item = cast(*T, itemPtr),
+                            index = itemIndex,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(T) do
+                    #inject(stmt,
+                            item = cast(const *T, itemPtr),
+                            index = itemIndex,
+                            break = break to Up,
+                            continue = break to Down)
+                else do
+                    #inject(stmt,
+                            item = itemPtr[0],
+                            index = itemIndex,
+                            break = break to Up,
+                            continue = break to Down)
+            }
+        }
+    }
+
+    // Iterates elements in logical order from front to back through const borrows.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
     {
         scope(Up)
         for itemIndex in .count
@@ -239,7 +276,7 @@ impl Deque
             {
                 #static if ptr do
                     #inject(stmt,
-                            item = cast(*T, itemPtr),
+                            item = cast(const *T, itemPtr),
                             index = itemIndex,
                             break = break to Up,
                             continue = break to Down)

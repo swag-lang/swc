@@ -209,6 +209,16 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 
 #test
 {
+    var reject: RejectHashSetGrowthAllocator
+    var values: HashSet's32
+    values.allocator = &reject
+
+    let result = Swag.catchPanic(func|&values|() { values.reserve(0) })
+    Swag.require(not result.raised and values.capacity == 0)
+}
+
+#test
+{
     var values: HashSet's32
     let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
     Swag.require(result.raised)

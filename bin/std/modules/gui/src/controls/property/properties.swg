@@ -500,7 +500,7 @@ impl Properties
         .clearRows()
         .kind = kind
         .applyKindMetrics(.theme())
-        for &one in added do
+        for one in added do
             .addStructMulti(unwrap one.typeof, one.bases.toSlice(), one.hasSection ? one.section.toString() : null, one.onlyNamed)
         .updateStates()
     }
@@ -727,7 +727,7 @@ impl Properties
     // mixed. With a single base this behaves like [[Gui.Properties.addStruct]]. With `onlyNamed`,
     // only the fields carrying an explicit `Properties.Name` attribute get a row, which suits a
     // structure whose fields are mostly internal state.
-    mtd addStructMulti(typeof: typeinfo, bases: [..] *u8, section: string? = null, onlyNamed = false)
+    mtd addStructMulti(typeof: typeinfo, bases: const [..] *u8, section: string? = null, onlyNamed = false)
     {
         Swag.assert(typeof.kind == .Struct)
         Swag.assert(bases.count >= 1)
@@ -796,7 +796,7 @@ impl Properties
     // Each field sits at a fixed offset from its struct base, so its address in instance
     // k is `base[k] + (item.data - base[0])`. Items under a dynamic array keep a single
     // address (their element storage is not at a fixed struct offset).
-    internal mtd assignInstances(fromIdx: u64, bases: [..] *u8)
+    internal mtd assignInstances(fromIdx: u64, bases: const [..] *u8)
     {
         if bases.count <= 1 do
             return

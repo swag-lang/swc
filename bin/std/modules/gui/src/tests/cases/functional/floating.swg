@@ -266,6 +266,9 @@ var ToolDockDynamicId:  String
                  sheet.tabRects[0].height == sheet.closeButton.position.height)
     Swag.require(sheet.tabRects[0].x == host.theme.metrics.infoSheet_Padding and
                  sheet.tabRects[1].x > sheet.tabRects[0].right())
+    let tabFont = host.theme.createDefaultFont(host.theme.metrics.defaultFontSize, .SemiBold)
+    for rect, index in sheet.tabRects do
+        Swag.require(rect.width >= Painter.measureStringSnapped(sheet.pages[index], tabFont, deviceScale: sheet.deviceScale()))
     Swag.require(sheet.closeButton.position.y < host.theme.metrics.infoSheet_Padding)
     Swag.require(Utf8.contains(sheet.text(), "8.1 IMDb") and not Utf8.contains(sheet.text(), "24 fps"))
     func clickTab(host: *Testing.HeadlessHost, sheet: *InfoSheet, index: u64)
@@ -281,6 +284,25 @@ var ToolDockDynamicId:  String
     Swag.require(Utf8.contains(sheet.text(), "24 fps") and not Utf8.contains(sheet.text(), "8.1 IMDb"))
     clickTab(&host, sheet, 0)
     Swag.require(sheet.pageIndex == 0 and sheet.action!.isLocallyVisible())
+}
+
+// Page names keep every letter at a fractional display scale, including a longer translation.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(560, 400, 1.5)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.beginPage("Media")
+    sheet.beginPage("Technical Details")
+    sheet.open()
+
+    let font = host.theme.createDefaultFont(host.theme.metrics.defaultFontSize, .SemiBold)
+    for rect, index in sheet.tabRects
+    {
+        Swag.require(rect.width >= Painter.measureStringSnapped(sheet.pages[index], font, deviceScale: sheet.deviceScale()))
+        Swag.require(Painter.elideString(sheet.pages[index], font, rect.width + 1, sheet.deviceScale()) == sheet.pages[index])
+    }
+    Swag.require(sheet.tabRects[1].right() < sheet.closeButton.position.x)
 }
 
 // The figures stand on one line under the title wherever they were added, a long title runs on a

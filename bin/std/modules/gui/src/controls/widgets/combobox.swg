@@ -241,8 +241,13 @@ impl IWnd for ComboBox
             }
             else
             {
-                for item in .items where not item!.isSeparator do
-                    width += Painter.measureString(item.name.raw, unwrap .font().regular).width + 2 * metrics.comboBox_Padding
+                for itemIt in .items
+                {
+                    let item = unwrap itemIt
+                    if item.isSeparator do
+                        continue
+                    width += .segmentContentWidth(item) + 2 * metrics.comboBox_Padding
+                }
             }
 
             return Math.Point{width + 2 * metrics.comboBox_SegmentInset, metrics.comboBox_Height}
@@ -389,6 +394,18 @@ impl IWnd for ComboBox
 
 private impl ComboBox
 {
+    // The segment is measured in the face it paints, unless a hosted choice supplies the width
+    // of its alternate content explicitly.
+    mtd segmentContentWidth(item: *ComboBoxItem)->f32
+    {
+        if item.paintWidth > 0 do
+            return item.paintWidth
+
+        let regular = unwrap .font().regular
+        let face    = .font().getFont(item.fontStyle) orelse regular
+        return Painter.measureString(item.name.raw, face).width
+    }
+
     // Reports whether the entries stand as segments: the combo asks for it and every entry fits
     // its share of the width. A choice whose words do not fit stays a list that opens.
     mtd showsSegments()->bool
@@ -396,7 +413,6 @@ private impl ComboBox
         if not .flags.has(.Segmented) or .items.isEmpty() do
             return false
         let metrics = .themeMetrics()
-        let font    = unwrap .font().regular
         if .segmentWidths.count == .items.count
         {
             var total = 2 * metrics.comboBox_SegmentInset
@@ -405,7 +421,7 @@ private impl ComboBox
                 let item = unwrap item
                 if item.isSeparator do
                     return false
-                let width = item.paintWidth > 0 ? item.paintWidth : Painter.measureString(item.name.raw, font).width
+                let width = .segmentContentWidth(item)
                 if width + 2 * metrics.comboBox_Padding > .segmentWidths[index] do
                     return false
                 total += .segmentWidths[index]
@@ -418,7 +434,7 @@ private impl ComboBox
         for item in .items
         {
             let item  = unwrap item
-            let width = item.paintWidth > 0 ? item.paintWidth : Painter.measureString(item.name.raw, font).width
+            let width = .segmentContentWidth(item)
             if item.isSeparator or width + 2 * metrics.comboBox_Padding > share do
                 return false
         }

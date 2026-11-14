@@ -1,0 +1,8 @@
+# French strings of the comic-book reader.
+
+ui_Name      Bande dessinée
+ui_Previous  Page précédente
+ui_Next      Page suivante
+ui_Preparing Préparation de la page…
+ui_Details   Bande dessinée · page % sur %
+err_NoPages  Cette bande dessinée ne contient aucune page lisible.

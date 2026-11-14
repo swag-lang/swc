@@ -6,8 +6,14 @@ impl LibraryWnd
     // desync the selection.
     mtd removeSelected()
     {
-        for name in .selectedFiles() do
-            g_Library.removeFile(name.toString())
+        var failed: bool
+        for name in .selectedFiles()
+        {
+            if not g_Library.removeFile(name.toString()) do
+                failed = true
+        }
+        if failed do
+            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedMoveCaptures)
     }
 
     // Returns owned copies of the selected, visible file names, so a caller can act on them

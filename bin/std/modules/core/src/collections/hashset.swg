@@ -269,7 +269,7 @@ impl HashSet
     private mtd grow()
     {
         if .growsOnInsert() do
-            .reserve(.capacity * 2)
+            .reserve(.capacity == 0 ? 32'u64 : .capacity * 2)
     }
 
     // Returns whether the next insertion grows, and so rehashes, the set.
@@ -285,6 +285,9 @@ impl HashSet
     // current capacity do nothing. A request that cannot fit in an addressable allocation panics.
     mtd reserve(newCapacity: u64)
     {
+        if newCapacity <= .capacity do
+            return
+
         let reqCapacity = normalizeCapacity(newCapacity)
         if reqCapacity <= .capacity do
             return

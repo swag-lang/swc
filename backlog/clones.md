@@ -3,14 +3,14 @@
 This file tracks independent implementations of Swag applications used to assess
 portability, implementation tradeoffs and whole-application behavior. Reference
 application work remains in its owning app backlog. Clone sources live under
-[`bench/clone/`](../bench/clone/README.md); generated binaries, profiles and
+[`bench/clones/`](../bench/clones/README.md); generated binaries, profiles and
 machine-specific measurements stay outside the checkout.
 
 ## Current clone state
 
 | Clone | Source | Current state |
 | --- | --- | --- |
-| Swag Capture in Rust | [`bench/clone/capture-rust/`](../bench/clone/capture-rust/README.md) | Experimental Windows x64 Release port; substantial feature coverage, but visual and behavioral parity is unverified. |
+| Swag Capture in Rust | [`bench/clones/capture-rust/`](../bench/clones/capture-rust/README.md) | Experimental Windows x64 Release port; substantial feature coverage, but visual and behavioral parity is unverified. |
 
 No other application clone is currently tracked here.
 
@@ -63,7 +63,7 @@ comparison with Swag.
 
 ### clones.001 — Establish behavior parity for the Rust Capture port
 
-- Next: resume from the known feature gaps in `bench/clone/capture-rust/README.md`,
+- Next: resume from the known feature gaps in `bench/clones/capture-rust/README.md`,
   validate the library and capture workflows, and produce a controlled pointer-drag
   trace with nonzero samples plus repeated matched memory samples in both applications
   on the same isolated SCC file.

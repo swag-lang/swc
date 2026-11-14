@@ -132,7 +132,7 @@ external integration campaigns.
 
 For every optimization batch that can change generated code, compare final Micro listings for
 all twelve benchmark tasks against the pre-change compiler, even when only one task is targeted.
-Use `bench/microdiff.py --base <preserved-compiler> --new <checkout-compiler> --verbose` with
+Use `bench/scripts/microdiff.py --base <preserved-compiler> --new <checkout-compiler> --verbose` with
 the relevant program configuration. Preserve the baseline compiler and runtime outside the
 checkout before rebuilding; keep caches separate and force regeneration. Reuse captures only
 while their compiler, sources, runtime and configuration remain unchanged.

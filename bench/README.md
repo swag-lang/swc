@@ -11,6 +11,57 @@ ratio with one. A difference is called a difference only when its whole interval
 side of parity. Everything else on this page explains how the samples behind those intervals
 are taken so that they mean something.
 
+## Layout and host setup
+
+| Path | Ownership |
+| --- | --- |
+| `bench.py` | Common command entry point on Windows and Linux |
+| `scripts/` | Campaign, statistics, platform backends and maintenance scripts |
+| `src/` | Twelve cross-language programs and hello-world sources; never build here |
+| `workloads/` | Independent focused benchmarks, with their own runners and contracts |
+| `clones/` | Whole-application ports; separate runners, Cargo locks, parity and feature audits |
+| `compilers/` | Pinned download recipes and per-OS frozen Swag reference manifests |
+| `disassembly/` | Persistent compressed code listings, provenance and static assessments |
+| `results/windows/`, `results/linux/` | Raw campaigns and history, separated by measurement protocol |
+| `results/<workload>/` | Maintained evidence for independent workloads |
+| `reports/` | HTML template and generated reports (`bench.html`, `bench-linux.html`) |
+| `tests/` | Python regression tests for the benchmark infrastructure |
+| `out/<host>/` | Disposable builds, caches and prepared source copies; ignored by Git |
+
+Set `BENCH_OUTPUT_ROOT` to use an external build directory. Compiler downloads and local
+registrations live outside Git under `BENCH_COMPILER_ROOT` (default `~/.cache/swc-bench/compilers`).
+See [compiler setup](compilers/README.md) and [disassembly reuse](disassembly/README.md).
+
+```sh
+python bench/bench.py setup doctor
+python bench/bench.py setup install rustc zig ldc2 odin go
+python bench/bench.py smoke --swc /absolute/path/to/swc --toolchains cpp-gcc,cpp-clang,rust,zig,d-ldc,odin,go,swift,java-hotspot,node20,python3.12,swag-release,swc-jit-release
+python bench/bench.py codegen verify bench/disassembly/20261114-linux-x64 --check-sources
+python -m unittest discover -s bench/tests
+```
+
+`smoke` compiles and checks one task per selected toolchain, without statistical sampling,
+recording a campaign or regenerating reports. Omit `--toolchains` to check every available tool.
+The checks and build diagnostics go to `out/<host>/smoke.json`. A failed build/check exits nonzero.
+
+For Linux campaigns, first build Swag with `tools/linux-build.py` into an external directory,
+then use `python bench/bench.py campaign --no-build --swc /absolute/path/to/swc`. Freeze a **Linux**
+reference separately before measuring progress. Windows continues to use `tools/bench.bat` and
+its existing installations/reference. `setup` probes and reuses those installations before any
+download; it never replaces them to match a Linux snapshot.
+
+Linux uses procfs, `wait4` CPU accounting, `taskset` affinity and monotonic task clocks. Its RSS
+is not Windows tree committed memory: the latter stays unavailable rather than being invented.
+Linux has a separate protocol/history and report and never updates the Windows README results.
+The allocator comparison currently requires Windows APIs and is explicitly absent from the
+Linux capability record. MSVC is Windows-only; NativeAOT requires host SDK/native dependencies.
+Tool discovery does not guarantee that SDK restore or native linking succeeds: run `smoke`.
+
+Linux clock/import adapters run on **copies** under the output directory, including Swag's
+native/JIT sources and .NET runtime identifiers. Original inputs and historical static listings
+remain intact. A changed adapter requires a new static capture. No Linux timing campaign is
+included as part of this infrastructure refactor.
+
 ## Running it
 
 From the checkout root:
@@ -24,18 +75,18 @@ tools\bench.bat --build                  # compilation only
 tools\bench.bat --run                    # execution only
 ```
 
-`tools\bench.bat` runs `campaign.py`, which builds the Release compiler with `tools\release.bat`,
+`tools\bench.bat` runs `scripts/campaign.py`, which builds the Release compiler with `tools\release.bat`,
 runs `driver.py` and regenerates the report with `mkpage.py`. A full campaign takes about forty
 minutes on the benchmark laptop and needs it plugged in and otherwise idle. Other entry points:
 
 | | |
 |---|---|
-| `py -3 bench/driver.py --tasks sort,nbody --out C:\tmp\c.json` | a partial sweep while working on one task; written to the file, never recorded |
-| `py -3 bench/driver.py --quick --tasks sort --no-reference` | the plumbing alone, without the reference |
-| `py -3 bench/reference.py show` / `verify` / `freeze NAME` | the frozen reference compiler, see below |
-| `py -3 bench/compile.py --against C:\baseline\swc.exe --swc-cores 6` | A/B of the edit-build loop between two compilers, records nothing |
-| `py -3 bench/microdiff.py --base C:\baseline\swc.exe` | which functions and loops of the tasks two compilers generate differently |
-| `py -3 bench/allocator/run.py` | the allocator section alone |
+| `py -3 bench/scripts/driver.py --tasks sort,nbody --out C:\tmp\c.json` | a partial sweep while working on one task; written to the file, never recorded |
+| `py -3 bench/scripts/driver.py --quick --tasks sort --no-reference` | the plumbing alone, without the reference |
+| `py -3 bench/scripts/reference.py show` / `verify` / `freeze NAME` | the frozen reference compiler, see below |
+| `py -3 bench/scripts/compile.py --against C:\baseline\swc.exe --swc-cores 6` | A/B of the edit-build loop between two compilers, records nothing |
+| `py -3 bench/scripts/microdiff.py --base C:\baseline\swc.exe` | which functions and loops of the tasks two compilers generate differently |
+| `py -3 bench/workloads/allocator/run.py` | the allocator section alone |
 | `python -B -m unittest discover -s bench` | the harness's own tests, on synthetic data |
 
 `compile.py`, `parsecache.py` and `cachecheck.py` are investigation tools that record nothing;
@@ -111,8 +162,8 @@ a pair see it, so no correction is needed and none is applied.
 The reference is a complete installation (compiler, runtime, standard library sources and the
 Swag task sources as of its commit) kept outside the checkout, in
 `%LOCALAPPDATA%\SwagBench\references\<name>` (`BENCH_REFERENCE_ROOT` overrides it). Its digests
-are committed in `reference.json`, and every campaign verifies them byte for byte before
-measuring. `py -3 bench/reference.py freeze <name>` freezes `bin\swc.exe` with the runtime,
+are committed in the per-OS manifest under `compilers/`, and every campaign verifies them byte for byte before
+measuring. `py -3 bench/scripts/reference.py freeze <name>` freezes `bin\swc.exe` with the runtime,
 library and task sources taken from the HEAD commit, not from the working tree, so other
 sessions' uncommitted edits cannot leak into it. A reference is never overwritten: a new one
 gets a new name and starts a new progress series. On another machine, rebuild the reference's
@@ -324,10 +375,10 @@ collection policy. These are short-lived program measurements, not warmed server
 | `sampler.py` | rounds, pairs, stopping rules, interference retries |
 | `machine.py` | interference estimate, quiet waits, machine and power description |
 | `installs.py` | the private installation of the compiler under test and the frozen reference |
-| `reference.py`, `reference.json` | managing the reference, and the committed manifest of the current one |
+| `scripts/reference.py`, `compilers/reference-<os>.json` | managing the reference, and the committed manifest of the current one |
 | `toolchains.py` | where each toolchain lives, how it builds and runs, its warm state |
 | `stats.py` | medians, intervals, ratios, geometric means, verdicts |
-| `history.py` | what a campaign concludes; `history.json` is rebuilt from `results/` |
+| `scripts/history.py` | conclusions; per-OS history is rebuilt from that OS's raw campaigns |
 | `mkpage.py`, `page_template.html` | the report; every figure comes from the raw campaigns |
 | `winproc.py` | process timing in a job object, peak memory, CPU accounting, pinning |
 | `results/` | one raw campaign per file, every sample kept; `rejected/` and earlier protocols beside |
@@ -339,8 +390,8 @@ Every compiler helper process runs in a job object and is terminated with it: 46
 ## Earlier protocols
 
 `history.PROTOCOL` states how a campaign was measured; campaigns of different protocols are
-never mixed. Protocol 1 (`results/protocol1/`) took five unpinned samples. Protocol 2
-(`results/protocol2/`) kept the fastest confirmed sample and normalized Swag between campaigns
+never mixed. Protocol 1 (`results/windows/protocol1/`) took five unpinned samples. Protocol 2
+(`results/windows/protocol2/`) kept the fastest confirmed sample and normalized Swag between campaigns
 by the other languages; its raw campaigns are kept as evidence and read by nothing. Raise the
 protocol number whenever a change makes new campaigns incomparable with old ones, and move the
 old campaigns aside in the same commit.

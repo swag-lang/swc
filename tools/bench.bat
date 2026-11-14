@@ -5,11 +5,11 @@ if /i "%~1"=="--help" goto usage
 pushd "%~dp0.."
 where python.exe >nul 2>&1
 if errorlevel 1 goto pythonLauncher
-python bench\campaign.py %*
+python bench\bench.py campaign %*
 set "result=%ERRORLEVEL%"
 goto done
 :pythonLauncher
-py -3 bench\campaign.py %*
+py -3 bench\bench.py campaign %*
 set "result=%ERRORLEVEL%"
 :done
 popd

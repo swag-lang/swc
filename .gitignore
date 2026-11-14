@@ -13,3 +13,6 @@ __pycache__/
 /vscode/node_modules/
 *.actual.png
 *.actual.txt
+
+# Disposable benchmark builds and prepared platform sources.
+/bench/out/

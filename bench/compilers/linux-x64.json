@@ -1,0 +1,82 @@
+{
+  "go": {
+    "version": "1.27.4",
+    "executable": "bin/go",
+    "archives": [
+      {
+        "url": "https://go.dev/dl/go1.27.4.linux-amd64.tar.gz",
+        "sha256": "7226736c2339719cda28fbf3a54d71aa63bcefe376e98cef00034268dab24840",
+        "payload": "go"
+      }
+    ]
+  },
+  "rustc": {
+    "version": "1.100.0",
+    "executable": "bin/rustc",
+    "archives": [
+      {
+        "url": "https://static.rust-lang.org/dist/2026-11-12/rustc-1.100.0-x86_64-unknown-linux-gnu.tar.xz",
+        "sha256": "f1d0b1dec81dab6f523cd098507763487b0d4bd7fd2c87582f154128719be03b",
+        "payload": "rustc-1.100.0-x86_64-unknown-linux-gnu/rustc"
+      },
+      {
+        "url": "https://static.rust-lang.org/dist/2026-11-12/rust-std-1.100.0-x86_64-unknown-linux-gnu.tar.xz",
+        "sha256": "4591b6486594ded52ecd6135db95bf9355bbd3ca7a380888b141528bbcf9a5d4",
+        "payload": "rust-std-1.100.0-x86_64-unknown-linux-gnu/rust-std-x86_64-unknown-linux-gnu"
+      }
+    ]
+  },
+  "zig": {
+    "version": "0.15.2",
+    "executable": "ziglang/zig",
+    "archives": [
+      {
+        "url": "https://files.pythonhosted.org/packages/db/81/f9f5c7fd68d80b8edff2a641a1c95ac4125356387d298374227040b8e1e8/ziglang-0.15.2-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl",
+        "sha256": "806316453d1ede7174ed3fefb8e5348154629089c3bb5fe812dfd0e172fac130",
+        "payload": "."
+      }
+    ]
+  },
+  "ldc2": {
+    "version": "1.43.0",
+    "executable": "ldc2-1.43.0-linux-x86_64/bin/ldc2",
+    "archives": [
+      {
+        "url": "https://github.com/ldc-developers/ldc/releases/download/v1.43.0/ldc2-1.43.0-linux-x86_64.tar.xz",
+        "sha256": "35805db60f47fd1a162b2035da84d96beec37e6d1e7b1edf60498a90acfaedce",
+        "payload": "."
+      }
+    ]
+  },
+  "odin": {
+    "version": "2026-11a",
+    "executable": "odin-linux-amd64-nightly+2026-11-03/odin",
+    "archives": [
+      {
+        "url": "https://github.com/odin-lang/Odin/releases/download/dev-2026-11a/odin-linux-amd64-dev-2026-11a.tar.gz",
+        "sha256": "65c9f6e97d6f8a30930e151f270ce5aeaa98fe8b2ba49fe067394e2af04f7618",
+        "payload": "."
+      }
+    ]
+  },
+  "swiftc": {
+    "version": "6.2.1-ubuntu24.04",
+    "executable": "swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+    "archives": [
+      {
+        "url": "https://download.swift.org/swift-6.2.1-release/ubuntu2404/swift-6.2.1-RELEASE/swift-6.2.1-RELEASE-ubuntu24.04.tar.gz",
+        "sha256": "4022cb64faf7e2681c19f9b62a22fb7d9055db6194d9e4a4bef9107b6ce10946"
+      }
+    ]
+  },
+  "dotnet": {
+    "version": "9.0.321",
+    "executable": "dotnet",
+    "archives": [
+      {
+        "url": "https://builds.dotnet.microsoft.com/dotnet/Sdk/9.0.321/dotnet-sdk-9.0.321-linux-x64.tar.gz",
+        "sha512": "612bae8e90be6e69b65b904647b88a28d0d8c4d79ed4b208d9fdfa61ab34be57e6fd018ab46c3897dc08aad203380130e6af3e748f742a09aa11f8f189cab7e8"
+      }
+    ]
+  }
+}

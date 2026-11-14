@@ -390,7 +390,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   then passed with fresh roots and with the same source outside the checkout. Cache or
   work-directory state is therefore not yet separated from scheduling. Repeated filtered
   Release runs with six workers have not reproduced it. Artifact:
-  [generated-code session](../bench/results/generated-code/20260916/README.md).
+  [generated-code session](../bench/disassembly/generated-code/20260916/README.md).
 - Next: when it reappears, preserve the failing pre-sanity capture lowering and its output
   and work roots. Then separate cache reuse from shared code-generation state when the
   macro's closure is cloned.

@@ -145,7 +145,7 @@ new language syntax.
   `Slice.parsePlaneResidualCabac` gained one memory operation and
   `Slice.parsePlaneResidualCavlc` gained six plus thirteen instructions.
   The full register pool remains available; the
-  [retained comparison](../bench/results/generated-code/20261006-legalize-reserve/README.md)
+  [retained comparison](../bench/disassembly/generated-code/20261006-legalize-reserve/README.md)
   owns the exact baseline.
 - Additional case: promoting whole-copied locals with scalar lane reads removes
   frame traffic in ChaCha, nbody and H.264. In CSV data generation, a copied region
@@ -153,7 +153,7 @@ new language syntax.
   The printed bodies gain 18 instructions / 11 memory operations, 14 explicit
   RSP accesses and 64 frame bytes. The suffix from the first timing call remains
   444 instructions / 151 memory operations, and the checksum remains 24828641.
-  [Allocation diff](../bench/results/generated-code/20261006-vector-lanes/csvagg-allocation.diff).
+  [Allocation diff](../bench/disassembly/generated-code/20261006-vector-lanes/csvagg-allocation.diff).
 - Next: inspect splitting and rematerialization around the implicit multiply
   claims in CSV setup, and compare the two H.264 functions' interval choices.
   Preserve the extra register and legal packed promotion while correcting these
@@ -170,7 +170,7 @@ new language syntax.
 - Evidence: nbody's five invariant mass-field loads remain blocked by unplaced
   pointer writes into the escaped body array. An unused-GP floating-load cache
   alone leaves all twelve native benchmark kernels unchanged; see the
-  [rejected experiment](../bench/results/generated-code/20261022-three/README.md#rejected-floating-frame-cache-and-campaign-closure).
+  [rejected experiment](../bench/disassembly/generated-code/20261022-three/README.md#rejected-floating-frame-cache-and-campaign-closure).
 - Next: reconcile the post-allocation object model with the shared proof without
   losing byte-range precision, including stable frame-derived pointer offsets
   and moving-SP paths, then use disjoint spaces in forwarding and value
@@ -190,7 +190,7 @@ new language syntax.
 - Evidence: two SHA-256 rounds execute 95 instructions / four memory reads / zero frame
   accesses, against 100 / four / zero before, but whole `main` gains 42 instructions and
   six explicit RSP accesses outside that compression loop
-  ([code evidence](../bench/results/generated-code/20261006-partial-counted-unroll/README.md)).
+  ([code evidence](../bench/disassembly/generated-code/20261006-partial-counted-unroll/README.md)).
   A four-round prototype executed 180 instructions with a back-edge register copy and four
   frame stores per group: its three transient XMM registers for integer values left too
   few for all four write-only homes.
@@ -209,7 +209,7 @@ new language syntax.
   read. Pure leaf inlines already borrow a plain array from a stable caller variable when
   every argument is a same-type bare variable or constant; parameter writes,
   addresses/buffers, captures, calls, generated source and nontrivial copy/drop types keep
-  snapshots ([code evidence](../bench/results/generated-code/20261006-inline-array-borrow/README.md)).
+  snapshots ([code evidence](../bench/disassembly/generated-code/20261006-inline-array-borrow/README.md)).
   A by-value `[4] U32x4` transpose inlined into a caller cost 40 instructions and a 0x1C8
   frame against 28 and 0x80 for the pointer form, which `Core.Math.Simd.transpose4x4` now
   takes. Read-only syntax alone does not prove the caller's storage stays unchanged while
@@ -253,7 +253,7 @@ new language syntax.
 - Evidence: late pre-allocation scheduling folds a single-use constant-offset address into
   indexed and ordinary memory operands. Cross-block candidates need an SSA proof that the
   base is unchanged
-  ([structural evidence](../bench/results/generated-code/20261006-late-addresses/README.md)).
+  ([structural evidence](../bench/disassembly/generated-code/20261006-late-addresses/README.md)).
   It costs `Slice.parsePartitions` three instructions and two memory operations. Shared
   addresses stay outside the single-use rule, including the context-array base at
   Slice + 0x98 that feeds four copies in `residualCabac`.
@@ -267,7 +267,7 @@ new language syntax.
 
 - Evidence: native, JIT, foreign-return and callback dirty-AVX-state probes match
   clean-state results and performance after the boundary fix
-  ([evidence](../bench/results/generated-code/20261006-avx-vex/README.md)). Two things are
+  ([evidence](../bench/disassembly/generated-code/20261006-avx-vex/README.md)). Two things are
   not established: which AVX state reached the unmodified benchmark when its timing
   changed, and the compiler cost of the boundary handling.
 - Next: at a measurement milestone, check the compiler cost of the boundary handling and
@@ -284,7 +284,7 @@ new language syntax.
   `main` moved from RVA `0xaee0` to `0xafd0` with unchanged hot instructions. Blanket
   modulo-32 alignment (candidate `5d3338007`, not on master) recovered 5.10% on `fannkuch`
   but cost 4.50% on `binarytrees` and grew text by 3.32%, so it fails the performance gate
-  ([evidence](../bench/results/generated-code/20261005-runtime-layout/README.md)).
+  ([evidence](../bench/disassembly/generated-code/20261005-runtime-layout/README.md)).
 - Next: investigate selective alignment and repeat independent quiet blocks across native
   execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
   layout metadata through object/cache boundaries and reorder functions by weighted
@@ -924,7 +924,7 @@ hashes when reproducing the baseline; do not silently substitute a later build.
 | Rust Capture Release | `package/swagcapture-rust.exe` in the external `capture-rust-20261030` build output |
 | Rust SHA-256 | `d63a6058e5737b112b4331a0b29d43a51eca5eec60cc19db7e1cda953621eda2` |
 
-The Rust prototype source is maintained under [`bench/clone/capture-rust`](../bench/clone/capture-rust/README.md),
+The Rust prototype source is maintained under [`bench/clones/capture-rust`](../bench/clones/capture-rust/README.md),
 initially based on checkout `dec813751c`; its current state and open parity work are tracked in
 [`backlog/clones.md`](clones.md). The Release artifact identified above is a pre-existing build;
 do not assume it corresponds to the current source tree. Its profile uses optimization level 3,

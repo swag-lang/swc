@@ -163,7 +163,7 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 - Next: retry only with a lowering that keeps the eight-word state in registers across both
   G halves and regroups 64-bit lanes from two sources without scalar extraction, or with a
   wider layout that amortizes the regrouping. Measure with the fixed-worker
-  [lane-scaling benchmark](../bench/argon2/README.md).
+  [lane-scaling benchmark](../bench/workloads/argon2/README.md).
 - Done when: published vectors pass for all supported parameters and profile benchmarks
   isolate the packed kernel gain from independent-lane parallelism.
 

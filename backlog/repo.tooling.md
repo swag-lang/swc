@@ -71,7 +71,7 @@ being compiled by it.
 
 ### repo.tooling.007 — Separate formatter input preparation from formatter cost
 
-- Evidence: in the `format_tree` workload (`bench/toolchains.py`), formatting a fresh private
+- Evidence: in the `format_tree` workload (`bench/scripts/toolchains.py`), formatting a fresh private
   copy spends most sampled worker time opening files (`SourceFile::loadContent`, mostly
   `NtCreateFile`). Formatting the original sources spends most of it in `Formatter::prepare`,
   with little in indentation. Sharing the indentation pass's two line-column computations
@@ -129,7 +129,7 @@ being compiled by it.
 
 ### repo.tooling.008 — Record module timings with load observed during each sample
 
-- Evidence: `bench/compile.py` has no module-only GUI, Pixel, or OGL workload, and admission is
+- Evidence: `bench/scripts/compile.py` has no module-only GUI, Pixel, or OGL workload, and admission is
   checked only before a sample. A campaign starting during a sample therefore goes unrecorded;
   paired GUI samples of one compiler have varied more than fivefold. Two observations remain
   unexplained ([report](../bench/results/compilation/20260907/README.md)): a GUI resident and

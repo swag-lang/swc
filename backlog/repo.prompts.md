@@ -265,7 +265,7 @@ Read AGENTS.md and its skills, backlog/compiler.core.md, backlog/compiler.optimi
 and bench/README.md first.
 
 The campaign is judged by the machine-corrected execution index it leaves behind (the per-task
-`run_index` of bench/history.json), not by the number of batches it lands. Acceptance rests on
+`run_index` of bench/results/windows/history.json), not by the number of batches it lands. Acceptance rests on
 correctness and static evidence for the changed hot path, so a batch can be accepted on a loaded
 machine. Other agents usually build and test on this same machine. Timing is an occasional
 confirmation and a veto against a clear slowdown, never a gate that delays coding or a commit.
@@ -296,7 +296,7 @@ JIT variant from the competitors. The ranking is a selection aid, not a baseline
 individual edit. Verify actual toolchain versions and build options; do not assume C++ or LLVM
 wins. Treat close rankings within measurement uncertainty as ties.
 
-The historical aggregate in bench/history.py deliberately covers the original seven tasks.
+The historical aggregate in bench/scripts/history.py deliberately covers the original seven tasks.
 Report the complete current task set separately, including nbody, fannkuch, binarytrees, lz77,
 and sort. Keep a fixed task set within each before/after comparison; never splice different
 panels into one improvement claim or change the published history to hide its continuity rule.
@@ -322,8 +322,8 @@ allocation, encoding, layout or runtime code as needed.
 
 REUSE STATIC REFERENCES ON LINUX AND WINDOWS
 
-Read `bench/results/codegen/README.md` and the relevant snapshot before rebuilding competitors.
-`python bench/codegen.py verify <snapshot> --check-sources` checks artifact integrity and current
+Read `bench/disassembly/README.md` and the relevant snapshot before rebuilding competitors.
+`python bench/scripts/codegen.py verify <snapshot> --check-sources` checks artifact integrity and current
 source fingerprints. Inspect each entry's compiler version, exact options, source adaptations,
 target ISA, ABI, floating-point and safety contracts. Reuse a competitor capture only when those
 inputs still describe the comparison. A changed source, toolchain or option requires a new
@@ -345,7 +345,7 @@ both original and compiled source hashes. Do not change algorithms, timed bounda
 safety or FP contracts to make a port build. A target or ISA variant is a separate labelled entry.
 Validate the original checksum once, then archive complete compressed listings, versions,
 commands, options, target, source hashes and symbolization evidence under a new immutable folder
-in `bench/results/codegen/`. Use `bench/codegen.py` to export and verify the records. Keep compiler
+in `bench/disassembly/`. Use `bench/scripts/codegen.py` to export and verify the records. Keep compiler
 installations, executables, caches and temporary builds outside the checkout. Keep static
 references separate from timing campaigns and never write an inferred `run_index`.
 
@@ -457,7 +457,7 @@ session, run a full campaign of that combined revision:
 `tools\bench.bat --no-build --swc-cores 3 --label "prompt 2 <date>"`
 after building that revision's swc.exe. Wait for a quiet window for this one run; if none comes
 before the session's end, say so plainly, and the next prompt 2 session starts with this
-campaign before any new batch. Then read bench/history.json, not raw milliseconds:
+campaign before any new batch. Then read bench/results/windows/history.json, not raw milliseconds:
 
 This timing requirement does not block Linux static investigation and capture. When the full
 comparable campaign cannot run on the current OS or toolchain set, record the precise limitation,
@@ -638,7 +638,7 @@ Read and follow the shared working protocol for prompts 2–7 in backlog/repo.pr
 
 This is a code-iteration campaign for statically proven compiler savings. Its measurement rule
 overrides the shared protocol's optional measurement milestones for planned speed work: do not run
-an initial baseline, `bench/compile.py`, A/B timings, a profiler, or a four-workload check, including
+an initial baseline, `bench/scripts/compile.py`, A/B timings, a profiler, or a four-workload check, including
 at milestones or before integration. The dedicated benchmark campaign owns elapsed-time, CPU and
 peak-memory measurements. If a change needs timing to establish that it saves work, discard it and
 try a change whose saving can be proved from the code.
@@ -785,7 +785,7 @@ a script and one you cannot.
 
 Where it stands: there is no current attribution. compiler.core.005 asks for a fresh six-worker
 `core` DevMode rebuild and hello-build peak before a reduction is chosen; read the latest
-`hello_build_peak_mb` from bench/history.json instead of quoting it here. For comparison when
+`hello_build_peak_mb` from bench/results/windows/history.json instead of quoting it here. For comparison when
 the bench tasks were last measured, clang-cl peaked at 69 MB and MSVC at 82-101 MB.
 
 Targets:

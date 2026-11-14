@@ -356,7 +356,7 @@ heap-profile symbolization; it did not recompile sources or introduce a build co
 The preserved Release executable has SHA-256
 `0ecd72a7b7f813e02c7e8ceb8237ff94239a8b7ad3c602ecd8ef184fad768ffb`.
 
-[The before/after x64 assembly](paged-store-get.asm) of `ConstantManager::get` shows the
+[The before/after x64 assembly](../../../disassembly/legacy/memory/20261030-devmode/paged-store-get.asm) of `ConstantManager::get` shows the
 direct-page path falling from 31 to 26 non-NOP instructions, including prologue and return.
 Keeping the page pointer locally removes two redundant memory reads. The large-block fallback
 is unchanged. This verifies that representative hot access, not whole-compilation speed.

@@ -193,6 +193,14 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     cb.addNative(0'u8)
 }
 
+private func requireBmpDecodeFails(bytes: const [..] u8)
+{
+    var image:        Image
+    var errorOutcome: Swag.Error
+    catch { image = try Image.decode("invalid-index.bmp", bytes) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 // Decode a 2x2 32-bit BGRA8 BMP (standard DIB header, no row padding).
 #test
 {
@@ -912,6 +920,93 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
     catch { img = try Image.load(path.toString()) } as err34Outcome
     let err34 = err34Outcome.value()
     Swag.require(err34 != null)
+}
+
+// Reject packed and RLE pixels whose palette index has no declared color entry.
+#test
+{
+    var packed: ConcatBuffer
+    var file: BmpFH
+    file.bfType    = 0x4D42'u16
+    file.bfSize    = 62'u32
+    file.bfOffBits = 58'u32
+    packed.addStruct(file)
+
+    var header: Bmp.Header
+    header.biSize     = 40'u32
+    header.biWidth    = 1
+    header.biHeight   = 1
+    header.biPlanes   = 1'u16
+    header.biBitCount = 1'u16
+    header.biClrUsed  = 1'u32
+    packed.addStruct(header)
+    addBmpPaletteColor(&packed, 3, 2, 1)
+    packed.addNative(0x80'u8)     // The first pixel indexes palette entry 1.
+    packed.addNative(0'u8)
+    packed.addNative(0'u8)
+    packed.addNative(0'u8)
+    requireBmpDecodeFails(nnBytes(packed.toSlice()))
+
+    var rle8: ConcatBuffer
+    file.bfSize = 62'u32
+    rle8.addStruct(file)
+    header.biBitCount    = 8'u16
+    header.biCompression = Bmp.BI_RLE8
+    header.biSizeImage   = 4'u32
+    rle8.addStruct(header)
+    addBmpPaletteColor(&rle8, 3, 2, 1)
+    rle8.addNative(1'u8)     // One pixel using undeclared index 1.
+    rle8.addNative(1'u8)
+    rle8.addNative(0'u8)     // End of bitmap.
+    rle8.addNative(1'u8)
+    requireBmpDecodeFails(nnBytes(rle8.toSlice()))
+
+    var rle4: ConcatBuffer
+    rle4.addStruct(file)
+    header.biBitCount    = 4'u16
+    header.biCompression = Bmp.BI_RLE4
+    rle4.addStruct(header)
+    addBmpPaletteColor(&rle4, 3, 2, 1)
+    rle4.addNative(1'u8)     // The high nibble indexes undeclared entry 1.
+    rle4.addNative(0x10'u8)
+    rle4.addNative(0'u8)
+    rle4.addNative(1'u8)
+    requireBmpDecodeFails(nnBytes(rle4.toSlice()))
+
+    var rle8Absolute: ConcatBuffer
+    file.bfSize = 66'u32
+    rle8Absolute.addStruct(file)
+    header.biWidth       = 3
+    header.biBitCount    = 8'u16
+    header.biCompression = Bmp.BI_RLE8
+    header.biSizeImage   = 8'u32
+    rle8Absolute.addStruct(header)
+    addBmpPaletteColor(&rle8Absolute, 3, 2, 1)
+    rle8Absolute.addNative(0'u8)     // Absolute packet of three indices.
+    rle8Absolute.addNative(3'u8)
+    rle8Absolute.addNative(0'u8)
+    rle8Absolute.addNative(1'u8)
+    rle8Absolute.addNative(0'u8)
+    rle8Absolute.addNative(0'u8)     // Word padding.
+    rle8Absolute.addNative(0'u8)     // End of bitmap.
+    rle8Absolute.addNative(1'u8)
+    requireBmpDecodeFails(nnBytes(rle8Absolute.toSlice()))
+
+    var rle4Absolute: ConcatBuffer
+    file.bfSize = 64'u32
+    rle4Absolute.addStruct(file)
+    header.biBitCount    = 4'u16
+    header.biCompression = Bmp.BI_RLE4
+    header.biSizeImage   = 6'u32
+    rle4Absolute.addStruct(header)
+    addBmpPaletteColor(&rle4Absolute, 3, 2, 1)
+    rle4Absolute.addNative(0'u8)     // Absolute packet of three indices.
+    rle4Absolute.addNative(3'u8)
+    rle4Absolute.addNative(0x10'u8)  // Includes undeclared palette entry 1.
+    rle4Absolute.addNative(0'u8)
+    rle4Absolute.addNative(0'u8)     // End of bitmap.
+    rle4Absolute.addNative(1'u8)
+    requireBmpDecodeFails(nnBytes(rle4Absolute.toSlice()))
 }
 
 // Error: buffer too small to hold the full DIB header must fail.

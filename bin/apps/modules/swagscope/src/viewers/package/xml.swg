@@ -46,6 +46,9 @@ impl Token
         {
             if item.name == name do
                 return item.value
+        }
+        for &item in .attributes
+        {
             let source = item.name.toSlice()
             var start = 0'u64
             for value, index in source where value == ':'u8 do

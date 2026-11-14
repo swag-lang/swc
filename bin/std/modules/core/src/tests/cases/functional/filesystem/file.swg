@@ -3,6 +3,22 @@
 
 using Swag, Core.Errors
 
+// Both backends reject empty and unknown access or sharing flags.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_invalid_access.tmp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "data")
+
+    var rejected: Swag.Error
+    discard catch File.open(fileName, .Open, cast(File.FileAccess, 0), .Read) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch File.open(fileName, .Open, File.FileAccess.Read | cast(File.FileAccess, 4), .Read) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+    discard catch File.open(fileName, .Open, .Read, .Read | cast(File.FileShare, 128)) as rejected
+    Swag.require(rejected.value() is BadParameterError)
+}
+
 // Live readers leave no idle handle and follow replacements without losing their cursor.
 #test
 {

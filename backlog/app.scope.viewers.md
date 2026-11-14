@@ -11,17 +11,19 @@ Prioritize opening and reading real files across common formats before adding pr
 inspection or editing tools. A format counts as readable only when its primary content opens in
 the intended order, navigation works, search or selection works where meaningful, large or damaged
 input remains bounded, and unsupported content is named rather than silently omitted. The
-compatibility matrix in app.scope.viewers.009 records fixtures and these outcomes per format.
+[fixture matrix](../bin/apps/modules/swagscope/src/tests/datas/README.md) records named inputs;
+app.scope.viewers.009 tracks the remaining behavior and performance checks per format.
+Implement every viewer and format decoder in Swag without external viewer libraries.
 
-1. Make the shipped readers dependable, starting with partial PDF pages, cancellation and fixed
-   rendering expectations in [std.gui.pdf.md](std.gui.pdf.md), then the common open, navigation and
-   failure paths. Keep the first-content latency and memory limits visible in the matrix.
-2. Reuse the ZIP, HTML and image readers for EPUB and CBZ, then add safe basic reading for RTF and
+1. Reuse the ZIP, HTML and image readers for EPUB and CBZ, then add safe basic reading for RTF and
    Jupyter notebooks. See [app.scope.document.md](app.scope.document.md). Each format gets a real
    reading surface; recognizing a container or showing its raw parts is insufficient.
-3. Read the common Office Open XML formats (`.docx`, `.xlsx`, `.pptx`), followed by OpenDocument
+2. Read the common Office Open XML formats (`.docx`, `.xlsx`, `.pptx`), followed by OpenDocument
    (`.odt`, `.ods`, `.odp`). Preserve paragraph, sheet and slide order, text, tables and bounded
    images first; state layout limitations explicitly. See [app.scope.document.md](app.scope.document.md).
+3. Make the shipped readers dependable, starting with partial PDF pages, cancellation and fixed
+   rendering expectations in [std.gui.pdf.md](std.gui.pdf.md), then the common open, navigation and
+   failure paths. Keep the first-content latency and memory limits visible in the matrix.
 4. Fill modern image and video format gaps: AVIF, HEIC, JPEG XL, embedded RAW previews, VP9 and
    AV1. Add other inexpensive formats when the owning decoder can meet the same reading contract.
    See [app.scope.image.md](app.scope.image.md) and [std.video.md](std.video.md).
@@ -30,7 +32,7 @@ compatibility matrix in app.scope.viewers.009 records fixtures and these outcome
    deepen PDF navigation, printing, forms, annotations and signatures through
    [app.scope.document.md](app.scope.document.md).
 
-The first implementation slice is dependable PDF page reading, EPUB, CBZ and basic DOCX. Format
+The first implementation slice is EPUB, CBZ and basic Office reading. Format
 selection, previews, keyboard use, Encre/Papier presentation and failure recovery stay part of
 each slice rather than becoming a final integration pass.
 
@@ -51,10 +53,14 @@ each slice rather than becoming a final integration pass.
 
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
-- Evidence: all seventeen viewers have focused tests and a viewer-specific golden. Text covers
-  queued encoding changes, cancellation and CRLF search offsets; shared document outlines have
+- Evidence: the twenty registered viewers have focused tests and viewer-specific goldens. The
+  fixture matrix now names all 115 canonical and variant files, checks
+  each one's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, RTF, XLSX and PPTX have
+  content and damaged-package cases. Five complete, openly licensed published documents add
+  content checks for EPUB, Office and PDF, with source URLs and SHA-256 hashes. Text covers queued encoding changes, cancellation and CRLF
+  search offsets; shared document outlines have
   their own [integration suite](../bin/apps/modules/swagscope/src/tests/cases/functional/viewer.outline.swg).
-  These tests still do not declare a common matrix for real-world variants,
+  These tests still do not declare a complete matrix for real-world variants,
   malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
   selection-to-first-content latency under rapid adjacent-file browsing.
 - Next: publish one matrix per registered viewer with representative public fixtures, required
@@ -85,7 +91,7 @@ each slice rather than becoming a final integration pass.
 - Evidence: Image and Video already publish grouped metadata through the shared `MediaInfoPanel`,
   with translated property labels, row selection and a copy command. The host also shows size and
   a viewer-supplied summary. Canonical path, timestamps, file identity, hashes, detection evidence
-  and warnings still lack one contract available across all seventeen viewers.
+  and warnings still lack one contract available across all twenty viewers.
 - Next: extend the existing information surface with host-owned file facts and optional viewer
   properties and warnings, including cancellable hashing and links back to the described content.
 - Done when: facts are selectable and copyable, byte sizes and dates have exact forms, format
@@ -224,7 +230,7 @@ each slice rather than becoming a final integration pass.
 | OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
-| RTF | `.rtf` | raw text, recognized from its content | a safe document renderer | — |
+| RTF | `.rtf` | bounded formatted reading with text, styles, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |

@@ -76,6 +76,45 @@ using Core
 
 #test
 {
+    var validHost, overlongHost: String
+    for label in 4
+    {
+        if label > 0
+        {
+            validHost.append(".")
+            overlongHost.append(".")
+        }
+
+        let validLabelLength = label == 3 ? 61 : 63
+        let overlongLabelLength = label == 3 ? 62 : 63
+        var index = 0
+        while index < validLabelLength
+        {
+            validHost.append('a'u8)
+            index += 1
+        }
+        index = 0
+        while index < overlongLabelLength
+        {
+            overlongHost.append('a'u8)
+            index += 1
+        }
+    }
+
+    Swag.require(validHost.count == 253 and overlongHost.count == 254)
+    Swag.require(expect Url.parseHttp(Format.toString("http://%/", validHost)).host == validHost)
+
+    var absoluteHost = validHost
+    absoluteHost.append(".")
+    Swag.require(expect Url.parseHttp(Format.toString("http://%/", absoluteHost)).host == absoluteHost)
+
+    var error: Swag.Error
+    discard catch Url.parseHttp(Format.toString("http://%/", overlongHost)) as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
+#test
+{
     for invalid in ["%", "%0", "%GG"]
     {
         var error: Swag.Error

@@ -1,0 +1,8 @@
+ui_Name Document de texte enrichi
+ui_Preparing Préparation du document…
+ui_Details Document de texte enrichi · % paragraphes · % images ou objets non affichés
+ui_ImageOmitted [Image non affichée]
+ui_ObjectOmitted [Objet incorporé non affiché]
+err_Invalid La structure de ce document de texte enrichi est endommagée.
+err_TooLarge Ce document de texte enrichi est trop volumineux pour être ouvert sans risque.
+err_CodePage Ce document de texte enrichi utilise une page de codes non prise en charge.

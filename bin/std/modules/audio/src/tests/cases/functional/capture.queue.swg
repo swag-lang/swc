@@ -72,6 +72,44 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(Slice.equals(samples.toSlice(), [9's16, 10, 11]))
 }
 
+// Frames clipped by committed silence retain their original sample-grid offset.
+#test
+{
+    var queue = expect CaptureQueue.create(10, 1, 0, 100, blockFrames: 10, tolerance: 0)
+    const Initial: [10] s16 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    discard expect queue.push(Initial, 0)
+    var samples: Array's16
+    var info: CaptureBlock
+    Swag.require(queue.pop(&samples, &info) and info.startSample == 0 and info.frameCount == 10)
+    discard expect queue.markSilentUntil(100)
+
+    const Late: [2] s16 = [1, 2]
+    let placement = expect queue.push(Late, 96)
+    Swag.require(placement.discardedFrames == 1 and placement.acceptedFrames == 1)
+    Swag.require(queue.pop(&samples, &info))
+    Swag.require(info.startSample == 11 and info.gapFrames == 1 and info.frameCount == 1)
+    Swag.require(samples[0] == 2 and queue.sampleEnd() == 12)
+}
+
+// Clipping uses exact sample offsets even when the clock has fewer ticks than the sample rate.
+#test
+{
+    var queue = expect CaptureQueue.create(3, 1, 0, 2, blockFrames: 4, tolerance: 0)
+    const Initial: [1] s16 = [0]
+    discard expect queue.push(Initial, 0)
+    var samples: Array's16
+    var info: CaptureBlock
+    Swag.require(queue.pop(&samples, &info) and info.startSample == 0 and info.frameCount == 1)
+    discard expect queue.markSilentUntil(1)
+
+    const Late: [4] s16 = [1, 2, 3, 4]
+    let placement = expect queue.push(Late, 0)
+    Swag.require(placement.discardedFrames == 2 and placement.acceptedFrames == 2)
+    Swag.require(queue.pop(&samples, &info))
+    Swag.require(info.startSample == 2 and info.gapFrames == 1 and info.frameCount == 2)
+    Swag.require(samples[0] == 3 and samples[1] == 4)
+}
+
 // A full ring drops only its oldest block and exposes the missing samples to the consumer.
 #test
 {

@@ -4,9 +4,9 @@ using Ogl, Core
 
 // Describes a renderer-owned two-dimensional texture.
 //
-// The value does not own or release the graphics resource. Its handle is valid
-// only for the renderer that created it, and only while that renderer keeps the graphics device
-// it was created on: see [[Pixel.Texture.isValid]].
+// The value does not own or release the graphics resource. Its handle belongs to the renderer
+// that created it; discard every copy after removing the texture or resetting the renderer. See
+// [[Pixel.Texture.isValid]] for the handle and device-generation check.
 struct Texture
 {
     // What the renderer created. The four of them describe one resource, so they are established
@@ -43,15 +43,26 @@ enum UVMode
 
 impl Texture
 {
-    // Returns the tightly packed texture storage size, in bytes.
-    mtd const byteCount()->u64 => cast(u64, .width) * cast(u64, .height) * .pixelFormat.bitsPerPixel() / 8
+    // Returns the tightly packed texture storage size, in bytes. Planar chroma planes use their
+    // rounded-up subsampled dimensions, so odd-sized pictures include the full edge samples.
+    mtd const byteCount()->u64
+    {
+        let width  = cast(u64, .width)
+        let height = cast(u64, .height)
+        if .pixelFormat == .Yuv420
+        {
+            let chromaWidth  = width / 2 + width % 2
+            let chromaHeight = height / 2 + height % 2
+            return width * height + 2 * chromaWidth * chromaHeight
+        }
+        return width * height * .pixelFormat.bitsPerPixel() / 8
+    }
 
-    // Reports whether the texture still names live renderer storage.
+    // Reports whether the handle is present and its renderer device generation is still current.
     //
-    // A texture stops being valid when its renderer loses the graphics device it was created on,
-    // even though nobody removed it: the storage went with the device. An owner that keeps the
-    // source of its texture uploads it again when this answers `false`; removing a texture that
-    // is no longer valid releases nothing and is harmless.
+    // This does not detect removal through another copy of the value. Discard every copy after
+    // removing the texture or resetting its renderer. An owner that keeps the source can upload
+    // it again when a device reset makes this answer `false`.
     mtd const isValid()->bool => .handle != InvalidTextureHandle and .generation.isCurrent()
 
     // Invalidates the descriptor without releasing a renderer resource.

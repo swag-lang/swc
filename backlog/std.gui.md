@@ -609,6 +609,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
 
 ### std.gui.064 — Make Linux desktop input focus setup runnable
 
-- Next: Inspect the `Display*` and Xlib call ABI in `Gui.Testing.DesktopInput.openNative`, then rerun the portable Capture desktop plan on an isolated X11 server.
+- Next: Run the portable Capture desktop plan on an isolated X11 server and verify the XTEST click, drag, undo and redo.
 - Done when: `drawandundo.swg` passes on Linux through XTEST, including the click, drag, undo and redo.
-- Evidence: the Linux test compiles, then SIGSEGV occurs in `XGetInputFocus` after capture creation and before the first pointer action; GDB names `DesktopInput.openNative` as its caller.
+- Evidence: the Linux test previously compiled, then SIGSEGV occurred in `XGetInputFocus` inside `DesktopInput.openNative`. All seven Xlib/XTest function-pointer aliases now declare the C calling convention; the focused GUI module test compiles and passes. The live XTEST plan remains unverified here because this host has no `DISPLAY` or Xvfb.

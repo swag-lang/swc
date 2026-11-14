@@ -117,6 +117,66 @@ impl SampleTimeline
         return SamplePlacement{start, silence, discarded, accepted}
     }
 
+    // Places a suffix after clipping source frames covered by committed silence. The source
+    // timestamp may precede the monotonic silence endpoint, so preserve its sample-grid position
+    // directly rather than replacing it with that endpoint.
+    internal mtd placeClipped(tick: u64, skippedFrames, frameCount: u64)->SamplePlacement fail
+    {
+        if not frameCount do
+            fail BadParameterError{"sample timeline blocks must contain frames"}
+        let target = try .targetAfter(tick, skippedFrames)
+        var adjustedTarget = target
+        if target >= .sampleEndValue
+        {
+            if target - .sampleEndValue <= .tolerance do
+                adjustedTarget = .sampleEndValue
+        }
+        elif .sampleEndValue - target <= .tolerance do
+            adjustedTarget = .sampleEndValue
+
+        let silence   = adjustedTarget > .sampleEndValue ? adjustedTarget - .sampleEndValue : 0
+        let discarded = adjustedTarget < .sampleEndValue ? Math.min(.sampleEndValue - adjustedTarget, frameCount) : 0
+        let accepted  = frameCount - discarded
+        let start     = Math.max(adjustedTarget, .sampleEndValue)
+        if accepted > Swag.U64.Max - start do
+            fail OverflowError{"sample timeline block end overflows"}
+        .sampleEndValue = start + accepted
+        if tick > .previousTick do
+            .previousTick = tick
+        .hasBlock = true
+        return SamplePlacement{start, silence, discarded, accepted}
+    }
+
+    // Resolves a tick relative to the origin with nearest-sample rounding. A midpoint before
+    // the origin rounds toward that origin, matching half-up rounding for signed positions.
+    private mtd const targetAfter(tick: u64, frameOffset: u64)->u64 fail
+    {
+        let isBeforeOrigin = tick < .firstTick
+        let elapsed = isBeforeOrigin ? .firstTick - tick : tick - .firstTick
+        let wholeSeconds = elapsed / .clockFrequency
+        if wholeSeconds > Swag.U64.Max / .sampleRate do
+            fail OverflowError{"sample timeline position overflows"}
+        let wholeSamples = wholeSeconds * .sampleRate
+        let fraction = (elapsed % .clockFrequency) * .sampleRate
+        let fractionSamples = fraction / .clockFrequency
+        let remainder = fraction % .clockFrequency
+        let roundsUp = isBeforeOrigin ? remainder > .clockFrequency / 2 :
+                       remainder >= .clockFrequency / 2 + .clockFrequency % 2
+        let rounded = fractionSamples + cast(u64, roundsUp)
+        if rounded > Swag.U64.Max - wholeSamples do
+            fail OverflowError{"sample timeline position overflows"}
+        let magnitude = wholeSamples + rounded
+        if isBeforeOrigin
+        {
+            if magnitude >= frameOffset do
+                return 0
+            return frameOffset - magnitude
+        }
+        if frameOffset > Swag.U64.Max - magnitude do
+            fail OverflowError{"sample timeline position overflows"}
+        return magnitude + frameOffset
+    }
+
     private mtd const targetAt(tick: u64)->u64 fail
     {
         if tick < .previousTick do

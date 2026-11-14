@@ -32,6 +32,8 @@ struct Stream
     nextRank:     u64     // Display rank the next call returns.
     nextDecode:   u64     // Decoding-order sample the decoder is about to read.
     startTime:    s64     // Pictures before this sync point need references outside the window.
+    maxEmittedTime: s64  // Latest presentation time already returned to the caller.
+    hasEmittedTime: bool // A later append must not move an already returned rank.
     started:      bool
     width:        s32
     height:       s32
@@ -84,6 +86,8 @@ impl Stream
         .nextDecode = 0
         .started    = false
         .queued     = 0
+        .maxEmittedTime = 0
+        .hasEmittedTime = false
         .decoder.reset()
     }
 
@@ -101,6 +105,16 @@ impl Stream
     {
         if not frames.count do
             return
+
+        // Rebuilding display order is safe only while every new picture sorts after all ranks
+        // already returned. A late legacy-clock timestamp would renumber a picture the caller
+        // has already consumed, while nextRank still points past that old rank.
+        if .hasEmittedTime
+        {
+            for entry in frames where entry.presentationTime < .maxEmittedTime do
+                fail InvalidFormatError{"RealVideo append would reorder an already emitted picture"}
+        }
+
         .frames.add(frames)
         .rebuildOrder()
     }
@@ -223,7 +237,13 @@ impl Stream
             let at = .earliest()
             if .emitRank == .nextRank
             {
+                let emittedTime = .queue[at].time
                 .release(at, target)
+                if .hasEmittedTime do
+                    .maxEmittedTime = Math.max(.maxEmittedTime, emittedTime)
+                else do
+                    .maxEmittedTime = emittedTime
+                .hasEmittedTime = true
                 .nextRank += 1
                 return
             }

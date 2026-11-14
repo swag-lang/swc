@@ -35,6 +35,12 @@ private func findClosing(text: string, marker: string, start: u64, wordBoundaryC
 
 private func canOpenUnderscore(text: string, index: u64)->bool => index == 0 or not Latin1.isWord(text[index - 1])
 
+private func isMarkdownEscapable(value: u8)->bool =>
+    (value >= 0x21 and value <= 0x2F) or
+    (value >= 0x3A and value <= 0x40) or
+    (value >= 0x5B and value <= 0x60) or
+    (value >= 0x7B and value <= 0x7E)
+
 private func findInlineMathEnd(text: string, start: u64)->u64
 {
     if start >= text.count or Latin1.isSpace(text[start]) do
@@ -371,7 +377,9 @@ func renderInline(text: string, references: const [..] Reference? = null, parsed
             }
         }
 
-        if text[index] == '\\' and index + 1 < text.count
+        if text[index] == '\\' and
+           index + 1 < text.count and
+           (text[index + 1] == '\n' or isMarkdownEscapable(cast(u8, text[index + 1])))
         {
             result += richText(text[index + 1 until index + 2])
             index  += 2

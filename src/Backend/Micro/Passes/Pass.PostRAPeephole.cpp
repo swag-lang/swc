@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
 #include "Backend/ABI/CallConv.h"
+#include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
@@ -26,6 +27,98 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using namespace PostRaPeephole;
+
+    // Select both an adjacent index and its already-read value. The bounds
+    // edge still reads only the first element; the second element is read only
+    // on the original fallthrough. ADC reuses the comparison's carry without
+    // retaining a third value register or loading the selected address again.
+    bool reuseGuardedAdjacentValue(MicroPassContext& context)
+    {
+        if (!context.builder || !context.encoder || !context.encoder->supportsCarryArithmetic())
+            return false;
+        auto&       storage  = *context.instructions;
+        auto&       operands = *context.operands;
+        const auto& cfg      = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return false;
+        const auto refs = cfg.instructionRefs();
+        for (uint32_t index = 0; index + 9 < refs.size(); ++index)
+        {
+            const auto at = [&](uint32_t offset) {
+                return storage.ptr(refs[index + offset]);
+            };
+            if (at(0)->op != MicroInstrOpcode::LoadAddrRegMem || at(1)->op != MicroInstrOpcode::CmpRegReg ||
+                at(2)->op != MicroInstrOpcode::JumpCond || at(3)->op != MicroInstrOpcode::LoadAmcRegMem ||
+                at(4)->op != MicroInstrOpcode::CmpAmcReg || at(5)->op != MicroInstrOpcode::LoadCondRegReg ||
+                at(6)->op != MicroInstrOpcode::Label || at(7)->op != MicroInstrOpcode::LoadAmcRegMem ||
+                at(8)->op != MicroInstrOpcode::LoadAmcRegMem || at(9)->op != MicroInstrOpcode::CmpRegReg)
+                continue;
+            const auto*      adjacent    = at(0)->ops(operands);
+            const auto*      bounds      = at(1)->ops(operands);
+            const auto*      branch      = at(2)->ops(operands);
+            const auto*      first       = at(3)->ops(operands);
+            const auto*      compare     = at(4)->ops(operands);
+            const auto*      choose      = at(5)->ops(operands);
+            const auto*      selected    = at(7)->ops(operands);
+            const auto*      next        = at(8)->ops(operands);
+            const auto*      nextCompare = at(9)->ops(operands);
+            const MicroReg   element     = adjacent[1].reg;
+            const MicroReg   result      = adjacent[0].reg;
+            const MicroReg   temporary   = first[0].reg;
+            const MicroReg   base        = first[1].reg;
+            const std::array regs{element, result, temporary, base};
+            bool             distinct = true;
+            for (size_t a = 0; a < regs.size(); ++a)
+                for (size_t b = a + 1; b < regs.size(); ++b)
+                    distinct &= regs[a] != regs[b];
+            if (!distinct || std::ranges::any_of(regs, [](MicroReg reg) { return !reg.isInt() || reg.isVirtual(); }) ||
+                adjacent[2].opBits != MicroOpBits::B64 || adjacent[3].valueU64 != 1 ||
+                bounds[0].reg != result || bounds[2].opBits != MicroOpBits::B64 ||
+                branch[0].cpuCond == MicroCond::Unconditional ||
+                cfg.indexOfLabel(branch[2].valueU64) != index + 6 ||
+                first[2].reg != element || first[3].opBits != MicroOpBits::B64 || first[4].opBits != MicroOpBits::B64 ||
+                (first[5].valueU64 != 1 && first[5].valueU64 != 2 && first[5].valueU64 != 4 && first[5].valueU64 != 8) ||
+                compare[0].reg != base || compare[1].reg != element || compare[2].reg != temporary ||
+                compare[3].opBits != MicroOpBits::B64 || compare[4].opBits != MicroOpBits::B64 ||
+                compare[5].valueU64 != first[5].valueU64 || compare[6].valueU64 != first[6].valueU64 + first[5].valueU64 ||
+                choose[0].reg != element || choose[1].reg != result || choose[2].cpuCond != MicroCond::Below || choose[3].opBits != MicroOpBits::B64 ||
+                selected[0].reg != result || selected[1].reg != base || selected[2].reg != element ||
+                selected[3].opBits != MicroOpBits::B64 || selected[4].opBits != MicroOpBits::B64 ||
+                selected[5].valueU64 != first[5].valueU64 || selected[6].valueU64 != first[6].valueU64 ||
+                next[0].reg != temporary || next[1].reg == temporary || next[2].reg == temporary ||
+                next[3].opBits != MicroOpBits::B64 || next[4].opBits != MicroOpBits::B64 ||
+                nextCompare[2].opBits != MicroOpBits::B64)
+                continue;
+            const auto& predecessors = cfg.predecessors(index + 6);
+            if (predecessors.size() != 2 || predecessors[0] != index + 2 || predecessors[1] != index + 5 ||
+                std::ranges::find(cfg.addressTakenLabelIndices(), index + 6) != cfg.addressTakenLabelIndices().end())
+                continue;
+
+            std::array<MicroInstrOperand, 8> rightLoad{};
+            std::copy_n(first, 8, rightLoad.begin());
+            rightLoad[6].valueU64 = compare[6].valueU64;
+            std::array<MicroInstrOperand, 3> valueCompare{};
+            valueCompare[0].reg    = temporary;
+            valueCompare[1].reg    = result;
+            valueCompare[2].opBits = MicroOpBits::B64;
+            std::array<MicroInstrOperand, 3> carry{};
+            carry[0].reg    = element;
+            carry[1].opBits = MicroOpBits::B64;
+            storage.insertDerivedBefore(operands, refs[index + 4], MicroInstrOpcode::LoadAmcRegMem, rightLoad);
+            storage.insertDerivedBefore(operands, refs[index + 5], MicroInstrOpcode::CmpRegReg, valueCompare);
+            storage.insertDerivedBefore(operands, refs[index + 6], MicroInstrOpcode::AddCarryRegImm, carry);
+            auto* moved  = storage.ptr(refs[index + 3])->ops(operands);
+            moved[0].reg = result;
+            storage.moveBefore(refs[index + 3], refs[index + 2]);
+            auto* selection  = storage.ptr(refs[index + 5])->ops(operands);
+            selection[0].reg = result;
+            selection[1].reg = temporary;
+            storage.erase(refs[index + 4]);
+            storage.erase(refs[index + 7]);
+            return true;
+        }
+        return false;
+    }
 
     // A register comparison and its branch preserve the loaded value. Either
     // outgoing edge may reuse it, provided no other edge enters the reload.
@@ -1232,7 +1325,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     if (context.instructions->count() == 0)
         return Result::Continue;
 
-    if (reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
+    if (reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))
     {
         context.passChanged = true;

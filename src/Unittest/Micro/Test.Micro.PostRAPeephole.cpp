@@ -7673,6 +7673,110 @@ SWC_TEST_BEGIN(PostRAPeephole_DeadFloatClearRequiresEverySuccessorToOverwrite)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_GuardedAdjacentValueExecutes)
+{
+    const MicroReg     base      = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg element   = MicroReg::intReg(8);
+    constexpr MicroReg result    = MicroReg::intReg(9);
+    constexpr MicroReg temporary = MicroReg::intReg(10);
+    constexpr MicroReg bound     = MicroReg::intReg(11);
+    constexpr MicroReg current   = MicroReg::intReg(0);
+    enum class Case
+    {
+        Direct,
+        NonAdjacentIndex,
+        ComparedOtherAddress,
+        ReloadOtherAddress,
+        OppositeCondition,
+        NarrowCompare,
+        LiveFlags,
+        ExternalEntry,
+        PartialKill
+    };
+    for (const auto test : {Case::Direct, Case::NonAdjacentIndex, Case::ComparedOtherAddress, Case::ReloadOtherAddress, Case::OppositeCondition, Case::NarrowCompare, Case::LiveFlags, Case::ExternalEntry, Case::PartialKill})
+        for (const uint64_t scale : {1, 2, 4, 8})
+        {
+            for (const uint64_t limit : {1, 2})
+            {
+                for (const uint64_t value : {0ull, 17ull, 0x8000000000000000ull, 0xFFFFFFFFFFFFFFFFull})
+                {
+                    std::array<uint64_t, 16> reference{};
+                    for (const bool optimize : {false, true})
+                    {
+                        std::array<uint64_t, 16> values{};
+                        values[8]  = value;
+                        values[9]  = 17;
+                        values[11] = 23;
+                        MicroBuilder builder(ctx);
+                        const auto   join = builder.createLabel();
+                        builder.emitLoadRegImm(element, ApInt(0, 64), MicroOpBits::B64);
+                        builder.emitLoadRegImm(bound, ApInt(limit, 64), MicroOpBits::B64);
+                        builder.emitLoadRegImm(current, ApInt(88, 64), MicroOpBits::B64);
+                        builder.emitLoadRegImm(temporary, ApInt(0x123456789ABCDEF0ull, 64), MicroOpBits::B64);
+                        if (test == Case::ExternalEntry)
+                        {
+                            builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B64);
+                            builder.emitCmpRegImm(bound, ApInt(0, 64), MicroOpBits::B64);
+                            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                        }
+                        builder.emitLoadAddressRegMem(result, element, test == Case::NonAdjacentIndex ? 2 : 1, MicroOpBits::B64);
+                        builder.emitCmpRegReg(result, bound, MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, join);
+                        const MicroInstrRef branch = builder.instructions().lastInstructionRef();
+                        builder.emitLoadAmcRegMem(temporary, MicroOpBits::B64, base, element, scale, 64, MicroOpBits::B64);
+                        const MicroInstrRef left = builder.instructions().lastInstructionRef();
+                        builder.emitCmpRegReg(temporary, result, MicroOpBits::B64);
+                        const MicroInstrRef              placeholder = builder.instructions().lastInstructionRef();
+                        std::array<MicroInstrOperand, 7> compare{};
+                        compare[0].reg      = base;
+                        compare[1].reg      = element;
+                        compare[2].reg      = temporary;
+                        compare[3].opBits   = MicroOpBits::B64;
+                        compare[4].opBits   = test == Case::NarrowCompare ? MicroOpBits::B32 : MicroOpBits::B64;
+                        compare[5].valueU64 = scale;
+                        compare[6].valueU64 = 64 + scale * (test == Case::ComparedOtherAddress ? 2 : 1);
+                        builder.instructions().insertDerivedBefore(builder.operands(), placeholder, MicroInstrOpcode::CmpAmcReg, compare);
+                        builder.instructions().erase(placeholder);
+                        builder.emitLoadCondRegReg(element, result, test == Case::OppositeCondition ? MicroCond::AboveOrEqual : MicroCond::Below, MicroOpBits::B64);
+                        if (test == Case::LiveFlags)
+                            builder.emitSetCondReg(current, MicroCond::Below);
+                        builder.placeLabel(join);
+                        builder.emitLoadAmcRegMem(result, MicroOpBits::B64, base, element, scale, test == Case::ReloadOtherAddress ? 72 : 64, MicroOpBits::B64);
+                        builder.emitLoadAmcRegMem(temporary, test == Case::PartialKill ? MicroOpBits::B16 : MicroOpBits::B64, base, current, 1, 0, test == Case::PartialKill ? MicroOpBits::B16 : MicroOpBits::B64);
+                        builder.emitCmpRegReg(temporary, result, MicroOpBits::B64);
+                        builder.emitSetCondReg(current, MicroCond::BelowOrEqual);
+                        builder.emitLoadMemReg(base, 0, element, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 8, result, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 16, temporary, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 24, current, MicroOpBits::B8);
+                        builder.emitRet();
+                        X64Encoder encoder(ctx);
+                        if (optimize)
+                        {
+                            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::AddCarryRegImm) != (test == Case::Direct ? 1u : 0u) ||
+                                (test == Case::Direct && builder.instructions().findNextInstructionRef(left) != branch))
+                            {
+                                Logger::print(ctx, std::format("selected shape case={} scale={} limit={} value={}\n", static_cast<int>(test), scale, limit, value));
+                                return Result::Error;
+                            }
+                        }
+                        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+                        if (!optimize)
+                            reference = values;
+                        else if (values != reference)
+                        {
+                            Logger::print(ctx, std::format("selected value case={} scale={} limit={} value={} actual={},{},{},{} expected={},{},{},{}\n", static_cast<int>(test), scale, limit, value, values[0], values[1], values[2], values[3], reference[0], reference[1], reference[2], reference[3]));
+                            return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

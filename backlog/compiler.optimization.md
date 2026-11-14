@@ -226,6 +226,10 @@ new language syntax.
   original loop retained as its tail. Leven's checksum is unchanged, but its full `main` grows by
   15 instructions and noisy paired samples do not establish a timing gain. Odin vectorizes the
   row-copy loop; Swag's SLP pass does not, and a general vectorization proof is still absent.
+  A runtime overlap guard made longer straight-line copies legal after allocation, but
+  Fannkuch slowed by 4.8% to 5.1% in independent paired comparisons despite fewer memory
+  operations. Account for the guard, wide-store forwarding and critical-path costs; amortize
+  an indexed-loop guard outside the repeated region rather than assuming packing alone wins.
 - Next: compare the current candidate with a clean paired Leven run and inspect native code. Keep
   the unroll only if measurements confirm the hot-path estimate without a loss; investigate SIMD
   separately with an alias/disjointness proof and cost model.

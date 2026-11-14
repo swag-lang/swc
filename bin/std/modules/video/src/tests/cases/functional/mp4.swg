@@ -77,6 +77,34 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
     expect mp4AssertUnsignedCompositionOffset(Swag.U32.Max)
 }
 
+// frameAtTime follows presentation timestamps when composition offsets extend the timeline
+// beyond the average decode duration.
+#test
+{
+    var track: Mp4.Track
+    track.times.add({2, 100})
+    track.sizes.add(1)
+    track.sizes.add(1)
+    track.ctsEntries.add({1, 0})
+    track.ctsEntries.add({1, 100})
+    track.timescale = 1000
+
+    let times = expect track.sampleTimes()
+    Swag.require(times.count == 2 and times[0] == 0 and times[1] == 200)
+    let endTime = expect track.samplePresentationEnd(times.toSlice())
+    Swag.require(endTime == 300)
+
+    var decoder: Mp4.Decoder
+    decoder.info.frameCount = times.count
+    decoder.info.frameRate = expect track.frameRate()
+    decoder.presentationTimescale = track.timescale
+    decoder.presentationEndTime = endTime - times[0]
+    for time in times do
+        decoder.presentationTimes.add(time - times[0])
+    Swag.require(decoder.presentationTimes[1] == 200)
+    Swag.require(decoder.presentationEndTime == 300)
+}
+
 // A Motion JPEG MP4 written by the module reads back out of order and preserves the exact rate.
 #test
 {

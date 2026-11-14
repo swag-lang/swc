@@ -785,6 +785,37 @@ func buildRgbTransparencyPng(width: u32)->Array'u8
     return result.toArray()
 }
 
+// APNG control payloads begin at unaligned addresses after the 13-byte IHDR payload.
+#test
+{
+    const animationControl: [8] u8 = [0, 0, 0, 1, 0, 0, 0, 0]
+
+    var frameControl: ConcatBuffer
+    addPngU32Be(&frameControl, 0) // sequence number
+    addPngU32Be(&frameControl, 1) // width
+    addPngU32Be(&frameControl, 1) // height
+    addPngU32Be(&frameControl, 0) // x
+    addPngU32Be(&frameControl, 0) // y
+    addPngU16Be(&frameControl, 1) // delay numerator
+    addPngU16Be(&frameControl, 10) // delay denominator
+    frameControl.addNative(0'u8) // dispose
+    frameControl.addNative(0'u8) // blend
+
+    const rawRgbRow: [4] u8 = [0, 17, 34, 51]
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 1, 1, 8, 2)
+    addPngChunk(&encoded, "acTL", animationControl)
+    addPngChunk(&encoded, "fcTL", nnBytes(frameControl.toSlice()))
+    addPngImageData(&encoded, rawRgbRow)
+    addPngChunk(&encoded, "IEND", "")
+
+    let image = expect Image.decode("unaligned-apng-controls.png", nnBytes(encoded.toSlice()), {})
+    assertImage(image, 1, 1, .RGB8)
+    let color = image.pixelColor(0, 0)
+    Swag.require(color.r == 17 and color.g == 34 and color.b == 51)
+}
+
 func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = encoded.toArray()

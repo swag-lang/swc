@@ -121,6 +121,12 @@ internal struct Decoder
 
 impl Decoder
 {
+    // APNG fields live in chunk payloads whose addresses are not necessarily aligned.
+    func read32Be(data: const [*] u8)->u32 => (cast(u32, data[0]) << 24) |
+                                                (cast(u32, data[1]) << 16) |
+                                                (cast(u32, data[2]) << 8) |
+                                                 cast(u32, data[3])
+
     func safeDatas(chunk: DecodeChunk)->const [..] u8 => cast(const [..] u8, unwrap chunk.datas)
 
     mtd getExpectedDecompressedSize()->u64
@@ -303,30 +309,30 @@ impl Decoder
                     fail InvalidFormatError{"PNG animation control chunk is invalid or misplaced"}
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
-                declaredFrames = Math.bigEndianToNative(cast(const *u32, data)[])
+                declaredFrames = .read32Be(data)
                 if not declaredFrames do
                     fail InvalidFormatError{"PNG animation declares no frames"}
                 try .decOptions.checkFrameCount(declaredFrames)
-                .animation.loopCount = Math.bigEndianToNative(cast(const *u32, (data + 4))[])
+                .animation.loopCount = .read32Be(data + 4)
 
             case .FCTL:
                 if not declaredFrames or ch.length != 26 or (currentFrame >= 0 and not frameHasData) do
                     fail InvalidFormatError{"PNG animation frame control is invalid or misplaced"}
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk).buffer
-                if Math.bigEndianToNative(cast(const *u32, data)[]) != sequence do
+                if .read32Be(data) != sequence do
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
                 sequence     += 1
                 currentFrame += 1
                 frameHasData = false
                 if cast(u32, currentFrame) >= declaredFrames do
                     fail InvalidFormatError{"PNG animation has too many frames"}
-                let width       = Math.bigEndianToNative(cast(const *u32, (data + 4))[])
-                let height      = Math.bigEndianToNative(cast(const *u32, (data + 8))[])
-                let x           = Math.bigEndianToNative(cast(const *u32, (data + 12))[])
-                let y           = Math.bigEndianToNative(cast(const *u32, (data + 16))[])
-                let numerator   = Math.bigEndianToNative(cast(const *u16, (data + 20))[])
-                let denominator = Math.bigEndianToNative(cast(const *u16, (data + 22))[])
+                let width       = .read32Be(data + 4)
+                let height      = .read32Be(data + 8)
+                let x           = .read32Be(data + 12)
+                let y           = .read32Be(data + 16)
+                let numerator   = (cast(u16, data[20]) << 8) | data[21]
+                let denominator = (cast(u16, data[22]) << 8) | data[23]
                 if not width or
                    not height or
                    width > .header.width or
@@ -366,7 +372,7 @@ impl Decoder
                     fail InvalidFormatError{"PNG animation frame data is invalid or misplaced"}
                 let chunk = try .readChunk(ch)
                 let data  = Decoder.safeDatas(chunk)
-                if Math.bigEndianToNative(cast(const *u32, data.buffer)[]) != sequence do
+                if .read32Be(data.buffer) != sequence do
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
                 sequence     += 1
                 frameHasData = true

@@ -59,6 +59,13 @@ using Core, Gui, Viewers
     picturedViewer(scopeTestDataPath("viewer.xlsx"), false, "viewer.xlsx.sheets")
 }
 
+// Uncached formulas stay visible in a Papier workbook.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.formulas.xlsx"), true, "viewer.xlsx.formulas")
+}
+
 // A presentation's slide text in Papier.
 #[Swag.TestTag("golden")]
 #test

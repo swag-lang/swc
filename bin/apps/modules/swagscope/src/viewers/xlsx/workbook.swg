@@ -216,10 +216,14 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
     var inCell = false
     var inValue = false
     var inInlineText = false
+    var inFormula = false
+    var hasFormula = false
+    var hasCachedValue = false
     var nextColumn = 0'u64
     var nextRow = 1'u64
     var kind: String
     var value: String
+    var formula: String
     while scan.next(&token)
     {
         if token.kind == .Start
@@ -232,7 +236,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                 if not rowNumber or rowNumber > 1_048_576 do
                     fail Errors.InvalidFormatError{texts().err_Invalid}
                 nextRow = rowNumber + 1
-                result.html += "<tr><th>"
+                result.html += "<tr><th style=\"padding-right:8px\">"
                 result.html += Format.toString("%", rowNumber)
                 result.html += "</th>"
                 inRow = true
@@ -247,6 +251,9 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
             {
                 inCell = true
                 value.clear()
+                formula.clear()
+                hasFormula = false
+                hasCachedValue = false
                 let typeName = token.attribute("t")
                 kind = typeName ? typeName : ""
                 let referenceName = token.attribute("r")
@@ -267,8 +274,16 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                     inCell = false
                 }
             }
-            elif inCell and token.isElement("v") do
-                inValue = true
+            elif inCell and token.isElement("v")
+            {
+                hasCachedValue = true
+                inValue = not token.empty
+            }
+            elif inCell and token.isElement("f")
+            {
+                hasFormula = true
+                inFormula = not token.empty
+            }
             elif inCell and token.isElement("t") do
                 inInlineText = true
         }
@@ -276,10 +291,23 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
         {
             if token.isElement("v") do
                 inValue = false
+            elif token.isElement("f") do
+                inFormula = false
             elif token.isElement("t") do
                 inInlineText = false
             elif token.isElement("c")
             {
+                if hasFormula and not hasCachedValue
+                {
+                    kind.clear()
+                    if formula.isEmpty() do
+                        value = texts().ui_FormulaUnavailable
+                    else
+                    {
+                        value = "="
+                        value += formula
+                    }
+                }
                 try appendCell(result, value, kind, shared)
                 nextColumn += 1
                 inCell = false
@@ -290,6 +318,8 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                 inRow = false
             }
         }
+        elif inCell and inFormula do
+            formula += token.text
         elif inCell and (inValue or inInlineText) do
             value += token.text
     }

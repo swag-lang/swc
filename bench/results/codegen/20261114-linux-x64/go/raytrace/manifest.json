@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/go/raytrace.go": "1d4c1ebc3826f974c3f968e9055abcfaad9c534080ca9f9abcb6fe7a3d712533",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/raytrace/program",
+      "${WORK}/sources/go/raytrace.go",
+      "${WORK}/sources/go/common.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "9256f035b4af1c215c750f255c3bd2372778eb0198638ed95810fd0f93b21c57",
+    "binary_bytes": 2371544,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/raytrace.go": "1d4c1ebc3826f974c3f968e9055abcfaad9c534080ca9f9abcb6fe7a3d712533",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "719fb58b178c7a16883529ac7eea70fd25cf9442287f1b80dd0fcc9a2cda6975",
+      "content_sha256": "9a9749b2eba3033510587d96dbfd44a1049d50238adc7df9c03c028d9e4eded7",
+      "bytes": 1617444,
+      "content_bytes": 10120577
+    }
+  }
+}

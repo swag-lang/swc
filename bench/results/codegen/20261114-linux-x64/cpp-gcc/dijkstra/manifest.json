@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "cpp-gcc",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/cpp/dijkstra.cpp": "e3fa78aaaa2ac788741f111556b7733b79967883436b60b82bd53fb899731952",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-O2",
+      "${WORK}/sources/cpp/dijkstra.cpp",
+      "-o",
+      "${WORK}/captures/gcc/dijkstra/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "a235d823b172a0aa8a5d384557e7973640d5e2816d878c4a0a2728f8c560e7b4",
+    "binary_bytes": 16584,
+    "compiler_version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "compiler_executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/dijkstra.cpp": "e3fa78aaaa2ac788741f111556b7733b79967883436b60b82bd53fb899731952",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "dd2fa51aa15907ea86e3d5ab9f9259b1accf52e7f1a79f6fc6576b0e4389460b",
+      "content_sha256": "0bc7b71e1409e83a8235f2c3d829b8cc3f3b7eaa4c3ca46d910afd5fc301bc1b",
+      "bytes": 5617,
+      "content_bytes": 24322
+    }
+  }
+}

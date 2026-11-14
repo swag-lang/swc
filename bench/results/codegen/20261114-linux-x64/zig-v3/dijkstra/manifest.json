@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "compiler": "zig-v3",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/zig/dijkstra.zig": "f9fd5c87d5b7911f65af2efb1724c5d4b82ebedffeea9f08d405bf92fbb26b86",
+    "bench/src/zig/common.zig": "952338ba1055f6de31f3ab9ed27cf05e747af3fadb470665a193fa18c6bb51d3"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/zig/ziglang/zig",
+      "build-exe",
+      "${WORK}/sources/zig/dijkstra.zig",
+      "-O",
+      "ReleaseFast",
+      "-target",
+      "x86_64-linux-gnu",
+      "-lc",
+      "-femit-bin=${WORK}/captures/zig-v3/dijkstra/program",
+      "--cache-dir",
+      "${WORK}/captures/zig-v3/dijkstra/cache",
+      "--global-cache-dir",
+      "${WORK}/zig-cache",
+      "-mcpu=x86_64_v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "9ca93e686d1c9e4ce0a7e12811b1d146fdfc851c1b1d36773c8b3c9167171eb2",
+    "binary_bytes": 823432,
+    "compiler_version": "0.15.2",
+    "compiler_executable_sha256": "2858dc89dbbfdd08cceda1b841e7fd0a793a1a67b49f150bc3d0d1de44ed7f51",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/zig/dijkstra.zig": "f9fd5c87d5b7911f65af2efb1724c5d4b82ebedffeea9f08d405bf92fbb26b86",
+      "bench/src/zig/common.zig": "d7a4af9e60889f997e759e93be192fe8853ed440d0d3cac93fde0510e4e65a69"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "c5bce9ab5ca4364514fc83e31fdb4a36c63a842283d2533b89f89f8c6a907608",
+      "content_sha256": "60aa43424e91c699dcaa66289ba2c076c814d03b17c985aeb9e94b92db5f7d14",
+      "bytes": 8221,
+      "content_bytes": 38437
+    }
+  }
+}

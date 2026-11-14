@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/go/dijkstra.go": "baeb2ade7bdbf9da0374509e09dd76c711b36a8e3e33bf496869e4158baac42f",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/dijkstra/program",
+      "${WORK}/sources/go/dijkstra.go",
+      "${WORK}/sources/go/common.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "6492cac6bc9767dfee7d3affbef37d9adfbc7e0b754682af9589dc140df919d5",
+    "binary_bytes": 2370830,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/dijkstra.go": "baeb2ade7bdbf9da0374509e09dd76c711b36a8e3e33bf496869e4158baac42f",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "ac4f449b2fa81da59d8cdac8010987bbe1dfbd1078518eb624b050d1683ca526",
+      "content_sha256": "58f6db19d42dd5dda34751637fc87ccec5704fafc3c311377869ebfc1ead610a",
+      "bytes": 1616706,
+      "content_bytes": 10118798
+    }
+  }
+}

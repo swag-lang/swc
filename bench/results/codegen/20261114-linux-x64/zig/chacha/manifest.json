@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "compiler": "zig",
+  "task": "chacha",
+  "sources": {
+    "bench/src/zig/chacha.zig": "702abe9e8a7f88034b031dcac73ca9995e62a83d25764bdca4ab054f6594ab71",
+    "bench/src/zig/common.zig": "952338ba1055f6de31f3ab9ed27cf05e747af3fadb470665a193fa18c6bb51d3"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/zig/ziglang/zig",
+      "build-exe",
+      "${WORK}/sources/zig/chacha.zig",
+      "-O",
+      "ReleaseFast",
+      "-target",
+      "x86_64-linux-gnu",
+      "-lc",
+      "-femit-bin=${WORK}/captures/zig/chacha/program",
+      "--cache-dir",
+      "${WORK}/captures/zig/chacha/cache",
+      "--global-cache-dir",
+      "${WORK}/zig-cache"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "binary_sha256": "d0aa172f1b8906d4bca7227f792cf2629f619648b4d6a3d09dbf43b9d382e17d",
+    "binary_bytes": 821152,
+    "compiler_version": "0.15.2",
+    "compiler_executable_sha256": "2858dc89dbbfdd08cceda1b841e7fd0a793a1a67b49f150bc3d0d1de44ed7f51",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/zig/chacha.zig": "702abe9e8a7f88034b031dcac73ca9995e62a83d25764bdca4ab054f6594ab71",
+      "bench/src/zig/common.zig": "d7a4af9e60889f997e759e93be192fe8853ed440d0d3cac93fde0510e4e65a69"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "18a96c3e2e14a68551ca4959a9918a770aab2995405ba3af76e2a47db4677a28",
+      "content_sha256": "5bbbe928aa3dd41ec407795a14762aadf8868b6516fc9bf283e94750d5c76650",
+      "bytes": 8603,
+      "content_bytes": 41124
+    }
+  }
+}

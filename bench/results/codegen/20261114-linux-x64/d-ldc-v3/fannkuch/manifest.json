@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc-v3",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/d/fannkuch.d": "3dbaf766886591e95113ed0ff1a3338619f2ec2e549f3a7cdddcf829d2e3c93f",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc-v3/fannkuch/program",
+      "-od=${WORK}/captures/ldc-v3/fannkuch",
+      "${WORK}/sources/d/fannkuch.d",
+      "${WORK}/sources/d/common.d",
+      "-mcpu=x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "9cc56d52261a61ede87ab9f6bda7956f8cfdbf1b51fb63a8808e8b1ea7e3e4a9",
+    "binary_bytes": 643024,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/d/fannkuch.d": "3dbaf766886591e95113ed0ff1a3338619f2ec2e549f3a7cdddcf829d2e3c93f",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "846ae7470c5ce5910a80bafd153c1abd41ff00e999c11b5f5fef75e36c933f73",
+      "content_sha256": "f4bf87bd6dc6e86fd78000807977dedcd1ffca187c95fd4c460f79967b7ccd78",
+      "bytes": 459602,
+      "content_bytes": 3197713
+    }
+  }
+}

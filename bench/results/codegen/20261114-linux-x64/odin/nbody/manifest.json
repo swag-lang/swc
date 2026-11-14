@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "nbody",
+  "sources": {
+    "bench/src/odin/nbody.odin": "754821c6c78a9483082b1fa9bd89b7052010aa959dd15861c52d3b55b7ecec33",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/nbody.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin/nbody/program",
+      "-thread-count:3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "binary_sha256": "bbedfd336bb19da7fc600835ab751494d5487ca536d8d9dbaeea7eaf7450116e",
+    "binary_bytes": 34888,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/odin/nbody.odin": "754821c6c78a9483082b1fa9bd89b7052010aa959dd15861c52d3b55b7ecec33",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "9796a7ce7bcf1f1ba04c0a10ed83d689bb9e0031ff1a44309ab32ed45dd2fee8",
+      "content_sha256": "5bbbb1ddcd01ac35bcee98fda9575f4d04a18041cc842612e6fa695d1e9a3fb3",
+      "bytes": 34654,
+      "content_bytes": 182193
+    }
+  }
+}

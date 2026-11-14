@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "compiler": "cpp-gcc-o2-v3",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/cpp/raytrace.cpp": "ee81d2a1b4582a725b2cac2da5fe27f69b5e715f61e1e5209985e30a45a01b98",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-O2",
+      "-march=x86-64-v3",
+      "-march=x86-64-v3",
+      "${WORK}/sources/cpp/raytrace.cpp",
+      "-o",
+      "${WORK}/captures/gcc-o2-v3/raytrace/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "00b89c77ff07205b77c3404171ef50abcf4faaa5ad26f460eb905036f285a893",
+    "binary_bytes": 16568,
+    "compiler_version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "compiler_executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/raytrace.cpp": "ee81d2a1b4582a725b2cac2da5fe27f69b5e715f61e1e5209985e30a45a01b98",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    },
+    "optimization": "-O2 -march=x86-64-v3",
+    "target_features": "x86-64-v3"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "ca9bc4fec73c2da87a6b22a8f5a26d761306303da455b8e287c3e00f0193711b",
+      "content_sha256": "47f8600586e726c29d23b2af84331c45c794252101371f50016c97d94c96dd78",
+      "bytes": 5804,
+      "content_bytes": 25028
+    }
+  }
+}

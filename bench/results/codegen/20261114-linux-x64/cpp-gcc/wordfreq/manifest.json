@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "cpp-gcc",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/cpp/wordfreq.cpp": "2b935b3891cf0b5db1bfe857c8f383e32c4d151376cc66cb44b4c410a40595a1",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-O2",
+      "${WORK}/sources/cpp/wordfreq.cpp",
+      "-o",
+      "${WORK}/captures/gcc/wordfreq/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "19aeda2280cd411b2601fb0351c6dff34676905405a87a61a1dc7dd604db5f71",
+    "binary_bytes": 16760,
+    "compiler_version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "compiler_executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/wordfreq.cpp": "2b935b3891cf0b5db1bfe857c8f383e32c4d151376cc66cb44b4c410a40595a1",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "faba7a77eddaefebd55956eca94c54b52e76629b9dda4b1299a0c7d9e566c19f",
+      "content_sha256": "aaa96519927f971d01b501aa6f4837a7515fb357e26df7dcfbb417dabc4e7127",
+      "bytes": 8243,
+      "content_bytes": 38678
+    }
+  }
+}

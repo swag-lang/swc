@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "nbody",
+  "sources": {
+    "bench/src/py/nbody.py": "703256ed887bbd54ea66f914ed2fbe71db912ecc5796504718d7e4a8351cde0e"
+  },
+  "metadata": {
+    "kind": "vm-bytecode",
+    "compiler_version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "target": "x86_64 Linux CPython VM",
+    "comparison": "Bytecode opcode counts are not machine-code instruction counts.",
+    "compiler_executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "timing_claim": false,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "${WORK}/sources/py/nbody.py"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "listing_kind": "cpython-bytecode-not-native",
+    "compiled_source_sha256": {
+      "bench/src/py/nbody.py": "703256ed887bbd54ea66f914ed2fbe71db912ecc5796504718d7e4a8351cde0e"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "7d989a161c4fe249975792bd38125dfd42d1ba136ac20d572655868cc4c1a267",
+      "content_sha256": "cec0936f00ac9f9f5d6eab235fc95efe8b2e7668ae0bbc624c1e7e5964dbc15e",
+      "bytes": 4277,
+      "content_bytes": 28203
+    }
+  }
+}

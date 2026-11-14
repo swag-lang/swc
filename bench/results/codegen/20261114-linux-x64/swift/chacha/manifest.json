@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "swift",
+  "task": "chacha",
+  "sources": {
+    "bench/src/swift/chacha/main.swift": "85eeb53bc8b41853a5c63a9880d0b26b9eb40ee10f0d7e2e4b73df2a91640454"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/chacha/main.swift",
+      "-o",
+      "${WORK}/captures/swift/chacha/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "binary_sha256": "157d3c9fba79d583d5911feaed50224339ba0a4fb1fd39decb036a58741e29c4",
+    "binary_bytes": 24152,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/swift/chacha/main.swift": "f13a395271d604710faf19b9be4ade8bf8e83a4aa0c42ca43abd62de02de2cc5"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "c7aab14b0c15b8f683cb2d2c4d26a7c137e87dc19aee8e6fddea36db63312b97",
+      "content_sha256": "518ea864f68febf0f0a9d44a252a8938f458def20140a91eb5b0d7723e0559cf",
+      "bytes": 12106,
+      "content_bytes": 67589
+    }
+  }
+}

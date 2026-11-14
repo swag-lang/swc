@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "compiler": "node-v8",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/js/raytrace.js": "3de112ca6c03d5486127996c0619350eaca127b75df96c3f93c796993cbc80ee"
+  },
+  "metadata": {
+    "command": [],
+    "run_command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--print-opt-code",
+      "--code-comments",
+      "${WORK}/sources/js/raytrace.js"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "listing_kind": "jit-native",
+    "compiler_version": "v24.19.0",
+    "compiler_executable_sha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/js/raytrace.js": "3de112ca6c03d5486127996c0619350eaca127b75df96c3f93c796993cbc80ee"
+    },
+    "v8_version": "13.6.233.17-node.51"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "fe7fd6311163de8a5346b2a1d4e37656102925e6532e02a0d46050fdc3da11fa",
+      "content_sha256": "31898b54f794c4c8ec1d7c01f9bbe83e6f2fd8a531f81bd258b1e495d6c58c77",
+      "bytes": 104267,
+      "content_bytes": 652651
+    }
+  }
+}

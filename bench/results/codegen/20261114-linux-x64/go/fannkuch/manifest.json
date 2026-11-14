@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/go/fannkuch.go": "38e2012a4c85ad9b0f3a1e12fe7643e8055d2ec5f9841b7b68d29cf4c80de0ef",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/fannkuch/program",
+      "${WORK}/sources/go/fannkuch.go",
+      "${WORK}/sources/go/common.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "b351d419d30b268130fbb66788edef02e638e80db47038b8705d469dce9caf70",
+    "binary_bytes": 2369593,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/fannkuch.go": "38e2012a4c85ad9b0f3a1e12fe7643e8055d2ec5f9841b7b68d29cf4c80de0ef",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "64c0e5472674409a8d94e385996b9aaaeb3c1c5ddaec9b23c07722dfd2738965",
+      "content_sha256": "da08a69c7ed31f9d30f65075cff272dd9fb13e1385758c253aa48b25d392f72b",
+      "bytes": 1613679,
+      "content_bytes": 10101507
+    }
+  }
+}

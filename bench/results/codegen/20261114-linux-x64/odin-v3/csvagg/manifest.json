@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "compiler": "odin-v3",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/odin/csvagg.odin": "99216301d452c197b85c7af203e4d01369580096c359dd13e5811a347be5941f",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566",
+    "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/csvagg.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin-v3/csvagg/program",
+      "-thread-count:3",
+      "-microarch:x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "binary_sha256": "dfdcd32a596c52c435ab55438e8f393c0c862cb00fefed1196a380594a99e62f",
+    "binary_bytes": 39280,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/odin/csvagg.odin": "99216301d452c197b85c7af203e4d01369580096c359dd13e5811a347be5941f",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab",
+      "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "bc99d3d54e67aee3ba5b001e531adfe4b5528f4d54b7549a6ffbf51fda133cea",
+      "content_sha256": "6765194984f29c958701d1c72a059cf3b0c8ca3a33dc7d64aa0eb60a52550b9c",
+      "bytes": 45910,
+      "content_bytes": 237110
+    }
+  }
+}

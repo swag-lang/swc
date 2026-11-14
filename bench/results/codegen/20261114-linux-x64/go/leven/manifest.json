@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "leven",
+  "sources": {
+    "bench/src/go/leven.go": "bdfc7201e81f8d6007524c477819fbe02e539e976acf8564dec041640446a5ec",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/leven/program",
+      "${WORK}/sources/go/leven.go",
+      "${WORK}/sources/go/common.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "67441",
+    "expected_checksum": "67441",
+    "binary_sha256": "a61255a5ef61db3371f3da58eb1a2926295997e0b335c720b3cb16cedc8011bc",
+    "binary_bytes": 2375115,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/leven.go": "bdfc7201e81f8d6007524c477819fbe02e539e976acf8564dec041640446a5ec",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e9cb04334020d59f431f6de4599d5da27baf8e5f535ff13d4e74b7a5b6b14c19",
+      "content_sha256": "b6c7f8853e2929c16c4582c347fa0011fd37161563e101cb66dc3c5ea5ad6399",
+      "bytes": 1618099,
+      "content_bytes": 10123304
+    }
+  }
+}

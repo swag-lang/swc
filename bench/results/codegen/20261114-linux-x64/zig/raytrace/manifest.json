@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "compiler": "zig",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/zig/raytrace.zig": "60d98ab9dbd35ea7f2b6f457f9835dbc2642f530bdd391c3b30d520797f5e711",
+    "bench/src/zig/common.zig": "952338ba1055f6de31f3ab9ed27cf05e747af3fadb470665a193fa18c6bb51d3"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/zig/ziglang/zig",
+      "build-exe",
+      "${WORK}/sources/zig/raytrace.zig",
+      "-O",
+      "ReleaseFast",
+      "-target",
+      "x86_64-linux-gnu",
+      "-lc",
+      "-femit-bin=${WORK}/captures/zig/raytrace/program",
+      "--cache-dir",
+      "${WORK}/captures/zig/raytrace/cache",
+      "--global-cache-dir",
+      "${WORK}/zig-cache"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "86b7815315f0f57cdbf9566f916095b6f33c86ce255edccd5da8c90ca065ffdb",
+    "binary_bytes": 818576,
+    "compiler_version": "0.15.2",
+    "compiler_executable_sha256": "2858dc89dbbfdd08cceda1b841e7fd0a793a1a67b49f150bc3d0d1de44ed7f51",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/zig/raytrace.zig": "60d98ab9dbd35ea7f2b6f457f9835dbc2642f530bdd391c3b30d520797f5e711",
+      "bench/src/zig/common.zig": "d7a4af9e60889f997e759e93be192fe8853ed440d0d3cac93fde0510e4e65a69"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e45dfcb93a81a4cee121f6cfbb4dc803bfd8e2473b6c15c9c34fca62b03be647",
+      "content_sha256": "ea6cfb855af58a0e2558ecb0f656b131779b579bbe6ea5687b2c77fa7e34a2c7",
+      "bytes": 10090,
+      "content_bytes": 47250
+    }
+  }
+}

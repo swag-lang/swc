@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "nbody",
+  "sources": {
+    "bench/src/java/nbody/Bench.java": "cba0480506dab261eaf1bb3932a9254628b99c118a011732d8752003daef90dc"
+  },
+  "metadata": {
+    "command": [
+      [
+        "java",
+        "-m",
+        "jdk.compiler/com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-d",
+        "${WORK}/captures/java/nbody",
+        "${WORK}/sources/java/nbody/Bench.java"
+      ]
+    ],
+    "run_command": [
+      "java",
+      "-Xbatch",
+      "-XX:-TieredCompilation",
+      "-XX:CompileThreshold=100",
+      "-XX:+UnlockDiagnosticVMOptions",
+      "-XX:CompileCommand=print,Bench::*",
+      "-XX:CompileCommand=print,Bench$*::*",
+      "-cp",
+      "${WORK}/captures/java/nbody",
+      "Bench"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "listing_kind": "jit-native",
+    "compiler_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+    "compiler_executable_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "decoding": "HotSpot emitted complete code bytes without hsdis; each MachCode byte range was disassembled by GNU objdump. Recompilations and OSR versions are retained.",
+    "compiled_source_sha256": {
+      "bench/src/java/nbody/Bench.java": "cba0480506dab261eaf1bb3932a9254628b99c118a011732d8752003daef90dc"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "c9dc1249e80cd203ce91b85831212d3594ddab7ac6175bfe17950128ec87356d",
+      "content_sha256": "08dd7675105e105e66920a06eb2af635bbca67eea7d4356b0de0f218dd9db97a",
+      "bytes": 30271,
+      "content_bytes": 168900
+    }
+  }
+}

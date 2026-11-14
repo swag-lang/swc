@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "swift-haswell",
+  "task": "leven",
+  "sources": {
+    "bench/src/swift/leven/main.swift": "83dc786367f0dfdceb1a8aef10ac0d5de75e8dc9ddd352431be3ac57d9e5875a"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-target-cpu",
+      "haswell",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/leven/main.swift",
+      "-o",
+      "${WORK}/captures/swift-haswell/leven/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "67441",
+    "expected_checksum": "67441",
+    "binary_sha256": "9fe189b4fb3d0d0e768391356b6b70d88604ca7b1ef68b40bf37a62d8a16a01b",
+    "binary_bytes": 24224,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "Haswell (AVX2/FMA/BMI family); explicitly not the generic x86-64-v3 CPU model",
+    "compiled_source_sha256": {
+      "bench/src/swift/leven/main.swift": "60fddb8b812182016147604747510672cca7c51454b55871655aab8865f66495"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "c9ca323f10600a2bd6d2361db30cf077d3b54ea8aaec7356bf0dd88e63d450ee",
+      "content_sha256": "f77d6f87a1ba3ef0aaf049d5edda317950aae292a120364636989b3abe4cc98f",
+      "bytes": 15573,
+      "content_bytes": 79187
+    }
+  }
+}

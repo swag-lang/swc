@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/d/wordfreq.d": "a771d98b02e08afe895c31d13bd7e46f2d43ff0eebc8c7e9a5737b66d5591f0b",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b",
+    "bench/src/d/bytemap.d": "47a16855d33c87ff7c44b5e4527dd6eb666a090b310adc62500ee37f0e0a79cf"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc/wordfreq/program",
+      "-od=${WORK}/captures/ldc/wordfreq",
+      "${WORK}/sources/d/wordfreq.d",
+      "${WORK}/sources/d/common.d",
+      "${WORK}/sources/d/bytemap.d"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "5683369d330059309ab6bdacdace493557a0f21f160dadc3f111daf28ac272be",
+    "binary_bytes": 643528,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/d/wordfreq.d": "a771d98b02e08afe895c31d13bd7e46f2d43ff0eebc8c7e9a5737b66d5591f0b",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c",
+      "bench/src/d/bytemap.d": "47a16855d33c87ff7c44b5e4527dd6eb666a090b310adc62500ee37f0e0a79cf"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "af3a8e78b3a19058b889ed7a51b00894aa0c380c2ca44a7d370191a136a0c38c",
+      "content_sha256": "200e3cf6cc875203bcae8c05dcf73fd93c2a7c13890dabb18895fc5eda20a6fc",
+      "bytes": 465827,
+      "content_bytes": 3229516
+    }
+  }
+}

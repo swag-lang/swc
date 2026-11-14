@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/go/wordfreq.go": "d9e2ffb5bb2d8245b4746dad389bc8f0d60cdcab731b7a0a91df2b5d0368092e",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7",
+    "bench/src/go/bytemap.go": "f75ce05577fd950b6e4e43ff50642863088c6d6e70e4feeb7cc9cfd0313a1508"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/wordfreq/program",
+      "${WORK}/sources/go/wordfreq.go",
+      "${WORK}/sources/go/common.go",
+      "${WORK}/sources/go/bytemap.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "2b60418573895ecbbf34f6b3f77319307cc7e46cace5fcdc1fd7aa1692bd965e",
+    "binary_bytes": 2380600,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/wordfreq.go": "d9e2ffb5bb2d8245b4746dad389bc8f0d60cdcab731b7a0a91df2b5d0368092e",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6",
+      "bench/src/go/bytemap.go": "f75ce05577fd950b6e4e43ff50642863088c6d6e70e4feeb7cc9cfd0313a1508"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "8e236cc93e07dcea139d4c352f6d0cea1886e1b563e015683d69dea28a896ba8",
+      "content_sha256": "f7ae6b5d2ff7b48e901c3e9f50673e9e7b478ec6f9c5504c70169dd2ea258749",
+      "bytes": 1624309,
+      "content_bytes": 10158326
+    }
+  }
+}

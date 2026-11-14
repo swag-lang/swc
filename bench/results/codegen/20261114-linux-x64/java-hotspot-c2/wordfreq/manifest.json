@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/java/wordfreq/Bench.java": "4b2ce2841f3636bc838fbe87250e8bfb9aadc1ed0aaca4e7ed4229ed10d05f36"
+  },
+  "metadata": {
+    "command": [
+      [
+        "java",
+        "-m",
+        "jdk.compiler/com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-d",
+        "${WORK}/captures/java/wordfreq",
+        "${WORK}/sources/java/wordfreq/Bench.java"
+      ]
+    ],
+    "run_command": [
+      "java",
+      "-Xbatch",
+      "-XX:-TieredCompilation",
+      "-XX:CompileThreshold=100",
+      "-XX:+UnlockDiagnosticVMOptions",
+      "-XX:CompileCommand=print,Bench::*",
+      "-XX:CompileCommand=print,Bench$*::*",
+      "-cp",
+      "${WORK}/captures/java/wordfreq",
+      "Bench"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "listing_kind": "jit-native",
+    "compiler_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+    "compiler_executable_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "decoding": "HotSpot emitted complete code bytes without hsdis; each MachCode byte range was disassembled by GNU objdump. Recompilations and OSR versions are retained.",
+    "compiled_source_sha256": {
+      "bench/src/java/wordfreq/Bench.java": "4b2ce2841f3636bc838fbe87250e8bfb9aadc1ed0aaca4e7ed4229ed10d05f36"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "172d7f136fe504c22c18e04571908679daad7f235cbad2a7675b04c3e71b0b0c",
+      "content_sha256": "8008e8b0ae16ba70b82e10df86d41d93ae948d35c25d0f2121989b5e17286859",
+      "bytes": 122074,
+      "content_bytes": 916401
+    }
+  }
+}

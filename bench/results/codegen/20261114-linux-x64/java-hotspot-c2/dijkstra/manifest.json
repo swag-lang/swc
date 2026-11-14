@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/java/dijkstra/Bench.java": "50261f301dd10937d1220951767539e03a0432c0bc3e66d890907977bbc37e71"
+  },
+  "metadata": {
+    "command": [
+      [
+        "java",
+        "-m",
+        "jdk.compiler/com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-d",
+        "${WORK}/captures/java/dijkstra",
+        "${WORK}/sources/java/dijkstra/Bench.java"
+      ]
+    ],
+    "run_command": [
+      "java",
+      "-Xbatch",
+      "-XX:-TieredCompilation",
+      "-XX:CompileThreshold=100",
+      "-XX:+UnlockDiagnosticVMOptions",
+      "-XX:CompileCommand=print,Bench::*",
+      "-XX:CompileCommand=print,Bench$*::*",
+      "-cp",
+      "${WORK}/captures/java/dijkstra",
+      "Bench"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "listing_kind": "jit-native",
+    "compiler_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+    "compiler_executable_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "decoding": "HotSpot emitted complete code bytes without hsdis; each MachCode byte range was disassembled by GNU objdump. Recompilations and OSR versions are retained.",
+    "compiled_source_sha256": {
+      "bench/src/java/dijkstra/Bench.java": "50261f301dd10937d1220951767539e03a0432c0bc3e66d890907977bbc37e71"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "662ba8ba4caeaa96772cbba26c25638d7ff92073094a0456423505c8039a0f34",
+      "content_sha256": "d39ddcd9d8e2dfb482180e63020a082d88b282e7b6389499926fc85095229520",
+      "bytes": 66946,
+      "content_bytes": 481168
+    }
+  }
+}

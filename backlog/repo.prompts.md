@@ -320,6 +320,43 @@ allocator or runtime difference needs work at that boundary; it is not automatic
 Micro peephole. Follow proven causes into lowering, alias analysis, inlining, register
 allocation, encoding, layout or runtime code as needed.
 
+REUSE STATIC REFERENCES ON LINUX AND WINDOWS
+
+Read `bench/results/codegen/README.md` and the relevant snapshot before rebuilding competitors.
+`python bench/codegen.py verify <snapshot> --check-sources` checks artifact integrity and current
+source fingerprints. Inspect each entry's compiler version, exact options, source adaptations,
+target ISA, ABI, floating-point and safety contracts. Reuse a competitor capture only when those
+inputs still describe the comparison. A changed source, toolchain or option requires a new
+capture; an old listing remains historical evidence. A stable Swag build number is not a compiler
+identity: match the compiler binary hash and source revision too.
+
+Compare emitted machine code at the same executed loop or call boundary. Swag Micro is useful
+for explaining a difference, but other compilers' IRs and bytecodes are not instruction-for-
+instruction equivalents. Keep Swag Micro together with final assembly and a symbol map; a Micro
+listing may contain lowered functions absent from the linked executable. Compare loop work,
+trip counts, dependencies, memory traffic, calls and reachable allocation paths, not whole-file
+instruction totals. Name the strongest static candidate per task, including Swag when it is
+already ahead, and state uncertainty where contracts or runtime services prevent a clear choice.
+An estimated static leader is not a measured runtime winner.
+
+On Linux, compile available ports and disassemble them without waiting for the Windows timing
+harness. Adapt only platform imports and the clock when necessary; retain the exact patch and
+both original and compiled source hashes. Do not change algorithms, timed boundaries, allocation,
+safety or FP contracts to make a port build. A target or ISA variant is a separate labelled entry.
+Validate the original checksum once, then archive complete compressed listings, versions,
+commands, options, target, source hashes and symbolization evidence under a new immutable folder
+in `bench/results/codegen/`. Use `bench/codegen.py` to export and verify the records. Keep compiler
+installations, executables, caches and temporary builds outside the checkout. Keep static
+references separate from timing campaigns and never write an inferred `run_index`.
+
+Windows campaigns need the same persistent capture for every available compiler and all twelve
+tasks: Swag Micro, final disassembly and private-function names or a symbol map, exact versions,
+options, inputs, target features, checksums and binary hashes. Collect these outside measured
+intervals from the actual validated outputs. The current timing JSON files do not contain these
+listings, and `bench/out` is a disposable build directory, not a per-campaign archive. Until the
+Windows collector exists, record its absence explicitly; Linux SysV or JIT captures are not
+substitutes for Windows ABI, MSVC, NativeAOT or interpreter references that were not captured.
+
 THE LOOP
 
   1. State one causal hypothesis: which cost dominates the hot path, which general mechanism
@@ -421,6 +458,11 @@ session, run a full campaign of that combined revision:
 after building that revision's swc.exe. Wait for a quiet window for this one run; if none comes
 before the session's end, say so plainly, and the next prompt 2 session starts with this
 campaign before any new batch. Then read bench/history.json, not raw milliseconds:
+
+This timing requirement does not block Linux static investigation and capture. When the full
+comparable campaign cannot run on the current OS or toolchain set, record the precise limitation,
+keep static results unconfirmed, and perform the combined timing campaign first on the next
+compatible host. Never transplant Linux results into Windows history or combine ABI/ISA cohorts.
 
   - For each task, compare its `run_index` with the previous accepted campaign and with the
     task's null band (`null.run.tasks`). A move inside the band has not been measured.

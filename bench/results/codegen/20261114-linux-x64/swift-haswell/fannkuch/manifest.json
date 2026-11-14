@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "swift-haswell",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/swift/fannkuch/main.swift": "7283ef1f213c35312bcca3136b3a71aab5bba36adcec55b1fcdb1f43aaab080b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-target-cpu",
+      "haswell",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/fannkuch/main.swift",
+      "-o",
+      "${WORK}/captures/swift-haswell/fannkuch/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "90f54133c828cb7070e47042972f7f9d4e37035d8d9724bfaf6758725ed3d8f5",
+    "binary_bytes": 19992,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "Haswell (AVX2/FMA/BMI family); explicitly not the generic x86-64-v3 CPU model",
+    "compiled_source_sha256": {
+      "bench/src/swift/fannkuch/main.swift": "dbbbb9d40d0646ffb6c5ae88fd33db6f4aa982656901fc1b4b988a03523fd3b7"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "fac6423a6807872dce6cf9dbddcad1044f14b110118b2d9d0847efa5c8152e95",
+      "content_sha256": "811156e55f7b133ce3a62403bdcb0610a0d19421d2abbd518f77b3f088569ec7",
+      "bytes": 9470,
+      "content_bytes": 46358
+    }
+  }
+}

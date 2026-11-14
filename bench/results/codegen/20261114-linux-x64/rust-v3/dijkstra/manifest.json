@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "compiler": "rust-v3",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/rust/dijkstra.rs": "29c982d9705839048239386eef05405653f65d3d5376eb57e349e5da54d049a8"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/rust/bin/rustc",
+      "-C",
+      "target-cpu=x86-64-v3",
+      "--edition",
+      "2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "panic=abort",
+      "${WORK}/sources/rust/dijkstra.rs",
+      "-o",
+      "${WORK}/captures/rust-v3/dijkstra/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "a12888a9a45b5d50194521e40d41bb7a67df1c758027dbe274bb5b154ebf36a8",
+    "binary_bytes": 4520992,
+    "compiler_version": "rustc 1.100.0 (0ef1bc386 2026-11-09)\nbinary: rustc\ncommit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a\ncommit-date: 2026-11-09\nhost: x86_64-unknown-linux-gnu\nrelease: 1.100.0\nLLVM version: 23.1.5",
+    "compiler_executable_sha256": "5073422953727c9427a76b7fce03aa9404da46315e5a1e4965389512a41e8db0",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/rust/dijkstra.rs": "29c982d9705839048239386eef05405653f65d3d5376eb57e349e5da54d049a8"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "7163e200fffe379e3689b407bfcd0bc34add42c684b05ad3955b92943c738d31",
+      "content_sha256": "49c6fc9327ae26d512adab654865fced045c4c77b1583d60ccd41d288981b161",
+      "bytes": 719816,
+      "content_bytes": 4864425
+    }
+  }
+}

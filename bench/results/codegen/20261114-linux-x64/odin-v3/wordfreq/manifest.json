@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "compiler": "odin-v3",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/odin/wordfreq.odin": "26aae524b98e3ea891b89e77533a7634ab39f69469740bc7b85aa06a9562db68",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566",
+    "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/wordfreq.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin-v3/wordfreq/program",
+      "-thread-count:3",
+      "-microarch:x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "f51ac650504aaf7d3404c6217df3d52fd1eed9ec631b29cdd3b182426d0b026c",
+    "binary_bytes": 35240,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/odin/wordfreq.odin": "26aae524b98e3ea891b89e77533a7634ab39f69469740bc7b85aa06a9562db68",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab",
+      "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "5c5840083308550935cf84f64c6b7322c362048ffd6fe09007b98f8079458e45",
+      "content_sha256": "3e442b9d773dbb06c4f370f1811ec1ec4cbb96984d1b77989d553ffc8acca2e1",
+      "bytes": 40887,
+      "content_bytes": 207996
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "cpp-clang",
+  "task": "lz77",
+  "sources": {
+    "bench/src/cpp/lz77.cpp": "e483e2f75856d28485ea6dc7fb53c229c8af85e7e45b7293fdcead685ba8b79c",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/clang++",
+      "-std=c++20",
+      "-O2",
+      "${WORK}/sources/cpp/lz77.cpp",
+      "-o",
+      "${WORK}/captures/clang/lz77/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "622942003053",
+    "expected_checksum": "622942003053",
+    "binary_sha256": "0b2110f8345ccd18e1e5a0783c31109f3dbb7e6bc012f4164837b1d55018b14e",
+    "binary_bytes": 16744,
+    "compiler_version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)",
+    "compiler_executable_sha256": "7a09db8b9651200b31c6ab2bdba92453f9bbef1e7593e8f5fa0efb723964c991",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/lz77.cpp": "e483e2f75856d28485ea6dc7fb53c229c8af85e7e45b7293fdcead685ba8b79c",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "128954e5b7f56ea4f2abed07c4e68bd40910f005a08a787a67f64821ce54e4ce",
+      "content_sha256": "04898e1129ae3e6f223b2b4c8edef9437a71cb56539df70ec1d33d85e950c74e",
+      "bytes": 10310,
+      "content_bytes": 50706
+    }
+  }
+}

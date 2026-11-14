@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/d/dijkstra.d": "076b24ca69b37ae1fbc2ba2b856b0e0096cf868f3421532b4baa7dd435f102d1",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc/dijkstra/program",
+      "-od=${WORK}/captures/ldc/dijkstra",
+      "${WORK}/sources/d/dijkstra.d",
+      "${WORK}/sources/d/common.d"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "c645c0276f649cb59a7054ee6677888f8dafdf68c1c7eafc4a526f07e129a10b",
+    "binary_bytes": 643296,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/d/dijkstra.d": "076b24ca69b37ae1fbc2ba2b856b0e0096cf868f3421532b4baa7dd435f102d1",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "8ca6b66183cc8b1bbe365b3a7d6973919440b61b2d9f06a3901a6860356eb683",
+      "content_sha256": "cb6e11d61050a46bf7b6d81a8cd68f8fdfac4e6c8f5994eab92c760c8d366db6",
+      "bytes": 461512,
+      "content_bytes": 3206239
+    }
+  }
+}

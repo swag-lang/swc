@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "chacha",
+  "sources": {
+    "bench/src/go/chacha.go": "92e0c163b3067afb0449439fd93529caadce9f7fed0dd0dcba00632de035f5c3",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/chacha/program",
+      "${WORK}/sources/go/chacha.go",
+      "${WORK}/sources/go/common.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "binary_sha256": "149126d932ab67120043667bc9d7236d6b017a77e0d660c0dfdf0e8b1230e501",
+    "binary_bytes": 2370245,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/chacha.go": "92e0c163b3067afb0449439fd93529caadce9f7fed0dd0dcba00632de035f5c3",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "9df3b84941e8e581b567d9cbdd4ce463d3231410b0e23e7ab379897de0378e15",
+      "content_sha256": "6754a06e1172c39d9d23134dd3b7571814f280b6cf5b543f0b3c6102ec4b6b66",
+      "bytes": 1615411,
+      "content_bytes": 10110925
+    }
+  }
+}

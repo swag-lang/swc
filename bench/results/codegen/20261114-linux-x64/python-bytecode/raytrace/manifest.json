@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/py/raytrace.py": "ebb81d1201e4b89aae3cb0de2f905daea0b908ff7f5e9ef6e8192528ea80ce46"
+  },
+  "metadata": {
+    "kind": "vm-bytecode",
+    "compiler_version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "target": "x86_64 Linux CPython VM",
+    "comparison": "Bytecode opcode counts are not machine-code instruction counts.",
+    "compiler_executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "timing_claim": false,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "${WORK}/sources/py/raytrace.py"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "listing_kind": "cpython-bytecode-not-native",
+    "compiled_source_sha256": {
+      "bench/src/py/raytrace.py": "ebb81d1201e4b89aae3cb0de2f905daea0b908ff7f5e9ef6e8192528ea80ce46"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "4161411e7cecddf4f9613c21dc1c9d5ff31261f2c8bd8c331e577ddec50da63e",
+      "content_sha256": "f1caf137e4862d775b8e7d47b5ceaba7e700c4c89d24cd9fbc639f1b08bb7b06",
+      "bytes": 4360,
+      "content_bytes": 29450
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "compiler": "cpp-clang-o2-v3",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/cpp/fannkuch.cpp": "f4f5051bf6de45a04197d9a0ac2344f55570e316c40bab3dbe8f5c9a81ec5ce4",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/clang++",
+      "-std=c++20",
+      "-O2",
+      "-march=x86-64-v3",
+      "-march=x86-64-v3",
+      "${WORK}/sources/cpp/fannkuch.cpp",
+      "-o",
+      "${WORK}/captures/clang-o2-v3/fannkuch/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "fffaf35c57f600095807ea36cf7818fc8849dc7f7d1e5b6c183a08d370dc98ce",
+    "binary_bytes": 16424,
+    "compiler_version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)",
+    "compiler_executable_sha256": "7a09db8b9651200b31c6ab2bdba92453f9bbef1e7593e8f5fa0efb723964c991",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/fannkuch.cpp": "f4f5051bf6de45a04197d9a0ac2344f55570e316c40bab3dbe8f5c9a81ec5ce4",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    },
+    "optimization": "-O2 -march=x86-64-v3",
+    "target_features": "x86-64-v3"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "718fe26a1b0113761eff4efc915e2e78dbf3377f0fcb4a4f759e3abffdbb31a5",
+      "content_sha256": "5708299e4acd3c31a406aa9f8770b56d4b3a29b98218fd8cc57e5947fedf6969",
+      "bytes": 4566,
+      "content_bytes": 21948
+    }
+  }
+}

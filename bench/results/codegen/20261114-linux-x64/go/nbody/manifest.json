@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "nbody",
+  "sources": {
+    "bench/src/go/nbody.go": "fe82893eaff6635820d067defeccea90b74b7117ab5c34e83c7edb8941fa9445",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/nbody/program",
+      "${WORK}/sources/go/nbody.go",
+      "${WORK}/sources/go/common.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "binary_sha256": "6975b5078a9007b5c090d4bf042aa703cfa5fa56b5db1f2f1d526808dd3a38b3",
+    "binary_bytes": 2370307,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/nbody.go": "fe82893eaff6635820d067defeccea90b74b7117ab5c34e83c7edb8941fa9445",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "8ad3f614dd8e7aecf716b1a5befd6368d1d25acd7c77708412fb98702421c5bb",
+      "content_sha256": "ec564e88a43f75bb8f563c507345a396df8fb9ff4ad757f7e1c7bf716e6e2105",
+      "bytes": 1615854,
+      "content_bytes": 10113412
+    }
+  }
+}

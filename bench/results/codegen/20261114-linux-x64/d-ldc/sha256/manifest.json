@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc",
+  "task": "sha256",
+  "sources": {
+    "bench/src/d/sha256.d": "fca9c5763c1d3067ee5d6245989d76b423f8a71b11c88e821d87f85ba8cd4b06",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc/sha256/program",
+      "-od=${WORK}/captures/ldc/sha256",
+      "${WORK}/sources/d/sha256.d",
+      "${WORK}/sources/d/common.d"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "2503168387",
+    "expected_checksum": "2503168387",
+    "binary_sha256": "f352e9e08e8d5476fb4f7423c3b32745b3b90d710a2442f61dcdbb6b6e47dc75",
+    "binary_bytes": 643104,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/d/sha256.d": "fca9c5763c1d3067ee5d6245989d76b423f8a71b11c88e821d87f85ba8cd4b06",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "621a0fa5167c25b16c3a18e0bc670e126b6984aa46c1eb52ccd0878e80624b3c",
+      "content_sha256": "416d4ebe16cdd451eda15c61e05da2309570e87ba1a69734a05dba076ef3349b",
+      "bytes": 460971,
+      "content_bytes": 3204061
+    }
+  }
+}

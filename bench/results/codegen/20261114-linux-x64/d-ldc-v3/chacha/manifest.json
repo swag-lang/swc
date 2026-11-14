@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc-v3",
+  "task": "chacha",
+  "sources": {
+    "bench/src/d/chacha.d": "797b6f12e05f246f445d591d55b633e4874a0c67a2ea25b235df647daa5a030c",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc-v3/chacha/program",
+      "-od=${WORK}/captures/ldc-v3/chacha",
+      "${WORK}/sources/d/chacha.d",
+      "${WORK}/sources/d/common.d",
+      "-mcpu=x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "binary_sha256": "ef0835453ae02e00e1e140a3041fab9833ee59445b528c8438307db87016dbe9",
+    "binary_bytes": 643056,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/d/chacha.d": "797b6f12e05f246f445d591d55b633e4874a0c67a2ea25b235df647daa5a030c",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "1737d0d10f5c4a4eb76d3ace74263e38e180f98ed391e3bafb2c77e1b756afaa",
+      "content_sha256": "aea165af8beb06dc909b4658e0686b72e6a369b0d032455680d15f5e06c33bf0",
+      "bytes": 462635,
+      "content_bytes": 3208698
+    }
+  }
+}

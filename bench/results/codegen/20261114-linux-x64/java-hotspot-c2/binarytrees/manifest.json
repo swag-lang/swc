@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/java/binarytrees/Bench.java": "fbb4ab46a737c8dc2501aca774c804be2bddd06645c13decfa3acf0b8e6f51b5"
+  },
+  "metadata": {
+    "command": [
+      [
+        "java",
+        "-m",
+        "jdk.compiler/com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-d",
+        "${WORK}/captures/java/binarytrees",
+        "${WORK}/sources/java/binarytrees/Bench.java"
+      ]
+    ],
+    "run_command": [
+      "java",
+      "-Xbatch",
+      "-XX:-TieredCompilation",
+      "-XX:CompileThreshold=100",
+      "-XX:+UnlockDiagnosticVMOptions",
+      "-XX:CompileCommand=print,Bench::*",
+      "-XX:CompileCommand=print,Bench$*::*",
+      "-cp",
+      "${WORK}/captures/java/binarytrees",
+      "Bench"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "listing_kind": "jit-native",
+    "compiler_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+    "compiler_executable_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "decoding": "HotSpot emitted complete code bytes without hsdis; each MachCode byte range was disassembled by GNU objdump. Recompilations and OSR versions are retained.",
+    "compiled_source_sha256": {
+      "bench/src/java/binarytrees/Bench.java": "fbb4ab46a737c8dc2501aca774c804be2bddd06645c13decfa3acf0b8e6f51b5"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "b7ca142257694460b5e22cb590085fea7574e34e7ce41d76e46179cdc6f3dc4a",
+      "content_sha256": "2aa556c09d402583c3797b161b61d9f1d908d5bf07b999ada5c70c6efe5fd1f9",
+      "bytes": 19774,
+      "content_bytes": 124293
+    }
+  }
+}

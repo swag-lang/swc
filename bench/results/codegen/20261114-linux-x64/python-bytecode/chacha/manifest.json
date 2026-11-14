@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "chacha",
+  "sources": {
+    "bench/src/py/chacha.py": "47de04d42ef4ac8bd1ee193abe5b678f9578991760521aeef8069cfba09f03fe"
+  },
+  "metadata": {
+    "kind": "vm-bytecode",
+    "compiler_version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "target": "x86_64 Linux CPython VM",
+    "comparison": "Bytecode opcode counts are not machine-code instruction counts.",
+    "compiler_executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "timing_claim": false,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "${WORK}/sources/py/chacha.py"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "listing_kind": "cpython-bytecode-not-native",
+    "compiled_source_sha256": {
+      "bench/src/py/chacha.py": "47de04d42ef4ac8bd1ee193abe5b678f9578991760521aeef8069cfba09f03fe"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "9f6a070439b93e99bdf15afeff1835ac0388d6f32f79c46c579ae3a7b782f449",
+      "content_sha256": "f1d440a2be09e8c3d3f87233e1df353b98b36ca8720af19fb1995eef2795dc43",
+      "bytes": 3329,
+      "content_bytes": 22738
+    }
+  }
+}

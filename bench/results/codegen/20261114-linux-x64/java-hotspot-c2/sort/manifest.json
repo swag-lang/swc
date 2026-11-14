@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "sort",
+  "sources": {
+    "bench/src/java/sort/Bench.java": "b694b81a4e3da58d410217dbb3db73ecdc93902096ab8fb6a1e4f2590f2b098a"
+  },
+  "metadata": {
+    "command": [
+      [
+        "java",
+        "-m",
+        "jdk.compiler/com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-d",
+        "${WORK}/captures/java/sort",
+        "${WORK}/sources/java/sort/Bench.java"
+      ]
+    ],
+    "run_command": [
+      "java",
+      "-Xbatch",
+      "-XX:-TieredCompilation",
+      "-XX:CompileThreshold=100",
+      "-XX:+UnlockDiagnosticVMOptions",
+      "-XX:CompileCommand=print,Bench::*",
+      "-XX:CompileCommand=print,Bench$*::*",
+      "-cp",
+      "${WORK}/captures/java/sort",
+      "Bench"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "599499929",
+    "expected_checksum": "599499929",
+    "listing_kind": "jit-native",
+    "compiler_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+    "compiler_executable_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "decoding": "HotSpot emitted complete code bytes without hsdis; each MachCode byte range was disassembled by GNU objdump. Recompilations and OSR versions are retained.",
+    "compiled_source_sha256": {
+      "bench/src/java/sort/Bench.java": "b694b81a4e3da58d410217dbb3db73ecdc93902096ab8fb6a1e4f2590f2b098a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "f4c60062f44873b82b6006689b544d020e6870f013041fc02bd670fe23160e19",
+      "content_sha256": "4a7ae97e47bb07e338f05ac9e46e2c8459c78e1def80aacf76d05390c4a31739",
+      "bytes": 81290,
+      "content_bytes": 522475
+    }
+  }
+}

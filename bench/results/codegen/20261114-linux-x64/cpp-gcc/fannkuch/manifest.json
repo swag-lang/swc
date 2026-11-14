@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "cpp-gcc",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/cpp/fannkuch.cpp": "f4f5051bf6de45a04197d9a0ac2344f55570e316c40bab3dbe8f5c9a81ec5ce4",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-O2",
+      "${WORK}/sources/cpp/fannkuch.cpp",
+      "-o",
+      "${WORK}/captures/gcc/fannkuch/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "a20b3ca00e205b2721c40c70d8011064a010f6dc150cc5e4592606b53a0c4c34",
+    "binary_bytes": 16384,
+    "compiler_version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "compiler_executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/fannkuch.cpp": "f4f5051bf6de45a04197d9a0ac2344f55570e316c40bab3dbe8f5c9a81ec5ce4",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "402212b3fe3e00daadbdf383cebcaa1ebcab746e23336a26d9b7bda4110d226d",
+      "content_sha256": "791d5a295fbf2c4e0e32382feb77dbdf6faaec88d1fc327df1a31d90e5563497",
+      "bytes": 3596,
+      "content_bytes": 15218
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/odin/csvagg.odin": "99216301d452c197b85c7af203e4d01369580096c359dd13e5811a347be5941f",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566",
+    "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/csvagg.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin/csvagg/program",
+      "-thread-count:3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "binary_sha256": "64d4de0ed5c26e11456a70b5b503bed6418b6c97830b00a1f882bb1f08a65dd1",
+    "binary_bytes": 35184,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/odin/csvagg.odin": "99216301d452c197b85c7af203e4d01369580096c359dd13e5811a347be5941f",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab",
+      "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "7961d2bb5f578487b87eb136b1623d00228a4c2d280adcaedfaef02b95c323cd",
+      "content_sha256": "9d9a2519497de3e2f04b532a1f6fb2601f8293eaaf3d7b493178c97fca64ecab",
+      "bytes": 43587,
+      "content_bytes": 228132
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "compiler": "cpp-clang-o3",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/cpp/binarytrees.cpp": "9d81715137d2014b1f400a356cb1f6d3f5547075f5b91f8c9a1c3ebe357b12e3",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/clang++",
+      "-std=c++20",
+      "-O3",
+      "${WORK}/sources/cpp/binarytrees.cpp",
+      "-o",
+      "${WORK}/captures/clang-o3/binarytrees/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "binary_sha256": "aff00e67cbd3656eaf90c53585942880a8e66a52e351ad98e5622634e0ec4d3a",
+    "binary_bytes": 16296,
+    "compiler_version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)",
+    "compiler_executable_sha256": "7a09db8b9651200b31c6ab2bdba92453f9bbef1e7593e8f5fa0efb723964c991",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/binarytrees.cpp": "9d81715137d2014b1f400a356cb1f6d3f5547075f5b91f8c9a1c3ebe357b12e3",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    },
+    "target_features": "compiler default x86-64",
+    "optimization": "-O3"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "7f65cff1ddc16d01f858630906b5d712105121cf3fc515aa6955ca8be7da19e4",
+      "content_sha256": "292a65d5f1a1a146e897e2419e55548434f5fa716dacf13eeaa9cf3efb59d0a4",
+      "bytes": 3959,
+      "content_bytes": 22067
+    }
+  }
+}

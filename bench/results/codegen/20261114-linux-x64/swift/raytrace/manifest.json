@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "swift",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/swift/raytrace/main.swift": "36e5695e6452212a56c03ab3643472e77802185aafda4726e7a15b913e25c090"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/raytrace/main.swift",
+      "-o",
+      "${WORK}/captures/swift/raytrace/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "5f069be9734d7f91d51170022bd5fcbfe928f5fa056d45af7dd19ec43614a6c3",
+    "binary_bytes": 25776,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/swift/raytrace/main.swift": "40c45c40e0deab6b534a11a516b1cbbbdbc8cdfeb15e4abfeb686842b91f0552"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "4ee5a155cf308aa1a5f7612830358dfd897d98604fef47d25a93cfb64777dced",
+      "content_sha256": "17e7880d67b93faa12ec200b64c0095e2cb7e911d6c53350e9f4a7be33c20cb9",
+      "bytes": 12422,
+      "content_bytes": 63276
+    }
+  }
+}

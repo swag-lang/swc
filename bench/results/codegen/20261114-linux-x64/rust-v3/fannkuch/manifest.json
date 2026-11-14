@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "compiler": "rust-v3",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/rust/fannkuch.rs": "af8591bc98cf26357a8b3c01146ab3d291899658db13ab23d42b693b6a5925ee"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/rust/bin/rustc",
+      "-C",
+      "target-cpu=x86-64-v3",
+      "--edition",
+      "2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "panic=abort",
+      "${WORK}/sources/rust/fannkuch.rs",
+      "-o",
+      "${WORK}/captures/rust-v3/fannkuch/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "b836c8d3d29fd69bda57e9a3a3db39ddf4f8e79362f25fc4c0ecccba61d7a776",
+    "binary_bytes": 4519640,
+    "compiler_version": "rustc 1.100.0 (0ef1bc386 2026-11-09)\nbinary: rustc\ncommit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a\ncommit-date: 2026-11-09\nhost: x86_64-unknown-linux-gnu\nrelease: 1.100.0\nLLVM version: 23.1.5",
+    "compiler_executable_sha256": "5073422953727c9427a76b7fce03aa9404da46315e5a1e4965389512a41e8db0",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/rust/fannkuch.rs": "af8591bc98cf26357a8b3c01146ab3d291899658db13ab23d42b693b6a5925ee"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "6b9824b8cf5e1acf87ca6a371b55738bc654b234811f4627964a4ee152eb9c2b",
+      "content_sha256": "a2b2a306eda0462028b151c478a954e26a71e46e17008355111ab8ec67e893e1",
+      "bytes": 717924,
+      "content_bytes": 4854854
+    }
+  }
+}

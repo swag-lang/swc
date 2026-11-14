@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/java/csvagg/Bench.java": "11c0e78e24f19767ad81c186e5cf6618dd9d31bd24aa87c2fc9afa540aee26fc"
+  },
+  "metadata": {
+    "command": [
+      [
+        "java",
+        "-m",
+        "jdk.compiler/com.sun.tools.javac.Main",
+        "-encoding",
+        "UTF-8",
+        "-d",
+        "${WORK}/captures/java/csvagg",
+        "${WORK}/sources/java/csvagg/Bench.java"
+      ]
+    ],
+    "run_command": [
+      "java",
+      "-Xbatch",
+      "-XX:-TieredCompilation",
+      "-XX:CompileThreshold=100",
+      "-XX:+UnlockDiagnosticVMOptions",
+      "-XX:CompileCommand=print,Bench::*",
+      "-XX:CompileCommand=print,Bench$*::*",
+      "-cp",
+      "${WORK}/captures/java/csvagg",
+      "Bench"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "listing_kind": "jit-native",
+    "compiler_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)",
+    "compiler_executable_sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "decoding": "HotSpot emitted complete code bytes without hsdis; each MachCode byte range was disassembled by GNU objdump. Recompilations and OSR versions are retained.",
+    "compiled_source_sha256": {
+      "bench/src/java/csvagg/Bench.java": "11c0e78e24f19767ad81c186e5cf6618dd9d31bd24aa87c2fc9afa540aee26fc"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "79763f156cdacdbb1b9035d9c7aec9c51191f010c11120cc25c5213d7117221a",
+      "content_sha256": "a3680596334982b76d17bf6aacfd37d9377fdb6ac6dc18c5902dd50ce6710df9",
+      "bytes": 65201,
+      "content_bytes": 407731
+    }
+  }
+}

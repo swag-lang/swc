@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/py/wordfreq.py": "6240b58cc095409c1fa9ce036fa1f3a394d628f1642801ada8a70077c3265bf7"
+  },
+  "metadata": {
+    "kind": "vm-bytecode",
+    "compiler_version": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "target": "x86_64 Linux CPython VM",
+    "comparison": "Bytecode opcode counts are not machine-code instruction counts.",
+    "compiler_executable_sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+    "timing_claim": false,
+    "command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "${WORK}/sources/py/wordfreq.py"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "listing_kind": "cpython-bytecode-not-native",
+    "compiled_source_sha256": {
+      "bench/src/py/wordfreq.py": "6240b58cc095409c1fa9ce036fa1f3a394d628f1642801ada8a70077c3265bf7"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "330a85ad4def562fbababcaa9b5b9fb52901bd67505f51d9c53bbccab1dcc747",
+      "content_sha256": "6fbf8a10a61ca65bf6b8626c17e5834ac2aff9ef771509d5237dfa01c8bba8c5",
+      "bytes": 2817,
+      "content_bytes": 16106
+    }
+  }
+}

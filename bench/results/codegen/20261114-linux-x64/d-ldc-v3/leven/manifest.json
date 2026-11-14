@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc-v3",
+  "task": "leven",
+  "sources": {
+    "bench/src/d/leven.d": "251c3f5451fbcd2cf504f3ed98c33807b03b2093635fc6f863f610d572db0ab5",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc-v3/leven/program",
+      "-od=${WORK}/captures/ldc-v3/leven",
+      "${WORK}/sources/d/leven.d",
+      "${WORK}/sources/d/common.d",
+      "-mcpu=x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "67441",
+    "expected_checksum": "67441",
+    "binary_sha256": "ac34d9670873ddc9349e3242ef343ef849a679e709928fdf36a63c3a5a3f68f0",
+    "binary_bytes": 643320,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/d/leven.d": "251c3f5451fbcd2cf504f3ed98c33807b03b2093635fc6f863f610d572db0ab5",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "6a2f6456abd6117ea1e120ea202a4689c9866e323c3272c74c384f1e5c36bb96",
+      "content_sha256": "481dee991ff59d459cd75d85c84c216e837eafbe889bbca9a23599bc1b50b6ba",
+      "bytes": 466897,
+      "content_bytes": 3234056
+    }
+  }
+}

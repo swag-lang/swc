@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/odin/dijkstra.odin": "a67813dcd4bd14c841bf75cc03a53d47a097c7e5e05ebb2200b5bb714ba42d05",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/dijkstra.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin/dijkstra/program",
+      "-thread-count:3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "c0252985b5880d3da9ac7709c9a227c90a30ee9629a743fe5bc2be6cf7a9ee22",
+    "binary_bytes": 35016,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/odin/dijkstra.odin": "a67813dcd4bd14c841bf75cc03a53d47a097c7e5e05ebb2200b5bb714ba42d05",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "0de964b06b583b2b5ed423080268570c736178d6478eda9de05c0c6b18f6bd76",
+      "content_sha256": "d769d370e03f0f4816805c9d3653cdace5e829f1de9abbaae4daa6eaeda3886d",
+      "bytes": 34073,
+      "content_bytes": 180917
+    }
+  }
+}

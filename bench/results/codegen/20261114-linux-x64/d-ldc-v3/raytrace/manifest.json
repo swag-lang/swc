@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc-v3",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/d/raytrace.d": "e146ba7f198167edc1fd5809ddf76d0105aa193f9d21ab2d64aee8aa30e57a25",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc-v3/raytrace/program",
+      "-od=${WORK}/captures/ldc-v3/raytrace",
+      "${WORK}/sources/d/raytrace.d",
+      "${WORK}/sources/d/common.d",
+      "-mcpu=x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "0228f6ec0690bd4a85f3541cd63cd483792c36c4325f293b92861fedb2ab3036",
+    "binary_bytes": 643744,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/d/raytrace.d": "e146ba7f198167edc1fd5809ddf76d0105aa193f9d21ab2d64aee8aa30e57a25",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "fa1fc6347f600d65fcb7368e98746881ce19ac0b3589f92d8916a34fa60074fe",
+      "content_sha256": "08f2b935626002dba74adf881b720c4a5b5765463d530134aac8fc25082e9a41",
+      "bytes": 463564,
+      "content_bytes": 3220447
+    }
+  }
+}

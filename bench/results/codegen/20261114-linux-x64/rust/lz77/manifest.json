@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "compiler": "rust",
+  "task": "lz77",
+  "sources": {
+    "bench/src/rust/lz77.rs": "b270852369f7004997a23aac5a2396b0cf1b57c203acf6f2ed852e8d66114ebe"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/rust/bin/rustc",
+      "--edition",
+      "2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "panic=abort",
+      "${WORK}/sources/rust/lz77.rs",
+      "-o",
+      "${WORK}/captures/rust/lz77/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "622942003053",
+    "expected_checksum": "622942003053",
+    "binary_sha256": "327761ef93b9a8562e1e1aa9b9978e9bf3e65ca8684183bb00180b7f80b10559",
+    "binary_bytes": 4522800,
+    "compiler_version": "rustc 1.100.0 (0ef1bc386 2026-11-09)\nbinary: rustc\ncommit-hash: 0ef1bc386059596dada8fb65b50425aab2ea637a\ncommit-date: 2026-11-09\nhost: x86_64-unknown-linux-gnu\nrelease: 1.100.0\nLLVM version: 23.1.5",
+    "compiler_executable_sha256": "5073422953727c9427a76b7fce03aa9404da46315e5a1e4965389512a41e8db0",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/rust/lz77.rs": "b270852369f7004997a23aac5a2396b0cf1b57c203acf6f2ed852e8d66114ebe"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "79169a0a9fcdd78dd3fedb0d40407b3863f6f1c5e0bd0f6148eeb560d9cd0db0",
+      "content_sha256": "9dc045f521ada6c4246941a337d760d5331ffb83fcc40988a2acf5c1bd09847e",
+      "bytes": 723745,
+      "content_bytes": 4884858
+    }
+  }
+}

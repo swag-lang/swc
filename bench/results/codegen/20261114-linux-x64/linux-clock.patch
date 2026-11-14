@@ -1,0 +1,389 @@
+--- a/bench/src/go/common.go
++++ b/bench/src/go/common.go
+@@ -2,8 +2,7 @@
+ 
+ import (
+ 	"fmt"
+-	"syscall"
+-	"unsafe"
++	"time"
+ )
+ 
+ var seed int64 = 12345
+@@ -16,15 +15,8 @@
+ // The Windows performance counter, as in every other port. time.Now reads the interrupt
+ // clock, which only advances once per timer tick: a run of a few milliseconds can read
+ // a tick short, and a 10 ms raytrace once read 0.5 ms.
+-var kernel32 = syscall.NewLazyDLL("kernel32.dll")
+-var queryPerformanceCounter = kernel32.NewProc("QueryPerformanceCounter")
+-var queryPerformanceFrequency = kernel32.NewProc("QueryPerformanceFrequency")
+-
+ func now() float64 {
+-	var counter, frequency int64
+-	queryPerformanceCounter.Call(uintptr(unsafe.Pointer(&counter)))
+-	queryPerformanceFrequency.Call(uintptr(unsafe.Pointer(&frequency)))
+-	return float64(counter) / float64(frequency)
++    return float64(time.Now().UnixNano()) / 1e9
+ }
+ 
+ func report(check int, start float64) {
+--- a/bench/src/zig/common.zig
++++ b/bench/src/zig/common.zig
+@@ -1,6 +1,5 @@
++const std = @import("std");
+ // Shared RNG, Windows performance counter and CRT allocation, as in the C++ port.
+-extern "kernel32" fn QueryPerformanceCounter(counter: *i64) callconv(.winapi) i32;
+-extern "kernel32" fn QueryPerformanceFrequency(frequency: *i64) callconv(.winapi) i32;
+ extern "c" fn printf(format: [*:0]const u8, ...) c_int;
+ extern "c" fn malloc(size: usize) ?*anyopaque;
+ extern "c" fn exit(code: c_int) noreturn;
+@@ -15,11 +14,7 @@
+ }
+ 
+ pub fn now() f64 {
+-    var counter: i64 = undefined;
+-    var frequency: i64 = undefined;
+-    _ = QueryPerformanceCounter(&counter);
+-    _ = QueryPerformanceFrequency(&frequency);
+-    return @as(f64, @floatFromInt(counter)) / @as(f64, @floatFromInt(frequency));
++    return @as(f64, @floatFromInt(std.time.nanoTimestamp())) / 1e9;
+ }
+ 
+ pub fn report(check: u64, t0: f64, t1: f64) void {
+--- a/bench/src/cpp/common.h
++++ b/bench/src/cpp/common.h
+@@ -6,8 +6,7 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <cmath>
+-#define WIN32_LEAN_AND_MEAN
+-#include <windows.h>
++#include <chrono>
+ 
+ typedef uint64_t u64;
+ typedef int64_t  s64;
+@@ -24,10 +23,7 @@
+ 
+ static inline double now()
+ {
+-    LARGE_INTEGER c, f;
+-    QueryPerformanceCounter(&c);
+-    QueryPerformanceFrequency(&f);
+-    return (double) c.QuadPart / (double) f.QuadPart;
++    return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
+ }
+ 
+ static inline void report(u64 check, double t0, double t1)
+--- a/bench/src/swagnat/common.swg
++++ b/bench/src/swagnat/common.swg
+@@ -42,10 +42,9 @@
+ 
+ func now()->f64
+ {
+-    var c, f: Win32.LARGE_INTEGER
+-    Win32.QueryPerformanceCounter(&c)
+-    Win32.QueryPerformanceFrequency(&f)
+-    return cast(f64, c) / cast(f64, f)
++    var value: timespec
++    discard clock_gettime(CLOCK_MONOTONIC, &value)
++    return cast(f64, value.tv_sec) + cast(f64, value.tv_nsec) / 1e9'f64
+ }
+ 
+ var g_Seed = 12345'u64
+--- a/bench/src/d/common.d
++++ b/bench/src/d/common.d
+@@ -4,7 +4,7 @@
+ public import core.stdc.string : memcmp, memcpy, memset, strlen;
+ public import core.stdc.math : sqrt;
+ import core.stdc.stdio : printf;
+-import core.sys.windows.windows : LARGE_INTEGER, QueryPerformanceCounter, QueryPerformanceFrequency;
++import core.sys.posix.time : clock_gettime, CLOCK_MONOTONIC, timespec;
+ 
+ alias u64 = ulong;
+ alias s64 = long;
+@@ -22,10 +22,9 @@
+ 
+ double now()
+ {
+-    LARGE_INTEGER counter, frequency;
+-    QueryPerformanceCounter(&counter);
+-    QueryPerformanceFrequency(&frequency);
+-    return cast(double) counter.QuadPart / cast(double) frequency.QuadPart;
++    timespec value;
++    clock_gettime(CLOCK_MONOTONIC, &value);
++    return cast(double) value.tv_sec + cast(double) value.tv_nsec / 1e9;
+ }
+ 
+ void report(u64 check, double t0, double t1)
+--- a/bench/src/swift/dijkstra/main.swift
++++ b/bench/src/swift/dijkstra/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let N = 800
+@@ -13,11 +13,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ // Binary heap kept in a local struct rather than in globals: same shape as the
+--- a/bench/src/swift/raytrace/main.swift
++++ b/bench/src/swift/raytrace/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let W = 480
+@@ -20,11 +20,7 @@
+ let AMB = 0.12
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ var gHitT = 0.0
+--- a/bench/src/swift/fannkuch/main.swift
++++ b/bench/src/swift/fannkuch/main.swift
+@@ -1,14 +1,10 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let N = 9
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ func runMain() {
+--- a/bench/src/swift/lz77/main.swift
++++ b/bench/src/swift/lz77/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let DATA_SIZE = 1 << 20
+@@ -17,11 +17,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ @inline(__always)
+--- a/bench/src/swift/binarytrees/main.swift
++++ b/bench/src/swift/binarytrees/main.swift
+@@ -1,15 +1,11 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let MIN_DEPTH = 4
+ let MAX_DEPTH = 12
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ final class Node {
+--- a/bench/src/swift/csvagg/main.swift
++++ b/bench/src/swift/csvagg/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let ROWS = 400000
+@@ -16,11 +16,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ func memCmp(_ b: [UInt8], _ a: Int, _ c: Int, _ n: Int) -> Int {
+--- a/bench/src/swift/sha256/main.swift
++++ b/bench/src/swift/sha256/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let MSGSIZE = 8388608
+@@ -12,11 +12,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ let KTAB: [UInt64] = [
+--- a/bench/src/swift/nbody/main.swift
++++ b/bench/src/swift/nbody/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let STEPS = 500000
+@@ -7,11 +7,7 @@
+ let DAYS_PER_YEAR = 365.24
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ struct Body {
+--- a/bench/src/swift/chacha/main.swift
++++ b/bench/src/swift/chacha/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let NWORDS = 4194304 // 32-bit words, sixteen mebibytes of key stream
+@@ -12,11 +12,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ @inline(__always)
+--- a/bench/src/swift/leven/main.swift
++++ b/bench/src/swift/leven/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let DICT = 6000
+@@ -13,11 +13,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ // The whole `#main` body lives in a function so that locals stay locals:
+--- a/bench/src/swift/sort/main.swift
++++ b/bench/src/swift/sort/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let N = 300000
+@@ -11,11 +11,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ func qsort(_ a: inout [UInt64], _ loIn: Int, _ hiIn: Int) {
+--- a/bench/src/swift/wordfreq/main.swift
++++ b/bench/src/swift/wordfreq/main.swift
+@@ -1,4 +1,4 @@
+-import WinSDK
++import Dispatch
+ import Foundation
+ 
+ let VOCAB = 5000
+@@ -13,11 +13,7 @@
+ }
+ 
+ func now() -> Double {
+-    var c = LARGE_INTEGER()
+-    var f = LARGE_INTEGER()
+-    QueryPerformanceCounter(&c)
+-    QueryPerformanceFrequency(&f)
+-    return Double(c.QuadPart) / Double(f.QuadPart)
++    return Double(DispatchTime.now().uptimeNanoseconds) / 1e9
+ }
+ 
+ struct ByteMap {
+--- a/bench/src/odin/common/common.odin
++++ b/bench/src/odin/common/common.odin
+@@ -2,7 +2,7 @@
+ 
+ import "core:c/libc"
+ import "core:math"
+-import "core:sys/windows"
++import "core:time"
+ 
+ free :: libc.free
+ sqrt :: math.sqrt
+@@ -31,10 +31,7 @@
+ }
+ 
+ now :: proc() -> f64 {
+-    counter, frequency: windows.LARGE_INTEGER
+-    windows.QueryPerformanceCounter(&counter)
+-    windows.QueryPerformanceFrequency(&frequency)
+-    return f64(counter) / f64(frequency)
++    return time.duration_seconds(time.tick_diff(time.Tick{}, time.tick_now()))
+ }
+ 
+ report :: proc(check: u64, t0, t1: f64) {

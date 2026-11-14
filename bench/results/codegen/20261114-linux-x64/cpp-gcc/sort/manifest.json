@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "cpp-gcc",
+  "task": "sort",
+  "sources": {
+    "bench/src/cpp/sort.cpp": "8bb6b79497e4bf3ad6296050c371c0cd58f7b5af21c9d441a5eb024a64b99b26",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-O2",
+      "${WORK}/sources/cpp/sort.cpp",
+      "-o",
+      "${WORK}/captures/gcc/sort/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "599499929",
+    "expected_checksum": "599499929",
+    "binary_sha256": "2ac767aa3e0427cbdd72eeacc6ce549091fb632e0a9e963ef49204689bec5b29",
+    "binary_bytes": 16360,
+    "compiler_version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "compiler_executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/sort.cpp": "8bb6b79497e4bf3ad6296050c371c0cd58f7b5af21c9d441a5eb024a64b99b26",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "90116862235eba1a0ae31649ae599f8668e87a72e3cf61d3740ee0df928ddacd",
+      "content_sha256": "3d3b444e8f514c7349dc4fe1777cd00714a77934ea5dfe9f8556c137c9b1db73",
+      "bytes": 4646,
+      "content_bytes": 20472
+    }
+  }
+}

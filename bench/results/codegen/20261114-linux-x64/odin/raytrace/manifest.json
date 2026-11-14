@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/odin/raytrace.odin": "79ac0d783025d54b177051403f3fd7d9ef9dafff66d94a1c33a8bbed4ced84bc",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/raytrace.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin/raytrace/program",
+      "-thread-count:3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "2238640f681e42b08b7589697576bc5cc81acf3134383623a10319240f8c58a5",
+    "binary_bytes": 35472,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/odin/raytrace.odin": "79ac0d783025d54b177051403f3fd7d9ef9dafff66d94a1c33a8bbed4ced84bc",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "ac9a90b623d786c1da400189b290afe45235e9150061be32b8b6a021b26374be",
+      "content_sha256": "38c9e0d399209d255eac6903579163a8011c92fe2c3fc6e54e665bd47ea8dee9",
+      "bytes": 37294,
+      "content_bytes": 195443
+    }
+  }
+}

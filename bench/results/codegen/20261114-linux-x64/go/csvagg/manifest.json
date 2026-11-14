@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/go/csvagg.go": "1409da600ab3ae70378edc7caf67ffdd2c9ae9531d591f7066cc605a0920681a",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7",
+    "bench/src/go/bytemap.go": "f75ce05577fd950b6e4e43ff50642863088c6d6e70e4feeb7cc9cfd0313a1508"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/go/bin/go",
+      "build",
+      "-o",
+      "${WORK}/captures/go/csvagg/program",
+      "${WORK}/sources/go/csvagg.go",
+      "${WORK}/sources/go/common.go",
+      "${WORK}/sources/go/bytemap.go"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "binary_sha256": "9203a8e262cf2cf3647f1cc095237c3b03e8b869cab13c474b4461fc99962565",
+    "binary_bytes": 2380957,
+    "compiler_version": "go version go1.27.4 linux/amd64",
+    "compiler_executable_sha256": "de0ae3e082ce7599eae4fb69fa2ef1e43b8f31ffd3fce62cdf81930aa9005050",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/go/csvagg.go": "1409da600ab3ae70378edc7caf67ffdd2c9ae9531d591f7066cc605a0920681a",
+      "bench/src/go/common.go": "de576a96ec5ca1487a074891745df2af6ea6630ebeb48b906ec1cd26c4556aa6",
+      "bench/src/go/bytemap.go": "f75ce05577fd950b6e4e43ff50642863088c6d6e70e4feeb7cc9cfd0313a1508"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "96fa81408051386911325bba9838a78053b61258081a3a5b133630cd0a26b171",
+      "content_sha256": "7da58703df6dd301eda8b49ecd27459def4a2b84aa03941a3fc7888d4d32fb7a",
+      "bytes": 1624542,
+      "content_bytes": 10160389
+    }
+  }
+}

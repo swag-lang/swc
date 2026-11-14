@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "compiler": "node-v8",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/js/fannkuch.js": "253c871bb4f04eee4d5e2fd61926862731c6f077de752ddea6073026dab12007"
+  },
+  "metadata": {
+    "command": [],
+    "run_command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--print-opt-code",
+      "--code-comments",
+      "${WORK}/sources/js/fannkuch.js"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "listing_kind": "jit-native",
+    "compiler_version": "v24.19.0",
+    "compiler_executable_sha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/js/fannkuch.js": "253c871bb4f04eee4d5e2fd61926862731c6f077de752ddea6073026dab12007"
+    },
+    "v8_version": "13.6.233.17-node.51"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "8b433b59a9fc9698dd4b67c7ed1f4a1bdd21ecb04a0f498f533d19dfa12f8c10",
+      "content_sha256": "e79dec7f9d17b3291a186dec911049aadcbce58704486e871d8e00454e77ddba",
+      "bytes": 12831,
+      "content_bytes": 92539
+    }
+  }
+}

@@ -12,3 +12,8 @@ tools/package-linux.py text eol=lf
 # Test and application fixtures are byte-exact: a test compares their sizes and hashes
 bin/**/datas/** -text
 bin/std/modules/video/src/tests/goldens/*.yuv binary
+
+# Static reference manifests and compressed listings are byte-exact across hosts.
+bench/results/codegen/** -text
+# Patch context preserves original whitespace, including blank context lines.
+bench/results/codegen/**/*.patch -whitespace

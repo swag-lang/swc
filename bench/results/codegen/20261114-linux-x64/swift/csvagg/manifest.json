@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "swift",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/swift/csvagg/main.swift": "f58ea245d784642faa7c2b4549402227d7557e74d4d9fa2f5e81a28c2e339c30"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/csvagg/main.swift",
+      "-o",
+      "${WORK}/captures/swift/csvagg/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "binary_sha256": "944d916eec47fdaa3f3d7f2106b0344e510e769c1738bd6f456ddb4e612d9941",
+    "binary_bytes": 34328,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/swift/csvagg/main.swift": "39910982c45f9c9bafcc1037bb53fbf6241356088873a5784487cb142077e9e4"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "41851da016467b5fb8ed16fb65cfa757b436a225d8a83be109d485624409d02c",
+      "content_sha256": "8470ebb0bc4d39fe5199715bb351da568ffe3d833c52f715101a90f4467da09c",
+      "bytes": 24293,
+      "content_bytes": 133553
+    }
+  }
+}

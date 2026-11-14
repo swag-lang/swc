@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc-v3",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/d/wordfreq.d": "a771d98b02e08afe895c31d13bd7e46f2d43ff0eebc8c7e9a5737b66d5591f0b",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b",
+    "bench/src/d/bytemap.d": "47a16855d33c87ff7c44b5e4527dd6eb666a090b310adc62500ee37f0e0a79cf"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/ldc/ldc2-1.43.0-linux-x86_64/bin/ldc2",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=${WORK}/sources/d",
+      "-of=${WORK}/captures/ldc-v3/wordfreq/program",
+      "-od=${WORK}/captures/ldc-v3/wordfreq",
+      "${WORK}/sources/d/wordfreq.d",
+      "${WORK}/sources/d/common.d",
+      "${WORK}/sources/d/bytemap.d",
+      "-mcpu=x86-64-v3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "70b2ad77eea311e58993c8e6db47cca95cafc09c235f6b61f9214d6fa0664e1c",
+    "binary_bytes": 643528,
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-unknown-linux-gnu\n  Host CPU: znver4\n  https://dlang.org - https://wiki.dlang.org/LDC",
+    "compiler_executable_sha256": "06e4bb5bb6abe26a0201e6b112beb19810a13947c7389ebb41493c45bafe9604",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "x86-64-v3",
+    "compiled_source_sha256": {
+      "bench/src/d/wordfreq.d": "a771d98b02e08afe895c31d13bd7e46f2d43ff0eebc8c7e9a5737b66d5591f0b",
+      "bench/src/d/common.d": "709a356055704290624cf3bc18d4f7442604ff940f3e944e5e1c1edc5f87778c",
+      "bench/src/d/bytemap.d": "47a16855d33c87ff7c44b5e4527dd6eb666a090b310adc62500ee37f0e0a79cf"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e05594bc61dc02ef31e26f4f8a8d566f8e2574d3de431394e74b8fa87c300737",
+      "content_sha256": "3f9394d2c373ad219333b45868c7d0cbcda08b1626a8cd38c11856699a9923fa",
+      "bytes": 466933,
+      "content_bytes": 3234951
+    }
+  }
+}

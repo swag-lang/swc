@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "swift",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/swift/wordfreq/main.swift": "142da7f45b293d08fe5686d38954ba8fc63fdc882e947d43aa29b4d4f4aa7764"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/wordfreq/main.swift",
+      "-o",
+      "${WORK}/captures/swift/wordfreq/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "6ae6a31638883506c23215b4648b85ded46d4f9fd166dd5398dc6ecda337a7ea",
+    "binary_bytes": 30280,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/swift/wordfreq/main.swift": "1020ead6af808ac024d2e015292d2541f74f57934f424cbf7ff71c11d10b4f4b"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "2ead70f8c147cf9369c1153884baee6e8d1539ad20528b944893d22579c2a9f5",
+      "content_sha256": "c92b7fd990c7a3b7d11946cdf6534b161d4a0ad0e83dee6cc1d18ac36e259dac",
+      "bytes": 20340,
+      "content_bytes": 114589
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "compiler": "node-v8",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/js/dijkstra.js": "7883a2e9c13d060fc5a5b0d54707773edcbf69ed7c97300a26cd358faf76f68a"
+  },
+  "metadata": {
+    "command": [],
+    "run_command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--print-opt-code",
+      "--code-comments",
+      "${WORK}/sources/js/dijkstra.js"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "listing_kind": "jit-native",
+    "compiler_version": "v24.19.0",
+    "compiler_executable_sha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/js/dijkstra.js": "7883a2e9c13d060fc5a5b0d54707773edcbf69ed7c97300a26cd358faf76f68a"
+    },
+    "v8_version": "13.6.233.17-node.51"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "7348e64fc177c5f333080793f1fd1e8ed3e8a1d36f87e7c113c75f71a2b40c8a",
+      "content_sha256": "032d3378ce91707d50eacaad589a94dda8dc6277a04723dce15bfe0b1258dec1",
+      "bytes": 41875,
+      "content_bytes": 280770
+    }
+  }
+}

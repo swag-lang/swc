@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "compiler": "node-v8",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/js/binarytrees.js": "1e568a8fd05c7e2c8eb1c92745f55a5629c511a8e047209ca9268ef1810183a2"
+  },
+  "metadata": {
+    "command": [],
+    "run_command": [
+      "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "--print-opt-code",
+      "--code-comments",
+      "${WORK}/sources/js/binarytrees.js"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "listing_kind": "jit-native",
+    "compiler_version": "v24.19.0",
+    "compiler_executable_sha256": "bc17c508ffeed0ec622934f9b7fa72f8e78da65350e63c3eceb56fa688aa5e12",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "jit-native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/js/binarytrees.js": "1e568a8fd05c7e2c8eb1c92745f55a5629c511a8e047209ca9268ef1810183a2"
+    },
+    "v8_version": "13.6.233.17-node.51"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "8bbce109fde78baf8fc016b7db8328ace644b6091706bdce9e6caa2f4113fdf7",
+      "content_sha256": "7050bd77b3d051bb0957bde6773f63ec23df23b06542a9abd88739ee8e72f096",
+      "bytes": 16619,
+      "content_bytes": 115607
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/odin/fannkuch.odin": "e26d4657ef52ab7b29d3c5edbdfc4776497dc5645440f89d54cd84c561581e3b",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin",
+      "build",
+      "${WORK}/sources/odin/fannkuch.odin",
+      "-file",
+      "-o:speed",
+      "-out:${WORK}/captures/odin/fannkuch/program",
+      "-thread-count:3"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "ed9c2d36acaf447bb3c516763e52af8e98016793a05db5e1cb4d72c7657ed988",
+    "binary_bytes": 34888,
+    "compiler_version": "/workspace/work/static-compare-20261114/tools/odin/odin-linux-amd64-nightly+2026-11-03/odin version dev-2026-11-nightly:9a69916",
+    "compiler_executable_sha256": "c40fd264a2d6aa5f7fb0132b0f9463ac8ad485adb34204c8c84a8b78956cdf60",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/odin/fannkuch.odin": "e26d4657ef52ab7b29d3c5edbdfc4776497dc5645440f89d54cd84c561581e3b",
+      "bench/src/odin/common/common.odin": "f54d503a2b28e846ae698f5ff18f5f07de82513fbaf699e2aa4ffa5282e01fab"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e966677cea49c26bebb967d1644397e69378695a50d9252f26dd7fd9d3487750",
+      "content_sha256": "2c5c4cb2f886aa41946fe9801f88a8c68cb00c192d30cad96bd54d1c7faaa2b0",
+      "bytes": 33101,
+      "content_bytes": 176899
+    }
+  }
+}

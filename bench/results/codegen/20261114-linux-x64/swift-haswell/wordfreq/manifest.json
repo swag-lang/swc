@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "compiler": "swift-haswell",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/swift/wordfreq/main.swift": "142da7f45b293d08fe5686d38954ba8fc63fdc882e947d43aa29b4d4f4aa7764"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/swiftc",
+      "-target-cpu",
+      "haswell",
+      "-O",
+      "-wmo",
+      "-module-cache-path",
+      "${WORK}/swift-cache",
+      "${WORK}/sources/swift/wordfreq/main.swift",
+      "-o",
+      "${WORK}/captures/swift-haswell/wordfreq/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "48b7257021941400ad7a6707f70c9efc4f1cea2c1c9f7289418bdf57739fd6f3",
+    "binary_bytes": 30280,
+    "compiler_version": "Swift version 6.2.1 (swift-6.2.1-RELEASE)\nTarget: x86_64-unknown-linux-gnu",
+    "compiler_executable_sha256": "b5be65cb7693266bf6281dd4e87038f1b0f9c68af0b9a215c37b022aa4307a80",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "target_features": "Haswell (AVX2/FMA/BMI family); explicitly not the generic x86-64-v3 CPU model",
+    "compiled_source_sha256": {
+      "bench/src/swift/wordfreq/main.swift": "1020ead6af808ac024d2e015292d2541f74f57934f424cbf7ff71c11d10b4f4b"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "a9cf847995cf3d65c2fade7a235d0ce5faf83b5ceb02efc19c84c06f95a91e86",
+      "content_sha256": "1dd7688a8c36a7feb5a094da1e522dfe9ad52c07cbbbe15d0825c5e6ef0093ef",
+      "bytes": 20537,
+      "content_bytes": 115653
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "cpp-clang-v3",
+  "task": "sha256",
+  "sources": {
+    "bench/src/cpp/sha256.cpp": "ce2742f53331d05619decc7207e51aa0f95fe37aff9d7180ea5313d4e1a862ff",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/swift/swift-6.2.1-RELEASE-ubuntu24.04/usr/bin/clang++",
+      "-std=c++20",
+      "-O3",
+      "-march=x86-64-v3",
+      "${WORK}/sources/cpp/sha256.cpp",
+      "-o",
+      "${WORK}/captures/clang-v3/sha256/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "2503168387",
+    "expected_checksum": "2503168387",
+    "binary_sha256": "7c8b89209a79087fc255a7a235bf61eb9fb678bd8c89cfdcd81c7274ea2fb0c4",
+    "binary_bytes": 16512,
+    "compiler_version": "clang version 17.0.0 (https://github.com/swiftlang/llvm-project.git 10999b6d034fe318f3d56c83bddb6572593a8bb0)",
+    "compiler_executable_sha256": "7a09db8b9651200b31c6ab2bdba92453f9bbef1e7593e8f5fa0efb723964c991",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/sha256.cpp": "ce2742f53331d05619decc7207e51aa0f95fe37aff9d7180ea5313d4e1a862ff",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e7f6b835f3200984443bd71859c51a6b22346ba63c0ed19d03b1e5b3577a245a",
+      "content_sha256": "f1ecf60b9699d71e8026f97ec073d82a7b6bcd06028a549b1e2f7b48e07333fa",
+      "bytes": 5784,
+      "content_bytes": 25608
+    }
+  }
+}

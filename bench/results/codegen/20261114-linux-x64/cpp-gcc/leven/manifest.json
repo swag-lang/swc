@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "cpp-gcc",
+  "task": "leven",
+  "sources": {
+    "bench/src/cpp/leven.cpp": "747615e90cd9e25535bf95df661cd57e1c31c2963c211ba8b42041f323d2f418",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670"
+  },
+  "metadata": {
+    "command": [
+      "/usr/bin/g++",
+      "-std=c++20",
+      "-O2",
+      "${WORK}/sources/cpp/leven.cpp",
+      "-o",
+      "${WORK}/captures/gcc/leven/program"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "67441",
+    "expected_checksum": "67441",
+    "binary_sha256": "f1c3f2c0ebb23695e31b2aae8ac6ee218f00143cbc9ba80058ee706d52a1a00b",
+    "binary_bytes": 16632,
+    "compiler_version": "g++ (Debian 14.2.0-19) 14.2.0",
+    "compiler_executable_sha256": "6b3696e4dcb85e1c949c732a02befa50e3983ecf94ce7e8e58d9d503b954b79d",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/cpp/leven.cpp": "747615e90cd9e25535bf95df661cd57e1c31c2963c211ba8b42041f323d2f418",
+      "bench/src/cpp/common.h": "f3cf1f665c27d80be3580cd0f9141fb8f70a0c408056947f304abea33eb8764a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "64ae1f24c9bb908e8c25893313232159aa3135ea108bab3d29d5d3bf4da39b08",
+      "content_sha256": "fe337056b1f3dc9ac78b18b6b83d4f2ac3b52d0a4c626fe7bf0fd61ade909759",
+      "bytes": 7326,
+      "content_bytes": 32726
+    }
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "compiler": "zig",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/zig/fannkuch.zig": "9572f4c22ce77823b9cdd450e29e033025a231c7f6a51d69262eddc428d6a630",
+    "bench/src/zig/common.zig": "952338ba1055f6de31f3ab9ed27cf05e747af3fadb470665a193fa18c6bb51d3"
+  },
+  "metadata": {
+    "command": [
+      "${WORK}/tools/zig/ziglang/zig",
+      "build-exe",
+      "${WORK}/sources/zig/fannkuch.zig",
+      "-O",
+      "ReleaseFast",
+      "-target",
+      "x86_64-linux-gnu",
+      "-lc",
+      "-femit-bin=${WORK}/captures/zig/fannkuch/program",
+      "--cache-dir",
+      "${WORK}/captures/zig/fannkuch/cache",
+      "--global-cache-dir",
+      "${WORK}/zig-cache"
+    ],
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "0b7f7f6d027e021716b8dda438373fabbbdf4d51e0e537aba132eec9f57751d0",
+    "binary_bytes": 813848,
+    "compiler_version": "0.15.2",
+    "compiler_executable_sha256": "2858dc89dbbfdd08cceda1b841e7fd0a793a1a67b49f150bc3d0d1de44ed7f51",
+    "target": "x86_64-linux-gnu",
+    "abi": "compiler default Linux ABI",
+    "kind": "native",
+    "timing_claim": false,
+    "compiled_source_sha256": {
+      "bench/src/zig/fannkuch.zig": "9572f4c22ce77823b9cdd450e29e033025a231c7f6a51d69262eddc428d6a630",
+      "bench/src/zig/common.zig": "d7a4af9e60889f997e759e93be192fe8853ed440d0d3cac93fde0510e4e65a69"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "ed4eb68f8d0ec7f4b934a9ecd3cccd07e555515d018789b192d10a25f1c7bd2f",
+      "content_sha256": "66b6847336155cd2063034731ac249c8cd053cfa7419dfcb31769abeee7fd24c",
+      "bytes": 6729,
+      "content_bytes": 32303
+    }
+  }
+}

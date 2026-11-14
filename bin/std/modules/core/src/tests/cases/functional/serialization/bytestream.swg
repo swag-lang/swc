@@ -5,6 +5,18 @@ using Swag
 
 #test
 {
+    var bytes: Array'u8
+    var writer = ByteStream.openWrite(&bytes)
+    writer.writeNative'u8(0xA5)
+    writer.writeNative'u32(0x1234_5678)
+
+    var reader = ByteStream.openRead(bytes.toSlice())
+    reader.setPosition(1)
+    Swag.require((expect reader.readNative'u32()) == 0x1234_5678)
+}
+
+#test
+{
     let input = [0x10'u8, 0x20, 0x30, 0x40]
 
     var stream = ByteStream.openRead(input)

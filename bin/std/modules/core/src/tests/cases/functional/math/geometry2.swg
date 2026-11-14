@@ -24,6 +24,11 @@ func expectNear(actual, expected: f32)
     Swag.require(not Math.Geometry.ellipseContainsPoint({10, 30.1}, center, 5, 10))
     Swag.require(not Math.Geometry.ellipseContainsPoint({14, 28}, center, 5, 10))
 
+    // Normalizing before squaring preserves the contract for very small and large radii.
+    Swag.require(Math.Geometry.ellipseContainsPoint({0, 0}, {0, 0}, 1e-30, 1e-30))
+    Swag.require(Math.Geometry.ellipseContainsPoint({1e-30, 0}, {0, 0}, 1e-30, 1e-30))
+    Swag.require(Math.Geometry.ellipseContainsPoint({1e20, 0}, {0, 0}, 1e20, 1e20))
+
     let zeroRadius = Swag.catchPanic(func||() { discard Math.Geometry.ellipseContainsPoint({0, 0}, {0, 0}, 0, 1) })
     Swag.require(zeroRadius.raised)
 

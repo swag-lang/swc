@@ -8,7 +8,9 @@
 func ellipseContainsPoint(point, center: Vector2, radiusX, radiusY: f32)->bool
 {
     Swag.assert(radiusX > 0 and radiusY > 0)
-    return (pow((point.x - center.x), 2) / pow(radiusX, 2)) + (pow((point.y - center.y), 2) / pow(radiusY, 2)) <= 1
+    let normalizedX = (point.x - center.x) / radiusX
+    let normalizedY = (point.y - center.y) / radiusY
+    return normalizedX * normalizedX + normalizedY * normalizedY <= 1
 }
 
 // Returns whether `point` lies inside or on an edge of the triangle `a`, `b`, `c`.

@@ -47,6 +47,28 @@ using Swag
     Swag.require(value == 1 and eat == 1)
 }
 
+// Integer zeros beyond the decimal digit buffer still contribute to the exponent scale.
+#test
+{
+    var integerZeros: ConcatBuffer
+    integerZeros.addBytes("1")
+    for 800 do
+        integerZeros.addNative('0'u8)
+    integerZeros.addBytes("e-800")
+    let integerBytes = unwrap integerZeros.toSlice()
+    let integerText  = Swag.makeString(integerBytes.buffer, integerBytes.count)
+    Swag.require(expect StrConv.toF64(integerText) == 1)
+
+    var decimalZeros: ConcatBuffer
+    decimalZeros.addBytes("1")
+    for 800 do
+        decimalZeros.addNative('0'u8)
+    decimalZeros.addBytes(".000e-800")
+    let decimalBytes = unwrap decimalZeros.toSlice()
+    let decimalText  = Swag.makeString(decimalBytes.buffer, decimalBytes.count)
+    Swag.require(expect StrConv.toF64(decimalText) == 1)
+}
+
 // An empty text is not a number, whatever its type.
 #test
 {

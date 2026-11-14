@@ -154,25 +154,47 @@ integration around those engines.
   and opening a notebook never starts a kernel, executes code, or fetches a resource.
 - Related: app.scope.document.003, app.scope.text.024, app.scope.viewers.011
 
-### app.scope.document.020 — Office Open XML rendering remains partial
+### app.scope.document.020 — DOCX lacks faithful page reading
 
-- Evidence: `.docx` reads main-body paragraphs, tables, direct run formatting, headings, visible page-break separators and bounded embedded raster images at their declared width with alternative descriptions; `.xlsx` reads ordered sheets,
-  shared/inline strings, numbers and cached values with row and column headings, and shows uncached
-  formula expressions or an explicit gap. The XLSX reading grid stops at 512 columns; `.pptx` reads ordered slide text and bounded
-  embedded raster pictures with alternative descriptions, direct bold/italic text and alignment. These
-  files are ZIP containers, but showing their raw entries or extracted prose is not a document
-  reader. The current HTML projection loses Word pagination and styling, spreadsheet grid and
-  cell formatting, and slide geometry and unsupported picture types. Focused tests cover run and slide order,
-  sparse cells and damaged packages; they do not establish visual fidelity.
-- Next: render authored page, grid and slide geometry with relationships, bounded pictures,
-  text styles and backgrounds. Use real producer documents for visual comparisons, then add
-  search, selection and position restore. Keep a visible, explicit boundary for constructs the
-  renderer cannot represent.
-- Done when: opening each format presents its intended document surface rather than a list of
-  package parts or a text transcript; representative real documents preserve their layout,
-  images and styling in visual tests, and unsupported constructs are named without silently
-  replacing them with prose.
-- Related: app.scope.text.015, app.scope.binary.010
+- Evidence: the DOCX reader shows ordered body paragraphs, simple tables, direct run formatting,
+  headings, page-break separators and bounded raster images. It loses page size and margins,
+  section columns, styles and themes, headers and footers, footnotes, comments, floating objects,
+  and complex table geometry. [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
+  preserves navigable pages and adapts them to the reading surface.
+- Next: resolve styles and relationships before laying out page and section geometry; compare
+  representative real producer documents page by page, then add document-wide search, selection,
+  and position restore without materializing every page at open.
+- Done when: authored pages, text flow, images and table structure remain recognizable across a
+  freely licensed DOCX corpus, unsupported constructs are named at their location, and the first
+  page appears without decoding the full package.
+- Related: app.scope.binary.010
+
+### app.scope.document.025 — XLSX lacks a true workbook reading surface
+
+- Evidence: the XLSX reader orders sheets and shows values or uncached formula expressions in a
+  512-column grid, but drops widths, heights, number formats, styles, merged cells, hidden ranges,
+  frozen panes, filters, comments and charts. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
+  illustrate why authored grid navigation matters to reading.
+- Next: preserve workbook view state and resolve styles, dimensions, merges and number formats;
+  add virtual cell addressing, sheet-wide search and selection before read-only chart previews.
+- Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
+  behave as declared, formulas never execute, large sheets stay bounded, and every omitted construct
+  is explicitly reported.
+- Related: app.scope.text.015, app.scope.text.017
+
+### app.scope.document.026 — PPTX lacks slide geometry and presentation reading
+
+- Evidence: the PPTX reader shows ordered slide text, embedded raster images and some direct text
+  styling, but flattens object placement, themes, masters, shapes and backgrounds. It also omits
+  speaker notes and a slide overview. [PowerPoint Reading and Slide Show views](https://support.microsoft.com/en-us/powerpoint/how-certain-features-behave-in-web-based-powerpoint)
+  retain slide navigation and notes.
+- Next: resolve slide masters and relationships into bounded slide canvases with shapes, pictures
+  and text placement; then add thumbnails, notes and a full-screen reading path. Declare a safe
+  policy for animation, embedded media and external links.
+- Done when: a real presentation is recognizable slide by slide at authored aspect ratio, notes
+  and navigation remain available, unsupported effects are explicit, and slide 1 appears without
+  decoding every slide.
+- Related: app.scope.binary.010
 
 ### app.scope.document.021 — EPUB chapter reading needs complete navigation
 
@@ -181,11 +203,77 @@ integration around those engines.
   rejects escaping paths. The first fixtures cover spine ordering and a nested package root.
   There is no EPUB table of contents, book-wide search or position restore, and extraction prepares
   every package member before the first chapter is shown.
-- Next: expose the EPUB navigation document and TOC, add book-wide search and stable chapter
-  positions, then stream or lazily extract resources needed for the visible chapter.
-- Done when: navigation, search, position restore and local resources work across a representative
-  EPUB 2/3 corpus without delaying first content for the whole package.
+- Next: expose EPUB 2 NCX and EPUB 3 navigation/landmarks, resolve chapter fragments and local
+  footnotes, add book-wide search with chapter/all-book scope and stable chapter positions,
+  explicit bookmarks and link back/forward, then lazily extract resources needed for the visible chapter.
+- Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
+  representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010
+
+### app.scope.document.027 — CBZ has page turns but no complete comic reading modes
+
+- Evidence: `Viewers.Comic` lists image members in natural filename order and opens one page through
+  `EmbeddedViewer`; the controls only offer previous and next. A dedicated reader such as
+  [OpenComic](https://github.com/ollm/OpenComic) offers right-to-left manga, double-page spreads,
+  continuous webtoon scroll, bookmarks and reading-position restore.
+- Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous
+  layouts, right-to-left order, cover alignment and per-page fit/zoom. Read safe `ComicInfo.xml`
+  metadata when present without treating it as an image page.
+- Done when: natural order, nested folders, spreads, manga direction, tall pages and damaged
+  members remain readable and navigable across real CBZ books; page changes never require
+  extracting all images first, and unsupported image pages are named in place.
+- Related: app.scope.image.005, app.scope.viewers.003
+
+### app.scope.document.028 — EPUB has no adjustable book-reading layout
+
+- Evidence: each spine document is currently shown as one HTML chapter, with no book-level paged
+  layout, continuous flow choice, reading width, type scale, line spacing or margin policy.
+  [calibre's viewer](https://manual.calibre-ebook.com/viewer.html) supports paged and flow modes.
+- Next: add book-owned paged and continuous modes over the existing HTML layout, preserve a logical
+  location while typography or viewport size changes, and keep navigation and search mapped to
+  that location.
+- Done when: readers can choose fit-to-width flow or pages, adjust typography without corrupting
+  authored content, and reopen at the same logical passage across window and theme changes.
+- Related: app.scope.document.021, app.scope.viewers.003
+
+### app.scope.document.029 — Reading marks and notes have no document-independent home
+
+- Evidence: PDF, EPUB, Markdown, HTML and Office readers have selection or location models but
+  no read-only-source highlight and note store. [Okular](https://docs.kde.org/stable_kf6/en/okular/okular/annotations.html)
+  annotates many document formats; [calibre](https://manual.calibre-ebook.com/viewer.html)
+  groups book highlights by chapter. Writing marks into every input format would create a separate
+  editing and compatibility contract.
+- Next: define stable location anchors and a versioned local sidecar store for highlights, notes
+  and named bookmarks, starting with EPUB and PDF; expose source change/conflict status.
+- Done when: marks survive reopen and layout changes across supported readers, navigate back to
+  the intended content, can be exported, and never silently alter an original document.
+- Related: app.scope.document.021, app.scope.viewers.003
+
+### app.scope.document.030 — Text documents have no read-aloud path
+
+- Evidence: [Okular](https://docs.kde.org/stable_kf6/en/okular/okular/menutools.html),
+  [Acrobat Reader](https://helpx.adobe.com/uk/acrobat/using/reading-pdfs-reflow-accessibility-features.html)
+  and [calibre](https://manual.calibre-ebook.com/viewer.html) can speak document text. Swag Scope
+  exposes no such action or spoken-position cue across its text-bearing viewers.
+- Next: establish one reading-order and sentence-position contract, first for EPUB and tagged PDF;
+  choose a built-in Swag speech path or an operating-system facility already present on the host,
+  without a downloaded voice, helper executable or viewer dependency.
+- Done when: supported documents can speak current selection or continue from the reading position,
+  highlight the spoken passage, pause and resume, and clearly report when the host has no voice;
+  opening and visual reading never depend on speech availability.
+- Related: app.scope.document.021, std.gui.pdf.042, app.scope.viewers.014
+
+### app.scope.document.031 — PDF inspection has no region and table selection tools
+
+- Evidence: the PDF view supports text selection, search and copy, while
+  [Okular's PDF tools](https://docs.kde.org/stable_kf6/en/okular/okular/menutools.html)
+  include area copy, table selection and a temporary magnifier. The current selection model
+  cannot preserve a rectangular image crop or a reconstructed table with provenance.
+- Next: add a bounded page-region selection and magnifier using the existing page transforms;
+  then extract text cells from selected rows and columns with an explicit ambiguous-layout report.
+- Done when: a user can copy a page region as an image and a well-formed table as delimited text,
+  navigate the selected source bounds, and see when the table structure cannot be inferred.
+- Related: std.gui.pdf.039, app.scope.document.019
 
 ### app.scope.document.004 — Markdown reading position and presentation cannot be shared or exported
 

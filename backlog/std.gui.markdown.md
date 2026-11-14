@@ -15,6 +15,18 @@ The engine lives beside its widget inside `gui`; application-level zoom stays in
 
 ## Entries
 
+### std.gui.markdown.012 — Diagram fences have no safe visual preview
+
+- Evidence: a diagram fence remains a code block. [Typora](https://support.typora.io/Draw-Diagrams-With-Markdown/)
+  renders supported diagram extensions, while also noting they are outside CommonMark and GFM.
+  Swag Scope cannot execute a JavaScript diagram engine or require a separately installed renderer.
+- Next: define one opt-in, bounded static diagram subset and implement its parser and layout in
+  Swag; preserve source text and an explicit diagnostic for unsupported constructs.
+- Done when: supported diagram fences render offline with selectable text and source mapping,
+  malformed or oversized diagrams fall back to readable code without blocking the document, and
+  the release still needs only the Swag Scope executable.
+- Related: app.scope.viewers.014
+
 ### std.gui.markdown.005 — Inline TOC, fragment and footnote links do not navigate the document
 
 - Evidence: `Markdown.parseHeadings` returns headings with distinct source byte offsets, and

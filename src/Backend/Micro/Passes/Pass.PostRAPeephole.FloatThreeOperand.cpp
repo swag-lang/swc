@@ -105,14 +105,14 @@ namespace PostRaPeephole
             if (!lateFloatMemory && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
                 return ops[1].reg == loaded && ops[0].reg != loaded;
             if (lateFloatMemory && isFloat && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4 &&
-                ops[2].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[3].microOp) && !isPackedFloatBinaryMicroOp(ops[3].microOp))
+                ((ops[2].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[3].microOp) && !isPackedFloatBinaryMicroOp(ops[3].microOp)) ||
+                 ((ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64) && hasThreeOperandForm(ops[3].microOp))))
                 return ops[0].reg == loaded && ops[1].reg != loaded;
             if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
             {
                 if (lateFloatMemory)
                 {
-                    const bool packed = ops[3].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[4].microOp);
-                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) && (ops[0].reg != loaded || packed) &&
+                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) &&
                            ((ops[2].reg == loaded && ops[1].reg != loaded) || (ops[1].reg == loaded && ops[2].reg != loaded));
                 }
                 return ops[2].reg == loaded &&
@@ -1483,7 +1483,16 @@ namespace PostRaPeephole
 
         const uint32_t leftIndex  = threeOperand ? 1 : 0;
         const uint32_t rightIndex = threeOperand ? 2 : 1;
-        if (fused || (isFloat && (threeOperand || packed) && (packed || consumerOps[0].reg != consumerOps[leftIndex].reg) && (consumerOps[0].reg != loaded || packed)))
+        // A retained left-source copy can restore the original destination when
+        // the load disappears. Let the existing destructive fold remove both.
+        const auto  copyRef      = ctx.previousRef(loadRef);
+        const auto* copyInst     = ctx.instruction(copyRef);
+        const auto* copyOps      = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
+        const bool  restoredLeft = isFloat && threeOperand && !packed && consumerOps[0].reg == loaded &&
+                                   copyInst && copyInst->op == MicroInstrOpcode::LoadRegReg && copyOps &&
+                                   copyOps[0].reg == consumerOps[1].reg && copyOps[1].reg == loaded && copyOps[2].opBits == opBits;
+        const bool  vexMemory    = isFloat && !restoredLeft && (packed || (threeOperand && consumerOps[0].reg != consumerOps[leftIndex].reg) || (lateFloatMemory && !threeOperand));
+        if (fused || vexMemory)
         {
             // This VEX memory form uses a full-width base and index. A
             // narrowed address would wrap before dereferencing instead.
@@ -2136,6 +2145,7 @@ namespace PostRaPeephole
 
             if ((candidate->op == MicroInstrOpcode::OpBinaryRegRegReg && candidate->numOperands >= 5) ||
                 (candidate->op == MicroInstrOpcode::OpBinaryRegRegMem && candidate->numOperands >= 6) ||
+                (candidate->op == MicroInstrOpcode::OpBinaryRegRegAmcMem && candidate->numOperands >= 8) ||
                 (candidate->op == MicroInstrOpcode::OpBinaryRegReg && candidate->numOperands >= 4))
             {
                 const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
@@ -2175,9 +2185,11 @@ namespace PostRaPeephole
         // The two-operand form names its destination as its own left source:
         // `xmm1 *= xmm0` spelled out is `xmm1 = xmm1 * xmm0`. Widening it here
         // is what lets the copy go, since the temporary is the destination.
-        const bool        memory    = opInst->op == MicroInstrOpcode::OpBinaryRegRegMem;
-        const uint32_t    numOps    = memory ? 6 : 5;
-        MicroInstrOperand newOps[6] = {};
+        const bool        indexed   = opInst->op == MicroInstrOpcode::OpBinaryRegRegAmcMem;
+        const bool        memory    = indexed || opInst->op == MicroInstrOpcode::OpBinaryRegRegMem;
+        const uint32_t    numOps    = indexed ? 8 : memory ? 6
+                                                           : 5;
+        MicroInstrOperand newOps[8] = {};
         if (opInst->op == MicroInstrOpcode::OpBinaryRegReg)
         {
             if ((opOps[2].opBits != copyBits && copyBits != MicroOpBits::B128) || !foldableIntoThreeOperand(opOps[3].microOp, opOps[2].opBits) ||
@@ -2192,7 +2204,7 @@ namespace PostRaPeephole
         }
         else
         {
-            if ((opOps[3].opBits != copyBits && copyBits != MicroOpBits::B128) || !opOps[1].reg.isFloat() || (!memory && !opOps[2].reg.isFloat()))
+            if ((opOps[indexed ? 4 : 3].opBits != copyBits && copyBits != MicroOpBits::B128) || !opOps[1].reg.isFloat() || (!memory && !opOps[2].reg.isFloat()))
                 return false;
             std::ranges::copy(std::span{opOps, numOps}, newOps);
         }
@@ -2200,13 +2212,16 @@ namespace PostRaPeephole
         // A scalar VEX producer already carries the final destination's upper
         // lanes when that destination is its first input. Bitwise forms write
         // every lane and cannot use that identity.
-        const bool preservesUpperLanes = newOps[1].reg == dst && newOps[4].microOp != MicroOp::FloatAnd && newOps[4].microOp != MicroOp::FloatXor;
+        const MicroOp op                  = newOps[indexed ? 5 : 4].microOp;
+        const bool    preservesUpperLanes = newOps[1].reg == dst && op != MicroOp::FloatAnd && op != MicroOp::FloatXor;
         if ((!preservesUpperLanes && !areFloatUpperLanesDeadAfter(ctx, copyRef, dst, copyBits)) || floatLanesReadAfter(ctx, copyRef, src) ||
             !ctx.claimAll({opRef, copyRef}))
             return false;
 
         newOps[0].reg = dst;
-        ctx.emitRewrite(opRef, memory ? MicroInstrOpcode::OpBinaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, numOps}, /*allocNewBlock=*/true);
+        ctx.emitRewrite(opRef, indexed ? MicroInstrOpcode::OpBinaryRegRegAmcMem : memory ? MicroInstrOpcode::OpBinaryRegRegMem
+                                                                                         : MicroInstrOpcode::OpBinaryRegRegReg,
+                        std::span{newOps, numOps}, /*allocNewBlock=*/true);
         ctx.emitErase(copyRef);
         return true;
     }

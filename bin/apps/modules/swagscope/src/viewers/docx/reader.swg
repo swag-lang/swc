@@ -24,6 +24,8 @@ private struct Reader
     inText:                bool
     inImage:               bool
     imageId:               String
+    imageWidth:            u32
+    imageHeight:           u32
 }
 
 private impl Reader
@@ -40,7 +42,7 @@ private impl Reader
     {
         if not .inImage do
             return
-        let image = .images.html(.imageId)
+        let image = .images.html(.imageId, .imageWidth, .imageHeight)
         if image.isEmpty()
         {
             .document.omittedImages += 1
@@ -52,6 +54,8 @@ private impl Reader
             .appendInline(image)
         .inImage = false
         .imageId.clear()
+        .imageWidth = 0
+        .imageHeight = 0
     }
 
     mtd finishRun()
@@ -164,7 +168,17 @@ private impl Reader
 
         if .inImage
         {
-            if token.isElement("blip")
+            if token.isElement("extent") and not .imageWidth
+            {
+                let cx = catch StrConv.toU64(token.attribute("cx") orelse "") { return; }
+                let cy = catch StrConv.toU64(token.attribute("cy") orelse "") { return; }
+                if cx >= 9525 and cy >= 9525 and cx <= 39_014_400 and cy <= 39_014_400
+                {
+                    .imageWidth = cast(u32, (cx + 4762) / 9525)
+                    .imageHeight = cast(u32, (cy + 4762) / 9525)
+                }
+            }
+            elif token.isElement("blip")
             {
                 let id = token.attribute("r:embed")
                 if id do

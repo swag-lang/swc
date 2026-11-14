@@ -57,6 +57,7 @@ using Core, Gui, Gui.Testing, Viewers
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.image.docx"))
     Swag.require(document.paragraphs == 3 and document.omittedImages == 1)
     Swag.require(Utf8.contains(document.html, "data:image/jpeg;base64,"))
+    Swag.require(Utf8.contains(document.html, "width=\"320\" height=\"240\""))
     Swag.require(Utf8.contains(document.html, "[Image not shown]"))
     Swag.require(not Utf8.contains(document.html, "example.invalid"))
 }

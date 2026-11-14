@@ -20,10 +20,16 @@ struct Channel
 internal struct Decoder { bytes: const [..] u8?; parts: Array'Part; multipart: bool }
 
 #[Swag.Inline]
-func readU32(source: const [*] u8)->u32 => cast(const *u32, source)[]
+func readU16(source: const [*] u8)->u16 => cast(u16, source[0]) | (cast(u16, source[1]) << 8)
 
 #[Swag.Inline]
-func readU64(source: const [*] u8)->u64 => cast(const *u64, source)[]
+func readU32(source: const [*] u8)->u32 => cast(u32, readU16(source)) | (cast(u32, readU16(source + 2)) << 16)
+
+#[Swag.Inline]
+func readU64(source: const [*] u8)->u64 => cast(u64, readU32(source)) | (cast(u64, readU32(source + 4)) << 32)
+
+#[Swag.Inline]
+func readF32(source: const [*] u8)->f32 => cast #bit (f32, readU32(source))
 
 func readText(buffer: const [..] u8, offset: *u64, maxLength: u64)->String fail
 {
@@ -134,7 +140,7 @@ func writeChunk(image: *Image, channels: const [..] Channel, source: const [..] 
                 for x in image.width
                 {
                     let input  = source.buffer + offset + cast(u64, x) * bytes
-                    let value  = channel.pixelType == 1 ? halfToFloat(cast(const *u16, input)[]) : cast(const *f32, input)[]
+                    let value  = channel.pixelType == 1 ? halfToFloat(readU16(input)) : readF32(input)
                     let target = image.pixels.storage() + cast(u64, targetY) * image.rowStride + cast(u64, x) * image.bytesPerPixel
                     var pixel  = readPixelValue(target, image.pixelFormat)
                     switch component
@@ -273,6 +279,8 @@ impl Part
 
         if not (hasY or (hasR and hasG and hasB)) do
             fail UnsupportedFormatError{"OpenEXR image has neither Y nor RGB color channels"}
+        if hasY and hasR and hasG and hasB do
+            fail UnsupportedFormatError{"OpenEXR images with both Y and RGB channels are not supported"}
         let grayscale = hasY and not (hasR and hasG and hasB)
         var format: PixelFormat
         if hasFloat

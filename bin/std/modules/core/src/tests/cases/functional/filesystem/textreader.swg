@@ -20,6 +20,7 @@ using Swag
 }
 
 // Lines end with '\n', '\r\n', or the end of the file, and keep no end-of-line character.
+// The BOM and first CRLF leave the next long-word scan at an unaligned byte offset.
 #test
 {
     let fileName = CoreTests.makeFilesystemTestPath("core_textreader_lines.tmp")

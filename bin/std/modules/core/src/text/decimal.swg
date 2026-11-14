@@ -450,7 +450,8 @@ impl Decimal
             .dp = .nd
 
         // Exponent
-        c = buffer[]
+        if cpt < countof do
+            c = buffer[]
         if cpt < countof and (c | 32) == 'e'
         {
             if cpt == Swag.U32.Max do

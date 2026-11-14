@@ -66,7 +66,8 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(document.paragraphs == 3 and document.omittedImages == 1)
     Swag.require(Utf8.contains(document.html, "data:image/jpeg;base64,"))
     Swag.require(Utf8.contains(document.html, "width=\"320\" height=\"240\""))
-    Swag.require(Utf8.contains(document.html, "[Image not shown]"))
+    Swag.require(Utf8.contains(document.html, "alt=\"Grey &amp; silver arcs\""))
+    Swag.require(Utf8.contains(document.html, "[Image not shown]: Remote chart"))
     Swag.require(not Utf8.contains(document.html, "example.invalid"))
 }
 

@@ -34,6 +34,7 @@ using Core, Gui, Gui.Testing, Viewers
     let second = Utf8.indexOf(presentation.html, "First &amp; final")
     Swag.require(first < image and image < second)
     Swag.require(Utf8.contains(presentation.html, "width=\"320\" height=\"240\""))
+    Swag.require(Utf8.contains(presentation.html, "alt=\"Grey &amp; silver arcs\""))
 }
 
 // A PowerPoint deck from the Apache POI corpus keeps the slide sequence and text.

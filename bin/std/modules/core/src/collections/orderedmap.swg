@@ -28,11 +28,11 @@ struct(K, V) OrderedMap
     public readonly count: u64     // The number of key-value pairs in the map.
 }
 
-// Iterates a borrowed ordered map from its greatest key to its least key, exposing keys only through const access.
+// Iterates a mutable ordered map from its greatest key to its least key, exposing keys only through const access.
 #[Swag.Opaque]
 struct(K, V) ReversedOrderedMap
 {
-    source: const *OrderedMap'(K, V)
+    source: *OrderedMap'(K, V)
 }
 
 impl ReversedOrderedMap
@@ -52,6 +52,66 @@ impl ReversedOrderedMap
                     #inject(stmt,
                             key = cast(const *K, &entry.key),
                             value = cast(*V, &entry.value),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(K) and Reflection.isStruct(V) do
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = cast(const *V, &entry.value),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(K) do
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = entry.value,
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
+                elif Reflection.isStruct(V) do
+                    #inject(stmt,
+                            key = entry.key,
+                            value = cast(const *V, &entry.value),
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
+                else do
+                    #inject(stmt,
+                            key = entry.key,
+                            value = entry.value,
+                            index = offset,
+                            break = break to Up,
+                            continue = break to Down)
+            }
+        }
+    }
+}
+
+// Iterates a const borrowed ordered map from its greatest key to its least key.
+#[Swag.Opaque]
+struct(K, V) ConstReversedOrderedMap
+{
+    source: const *OrderedMap'(K, V)
+}
+
+impl ConstReversedOrderedMap
+{
+    // Iterates entries from the greatest key to the least key.
+    #[Macro]
+    mtd(ptr: bool) const opVisit(stmt: #code(key, value, index: u64))
+    {
+        scope(Up)
+        for offset in .source.count
+        {
+            let entryIndex = .source.count - offset - 1
+            let entry      = .source.entries.storage() + entryIndex
+            scope(Down)
+            {
+                #static if ptr do
+                    #inject(stmt,
+                            key = cast(const *K, &entry.key),
+                            value = cast(const *V, &entry.value),
                             index = offset,
                             break = break to Up,
                             continue = break to Down)
@@ -347,6 +407,9 @@ impl OrderedMap
         }
     }
 
-    // Returns an immutable zero-allocation view that traverses entries in descending key order.
-    mtd const reversed()->ReversedOrderedMap'(K, V) => {source: me}
+    // Returns a zero-allocation view that traverses entries in descending key order.
+    //
+    // The view preserves whether this map is mutable or const.
+    mtd reversed()->ReversedOrderedMap'(K, V) => {source: me}
+    mtd const reversed()->ConstReversedOrderedMap'(K, V) => {source: me}
 }

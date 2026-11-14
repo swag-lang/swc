@@ -104,6 +104,8 @@ public:
     const PhiInfo*                          phiInfoForValue(uint32_t valueId) const;
     std::span<const ValueInfo>              values() const { return std::span(valueInfos_.data(), valueInfoCount_); }
     std::span<const PhiInfo>                phis() const { return std::span(phiInfos_.data(), phiInfoCount_); }
+    // Instruction membership of a basic block in this immutable SSA snapshot.
+    std::span<const MicroInstrRef> blockInstructions(uint32_t blockIndex) const;
 
 private:
     struct InstrInfo

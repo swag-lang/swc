@@ -573,6 +573,14 @@ const MicroSsaState::PhiInfo* MicroSsaState::phiInfoForValue(const uint32_t valu
     return &phiInfos_[info->phiIndex];
 }
 
+std::span<const MicroInstrRef> MicroSsaState::blockInstructions(uint32_t blockIndex) const
+{
+    if (!valid_ || blockIndex >= blocks_.size())
+        return {};
+    const auto& block = blocks_[blockIndex];
+    return std::span{instructionRefs_}.subspan(block.instructionBegin, block.instructionEnd - block.instructionBegin);
+}
+
 void MicroSsaState::buildBlocks(const MicroControlFlowGraph& controlFlowGraph)
 {
     // Block discovery overwrites every active entry before successor mapping reads it.

@@ -1188,6 +1188,530 @@ namespace
         bool                                  built_ = false;
     };
 
+    // Signed counter ranges over guarded recurrences. Every back-edge value is
+    // either an unchanged counter or one nonnegative step. A dominating signed
+    // upper guard bounds that step before overflow can occur. Pure merge/copy
+    // cycles may carry the resulting range through selections such as `best`.
+    class GuardedCounterRanges
+    {
+        struct Bound
+        {
+            int64_t upper       = 0;
+            bool    nonnegative = false;
+        };
+        struct Answer
+        {
+            std::optional<Bound> bound;
+            bool                 identity = false;
+        };
+        struct Guard
+        {
+            uint32_t               value = MicroSsaState::K_INVALID_VALUE;
+            uint32_t               rhs   = MicroSsaState::K_INVALID_VALUE;
+            std::optional<int64_t> constant;
+            uint32_t               comparedAt = 0;
+            uint32_t               provenAt   = 0;
+            MicroOpBits            bits       = MicroOpBits::Zero;
+            bool                   strict     = false;
+        };
+        struct CounterRange
+        {
+            Bound       bound;
+            MicroOpBits bits = MicroOpBits::Zero;
+        };
+        struct Update
+        {
+            uint32_t value = MicroSsaState::K_INVALID_VALUE;
+            uint32_t at    = 0;
+            uint64_t step  = 0;
+        };
+        struct Recurrence
+        {
+            uint32_t                  root    = MicroSsaState::K_INVALID_VALUE;
+            MicroOpBits               bits    = MicroOpBits::Zero;
+            uint64_t                  seedMax = 0;
+            bool                      hasSeed = false;
+            SmallVector<Update, 4>    updates;
+            SmallVector<uint32_t, 16> merges;
+        };
+
+    public:
+        GuardedCounterRanges(MicroPassContext& context, const MicroSsaState& ssa, const MicroPassHelpers::MicroDomTree& dom) :
+            context_(context),
+            ssa_(ssa),
+            dom_(dom),
+            cfg_(context.builder->controlFlowGraph()),
+            refs_(cfg_.instructionRefs())
+        {
+        }
+        std::optional<uint64_t> upperBound(MicroReg reg, MicroInstrRef at, MicroOpBits bits)
+        {
+            if (!cfg_.supportsDeadCodeLiveness() || cfg_.hasUnsupportedControlFlowForCfgLiveness())
+                return {};
+            if (!built_)
+            {
+                collectGuards();
+                collectCounters();
+                built_ = true;
+            }
+            const auto result = query(ssa_.reachingValueId(reg, at), cfg_.indexOf(at), bits);
+            if (!result.bound || !result.bound->nonnegative)
+                return {};
+            return static_cast<uint64_t>(result.bound->upper);
+        }
+
+    private:
+        uint32_t canonical(uint32_t id, MicroOpBits bits) const
+        {
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::StrengthReduction::K_MAX_VALUE_COPY_DEPTH; ++depth)
+            {
+                const auto* value = ssa_.valueInfo(id);
+                const auto* inst  = value && !value->isPhi() ? context_.instructions->ptr(value->instRef) : nullptr;
+                const auto* ops   = inst ? inst->ops(*context_.operands) : nullptr;
+                if (!ops || inst->op != MicroInstrOpcode::LoadRegReg || getNumBits(ops[2].opBits) < getNumBits(bits))
+                    break;
+                id = ssa_.reachingValueId(ops[1].reg, value->instRef);
+            }
+            return id;
+        }
+        std::optional<int64_t> literal(uint32_t id, MicroOpBits bits) const
+        {
+            id                = canonical(id, bits);
+            const auto* value = ssa_.valueInfo(id);
+            const auto* inst  = value && !value->isPhi() ? context_.instructions->ptr(value->instRef) : nullptr;
+            const auto* ops   = inst ? inst->ops(*context_.operands) : nullptr;
+            if (!ops || (inst->op != MicroInstrOpcode::ClearReg && inst->op != MicroInstrOpcode::LoadRegImm) ||
+                (ops[1].opBits != bits && !(ops[1].opBits == MicroOpBits::B32 && bits == MicroOpBits::B64)))
+                return {};
+            if (inst->op == MicroInstrOpcode::ClearReg)
+                return 0;
+            if (ops[2].hasWideImmediateValue())
+                return {};
+            const uint64_t raw   = ops[2].valueU64 & getBitsMask(ops[1].opBits);
+            const uint32_t shift = 64 - getNumBits(bits);
+            return static_cast<int64_t>(raw << shift) >> shift;
+        }
+        void collectGuards()
+        {
+            for (uint32_t at = 0; at + 2 < refs_.size(); ++at)
+            {
+                const auto* cmp  = context_.instructions->ptr(refs_[at]);
+                const auto* jump = context_.instructions->ptr(refs_[at + 1]);
+                if ((cmp->op != MicroInstrOpcode::CmpRegImm && cmp->op != MicroInstrOpcode::CmpRegReg) || jump->op != MicroInstrOpcode::JumpCond)
+                    continue;
+                const auto* c    = cmp->ops(*context_.operands);
+                const auto* j    = jump->ops(*context_.operands);
+                const auto  bits = c[cmp->op == MicroInstrOpcode::CmpRegImm ? 1 : 2].opBits;
+                if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                    continue;
+                if (!c[0].reg.isVirtualInt() || (cmp->op == MicroInstrOpcode::CmpRegReg && !c[1].reg.isVirtualInt()))
+                    continue;
+                Guard forward;
+                forward.value      = canonical(ssa_.reachingValueId(c[0].reg, refs_[at]), bits);
+                forward.comparedAt = at;
+                forward.bits       = bits;
+                if (cmp->op == MicroInstrOpcode::CmpRegImm)
+                {
+                    if (c[2].hasWideImmediateValue())
+                        continue;
+                    const uint32_t shift = 64 - getNumBits(bits);
+                    forward.constant     = static_cast<int64_t>(c[2].valueU64 << shift) >> shift;
+                }
+                else
+                    forward.rhs = canonical(ssa_.reachingValueId(c[1].reg, refs_[at]), bits);
+                const uint32_t target = cfg_.indexOfLabel(j[2].valueU64);
+                for (const bool taken : {false, true})
+                {
+                    Guard guard    = forward;
+                    guard.provenAt = taken ? target : at + 2;
+                    bool reverse   = false;
+                    switch (j[0].cpuCond)
+                    {
+                        case MicroCond::Less:
+                            reverse      = !taken;
+                            guard.strict = taken;
+                            break;
+                        case MicroCond::LessOrEqual:
+                            reverse      = !taken;
+                            guard.strict = !taken;
+                            break;
+                        case MicroCond::Greater:
+                            reverse      = taken;
+                            guard.strict = taken;
+                            break;
+                        case MicroCond::GreaterOrEqual:
+                            reverse      = taken;
+                            guard.strict = !taken;
+                            break;
+                        default: continue;
+                    }
+                    if (reverse)
+                    {
+                        if (guard.constant)
+                            continue;
+                        std::swap(guard.value, guard.rhs);
+                    }
+                    if (guard.provenAt >= refs_.size() || target == at + 2 ||
+                        cfg_.predecessors(guard.provenAt).size() != 1 || cfg_.predecessors(guard.provenAt)[0] != at + 1)
+                        continue;
+                    guards_.push_back(guard);
+                }
+            }
+        }
+        Answer query(uint32_t id, uint32_t at, MicroOpBits bits)
+        {
+            uint32_t                  budget = MicroOptimizationLimits::StrengthReduction::K_MAX_RANGE_QUERY_NODES;
+            SmallVector<uint32_t, 16> active;
+            return valueBound(id, at, bits, budget, active);
+        }
+        Answer valueBound(uint32_t id, uint32_t at, MicroOpBits bits, uint32_t& budget, SmallVector<uint32_t, 16>& active)
+        {
+            if (!budget || at >= refs_.size() || id == MicroSsaState::K_INVALID_VALUE)
+                return {};
+            --budget;
+            id = canonical(id, bits);
+            std::optional<Bound> upper;
+            for (const auto& guard : guards_)
+            {
+                if (guard.value != id || guard.bits != bits || !dom_.dominates(guard.provenAt, at))
+                    continue;
+                auto bound = guard.constant;
+                if (!bound)
+                {
+                    const auto rhs = valueBound(guard.rhs, guard.comparedAt, bits, budget, active);
+                    if (rhs.bound)
+                        bound = rhs.bound->upper;
+                }
+                if (!bound || (guard.strict && *bound == INT64_MIN))
+                    continue;
+                const int64_t maximum = *bound - (guard.strict ? 1 : 0);
+                if (!upper || maximum < upper->upper)
+                    upper = Bound{maximum, false};
+            }
+            std::optional<Bound> result;
+            if (const auto* known = ranges_.find(id); known && known->bits == bits)
+                result = known->bound;
+            else if (const auto constant = literal(id, bits))
+                result = Bound{*constant, *constant >= 0};
+            else
+            {
+                const auto* value = ssa_.valueInfo(id);
+                if (value && value->isPhi())
+                {
+                    if (std::ranges::find(active, id) != active.end())
+                        return {upper, !upper.has_value()};
+                    active.push_back(id);
+                    const auto* phi   = ssa_.phiInfo(value->phiIndex);
+                    bool        valid = phi && phi->predecessorBlocks.size() == phi->incomingValueIds.size();
+                    for (uint32_t input = 0; valid && input < phi->incomingValueIds.size(); ++input)
+                    {
+                        const auto block = ssa_.blockInstructions(phi->predecessorBlocks[input]);
+                        if (block.empty())
+                        {
+                            valid = false;
+                            break;
+                        }
+                        const auto incoming = valueBound(phi->incomingValueIds[input], cfg_.indexOf(block.back()), bits, budget, active);
+                        if (incoming.identity)
+                            continue;
+                        if (!incoming.bound)
+                        {
+                            valid = false;
+                            break;
+                        }
+                        if (!result)
+                            result = incoming.bound;
+                        else
+                        {
+                            result->upper = std::max(result->upper, incoming.bound->upper);
+                            result->nonnegative &= incoming.bound->nonnegative;
+                        }
+                    }
+                    active.pop_back();
+                    if (!valid)
+                        result.reset();
+                    else if (!result)
+                        return {upper, !upper.has_value()};
+                }
+                else if (value)
+                {
+                    const auto* inst = context_.instructions->ptr(value->instRef);
+                    const auto* ops  = inst ? inst->ops(*context_.operands) : nullptr;
+                    if (ops && inst->op == MicroInstrOpcode::LoadCondRegReg && ops[3].opBits == bits)
+                        result = minBound(*value, *inst, budget, active, bits);
+                    else if (ops)
+                    {
+                        uint32_t base;
+                        uint64_t step;
+                        if (affine(id, MicroSsaState::K_INVALID_VALUE, bits, base, step))
+                        {
+                            const auto     previous  = valueBound(base, cfg_.indexOf(value->instRef), bits, budget, active);
+                            const uint64_t signedMax = getBitsMask(bits) >> 1;
+                            if (previous.bound && previous.bound->nonnegative && step <= signedMax - static_cast<uint64_t>(previous.bound->upper))
+                                result = Bound{previous.bound->upper + static_cast<int64_t>(step), true};
+                        }
+                    }
+                }
+            }
+            if (upper && (!result || upper->upper < result->upper))
+            {
+                upper->nonnegative = result && result->nonnegative;
+                result             = upper;
+            }
+            if (result && result->nonnegative && result->upper < 0)
+                return {};
+            return {result, false};
+        }
+        std::optional<Bound> minBound(const MicroSsaState::ValueInfo& value, const MicroInstr& select, uint32_t& budget, SmallVector<uint32_t, 16>& active, MicroOpBits bits)
+        {
+            const auto*    selected = select.ops(*context_.operands);
+            const uint32_t old      = canonical(ssa_.reachingValueId(selected[0].reg, value.instRef), bits);
+            const uint32_t source   = canonical(ssa_.reachingValueId(selected[1].reg, value.instRef), bits);
+            uint32_t       at       = cfg_.indexOf(value.instRef);
+            for (uint32_t step = 0; step < MicroOptimizationLimits::StrengthReduction::K_MAX_TEST_COPY_DEPTH && at; ++step)
+            {
+                const auto* inst = context_.instructions->ptr(refs_[--at]);
+                const auto* ops  = inst->ops(*context_.operands);
+                if (inst->op == MicroInstrOpcode::Label || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    return {};
+                if (!MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
+                    continue;
+                if (inst->op != MicroInstrOpcode::CmpRegReg && inst->op != MicroInstrOpcode::CmpRegImm)
+                    return {};
+                if (ops[inst->op == MicroInstrOpcode::CmpRegImm ? 1 : 2].opBits != bits)
+                    return {};
+                const uint32_t lhs          = canonical(ssa_.reachingValueId(ops[0].reg, refs_[at]), bits);
+                auto           matchesRight = [&](uint32_t id) {
+                    if (inst->op == MicroInstrOpcode::CmpRegReg)
+                        return canonical(ssa_.reachingValueId(ops[1].reg, refs_[at]), bits) == id;
+                    if (ops[2].hasWideImmediateValue())
+                        return false;
+                    const auto constant = literal(id, bits);
+                    return constant && (static_cast<uint64_t>(*constant) & getBitsMask(bits)) == (ops[2].valueU64 & getBitsMask(bits));
+                };
+                const MicroCond cond    = selected[2].cpuCond;
+                const bool      minimum = ((cond == MicroCond::Less || cond == MicroCond::LessOrEqual) && source == lhs && matchesRight(old)) ||
+                                          ((cond == MicroCond::Greater || cond == MicroCond::GreaterOrEqual) && old == lhs && matchesRight(source));
+                if (!minimum)
+                    return {};
+                const auto a = valueBound(old, cfg_.indexOf(value.instRef), bits, budget, active);
+                const auto b = valueBound(source, cfg_.indexOf(value.instRef), bits, budget, active);
+                if (!a.bound && !b.bound)
+                    return {};
+                return Bound{a.bound && b.bound ? std::min(a.bound->upper, b.bound->upper) : a.bound ? a.bound->upper
+                                                                                                     : b.bound->upper,
+                             a.bound && b.bound && a.bound->nonnegative && b.bound->nonnegative};
+            }
+            return {};
+        }
+        // A nonnegative constant affine step, optionally relative to one root.
+        bool affine(uint32_t id, uint32_t root, MicroOpBits bits, uint32_t& base, uint64_t& step) const
+        {
+            id = canonical(id, bits);
+            if (id == root)
+            {
+                base = id;
+                step = 0;
+                return true;
+            }
+            const auto* value = ssa_.valueInfo(id);
+            const auto* inst  = value && !value->isPhi() ? context_.instructions->ptr(value->instRef) : nullptr;
+            const auto* ops   = inst ? inst->ops(*context_.operands) : nullptr;
+            if (!ops)
+                return false;
+            if (inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == bits && ops[2].microOp == MicroOp::Add && !ops[3].hasWideImmediateValue())
+            {
+                base = canonical(ssa_.reachingValueId(ops[0].reg, value->instRef), bits);
+                step = ops[3].valueU64 & getBitsMask(bits);
+            }
+            else if (inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == bits)
+            {
+                base = canonical(ssa_.reachingValueId(ops[1].reg, value->instRef), bits);
+                step = ops[3].valueU64;
+            }
+            else if (inst->op == MicroInstrOpcode::OpUnaryReg && ops[1].opBits == bits && ops[2].microOp == MicroOp::Add)
+            {
+                base = canonical(ssa_.reachingValueId(ops[0].reg, value->instRef), bits);
+                step = 1;
+            }
+            else
+                return false;
+            return step <= (getBitsMask(bits) >> 1) && (root == MicroSsaState::K_INVALID_VALUE || base == root);
+        }
+        bool recurrence(Recurrence& out, uint32_t id, const MicroPassHelpers::NaturalLoop& loop, uint32_t at, uint32_t& budget)
+        {
+            if (!budget)
+                return false;
+            --budget;
+            id = canonical(id, out.bits);
+            if (id == out.root)
+                return true;
+            const auto* value = ssa_.valueInfo(id);
+            if (!value)
+                return false;
+            const auto block = ssa_.blockInstructions(value->blockIndex);
+            if (block.empty())
+                return false;
+            const uint32_t definedAt = value->isPhi() ? cfg_.indexOf(block.front()) : cfg_.indexOf(value->instRef);
+            if (definedAt >= loop.inBody.size() || !loop.inBody[definedAt])
+            {
+                const auto seed = query(id, at, out.bits);
+                if (!seed.bound || !seed.bound->nonnegative)
+                    return false;
+                out.hasSeed = true;
+                out.seedMax = std::max(out.seedMax, static_cast<uint64_t>(seed.bound->upper));
+                return true;
+            }
+            if (value->isPhi())
+            {
+                if (std::ranges::find(out.merges, id) != out.merges.end())
+                    return true;
+                out.merges.push_back(id);
+                const auto* phi = ssa_.phiInfo(value->phiIndex);
+                if (!phi || phi->incomingValueIds.size() != phi->predecessorBlocks.size())
+                    return false;
+                for (uint32_t input = 0; input < phi->incomingValueIds.size(); ++input)
+                {
+                    const auto pred = ssa_.blockInstructions(phi->predecessorBlocks[input]);
+                    if (pred.empty() || !recurrence(out, phi->incomingValueIds[input], loop, cfg_.indexOf(pred.back()), budget))
+                        return false;
+                }
+                return true;
+            }
+            uint32_t base;
+            uint64_t step;
+            if (!affine(id, out.root, out.bits, base, step))
+            {
+                const auto* inst   = context_.instructions->ptr(value->instRef);
+                const auto* ops    = inst ? inst->ops(*context_.operands) : nullptr;
+                uint32_t    stepId = MicroSsaState::K_INVALID_VALUE;
+                if (ops && inst->op == MicroInstrOpcode::OpBinaryRegReg && ops[2].opBits == out.bits && ops[3].microOp == MicroOp::Add)
+                {
+                    base   = canonical(ssa_.reachingValueId(ops[0].reg, value->instRef), out.bits);
+                    stepId = ssa_.reachingValueId(ops[1].reg, value->instRef);
+                }
+                else if (ops && inst->op == MicroInstrOpcode::LoadAddrAmcRegMem && ops[3].opBits == out.bits && ops[4].valueU64 == 1 && ops[5].valueU64 == 0)
+                {
+                    base   = canonical(ssa_.reachingValueId(ops[1].reg, value->instRef), out.bits);
+                    stepId = ssa_.reachingValueId(ops[2].reg, value->instRef);
+                    if (base != out.root && canonical(stepId, out.bits) == out.root)
+                        std::swap(base, stepId);
+                }
+                else
+                    return false;
+                const auto amount = query(stepId, definedAt, out.bits);
+                if (base != out.root || !amount.bound || !amount.bound->nonnegative)
+                    return false;
+                step = static_cast<uint64_t>(amount.bound->upper);
+            }
+            out.updates.push_back({id, definedAt, step});
+            return true;
+        }
+        void collectCounters()
+        {
+            const auto& loops = MicroPassHelpers::naturalLoopsFor(context_.ssaState, cfg_, dom_);
+            for (uint32_t round = 0; round < MicroOptimizationLimits::StrengthReduction::K_MAX_RANGE_ROUNDS; ++round)
+            {
+                bool changed = false;
+                for (const auto& phi : ssa_.phis())
+                {
+                    if (!phi.reg.isVirtualInt())
+                        continue;
+                    if (ranges_.find(phi.resultValueId))
+                        continue;
+                    const auto block = ssa_.blockInstructions(phi.blockIndex);
+                    if (block.empty())
+                        continue;
+                    const auto found = loops.find(cfg_.indexOf(block.front()));
+                    if (found == loops.end())
+                        continue;
+                    const auto& loop     = found->second;
+                    bool        indirect = false;
+                    for (const auto label : cfg_.addressTakenLabelIndices())
+                        indirect |= label < loop.inBody.size() && loop.inBody[label];
+                    if (indirect)
+                        continue;
+                    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+                    {
+                        Recurrence candidate;
+                        candidate.root  = phi.resultValueId;
+                        candidate.bits  = bits;
+                        uint32_t budget = MicroOptimizationLimits::StrengthReduction::K_MAX_RANGE_QUERY_NODES;
+                        // Every incoming edge must be a seed, an unchanged
+                        // value, or a step bounded by a dominating guard.
+                        for (uint32_t input = 0; input < phi.incomingValueIds.size(); ++input)
+                        {
+                            const auto pred = ssa_.blockInstructions(phi.predecessorBlocks[input]);
+                            if (pred.empty() || !recurrence(candidate, phi.incomingValueIds[input], loop, cfg_.indexOf(pred.back()), budget))
+                            {
+                                candidate.hasSeed = false;
+                                break;
+                            }
+                        }
+                        if (!candidate.hasSeed || candidate.updates.empty())
+                            continue;
+                        const uint64_t signedMax = getBitsMask(bits) >> 1;
+                        uint64_t       maximum   = candidate.seedMax;
+                        uint64_t       maxAffine = 0;
+                        bool           valid     = true;
+                        for (const auto& update : candidate.updates)
+                        {
+                            std::optional<uint64_t> best;
+                            uint64_t                affineOffset = 0;
+                            for (const auto& guard : guards_)
+                            {
+                                uint32_t base;
+                                uint64_t offset;
+                                if (guard.bits != bits || !dom_.dominates(guard.provenAt, update.at) ||
+                                    !affine(guard.value, candidate.root, bits, base, offset))
+                                    continue;
+                                auto bound = guard.constant;
+                                if (!bound)
+                                {
+                                    const auto rhs = query(guard.rhs, guard.comparedAt, bits);
+                                    if (rhs.bound)
+                                        bound = rhs.bound->upper;
+                                }
+                                if (!bound || *bound < 0 || static_cast<uint64_t>(*bound) < offset + (guard.strict ? 1u : 0u))
+                                    continue;
+                                const uint64_t upper = static_cast<uint64_t>(*bound) - offset - (guard.strict ? 1u : 0u);
+                                if (!best || upper < *best)
+                                {
+                                    best         = upper;
+                                    affineOffset = offset;
+                                }
+                            }
+                            if (!best || update.step > signedMax - *best)
+                            {
+                                valid = false;
+                                break;
+                            }
+                            maximum   = std::max(maximum, *best + update.step);
+                            maxAffine = std::max(maxAffine, affineOffset);
+                        }
+                        if (!valid || maximum > signedMax || maxAffine > signedMax - maximum)
+                            continue;
+                        ranges_.emplace(candidate.root, CounterRange{{static_cast<int64_t>(maximum), true}, bits});
+                        for (const auto& update : candidate.updates)
+                            ranges_.emplace(update.value, CounterRange{{static_cast<int64_t>(maximum), true}, bits});
+                        changed = true;
+                        break;
+                    }
+                }
+                if (!changed)
+                    break;
+            }
+        }
+        MicroPassContext&                     context_;
+        const MicroSsaState&                  ssa_;
+        const MicroPassHelpers::MicroDomTree& dom_;
+        const MicroControlFlowGraph&          cfg_;
+        std::span<const MicroInstrRef>        refs_;
+        std::vector<Guard>                    guards_;
+        FlatKeyMap<CounterRange>              ranges_;
+        bool                                  built_ = false;
+    };
+
     // Turn every signed division or remainder of a provably non-negative
     // dividend by a positive constant into its unsigned form, before the
     // reductions below look at them. Signedness and proved zero high bits
@@ -1224,6 +1748,7 @@ namespace
         std::vector<SignTest> tests;
         collectSignTests(tests, *ssa, cfg, storage, operands);
         CountedLoopRanges countedRanges(context, *ssa, dom);
+        GuardedCounterRanges guardedRanges(context, *ssa, dom);
 
         bool changed = false;
         for (const MicroInstrRef ref : candidates)
@@ -1234,7 +1759,9 @@ namespace
                 continue;
             if (!isKnownNonNegative(*ssa, dom, tests, operands, ops[0].reg, ref, cfg.indexOf(ref), ops[1].opBits))
             {
-                const auto upper = countedRanges.upperBound(ops[0].reg, ref, ops[1].opBits);
+                auto upper = countedRanges.upperBound(ops[0].reg, ref, ops[1].opBits);
+                if (!upper)
+                    upper = guardedRanges.upperBound(ops[0].reg, ref, ops[1].opBits);
                 if (!upper || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref, context.builder))
                     continue;
                 const uint64_t divisor = ops[3].valueU64;

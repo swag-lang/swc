@@ -537,7 +537,7 @@ impl Vector3
     // within [-π, π].
     mtd const toCylindrical()->{ theta: f32, radius: f32, height: f32 }
     {
-        let radius = Math.sqrt((.x * .x) + (.z * .z))
+        let radius = Vector2{.x, .z}.length()
         let theta  = Math.atan2(.z, .x)
         return {theta: theta, radius: radius, height: .y}
     }

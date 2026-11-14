@@ -41,6 +41,16 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(document.html, "&lt;escaped&gt;"))
 }
 
+// Direct run formatting and paragraph properties become visible without changing text order.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.formatted.docx"))
+    Swag.require(document.paragraphs == 3)
+    Swag.require(Utf8.contains(document.html, "<h1 style=\"text-align:center\"><b>Styled title</b></h1>"))
+    Swag.require(Utf8.contains(document.html, "<p>Plain &amp; <i>italic</i> and <u><s>marked</s></u> text.</p>"))
+    Swag.require(Utf8.contains(document.html, "<h2 style=\"text-align:right\">Second heading</h2>"))
+}
+
 // A ZIP with no document body is rejected as a damaged Word document.
 #test
 {

@@ -2,6 +2,61 @@
 
 using Core
 
+private func ac3TestAppendBits(bytes: *Array'u8, bitCount: *u64, value: u32, count: u32)
+{
+    for bit in count
+    {
+        if not (bitCount[] & 7) do
+            bytes.add(0)
+        let shift = count - bit - 1
+        if (value >> shift) & 1 do
+            bytes[bitCount[] >> 3] |= cast(u8, 1'u32 << (7 - cast(u32, bitCount[] & 7)))
+        bitCount[] += 1
+    }
+}
+
+private func ac3TestFrameWithBandwidth(bandwidth: u32)->Array'u8
+{
+    var frame: Array'u8
+    var bits = 0'u64
+    ac3TestAppendBits(&frame, &bits, 0x0B77, 16) // Sync word.
+    ac3TestAppendBits(&frame, &bits, 0, 16) // CRC.
+    ac3TestAppendBits(&frame, &bits, 0, 2) // 48 kHz.
+    ac3TestAppendBits(&frame, &bits, 0, 6) // 32 kbps, 128-byte frame.
+    ac3TestAppendBits(&frame, &bits, 8, 5) // AC-3 bit-stream id.
+    ac3TestAppendBits(&frame, &bits, 0, 3) // Bit-stream mode.
+    ac3TestAppendBits(&frame, &bits, 1, 3) // Mono.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No LFE.
+    ac3TestAppendBits(&frame, &bits, 0, 5) // Dialnorm.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No compression word.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No language code.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No audio production info.
+    ac3TestAppendBits(&frame, &bits, 0, 2) // Copyright and original bits.
+    ac3TestAppendBits(&frame, &bits, 0, 3) // No extended BSI or additional bytes.
+
+    ac3TestAppendBits(&frame, &bits, 0, 1) // Block switching.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // Dither.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No dynamic range word.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No coupling.
+    ac3TestAppendBits(&frame, &bits, 1, 2) // Exponent strategy 1.
+    ac3TestAppendBits(&frame, &bits, bandwidth, 6)
+    ac3TestAppendBits(&frame, &bits, 12, 4) // Absolute exponent.
+    for 87 do
+        ac3TestAppendBits(&frame, &bits, 62, 7) // Keep every exponent at the absolute value.
+    ac3TestAppendBits(&frame, &bits, 0, 2) // Gain range.
+    ac3TestAppendBits(&frame, &bits, 1, 1) // First block has allocation parameters.
+    ac3TestAppendBits(&frame, &bits, 0, 11) // Allocation parameters.
+    ac3TestAppendBits(&frame, &bits, 1, 1) // SNR offsets present.
+    ac3TestAppendBits(&frame, &bits, 15, 6) // Coarse SNR: zero bit allocation.
+    ac3TestAppendBits(&frame, &bits, 0, 7) // Fine SNR and fast gain.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No delta allocation.
+    ac3TestAppendBits(&frame, &bits, 0, 1) // No skip field.
+
+    while frame.count < 128 do
+        frame.add(0)
+    return frame
+}
+
 private func ac3TestPackets(path: string)->Array'SoundPacket fail
 {
     const BitRates: [19] u32 = [32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 384, 448, 512, 576, 640]
@@ -92,6 +147,27 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 
     var eac3 = expect SoundFile.load(eac3Path)
     Swag.require(eac3.numChannels() == 3 and eac3.speakerChannelMask() == 0x0103)
+}
+
+// Reserved AC-3 bandwidth codes must fail before their exponent groups exceed the 256-bin arrays.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("dolby-bandwidth-%.ac3", Guid128.random()))
+    defer discard catch File.delete(path.toString())
+
+    for bandwidth in [62'u32, 63]
+    {
+        let bytes = ac3TestFrameWithBandwidth(bandwidth)
+        expect File.writeAllBytes(path.toString(), bytes.toSlice())
+        var packets: Array'SoundPacket
+        packets.add(SoundPacket{0, 128, 1536})
+        var config: Array'u8
+        var sound = expect SoundFile.openPacketStream(path.toString(), .Ac3, 48_000, 1, 1536, packets.toSlice(), config.toSlice())
+        var error: Swag.Error
+        discard catch sound.decodePcm16(func(_)->bool => true) as error
+        Swag.require(error.value() is InvalidFormatError)
+    }
 }
 
 // The native AC-3 path decodes complete sync frames, preserves all 5.1 channels, and reorders

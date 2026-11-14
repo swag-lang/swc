@@ -14,6 +14,7 @@ const TAG_BITS_PER_SAMPLE   = 258
 const TAG_COMPRESSION       = 259
 const TAG_PHOTOMETRIC       = 262
 const TAG_STRIP_OFFSETS     = 273
+const TAG_ORIENTATION       = 274
 const TAG_SAMPLES_PER_PIXEL = 277
 const TAG_ROWS_PER_STRIP    = 278
 const TAG_STRIP_BYTE_COUNTS = 279
@@ -235,6 +236,18 @@ impl Decoder
 
         let compression  = try readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
         let photometric  = try readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
+        var orientation = 1'u32
+        let orientationEntry = ifd.find(TAG_ORIENTATION)
+        if orientationEntry
+        {
+            let entry = cast(*Entry, orientationEntry)
+            if entry.type != TYPE_SHORT or entry.count != 1 do
+                fail InvalidFormatError{"TIFF orientation entry is invalid"}
+            let values = try readValues(base, last, le, entry)
+            orientation = values[0]
+            if orientation < 1 or orientation > 8 do
+                fail InvalidFormatError{"TIFF orientation value is out of range"}
+        }
         let samples      = try readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
         let planar       = try readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
         let predictor    = try readScalar(base, last, le, &ifd, TAG_PREDICTOR, 1)
@@ -320,10 +333,15 @@ impl Decoder
         try options.checkImage(cast(s32, width), cast(s32, height), pf)
 
         var result: #returntype
-        result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
-
-        if not options.decodePixels do
+        if not options.decodePixels
+        {
+            if orientation >= 5 do
+                result.init(cast(s32, height), cast(s32, width), pf, alphaMode)
+            else do
+                result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
             return result
+        }
+        result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
 
         // Palette (for photometric=palette)
         var palette: Array'u32     // packed 0x00RRGGBB
@@ -467,6 +485,7 @@ impl Decoder
             }
         }
 
+        result.orient(orientation)
         return result
     }
 }

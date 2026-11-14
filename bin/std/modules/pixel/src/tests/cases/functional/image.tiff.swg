@@ -123,7 +123,7 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
 // Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
 // is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
 // single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0)->Array'u8
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0, orientation: u32 = 1)->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -158,6 +158,8 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     if extraSamples do
         numEntries += 1
     if predictor != 1 do
+        numEntries += 1
+    if orientation != 1 do
         numEntries += 1
 
     let ifdSize = 2 + numEntries * 12 + 4
@@ -213,6 +215,8 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
         entOffset(&cb, le, 273, 4, numStrips, stripOffArrayOffset)
     else do
         entLong(&cb, le, 273, stripOffs[0])
+    if orientation != 1 do
+        entShort(&cb, le, 274, cast(u16, orientation))
     entShort(&cb, le, 277, cast(u16, spp))
     entLong(&cb, le, 278, rowsPerStrip)
     if stripArraysExternal do
@@ -321,6 +325,19 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.pixels.buffer[0] == 11'u8)
     Swag.require(img.pixels.buffer[3] == 44'u8)
     Swag.require(img.pixels.buffer[5] == 66'u8)
+}
+
+// TIFF Orientation=2 stores the image mirrored left-to-right; decoding returns upright pixels.
+#test
+{
+    const PixelData: [6] u8 = [10, 20, 30, 40, 50, 60]
+    let buf = buildTiff(true, 2, 1, 3, 2, 1, 1, 8, PixelData, null, false, orientation: 2)
+    let img = expect decodeTiff(nnBytes(buf.toSlice()))
+    Swag.require(img.pixelFormat == .RGB8)
+    let left = img.pixelColor(0, 0)
+    let right = img.pixelColor(1, 0)
+    Swag.require(left.r == 40 and left.g == 50 and left.b == 60)
+    Swag.require(right.r == 10 and right.g == 20 and right.b == 30)
 }
 
 // Decode an 8-bit grayscale (BlackIsZero) image into replicated BGR8 channels.
@@ -553,6 +570,19 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.height == 1)
     Swag.require(img.pixelFormat == .RGB8)
     Swag.require(not img.isValid())
+}
+
+// Metadata-only decodes report upright dimensions for orientations that rotate the image.
+#test
+{
+    const PixelData: [6] u8 = [10, 20, 30, 40, 50, 60]
+    let buf = buildTiff(true, 2, 1, 3, 2, 1, 1, 8, PixelData, null, false, orientation: 6)
+
+    var options: DecodeOptions
+    options.decodePixels = false
+    let image = expect decodeTiff(nnBytes(buf.toSlice()), options)
+    Swag.require(image.width == 1 and image.height == 2)
+    Swag.require(not image.isValid())
 }
 
 #test

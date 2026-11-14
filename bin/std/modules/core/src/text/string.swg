@@ -504,11 +504,10 @@ impl String
     {
         .grow(.length + 2)
 
-        // One 16-bit store writes the byte and the zero terminator together.
         let buffer = unwrap .buffer
-        var ptr    = cast(*u16, (buffer + .length))
-        ptr[]   = value
+        buffer[.length]     = value
         .length += 1
+        buffer[.length] = 0
     }
 
     // Appends the UTF-8 encoding of `value`, which must be a valid rune.

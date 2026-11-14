@@ -213,6 +213,18 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     Swag.require(assertString(value, "AB\u00E9!?#-xy-\u00E9!123:left/right/%"))
 }
 
+// Appending a byte at an odd offset must keep the text and its terminator valid.
+#test
+{
+    var value: String
+    value.append('a'u8)
+    value.append('b'u8)
+
+    Swag.require(value == "ab")
+    Swag.require(value.length == 2)
+    Swag.require(value.storage()[value.length] == 0)
+}
+
 #test
 {
     var value: String = "core"

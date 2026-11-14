@@ -339,6 +339,8 @@ func expectedAbs8(value: s8)->s8
     Swag.require(Math.gcd(-48, 18) == 6)
     Swag.require(Math.gcd(48, -18) == 6)
     Swag.require(Math.gcd(-48, -18) == 6)
+    Swag.require(Math.gcd(Swag.S64.Min, -1) == 1)
+    Swag.require(Math.gcd(-1, Swag.S64.Min) == 1)
     Swag.require(Math.lcm(4, 6) == 12)
     Swag.require(Math.lcm(21, 6) == 42)
     Swag.require(Math.lcm(0, 6) == 0)

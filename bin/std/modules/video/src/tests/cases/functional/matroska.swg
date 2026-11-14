@@ -51,6 +51,40 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(frame.width == 64 and frame.height == 48)
 }
 
+// An unknown-size Cluster ends at the next Segment-level element, keeping progressive scans
+// bounded to the same cluster window as a file with explicit Cluster sizes.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-two-aac.mkv").toString())
+    const ClusterIdBytes: [4] u8 = [0x1F, 0x43, 0xB6, 0x75]
+    let clusterOffset = Slice.findSubslice(bytes.toSlice(), ClusterIdBytes)
+    Swag.require(clusterOffset != Swag.U64.Max)
+
+    let sizeOffset = clusterOffset + 4
+    let sizeFirst = bytes[sizeOffset]
+    var marker = 0x80'u8
+    var sizeWidth = 1'u32
+    while not (sizeFirst & marker)
+    {
+        marker >>= 1
+        sizeWidth += 1
+    }
+    Swag.require(sizeWidth == 2)
+    bytes[sizeOffset] = marker | (marker - 1)
+    for index in 1 until sizeWidth do
+        bytes[sizeOffset + index] = 0xFF
+
+    let fileName = videoTempPath("matroska-unknown-cluster", "mkv")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var reader = expect Reader.open(fileName)
+    Swag.require(reader.frameCount() == 0)
+    var frame: Image
+    expect reader.decodeFrameInto(&frame, 0)
+    Swag.require(reader.frameCount() == 0)
+}
+
 // Matroska retains the AVC access units of the source MP4 byte for byte. Decoding both containers
 // at non-sequential positions proves the EBML block index, presentation ordering, and sync seeks
 // reach the same pictures without making the codec itself the oracle.

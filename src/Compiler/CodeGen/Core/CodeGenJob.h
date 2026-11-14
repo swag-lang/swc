@@ -35,7 +35,7 @@ private:
     void      initSemaAndCodeGen();
     void      releaseSemaAndCodeGen();
 
-    JobResult waitLeafCalleesLowered(std::span<SymbolFunction* const> callees);
+    JobResult waitCalleesLowered(std::span<SymbolFunction* const> callees, bool includeExpandedLeaves);
 
     std::unique_ptr<Sema>    ownedSema_;
     std::unique_ptr<CodeGen> codeGen_;
@@ -48,7 +48,7 @@ private:
     bool            bodyEmitted_         = false;
 
     // The functions the lowered body calls directly, read while the job still owned it. An
-    // optimized body is emitted once the leaf candidates among them are lowered (see
+    // optimized body is emitted once its effective source leaf callees are lowered (see
     // SymbolFunction::resolveCallClobbers).
     SmallVector<SymbolFunction*> directCallees_;
 };

@@ -583,8 +583,10 @@ new language syntax.
 
 ### compiler.optimization.118 — Extend precise callee register contracts beyond leaves
 
-- Evidence: optimized direct calls already consume clobber masks from proven semantically
-  leaf callees whose lowered code contains no call. `MachineCode::leafCallClobbers` reads
+- Evidence: optimized direct calls already consume clobber masks from published source-leaf
+  candidates whose lowered code contains no call. Calls expanded inline or folded away retain
+  their semantic dependency edges but no longer exclude these candidates. Wordfreq partition
+  iterations fall from 27 instructions and 11 memory operations to 26 and 10. `MachineCode::leafCallClobbers` reads
   final physical writes, and `SymbolFunction::narrowCallClobbers` lets callers retain values
   in preserved transient registers. Machine-code and incremental-function caches retain
   those masks. A body containing a call still publishes the full conservative mask, so
@@ -597,7 +599,10 @@ new language syntax.
   requirements and canonical ABI entries for external/indirect/address-taken uses.
 - Stability: invalidate callers when contracts change, avoid allocation oscillation, and do not
   infer preservation through unknown calls, instrumentation, or patchable targets. Bound the
-  compilation serialization introduced by bottom-up lowering.
+  compilation serialization introduced by bottom-up lowering. Joining every direct callee
+  after lowering retained too many caller bodies (+21.5% peak RSS in a fresh core build);
+  joining only source-leaf candidates after caller publication kept RSS within unchanged-run
+  variation (+0.27% median). Preserve the original dependency-free pre-lowering joins.
 - Elsewhere: [GCC interprocedural register allocation](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html#index-fipa-ra)
   exploits registers known not to be clobbered by callees.
 - Done when: noninlined third-party helpers permit fewer caller spills under verified contracts,

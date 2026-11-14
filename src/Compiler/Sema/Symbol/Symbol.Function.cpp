@@ -1126,9 +1126,9 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
     }
 }
 
-void SymbolFunction::addCallDependency(const SymbolFunction* sym)
+void SymbolFunction::addCallDependency(const SymbolFunction* sym, const bool runtimeCall)
 {
-    if (!sym || sym == this)
+    if (!sym)
         return;
     if (sym->isForeignOrEmptyOrAttribute())
         return;
@@ -1137,6 +1137,12 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
 
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
     const std::unique_lock lock(callDependenciesMutex_);
+    // The same callee can first be expanded inline and later remain a call
+    // (notably at a recursive inline boundary). Record that before deduplication,
+    // including self calls whose graph edge is deliberately omitted.
+    hasRuntimeCallDependency_ |= runtimeCall;
+    if (sym == this)
+        return;
     if (!callDependencySet_.insert(mutableSym))
         return;
 
@@ -1157,6 +1163,18 @@ bool SymbolFunction::hasCallDependencies() const
 {
     const std::shared_lock lock(callDependenciesMutex_);
     return !callDependencies_.empty() || (lifecycleDependencies_ && !lifecycleDependencies_->empty());
+}
+
+void SymbolFunction::classifySemaLeaf()
+{
+    const std::shared_lock lock(callDependenciesMutex_);
+    const bool             lifecycleCalls = lifecycleDependencies_ && !lifecycleDependencies_->empty();
+    // Preserve the original dependency-free candidates for pre-lowering joins.
+    // Expanded-only candidates are joined after the caller publishes its body;
+    // their retained template edges must not create a new lowering wait cycle.
+    if (callDependencies_.empty() && !lifecycleCalls)
+        addFlag(SymbolFlagsE::SemaLeaf);
+    semaLeafCandidate_ = !hasRuntimeCallDependency_ && !lifecycleCalls;
 }
 
 void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym, const bool observesEffects)

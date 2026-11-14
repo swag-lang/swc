@@ -195,15 +195,14 @@ JobResult CodeGenJob::execImpl()
     // Sleeping jobs resume here without regenerating an already lowered body.
     if (!symbolFunc_->isCodeGenPreSolved())
     {
-        // An optimized body reads the final clobbers of the leaf candidates it calls. Joining them
-        // before lowering keeps nothing alive meanwhile: the body is then lowered and emitted in
-        // one go. Only the dependencies analysis found count, since lowering adds the helpers it
-        // calls and a lowering paused halfway resumes here.
+        // Join semantic leaf candidates before lowering, while we hold no Micro body.
+        // Newly discovered and effective leaf callees are joined after publishing
+        // our own lowered body, so recursive components can continue lowering.
         if (!loweringStarted_)
         {
             if (sema().compiler().buildCfg().backend.runsCostlyOptimizations())
             {
-                const JobResult waitResult = waitLeafCalleesLowered(deps.span());
+                const JobResult waitResult = waitCalleesLowered(deps.span(), false);
                 if (waitResult != JobResult::Done)
                     return waitResult;
             }
@@ -224,10 +223,12 @@ JobResult CodeGenJob::execImpl()
 
     if (!bodyEmitted_)
     {
-        // Lowering may call leaf helpers analysis did not see.
+        // Join effective source leaves only after publishing our own body.
+        // This keeps template dependency cycles free to lower without retaining
+        // every caller's Micro while waiting for unrelated non-leaf callees.
         if (readsCalleeClobbers_)
         {
-            const JobResult waitResult = waitLeafCalleesLowered(directCallees_.span());
+            const JobResult waitResult = waitCalleesLowered(directCallees_.span(), true);
             if (waitResult != JobResult::Done)
                 return waitResult;
         }
@@ -265,11 +266,12 @@ JobResult CodeGenJob::execImpl()
     return JobResult::Done;
 }
 
-// A leaf candidate waits on no other function before its own lowering, since its analysis found
-// nothing to call, so joining candidates adds no cycle. Their analysis is joined first: whether a
-// callee is a candidate is only known once it is complete.
-JobResult CodeGenJob::waitLeafCalleesLowered(const std::span<SymbolFunction* const> callees)
+// Expanded calls remain in the semantic graph. Join their effective leaves
+// only after our own publication, when those template edges cannot form a wait
+// cycle between bodies that have not yet started lowering.
+JobResult CodeGenJob::waitCalleesLowered(const std::span<SymbolFunction* const> callees, bool includeExpandedLeaves)
 {
+    SWC_ASSERT(!includeExpandedLeaves || symbolFunc_->isCodeGenPreSolved());
     for (SymbolFunction* callee : callees)
     {
         if (callee == symbolFunc_ || callee->isCodeGenPreSolved() || callee->isCodeGenCompleted())
@@ -280,7 +282,7 @@ JobResult CodeGenJob::waitLeafCalleesLowered(const std::span<SymbolFunction* con
             return abortCodeGen(ctx(), *symbolFunc_, semaWaitResult);
         if (callee->isIgnored())
             return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
-        if (!callee->isSemaLeaf())
+        if (!(includeExpandedLeaves ? callee->isSemaLeafCandidate() : callee->isSemaLeaf()))
             continue;
 
         sema().compiler().tryEnqueueCodeGenJob(sema(), *callee, callee->declNodeRef());

@@ -125,6 +125,58 @@ SWC_TEST_BEGIN(CallClobbers_ValueCrossesNarrowedCallInTransientRegister)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(CallClobbers_ExpandedEdgesRetainSemanticDependencies)
+{
+    auto* child = makeCallee(ctx);
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        auto* caller = makeCallee(ctx);
+        caller->addCallDependency(child, false);
+        if (mode == 1)
+            caller->addCallDependency(child);
+        if (mode == 2)
+            caller->addCallDependency(caller);
+        if (mode == 3)
+            caller->addLifecycleDependency(child);
+        caller->classifySemaLeaf();
+        if (!caller->hasCallDependencies() || caller->isSemaLeaf() || caller->isSemaLeafCandidate() != (mode == 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CallClobbers_TrustPublishedCandidatesWithProvenLoweredLeaves)
+{
+    const uint64_t known = clobberBit(CallConv::swag().intReturn);
+    for (uint32_t candidate = 0; candidate < 3; ++candidate)
+        for (const bool lowered : {false, true})
+            for (const bool loweredLeaf : {false, true})
+            {
+                auto* callee = makeCallee(ctx);
+                if (candidate == 1)
+                    callee->addFlag(SymbolFlagsE::SemaLeaf);
+                if (candidate == 2)
+                {
+                    callee->addCallDependency(makeCallee(ctx), false);
+                    callee->classifySemaLeaf();
+                    if (callee->isSemaLeaf())
+                        return Result::Error;
+                }
+                if (lowered)
+                    callee->addFlag(SymbolFlagsE::CodeGenPreSolved);
+                if (loweredLeaf)
+                    callee->addFlag(SymbolFlagsE::LoweredLeaf);
+                callee->setCallClobbers(known);
+                uint64_t result = 0;
+                SWC_RESULT(callee->resolveCallClobbers(ctx, result));
+                if (result != (candidate != 0 && lowered && loweredLeaf ? known : MicroInstr::K_CALL_CLOBBERS_ALL))
+                    return Result::Error;
+            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The final code of a leaf names the transient registers it writes, plus both return registers;
 // a nonvolatile one is saved and restored, so it is not a clobber. Code that still calls proves
 // nothing about what its own callers lose.

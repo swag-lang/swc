@@ -33,7 +33,9 @@ public func hashBytes32(buffer: const [..] u8?)->u32
             var offset = 0'u64
             while length - offset >= 8
             {
-                result ^= Math.littleEndianToNative(cast(const *u64, (data + offset))[])
+                var chunk: u64
+                Memory.copy(cast([*] void, &chunk), cast(const [*] void, data + offset), #sizeof(chunk))
+                result ^= Math.littleEndianToNative(chunk)
                 result *= Mix2
                 result ^= result >> 29
                 offset += 8
@@ -42,15 +44,21 @@ public func hashBytes32(buffer: const [..] u8?)->u32
             // Re-reading the last 8 bytes is cheaper than a byte loop and stays in bounds
             if offset != length
             {
-                result ^= Math.littleEndianToNative(cast(const *u64, (data + length - 8))[])
+                var chunk: u64
+                Memory.copy(cast([*] void, &chunk), cast(const [*] void, data + length - 8), #sizeof(chunk))
+                result ^= Math.littleEndianToNative(chunk)
                 result *= Mix2
             }
         }
         elif length >= 4
         {
-            let head = cast(u64, Math.littleEndianToNative(cast(const *u32, data)[]))
-            let tail = cast(u64, Math.littleEndianToNative(cast(const *u32, (data + length - 4))[]))
-            result ^= head | (tail << 32)
+            var head: u32
+            var tail: u32
+            Memory.copy(cast([*] void, &head), cast(const [*] void, data), #sizeof(head))
+            Memory.copy(cast([*] void, &tail), cast(const [*] void, data + length - 4), #sizeof(tail))
+            head = Math.littleEndianToNative(head)
+            tail = Math.littleEndianToNative(tail)
+            result ^= cast(u64, head) | (cast(u64, tail) << 32)
             result *= Mix2
         }
         else

@@ -96,6 +96,26 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 // the range it was given.
 #test
 {
+    // A subview may start at any byte offset. Exercise misaligned 32-bit and 64-bit
+    // reads for both the head and overlapping tail paths.
+    var source: [72] u8
+    let base   = cast(u64, cast(const [*] u8, source.buffer))
+    let offset = (1 + 8 - (base & 7)) & 7
+    var view   = source[offset to offset + 64]
+    for i in view.count do
+        view[i] = cast(u8, ((i * 29 + 7) & 0xFF))
+    Swag.require((cast(u64, cast(const [*] u8, view.buffer)) & 7) == 1)
+
+    var copied: [64] u8
+    Memory.copy(cast([*] void, &copied[0]), cast(const [*] void, view.buffer), view.count)
+    for length in 4 to 64
+    {
+        Swag.require(Hash.hashBytes32(view[until length]) == Hash.hashBytes32(copied[until length]))
+    }
+}
+
+#test
+{
     const Lengths = [0'u64, 1, 2, 3, 4, 5, 6, 7, 8, 9, 15, 16, 17, 31, 32, 33, 64]
 
     var source: [80] u8

@@ -131,8 +131,16 @@ func expectNear(actual, expected: f32)
     let lineParallel = Math.Geometry.intersectLines({0, 0}, {10, 0}, {0, 1}, {10, 1})
     Swag.require(not lineParallel.intersects)
 
+    let parallelZeroEpsilon = Math.Geometry.intersectLines({0, 0}, {10, 0}, {0, 1}, {10, 1}, epsilon: 0)
+    Swag.require(not parallelZeroEpsilon.intersects)
+    expectVec2(parallelZeroEpsilon.point, {0, 0})
+
     let lineCollinear = Math.Geometry.intersectLines({0, 0}, {10, 0}, {2, 0}, {8, 0})
     Swag.require(not lineCollinear.intersects)
+
+    let coincidentZeroEpsilon = Math.Geometry.intersectLines({0, 0}, {10, 0}, {2, 0}, {8, 0}, epsilon: 0)
+    Swag.require(not coincidentZeroEpsilon.intersects)
+    expectVec2(coincidentZeroEpsilon.point, {0, 0})
 }
 
 #test

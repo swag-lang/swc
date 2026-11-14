@@ -13,20 +13,29 @@ impl Decoder
     mtd getBits1(numBits: s32)->u32
     {
         let i = .bitBuf >> cast(u32, (16 - numBits)) & ((1'u32 << cast(u32, numBits)) - 1)
+        .lastBitsSynthetic = ((.bitSyntheticMask >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)) != 0
         .bitsLeft -= numBits
         if .bitsLeft <= 0
         {
-            .bitBuf = rol(.bitBuf, cast(u32, (numBits + .bitsLeft)))
+            let shift = cast(u32, (numBits + .bitsLeft))
+            .bitBuf           = rol(.bitBuf, shift)
+            .bitSyntheticMask = rol(.bitSyntheticMask, shift)
             let c1 = .getChar()
+            let c1Synthetic = .lastCharSynthetic
             let c2 = .getChar()
+            let c2Synthetic = .lastCharSynthetic
 
-            .bitBuf   = (.bitBuf & 0xFFFF) | (cast(u32, c1) << 24) | (cast(u32, c2) << 16)
-            .bitBuf   = rol(.bitBuf, cast(u32, -.bitsLeft))
+            .bitBuf           = (.bitBuf & 0xFFFF) | (cast(u32, c1) << 24) | (cast(u32, c2) << 16)
+            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) | (c1Synthetic ? 0xFF000000'u32 : 0) | (c2Synthetic ? 0x00FF0000'u32 : 0)
+            let refillShift   = cast(u32, -.bitsLeft)
+            .bitBuf           = rol(.bitBuf, refillShift)
+            .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
             .bitsLeft += 16
         }
         else
         {
             .bitBuf = rol(.bitBuf, cast(u32, numBits))
+            .bitSyntheticMask = rol(.bitSyntheticMask, cast(u32, numBits))
         }
 
         return i
@@ -36,12 +45,16 @@ impl Decoder
     mtd getBits2(numBits: s32)->u32
     {
         let i = (.bitBuf >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)
+        .lastBitsSynthetic = ((.bitSyntheticMask >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)) != 0
         .bitsLeft -= numBits
         if .bitsLeft <= 0
         {
-            .bitBuf = rol(.bitBuf, cast(u32, (numBits + .bitsLeft)))
+            let shift = cast(u32, (numBits + .bitsLeft))
+            .bitBuf           = rol(.bitBuf, shift)
+            .bitSyntheticMask = rol(.bitSyntheticMask, shift)
 
             var c1, c2: u32
+            var c1Synthetic, c2Synthetic: bool
             let inBufOfs = unwrap .inBufOfs
 
             // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
@@ -51,22 +64,30 @@ impl Decoder
             {
                 c1         = inBufOfs[0]
                 c2         = inBufOfs[1]
+                c1Synthetic = false
+                c2Synthetic = false
                 .inBufOfs  += 2
                 .inBufLeft -= 2
             }
             else
             {
                 c1 = .getOctet()
+                c1Synthetic = .lastOctetSynthetic
                 c2 = .getOctet()
+                c2Synthetic = .lastOctetSynthetic
             }
 
-            .bitBuf   = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-            .bitBuf   = rol(.bitBuf, cast(u32, -.bitsLeft))
+            .bitBuf           = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
+            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) | (c1Synthetic ? 0xFF000000'u32 : 0) | (c2Synthetic ? 0x00FF0000'u32 : 0)
+            let refillShift   = cast(u32, -.bitsLeft)
+            .bitBuf           = rol(.bitBuf, refillShift)
+            .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
             .bitsLeft += 16
         }
         else
         {
             .bitBuf = rol(.bitBuf, cast(u32, numBits))
+            .bitSyntheticMask = rol(.bitSyntheticMask, cast(u32, numBits))
         }
 
         return i
@@ -74,14 +95,17 @@ impl Decoder
 
     mtd getOctet()->u8
     {
+        .lastOctetSynthetic = false
         var paddingFlag: bool
         var c = .getChar(&paddingFlag)
+        .lastOctetSynthetic = .lastCharSynthetic
         if c == 0xFF
         {
             if paddingFlag do
                 return 0xFF
 
             c = .getChar(&paddingFlag)
+            .lastOctetSynthetic = .lastOctetSynthetic or .lastCharSynthetic
             if paddingFlag
             {
                 .stuffChar(0xFF)
@@ -107,6 +131,7 @@ impl Decoder
             if not .inBufLeft
             {
                 paddingFlag[] = true
+                .lastCharSynthetic = true
                 let t = .temFlag
                 .temFlag ^= 1
                 if t do
@@ -116,6 +141,7 @@ impl Decoder
         }
 
         paddingFlag[] = false
+        .lastCharSynthetic = false
         let inBufOfs = unwrap .inBufOfs
         let c        = inBufOfs[]
         .inBufOfs  += 1
@@ -130,6 +156,7 @@ impl Decoder
             .prepareInBuffer()
             if not .inBufLeft
             {
+                .lastCharSynthetic = true
                 let t = .temFlag
                 .temFlag ^= 1
                 if t do
@@ -140,6 +167,7 @@ impl Decoder
 
         let inBufOfs = unwrap .inBufOfs
         let c        = inBufOfs[0]
+        .lastCharSynthetic = false
         .inBufOfs  += 1
         .inBufLeft -= 1
         return c
@@ -148,6 +176,7 @@ impl Decoder
     mtd nextMarker()->Marker
     {
         var c: u32
+        var prefixSynthetic = false
 
         var bytes = 0
         while not c
@@ -157,13 +186,17 @@ impl Decoder
                 bytes += 1
                 c     = .getBits1(8)
             }
+            prefixSynthetic = .lastBitsSynthetic
 
             while c == 0xFF
             {
                 c = .getBits1(8)
+                if c == 0xFF do
+                    prefixSynthetic = .lastBitsSynthetic
             }
         }
 
+        .lastMarkerSynthetic = prefixSynthetic or .lastBitsSynthetic
         return cast(Marker, c)
     }
 

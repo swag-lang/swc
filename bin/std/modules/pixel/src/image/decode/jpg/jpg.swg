@@ -177,6 +177,11 @@ internal struct Decoder
         streamLen:       s32
         streamSeek:      s32
         bitBuf:          u32
+        bitSyntheticMask: u32
+        lastBitsSynthetic: bool
+        lastCharSynthetic: bool
+        lastOctetSynthetic: bool
+        lastMarkerSynthetic: bool
         bitsLeft:        s32
         inBufLeft:       s32
         temFlag:         s32

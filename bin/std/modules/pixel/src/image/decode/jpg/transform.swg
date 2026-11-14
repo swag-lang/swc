@@ -299,7 +299,11 @@ impl Decoder
             .bitsLeft = 16
             .getBits1(16)
             .getBits1(16)
-            try .processMarkers()
+            let marker = try .processMarkers()
+            if marker != .M_EOI do
+                fail InvalidFormatError{"JPEG scan is not followed by the end-of-image marker"}
+            if .lastMarkerSynthetic do
+                fail InvalidFormatError{"JPEG data ends before the end-of-image marker"}
         }
 
         .totalBytesRead -= .inBufLeft

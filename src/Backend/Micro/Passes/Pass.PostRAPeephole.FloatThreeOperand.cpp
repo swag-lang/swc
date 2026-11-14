@@ -108,8 +108,8 @@ namespace PostRaPeephole
             {
                 if (lateFloatMemory)
                 {
-                    const bool integerPacked = ops[3].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[4].microOp) && !isPackedFloatBinaryMicroOp(ops[4].microOp);
-                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) && (ops[0].reg != loaded || integerPacked) &&
+                    const bool packed = ops[3].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[4].microOp);
+                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) && (ops[0].reg != loaded || packed) &&
                            ((ops[2].reg == loaded && ops[1].reg != loaded) || (ops[1].reg == loaded && ops[2].reg != loaded));
                 }
                 return ops[2].reg == loaded &&
@@ -1294,6 +1294,35 @@ namespace PostRaPeephole
         return false;
     }
 
+    // Ordinary fixed-offset stores through the same base cannot change an
+    // operand at a disjoint byte range. Keep indexed addresses and relocations
+    // outside this proof; their displacements alone do not identify the bytes.
+    static bool disjointOperandStore(const MicroInstr& store, const MicroInstrOperand* ops, MicroReg base, uint64_t offset, MicroOpBits bits)
+    {
+        if (!ops || base.isInstructionPointer())
+            return false;
+        uint64_t    storeOffset;
+        MicroOpBits storeBits;
+        if (store.op == MicroInstrOpcode::LoadMemReg || store.op == MicroInstrOpcode::StoreVecMemReg)
+        {
+            storeOffset = ops[3].valueU64;
+            storeBits   = ops[2].opBits;
+        }
+        else if (store.op == MicroInstrOpcode::LoadMemImm)
+        {
+            storeOffset = ops[2].valueU64;
+            storeBits   = ops[1].opBits;
+        }
+        else
+            return false;
+        const int64_t loadStart  = static_cast<int64_t>(offset);
+        const int64_t storeStart = static_cast<int64_t>(storeOffset);
+        if (ops[0].reg != base || !getNumBytes(bits) || !getNumBytes(storeBits) ||
+            loadStart < INT32_MIN || loadStart > INT32_MAX || storeStart < INT32_MIN || storeStart > INT32_MAX)
+            return false;
+        return loadStart + getNumBytes(bits) <= storeStart || storeStart + getNumBytes(storeBits) <= loadStart;
+    }
+
     // Fold an operand's reload into the operation that consumes it.
     //
     // x86 arithmetic can read one operand straight from memory, but the
@@ -1366,10 +1395,14 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
 
-            // The read moves later, so anything that could change what it sees
-            // stops the fold: a write to the address register, and any store at
-            // all - this pass has no aliasing information.
-            if (info.flags.has(MicroInstrFlagsE::WritesMemory))
+            // Ordering points are barriers even when their bytes are disjoint.
+            // For an ordinary store, exact fixed-offset ranges can retain the
+            // loaded value without a function-wide alias or escape analysis.
+            const auto* candidateOps = candidate->ops(*ctx.operands);
+            if (MicroPassHelpers::isAtomicOrdering(*candidate, candidateOps))
+                return false;
+            if (info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+                !(lateFloatMemory && !indexed && disjointOperandStore(*candidate, candidateOps, base, loadOps[3].valueU64, opBits)))
                 return false;
 
             const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
@@ -1445,7 +1478,7 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (fused || (isFloat && threeOperand && (packed || consumerOps[0].reg != consumerOps[1].reg) && (consumerOps[0].reg != loaded || integerPacked)))
+        if (fused || (isFloat && threeOperand && (packed || consumerOps[0].reg != consumerOps[1].reg) && (consumerOps[0].reg != loaded || packed)))
         {
             // This VEX memory form uses a full-width base and index. A
             // narrowed address would wrap before dereferencing instead.

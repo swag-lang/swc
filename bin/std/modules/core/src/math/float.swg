@@ -51,8 +51,29 @@ alias ConstF64 = Const'f64
     // Returns the linear interpolation from `x` to `y` at `factor`.
     //
     // A `factor` of 0 gives `x` and 1 gives `y`. It is not clamped, so other values extrapolate.
-    func lerp(x, y, factor: f32) => x + factor * (y - x)
-    func lerp(x, y, factor: f64) => x + factor * (y - x)
+    func lerp(x, y, factor: f32)->f32
+    {
+        if factor == 0 do
+            return x
+        if factor == 1 do
+            return y
+        if factor > 0 and factor < 1 and Math.isFinite(x) and Math.isFinite(y) and
+           ((x < 0 and y > 0) or (x > 0 and y < 0)) do
+            return (1'f32 - factor) * x + factor * y
+        return x + factor * (y - x)
+    }
+
+    func lerp(x, y, factor: f64)->f64
+    {
+        if factor == 0 do
+            return x
+        if factor == 1 do
+            return y
+        if factor > 0 and factor < 1 and Math.isFinite(x) and Math.isFinite(y) and
+           ((x < 0 and y > 0) or (x > 0 and y < 0)) do
+            return (1'f64 - factor) * x + factor * y
+        return x + factor * (y - x)
+    }
 
     // Returns the cubic interpolation between `b` and `c` at `t`, shaped by the outer samples `a` and `d`.
     //

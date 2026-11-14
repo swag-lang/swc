@@ -66,6 +66,17 @@ func exrInvalidZipFixture()->ConcatBuffer
     return result
 }
 
+// A non-null but truncated source buffer is invalid for EXR encoding.
+#test
+{
+    var source = Image.create(1, 1, .RGB8)
+    source.pixels.count = 0
+
+    var error: Swag.Error
+    discard catch source.encodeToBytes("truncated.exr") as error
+    Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
 // Error: duplicate EXR channel names are invalid.
 #test
 {

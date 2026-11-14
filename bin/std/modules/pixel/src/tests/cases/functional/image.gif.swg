@@ -134,6 +134,27 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(frame.pixelFormat == .RGBA8)
 }
 
+// A graphic control extension consumed by a plain-text block must not affect the next image.
+#test
+{
+    const Bytes: [59] u8 = [
+        'G', 'I', 'F', '8', '9', 'a',
+        1, 0, 1, 0, 0x80, 0, 0,
+        0, 0, 0, 255, 255, 255,
+        0x21, 0xF9, 4, 0x09, 5, 0, 1, 0,
+        0x21, 0x01, 12, 0, 0, 0, 0, 1, 0, 1, 0, 8, 8, 1, 0, 0,
+        0x2C, 0, 0, 0, 0, 1, 0, 1, 0, 0,
+        2, 2, 0x4C, 0x01, 0, 0x3B]
+
+    var reader = expect ImageReader.decode("plain-text-control.gif", Bytes)
+    Swag.require(reader.info.frames.count == 1)
+    let frame = reader.info.frames[0]
+    Swag.require(frame.pixelFormat == .RGB8 and
+                 frame.durationSeconds == 0 and
+                 frame.disposal == .Keep)
+    assertGifPixelAt(expect reader.read(0), 0, 0, 255, 255, 255, 255)
+}
+
 // Decode with decodePixels=false: metadata fields are populated but no pixel buffer is allocated.
 #test
 {

@@ -107,6 +107,11 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     if bytes.count == 0 do
         try fault(0x06)
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
+    let context = Swag.getContext()
+    let previousAllocator = context.allocator
+    context.allocator = allocationAllocator
+    defer context.allocator = previousAllocator
+
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
@@ -141,6 +146,22 @@ public impl Face
         .version   = version
         .designer  = designer
         .copyright = copyright
+    }
+
+    // Releases the owned strings even when this read-only public metadata is
+    // nested in an owner with a custom destructor.
+    internal mtd releaseMetadataStrings()
+    {
+        .familyName.opDrop()
+        Swag.init(&.familyName, 1)
+        .styleName.opDrop()
+        Swag.init(&.styleName, 1)
+        .version.opDrop()
+        Swag.init(&.version, 1)
+        .designer.opDrop()
+        Swag.init(&.designer, 1)
+        .copyright.opDrop()
+        Swag.init(&.copyright, 1)
     }
 
     internal mtd setUnderline(position, thickness: s16)

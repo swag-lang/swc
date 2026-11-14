@@ -1,0 +1,7 @@
+ui_Name = "Présentation"
+ui_Preparing = "Préparation de la présentation…"
+ui_Details = "Présentation · % diapositives · % images non affichées"
+ui_Slide = "Diapositive %"
+ui_ImageOmitted = "[Image non affichée]"
+err_Invalid = "La structure de cette présentation est endommagée."
+err_TooLarge = "Cette présentation est trop volumineuse pour être ouverte sans risque."

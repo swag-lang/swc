@@ -67,6 +67,12 @@ opened for the current file or creates it on demand; it does not reopen the wind
 sound that was playing pauses when another viewer takes its place, and is still paused when the
 reader comes back to it.
 
+The title button beside Information opens every viewer offered for the current file. Its first
+entry is marked Default, set apart from the alternatives, and clears a remembered alternative.
+The button's icon turns orange while an alternative is in use. The button remains available when
+the Archive alternative is exploring an EPUB, CBZ or other packaged file, so the original reader
+can be restored from that folder page.
+
 The content pass is what a name cannot answer. A descriptor may carry a probe, and the host reads
 the first four kilobytes of the file once and shows the same bytes to every one of them, so an
 extensionless note, a log named `.dat`, a UTF-16 export, a renamed PDF, font, MIDI file, ZIP
@@ -127,6 +133,22 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `PDF` displays pages progressively as they enter the viewport, with text selection, shared
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.
+- `EPUB` reads the package manifest and spine, presents XHTML chapters in their declared order,
+  keeps local CSS and images available to the HTML reader, and offers previous/next chapter
+  navigation. The book is extracted to a bounded temporary folder while it is open. Script and
+  remote resources do not execute or load.
+- `Comic book` reads image members of CBZ archives in natural filename order, including nested
+  folders, and offers previous/next page navigation. Other archive members remain available in
+  the Archive alternative.
+- `Word document` reads the main DOCX body as paragraphs and tables, preserving text-run order,
+  line breaks and tabs. It labels embedded images it cannot yet show. Page layout, styles,
+  headers, footers and comments are not reproduced.
+- `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
+  booleans and cached formula values in cell order. It does not calculate formulas or reproduce
+  formatting, charts, merged cells or images.
+- `Presentation` reads PPTX slides in declared order and presents their text as a continuous
+  reading page. It labels pictures it cannot yet show. Original slide layout, animation,
+  speaker notes and embedded media are not reproduced.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a
@@ -175,7 +197,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
-  packed, its size and date in mono. The count under the title adds the packed and extracted
+  packed, its size and date in mono. EPUB, CBZ, DOCX, XLSX and PPTX offer their reading viewers first;
+  Archive remains available to inspect their package members. The count under the title adds the packed and extracted
   weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
   Opening an entry asynchronously prepares a bounded temporary
   copy, verifies its declared size and CRC-32, and opens it through the ordinary viewer registry.

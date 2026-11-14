@@ -88,6 +88,7 @@ impl ViewerSession
 struct ViewerPluginHost
 {
     thumbnail:       bool = false
+    embedded:        bool = false
     session:         *ViewerSession
     documentParent:  *Wnd
     sidePanelParent: *Wnd
@@ -166,6 +167,7 @@ private impl ViewerPluginHost
 impl Viewer.Host for ViewerPluginHost
 {
     mtd impl isThumbnail()->bool             => .thumbnail
+    mtd impl isEmbedded()->bool              => .embedded
     mtd impl application()->*Application     => .documentParent.app()
     mtd impl contentParent()->*Wnd           => .documentParent
     mtd impl fileName()->string              => .sourceFileName

@@ -124,7 +124,8 @@ private impl Panel
         let column = .column()
         .address.setPosition(Math.Rectangle{column.x, 0, column.width, BandHeight - AddressGap}, computeLayout: false)
         let left = column.x + column.width + 48
-        .margin.place(left, BandHeight + 24, .clientRect().width - left - 24)
+        let top = .band.isLocallyVisible() ? BandHeight : 0
+        .margin.place(left, top + 24, .clientRect().width - left - 24)
     }
 
     // Gives the lens the zoom of the page.
@@ -233,6 +234,8 @@ func createViewer(host: Viewer.Host)
         .style.addStyleSheetColors("label_Text $label_TextFaint")
         .setTextAlignment(.Left, .Bottom)
     }
+    if host.isEmbedded() do
+        result.band.hide()
 
     with result.view = HtmlView.createFile(result, host.fileName())
     {

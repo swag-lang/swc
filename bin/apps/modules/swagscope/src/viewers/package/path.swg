@@ -44,6 +44,14 @@ func resolvePath(baseDirectory: string, reference: string)->String
     return result
 }
 
+// Relationship targets may be package-absolute; both forms stay inside the ZIP root.
+func resolveRelationshipTarget(baseDirectory: string, target: string)->String
+{
+    if target.count and target[0] == '/'u8 do
+        return resolvePath("", target[1 to])
+    return resolvePath(baseDirectory, target)
+}
+
 // Returns the directory before the last slash in a normalized ZIP path.
 func parentPath(path: string)->String
 {

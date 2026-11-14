@@ -1,0 +1,8 @@
+# French strings of the Word document reader.
+
+ui_Name         Document Word
+ui_Preparing    Préparation du document…
+ui_Details      Document Word · % paragraphes · % tableaux · % images non affichées
+ui_ImageOmitted [Image non affichée]
+err_Invalid    La structure de ce document Word est endommagée.
+err_TooLarge   Ce document Word est trop volumineux pour être ouvert sans risque.

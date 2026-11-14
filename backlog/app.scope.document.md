@@ -144,24 +144,35 @@ integration around those engines.
   and opening a notebook never starts a kernel, executes code, or fetches a resource.
 - Related: app.scope.document.003, app.scope.text.024, app.scope.viewers.011
 
-### app.scope.document.020 — Office Open XML files stop at the ZIP structure
+### app.scope.document.020 — Office Open XML rendering remains partial
 
-- Evidence: `.docx`, `.xlsx`, and `.pptx` are selected only by the Archive and Binary viewers,
-  so they show a list of package parts rather than readable document content.
-- Next: define a bounded Office Open XML package and document model for paragraphs, headings,
-  lists, tables, and spreadsheet cells.
-- Done when: Office Open XML documents open through readable document and table surfaces rather
-  than only their ZIP hierarchy.
+- Evidence: `.docx` reads main-body paragraphs and tables, `.xlsx` reads ordered sheets,
+  shared/inline strings, numbers and cached values, and `.pptx` reads ordered slide text. These
+  files are ZIP containers, but showing their raw entries or extracted prose is not a document
+  reader. The current HTML projection loses Word pagination and styling, spreadsheet grid and
+  cell formatting, and slide geometry and pictures. Focused tests cover run and slide order,
+  sparse cells and damaged packages; they do not establish visual fidelity.
+- Next: render authored page, grid and slide geometry with relationships, bounded pictures,
+  text styles and backgrounds. Use real producer documents for visual comparisons, then add
+  search, selection and position restore. Keep a visible, explicit boundary for constructs the
+  renderer cannot represent.
+- Done when: opening each format presents its intended document surface rather than a list of
+  package parts or a text transcript; representative real documents preserve their layout,
+  images and styling in visual tests, and unsupported constructs are named without silently
+  replacing them with prose.
 - Related: app.scope.text.015, app.scope.binary.010
 
-### app.scope.document.021 — EPUB stops at the ZIP structure
+### app.scope.document.021 — EPUB chapter reading needs complete navigation
 
-- Evidence: `.epub` opens only in the Archive and Binary viewers, although an EPUB is a spine
-  of XHTML documents that `HtmlView` already renders.
-- Next: read `META-INF/container.xml` and the OPF manifest and spine through the shared ZIP
-  reader, then feed the spine documents in order to the HTML view.
-- Done when: the spine order is read from the container manifest and its documents stream into
-  the reading column in order.
+- Evidence: `.epub` now reads `META-INF/container.xml`, the OPF manifest and spine, and opens
+  each XHTML document through the HTML reader in declared order. ZIP extraction is bounded and
+  rejects escaping paths. The first fixtures cover spine ordering and a nested package root.
+  There is no EPUB table of contents, book-wide search or position restore, and extraction prepares
+  every package member before the first chapter is shown.
+- Next: expose the EPUB navigation document and TOC, add book-wide search and stable chapter
+  positions, then stream or lazily extract resources needed for the visible chapter.
+- Done when: navigation, search, position restore and local resources work across a representative
+  EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010
 
 ### app.scope.document.004 — Markdown reading position and presentation cannot be shared or exported

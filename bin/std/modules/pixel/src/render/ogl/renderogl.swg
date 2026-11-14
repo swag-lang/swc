@@ -2019,11 +2019,13 @@ impl RenderOgl
 
         case .BindTexture0:
             let params = &cmd.texture0
+            let textureCurrent = params.type == .Texture and params.texture.isValid()
 
             // A planar picture is three textures and its own program. Selecting it here, from the
             // format the texture carries, is what lets it travel through the ordinary texture
-            // path: nothing above this line knows the difference.
-            let planarPlanes = params.type == .Texture and not params.texture.pixelFormat.isPacked() ? .chromaPlanes.tryFind(params.texture.handle) : null
+            // path: nothing above this line knows the difference. Check the device generation
+            // before looking up auxiliary planes: a stale handle may match an old or reused name.
+            let planarPlanes = textureCurrent and not params.texture.pixelFormat.isPacked() ? .chromaPlanes.tryFind(params.texture.handle) : null
             if planarPlanes
             {
                 if not .planarPrevShader do
@@ -2075,7 +2077,7 @@ impl RenderOgl
 
                 // A texture of a lost device names nothing in this context, or someone else's
                 // storage once the name is reused: draw nothing rather than the wrong picture.
-                let lost = params.texture.handle != InvalidTextureHandle and not params.texture.isValid()
+                let lost = params.texture.handle != InvalidTextureHandle and not textureCurrent
                 glBindTexture(GL_TEXTURE_2D, lost ? .clearTexture : cast(GLuint, params.texture.handle))
                 glUniform1f(cast(GLint, curShader.textureW), cast(GLfloat, params.texture.width))
                 glUniform1f(cast(GLint, curShader.textureH), cast(GLfloat, params.texture.height))

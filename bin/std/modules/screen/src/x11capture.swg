@@ -353,16 +353,18 @@ impl X11Capture
                                  opcode: u8, isvoid, checked: bool)->u32
     {
         let send = cast(Linux.xcb_send_request_fn, unwrap Linux.dlsym(unwrap .library, "xcb_send_request".buffer))
-        var vectors: [2] Linux.xcb_iovec_t
-        vectors[0].base   = wire
-        vectors[0].length = size
-        vectors[1].length = (4 - size % 4) % 4
+        // xcb_send_request writes its request header into the two reserved slots
+        // immediately before the payload vectors, so leave those slots at [0..2).
+        var vectors: [4] Linux.xcb_iovec_t
+        vectors[2].base   = wire
+        vectors[2].length = size
+        vectors[3].length = (4 - size % 4) % 4
         var descriptor: Linux.xcb_protocol_request_t
         descriptor.count  = 2
         descriptor.ext    = extension
         descriptor.opcode = opcode
         descriptor.isvoid = isvoid ? 1 : 0
-        return send(unwrap .connection, checked ? 1 : 0, &vectors[0], &descriptor)
+        return send(unwrap .connection, checked ? 1 : 0, &vectors[2], &descriptor)
     }
 
     private mtd sharedRequest(wire: *void, size: u64, opcode: u8, isvoid, checked: bool)->u32 =>

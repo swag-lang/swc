@@ -257,6 +257,7 @@ private impl EmbeddedViewer
         with var host: ViewerPluginHost
         {
             .thumbnail       = me.owner.thumbnailMode
+            .embedded        = true
             .session         = &next
             .documentParent  = me.document
             .sideSplitter    = sideSplitter

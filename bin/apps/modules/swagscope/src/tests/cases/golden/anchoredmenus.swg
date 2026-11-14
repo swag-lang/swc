@@ -159,6 +159,21 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
     assertScopeAnchoredMenu(&host, window, view.zoomLabel, "menus.html.zoom.paper")
 }
 
+// A packaged document's archive alternative keeps the reader selector beside Information.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.epub"), false)
+    for choice, index in window.choices where choice.key == "archive"
+    {
+        window.selectViewer(cast(u32, index))
+        break
+    }
+    completeExplorer(&host, unwrap window.explorer)
+    assertScopeAnchoredMenu(&host, window, &window.viewerCaptionButton.button, "menus.viewer.choices.archive")
+}
+
 #[Swag.TestTag("golden")]
 #test
 {

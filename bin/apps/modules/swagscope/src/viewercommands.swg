@@ -196,27 +196,48 @@ impl ViewerWindow
         var section: *Lens.Section?
         if .isExploring()
         {
-            if query.count do
-                return
             let explorer = unwrap .explorer
-            for name, mode in [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
+            if not query.count
             {
-                if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
-                    continue
-                if not section
+                for name, mode in [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
                 {
-                    section        = results.addSection(texts.lens_ViewAs)
-                    section.inline = true
-                }
+                    if not section
+                    {
+                        section        = results.addSection(texts.lens_ViewAs)
+                        section.inline = true
+                    }
 
-                let chosen     = ExplorerModeValues[mode]
-                with let entry = section.addEntry(name)
-                {
-                    .checked = explorer.mode == chosen
-                    .id      = ViewerCommands.Modes[mode]
+                    let chosen     = ExplorerModeValues[mode]
+                    with let entry = section.addEntry(name)
+                    {
+                        .checked = explorer.mode == chosen
+                        .id      = ViewerCommands.Modes[mode]
+                    }
                 }
             }
-
+            if explorer.listing.isArchive
+            {
+                let choices = .index.choices(explorer.listing.path)
+                var viewers: *Lens.Section?
+                for choice, index in choices
+                {
+                    let plugin = &.index.plugins[choice.pluginIndex]
+                    let name = plugin.displayName()
+                    if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
+                        continue
+                    if not viewers
+                    {
+                        viewers        = results.addSection(texts.lens_ViewAs)
+                        viewers.inline = true
+                    }
+                    let chosen = cast(u32, index)
+                    with let entry = viewers.addEntry(name)
+                    {
+                        .checked = choice.key == "archive"
+                        .run = func|window = me, chosen|() { window.chooseViewerFromMenu(chosen) }
+                    }
+                }
+            }
             return
         }
 
@@ -241,6 +262,67 @@ impl ViewerWindow
                 .run     = func|window = me, chosen|() { window.selectViewer(chosen) }
             }
         }
+    }
+
+    // Offers every compatible reader at the file itself. The first entry restores the
+    // registry's original choice, even after the Archive alternative opened an explorer page.
+    internal mtd createViewerChoicesMenu()->*MenuCtrl
+    {
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        if .isExploring() and .explorer and .explorer.listing.isArchive
+        {
+            let choices = .index.choices(.explorer.listing.path)
+            .fillViewerChoicesMenu(menu, choices.toSlice(), "archive")
+        }
+        else
+        {
+            let active = .activeChoiceIndex < .choices.count ? .choices[.activeChoiceIndex].key.toString() : ""
+            .fillViewerChoicesMenu(menu, .choices.toSlice(), active)
+        }
+        return menu
+    }
+
+    private mtd fillViewerChoicesMenu(menu: *MenuCtrl, choices: const [..] ViewerPluginChoice, active: string)
+    {
+        for &choice, index in choices
+        {
+            if index == 1 do
+                menu.addSeparator()
+            let plugin = &.index.plugins[choice.pluginIndex]
+            let name = plugin.displayName()
+            var label = String.from(name)
+            if index == 0 do
+                label = Format.toString(appStrings().ui_DefaultViewerChoice, name)
+            let item = menu.addRadioItem(label, Format.toString("scope.viewer.choice.%", index), checked: choice.key == active)
+            item.icon = .pluginIcon(plugin)
+        }
+    }
+
+    private mtd showViewerChoicesMenu()
+    {
+        let selected = .createViewerChoicesMenu().doModal(.viewerCaptionButton, autoDestroy: true) orelse ""
+        if not selected.count do
+            return
+        for index in .index.plugins.count where selected == Format.toString("scope.viewer.choice.%", index)
+        {
+            .chooseViewerFromMenu(cast(u32, index))
+            return
+        }
+    }
+
+    internal mtd chooseViewerFromMenu(index: u32)
+    {
+        if .isExploring() and .explorer and .explorer.listing.isArchive
+        {
+            let fileName = String.from(.explorer.listing.path)
+            let choices = .index.choices(fileName)
+            if index >= choices.count or choices[index].key == "archive" do
+                return
+            .setPreferredViewer(choices[0].key, choices[index].key)
+            .queueFile(fileName)
+            return
+        }
+        .selectViewer(index)
     }
 
     // Answers the lens with the rows of the viewer on screen, under its name.

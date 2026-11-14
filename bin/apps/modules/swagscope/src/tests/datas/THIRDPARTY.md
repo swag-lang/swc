@@ -1,5 +1,48 @@
 # Swag Scope fixture sources and licences
 
+## Published reading documents
+
+`viewer.christmas-carol.epub` is an unmodified EPUB 3 download of *A Christmas Carol in
+Prose; Being a Ghost Story of Christmas* by Charles Dickens, with the original illustrations
+by John Leech. It tests a complete illustrated book with several spine entries.
+
+- Source: [Project Gutenberg eBook 46](https://www.gutenberg.org/ebooks/46),
+  [EPUB 3 download](https://www.gutenberg.org/ebooks/46.epub3.images).
+- Retrieved: 2026-11-14.
+- SHA-256: `8557960c8d5e62e23ebfeedacad8ad0a4ebf8d056c1ad37210b2a528c2a2d6cb`.
+- Rights: the work and its 1843 illustrations are in the public domain; Project Gutenberg
+  [marks this edition as public domain in the USA](https://www.gutenberg.org/ebooks/46).
+  The Project Gutenberg name and redistribution terms are explained in its
+  [permission policy](https://www.gutenberg.org/policy/permission.html).
+
+`viewer.poi-sample.docx`, `viewer.monthly-budget.xlsx`, and `viewer.poi-sample.pptx` are
+unmodified, populated sample documents from Apache POI's test corpus at commit
+[`47dcff769bb395034dddfd59c4609659b6dbc6a4`](https://github.com/apache/poi/tree/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data).
+They exercise actual Word paragraphs, a monthly budget workbook with formulas, and a two-slide
+PowerPoint presentation. They are openly licensed samples, not public-domain works.
+
+| Local fixture | Upstream file | SHA-256 |
+| --- | --- | --- |
+| `viewer.poi-sample.docx` | [`test-data/document/SampleDoc.docx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/document/SampleDoc.docx) | `ea2c517bd7be4628887eb97f630334b93b894f4522d2c0adae263e602d76df92` |
+| `viewer.monthly-budget.xlsx` | [`test-data/spreadsheet/simple-monthly-budget.xlsx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/spreadsheet/simple-monthly-budget.xlsx) | `cae00c6894b95743017aeded4186f15a12c2d8382d71760029df490d58197db6` |
+| `viewer.poi-sample.pptx` | [`test-data/slideshow/SampleShow.pptx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/slideshow/SampleShow.pptx) | `bfb4b2f07c9233afd2f32aa5781d849d0c7d225bf03721a10becf487b481d828` |
+
+- License: [Apache License 2.0](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/legal/LICENSE).
+  The complete license text is also reproduced for other Apache fixture copies in
+  `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+
+`viewer.openmp-reference.pdf` is an unmodified 67-page LLVM OpenMP runtime reference manual
+already present in the GUI test corpus. It exercises both the beginning and end of a real
+technical document.
+
+- Source: `bin/std/modules/gui/src/tests/datas/llvm-openmp-reference.pdf`, originally
+  [`openmp/runtime/doc/Reference.pdf`](https://github.com/swag-lang/swag/blob/7328b93084641fe1a86577aefc98c093b26133e5/llvm/openmp/runtime/doc/Reference.pdf).
+- SHA-256: `bf61427504a7cc96c532c220c9f5ecc58e7c05374617e4e3de21ce987ba2b8e6`.
+- License: the upstream LLVM project license; see the full provenance and license notice in
+  `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+
+## Other sources
+
 `glint-aac-mjpeg.mp4` is the 10-frame synthetic MP4 fixture documented in std/video's test
 corpus. Its picture is generated colour blocks and its sound is generated stereo sine waves.
 
@@ -31,6 +74,19 @@ Swag PDF writer and covers a PDF 1.4 classic cross-reference table with a Flate 
 - SHA-256: `a31f3b5fc79e6ae2703f9d2817af088f29aef4937e370b173512d820a9972c35`
 - License: Apache License 2.0. The complete upstream provenance and license notice are reproduced
   in `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`.
+
+`viewer.object-stream.pdf`, `viewer.rotation.pdf`, and `viewer.jpeg.pdf` are unmodified copies
+of the corresponding `pdfbox-*` files in `bin/std/modules/gui/src/tests/datas`. They cover
+cross-reference/object streams, rotated pages, and JPEG image objects respectively. That
+corpus' `THIRDPARTY.md` records their exact upstream paths, SHA-256 hashes and Apache 2.0
+licence. `viewer.ccitt.pdf` copies the repository-generated `synthetic-ccitt-cmyk.pdf` from
+the same GUI corpus.
+
+`viewer.jpg`, `viewer.jpeg`, `viewer.cmyk.jpg`, `viewer.progressive.jpg`, `viewer.bmp`, and
+`viewer.tga` copy existing Pixel test inputs. Audio and video `viewer.*` files likewise copy
+the corresponding generated fixtures in the standard Audio and Video test corpora; their
+source names and format variants are listed in `README.md` here. These copies add no new
+third-party input to the repository.
 
 `title.png` and `qrcode.png` are unmodified copies of the two images of the InDesign layout sample
 published for the iOSDC Japan 2025 pamphlet article. They give the explorer and reload tests real

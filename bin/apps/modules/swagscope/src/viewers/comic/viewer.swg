@@ -231,7 +231,9 @@ private impl Panel
         .pendingPage = Swag.U64.Max
         let entry    = &.book.archive.entries[.book.pages[.activePage]]
         let extension = Path.lowercaseExtension(entry.path)
-        .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swagscope-comic-%%", Guid64.random(), extension))
+        var name = Format.toString("swagscope-comic-%", Guid64.random())
+        name += extension
+        .previewFile = Path.combine(Env.getSpecialDirectory(.Temp), name)
         .extract.start(.sourceFile, entry, .previewFile, me)
         .refreshNavigation()
     }

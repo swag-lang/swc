@@ -89,6 +89,34 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.require(not window.explorerActive and window.home.isLocallyVisible())
 }
 
+// A click on a packaged book or comic opens its reader rather than the archive explorer.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(unwrap Path.directoryName(fixture("viewer.epub")))
+    let explorer = unwrap window.explorer
+    completeExplorer(&host, explorer)
+    Swag.require(not window.viewerCaptionButton.isLocallyVisible())
+
+    const Cases: [2] string = ["viewer.epub", "viewer.cbz"]
+    for name in Cases
+    {
+        var selected = Swag.U64.Max
+        for &entry, index in explorer.entries where entry.name == name do
+            selected = index
+        Swag.require(selected != Swag.U64.Max)
+        explorer.activate(selected)
+        completeQueuedViewerFile(&host, window)
+        Swag.require(not window.isExploring() and not explorer.isLocallyVisible())
+        Swag.require(window.choices[window.activeChoiceIndex].key == (name == "viewer.epub" ? "epub" : "comic"))
+        window.closeFile()
+        host.pump()
+        Swag.require(window.isExploring() and not window.viewerCaptionButton.isLocallyVisible())
+    }
+}
+
 // The information sheet follows the reader from a folder to its file and back, then to another
 // explored location without changing its visibility.
 #test
@@ -132,6 +160,66 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.require(Utf8.contains(window.infoSheet.text(), "viewer.archive.zip"))
     window.closeFile()
     Swag.require(window.home.isLocallyVisible() and not window.infoSheet.isLocallyVisible())
+}
+
+// The caption chooser returns from an archive's folder page to its original book or comic reader.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    const Cases: [2] string = ["viewer.epub", "viewer.cbz"]
+    for name in Cases
+    {
+        if name == "viewer.cbz"
+        {
+            host.theme.setLight()
+            host.notify(.ThemeChanged)
+        }
+        let file = fixture(name)
+        let native = name == "viewer.epub" ? "epub" : "comic"
+        window.openFile(file)
+        completeQueuedViewerFile(&host, window)
+        Swag.require(window.choices[window.activeChoiceIndex].key == native)
+        Swag.require(window.viewerCaptionButton.isLocallyVisible())
+        Swag.require(window.viewerCaptionButton.iconColor == Color{})
+
+        var archiveChoice = Swag.U32.Max
+        for choice, index in window.choices where choice.key == "archive" do
+            archiveChoice = cast(u32, index)
+        Swag.require(archiveChoice != Swag.U32.Max)
+        window.selectViewer(archiveChoice)
+        let explorer = unwrap window.explorer
+        completeExplorer(&host, explorer)
+        Swag.require(window.isExploring() and explorer.listing.isArchive)
+        Swag.require(window.viewerCaptionButton.isLocallyVisible())
+        Swag.require(window.viewerCaptionButton.iconColor == window.themeColors().caution)
+        window.lens.open(appStrings().lens_ViewAs)
+        Swag.require(lensHasEntry(window, window.index.plugins[window.index.choices(file)[0].pluginIndex].displayName()))
+        window.lens.close()
+
+        let menu = window.createViewerChoicesMenu()
+        let choices = window.index.choices(file)
+        Swag.require(menu.items.count == choices.count + 1)
+        Swag.require(menu.items[0]!.id == "scope.viewer.choice.0")
+        Swag.require(menu.items[1]!.separator and menu.items[2]!.id == "scope.viewer.choice.1")
+        Swag.require(menu.items[0]!.name.raw == Format.toString(appStrings().ui_DefaultViewerChoice,
+                                                                window.index.plugins[choices[0].pluginIndex].displayName()))
+        menu.destroyNow()
+
+        host.clickPopupMenuItemWhenShown("scope.viewer.choice.0")
+        window.viewerCaptionButton.sigPressed.call(cast(*Button, window.viewerCaptionButton))
+        completeQueuedViewerFile(&host, window)
+        Swag.require(not window.isExploring() and window.choices[window.activeChoiceIndex].key == native)
+        Swag.require(window.viewerCaptionButton.iconColor == Color{})
+        for preference in window.preferences do
+            Swag.require(preference.kind != native)
+        window.closeFile()
+        host.pump()
+    }
+    window.openExplorer(fixture("viewer.archive.zip"))
+    completeExplorer(&host, unwrap window.explorer)
+    Swag.require(window.viewerCaptionButton.isLocallyVisible() and window.viewerCaptionButton.iconColor == Color{})
 }
 
 // A later location wins even when the preceding enumeration has not returned yet.

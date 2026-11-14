@@ -19,6 +19,35 @@ internal func createPdfFixture()->String
     return fileName
 }
 
+// Files from different PDF producers and page encodings open as readable pages.
+#test
+{
+    const Cases: [4] string = [
+        "viewer.object-stream.pdf",
+        "viewer.rotation.pdf",
+        "viewer.jpeg.pdf",
+        "viewer.ccitt.pdf",
+    ]
+    for name in Cases
+    {
+        var reader = expect Pdf.Reader.open(scopeTestDataPath(name))
+        Swag.require(reader.pageCount() > 0, name)
+        let page = expect reader.loadPage(0)
+        Swag.require(page.width > 0 and page.height > 0, name)
+    }
+}
+
+// A complete LLVM reference manual is a larger, real-world multipage PDF.
+#test
+{
+    var reader = expect Pdf.Reader.open(scopeTestDataPath("viewer.openmp-reference.pdf"))
+    Swag.require(reader.pageCount() == 67)
+    let first = expect reader.loadPage(0)
+    let last = expect reader.loadPage(66)
+    Swag.require(first.width > 0 and first.height > 0)
+    Swag.require(last.width > 0 and last.height > 0)
+}
+
 #test
 {
     let fileName = createPdfFixture()

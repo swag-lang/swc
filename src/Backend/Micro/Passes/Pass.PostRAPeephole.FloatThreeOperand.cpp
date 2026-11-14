@@ -1634,8 +1634,67 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A zero-extended byte/word contributes zero to every higher bit of OR/XOR.
+    // Their narrow memory forms preserve those higher destination bits, unlike
+    // a narrowed AND. A dword operation also clears the upper half, so keep it.
+    static bool tryFoldZeroExtendedBitwiseMemory(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (!ctx.encoder)
+            return false;
+        const bool  indexed = loadInst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        const auto* load    = ctx.operandsFor(loadRef);
+        if (!load || !load[0].reg.isAnyInt() ||
+            (load[indexed ? 3 : 2].opBits != MicroOpBits::B32 && load[indexed ? 3 : 2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroOpBits sourceBits = load[indexed ? 4 : 3].opBits;
+        if (sourceBits != MicroOpBits::B8 && sourceBits != MicroOpBits::B16)
+            return false;
+        const auto  opRef = ctx.nextRef(loadRef);
+        const auto* inst  = ctx.instruction(opRef);
+        const auto* ops   = inst ? ctx.operandsFor(opRef) : nullptr;
+        if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegReg || !ops ||
+            ops[1].reg != load[0].reg || ops[0].reg == load[0].reg || !ops[0].reg.isAnyInt() ||
+            (ops[3].microOp != MicroOp::Xor && ops[3].microOp != MicroOp::Or) ||
+            (ops[2].opBits != MicroOpBits::B64 && ops[2].opBits != MicroOpBits::B16) ||
+            getNumBytes(sourceBits) > getNumBytes(ops[2].opBits) || !ctx.areCpuFlagsDeadAfter(opRef) ||
+            (!regIsDeadAfter(ctx, opRef, load[0].reg) && !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1)))
+            return false;
+        MicroRelocation* relocation = nullptr;
+        if (!findUniqueMemoryRelocation(ctx, relocation, loadRef, load[1].reg, opRef))
+            return false;
+        MicroInstrOperand folded[8] = {};
+        folded[0]                   = ops[0];
+        folded[1]                   = load[1];
+        if (indexed)
+        {
+            folded[2]        = load[2];
+            folded[3].opBits = sourceBits;
+            folded[4].opBits = MicroOpBits::B64;
+            folded[5]        = load[5];
+            folded[6]        = load[6];
+            folded[7]        = ops[3];
+        }
+        else
+        {
+            folded[2].opBits = sourceBits;
+            folded[3]        = ops[3];
+            folded[4]        = load[4];
+        }
+        const auto                               opcode = indexed ? MicroInstrOpcode::OpBinaryRegAmcMem : MicroInstrOpcode::OpBinaryRegMem;
+        const std::span<const MicroInstrOperand> operands{folded, indexed ? 8u : 5u};
+        if (!encoderAcceptsAsIs(ctx, opcode, operands) || !ctx.claimAll({loadRef, opRef}))
+            return false;
+        if (relocation)
+            relocation->instructionRef = opRef;
+        ctx.emitRewrite(opRef, opcode, operands, true);
+        ctx.emitErase(loadRef);
+        return true;
+    }
+
     bool tryFoldLoadIntoBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
+        if (loadInst.op == MicroInstrOpcode::LoadZeroExtRegMem || loadInst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
+            return tryFoldZeroExtendedBitwiseMemory(ctx, loadRef, loadInst);
         return tryFoldLoadIntoBinaryForm(ctx, loadRef, loadInst, false);
     }
 

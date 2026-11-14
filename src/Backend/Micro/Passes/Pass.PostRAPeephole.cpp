@@ -1483,6 +1483,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegMem, tryErasePrivateFrameReloadAfterBranch);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoNarrowExtract);
         r.add(MicroInstrOpcode::LoadRegMem, tryFoldLoadIntoBinary);
+        r.add(MicroInstrOpcode::LoadZeroExtRegMem, tryFoldLoadIntoBinary);
+        r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryFoldLoadIntoBinary);
         r.add(MicroInstrOpcode::LoadRegMem, tryEraseFloatClearBeforeFullWrite);
         r.add(MicroInstrOpcode::ClearReg, tryEraseRepeatedVectorClear);
         r.add(MicroInstrOpcode::ClearReg, tryEraseFloatClearBeforeFullWrite);

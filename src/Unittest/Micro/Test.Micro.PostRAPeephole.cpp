@@ -8010,6 +8010,66 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryPreservesLanesAndOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ZeroExtendedBitwiseMemoryPreservesHighBitsAndFlags)
+{
+    const auto         base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg accumulator = MicroReg::intReg(0);
+    constexpr MicroReg index       = MicroReg::intReg(8);
+    constexpr MicroReg loaded      = MicroReg::intReg(9);
+    constexpr MicroReg flags       = MicroReg::intReg(10);
+    for (const auto loadBits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const auto sourceBits : {MicroOpBits::B8, MicroOpBits::B16})
+            for (const auto resultBits : {MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+                for (const auto op : {MicroOp::Xor, MicroOp::Or, MicroOp::And})
+                    for (const bool indexed : {false, true})
+                        for (uint32_t mode = 0; mode < 4; ++mode)
+                            for (const uint64_t value : {0ull, 0xFFull, 0xFFFFull})
+                            {
+                                std::array<uint64_t, 10> reference{};
+                                for (const bool optimize : {false, true})
+                                {
+                                    std::array<uint64_t, 10> values = {0xFEDCBA987654FF00ull, 0, value};
+                                    MicroBuilder             builder(ctx);
+                                    builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitLoadRegImm(flags, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitLoadRegMem(accumulator, base, 0, MicroOpBits::B64);
+                                    if (indexed)
+                                    {
+                                        builder.emitLoadAmcRegMem(loaded, loadBits, base, index, 8, 16, MicroOpBits::B64);
+                                        auto* load                              = builder.instructions().ptr(builder.instructions().lastInstructionRef());
+                                        load->op                                = mode == 3 ? MicroInstrOpcode::LoadSignedExtAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                                        load->ops(builder.operands())[4].opBits = sourceBits;
+                                    }
+                                    else if (mode == 3)
+                                        builder.emitLoadSignedExtendRegMem(loaded, base, 16, loadBits, sourceBits);
+                                    else
+                                        builder.emitLoadZeroExtendRegMem(loaded, base, 16, loadBits, sourceBits);
+                                    builder.emitOpBinaryRegReg(accumulator, loaded, op, resultBits);
+                                    if (mode != 1)
+                                        builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitSetCondReg(flags, MicroCond::Equal);
+                                    builder.emitLoadMemReg(base, 32, accumulator, MicroOpBits::B64);
+                                    builder.emitLoadMemReg(base, 40, flags, MicroOpBits::B64);
+                                    if (mode == 2)
+                                        builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B64);
+                                    builder.emitRet();
+                                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                                    if (!optimize)
+                                        reference = values;
+                                    else
+                                    {
+                                        const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegAmcMem) +
+                                                                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem);
+                                        const bool     fold   = mode == 0 && resultBits != MicroOpBits::B32 && op != MicroOp::And;
+                                        if (values != reference || folded != (fold ? 1u : 0u))
+                                            return Result::Error;
+                                    }
+                                }
+                            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatMemoryResultCopyPreservesLanes)
 {
     const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];

@@ -54,7 +54,7 @@ each slice rather than becoming a final integration pass.
 ### app.scope.viewers.009 — The viewer family has no release-quality compatibility matrix
 
 - Evidence: the twenty registered viewers have focused tests and viewer-specific goldens. The
-  fixture matrix now names all 116 canonical and variant files, checks
+  fixture matrix now names all 118 canonical and variant files, checks
   each one's first viewer, and decodes the listed image inputs. EPUB, CBZ, DOCX, RTF, XLSX and PPTX have
   content and damaged-package cases. Five complete, openly licensed published documents add
   content checks for EPUB, Office and PDF, with source URLs and SHA-256 hashes. Text covers queued encoding changes, cancellation and CRLF

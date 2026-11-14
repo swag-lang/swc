@@ -56,9 +56,17 @@ public func murmur3(a, b: u64)->u64
     return nb * K
 }
 
+#[Swag.Inline]
+private func load64Le(data: const [*] u8)->u64
+{
+    var value: u64
+    Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
+    return Math.littleEndianToNative(value)
+}
+
 // Returns a hash of the `len` bytes at `key`, seeded with `seed`.
 //
-// The byte hash is MurmurHash64A, which reads the input in eight-byte blocks.
+// The byte hash is MurmurHash64A, which reads little-endian eight-byte blocks.
 #[Safety(.All, false)]
 public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 {
@@ -67,12 +75,11 @@ public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 
     var h = seed ^ (len * m)
 
-    let data    = cast(const [*] u64, key)
     let nblocks = len / 8
 
     for i in nblocks
     {
-        var k = data[i]
+        var k = load64Le(key + i * 8)
         k *= m
         k ^= k >> r
         k *= m
@@ -80,7 +87,7 @@ public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
         h *= m
     }
 
-    let data2 = cast(const [*] u8, &data[nblocks])
+    let data2 = key + nblocks * 8
     switch len & 7
     {
     case 7:

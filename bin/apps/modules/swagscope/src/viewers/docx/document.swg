@@ -27,7 +27,8 @@ impl Document
         let bytes = try Archive.Zip.loadEntry(fileName, entry)
         var scan = Package.Scanner.create(cast(string, bytes.toSlice()))
         var token: Package.Token
-        var reader = Reader{document: Document{html: "<html><body>"}}
+        var images = try ImageCatalog.load(fileName, &archive)
+        var reader = Reader{document: Document{html: "<html><body>"}, images: #move images}
 
         while scan.next(&token)
         {

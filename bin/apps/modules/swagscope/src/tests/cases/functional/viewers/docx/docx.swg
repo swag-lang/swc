@@ -51,6 +51,26 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(Utf8.contains(document.html, "<h2 style=\"text-align:right\">Second heading</h2>"))
 }
 
+// Local image relationships render inline; an external relationship stays an explicit omission.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.image.docx"))
+    Swag.require(document.paragraphs == 3 and document.omittedImages == 1)
+    Swag.require(Utf8.contains(document.html, "data:image/jpeg;base64,"))
+    Swag.require(Utf8.contains(document.html, "[Image not shown]"))
+    Swag.require(not Utf8.contains(document.html, "example.invalid"))
+}
+
+// A published document mixes readable PNG/JPEG drawings with unsupported metafiles.
+#test
+{
+    let document = expect Docx.Document.load(scopeTestDataPath("viewer.poi-pictures.docx"))
+    Swag.require(document.paragraphs > 0 and document.omittedImages > 0)
+    Swag.require(Utf8.contains(document.html, "data:image/png;base64,"))
+    Swag.require(Utf8.contains(document.html, "data:image/jpeg;base64,"))
+    Swag.require(Utf8.contains(document.html, "[Image not shown]"))
+}
+
 // A ZIP with no document body is rejected as a damaged Word document.
 #test
 {

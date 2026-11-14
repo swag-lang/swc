@@ -31,6 +31,13 @@ using Core, Gui, Viewers
     picturedViewer(scopeTestDataPath("viewer.formatted.docx"), false, "viewer.docx.formatted")
 }
 
+// A Word document with an embedded photo in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.image.docx"), true, "viewer.docx.image")
+}
+
 // Styled rich text in Encre.
 #[Swag.TestTag("golden")]
 #test

@@ -142,7 +142,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   the Archive alternative.
 - `Word document` reads the main DOCX body as paragraphs and tables, preserving text-run order,
   direct bold, italic, underline and strike formatting, heading levels, alignment, line breaks
-  and tabs. It labels embedded images it cannot yet show. Page layout, inherited styles,
+  and tabs. Bounded embedded PNG, JPEG, GIF and WebP pictures appear inline; other images are
+  labelled, and external image relationships are never loaded. Page layout, inherited styles,
   headers, footers and comments are not reproduced.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. It labels embedded pictures and objects it cannot show. Only Windows-1252

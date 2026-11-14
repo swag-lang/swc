@@ -24,15 +24,16 @@ by John Leech. It tests a complete illustrated book with several spine entries.
   The Project Gutenberg name and redistribution terms are explained in its
   [permission policy](https://www.gutenberg.org/policy/permission.html).
 
-`viewer.poi-sample.docx`, `viewer.monthly-budget.xlsx`, and `viewer.poi-sample.pptx` are
+`viewer.poi-sample.docx`, `viewer.poi-pictures.docx`, `viewer.monthly-budget.xlsx`, and `viewer.poi-sample.pptx` are
 unmodified, populated sample documents from Apache POI's test corpus at commit
 [`47dcff769bb395034dddfd59c4609659b6dbc6a4`](https://github.com/apache/poi/tree/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data).
-They exercise actual Word paragraphs, a monthly budget workbook with formulas, and a two-slide
+They exercise actual Word paragraphs, mixed embedded pictures, a monthly budget workbook with formulas, and a two-slide
 PowerPoint presentation. They are openly licensed samples, not public-domain works.
 
 | Local fixture | Upstream file | SHA-256 |
 | --- | --- | --- |
 | `viewer.poi-sample.docx` | [`test-data/document/SampleDoc.docx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/document/SampleDoc.docx) | `ea2c517bd7be4628887eb97f630334b93b894f4522d2c0adae263e602d76df92` |
+| `viewer.poi-pictures.docx` | [`test-data/document/VariousPictures.docx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/document/VariousPictures.docx) | `c1eecbca7de9f99e21c677e1d5b045eaa1d5a442eff4c82f0cbe9af93726a070` |
 | `viewer.monthly-budget.xlsx` | [`test-data/spreadsheet/simple-monthly-budget.xlsx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/spreadsheet/simple-monthly-budget.xlsx) | `cae00c6894b95743017aeded4186f15a12c2d8382d71760029df490d58197db6` |
 | `viewer.poi-sample.pptx` | [`test-data/slideshow/SampleShow.pptx`](https://github.com/apache/poi/blob/47dcff769bb395034dddfd59c4609659b6dbc6a4/test-data/slideshow/SampleShow.pptx) | `bfb4b2f07c9233afd2f32aa5781d849d0c7d225bf03721a10becf487b481d828` |
 

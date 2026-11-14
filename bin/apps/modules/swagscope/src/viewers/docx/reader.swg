@@ -7,6 +7,7 @@ using Core
 private struct Reader
 {
     document:              Document
+    images:                ImageCatalog
     paragraph:             String
     run:                   String
     alignment:             string = ""
@@ -21,6 +22,8 @@ private struct Reader
     inRun:                 bool
     inRunProperties:       bool
     inText:                bool
+    inImage:               bool
+    imageId:               String
 }
 
 private impl Reader
@@ -31,6 +34,24 @@ private impl Reader
             .run += value
         else do
             .paragraph += value
+    }
+
+    mtd finishImage()
+    {
+        if not .inImage do
+            return
+        let image = .images.html(.imageId)
+        if image.isEmpty()
+        {
+            .document.omittedImages += 1
+            var notice: String
+            Package.appendHtmlEscaped(&notice, texts().ui_ImageOmitted)
+            .appendInline(notice)
+        }
+        else do
+            .appendInline(image)
+        .inImage = false
+        .imageId.clear()
     }
 
     mtd finishRun()
@@ -141,6 +162,30 @@ private impl Reader
         if not .inBody do
             return
 
+        if .inImage
+        {
+            if token.isElement("blip")
+            {
+                let id = token.attribute("r:embed")
+                if id do
+                    .imageId = id
+            }
+            elif token.isElement("imagedata")
+            {
+                let id = token.attribute("r:id")
+                if id do
+                    .imageId = id
+            }
+            return
+        }
+        if token.isElement("drawing") or token.isElement("pict")
+        {
+            .inImage = true
+            if token.empty do
+                .finishImage()
+            return
+        }
+
         if token.isElement("tbl")
         {
             .document.tables += 1
@@ -182,11 +227,6 @@ private impl Reader
             .appendInline("<br>")
         elif token.isElement("tab") do
             .appendInline("&emsp;")
-        elif token.isElement("drawing") or token.isElement("pict")
-        {
-            .document.omittedImages += 1
-            .appendInline(texts().ui_ImageOmitted)
-        }
     }
 
     internal mtd end(token: const *Package.Token)
@@ -198,6 +238,12 @@ private impl Reader
         }
         if not .inBody do
             return
+        if .inImage
+        {
+            if token.isElement("drawing") or token.isElement("pict") do
+                .finishImage()
+            return
+        }
         if token.isElement("t") do
             .inText = false
         elif token.isElement("rPr") do

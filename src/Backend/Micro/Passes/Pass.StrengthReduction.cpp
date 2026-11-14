@@ -1213,6 +1213,7 @@ namespace
             uint32_t               provenAt   = 0;
             MicroOpBits            bits       = MicroOpBits::Zero;
             bool                   strict     = false;
+            bool                   exclusive  = false;
         };
         struct CounterRange
         {
@@ -1351,9 +1352,9 @@ namespace
                             continue;
                         std::swap(guard.value, guard.rhs);
                     }
-                    if (guard.provenAt >= refs_.size() || target == at + 2 ||
-                        cfg_.predecessors(guard.provenAt).size() != 1 || cfg_.predecessors(guard.provenAt)[0] != at + 1)
+                    if (guard.provenAt >= refs_.size() || target == at + 2)
                         continue;
+                    guard.exclusive = cfg_.predecessors(guard.provenAt).size() == 1 && cfg_.predecessors(guard.provenAt)[0] == at + 1;
                     guards_.push_back(guard);
                 }
             }
@@ -1373,7 +1374,7 @@ namespace
             std::optional<Bound> upper;
             for (const auto& guard : guards_)
             {
-                if (guard.value != id || guard.bits != bits || !dom_.dominates(guard.provenAt, at))
+                if (!guard.exclusive || guard.value != id || guard.bits != bits || !dom_.dominates(guard.provenAt, at))
                     continue;
                 auto bound = guard.constant;
                 if (!bound)
@@ -1438,7 +1439,35 @@ namespace
                     const auto* inst = context_.instructions->ptr(value->instRef);
                     const auto* ops  = inst ? inst->ops(*context_.operands) : nullptr;
                     if (ops && inst->op == MicroInstrOpcode::LoadCondRegReg && ops[3].opBits == bits)
-                        result = minBound(*value, *inst, budget, active, bits);
+                    {
+                        const uint32_t site   = cfg_.indexOf(value->instRef);
+                        const auto     old    = valueBound(ssa_.reachingValueId(ops[0].reg, value->instRef), site, bits, budget, active);
+                        const auto     source = valueBound(ssa_.reachingValueId(ops[1].reg, value->instRef), site, bits, budget, active);
+                        // A conditional move is a pure selection, so recursive
+                        // merge identities cannot grow a bounded incoming value.
+                        if (old.identity && source.identity)
+                            return {upper, !upper.has_value()};
+                        if (old.bound && source.bound)
+                            result = Bound{std::max(old.bound->upper, source.bound->upper), old.bound->nonnegative && source.bound->nonnegative};
+                        else if (old.identity && source.bound)
+                            result = source.bound;
+                        else if (source.identity && old.bound)
+                            result = old.bound;
+                        if ((old.bound || source.bound) && isSignedMinimum(*value, *inst, bits))
+                        {
+                            const int64_t maximum = old.bound && source.bound ? std::min(old.bound->upper, source.bound->upper) : old.bound ? old.bound->upper
+                                                                                                                                            : source.bound->upper;
+                            result                = Bound{maximum, result && result->nonnegative};
+                        }
+                    }
+                    else if (ops && (inst->op == MicroInstrOpcode::LoadZeroExtRegReg || inst->op == MicroInstrOpcode::LoadZeroExtRegMem || inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem))
+                    {
+                        const bool        indexed         = inst->op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                        const MicroOpBits destinationBits = ops[indexed ? 3 : 2].opBits;
+                        const MicroOpBits sourceBits      = ops[indexed ? 4 : 3].opBits;
+                        if (getNumBits(destinationBits) >= 32 && getNumBits(sourceBits) < getNumBits(bits))
+                            result = Bound{static_cast<int64_t>(getBitsMask(sourceBits)), true};
+                    }
                     else if (ops)
                     {
                         uint32_t base;
@@ -1450,6 +1479,8 @@ namespace
                             if (previous.bound && previous.bound->nonnegative && step <= signedMax - static_cast<uint64_t>(previous.bound->upper))
                                 result = Bound{previous.bound->upper + static_cast<int64_t>(step), true};
                         }
+                        else
+                            result = sumBound(*value, *inst, bits, budget, active);
                     }
                 }
             }
@@ -1462,7 +1493,7 @@ namespace
                 return {};
             return {result, false};
         }
-        std::optional<Bound> minBound(const MicroSsaState::ValueInfo& value, const MicroInstr& select, uint32_t& budget, SmallVector<uint32_t, 16>& active, MicroOpBits bits)
+        bool isSignedMinimum(const MicroSsaState::ValueInfo& value, const MicroInstr& select, MicroOpBits bits) const
         {
             const auto*    selected = select.ops(*context_.operands);
             const uint32_t old      = canonical(ssa_.reachingValueId(selected[0].reg, value.instRef), bits);
@@ -1473,13 +1504,13 @@ namespace
                 const auto* inst = context_.instructions->ptr(refs_[--at]);
                 const auto* ops  = inst->ops(*context_.operands);
                 if (inst->op == MicroInstrOpcode::Label || MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
-                    return {};
+                    return false;
                 if (!MicroPassHelpers::instructionActuallyDefinesCpuFlags(*inst, ops))
                     continue;
                 if (inst->op != MicroInstrOpcode::CmpRegReg && inst->op != MicroInstrOpcode::CmpRegImm)
-                    return {};
+                    return false;
                 if (ops[inst->op == MicroInstrOpcode::CmpRegImm ? 1 : 2].opBits != bits)
-                    return {};
+                    return false;
                 const uint32_t lhs          = canonical(ssa_.reachingValueId(ops[0].reg, refs_[at]), bits);
                 auto           matchesRight = [&](uint32_t id) {
                     if (inst->op == MicroInstrOpcode::CmpRegReg)
@@ -1493,16 +1524,53 @@ namespace
                 const bool      minimum = ((cond == MicroCond::Less || cond == MicroCond::LessOrEqual) && source == lhs && matchesRight(old)) ||
                                           ((cond == MicroCond::Greater || cond == MicroCond::GreaterOrEqual) && old == lhs && matchesRight(source));
                 if (!minimum)
-                    return {};
-                const auto a = valueBound(old, cfg_.indexOf(value.instRef), bits, budget, active);
-                const auto b = valueBound(source, cfg_.indexOf(value.instRef), bits, budget, active);
-                if (!a.bound && !b.bound)
-                    return {};
-                return Bound{a.bound && b.bound ? std::min(a.bound->upper, b.bound->upper) : a.bound ? a.bound->upper
-                                                                                                     : b.bound->upper,
-                             a.bound && b.bound && a.bound->nonnegative && b.bound->nonnegative};
+                    return false;
+                return true;
             }
-            return {};
+            return false;
+        }
+        // Only retain a sum when its entire mathematical range fits the signed
+        // destination. A recursive phi identity is not a bounded addend.
+        std::optional<Bound> sumBound(const MicroSsaState::ValueInfo& value, const MicroInstr& inst, MicroOpBits bits, uint32_t& budget, SmallVector<uint32_t, 16>& active)
+        {
+            const auto* ops = inst.ops(*context_.operands);
+            MicroReg    left;
+            MicroReg    right;
+            uint64_t    scale  = 1;
+            uint64_t    offset = 0;
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[2].opBits == bits && ops[3].microOp == MicroOp::Add)
+            {
+                left  = ops[0].reg;
+                right = ops[1].reg;
+            }
+            else if (inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[3].opBits == bits && ops[4].microOp == MicroOp::Add)
+            {
+                left  = ops[1].reg;
+                right = ops[2].reg;
+            }
+            else if (inst.op == MicroInstrOpcode::LoadAddrAmcRegMem && ops[3].opBits == bits)
+            {
+                left   = ops[1].reg;
+                right  = ops[2].reg;
+                scale  = ops[5].valueU64;
+                offset = ops[6].valueU64;
+            }
+            else
+                return {};
+            const uint32_t site = cfg_.indexOf(value.instRef);
+            const auto     a    = valueBound(ssa_.reachingValueId(left, value.instRef), site, bits, budget, active);
+            const auto     b    = valueBound(ssa_.reachingValueId(right, value.instRef), site, bits, budget, active);
+            if (!a.bound || !b.bound || !a.bound->nonnegative || !b.bound->nonnegative)
+                return {};
+            const uint64_t maximum = getBitsMask(bits) >> 1;
+            const uint64_t lhs     = static_cast<uint64_t>(a.bound->upper);
+            const uint64_t rhs     = static_cast<uint64_t>(b.bound->upper);
+            if (lhs > maximum || rhs > maximum || offset > maximum || (rhs && scale > maximum / rhs))
+                return {};
+            const uint64_t scaled = rhs * scale;
+            if (scaled > maximum - lhs || offset > maximum - lhs - scaled)
+                return {};
+            return Bound{static_cast<int64_t>(lhs + scaled + offset), true};
         }
         // A nonnegative constant affine step, optionally relative to one root.
         bool affine(uint32_t id, uint32_t root, MicroOpBits bits, uint32_t& base, uint64_t& step) const
@@ -1590,7 +1658,7 @@ namespace
                     base   = canonical(ssa_.reachingValueId(ops[0].reg, value->instRef), out.bits);
                     stepId = ssa_.reachingValueId(ops[1].reg, value->instRef);
                 }
-                else if (ops && inst->op == MicroInstrOpcode::LoadAddrAmcRegMem && ops[3].opBits == out.bits && ops[4].valueU64 == 1 && ops[5].valueU64 == 0)
+                else if (ops && inst->op == MicroInstrOpcode::LoadAddrAmcRegMem && ops[3].opBits == out.bits && ops[5].valueU64 == 1 && ops[6].valueU64 == 0)
                 {
                     base   = canonical(ssa_.reachingValueId(ops[1].reg, value->instRef), out.bits);
                     stepId = ssa_.reachingValueId(ops[2].reg, value->instRef);
@@ -1606,6 +1674,56 @@ namespace
             }
             out.updates.push_back({id, definedAt, step});
             return true;
+        }
+        // A rotated loop can test the updated value on its back edge. The
+        // header is also reached by the seed, so this is an edge fact, never a
+        // fact that dominates the body. Prove the induction before the addition:
+        // every header value is a bounded seed or a guarded back-edge value,
+        // and even the largest such value plus the step cannot wrap.
+        std::optional<uint64_t> backEdgeRange(const Recurrence& candidate, const MicroSsaState::PhiInfo& phi, const MicroPassHelpers::NaturalLoop& loop, uint32_t header)
+        {
+            if (candidate.updates.size() != 1)
+                return {};
+            const auto& update    = candidate.updates.front();
+            uint64_t    maximum   = candidate.seedMax;
+            bool        backInput = false;
+            for (uint32_t input = 0; input < phi.incomingValueIds.size(); ++input)
+            {
+                const auto pred = ssa_.blockInstructions(phi.predecessorBlocks[input]);
+                if (pred.empty())
+                    return {};
+                const uint32_t predecessor = cfg_.indexOf(pred.back());
+                if (!loop.inBody[predecessor])
+                    continue;
+                if (canonical(phi.incomingValueIds[input], candidate.bits) != update.value)
+                    return {};
+                std::optional<uint64_t> upper;
+                for (const auto& guard : guards_)
+                {
+                    if (guard.bits != candidate.bits || guard.provenAt != header || guard.comparedAt + 1 != predecessor || guard.value != update.value)
+                        continue;
+                    auto bound = guard.constant;
+                    if (!bound)
+                    {
+                        const auto rhs = query(guard.rhs, guard.comparedAt, candidate.bits);
+                        if (rhs.bound)
+                            bound = rhs.bound->upper;
+                    }
+                    if (!bound || *bound < (guard.strict ? 1 : 0))
+                        continue;
+                    const uint64_t limit = static_cast<uint64_t>(*bound) - (guard.strict ? 1u : 0u);
+                    if (!upper || limit < *upper)
+                        upper = limit;
+                }
+                if (!upper)
+                    return {};
+                maximum   = std::max(maximum, *upper);
+                backInput = true;
+            }
+            const uint64_t signedMax = getBitsMask(candidate.bits) >> 1;
+            if (!backInput || maximum > signedMax || update.step > signedMax - maximum)
+                return {};
+            return maximum + update.step;
         }
         void collectCounters()
         {
@@ -1662,7 +1780,7 @@ namespace
                             {
                                 uint32_t base;
                                 uint64_t offset;
-                                if (guard.bits != bits || !dom_.dominates(guard.provenAt, update.at) ||
+                                if (!guard.exclusive || guard.bits != bits || !dom_.dominates(guard.provenAt, update.at) ||
                                     !affine(guard.value, candidate.root, bits, base, offset))
                                     continue;
                                 auto bound = guard.constant;
@@ -1689,7 +1807,15 @@ namespace
                             maximum   = std::max(maximum, *best + update.step);
                             maxAffine = std::max(maxAffine, affineOffset);
                         }
-                        if (!valid || maximum > signedMax || maxAffine > signedMax - maximum)
+                        if (!valid)
+                        {
+                            const auto edgeRange = backEdgeRange(candidate, phi, loop, cfg_.indexOf(block.front()));
+                            if (!edgeRange)
+                                continue;
+                            maximum   = *edgeRange;
+                            maxAffine = 0;
+                        }
+                        if (maximum > signedMax || maxAffine > signedMax - maximum)
                             continue;
                         ranges_.emplace(candidate.root, CounterRange{{static_cast<int64_t>(maximum), true}, bits});
                         for (const auto& update : candidate.updates)

@@ -1090,7 +1090,8 @@ SWC_TEST_BEGIN(StrengthReduction_ProvesFiniteSignedCounterRemainders)
             builder.emitRet();
 
             SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
-            const bool proved = mode == 0 || mode == 10 || mode == 11;
+            // A zero step may loop forever, but its nonnegative value cannot change.
+            const bool proved = mode == 0 || mode == 3 || mode == 10 || mode == 11;
             if (hasBinaryRegImm(builder, MicroOp::And, 7) != proved)
                 return Result::Error;
         }
@@ -1191,6 +1192,132 @@ SWC_TEST_BEGIN(StrengthReduction_GuardedCountersKeepVariableStepsInRange)
             builder.emitRet();
             SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
             if (hasBinaryRegImm(builder, MicroOp::And, 7) != (mode == 0 || mode == 10 || mode == 12))
+                return Result::Error;
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(StrengthReduction_GuardedRangeSumsNeedBoundsAndNoWrap)
+{
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (uint32_t scenario = 0; scenario < 37; ++scenario)
+        {
+            const uint32_t mode     = scenario < 30 ? scenario % 15 : 0;
+            const bool     rotated  = scenario >= 15;
+            const MicroReg counter  = MicroReg::virtualIntReg(10);
+            const MicroReg inner    = MicroReg::virtualIntReg(11);
+            const MicroReg limit    = MicroReg::virtualIntReg(12);
+            const MicroReg amount   = MicroReg::virtualIntReg(13);
+            const MicroReg previous = MicroReg::virtualIntReg(14);
+            const MicroReg other    = MicroReg::virtualIntReg(15);
+            const MicroReg work     = MicroReg::virtualIntReg(16);
+            const MicroReg base     = MicroReg::virtualIntReg(17);
+            MicroBuilder   builder(ctx);
+            const auto     outerLoop = builder.createLabel();
+            const auto     innerLoop = builder.createLabel();
+            const auto     next      = builder.createLabel();
+            const auto     exit      = builder.createLabel();
+            const uint64_t signedMax = getBitsMask(bits) >> 1;
+            const bool     large     = mode == 3 || mode == 4 || scenario == 34;
+            builder.emitLoadRegImm(counter, ApInt(scenario == 34 ? signedMax - 1600 : large ? signedMax - 16
+                                                                                            : 0,
+                                                  getNumBits(bits)),
+                                   bits);
+            builder.emitClearReg(previous, bits);
+            builder.emitLoadRegMem(other, base, 8, bits);
+            builder.placeLabel(outerLoop);
+            builder.emitCmpRegImm(counter, ApInt(scenario == 34 ? signedMax - 1400 : large ? signedMax - 8
+                                                                                           : 40,
+                                                 getNumBits(bits)),
+                                  bits);
+            builder.emitJumpToLabel(MicroCond::GreaterOrEqual, MicroOpBits::B32, exit);
+            if (mode == 1)
+                builder.emitLoadRegReg(amount, other, bits);
+            else if (mode == 13)
+                builder.emitLoadSignedExtendRegMem(amount, base, 16, bits, MicroOpBits::B8);
+            else
+                builder.emitLoadZeroExtendRegMem(amount, base, 16, bits, MicroOpBits::B8);
+            if (mode == 4)
+                builder.emitClearReg(amount, bits);
+            if (mode == 10)
+            {
+                builder.emitCmpRegReg(amount, previous, bits);
+                builder.emitLoadCondRegReg(previous, amount, MicroCond::Greater, bits);
+                builder.emitLoadRegReg(amount, previous, bits);
+            }
+            if (mode == 11)
+            {
+                builder.emitOpBinaryRegReg(previous, amount, MicroOp::Add, bits);
+                builder.emitLoadRegReg(amount, previous, bits);
+            }
+            if (mode == 14 || scenario >= 34)
+                builder.emitLoadAddressAmcRegMem(limit, bits, counter, amount, 8, scenario == 35 ? UINT64_MAX : scenario == 36 ? signedMax
+                                                                                                                               : 0,
+                                                 bits);
+            else
+            {
+                builder.emitLoadRegReg(limit, counter, bits);
+                builder.emitOpBinaryRegReg(limit, amount, MicroOp::Add, bits);
+            }
+            if (mode == 8 || mode == 9 || mode == 12)
+            {
+                if (mode == 9)
+                    builder.emitLoadRegReg(work, other, bits);
+                else
+                    builder.emitLoadRegImm(work, ApInt(mode == 12 ? getBitsMask(bits) : 40, getNumBits(bits)), bits);
+                builder.emitCmpRegImm(other, ApInt(0, getNumBits(bits)), bits);
+                builder.emitLoadCondRegReg(limit, work, MicroCond::Equal, bits);
+            }
+            if (scenario == 31)
+                builder.emitLoadRegImm(inner, ApInt(signedMax, getNumBits(bits)), bits);
+            else if (mode == 2)
+                builder.emitLoadRegImm(inner, ApInt(getBitsMask(bits), getNumBits(bits)), bits);
+            else if (mode == 7)
+                builder.emitLoadRegReg(inner, counter, MicroOpBits::B8);
+            else
+                builder.emitLoadAddressRegMem(inner, counter, mode == 4 ? 32 : 1, bits);
+            if (rotated)
+            {
+                builder.emitCmpRegReg(inner, limit, bits);
+                builder.emitJumpToLabel(mode == 5 ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual, MicroOpBits::B32, next);
+            }
+            builder.placeLabel(innerLoop);
+            if (!rotated)
+            {
+                builder.emitCmpRegReg(inner, limit, bits);
+                builder.emitJumpToLabel(mode == 5 ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual, MicroOpBits::B32, next);
+            }
+            builder.emitLoadRegReg(work, inner, bits);
+            builder.emitOpBinaryRegImm(work, ApInt(8, getNumBits(bits)), MicroOp::ModuloSigned, bits);
+            if (mode == 6)
+                builder.emitSetCondReg(amount, MicroCond::Overflow);
+            builder.emitLoadMemReg(base, 0, work, bits);
+            if (scenario == 30)
+                builder.emitLoadRegReg(other, inner, bits);
+            builder.emitOpBinaryRegImm(inner, ApInt(1, getNumBits(bits)), MicroOp::Add, bits);
+            if (scenario == 32)
+                builder.emitOpBinaryRegImm(inner, ApInt(1, getNumBits(bits)), MicroOp::Add, bits);
+            if (rotated)
+            {
+                if (scenario == 33)
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, innerLoop);
+                else
+                {
+                    builder.emitCmpRegReg(scenario == 30 ? other : inner, limit, bits);
+                    builder.emitJumpToLabel(mode == 5 ? MicroCond::Below : MicroCond::Less, MicroOpBits::B32, innerLoop);
+                }
+            }
+            else
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, innerLoop);
+            builder.placeLabel(next);
+            builder.emitOpBinaryRegImm(counter, ApInt(1, getNumBits(bits)), MicroOp::Add, bits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, outerLoop);
+            builder.placeLabel(exit);
+            builder.emitRet();
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
+            const bool proved = scenario < 30 && (mode == 0 || mode == 8 || mode == 10 || mode == 12 || mode == 14);
+            if (hasBinaryRegImm(builder, MicroOp::And, 7) != proved)
                 return Result::Error;
         }
     return Result::Continue;

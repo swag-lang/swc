@@ -143,6 +143,42 @@ private func cellColumn(reference: string)->u64
     return result ? result - 1 : Swag.U64.Max
 }
 
+private func sheetColumns(source: string)->u64 fail
+{
+    var scan = Package.Scanner.create(source)
+    var token: Package.Token
+    var nextColumn = 0'u64
+    var columns = 0'u64
+    while scan.next(&token)
+    {
+        if token.kind != .Start do
+            continue
+        if token.isElement("row") do
+            nextColumn = 0
+        elif token.isElement("c")
+        {
+            let column = cellColumn(token.attribute("r") orelse "")
+            if column != Swag.U64.Max and column > nextColumn do
+                nextColumn = column
+            nextColumn += 1
+            if nextColumn > columns do
+                columns = nextColumn
+            if columns > 512 do
+                fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+    }
+    if scan.damaged do
+        fail Errors.InvalidFormatError{texts().err_Invalid}
+    return columns
+}
+
+private func appendColumnName(result: *String, column: u64)
+{
+    if column >= 26 do
+        result[] += cast(u8, 'A'u8 + cast(u8, column / 26 - 1))
+    result[] += cast(u8, 'A'u8 + cast(u8, column % 26))
+}
+
 private func appendCell(result: *Workbook, value, kind: string, shared: const *Array'String) fail
 {
     result.html += "<td>"
@@ -165,6 +201,15 @@ private func appendCell(result: *Workbook, value, kind: string, shared: const *A
 
 private func appendSheet(result: *Workbook, source: string, shared: const *Array'String) fail
 {
+    let columns = try sheetColumns(source)
+    result.html += "<tr><th></th>"
+    for column in 0 until columns
+    {
+        result.html += "<th>"
+        appendColumnName(&result.html, column)
+        result.html += "</th>"
+    }
+    result.html += "</tr>"
     var scan = Package.Scanner.create(source)
     var token: Package.Token
     var inRow = false
@@ -172,6 +217,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
     var inValue = false
     var inInlineText = false
     var nextColumn = 0'u64
+    var nextRow = 1'u64
     var kind: String
     var value: String
     while scan.next(&token)
@@ -180,9 +226,22 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
         {
             if token.isElement("row")
             {
-                result.html += "<tr>"
+                let rowValue = token.attribute("r") orelse ""
+                let rowNumber = rowValue.count ?
+                    catch StrConv.toU64(rowValue) { fail Errors.InvalidFormatError{texts().err_Invalid} } : nextRow
+                if not rowNumber or rowNumber > 1_048_576 do
+                    fail Errors.InvalidFormatError{texts().err_Invalid}
+                nextRow = rowNumber + 1
+                result.html += "<tr><th>"
+                result.html += Format.toString("%", rowNumber)
+                result.html += "</th>"
                 inRow = true
                 nextColumn = 0
+                if token.empty
+                {
+                    result.html += "</tr>"
+                    inRow = false
+                }
             }
             elif inRow and token.isElement("c")
             {
@@ -200,6 +259,12 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                         result.html += "<td></td>"
                         nextColumn += 1
                     }
+                }
+                if token.empty
+                {
+                    try appendCell(result, "", "", shared)
+                    nextColumn += 1
+                    inCell = false
                 }
             }
             elif inCell and token.isElement("v") do

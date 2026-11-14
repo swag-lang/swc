@@ -663,6 +663,8 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
         fault(0xB9)
 
     faceData.unitsPerEm = readU16(head, 18)
+    if faceData.unitsPerEm < 16 or faceData.unitsPerEm > 16_384 do
+        fault(0x08)
     faceData.face.setHeader(faceData.unitsPerEm, readS16(head, 36), readS16(head, 38), readS16(head, 40), readS16(head, 42))
     faceData.macStyle         = readU16(head, 44)
     faceData.indexToLocFormat = readS16(head, 50)

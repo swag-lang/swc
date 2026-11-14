@@ -418,16 +418,3 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: a recording cut into kept ranges on key frames produces a file whose packets are
   byte-identical to the source's, with continuous timestamps and sound in sync across each join.
 - Related: std.video.016, app.capture.037
-
-### std.video.018 — Reconcile the sparse Y4M test with marker validation
-
-- Evidence: the native functional suite fails `streaming.swg`'s sparse-file assertion
-  `reader.frameCount() == HoleFrameCount` after `90dab291f6`. Its fixture leaves the intermediate
-  frame markers absent, while `Decoder.checkUniformFrames` now checks every marker before
-  reporting a count. With the same compiler and sources, restoring only the preceding Y4M
-  decoder makes all nine streaming tests pass.
-- Next: reconcile the streaming contract and fixture with complete marker validation. Preserve
-  rejection of compensating variable marker lengths and prove that image payloads remain skipped
-  during opening; do not simply remove the frame-count or random-access assertions.
-- Done when: the native streaming and Y4M functional tests agree on valid sparse input, malformed
-  markers, frame counts, and bounded opening memory.

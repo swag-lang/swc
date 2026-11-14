@@ -242,11 +242,10 @@ const HoleWidth      = 320's32
 const HoleHeight     = 240's32
 const HoleFrameCount = 600'u64
 
-// Opening a stream reads its header and one marker, and seeking computes an offset. That is the
-// property that lets a video of any size open at once, and this is how it is proven: everything
-// between the first frame and the last one is a hole no decoder could read. A reader that
-// indexed the stream, scanned it, or read it to its end to count its frames would fail here
-// instead of playing it.
+// Opening validates every frame marker while skipping the image payloads. Keep the markers
+// present in this sparse file so arithmetic seeking remains valid; only the first and last
+// payloads occupy storage. Removing a middle marker must disable the computed frame count
+// and fail when sequential decoding reaches that malformed frame.
 #test
 {
     let fileName = videoTempPath("hole", "y4m")
@@ -261,6 +260,8 @@ const HoleFrameCount = 600'u64
     expect stream.writeAll(cast(const [..] u8, "FRAME\n"))
     expect stream.writeAll(videoFlatPayload(HoleWidth, HoleHeight, 100).toSlice())
     expect stream.resize(header.count + HoleFrameCount * frameSize)
+    for index in 1'u64 until HoleFrameCount - 1 do
+        expect stream.writeAllAt(header.count + index * frameSize, cast(const [..] u8, "FRAME\n"))
 
     var lastFrame: Array'u8
     lastFrame.add(cast(const [..] u8, "FRAME\n"))
@@ -278,6 +279,13 @@ const HoleFrameCount = 600'u64
 
     expect reader.decodeFrameInto(&frame, HoleFrameCount - 1)
     videoAssertGray(frame.pixelColor(HoleWidth - 1, HoleHeight - 1), videoLumaToGray(200))
+
+    reader.close()
+    stream = expect File.open(fileName, .Open, .Write, .Zero)
+    expect stream.writeAllAt(header.count + HoleFrameCount / 2 * frameSize, cast(const [..] u8, "BROKEN"))
+    stream.close()
+    reader = expect Reader.open(fileName)
+    Swag.require(not reader.frameCount())
 
     var holeErrorOutcome: Swag.Error
     discard catch reader.decodeFrame(HoleFrameCount / 2) as holeErrorOutcome

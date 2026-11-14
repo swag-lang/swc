@@ -27,25 +27,30 @@ information sheet.
 
 ## Explore folders and archives
 
-Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows it as a page: its path, its name
-as the title, how much it holds, and quiet menus choosing the order and the way of showing it —
+Opening a folder, or choosing Explore Folder (`Ctrl+E`), shows it as a page: the path has its own
+line, the window title reports how much the location holds, and a second line keeps the active
+filename filter and quiet menus choosing the order and the way of showing it —
 names, sortable details, or small, medium and large thumbnails. ZIP files use the same navigation.
 Every tile has the same size and the grid fills the page: a mixed folder shows each file on a
 tile a little wider than tall, a folder of films its posters upright, with the name and one mono
-line of facts under each. A slash or Ctrl+F reveals the filter.
+line of facts under each. A slash or Ctrl+F opens the search strip above the page. The filename
+filter stays in effect when the strip closes, after navigating, and after opening a file and
+returning to the explorer; clearing its field restores all files.
 The item chosen is ringed in Arc and described in the information sheet (`I`). An archive offers
 Extract All… on its title line and Extract… in the sheet: the files go into a folder the reader
 chooses, a file already there is kept, and a toast says how it went. Double-click or press Enter to open an item; closing its viewer returns to the
-explorer with the selection and display mode preserved. Opening an ordinary file directly still
+explorer with the selection, display mode and filename filter preserved. Opening an ordinary file directly still
 opens its viewer without requiring exploration. The optional left panel retains recent files and
 shows the current location's subfolders. Alt+Left/Right navigate history, Alt+Up or Backspace goes
 up, and F5 refreshes the location.
 
 Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
 Lists and thumbnail grids render only their visible rows. Two background tasks at most produce
-thumbnails through the viewer registry, reusing a renderer in each task. Video and image viewers
-can provide direct decoders; other files receive a bounded text or byte preview. Audio uses its
-file tags and local cover art. Thumbnail work does not play media or persist reader preferences.
+thumbnails through the viewer registry, reusing a renderer in each task. Image, Video, Comic,
+PDF and Sound supply decoded content previews; MP3 and FLAC use local cover art when available
+and otherwise try a waveform. Textual formats use a bounded source sample. Other formats show
+neutral file facts instead of patterns made from binary bytes. Thumbnail work does not play media
+or persist reader preferences.
 Obsolete requests are cancelled, and at most 128 thumbnails are retained in the renderer. A
 decoder failure leaves the file's type icon available for opening it normally.
 
@@ -262,12 +267,12 @@ one and the recent files and folders (`/`), the viewers the file can be seen in,
 options, full screen, the play modes, the explored folder's history and order, the theme, the
 language and About, and every command of the viewer on screen under its name. The readings of the
 open file are in the information sheet (`I`) and, faint, on the line at the foot of the document;
-the viewer's own controls float over that foot while the pointer moves; the find bar floats at the
-top on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
+the viewer's own controls float over that foot while the pointer moves; the search strip reserves
+space above the document on `Ctrl+F`; the files beside the open one and the viewer's side panel stand as cards beside
 the work when asked for.
 
-The explorer keeps Back, Forward and Parent Folder beside its path, with Refresh, Filter Files
-and Information at the other end. Sort and view remain quiet menus. The view menu and the lens
+The explorer keeps Back, Forward, Parent Folder and Refresh in the window chrome, with the path
+on the first content line and Filter Files, sort, kind and view on the second. The view menu and the lens
 share the same choices and checked state, including automatic layout, grid, covers and posters.
 At narrow widths, counts move below the title and actions take their own line; an album
 stacks its cover and tracks when the information sheet needs the space beside it.
@@ -281,9 +286,10 @@ are tiles with their previews, which are rendered in the background and only for
 decode a picture or read as text; `Enter` opens the chosen tile where it was left, `Delete` or the
 cross on the tile under the pointer removes it, and "Clear…" at the end of their label removes the
 files that no longer exist or those opened more than a month ago, and, apart, clears the whole
-history after asking. Under them, the folders and archives explored lately are chips that explore
-them again. A first launch shows the Scope mark, an invitation to drop a file or a folder, the
-Open… and Explore Folder actions, and the system's own Pictures, Videos, Music, Documents and
+history after asking. Under them, recently explored directories are chips that open those places
+again. ZIP, CBZ and EPUB archives remain files in the recent list. A first launch shows the Scope
+mark, an invitation to drop a file or a folder, the Open… and Explore Folder actions, and the
+system's own Pictures, Videos, Music, Documents and
 Downloads folders. Older files are in the lens under `/`.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder

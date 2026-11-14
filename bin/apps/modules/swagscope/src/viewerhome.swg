@@ -198,8 +198,7 @@ impl ViewerHome
             {
                 let descriptor  = &window.index.plugins[plugin]
                 row.previewable = descriptor.thumbnail != null or descriptor.textual
-                if descriptor.thumbnail == null do
-                    row.fit = .Contain
+                row.fit = descriptor.thumbnail != null and (descriptor.key == "image" or descriptor.key == "video") ? .Cover : .Contain
             }
 
             for &old in .rows where old.file == file
@@ -232,18 +231,15 @@ impl ViewerHome
     private mtd refreshPlaces()
     {
         .places.clear()
-        .explored = not .window.exploredFolders.isEmpty()
-        if .explored
+        for folder in .window.exploredFolders where Directory.exists(folder[])
         {
-            for folder in .window.exploredFolders
-            {
-                if .places.count == MaxPlaces do
-                    break
-                .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
-            }
-
-            return
+            if .places.count == MaxPlaces do
+                break
+            .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
         }
+        .explored = not .places.isEmpty()
+        if .explored do
+            return
 
         for folder in .window.systemPlaces where Directory.exists(folder[])
         {

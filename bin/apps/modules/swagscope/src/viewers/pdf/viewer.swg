@@ -17,12 +17,27 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Pdf)
         .create       = &createViewer
+        .thumbnail    = &loadThumbnail
         .probe        = &pluginProbe
         .smokeFixture = "viewer.pdf"
         .addSelectors(".pdf")
     }
 
     return result
+}
+
+// Rasterizes the first page through the PDF viewer's own page engine.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    var reader = try Pdf.Reader.open(fileName)
+    if not reader.pageCount() do
+        fail Errors.InvalidFormatError{texts().err_NoPage}
+    var page = try reader.loadPage(0)
+    let largest = Math.max(page.width, page.height, 1)
+    let side    = Math.max(maxSide, 1'u32)
+    return try page.render({scale: cast(f32, side) / largest,
+                            maxDimension: cast(s32, side),
+                            maxPixels: cast(u64, side) * side})
 }
 
 private const PageWidth = 76.0

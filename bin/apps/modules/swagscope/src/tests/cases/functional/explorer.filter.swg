@@ -3,8 +3,8 @@
 
 using Core, Gui
 
-// Explorer and file viewers share one centered search control. Escape clears the folder filter
-// and leaves the page open, while the information sheet remains visible.
+// Explorer and file viewers share a docked search strip. Escape closes it while retaining the
+// folder filter; clearing the field explicitly restores every item.
 #test
 {
     var host: Testing.HeadlessHost
@@ -14,21 +14,22 @@ using Core, Gui
         explorer.entries.add({name: name, attempted: true})
     showBoard(&host, window, "Documents", "Notes")
 
-    host.clickWnd(&window.findCaptionButton.button)
+    host.clickWnd(explorer.queryButton)
     Swag.require(window.searchShown and window.searchBox.hasFocus())
     Swag.require(window.searchBar.isLocallyVisible())
-    let area = window.documentArea()
-    let bar  = window.searchBar.position
-    Swag.require(Math.abs(bar.horzCenter() - area.horzCenter()) < 1)
+    Swag.require(not explorer.queryButton.isLocallyVisible())
+    let bar = window.searchBar.surfaceRect()
+    Swag.require(window.documentPanel.position.y >= window.searchBar.position.bottom())
     window.searchBox.setText("Alpha")
     Swag.require(explorer.shown.count == 1)
     window.toggleInformation()
-    Swag.require(window.searchBar.position.right() <= window.infoSheet.position.x)
-    Swag.require(window.searchBar.position.horzCenter() < bar.horzCenter())
+    Swag.require(window.searchBar.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
+    Swag.require(window.searchBar.surfaceRect().horzCenter() < bar.horzCenter())
     host.keyPress(.Escape)
     Swag.require(window.isExploring() and not window.searchShown)
+    Swag.require(explorer.queryButton.isLocallyVisible())
     Swag.require(window.infoSheet.isLocallyVisible())
-    Swag.require(not explorer.filter.text().count and explorer.shown.count == 3)
+    Swag.require(explorer.filter.text() == "Alpha" and explorer.shown.count == 1)
     Swag.require(explorer.grid.hasFocus())
 
     host.keyPress(.F, .Control)
@@ -37,8 +38,10 @@ using Core, Gui
     host.keyPress(.Return)
     Swag.require(explorer.shown.count == 1)
     host.keyPress(.Escape)
-    Swag.require(not explorer.filter.text().count and explorer.shown.count == 3)
+    Swag.require(explorer.filter.text() == "Beta" and explorer.shown.count == 1)
     Swag.require(window.infoSheet.isLocallyVisible())
+    window.searchBox.setText("")
+    Swag.require(not explorer.filter.text().count and explorer.shown.count == 3)
     window.closeInformation()
 
     host.keyPress(.L, .Control)
@@ -82,7 +85,7 @@ using Core, Gui
     Swag.require(not window.searchBox.isValid() and explorer.shown.isEmpty())
 }
 
-// Resizing and opening the folder pane keep the same search bar centered on the document.
+// Resizing and opening the folder pane keep the search strip with the document.
 #test
 {
     var host: Testing.HeadlessHost
@@ -94,8 +97,8 @@ using Core, Gui
     window.setFilePanelVisible(true)
     window.applyLayout()
 
-    let area = window.documentArea()
-    let bar  = window.searchBar.position
+    let area = window.documentPanel.surfaceRect()
+    let bar  = window.searchBar.surfaceRect()
     Swag.require(Math.abs(bar.horzCenter() - area.horzCenter()) < 1)
     Swag.require(bar.x >= area.x and bar.right() <= area.right())
     Swag.require(window.searchBox.hasFocus())

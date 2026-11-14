@@ -15,10 +15,41 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Comic)
         .create       = &createViewer
+        .thumbnail    = &loadThumbnail
         .smokeFixture = "viewer.comic.cbz"
         .addSelectors(".cbz")
     }
     return result
+}
+
+// The same first page the comic reader opens supplies the Explorer cover.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    let book  = try Book.load(fileName)
+    let entry = &book.archive.entries[book.pages[0]]
+    if entry.uncompressedSize > 32 * 1024 * 1024'u64 do
+        fail Errors.UnsupportedFormatError{"comic page exceeds the thumbnail budget"}
+
+    let bytes = try Archive.Zip.loadEntry(fileName, entry)
+    if Path.lowercaseExtension(entry.path) == ".svg"
+    {
+        let drawing = try Svg.Drawing.parse(cast(string, bytes.toSlice()))
+        let largest = Math.max(drawing.width, drawing.height, 1)
+        let scale   = Math.min(cast(f32, maxSide) / largest, 1)
+        return drawing.rasterize(cast(s32, Math.max(Math.round(drawing.width * scale), 1)),
+                                 cast(s32, Math.max(Math.round(drawing.height * scale), 1)), 2)
+    }
+
+    var image = try Image.decode(entry.path, bytes.toSlice())
+    image.orient(Exif.orientationOf(image.metadata.toSlice()))
+    let largest = Math.max(image.width, image.height)
+    if largest > maxSide
+    {
+        let scale = cast(f32, maxSide) / cast(f32, largest)
+        image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
+                     Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
+    }
+    return image
 }
 
 // The archive and its image entries in natural reading order.

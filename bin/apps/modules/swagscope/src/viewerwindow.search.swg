@@ -147,6 +147,10 @@ impl ViewerWindow
     {
         if .isExploring()
         {
+            // The Explorer stays visible until the file viewer replaces it. The shared field is
+            // cleared for that file, but its empty text must not erase the folder's filter.
+            if .explorerTransition do
+                return
             if .explorer!.filter.text() == .searchBox.text() do
                 .explorer.fill()
             else do
@@ -439,13 +443,15 @@ impl ViewerWindow
         .refreshSearchReadout()
     }
 
-    // Brings the shared find bar over the document and gives it the keyboard.
+    // Opens the search strip above the document and gives it the keyboard.
     mtd showSearch()
     {
         if not .searchBox.isEnabled() do
             return
         .searchShown = true
         .searchBar.show()
+        .documentHost.applyLayout()
+        .explorer?.layoutTools()
         .layoutSearchBar()
         .searchBox.setFocus()
         .searchBox.selectAll()
@@ -457,10 +463,11 @@ impl ViewerWindow
     {
         .searchShown = false
         .searchBar.hide()
+        .documentHost.applyLayout()
         if .isExploring()
         {
-            .searchBox.setText("")
-            .explorer!.focusContent()
+            .explorer!.layoutTools()
+            .explorer.focusContent()
             return
         }
         .viewerFocusTarget()?.setFocus()
@@ -499,6 +506,7 @@ impl ViewerWindow
         .searchBox.enable(available)
         .searchOptionsButton.enable(available)
         .searchBar.show(available and .searchShown)
+        .documentHost.applyLayout()
         .currentActions?.show()
         .layoutSearchBar()
         .restartSearch()

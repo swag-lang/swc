@@ -111,20 +111,39 @@ impl CaptureQueue
         if .lost do
             fail BadParameterError{"capture source is lost; mark it restored before submitting samples"}
 
-        var adjustedTick = firstTick
         var lateFrames = 0'u64
+        let frames = samples.count / .channels
         if .idleSilent and firstTick < .timeline.previousTick
         {
-            let exact = cast(f64, .timeline.previousTick - firstTick) * .timeline.sampleRate /
-                        .timeline.clockFrequency
-            let frames = samples.count / .channels
-            lateFrames = exact >= frames ? frames : cast(u64, Math.ceil(exact))
+            let delta = .timeline.previousTick - firstTick
+            let wholeSeconds = delta / .timeline.clockFrequency
+            if wholeSeconds > frames / .timeline.sampleRate do
+                lateFrames = frames
+            else
+            {
+                let wholeFrames = wholeSeconds * .timeline.sampleRate
+                if wholeFrames >= frames do
+                    lateFrames = frames
+                else
+                {
+                    let fractionalTicks = (delta % .timeline.clockFrequency) * .timeline.sampleRate
+                    let fractionalFrames = fractionalTicks / .timeline.clockFrequency +
+                                           cast(u64, fractionalTicks % .timeline.clockFrequency != 0)
+                    let remaining = frames - wholeFrames
+                    lateFrames = fractionalFrames >= remaining ? frames : wholeFrames + fractionalFrames
+                }
+            }
             if lateFrames == frames do
                 return SamplePlacement{.timeline.sampleEnd(), 0, lateFrames, 0}
-            adjustedTick = .timeline.previousTick
         }
-        var placement = try .timeline.place(adjustedTick, samples.count / .channels - lateFrames)
-        placement.discardedFrames += lateFrames
+        var placement: SamplePlacement
+        if lateFrames
+        {
+            placement = try .timeline.placeClipped(firstTick, lateFrames, frames - lateFrames)
+            placement.discardedFrames += lateFrames
+        }
+        else do
+            placement = try .timeline.place(firstTick, frames)
         if not placement.acceptedFrames do
             return placement
         if .count == .slotCount
@@ -137,7 +156,7 @@ impl CaptureQueue
         let tail = (.head + .count) % .slotCount
         let slot = &.slots[tail]
         slot.startSample = placement.startSample
-        slot.firstTick = adjustedTick
+        slot.firstTick = firstTick
         slot.frameCount = cast(u32, placement.acceptedFrames)
         slot.generation = .generation
         let offset = cast(u64, tail) * .blockFrames * .channels

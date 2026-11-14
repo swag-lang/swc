@@ -44,7 +44,6 @@ using Core
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
 
     var result: String
-    var r:      Parser.RegExp
 
     var map: HashTable'(string, string)
     map.add("AND", "&")
@@ -54,7 +53,9 @@ using Core
 
     expect
     {
-        for &l in try File.readAllLines(dataPath)
+        var lines = try File.readAllLines(dataPath)
+        var r: Parser.RegExp
+        for &l in lines
         {
             l.replace("as", "_as")
             l.replace("is", "_is")

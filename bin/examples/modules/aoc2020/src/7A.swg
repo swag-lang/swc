@@ -41,7 +41,7 @@ func day7A()
 func day7A0()
 {
     let dataPath = Path.combine(Path.directoryName(#file), "7.txt")
-    let lines    = expect File.readAllLines(dataPath)
+    var lines    = expect File.readAllLines(dataPath)
 
     var id: HashTable'(string, Array'(string))
 

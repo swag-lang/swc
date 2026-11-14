@@ -121,6 +121,20 @@ public impl Xml
         .stackTags.clear()
         if not Utf8.isValid(input) do
             fail .getError("XML document is not valid UTF-8")
+
+        var offset = 0'u64
+        while offset < input.count
+        {
+            let {c, eat} = Utf8.decodeRune(input[offset to])
+            if (c < 0x20 and c != '\t' and c != '\n' and c != '\r') or
+               c == 0xFFFE or c == 0xFFFF
+            {
+                .stream.setPosition(offset)
+                fail .getError("XML document contains a character forbidden by XML 1.0")
+            }
+            offset += eat
+        }
+
         let bytes = .stream.remainingBytes()
         if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF do
             .stream.advance(3)
@@ -222,7 +236,14 @@ public impl Xml
             while c and c != '<'
             {
                 .stream.advance()
-                if c == '&' do
+                if c == '\r'
+                {
+                    // XML normalizes CR and CRLF line endings to LF before parsing text.
+                    result += '\n'
+                    if .stream.peekU8() == '\n' do
+                        .stream.advance()
+                }
+                elif c == '&' do
                     result += try .readEntity()
                 else do
                     result += c

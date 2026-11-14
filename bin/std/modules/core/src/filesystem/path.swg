@@ -7,6 +7,8 @@ using Swag
 // every operation below is a string algorithm governed by these values.
 private const TargetHasWindowsPathSyntax = WINDOWS
 private const TargetPathCaseSensitive    = not WINDOWS
+private const ExtendedVolumeGuidPrefix   = #raw "\\?\Volume{"
+private const ExtendedVolumeGuidLength   = 36'u64
 
 const DirectorySeparator    = '/'u8     // Preferred directory separator.
 const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.
@@ -17,6 +19,36 @@ const VolumeSeparator       = WINDOWS ? ':'u8 : 0'u8      // Volume separator, o
 func isDirectorySeparator(c: u8)->bool
 {
     return c == DirectorySeparator or AltDirectorySeparator != 0 and c == AltDirectorySeparator
+}
+
+private func isHexDigit(c: u8)->bool => (c >= '0' and c <= '9') or
+                                       (c >= 'A' and c <= 'F') or
+                                       (c >= 'a' and c <= 'f')
+
+// Returns the root length of a Windows volume-GUID path, or zero if it does not have that form.
+internal func extendedVolumeGuidRootLength(path: string)->u32
+{
+    let prefixLength = ExtendedVolumeGuidPrefix.count
+    let rootLength   = prefixLength + ExtendedVolumeGuidLength + 2
+    if path.count < rootLength or not Path.equals(path[until prefixLength], ExtendedVolumeGuidPrefix) do
+        return 0
+
+    for index in ExtendedVolumeGuidLength
+    {
+        let c = path[prefixLength + index]
+        if index == 8 or index == 13 or index == 18 or index == 23
+        {
+            if c != '-' do
+                return 0
+        }
+        elif not isHexDigit(c) do
+            return 0
+    }
+
+    let suffix = prefixLength + ExtendedVolumeGuidLength
+    if path[suffix] != '}' or path[suffix + 1] != '\\' do
+        return 0
+    return cast(u32, rootLength)
 }
 
 // Returns whether `c` ends the directory part of a path: a directory separator or the volume separator.
@@ -42,6 +74,11 @@ func isValidPathName(path: string)->bool
                          path[1] == '\\' and
                          path[2] == '?' and
                          path[3] == '\\'
+    if TargetHasWindowsPathSyntax and
+       path.count >= ExtendedVolumeGuidPrefix.count and
+       Path.equals(path[until ExtendedVolumeGuidPrefix.count], ExtendedVolumeGuidPrefix) and
+       not extendedVolumeGuidRootLength(path) do
+        return false
     for c, index in path
     {
         if c == 0 do
@@ -132,6 +169,10 @@ func rootLength(path: string)->u32
 
     let extendedSyntax    = startsWithOrdinal(path, ExtendedPathPrefix)
     let extendedUncSyntax = startsWithOrdinal(path, UncExtendedPathPrefix)
+    let extendedVolumeRoot = extendedSyntax and not extendedUncSyntax ? extendedVolumeGuidRootLength(path) : 0
+    if extendedVolumeRoot do
+        return extendedVolumeRoot
+
     if extendedSyntax
     {
         if extendedUncSyntax do

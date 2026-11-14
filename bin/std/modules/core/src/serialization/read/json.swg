@@ -499,13 +499,13 @@ public impl Json
             #static switch NT
             {
             case f32:
-                let val = try StrConv.parseF32(token)
+                let val = try StrConv.parseF32Invariant(token)
                 if val.eat != length or val.ovf do
                     fail .getError("JSON number cannot be represented as f32")
                 return val.value
 
             case f64:
-                let val = try StrConv.parseF64(token)
+                let val = try StrConv.parseF64Invariant(token)
                 if val.eat != length or val.ovf do
                     fail .getError("JSON number cannot be represented as f64")
                 return val.value

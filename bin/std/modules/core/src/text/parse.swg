@@ -337,12 +337,33 @@ func parseF32(str: string)->{ value: f32, eat: u32, ovf: bool } fail
     return {value: cast(f32, value), eat: eat, ovf: ovf}
 }
 
+// Parses an invariant-culture floating-point number as an `f32`.
+public func parseF32Invariant(str: string)->{ value: f32, eat: u32, ovf: bool } fail
+{
+    let {value, eat, ovf} = try parseF64Invariant(str)
+    if Math.abs(value) > Swag.F32.Max
+    {
+        if value < 0 do
+            return {value: -Swag.F32.Max, eat: eat, ovf: true}
+        return {value: Swag.F32.Max, eat: eat, ovf: true}
+    }
+
+    return {value: cast(f32, value), eat: eat, ovf: ovf}
+}
+
 // Parses the floating-point number at the start of `str`.
 //
 // Returns the value, the number of bytes consumed in `eat`, and `ovf` set when the value does not
 // fit in an `f64`. Signs and the decimal separator are spelled as in the current culture's number
 // format.
 func parseF64(str: string)->{ value: f64, eat: u32, ovf: bool } fail => try StrConv.Atod.parse(str)
+
+// Parses an invariant-culture floating-point number as an `f64`.
+public func parseF64Invariant(str: string)->{ value: f64, eat: u32, ovf: bool } fail
+{
+    var numberFormat: NumberFormatInfo
+    return try StrConv.Atod.parse(str, numberFormat)
+}
 
 // Parses the boolean word at the start of `str`.
 //

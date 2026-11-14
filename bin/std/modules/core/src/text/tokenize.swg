@@ -80,8 +80,11 @@ func split(src: string, separator: u8, maxSplit: u32 = 0, removeEmpty = true)->A
 {
     let byteCount = src.count
     var result: #returntype
-    if not byteCount do
+    if not byteCount
+    {
+        addSplitPart(&result, src, removeEmpty)
         return result
+    }
 
     var startByte:  u64
     var splitCount: u32
@@ -113,8 +116,11 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
     let separatorBytes = separator.count
 
     var result: #returntype
-    if not byteCount do
+    if not byteCount
+    {
+        addSplitPart(&result, src, removeEmpty)
         return result
+    }
     if not separatorBytes
     {
         addSplitPart(&result, src, removeEmpty)
@@ -158,8 +164,11 @@ func splitAny(src: string, separators: const [..] rune, maxSplit: u32 = 0, remov
     let byteCount = src.count
 
     var result: #returntype
-    if not byteCount do
+    if not byteCount
+    {
+        addSplitPart(&result, src, removeEmpty)
         return result
+    }
 
     var character:  rune
     var startByte:  u64

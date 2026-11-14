@@ -37,6 +37,12 @@ struct JsonF32Payload
     value: f32
 }
 
+struct JsonInvariantFloatPayload
+{
+    value32: f32
+    value64: f64
+}
+
 enum JsonStringState: string
 {
     Idle = "idle"
@@ -211,6 +217,28 @@ func assertJsonPayload(value: JsonPayload)->bool
     var buffer:  ConcatBuffer
     expect encoder.writeAll(&buffer, payload)
     Swag.require(buffer.toString() == "{\"value\":null}")
+}
+
+#test
+{
+    let culture           = Globalization.currentCulture()
+    let previousNumberFmt = culture.numberFormat
+    defer culture.numberFormat = previousNumberFmt
+    culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat
+
+    let payload = JsonInvariantFloatPayload{value32: 1.25, value64: 1.25}
+    var encoder: Serialization.Encoder'Serialization.Write.Json
+    var buffer:  ConcatBuffer
+    expect encoder.writeAll(&buffer, payload)
+    let json = buffer.toString()
+    Swag.require(json == "{\"value32\":1.25,\"value64\":1.25}")
+
+    var decoder: Serialization.Decoder'Serialization.Read.Json
+    let decoded = expect decoder.readAll'JsonInvariantFloatPayload(json.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.value32 == 1.25'f32)
+    Swag.require(decoded.value64 == 1.25'f64)
+    Swag.require(culture.numberFormat.decimalSeparator == ',')
 }
 
 #test

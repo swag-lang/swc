@@ -229,7 +229,7 @@ impl Json
         elif Reflection.isFloat(NT)
         {
             if Math.isFinite(value) do
-                StrConv.convertFloat(.output, value, .fmtFloat)
+                StrConv.convertFloatInvariant(.output, value, .fmtFloat)
             else do
                 .output.addBytes("null")
         }

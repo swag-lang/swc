@@ -875,6 +875,10 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
 // the whole of `s`. Fails with [[Core.Errors.SyntaxError]] when `s` is empty, like the integer
 // parsers.
 public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
+    => try .parse(s, g_CultureInfo.numberFormat)
+
+// Parses a floating-point number using the supplied separators and signs.
+public func parse(s: const [..] u8, numberFormat: NumberFormatInfo)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: #returntype
     if s.count == 0 do
@@ -887,7 +891,7 @@ public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
         return result
 
     var read: Decimal
-    result.eat = try read.readF64(s)
+    result.eat = try read.readF64(s, numberFormat)
 
     if not read.trunc
     {

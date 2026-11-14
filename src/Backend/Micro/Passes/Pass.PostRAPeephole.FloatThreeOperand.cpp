@@ -107,8 +107,11 @@ namespace PostRaPeephole
             if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
             {
                 if (lateFloatMemory)
-                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) && ops[0].reg != loaded &&
+                {
+                    const bool integerPacked = ops[3].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[4].microOp) && !isPackedFloatBinaryMicroOp(ops[4].microOp);
+                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) && (ops[0].reg != loaded || integerPacked) &&
                            ((ops[2].reg == loaded && ops[1].reg != loaded) || (ops[1].reg == loaded && ops[2].reg != loaded));
+                }
                 return ops[2].reg == loaded &&
                        ((ops[0].reg == ops[1].reg && ops[0].reg != loaded) || (ops[0].reg == loaded && ops[1].reg != loaded));
             }
@@ -1426,8 +1429,9 @@ namespace PostRaPeephole
             return false;
         const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
         const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
-        const bool        packed       = opBits == MicroOpBits::B128 && isPackedFloatBinaryMicroOp(op);
-        if (packed && indexed)
+        const bool        packed        = opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(op);
+        const bool        integerPacked = packed && !isPackedFloatBinaryMicroOp(op);
+        if (packed && indexed && !integerPacked)
             return false;
         if (consumerBits != opBits || (opBits == MicroOpBits::B128 && !fused && !packed))
             return false;
@@ -1441,7 +1445,7 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (fused || (isFloat && threeOperand && (packed || consumerOps[0].reg != consumerOps[1].reg) && consumerOps[0].reg != loaded))
+        if (fused || (isFloat && threeOperand && (packed || consumerOps[0].reg != consumerOps[1].reg) && (consumerOps[0].reg != loaded || integerPacked)))
         {
             // This VEX memory form uses a full-width base and index. A
             // narrowed address would wrap before dereferencing instead.
@@ -1454,11 +1458,10 @@ namespace PostRaPeephole
             if ((op == MicroOp::FloatMultiply || op == MicroOp::VecMulF32 || op == MicroOp::VecMulF64) && mayContractFollowingAccumulation(ctx, opRef))
                 return false;
             const bool commute = !fused && consumerOps[1].reg == loaded;
-            if (commute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply && op != MicroOp::VecAddF32 && op != MicroOp::VecAddF64 && op != MicroOp::VecMulF32 && op != MicroOp::VecMulF64) ||
-                            !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN ||
-                            !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
+            const bool integerCommute = op == MicroOp::VecAdd32 || op == MicroOp::VecAnd || op == MicroOp::VecOr || op == MicroOp::VecXor;
+            if (commute && !integerCommute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply && op != MicroOp::VecAddF32 && op != MicroOp::VecAddF64 && op != MicroOp::VecMulF32 && op != MicroOp::VecMulF64) || !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN || !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
                 return false;
-            if (floatLanesReadAfter(ctx, opRef, loaded))
+            if (consumerOps[0].reg != loaded && floatLanesReadAfter(ctx, opRef, loaded))
                 return false;
 
             MicroInstrOperand direct[8] = {};

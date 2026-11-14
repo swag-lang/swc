@@ -692,7 +692,7 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
         .opBitsMask            = (1 << 3),
     })
-// Scalar or packed floating arithmetic: dst = left op [base + offset].
+// Scalar floating or packed arithmetic: dst = left op [base + offset].
 // Scalar VEX forms copy upper lanes from left; packed forms replace all lanes.
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegRegMem,
@@ -1140,7 +1140,7 @@ SWC_MICRO_INSTR_DEF(
         .opBitsMask            = (1 << 3) | (1 << 4),
     })
 
-// Scalar VEX arithmetic: dst = left op [base + index * scale + offset].
+// Scalar floating or packed VEX arithmetic: dst = left op [base + index * scale + offset].
 SWC_MICRO_INSTR_DEF(
     OpBinaryRegRegAmcMem,
     MicroInstrDef{

@@ -3748,7 +3748,7 @@ void X64Encoder::encodeOpBinaryRegRegMem(MicroReg regDst, MicroReg regLeft, Micr
     SWC_ASSERT(regDst.isFloat() && regLeft.isFloat());
     SWC_ASSERT(memBase.isInt() || memBase.isInstructionPointer());
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
-    if (isPackedFloatBinaryMicroOp(op))
+    if (isPackedBinaryMemoryMicroOp(op))
     {
         SWC_ASSERT(opBits == MicroOpBits::B128);
         const VecOpEncoding encoding = vecOpEncoding(op);
@@ -3772,17 +3772,38 @@ void X64Encoder::encodeOpBinaryRegRegAmcMem(MicroReg regDst, MicroReg regLeft, M
     SWC_ASSERT(regDst.isFloat() && regLeft.isFloat());
     SWC_ASSERT(memBase.isInt() || memBase.isNoBase());
     SWC_ASSERT(memIndex.isInt());
-    SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
-    SWC_ASSERT(op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
-               op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
     SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(offset));
-
-    const auto    base   = memBase.isNoBase() ? X64Reg::Rax : microRegToX64Reg(memBase);
-    const auto    index  = microRegToX64Reg(memIndex);
-    const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : 0xF3;
-    emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), base, false, isExtendedReg(index));
-    emitCpuOp(store_, op);
-    emitAmcAddress(store_, encodeReg(regDst), base, index, memBase.isNoBase(), scale, offset);
+    bool noBase = memBase.isNoBase();
+    auto base   = noBase ? X64Reg::Rax : microRegToX64Reg(memBase);
+    auto index  = microRegToX64Reg(memIndex);
+    if (index == X64Reg::Rsp)
+    {
+        SWC_ASSERT(scale == 1);
+        if (noBase)
+        {
+            base   = X64Reg::Rsp;
+            noBase = false;
+        }
+        else
+            std::swap(base, index);
+    }
+    if (isPackedBinaryMemoryMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128);
+        const VecOpEncoding encoding = vecOpEncoding(op);
+        emitVex(store_, encoding.prefix, encoding.map, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), base, false, isExtendedReg(index));
+        emitCpuOp(store_, encoding.opcode);
+    }
+    else
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64);
+        SWC_ASSERT(op == MicroOp::FloatAdd || op == MicroOp::FloatSubtract || op == MicroOp::FloatMultiply ||
+                   op == MicroOp::FloatDivide || op == MicroOp::FloatMin || op == MicroOp::FloatMax);
+        const uint8_t prefix = opBits == MicroOpBits::B64 ? 0xF2 : 0xF3;
+        emitVex(store_, prefix, VEX_MAP_0F, microRegToX64Reg(regDst), microRegToX64Reg(regLeft), base, false, isExtendedReg(index));
+        emitCpuOp(store_, op);
+    }
+    emitAmcAddress(store_, encodeReg(regDst), base, index, noBase, scale, offset);
 }
 
 void X64Encoder::encodeOpBinaryRegRegReg(MicroReg regDst, MicroReg regSrc1, MicroReg regSrc2, MicroOp op, MicroOpBits opBits)

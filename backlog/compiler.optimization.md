@@ -259,18 +259,16 @@ new language syntax.
 - Done when: the local allocation cost is resolved or explained and profitable shared
   address cases have a bounded all-use proof.
 
-### compiler.optimization.105 — Prove lz77's signed remainder bounds
+### compiler.optimization.105 — Prove lz77's remaining signed remainder bounds
 
-- Evidence: `CountedLoopRanges` in `Pass.StrengthReduction.cpp` handles literal seeds and limits,
-  positive constant steps, and straight-line bodies with a no-wrap proof. LZ77's remaining signed
-  `i` and `p` remainders fall outside that boundary: `i` has conditional `best`/one steps, while
-  `p` has bounds derived from `i` and `best`. Swag's truncating remainder and Zig's floor modulo
-  differ for negative inputs.
-- Next: recover signed upper bounds from `min(value, constant)` selections and prove the inner
-  match counter bounded under its dominating guard despite early exits. Propagate that range
-  through `best`, then prove `i` cannot wrap on either increment and bound `p`'s dynamic range.
-  Extend the existing SSA proof with general guard/phi facts; retain negative, overflow,
-  conditional-step and alternate-entry controls before removing any sign correction.
+- Evidence: `GuardedCounterRanges` bounds conditional nonnegative steps under dominating signed
+  guards, including signed minimum selections and early exits. The remaining `p` remainder uses
+  a dynamic seed `i + 1` and upper bound `i + best`; its two-input sum is outside the current
+  range query. Swag's truncating remainder and Zig's floor modulo differ for negative inputs.
+- Next: propagate no-wrap sums of bounded nonnegative SSA values into the inner counter proof.
+  Preserve bounds through pure selections and joins without assuming that two program pointers
+  cannot alias. Keep negative seeds/steps, overflow in the seed, sum or guard, alternate entries,
+  unresolved control flow, and live-flags controls before removing the correction.
 - Done when: every removed sign correction has a sound range proof, exact checksums, unrelated
   positive/negative coverage, and no generated-code loss elsewhere.
 

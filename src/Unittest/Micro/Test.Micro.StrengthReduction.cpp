@@ -1099,6 +1099,104 @@ SWC_TEST_BEGIN(StrengthReduction_ProvesFiniteSignedCounterRemainders)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_GuardedCountersKeepVariableStepsInRange)
+{
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (uint32_t mode = 0; mode < 20; ++mode)
+        {
+            const MicroReg counter = MicroReg::virtualIntReg(10);
+            const MicroReg inner   = MicroReg::virtualIntReg(11);
+            const MicroReg limit   = MicroReg::virtualIntReg(12);
+            const MicroReg cap     = MicroReg::virtualIntReg(13);
+            const MicroReg other   = MicroReg::virtualIntReg(14);
+            const MicroReg work    = MicroReg::virtualIntReg(15);
+            const MicroReg base    = MicroReg::virtualIntReg(16);
+            MicroBuilder   builder(ctx);
+            const auto     outerLoop = builder.createLabel();
+            const auto     innerLoop = builder.createLabel();
+            const auto     matched   = builder.createLabel();
+            const auto     unitStep  = builder.createLabel();
+            const auto     latch     = builder.createLabel();
+            const auto     exit      = builder.createLabel();
+            const uint64_t signedMax = getBitsMask(bits) >> 1;
+            builder.emitLoadRegMem(other, base, 8, bits);
+            builder.emitLoadRegImm(counter, ApInt(mode == 1 ? getBitsMask(bits) : mode == 11 ? signedMax - 1
+                                                                                             : 0,
+                                                  getNumBits(bits)),
+                                   bits);
+            if (mode == 8)
+            {
+                builder.emitLoadLabelAddress(work, outerLoop);
+                builder.emitLoadMemReg(base, 24, work, MicroOpBits::B64);
+            }
+            if (mode == 14)
+            {
+                builder.emitCmpRegImm(other, ApInt(7, getNumBits(bits)), bits);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, unitStep);
+            }
+            builder.placeLabel(outerLoop);
+            MicroReg tested = counter;
+            if (mode >= 10 && mode <= 13)
+            {
+                builder.emitLoadRegReg(work, counter, bits);
+                builder.emitOpBinaryRegImm(work, ApInt(4, getNumBits(bits)), MicroOp::Add, bits);
+                tested = work;
+            }
+            builder.emitCmpRegImm(tested, ApInt(mode == 2 || mode == 11 || mode == 12 || mode == 13 ? signedMax : 40, getNumBits(bits)), bits);
+            builder.emitJumpToLabel(mode == 10 ? MicroCond::Greater : MicroCond::GreaterOrEqual, MicroOpBits::B32, exit);
+            builder.emitClearReg(inner, bits);
+            builder.emitLoadRegReg(limit, other, bits);
+            builder.emitLoadRegImm(cap, ApInt(mode == 2 ? 2 : mode == 11 || mode == 12 ? 1
+                                                          : mode == 16                 ? 0
+                                                                                       : 8,
+                                              getNumBits(bits)),
+                                   bits);
+            builder.emitCmpRegReg(limit, cap, bits);
+            builder.emitLoadCondRegReg(limit, cap, mode == 3 ? MicroCond::Less : mode == 18 ? MicroCond::Above
+                                                                                            : MicroCond::Greater,
+                                       bits);
+            builder.placeLabel(innerLoop);
+            builder.emitCmpRegReg(inner, limit, bits);
+            builder.emitJumpToLabel(mode == 4 ? MicroCond::AboveOrEqual : MicroCond::GreaterOrEqual, MicroOpBits::B32, matched);
+            builder.emitCmpRegImm(other, ApInt(3, getNumBits(bits)), bits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, matched);
+            builder.emitOpBinaryRegImm(inner, ApInt(1, getNumBits(bits)), MicroOp::Add, mode == 5 ? MicroOpBits::B8 : bits);
+            if (mode == 17)
+                builder.emitOpBinaryRegImm(inner, ApInt(1, getNumBits(bits)), MicroOp::Add, bits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, innerLoop);
+            builder.placeLabel(matched);
+            if (mode == 15)
+            {
+                builder.emitCmpRegImm(other, ApInt(5, getNumBits(bits)), bits);
+                builder.emitLoadCondRegReg(inner, other, MicroCond::Equal, bits);
+            }
+            builder.emitLoadRegReg(work, counter, mode == 9 ? MicroOpBits::B8 : bits);
+            builder.emitOpBinaryRegImm(work, ApInt(8, getNumBits(bits)), MicroOp::ModuloSigned, bits);
+            if (mode == 6)
+                builder.emitSetCondReg(cap, MicroCond::Overflow);
+            builder.emitLoadMemReg(base, 0, work, bits);
+            builder.emitCmpRegImm(other, ApInt(0, getNumBits(bits)), bits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, unitStep);
+            if (mode == 7)
+                builder.emitOpUnaryReg(inner, MicroOp::Negate, bits);
+            builder.emitOpBinaryRegReg(counter, inner, MicroOp::Add, bits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, latch);
+            builder.placeLabel(unitStep);
+            builder.emitOpBinaryRegImm(counter, ApInt(1, getNumBits(bits)), MicroOp::Add, bits);
+            builder.placeLabel(latch);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, outerLoop);
+            builder.placeLabel(exit);
+            if (mode == 19)
+                builder.emitJumpReg(other);
+            builder.emitRet();
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
+            if (hasBinaryRegImm(builder, MicroOp::And, 7) != (mode == 0 || mode == 10 || mode == 12))
+                return Result::Error;
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(StrengthReduction_UsesFiniteCounterPrecisionForDivision)
 {
     struct Case

@@ -623,6 +623,10 @@ namespace MicroOptimizationLimits
 
     namespace StrengthReduction
     {
+        // [analysis-budget] Bound recursive guarded-range queries and fixed-point rounds.
+        inline constexpr uint32_t K_MAX_RANGE_QUERY_NODES = 128;
+        inline constexpr uint32_t K_MAX_RANGE_ROUNDS      = 4;
+
         // [analysis-budget] Bound the flag-preserving moves skipped before a remainder comparison with zero.
         inline constexpr uint32_t K_MAX_MOVES = 3;
 

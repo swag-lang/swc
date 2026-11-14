@@ -3241,17 +3241,35 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->runtimeSafetyMask = frame.currentAttributes().effectiveRuntimeSafetyMask(sema.runtimeSafetyGuards());
     inlinePayload->sanityMask        = fn.attributes().effectiveSanityMask(sema.buildCfg().sanityGuards);
 
-    const bool needsOwnerScope = isMacro;
+    const bool needsOwnerScope = isMacro || (isOrdinaryInline && !isCrossAstInline && !isAutoSelected);
     SemaScope* ownerScope      = nullptr;
     if (needsOwnerScope)
     {
-        ownerScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
-        if (fn.ownerSymMap())
-            ownerScope->setSymMap(const_cast<SymbolMap*>(fn.ownerSymMap()));
-        ownerScope->setLookupParent(callerScope);
+        if (isMacro)
+        {
+            ownerScope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+            if (fn.ownerSymMap())
+                ownerScope->setSymMap(const_cast<SymbolMap*>(fn.ownerSymMap()));
+            ownerScope->setLookupParent(callerScope);
+        }
+        else
+        {
+            // Explicit same-AST inlining rechecks names. Preserve the callee's lexical
+            // owner chain, including outer namespaces, before considering caller scopes.
+            SmallVector<const SymbolMap*> owners;
+            for (const SymbolMap* owner = fn.ownerSymMap(); owner; owner = owner->ownerSymMap())
+                owners.push_back(owner);
+            for (auto it = owners.rbegin(); it != owners.rend(); ++it)
+            {
+                SemaScope* scope = sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local, inlineRootRef);
+                scope->setSymMap(const_cast<SymbolMap*>(*it));
+                scope->setLookupParent(ownerScope ? ownerScope : callerScope);
+                ownerScope = scope;
+            }
+        }
     }
 
-    inlinePayload->upLookupScope = ownerScope ? ownerScope : callerScope;
+    inlinePayload->upLookupScope = isMacro && ownerScope ? ownerScope : callerScope;
     if (isMacro)
         frame.setUpLookupScope(inlinePayload->upLookupScope);
     sema.pushFramePopOnPostNode(frame, inlineRootRef);

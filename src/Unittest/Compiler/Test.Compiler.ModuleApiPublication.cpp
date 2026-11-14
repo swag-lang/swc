@@ -453,6 +453,30 @@ func exposed(value: *s32)->s32 => Swag.atomicAdd(value, 1)
          "=> Swag.atomicAdd(value, 1)",
          "static-library",
          "var value: s32 = 42\n    discard exposed(&value)"},
+        {"NestedConstExprNamespace", R"(#global public
+namespace DefinitionSpace
+{
+    #[Swag.Inline, Swag.ConstExpr]
+    func helper(value: s32)->s32 => value + 1
+    #[Swag.Inline, Swag.ConstExpr]
+    func nested(value: s32)->s32 => helper(value)
+}
+namespace CallSpace
+{
+    #[Swag.ConstExpr, Swag.Inline]
+    func evaluate(value: s32)->s32 => DefinitionSpace.nested(value)
+}
+func(T) exposed(value: T)->s32
+{
+    discard value
+    const Result = #run CallSpace.evaluate(41)
+    return Result
+}
+)",
+         {},
+         "=> helper(value)",
+         "static-library",
+         "Swag.require(exposed(0) == 42)"},
         {"PublicHelper", R"(#global public
 func helper(value: s32)->s32 => value + 1
 #[Swag.Inline]

@@ -453,7 +453,7 @@ func testProfileVersion(file: string)->u32
     f.capture = capture
     g_Library.addFile(file)
 
-    g_Library.removeFile(file)
+    Swag.require(g_Library.removeFile(file))
     Swag.require(not File.exists(file))
     Swag.require(not File.exists(Capture.mediaPathOf(file)))
 

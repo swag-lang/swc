@@ -336,6 +336,18 @@ inline bool isVecMicroOp(const MicroOp op)
     return op >= MicroOp::VecAdd32;
 }
 
+inline bool isPackedFloatBinaryMicroOp(const MicroOp op)
+{
+    return op >= MicroOp::VecAddF32 && op <= MicroOp::VecMaxF64;
+}
+
+// These AVX1 binary forms accept one unaligned full-width memory operand.
+inline bool isPackedBinaryMemoryMicroOp(const MicroOp op)
+{
+    return isPackedFloatBinaryMicroOp(op) || op == MicroOp::VecAdd32 || op == MicroOp::VecSub32 ||
+           op == MicroOp::VecAnd || op == MicroOp::VecOr || op == MicroOp::VecXor;
+}
+
 // Map packed FMA to its scalar operation to share operand-role decisions.
 inline MicroOp scalarFusedFloatOp(const MicroOp op)
 {

@@ -83,6 +83,7 @@ impl IActionUI for ActionImage
     {
         let main    = mainWndOf(cxt)
         let capture = unwrap main.getCapture()
+        main.timeline?.stop()
 
         // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
         // at the point backImg is genuinely mutated (see doProcessImage/trimCapture), not here:

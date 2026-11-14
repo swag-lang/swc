@@ -104,11 +104,17 @@ namespace PostRaPeephole
                 return false;
             if (!lateFloatMemory && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4)
                 return ops[1].reg == loaded && ops[0].reg != loaded;
+            if (lateFloatMemory && isFloat && inst.op == MicroInstrOpcode::OpBinaryRegReg && inst.numOperands >= 4 &&
+                ((ops[2].opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(ops[3].microOp) && !isPackedFloatBinaryMicroOp(ops[3].microOp)) ||
+                 ((ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64) && hasThreeOperandForm(ops[3].microOp))))
+                return ops[0].reg == loaded && ops[1].reg != loaded;
             if (isFloat && inst.op == MicroInstrOpcode::OpBinaryRegRegReg && inst.numOperands >= 5)
             {
                 if (lateFloatMemory)
-                    return ops[0].reg != ops[1].reg && ops[0].reg != loaded &&
+                {
+                    return (ops[3].opBits == MicroOpBits::B128 || ops[0].reg != ops[1].reg) &&
                            ((ops[2].reg == loaded && ops[1].reg != loaded) || (ops[1].reg == loaded && ops[2].reg != loaded));
+                }
                 return ops[2].reg == loaded &&
                        ((ops[0].reg == ops[1].reg && ops[0].reg != loaded) || (ops[0].reg == loaded && ops[1].reg != loaded));
             }
@@ -310,9 +316,9 @@ namespace PostRaPeephole
                 demand.read(ops[2].reg, mask);
                 return;
             }
-            if (inst.op == MicroInstrOpcode::OpBinaryRegRegMem)
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegMem || inst.op == MicroInstrOpcode::OpBinaryRegRegAmcMem)
             {
-                const uint8_t mask  = FloatLaneDemand::mask(ops[3].opBits);
+                const uint8_t mask  = FloatLaneDemand::mask(ops[inst.op == MicroInstrOpcode::OpBinaryRegRegAmcMem ? 4 : 3].opBits);
                 const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
                 demand.clear(ops[0].reg);
                 demand.read(ops[1].reg, mask | upper);
@@ -1264,7 +1270,7 @@ namespace PostRaPeephole
         if (!ctx.builder || !ctx.builder->backendBuildCfg().math.fma || !ctx.encoder->supportsFusedFloatMultiplyAdd())
             return false;
         FloatBinary product;
-        if (!floatBinary(product, *ctx.instruction(productRef), *ctx.operands) || product.op != MicroOp::FloatMultiply)
+        if (!floatBinary(product, *ctx.instruction(productRef), *ctx.operands, true) || product.op != MicroOp::FloatMultiply)
             return false;
 
         auto scan = MicroStorage::Iterator{ctx.storage, productRef};
@@ -1289,6 +1295,35 @@ namespace PostRaPeephole
                 return false;
         }
         return false;
+    }
+
+    // Ordinary fixed-offset stores through the same base cannot change an
+    // operand at a disjoint byte range. Keep indexed addresses and relocations
+    // outside this proof; their displacements alone do not identify the bytes.
+    static bool disjointOperandStore(const MicroInstr& store, const MicroInstrOperand* ops, MicroReg base, uint64_t offset, MicroOpBits bits)
+    {
+        if (!ops || base.isInstructionPointer())
+            return false;
+        uint64_t    storeOffset;
+        MicroOpBits storeBits;
+        if (store.op == MicroInstrOpcode::LoadMemReg || store.op == MicroInstrOpcode::StoreVecMemReg)
+        {
+            storeOffset = ops[3].valueU64;
+            storeBits   = ops[2].opBits;
+        }
+        else if (store.op == MicroInstrOpcode::LoadMemImm)
+        {
+            storeOffset = ops[2].valueU64;
+            storeBits   = ops[1].opBits;
+        }
+        else
+            return false;
+        const int64_t loadStart  = static_cast<int64_t>(offset);
+        const int64_t storeStart = static_cast<int64_t>(storeOffset);
+        if (ops[0].reg != base || !getNumBytes(bits) || !getNumBytes(storeBits) ||
+            loadStart < INT32_MIN || loadStart > INT32_MAX || storeStart < INT32_MIN || storeStart > INT32_MAX)
+            return false;
+        return loadStart + getNumBytes(bits) <= storeStart || storeStart + getNumBytes(storeBits) <= loadStart;
     }
 
     // Fold an operand's reload into the operation that consumes it.
@@ -1363,10 +1398,14 @@ namespace PostRaPeephole
                 info.flags.has(MicroInstrFlagsE::IsCallInstruction))
                 return false;
 
-            // The read moves later, so anything that could change what it sees
-            // stops the fold: a write to the address register, and any store at
-            // all - this pass has no aliasing information.
-            if (info.flags.has(MicroInstrFlagsE::WritesMemory))
+            // Ordering points are barriers even when their bytes are disjoint.
+            // For an ordinary store, exact fixed-offset ranges can retain the
+            // loaded value without a function-wide alias or escape analysis.
+            const auto* candidateOps = candidate->ops(*ctx.operands);
+            if (MicroPassHelpers::isAtomicOrdering(*candidate, candidateOps))
+                return false;
+            if (info.flags.has(MicroInstrFlagsE::WritesMemory) &&
+                !(lateFloatMemory && !indexed && disjointOperandStore(*candidate, candidateOps, base, loadOps[3].valueU64, opBits)))
                 return false;
 
             const MicroInstrUseDef useDef = candidate->collectUseDef(*ctx.operands, ctx.encoder);
@@ -1426,9 +1465,13 @@ namespace PostRaPeephole
             return false;
         const MicroOpBits consumerBits = consumerOps[threeOperand ? 3 : 2].opBits;
         const MicroOp     op           = consumerOps[threeOperand ? 4 : 3].microOp;
-        if (consumerBits != opBits || (opBits == MicroOpBits::B128 && !fused))
+        const bool        packed        = opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(op);
+        const bool        integerPacked = packed && !isPackedFloatBinaryMicroOp(op);
+        if (packed && indexed && !integerPacked)
             return false;
-        if (isFloat ? (!(fused ? isFusedFloatMicroOp(op) : hasThreeOperandForm(op)) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
+        if (consumerBits != opBits || (opBits == MicroOpBits::B128 && !fused && !packed))
+            return false;
+        if (isFloat ? (!(fused ? isFusedFloatMicroOp(op) : packed || hasThreeOperandForm(op)) || !consumerOps[0].reg.isFloat()) : (!hasIntegerMemoryOperandForm(op, opBits) || !consumerOps[0].reg.isAnyInt()))
             return false;
         // FloatAnd/FloatXor use the packed 128-bit SSE memory form even for a
         // scalar value. A scalar load may read only four or eight bytes from
@@ -1438,31 +1481,55 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (fused || (isFloat && threeOperand && !indexed && consumerOps[0].reg != consumerOps[1].reg && consumerOps[0].reg != loaded))
+        const uint32_t leftIndex  = threeOperand ? 1 : 0;
+        const uint32_t rightIndex = threeOperand ? 2 : 1;
+        // A retained left-source copy can restore the original destination when
+        // the load disappears. Let the existing destructive fold remove both.
+        const auto  copyRef      = ctx.previousRef(loadRef);
+        const auto* copyInst     = ctx.instruction(copyRef);
+        const auto* copyOps      = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
+        const bool  restoredLeft = isFloat && threeOperand && !packed && consumerOps[0].reg == loaded &&
+                                   copyInst && copyInst->op == MicroInstrOpcode::LoadRegReg && copyOps &&
+                                   copyOps[0].reg == consumerOps[1].reg && copyOps[1].reg == loaded && copyOps[2].opBits == opBits;
+        const bool  vexMemory    = isFloat && !restoredLeft && (packed || (threeOperand && consumerOps[0].reg != consumerOps[leftIndex].reg) || (lateFloatMemory && !threeOperand));
+        if (fused || vexMemory)
         {
+            // This VEX memory form uses a full-width base and index. A
+            // narrowed address would wrap before dereferencing instead.
+            if (indexed && loadOps[4].opBits != MicroOpBits::B64)
+                return false;
             if (!ctx.encoder || (fused ? !ctx.encoder->supportsFusedFloatMultiplyAdd() : !ctx.encoder->supportsNonDestructiveFloatBinary()))
                 return false;
             // A queued copy rewrite can expose contraction on the next sweep.
             // Keep that product in registers until its accumulation is settled.
-            if (op == MicroOp::FloatMultiply && mayContractFollowingAccumulation(ctx, opRef))
+            if ((op == MicroOp::FloatMultiply || op == MicroOp::VecMulF32 || op == MicroOp::VecMulF64) && mayContractFollowingAccumulation(ctx, opRef))
                 return false;
-            const bool commute = !fused && consumerOps[1].reg == loaded;
-            if (commute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply) ||
-                            !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN ||
-                            !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
+            const bool commute        = !fused && consumerOps[leftIndex].reg == loaded;
+            const bool integerCommute = op == MicroOp::VecAdd32 || op == MicroOp::VecAnd || op == MicroOp::VecOr || op == MicroOp::VecXor;
+            if (commute && !integerCommute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply && op != MicroOp::VecAddF32 && op != MicroOp::VecAddF64 && op != MicroOp::VecMulF32 && op != MicroOp::VecMulF64) || !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN || !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
                 return false;
-            if (floatLanesReadAfter(ctx, opRef, loaded))
+            if (consumerOps[0].reg != loaded && floatLanesReadAfter(ctx, opRef, loaded))
                 return false;
 
-            MicroInstrOperand direct[6] = {};
+            MicroInstrOperand direct[8] = {};
             direct[0]                   = consumerOps[0];
-            direct[1]                   = consumerOps[commute ? 2 : 1];
+            direct[1]                   = consumerOps[commute ? rightIndex : leftIndex];
             direct[2].reg               = base;
             direct[3].opBits            = opBits;
             direct[4].microOp           = op;
             direct[5]                   = loadOps[3];
-            const auto opcode           = fused ? MicroInstrOpcode::OpTernaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegMem;
-            if (!encoderAcceptsAsIs(ctx, opcode, direct))
+            auto opcode                 = fused ? MicroInstrOpcode::OpTernaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegMem;
+            if (indexed)
+            {
+                direct[3].reg     = index;
+                direct[4].opBits  = opBits;
+                direct[5].microOp = op;
+                direct[6]         = loadOps[5];
+                direct[7]         = loadOps[6];
+                opcode            = MicroInstrOpcode::OpBinaryRegRegAmcMem;
+            }
+            const std::span<const MicroInstrOperand> directOps{direct, indexed ? 8u : 6u};
+            if (!encoderAcceptsAsIs(ctx, opcode, directOps))
                 return false;
 
             // Reserve the complete motion window: another queued rewrite must
@@ -1478,7 +1545,7 @@ namespace PostRaPeephole
                 return false;
             if (loadRelocation)
                 loadRelocation->instructionRef = opRef;
-            ctx.emitRewrite(opRef, opcode, direct, true);
+            ctx.emitRewrite(opRef, opcode, directOps, true);
             ctx.emitErase(loadRef);
             return true;
         }
@@ -1567,8 +1634,67 @@ namespace PostRaPeephole
         return true;
     }
 
+    // A zero-extended byte/word contributes zero to every higher bit of OR/XOR.
+    // Their narrow memory forms preserve those higher destination bits, unlike
+    // a narrowed AND. A dword operation also clears the upper half, so keep it.
+    static bool tryFoldZeroExtendedBitwiseMemory(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
+    {
+        if (!ctx.encoder)
+            return false;
+        const bool  indexed = loadInst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        const auto* load    = ctx.operandsFor(loadRef);
+        if (!load || !load[0].reg.isAnyInt() ||
+            (load[indexed ? 3 : 2].opBits != MicroOpBits::B32 && load[indexed ? 3 : 2].opBits != MicroOpBits::B64))
+            return false;
+        const MicroOpBits sourceBits = load[indexed ? 4 : 3].opBits;
+        if (sourceBits != MicroOpBits::B8 && sourceBits != MicroOpBits::B16)
+            return false;
+        const auto  opRef = ctx.nextRef(loadRef);
+        const auto* inst  = ctx.instruction(opRef);
+        const auto* ops   = inst ? ctx.operandsFor(opRef) : nullptr;
+        if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegReg || !ops ||
+            ops[1].reg != load[0].reg || ops[0].reg == load[0].reg || !ops[0].reg.isAnyInt() ||
+            (ops[3].microOp != MicroOp::Xor && ops[3].microOp != MicroOp::Or) ||
+            (ops[2].opBits != MicroOpBits::B64 && ops[2].opBits != MicroOpBits::B16) ||
+            getNumBytes(sourceBits) > getNumBytes(ops[2].opBits) || !ctx.areCpuFlagsDeadAfter(opRef) ||
+            (!regIsDeadAfter(ctx, opRef, load[0].reg) && !ctx.isRegDeadAfter(load[0].reg, ctx.instructionIndex + 1)))
+            return false;
+        MicroRelocation* relocation = nullptr;
+        if (!findUniqueMemoryRelocation(ctx, relocation, loadRef, load[1].reg, opRef))
+            return false;
+        MicroInstrOperand folded[8] = {};
+        folded[0]                   = ops[0];
+        folded[1]                   = load[1];
+        if (indexed)
+        {
+            folded[2]        = load[2];
+            folded[3].opBits = sourceBits;
+            folded[4].opBits = MicroOpBits::B64;
+            folded[5]        = load[5];
+            folded[6]        = load[6];
+            folded[7]        = ops[3];
+        }
+        else
+        {
+            folded[2].opBits = sourceBits;
+            folded[3]        = ops[3];
+            folded[4]        = load[4];
+        }
+        const auto                               opcode = indexed ? MicroInstrOpcode::OpBinaryRegAmcMem : MicroInstrOpcode::OpBinaryRegMem;
+        const std::span<const MicroInstrOperand> operands{folded, indexed ? 8u : 5u};
+        if (!encoderAcceptsAsIs(ctx, opcode, operands) || !ctx.claimAll({loadRef, opRef}))
+            return false;
+        if (relocation)
+            relocation->instructionRef = opRef;
+        ctx.emitRewrite(opRef, opcode, operands, true);
+        ctx.emitErase(loadRef);
+        return true;
+    }
+
     bool tryFoldLoadIntoBinary(Context& ctx, MicroInstrRef loadRef, const MicroInstr& loadInst)
     {
+        if (loadInst.op == MicroInstrOpcode::LoadZeroExtRegMem || loadInst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem)
+            return tryFoldZeroExtendedBitwiseMemory(ctx, loadRef, loadInst);
         return tryFoldLoadIntoBinaryForm(ctx, loadRef, loadInst, false);
     }
 
@@ -1579,7 +1705,7 @@ namespace PostRaPeephole
         ctx.instructionIndex = 0;
         for (auto it = ctx.storage->view().begin(); it.current.isValid(); ++it, ++ctx.instructionIndex)
         {
-            if ((it->op != MicroInstrOpcode::LoadRegMem && it->op != MicroInstrOpcode::LoadVecRegMem) || ctx.isClaimed(it.current))
+            if ((it->op != MicroInstrOpcode::LoadRegMem && it->op != MicroInstrOpcode::LoadVecRegMem && it->op != MicroInstrOpcode::LoadAmcRegMem) || ctx.isClaimed(it.current))
                 continue;
             const auto* ops = it->ops(*ctx.operands);
             if (ops[0].reg.isFloat())
@@ -2078,6 +2204,7 @@ namespace PostRaPeephole
 
             if ((candidate->op == MicroInstrOpcode::OpBinaryRegRegReg && candidate->numOperands >= 5) ||
                 (candidate->op == MicroInstrOpcode::OpBinaryRegRegMem && candidate->numOperands >= 6) ||
+                (candidate->op == MicroInstrOpcode::OpBinaryRegRegAmcMem && candidate->numOperands >= 8) ||
                 (candidate->op == MicroInstrOpcode::OpBinaryRegReg && candidate->numOperands >= 4))
             {
                 const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
@@ -2117,9 +2244,11 @@ namespace PostRaPeephole
         // The two-operand form names its destination as its own left source:
         // `xmm1 *= xmm0` spelled out is `xmm1 = xmm1 * xmm0`. Widening it here
         // is what lets the copy go, since the temporary is the destination.
-        const bool        memory    = opInst->op == MicroInstrOpcode::OpBinaryRegRegMem;
-        const uint32_t    numOps    = memory ? 6 : 5;
-        MicroInstrOperand newOps[6] = {};
+        const bool        indexed   = opInst->op == MicroInstrOpcode::OpBinaryRegRegAmcMem;
+        const bool        memory    = indexed || opInst->op == MicroInstrOpcode::OpBinaryRegRegMem;
+        const uint32_t    numOps    = indexed ? 8 : memory ? 6
+                                                           : 5;
+        MicroInstrOperand newOps[8] = {};
         if (opInst->op == MicroInstrOpcode::OpBinaryRegReg)
         {
             if ((opOps[2].opBits != copyBits && copyBits != MicroOpBits::B128) || !foldableIntoThreeOperand(opOps[3].microOp, opOps[2].opBits) ||
@@ -2134,7 +2263,7 @@ namespace PostRaPeephole
         }
         else
         {
-            if ((opOps[3].opBits != copyBits && copyBits != MicroOpBits::B128) || !opOps[1].reg.isFloat() || (!memory && !opOps[2].reg.isFloat()))
+            if ((opOps[indexed ? 4 : 3].opBits != copyBits && copyBits != MicroOpBits::B128) || !opOps[1].reg.isFloat() || (!memory && !opOps[2].reg.isFloat()))
                 return false;
             std::ranges::copy(std::span{opOps, numOps}, newOps);
         }
@@ -2142,13 +2271,16 @@ namespace PostRaPeephole
         // A scalar VEX producer already carries the final destination's upper
         // lanes when that destination is its first input. Bitwise forms write
         // every lane and cannot use that identity.
-        const bool preservesUpperLanes = newOps[1].reg == dst && newOps[4].microOp != MicroOp::FloatAnd && newOps[4].microOp != MicroOp::FloatXor;
+        const MicroOp op                  = newOps[indexed ? 5 : 4].microOp;
+        const bool    preservesUpperLanes = newOps[1].reg == dst && op != MicroOp::FloatAnd && op != MicroOp::FloatXor;
         if ((!preservesUpperLanes && !areFloatUpperLanesDeadAfter(ctx, copyRef, dst, copyBits)) || floatLanesReadAfter(ctx, copyRef, src) ||
             !ctx.claimAll({opRef, copyRef}))
             return false;
 
         newOps[0].reg = dst;
-        ctx.emitRewrite(opRef, memory ? MicroInstrOpcode::OpBinaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, numOps}, /*allocNewBlock=*/true);
+        ctx.emitRewrite(opRef, indexed ? MicroInstrOpcode::OpBinaryRegRegAmcMem : memory ? MicroInstrOpcode::OpBinaryRegRegMem
+                                                                                         : MicroInstrOpcode::OpBinaryRegRegReg,
+                        std::span{newOps, numOps}, /*allocNewBlock=*/true);
         ctx.emitErase(copyRef);
         return true;
     }
@@ -2433,7 +2565,7 @@ namespace PostRaPeephole
             if (!candidate)
                 return false;
 
-            if (candidate->op == MicroInstrOpcode::OpBinaryRegReg)
+            if (candidate->op == MicroInstrOpcode::OpBinaryRegReg || candidate->op == MicroInstrOpcode::OpBinaryRegMem || candidate->op == MicroInstrOpcode::OpBinaryRegAmcMem)
             {
                 const MicroInstrOperand* candidateOps = ctx.operandsFor(opRef);
                 if (candidateOps && candidateOps[0].reg == dst)
@@ -2477,36 +2609,61 @@ namespace PostRaPeephole
         if (binOps[0].reg != dst)
             return false;
 
+        const bool     indexed = opInst->op == MicroInstrOpcode::OpBinaryRegAmcMem;
+        const bool     memory  = indexed || opInst->op == MicroInstrOpcode::OpBinaryRegMem;
         const MicroReg src2 = binOps[1].reg;
-        if (!src2.isFloat())
+        // A register right operand cannot read the destination before the
+        // removed copy has supplied it. Memory bases are integer registers.
+        if (!memory && (!src2.isFloat() || src2 == dst))
+            return false;
+        if (indexed && binOps[4].opBits != MicroOpBits::B64)
             return false;
 
-        // `dst op= dst` reads the destination as its second source. Folding the
-        // copy away would make that read see the pre-copy value instead of src1,
-        // so this shape stays as it is.
-        if (src2 == dst)
-            return false;
-
-        const MicroOpBits opBits = binOps[2].opBits;
+        const MicroOpBits opBits = binOps[indexed ? 3 : 2].opBits;
+        const MicroOp     op     = binOps[indexed ? 7 : 3].microOp;
         if (opBits != copyOps[2].opBits && copyOps[2].opBits != MicroOpBits::B128)
             return false;
-        if (!foldableIntoThreeOperand(binOps[3].microOp, opBits) ||
+        if (!foldableIntoThreeOperand(op, opBits) ||
             !areFloatUpperLanesDeadAfter(ctx, opRef, dst, copyOps[2].opBits))
+            return false;
+        // Scalar bitwise operations read a full vector in their memory form;
+        // packed operations keep their existing register representation here.
+        if (memory && (opBits == MicroOpBits::B128 || op == MicroOp::FloatAnd || op == MicroOp::FloatXor))
+            return false;
+        // A copy rewrite claims the product for this sweep. Leave it available
+        // when the following contraction can remove the product itself.
+        if (memory && op == MicroOp::FloatMultiply && mayContractFollowingAccumulation(ctx, opRef))
             return false;
 
         if (!ctx.claimAll({copyRef, opRef}))
             return false;
 
-        MicroInstrOperand newOps[5] = {};
+        MicroInstrOperand newOps[8] = {};
         newOps[0].reg               = dst;
         newOps[1].reg               = src1;
         newOps[2].reg               = src2;
         newOps[3].opBits            = opBits;
-        newOps[4].microOp           = binOps[3].microOp;
+        newOps[4].microOp           = op;
+        auto     opcode             = MicroInstrOpcode::OpBinaryRegRegReg;
+        uint32_t numOps             = 5;
+        if (indexed)
+        {
+            newOps[3]         = binOps[2];
+            newOps[4].opBits  = opBits;
+            newOps[5].microOp = op;
+            newOps[6]         = binOps[5];
+            newOps[7]         = binOps[6];
+            opcode            = MicroInstrOpcode::OpBinaryRegRegAmcMem;
+            numOps            = 8;
+        }
+        else if (memory)
+        {
+            newOps[5] = binOps[4];
+            opcode    = MicroInstrOpcode::OpBinaryRegRegMem;
+            numOps    = 6;
+        }
 
-        // Five operands where the original had four, so the rewrite needs a
-        // fresh operand block.
-        ctx.emitRewrite(opRef, MicroInstrOpcode::OpBinaryRegRegReg, std::span{newOps, 5}, true);
+        ctx.emitRewrite(opRef, opcode, std::span{newOps, numOps}, true);
         ctx.emitErase(copyRef);
         return true;
     }

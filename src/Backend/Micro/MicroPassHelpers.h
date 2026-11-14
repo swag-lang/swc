@@ -215,6 +215,11 @@ namespace MicroPassHelpers
         return inst.op == MicroInstrOpcode::LoadAmcRegMem ||
                inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem ||
                inst.op == MicroInstrOpcode::LoadZeroExtAmcRegMem ||
+               inst.op == MicroInstrOpcode::OpBinaryRegAmcMem ||
+               inst.op == MicroInstrOpcode::OpBinaryRegRegAmcMem ||
+               inst.op == MicroInstrOpcode::CmpAmcReg ||
+               inst.op == MicroInstrOpcode::CmpRegAmc ||
+               inst.op == MicroInstrOpcode::CmpAmcImm ||
                inst.op == MicroInstrOpcode::VecUnaryAmcRegMem ||
                inst.op == MicroInstrOpcode::VecInsertHigh64Amc;
     }

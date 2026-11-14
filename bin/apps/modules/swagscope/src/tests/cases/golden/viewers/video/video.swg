@@ -114,6 +114,13 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     var hover = host.render(&host.surfaceWnd)
     assertVideoRendererGolden(&hover, "viewer.video.hover.ink")
 
+    // Muting leaves the chosen level in place while the volume control turns inactive.
+    view.setMuted(true)
+    Swag.require(not view.volumeSlider.isEnabled())
+    var muted = host.renderSettled(&host.surfaceWnd)
+    assertVideoRendererGolden(&muted, "viewer.video.muted.ink")
+    view.setMuted(false)
+
     // Returning to Explorer adds a leading action; the film's own title uses its new inset.
     window.returnExplorerCaptionButton.show()
     let titleRoom  = view.topVeil.titleRoom()
@@ -145,9 +152,8 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     assertSubtitleEffect(.Background, .VeryLarge, 1.5, "viewer.video.subtitle.background.large.hidpi")
 }
 
-// The options of a film gather the play mode, the speed, the sound track and the subtitles, each
-// with the value in force, and the page of a setting lists its choices with the one in force
-// checked. The sheet stands on the speed chip of the bottom veil.
+// Playback options gather the play mode and speed; the speed page checks the rate in force.
+// Their sheet stands on the options button at the minimum viewer width.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -191,18 +197,17 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 
         if rendered[] == 0
         {
-            Swag.require(sheet.page.rows.count == 4)
-            Swag.require(sheet.page.rows[1].value == "1.5×" and sheet.page.rows[2].value == "Primary")
+            Swag.require(sheet.page.rows.count == 2 and sheet.page.rows[1].value == "1.5×")
             var first = host.render()
             assertVideoRendererGolden(&first, "viewer.video.options")
-            Swag.require(sheet.activateRow(Film.texts().ui_OptionAudio))
+            Swag.require(sheet.activateRow(Film.texts().ui_OptionSpeed))
             host.finishAnimations()
         }
         else
         {
-            Swag.require(sheet.page.rows[0].checked and sheet.page.rows[1].detail == "AAC-LC · 2 ch · 44.1 kHz")
-            var tracks = host.render()
-            assertVideoRendererGolden(&tracks, "viewer.video.options.audio")
+            Swag.require(sheet.page.rows[5].checked)
+            var speeds = host.render()
+            assertVideoRendererGolden(&speeds, "viewer.video.options.speed")
             sheet.close()
         }
 

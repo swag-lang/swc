@@ -87,6 +87,8 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
     expect result.register(Viewers.Typeface.viewerPlugin())
     expect result.register(Viewers.Midi.viewerPlugin())
     expect result.register(Viewers.Table.viewerPlugin())
+    expect result.register(Viewers.Epub.viewerPlugin())
+    expect result.register(Viewers.Comic.viewerPlugin())
     expect result.register(Viewers.Archive.viewerPlugin())
     expect result.register(Viewers.PlainText.viewerPlugin())
     expect result.register(Viewers.Binary.viewerPlugin())

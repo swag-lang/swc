@@ -723,7 +723,7 @@ impl InfoSheet
             var tabX    = pad
             for index in .pages.count
             {
-                let tabWidth = Math.ceil(Painter.measureString(.pages[index], tabFont).width)
+                let tabWidth = Math.ceil(Painter.measureStringSnapped(.pages[index], tabFont, deviceScale: scale))
                 .tabRects.add(Math.Rectangle{tabX, .controlTop(), tabWidth, metrics.embInfo_CloseSize})
                 tabX += tabWidth + metrics.infoSheet_BlockGap + metrics.infoSheet_LineGap
             }

@@ -90,9 +90,9 @@ enum CaptureSourceKind
     BlankCanvas     // Empty image created in Swag Capture.
 }
 
-// What a capture keeps of its source. A picture is the zero-length case of a timeline: the canvas
-// always shows `Capture.backImg`, which a timed capture refreshes from the frame at its playhead,
-// so every editing path stays shared between media.
+// What a capture keeps of its source. A picture is the zero-length case of a timeline. Editing
+// uses `Capture.backImg` at the playhead; video playback presents decoded planes directly and
+// restores that RGB image when an edit needs it.
 enum CaptureMedia
 {
     Picture       // One picture.
@@ -238,7 +238,7 @@ struct Capture
     // Editing state, rebuilt at run time rather than stored with the capture.
     #[NoSerialize]
     {
-        // Frames of a timed capture, open while it is edited, and the frame `backImg` shows.
+        // Frames of a timed capture, open for seeks, exports, and editable RGB pictures.
         frames:   *TimedReader?
         playhead: u64
 
@@ -263,6 +263,9 @@ struct Capture
         paintRect: Math.Rectangle
 
         backTexture: Texture
+        playbackPlanes: PlanarFrame
+        playbackPlanar: bool
+        backTexturePlanar: bool
         snapX:       f32 = -1
         snapY:       f32 = -1
 

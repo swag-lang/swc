@@ -54,7 +54,7 @@ func viewerPlugin()->Viewer.Plugin
         .create       = &createViewer
         .probe        = &pluginProbe
         .smokeFixture = "viewer.archive.zip"
-        .addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
+        .addSelectors(".zip;.jar;.war;.apk;.aar;.epub;.cbz;.whl;.nupkg;.vsix;.crx;.xpi;.docx;.xlsx;.pptx;.odt;.ods;.odp")
     }
 
     return result

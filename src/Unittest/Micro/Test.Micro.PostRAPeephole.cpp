@@ -4297,39 +4297,243 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryPreservesEveryLane)
     const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
     constexpr MicroReg left   = MicroReg::floatReg(1);
     constexpr MicroReg loaded = MicroReg::floatReg(2);
+    for (const bool aliasResult : {false, true})
+        for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            const MicroReg                result  = aliasResult ? loaded : MicroReg::floatReg(3);
+            const std::array<uint64_t, 4> samples = bits == MicroOpBits::B32
+                                                        ? std::array<uint64_t, 4>{0x40400000, 0x80000000, 0x7FC01234, 0x7F801234}
+                                                        : std::array<uint64_t, 4>{0x4008000000000000, 0x8000000000000000, 0x7FF8000000001234, 0x7FF0000000001234};
+            for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})
+            {
+                for (const uint64_t first : samples)
+                {
+                    for (const uint64_t second : samples)
+                    {
+                        std::array<uint64_t, 8> reference{};
+                        for (const bool optimize : {false, true})
+                        {
+                            std::array<uint64_t, 8> values = {first | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, second, UINT64_MAX};
+                            MicroBuilder            builder(ctx);
+                            builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                            builder.emitLoadRegMem(loaded, base, 16, bits);
+                            builder.emitOpBinaryRegRegReg(result, left, loaded, op, bits);
+                            builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+                            builder.emitLoadMemReg(base, 48, left, MicroOpBits::B128);
+                            builder.emitClearReg(loaded, MicroOpBits::B128);
+                            builder.emitRet();
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem) != 1)
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_IndexedNonDestructiveFloatMemoryKeepsLanes)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg index  = MicroReg::intReg(10);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    for (const bool aliasResult : {false, true})
+        for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+        {
+            const MicroReg                result  = aliasResult ? loaded : MicroReg::floatReg(3);
+            const std::array<uint64_t, 4> samples = bits == MicroOpBits::B32
+                                                        ? std::array<uint64_t, 4>{0x40400000, 0x80000000, 0x7FC01234, 0x7F801234}
+                                                        : std::array<uint64_t, 4>{0x4008000000000000, 0x8000000000000000, 0x7FF8000000001234, 0x7FF0000000001234};
+            for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})
+            {
+                for (const uint64_t first : samples)
+                {
+                    for (const uint64_t second : samples)
+                    {
+                        std::array<uint64_t, 8> reference{};
+                        for (const bool optimize : {false, true})
+                        {
+                            std::array<uint64_t, 8> values = {first | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, second, UINT64_MAX};
+                            MicroBuilder            builder(ctx);
+                            builder.emitLoadRegImm(index, ApInt(4, 64), MicroOpBits::B64);
+                            builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                            builder.emitLoadAmcRegMem(loaded, bits, base, index, 8, static_cast<uint64_t>(-16), MicroOpBits::B64);
+                            builder.emitOpBinaryRegRegReg(result, left, loaded, op, bits);
+                            builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+                            builder.emitLoadMemReg(base, 48, left, MicroOpBits::B128);
+                            builder.emitClearReg(loaded, MicroOpBits::B128);
+                            builder.emitRet();
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) != 1)
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FloatMemoryCopyPreservesEveryLane)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg index  = MicroReg::intReg(10);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
     constexpr MicroReg result = MicroReg::floatReg(3);
     for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
         const std::array<uint64_t, 4> samples = bits == MicroOpBits::B32
                                                     ? std::array<uint64_t, 4>{0x40400000, 0x80000000, 0x7FC01234, 0x7F801234}
                                                     : std::array<uint64_t, 4>{0x4008000000000000, 0x8000000000000000, 0x7FF8000000001234, 0x7FF0000000001234};
-        for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})
+        for (const bool indexed : {false, true})
         {
-            for (const uint64_t first : samples)
+            for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})
             {
-                for (const uint64_t second : samples)
+                for (const uint64_t first : samples)
                 {
-                    std::array<uint64_t, 8> reference{};
-                    for (const bool optimize : {false, true})
+                    for (const uint64_t second : samples)
                     {
-                        std::array<uint64_t, 8> values = {first | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, second, UINT64_MAX};
-                        MicroBuilder            builder(ctx);
-                        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
-                        builder.emitLoadRegMem(loaded, base, 16, bits);
-                        builder.emitOpBinaryRegRegReg(result, left, loaded, op, bits);
-                        builder.emitClearReg(loaded, MicroOpBits::B128);
-                        builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
-                        builder.emitLoadMemReg(base, 48, left, MicroOpBits::B128);
-                        builder.emitRet();
-                        SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
-                        if (!optimize)
-                            reference = values;
-                        else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem) != 1)
-                            return Result::Error;
+                        std::array<uint64_t, 8> reference{};
+                        for (const bool optimize : {false, true})
+                        {
+                            std::array<uint64_t, 8> values = {first | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, second, UINT64_MAX};
+                            MicroBuilder            builder(ctx);
+                            builder.emitLoadRegImm(index, ApInt(4, 64), MicroOpBits::B64);
+                            builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                            builder.emitLoadRegReg(result, left, MicroOpBits::B128);
+                            if (indexed)
+                                builder.emitOpBinaryRegAmcMem(result, base, index, 8, static_cast<uint64_t>(-16), op, bits);
+                            else
+                                builder.emitOpBinaryRegMem(result, base, 16, op, bits);
+                            builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+                            builder.emitLoadMemReg(base, 48, left, MicroOpBits::B128);
+                            builder.emitRet();
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else if (values != reference || Backend::Unittest::countOpcode(builder, indexed ? MicroInstrOpcode::OpBinaryRegRegAmcMem : MicroInstrOpcode::OpBinaryRegRegMem) != 1)
+                                return Result::Error;
+                        }
                     }
                 }
             }
         }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FloatMemoryCopyRespectsSourceAndUpperLanes)
+{
+    constexpr MicroReg base   = MicroReg::intReg(0);
+    constexpr MicroReg index  = MicroReg::intReg(10);
+    constexpr MicroReg source = MicroReg::floatReg(1);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    for (const bool indexed : {false, true})
+    {
+        for (uint32_t mode = 0; mode < 4; ++mode)
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegReg(result, source, mode == 3 ? MicroOpBits::B64 : MicroOpBits::B128);
+            if (mode == 1)
+                builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+            if (mode == 2)
+                builder.emitClearReg(source, MicroOpBits::B128);
+            if (indexed)
+                builder.emitOpBinaryRegAmcMem(result, base, index, 8, 16, MicroOp::FloatSubtract, MicroOpBits::B64);
+            else
+                builder.emitOpBinaryRegMem(result, base, 16, MicroOp::FloatSubtract, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            const auto expected = mode == 0 ? 1u : 0u;
+            if (Backend::Unittest::countOpcode(builder, indexed ? MicroInstrOpcode::OpBinaryRegRegAmcMem : MicroInstrOpcode::OpBinaryRegRegMem) != expected)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_PackedFloatMemoryPreservesEveryLane)
+{
+    const auto                                   base    = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg                           left    = MicroReg::floatReg(1);
+    constexpr MicroReg                           loaded  = MicroReg::floatReg(2);
+    const std::array<std::array<uint64_t, 4>, 4> samples = {{
+        {0x8000000000000000, 0x7FF8000000001234, 0x3FF8000000000000, 0x7FF0000000004321},
+        {0x800000007FC01234, 0x3F8000007F801234, 0x7F800000FF800000, 0x3F7FFFFE3F800001},
+        {0x3FF0000000000001, 0x3FEFFFFFFFFFFFFE, 0xBFF0000000000000, 0x8000000000000000},
+        {0x3F8000013F800001, 0x8000000000000000, 0x3F7FFFFE3F7FFFFE, 0xBF800000BF800000},
+    }};
+    for (const auto op : {MicroOp::VecAddF32, MicroOp::VecAddF64, MicroOp::VecSubF32, MicroOp::VecSubF64,
+                          MicroOp::VecMulF32, MicroOp::VecMulF64, MicroOp::VecDivF32, MicroOp::VecDivF64,
+                          MicroOp::VecMinF32, MicroOp::VecMinF64, MicroOp::VecMaxF32, MicroOp::VecMaxF64})
+    {
+        for (uint32_t destination = 0; destination < 3; ++destination)
+        {
+            const MicroReg result = destination == 1 ? left : destination == 2 ? loaded
+                                                                               : MicroReg::floatReg(3);
+            for (const auto& sample : samples)
+            {
+                std::array<uint64_t, 12> reference{};
+                for (const bool optimize : {false, true})
+                {
+                    // The right vector starts at an eight-byte displacement:
+                    // the fused memory operand must accept unaligned vectors.
+                    std::array<uint64_t, 12> values = {sample[0], sample[1], UINT64_MAX, sample[2], sample[3]};
+                    MicroBuilder             builder(ctx);
+                    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                    builder.emitLoadVecRegMem(loaded, base, 24, MicroOpBits::B128);
+                    builder.emitOpBinaryRegRegReg(result, left, loaded, op, MicroOpBits::B128);
+                    builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+                    builder.emitLoadMemReg(base, 64, left, MicroOpBits::B128);
+                    builder.emitClearReg(loaded, MicroOpBits::B128);
+                    builder.emitRet();
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        reference = values;
+                    else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem) != 1)
+                        return Result::Error;
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_PackedFloatMemoryKeepsReadWidthAndBarriers)
+{
+    constexpr MicroReg base   = MicroReg::intReg(0);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    for (uint32_t mode = 0; mode < 4; ++mode)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(loaded, base, 24, mode == 1 ? MicroOpBits::B64 : MicroOpBits::B128);
+        if (mode == 2)
+            builder.emitLoadMemReg(base, 24, left, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(result, left, loaded, MicroOp::VecSubF64, MicroOpBits::B128);
+        if (mode == 3)
+            builder.emitLoadMemReg(base, 64, loaded, MicroOpBits::B128);
+        builder.emitClearReg(loaded, MicroOpBits::B128);
+        builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem) != (mode == 0 ? 1u : 0u))
+            return Result::Error;
     }
     return Result::Continue;
 }
@@ -4396,28 +4600,33 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
         ClaimedGap,
         SubtractLeft,
         Indexed,
+        IndexedChangedIndex,
+        IndexedAliasStore,
+        IndexedLiveCarrier,
         ProductToAccumulate
     };
     const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
     constexpr MicroReg left   = MicroReg::floatReg(1);
     constexpr MicroReg loaded = MicroReg::floatReg(2);
     constexpr MicroReg result = MicroReg::floatReg(3);
-    for (const auto test : {Case::Direct, Case::Commute, Case::StrictCommute, Case::LiveUpper, Case::LiveCarrier, Case::AliasStore, Case::ChangedBase, Case::ClaimedGap, Case::SubtractLeft, Case::Indexed, Case::ProductToAccumulate})
+    for (const auto test : {Case::Direct, Case::Commute, Case::StrictCommute, Case::LiveUpper, Case::LiveCarrier, Case::AliasStore, Case::ChangedBase, Case::ClaimedGap, Case::SubtractLeft, Case::Indexed, Case::IndexedChangedIndex, Case::IndexedAliasStore, Case::IndexedLiveCarrier, Case::ProductToAccumulate})
     {
         MicroBuilder builder(ctx);
         auto         cfg = builder.backendBuildCfg();
         cfg.math.noNaN   = test != Case::StrictCommute;
         cfg.math.fma     = test == Case::ProductToAccumulate;
         builder.setBackendBuildCfg(cfg);
-        if (test == Case::Indexed)
+        if (test == Case::Indexed || test == Case::IndexedChangedIndex || test == Case::IndexedAliasStore || test == Case::IndexedLiveCarrier)
             builder.emitLoadAmcRegMem(loaded, MicroOpBits::B64, base, MicroReg::intReg(8), 8, 16, MicroOpBits::B64);
         else
             builder.emitLoadRegMem(loaded, base, 16, MicroOpBits::B64);
         const auto loadRef = builder.instructions().lastInstructionRef();
         builder.emitLoadRegImm(MicroReg::intReg(9), ApInt(17, 64), MicroOpBits::B64);
         const auto gapRef = builder.instructions().lastInstructionRef();
-        if (test == Case::AliasStore)
+        if (test == Case::AliasStore || test == Case::IndexedAliasStore)
             builder.emitLoadMemReg(base, 16, left, MicroOpBits::B64);
+        if (test == Case::IndexedChangedIndex)
+            builder.emitOpBinaryRegImm(MicroReg::intReg(8), ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         if (test == Case::ChangedBase)
             builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
         const bool commute = test == Case::Commute || test == Case::StrictCommute || test == Case::LiveUpper || test == Case::SubtractLeft;
@@ -4428,7 +4637,7 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
         if (test == Case::ProductToAccumulate)
             builder.emitOpBinaryRegReg(left, result, MicroOp::FloatAdd, MicroOpBits::B64);
         builder.emitLoadMemReg(base, 32, result, test == Case::LiveUpper ? MicroOpBits::B128 : MicroOpBits::B64);
-        if (test == Case::LiveCarrier)
+        if (test == Case::LiveCarrier || test == Case::IndexedLiveCarrier)
             builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B128);
         builder.emitClearReg(loaded, MicroOpBits::B128);
         builder.emitClearReg(result, MicroOpBits::B128);
@@ -4445,7 +4654,7 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
             context.claimAll({gapRef});
         PostRaPeephole::foldFloatMemoryOperands(context);
         const bool folded = context.isClaimed(loadRef);
-        if (folded != (test == Case::Direct || test == Case::Commute))
+        if (folded != (test == Case::Direct || test == Case::Commute || test == Case::Indexed))
             return Result::Error;
         if (folded && (!context.isClaimed(gapRef) || !context.isClaimed(opRef)))
             return Result::Error;
@@ -7463,6 +7672,833 @@ SWC_TEST_BEGIN(PostRAPeephole_DeadFloatClearRequiresEverySuccessorToOverwrite)
             }
         }
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_GuardedAdjacentValueExecutes)
+{
+    const MicroReg     base      = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg element   = MicroReg::intReg(8);
+    constexpr MicroReg result    = MicroReg::intReg(9);
+    constexpr MicroReg temporary = MicroReg::intReg(10);
+    constexpr MicroReg bound     = MicroReg::intReg(11);
+    constexpr MicroReg current   = MicroReg::intReg(0);
+    enum class Case
+    {
+        Direct,
+        NonAdjacentIndex,
+        ComparedOtherAddress,
+        ReloadOtherAddress,
+        OppositeCondition,
+        NarrowCompare,
+        LiveFlags,
+        ExternalEntry,
+        PartialKill
+    };
+    for (const auto test : {Case::Direct, Case::NonAdjacentIndex, Case::ComparedOtherAddress, Case::ReloadOtherAddress, Case::OppositeCondition, Case::NarrowCompare, Case::LiveFlags, Case::ExternalEntry, Case::PartialKill})
+        for (const uint64_t scale : {1, 2, 4, 8})
+        {
+            for (const uint64_t limit : {1, 2})
+            {
+                for (const uint64_t value : {0ull, 17ull, 0x8000000000000000ull, 0xFFFFFFFFFFFFFFFFull})
+                {
+                    std::array<uint64_t, 16> reference{};
+                    for (const bool optimize : {false, true})
+                    {
+                        std::array<uint64_t, 16> values{};
+                        values[8]  = value;
+                        values[9]  = 17;
+                        values[11] = 23;
+                        MicroBuilder builder(ctx);
+                        const auto   join = builder.createLabel();
+                        builder.emitLoadRegImm(element, ApInt(0, 64), MicroOpBits::B64);
+                        builder.emitLoadRegImm(bound, ApInt(limit, 64), MicroOpBits::B64);
+                        builder.emitLoadRegImm(current, ApInt(88, 64), MicroOpBits::B64);
+                        builder.emitLoadRegImm(temporary, ApInt(0x123456789ABCDEF0ull, 64), MicroOpBits::B64);
+                        if (test == Case::ExternalEntry)
+                        {
+                            builder.emitLoadRegImm(result, ApInt(0, 64), MicroOpBits::B64);
+                            builder.emitCmpRegImm(bound, ApInt(0, 64), MicroOpBits::B64);
+                            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                        }
+                        builder.emitLoadAddressRegMem(result, element, test == Case::NonAdjacentIndex ? 2 : 1, MicroOpBits::B64);
+                        builder.emitCmpRegReg(result, bound, MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, join);
+                        const MicroInstrRef branch = builder.instructions().lastInstructionRef();
+                        builder.emitLoadAmcRegMem(temporary, MicroOpBits::B64, base, element, scale, 64, MicroOpBits::B64);
+                        const MicroInstrRef left = builder.instructions().lastInstructionRef();
+                        builder.emitCmpRegReg(temporary, result, MicroOpBits::B64);
+                        const MicroInstrRef              placeholder = builder.instructions().lastInstructionRef();
+                        std::array<MicroInstrOperand, 7> compare{};
+                        compare[0].reg      = base;
+                        compare[1].reg      = element;
+                        compare[2].reg      = temporary;
+                        compare[3].opBits   = MicroOpBits::B64;
+                        compare[4].opBits   = test == Case::NarrowCompare ? MicroOpBits::B32 : MicroOpBits::B64;
+                        compare[5].valueU64 = scale;
+                        compare[6].valueU64 = 64 + scale * (test == Case::ComparedOtherAddress ? 2 : 1);
+                        builder.instructions().insertDerivedBefore(builder.operands(), placeholder, MicroInstrOpcode::CmpAmcReg, compare);
+                        builder.instructions().erase(placeholder);
+                        builder.emitLoadCondRegReg(element, result, test == Case::OppositeCondition ? MicroCond::AboveOrEqual : MicroCond::Below, MicroOpBits::B64);
+                        if (test == Case::LiveFlags)
+                            builder.emitSetCondReg(current, MicroCond::Below);
+                        builder.placeLabel(join);
+                        builder.emitLoadAmcRegMem(result, MicroOpBits::B64, base, element, scale, test == Case::ReloadOtherAddress ? 72 : 64, MicroOpBits::B64);
+                        builder.emitLoadAmcRegMem(temporary, test == Case::PartialKill ? MicroOpBits::B16 : MicroOpBits::B64, base, current, 1, 0, MicroOpBits::B64);
+                        builder.emitCmpRegReg(temporary, result, MicroOpBits::B64);
+                        builder.emitSetCondReg(current, MicroCond::BelowOrEqual);
+                        builder.emitLoadMemReg(base, 0, element, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 8, result, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 16, temporary, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 24, current, MicroOpBits::B8);
+                        builder.emitRet();
+                        X64Encoder encoder(ctx);
+                        if (optimize)
+                        {
+                            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::AddCarryRegImm) != (test == Case::Direct ? 1u : 0u) ||
+                                (test == Case::Direct && builder.instructions().findNextInstructionRef(left) != branch))
+                            {
+                                Logger::print(ctx, std::format("selected shape case={} scale={} limit={} value={}\n", static_cast<int>(test), scale, limit, value));
+                                return Result::Error;
+                            }
+                        }
+                        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+                        if (!optimize)
+                            reference = values;
+                        else if (values != reference)
+                        {
+                            Logger::print(ctx, std::format("selected value case={} scale={} limit={} value={} actual={},{},{},{} expected={},{},{},{}\n", static_cast<int>(test), scale, limit, value, values[0], values[1], values[2], values[3], reference[0], reference[1], reference[2], reference[3]));
+                            return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ConditionalSwapCarriesBothEdges)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg a      = MicroReg::intReg(8);
+    constexpr MicroReg b      = MicroReg::intReg(9);
+    constexpr MicroReg indexA = MicroReg::intReg(10);
+    constexpr MicroReg indexB = MicroReg::intReg(11);
+    constexpr MicroReg other  = MicroReg::intReg(0);
+    enum class Case
+    {
+        Direct,
+        PartialOverlap,
+        ExternalEntry,
+        NarrowLanes,
+        OtherStore,
+        LastStore
+    };
+    for (const auto test : {Case::Direct, Case::PartialOverlap, Case::ExternalEntry, Case::NarrowLanes, Case::OtherStore, Case::LastStore})
+        for (const auto condition : {MicroCond::AboveOrEqual, MicroCond::GreaterOrEqual, MicroCond::Equal})
+            for (const bool alias : {false, true})
+                for (const bool retainsA : {false, true})
+                    for (const bool gap : {false, true})
+                        for (const uint64_t value : {0ull, 17ull, 0x8000000000000000ull, 0xFFFFFFFFFFFFFFFFull})
+                        {
+                            std::array<uint64_t, 16> reference{};
+                            for (const bool optimize : {false, true})
+                            {
+                                std::array<uint64_t, 16> values{};
+                                values[8]            = value;
+                                values[9]            = 17;
+                                values[10]           = 23;
+                                const auto     bits  = test == Case::NarrowLanes ? MicroOpBits::B32 : MicroOpBits::B64;
+                                const uint64_t scale = test == Case::PartialOverlap ? 4 : 8;
+                                MicroBuilder   builder(ctx);
+                                const auto     join = builder.createLabel();
+                                builder.emitLoadRegImm(indexA, ApInt(0, 64), MicroOpBits::B64);
+                                builder.emitLoadRegImm(indexB, ApInt(alias ? 0 : 1, 64), MicroOpBits::B64);
+                                builder.emitLoadRegImm(other, ApInt(2, 64), MicroOpBits::B64);
+                                if (test == Case::ExternalEntry)
+                                {
+                                    builder.emitCmpRegImm(other, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                                }
+                                if (test == Case::LastStore)
+                                    builder.emitLoadAmcRegMem(b, bits, base, indexB, scale, 64, MicroOpBits::B64);
+                                builder.emitLoadAmcRegMem(a, bits, base, indexA, scale, 64, MicroOpBits::B64);
+                                if (test != Case::LastStore)
+                                    builder.emitLoadAmcRegMem(b, bits, base, indexB, scale, 64, MicroOpBits::B64);
+                                builder.emitCmpRegReg(a, b, bits);
+                                builder.emitJumpToLabel(condition, MicroOpBits::B32, join);
+                                builder.emitLoadAmcMemReg(base, indexB, scale, test == Case::OtherStore ? 72 : 64, MicroOpBits::B64, a, bits);
+                                builder.emitLoadAmcMemReg(base, indexA, scale, 64, MicroOpBits::B64, b, bits);
+                                builder.placeLabel(join);
+                                if (gap)
+                                    builder.emitLoadAmcRegMem(retainsA ? b : a, bits, base, other, 8, 64, MicroOpBits::B64);
+                                builder.emitLoadAmcRegMem(retainsA ? a : b, bits, base, retainsA ? indexA : indexB, scale, 64, MicroOpBits::B64);
+                                builder.emitSetCondReg(other, MicroCond::Below);
+                                builder.emitLoadMemReg(base, 0, a, MicroOpBits::B64);
+                                builder.emitLoadMemReg(base, 8, b, MicroOpBits::B64);
+                                builder.emitLoadMemReg(base, 16, other, MicroOpBits::B8);
+                                builder.emitRet();
+                                X64Encoder encoder(ctx);
+                                if (optimize)
+                                {
+                                    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                                    if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) !=
+                                        (test == Case::Direct || (test == Case::LastStore && retainsA && !gap) ? 2u : 3u) + (gap ? 1u : 0u))
+                                        return Result::Error;
+                                }
+                                SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+                                if (!optimize)
+                                    reference = values;
+                                else if (values != reference)
+                                    return Result::Error;
+                            }
+                        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_IndexedResultFlagsIgnoreOverflow)
+{
+    const MicroReg     base    = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg index   = MicroReg::intReg(8);
+    constexpr MicroReg other   = MicroReg::intReg(9);
+    const auto         execute = [&](MicroOpBits bits, MicroOp op, MicroCond condition, uint64_t value, uint32_t mode) -> Result {
+        std::array<uint64_t, 16> reference{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 16> values{};
+            const uint64_t           mask = getBitsMask(bits);
+            values[8]                     = (value & mask) | (0xA5A55A5A12345678ull & ~mask);
+            values[9]                     = 17;
+            MicroBuilder builder(ctx);
+            const auto   taken = builder.createLabel();
+            const auto   done  = builder.createLabel();
+            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(other, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(index, ApInt(1, 64), MicroOpBits::B64);
+            builder.emitNop();
+            const auto                       placeholder = builder.instructions().lastInstructionRef();
+            std::array<MicroInstrOperand, 8> producer{};
+            producer[0].reg      = base;
+            producer[1].reg      = index;
+            producer[3].opBits   = MicroOpBits::B64;
+            producer[4].opBits   = bits;
+            producer[5].valueU64 = 8;
+            producer[6].valueU64 = 64;
+            producer[7].microOp  = mode == 4 ? MicroOp::BitwiseNot : op;
+            builder.instructions().insertDerivedBefore(builder.operands(), placeholder, MicroInstrOpcode::OpUnaryAmcMem, producer);
+            std::array<MicroInstrOperand, 7> compare{};
+            compare[0].reg      = base;
+            compare[1].reg      = mode == 5 ? other : index;
+            compare[2].opBits   = mode == 2 ? MicroOpBits::B32 : bits;
+            compare[3].opBits   = MicroOpBits::B64;
+            compare[4].valueU64 = 8;
+            compare[5].valueU64 = mode == 1 ? 72 : 64;
+            compare[6].setImmediateValue(ApInt(0, getNumBits(compare[2].opBits)));
+            builder.instructions().insertDerivedBefore(builder.operands(), placeholder, MicroInstrOpcode::CmpAmcImm, compare);
+            builder.instructions().erase(placeholder);
+            builder.emitJumpToLabel(condition, MicroOpBits::B32, taken);
+            if (mode == 3 || mode == 6)
+            {
+                builder.emitSetCondReg(other, mode == 3 ? MicroCond::Overflow : MicroCond::Below);
+                builder.emitLoadMemReg(base, 8, other, MicroOpBits::B8);
+            }
+            builder.emitLoadMemImm(base, 0, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+            builder.placeLabel(taken);
+            if (mode == 3 || mode == 6)
+            {
+                builder.emitSetCondReg(other, mode == 3 ? MicroCond::Overflow : MicroCond::Below);
+                builder.emitLoadMemReg(base, 8, other, MicroOpBits::B8);
+            }
+            builder.emitLoadMemImm(base, 0, ApInt(1, 64), MicroOpBits::B64);
+            builder.placeLabel(done);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+            {
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcImm) != (mode ? 1u : 0u))
+                    return Result::Error;
+            }
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+            if (!optimize)
+                reference = values;
+            else if (values != reference)
+                return Result::Error;
+        }
+        return Result::Continue;
+    };
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t sign = 1ull << (getNumBits(bits) - 1);
+        for (const auto op : {MicroOp::Add, MicroOp::Subtract, MicroOp::Negate})
+            for (const auto condition : {MicroCond::Equal, MicroCond::NotEqual, MicroCond::Sign, MicroCond::NotSign,
+                                         MicroCond::GreaterOrEqual, MicroCond::Less, MicroCond::Above, MicroCond::BelowOrEqual,
+                                         MicroCond::Greater, MicroCond::LessOrEqual})
+                for (const uint64_t value : {uint64_t{0}, uint64_t{1}, uint64_t{2}, sign - 1, sign, sign + 1, getBitsMask(bits)})
+                    SWC_RESULT(execute(bits, op, condition, value, 0));
+    }
+    for (uint32_t mode = 1; mode < 7; ++mode)
+        for (const auto condition : {MicroCond::Greater, MicroCond::LessOrEqual})
+            SWC_RESULT(execute(MicroOpBits::B64, MicroOp::Subtract, condition, 0x8000000000000000ull, mode));
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryPreservesLanesAndOrder)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg index  = MicroReg::intReg(8);
+    for (const auto op : {MicroOp::VecAdd32, MicroOp::VecSub32, MicroOp::VecAnd, MicroOp::VecOr, MicroOp::VecXor})
+        for (uint32_t destination = 0; destination < 3; ++destination)
+            for (uint32_t address = 0; address < 3; ++address)
+                for (const bool commute : {false, true})
+                {
+                    std::array<uint64_t, 12> reference{};
+                    for (const bool optimize : {false, true})
+                    {
+                        std::array<uint64_t, 12> values = {0x80000000FFFFFFFFull, 0x7FFFFFFF01234567ull, UINT64_MAX,
+                                                           0xFFFFFFFF00000001ull, 0x7654321080000000ull};
+                        MicroBuilder             builder(ctx);
+                        Runtime::BuildCfgBackend cfg{};
+                        cfg.math.noNaN = false;
+                        builder.setBackendBuildCfg(cfg);
+                        const MicroReg result = destination == 1 ? left : destination == 2 ? loaded
+                                                                                           : MicroReg::floatReg(3);
+                        if (address == 1)
+                            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                        if (address == 2)
+                        {
+                            builder.emitLoadRegReg(index, base, MicroOpBits::B64);
+                            builder.emitOpBinaryRegReg(index, CallConv::get(CallConvKind::C).stackPointer, MicroOp::Subtract, MicroOpBits::B64);
+                        }
+                        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                        if (address == 0)
+                            builder.emitLoadVecRegMem(loaded, base, 24, MicroOpBits::B128);
+                        else if (address == 2)
+                            builder.emitLoadAmcRegMem(loaded, MicroOpBits::B128, index, CallConv::get(CallConvKind::C).stackPointer, 1, 24, MicroOpBits::B64);
+                        else
+                            builder.emitLoadAmcRegMem(loaded, MicroOpBits::B128, base, index, 8, 24, MicroOpBits::B64);
+                        builder.emitOpBinaryRegRegReg(result, commute ? loaded : left, commute ? left : loaded, op, MicroOpBits::B128);
+                        builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+                        builder.emitLoadMemReg(base, 64, left, MicroOpBits::B128);
+                        builder.emitClearReg(loaded, MicroOpBits::B128);
+                        builder.emitRet();
+                        SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                        if (!optimize)
+                            reference = values;
+                        else
+                        {
+                            const bool fold = !commute || op != MicroOp::VecSub32 || destination == 1;
+                            const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) +
+                                                   Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
+                            if (values != reference || folded != (fold ? 1u : 0u))
+                            {
+                                Logger::print(ctx, std::format("packed-int op={} destination={} address={} commute={} equal={} folded={} expected={}\n", static_cast<int>(op), destination, address, commute, values == reference, folded, fold));
+                                return Result::Error;
+                            }
+                        }
+                    }
+                }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_IndexedArithmeticReadsKeepPrecedingFrameStores)
+{
+    const auto         base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg index       = MicroReg::intReg(8);
+    constexpr MicroReg left        = MicroReg::floatReg(1);
+    constexpr MicroReg replacement = MicroReg::floatReg(2);
+    constexpr MicroReg result      = MicroReg::floatReg(3);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64, MicroOpBits::B128})
+    {
+        std::array<uint64_t, 10> reference{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 10> values = bits == MicroOpBits::B32
+                                                  ? std::array<uint64_t, 10>{0x3FC00000, 0, 0x40E00000, 0}
+                                                  : std::array<uint64_t, 10>{0x3FF8000000000000, 0x4004000000000000,
+                                                                             0x401C000000000000, 0x4022000000000000};
+            MicroBuilder             builder(ctx);
+            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+            builder.emitLoadRegMem(replacement, base, 16, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 32, left, bits);
+            builder.emitOpBinaryRegRegAmcMem(result, left, base, index, 8, 32,
+                                             bits == MicroOpBits::B128 ? MicroOp::VecAddF64 : MicroOp::FloatAdd, bits);
+            builder.emitLoadMemReg(base, 32, replacement, bits);
+            builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder, base));
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+            if (!optimize)
+                reference = values;
+            else if (values != reference)
+                return Result::Error;
+        }
+    }
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        constexpr MicroReg       accumulator = MicroReg::intReg(0);
+        constexpr MicroReg       nextValue   = MicroReg::intReg(9);
+        std::array<uint64_t, 10> reference{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 10> values = {0xFEDCBA987654FFFFull, 0x123456789ABCDEF0ull};
+            MicroBuilder             builder(ctx);
+            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegMem(accumulator, base, 0, MicroOpBits::B64);
+            builder.emitLoadRegMem(nextValue, base, 8, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 32, accumulator, MicroOpBits::B64);
+            builder.emitOpBinaryRegAmcMem(accumulator, base, index, 1, 32, MicroOp::Xor, bits);
+            builder.emitLoadMemReg(base, 32, nextValue, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 48, accumulator, MicroOpBits::B64);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder, base));
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+            if (!optimize)
+                reference = values;
+            else if (values != reference)
+                return Result::Error;
+        }
+    }
+    for (const auto opcode : {MicroInstrOpcode::CmpAmcReg, MicroInstrOpcode::CmpRegAmc, MicroInstrOpcode::CmpAmcImm})
+    {
+        constexpr MicroReg       compared  = MicroReg::intReg(9);
+        constexpr MicroReg       nextValue = MicroReg::intReg(11);
+        constexpr MicroReg       flags     = MicroReg::intReg(10);
+        std::array<uint64_t, 10> reference{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 10> values = {opcode == MicroInstrOpcode::CmpRegAmc ? 0x3FF0000000000000ull : 7ull, 11};
+            MicroBuilder             builder(ctx);
+            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegImm(flags, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitLoadRegMem(compared, base, 0, MicroOpBits::B64);
+            builder.emitLoadRegMem(nextValue, base, 8, MicroOpBits::B64);
+            if (opcode == MicroInstrOpcode::CmpRegAmc)
+                builder.emitLoadRegMem(left, base, 0, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 32, compared, MicroOpBits::B64);
+            builder.emitCmpRegReg(compared, compared, MicroOpBits::B64);
+            const auto                       placeholder = builder.instructions().lastInstructionRef();
+            std::array<MicroInstrOperand, 7> compare{};
+            if (opcode == MicroInstrOpcode::CmpAmcImm)
+            {
+                compare[0].reg      = base;
+                compare[1].reg      = index;
+                compare[2].opBits   = MicroOpBits::B64;
+                compare[3].opBits   = MicroOpBits::B64;
+                compare[4].valueU64 = 1;
+                compare[5].valueU64 = 32;
+                compare[6].setImmediateValue(ApInt(7, 64));
+            }
+            else
+            {
+                compare[0].reg      = opcode == MicroInstrOpcode::CmpRegAmc ? left : base;
+                compare[1].reg      = opcode == MicroInstrOpcode::CmpRegAmc ? base : index;
+                compare[2].reg      = opcode == MicroInstrOpcode::CmpRegAmc ? index : compared;
+                compare[3].opBits   = MicroOpBits::B64;
+                compare[4].opBits   = MicroOpBits::B64;
+                compare[5].valueU64 = 1;
+                compare[6].valueU64 = 32;
+            }
+            builder.instructions().insertDerivedBefore(builder.operands(), placeholder, opcode, compare);
+            builder.instructions().erase(placeholder);
+            builder.emitLoadMemReg(base, 32, nextValue, MicroOpBits::B64);
+            builder.emitSetCondReg(flags, MicroCond::Equal);
+            builder.emitLoadMemReg(base, 48, flags, MicroOpBits::B64);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder, base));
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+            if (!optimize)
+                reference = values;
+            else if (values != reference)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ZeroExtendedBitwiseMemoryPreservesHighBitsAndFlags)
+{
+    const auto         base        = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg accumulator = MicroReg::intReg(0);
+    constexpr MicroReg index       = MicroReg::intReg(8);
+    constexpr MicroReg loaded      = MicroReg::intReg(9);
+    constexpr MicroReg flags       = MicroReg::intReg(10);
+    for (const auto loadBits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const auto sourceBits : {MicroOpBits::B8, MicroOpBits::B16})
+            for (const auto resultBits : {MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+                for (const auto op : {MicroOp::Xor, MicroOp::Or, MicroOp::And})
+                    for (const bool indexed : {false, true})
+                        for (uint32_t mode = 0; mode < 4; ++mode)
+                            for (const uint64_t value : {0ull, 0xFFull, 0xFFFFull})
+                            {
+                                std::array<uint64_t, 10> reference{};
+                                for (const bool optimize : {false, true})
+                                {
+                                    std::array<uint64_t, 10> values = {0xFEDCBA987654FF00ull, 0, value};
+                                    MicroBuilder             builder(ctx);
+                                    builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitLoadRegImm(flags, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitLoadRegMem(accumulator, base, 0, MicroOpBits::B64);
+                                    if (indexed)
+                                    {
+                                        builder.emitLoadAmcRegMem(loaded, loadBits, base, index, 8, 16, MicroOpBits::B64);
+                                        auto* load                              = builder.instructions().ptr(builder.instructions().lastInstructionRef());
+                                        load->op                                = mode == 3 ? MicroInstrOpcode::LoadSignedExtAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
+                                        load->ops(builder.operands())[4].opBits = sourceBits;
+                                    }
+                                    else if (mode == 3)
+                                        builder.emitLoadSignedExtendRegMem(loaded, base, 16, loadBits, sourceBits);
+                                    else
+                                        builder.emitLoadZeroExtendRegMem(loaded, base, 16, loadBits, sourceBits);
+                                    builder.emitOpBinaryRegReg(accumulator, loaded, op, resultBits);
+                                    if (mode != 1)
+                                        builder.emitCmpRegImm(base, ApInt(0, 64), MicroOpBits::B64);
+                                    builder.emitSetCondReg(flags, MicroCond::Equal);
+                                    builder.emitLoadMemReg(base, 32, accumulator, MicroOpBits::B64);
+                                    builder.emitLoadMemReg(base, 40, flags, MicroOpBits::B64);
+                                    if (mode == 2)
+                                        builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B64);
+                                    builder.emitRet();
+                                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                                    if (!optimize)
+                                        reference = values;
+                                    else
+                                    {
+                                        const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegAmcMem) +
+                                                                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem);
+                                        const bool     fold   = mode == 0 && resultBits != MicroOpBits::B32 && op != MicroOp::And;
+                                        if (values != reference || folded != (fold ? 1u : 0u))
+                                            return Result::Error;
+                                    }
+                                }
+                            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_IndexedFloatMemoryResultCopyPreservesLanes)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg source = MicroReg::floatReg(2);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    constexpr MicroReg index  = MicroReg::intReg(8);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const bool liveSource : {false, true})
+        {
+            std::array<uint64_t, 12> reference{};
+            for (const bool optimize : {false, true})
+            {
+                const uint64_t           first  = bits == MicroOpBits::B64 ? 0x3FF8000000000000ull : 0x3FC00000ull;
+                const uint64_t           second = bits == MicroOpBits::B64 ? 0x4008000000000000ull : 0x40400000ull;
+                std::array<uint64_t, 12> values = {first | (bits == MicroOpBits::B32 ? 0xAABBCCDD00000000ull : 0),
+                                                   0x0123456789ABCDEFull, UINT64_MAX, second};
+                MicroBuilder             builder(ctx);
+                builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegAmcMem(source, left, base, index, 8, 24, MicroOp::FloatMultiply, bits);
+                builder.emitLoadRegReg(result, source, MicroOpBits::B128);
+                builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+                if (liveSource)
+                    builder.emitLoadMemReg(base, 64, source, MicroOpBits::B128);
+                builder.emitClearReg(source, MicroOpBits::B128);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    reference = values;
+                else if (values != reference || hasLoadRegReg(builder, result, source) != liveSource ||
+                         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) != 1)
+                    return Result::Error;
+            }
+        }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_DestructiveScalarMemoryRequiresDeadUpperLanesAndNoNaN)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg other  = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg index  = MicroReg::intReg(8);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})
+            for (const bool noNaN : {false, true})
+                for (const bool liveUpper : {false, true})
+                    for (const bool indexed : {false, true})
+                    {
+                        std::array<uint64_t, 12> reference{};
+                        for (const bool optimize : {false, true})
+                        {
+                            const uint64_t           first  = bits == MicroOpBits::B64 ? 0x4010000000000000ull : 0x40800000ull;
+                            const uint64_t           second = bits == MicroOpBits::B64 ? 0x8000000000000000ull : 0x80000000ull;
+                            std::array<uint64_t, 12> values = {first | (bits == MicroOpBits::B32 ? 0xAABBCCDD00000000ull : 0),
+                                                               0x0123456789ABCDEFull, UINT64_MAX, second};
+                            MicroBuilder             builder(ctx);
+                            auto                     cfg = builder.backendBuildCfg();
+                            cfg.math.noNaN               = noNaN;
+                            builder.setBackendBuildCfg(cfg);
+                            builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                            builder.emitLoadRegMem(other, base, 0, MicroOpBits::B128);
+                            if (indexed)
+                                builder.emitLoadAmcRegMem(loaded, bits, base, index, 8, 24, MicroOpBits::B64);
+                            else
+                                builder.emitLoadRegMem(loaded, base, 24, bits);
+                            builder.emitOpBinaryRegReg(loaded, other, op, bits);
+                            builder.emitLoadMemReg(base, 48, loaded, liveUpper ? MicroOpBits::B128 : bits);
+                            builder.emitLoadMemReg(base, 64, other, MicroOpBits::B128);
+                            builder.emitClearReg(loaded, MicroOpBits::B128);
+                            builder.emitRet();
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else
+                            {
+                                const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) +
+                                                        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
+                                const bool     fold   = noNaN && !liveUpper && (op == MicroOp::FloatAdd || op == MicroOp::FloatMultiply);
+                                if (values != reference || folded != (fold ? 1u : 0u))
+                                    return Result::Error;
+                            }
+                        }
+                    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_DestructivePackedIntegerMemoryPreservesLanesAndOrder)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg index  = MicroReg::intReg(8);
+    for (const auto op : {MicroOp::VecAdd32, MicroOp::VecSub32, MicroOp::VecAnd, MicroOp::VecOr, MicroOp::VecXor})
+        for (const bool indexed : {false, true})
+            for (uint32_t barrier = 0; barrier < 4; ++barrier)
+            {
+                std::array<uint64_t, 12> reference{};
+                for (const bool optimize : {false, true})
+                {
+                    std::array<uint64_t, 12> values = {0x80000000FFFFFFFFull, 0x7FFFFFFF01234567ull, UINT64_MAX,
+                                                       0xFFFFFFFF00000001ull, 0x7654321080000000ull};
+                    MicroBuilder             builder(ctx);
+                    builder.emitLoadRegImm(index, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                    if (indexed)
+                        builder.emitLoadAmcRegMem(loaded, MicroOpBits::B128, base, index, 8, 24, MicroOpBits::B64);
+                    else
+                        builder.emitLoadVecRegMem(loaded, base, 24, MicroOpBits::B128);
+                    if (barrier == 1)
+                        builder.emitLoadMemReg(base, 24, left, MicroOpBits::B128);
+                    if (barrier == 2)
+                        builder.emitLoadMemReg(base, 80, loaded, MicroOpBits::B128);
+                    if (barrier == 3)
+                        builder.emitLoadVolatileRegMem(index, base, 16, MicroOpBits::B64);
+                    builder.emitOpBinaryRegReg(loaded, left, op, MicroOpBits::B128);
+                    builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B128);
+                    builder.emitLoadMemReg(base, 64, left, MicroOpBits::B128);
+                    builder.emitRet();
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        reference = values;
+                    else
+                    {
+                        const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) +
+                                                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
+                        if (values != reference || folded != (barrier == 0 && op != MicroOp::VecSub32 ? 1u : 0u))
+                            return Result::Error;
+                    }
+                }
+            }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryKeepsBarriers)
+{
+    constexpr MicroReg base   = MicroReg::intReg(0);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    for (uint32_t mode = 0; mode < 5; ++mode)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadRegMem(loaded, base, 24, mode == 1 ? MicroOpBits::B64 : MicroOpBits::B128);
+        if (mode == 2)
+            builder.emitLoadMemReg(base, 24, left, MicroOpBits::B128);
+        if (mode == 4)
+            builder.emitOpBinaryRegImm(base, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegRegReg(result, left, loaded, MicroOp::VecSub32, MicroOpBits::B128);
+        if (mode == 3)
+            builder.emitLoadMemReg(base, 64, loaded, MicroOpBits::B128);
+        builder.emitClearReg(loaded, MicroOpBits::B128);
+        builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem) != (mode == 0 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_IndexedScalarMemoryKeepsStackPointerIndex)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    const auto         stack  = CallConv::get(CallConvKind::C).stackPointer;
+    constexpr MicroReg offset = MicroReg::intReg(8);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    for (const bool optimize : {false, true})
+    {
+        std::array<uint64_t, 8> values = {0x3FF8000000000000ull, 0, 0x4002000000000000ull};
+        MicroBuilder            builder(ctx);
+        builder.emitLoadRegReg(offset, base, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(offset, stack, MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(loaded, MicroOpBits::B64, offset, stack, 1, 16, MicroOpBits::B64);
+        builder.emitOpBinaryRegRegReg(result, left, loaded, MicroOp::FloatAdd, MicroOpBits::B64);
+        builder.emitLoadMemReg(base, 24, result, MicroOpBits::B64);
+        builder.emitClearReg(loaded, MicroOpBits::B128);
+        builder.emitRet();
+        SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+        if (values[3] != 0x400E000000000000ull ||
+            (optimize && Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) != 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FloatMemoryCrossesOnlyDisjointOrdinaryStores)
+{
+    const auto         base      = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg otherBase = MicroReg::intReg(8);
+    constexpr MicroReg value     = MicroReg::intReg(9);
+    constexpr MicroReg left      = MicroReg::floatReg(1);
+    constexpr MicroReg loaded    = MicroReg::floatReg(2);
+    enum class Case
+    {
+        Direct,
+        RegisterStore,
+        ImmediateStore,
+        VectorStore,
+        AdjacentAfter,
+        AdjacentBefore,
+        PartialOverlap,
+        AliasedBase,
+        AtomicLoad,
+        AtomicStore,
+        AtomicExchange,
+        ChangedBase,
+        LiveCarrier,
+        NegativeOffsets,
+        CarrierStore
+    };
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64, MicroOpBits::B128})
+        for (const bool aliasesCarrier : {false, true})
+            for (const auto test : {Case::Direct, Case::RegisterStore, Case::ImmediateStore, Case::VectorStore,
+                                    Case::AdjacentAfter, Case::AdjacentBefore, Case::PartialOverlap, Case::AliasedBase,
+                                    Case::AtomicLoad, Case::AtomicStore, Case::AtomicExchange, Case::ChangedBase,
+                                    Case::LiveCarrier, Case::NegativeOffsets, Case::CarrierStore})
+            {
+                if (aliasesCarrier && bits != MicroOpBits::B128)
+                    continue;
+                std::array<uint64_t, 32> reference{};
+                for (const bool optimize : {false, true})
+                {
+                    std::array<uint64_t, 32> values = {0x3FF800003FC00000ull, 0x4008000040400000ull, UINT64_MAX,
+                                                       0x4002000040100000ull, 0x4010000040800000ull};
+                    values[20]                      = 0x1234;
+                    MicroBuilder   builder(ctx);
+                    const MicroReg result = aliasesCarrier ? loaded : MicroReg::floatReg(3);
+                    builder.emitLoadRegMem(value, base, 160, MicroOpBits::B64);
+                    builder.emitLoadAddressRegMem(otherBase, base, test == Case::NegativeOffsets ? 64 : 16, MicroOpBits::B64);
+                    builder.emitLoadRegMem(left, base, 0, bits);
+                    builder.emitLoadRegMem(loaded, test == Case::NegativeOffsets ? otherBase : base,
+                                           test == Case::NegativeOffsets ? uint64_t(-40) : 24, bits);
+                    switch (test)
+                    {
+                        case Case::Direct:
+                            break;
+                        case Case::RegisterStore:
+                        case Case::LiveCarrier:
+                            builder.emitLoadMemReg(base, 48, value, MicroOpBits::B64);
+                            break;
+                        case Case::ImmediateStore:
+                            builder.emitLoadMemImm(base, 48, ApInt(0x1234, 64), MicroOpBits::B64);
+                            break;
+                        case Case::VectorStore:
+                            builder.emitStoreVecMemReg(base, 48, left, MicroOpBits::B128);
+                            break;
+                        case Case::AdjacentAfter:
+                            builder.emitLoadMemReg(base, 24 + getNumBytes(bits), value, MicroOpBits::B64);
+                            break;
+                        case Case::AdjacentBefore:
+                            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+                            break;
+                        case Case::PartialOverlap:
+                            builder.emitLoadMemImm(base, 24 + getNumBytes(bits) - 1, ApInt(0x5A, 8), MicroOpBits::B8);
+                            break;
+                        case Case::AliasedBase:
+                            builder.emitLoadMemReg(otherBase, 8, value, MicroOpBits::B64);
+                            break;
+                        case Case::AtomicLoad:
+                            builder.emitLoadVolatileRegMem(value, base, 48, MicroOpBits::B64);
+                            break;
+                        case Case::AtomicStore:
+                            builder.emitStoreVolatileMemReg(base, 48, value, MicroOpBits::B64);
+                            break;
+                        case Case::AtomicExchange:
+                            builder.emitOpBinaryMemReg(base, 48, value, MicroOp::Exchange, MicroOpBits::B64);
+                            break;
+                        case Case::ChangedBase:
+                            builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+                            break;
+                        case Case::NegativeOffsets:
+                            builder.emitLoadMemReg(otherBase, uint64_t(-16), value, MicroOpBits::B64);
+                            break;
+                        case Case::CarrierStore:
+                            builder.emitLoadMemReg(base, 48, loaded, bits);
+                            break;
+                    }
+                    builder.emitOpBinaryRegRegReg(result, left, loaded, bits == MicroOpBits::B128 ? MicroOp::VecAddF64 : MicroOp::FloatAdd, bits);
+                    builder.emitLoadMemReg(base, 80, result, bits);
+                    builder.emitLoadMemReg(base, 96, left, MicroOpBits::B128);
+                    if (test == Case::LiveCarrier)
+                        builder.emitLoadMemReg(base, 112, loaded, bits);
+                    builder.emitClearReg(loaded, MicroOpBits::B128);
+                    builder.emitRet();
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        reference = values;
+                    else
+                    {
+                        const bool fold = test <= Case::AdjacentBefore || test == Case::NegativeOffsets || (test == Case::LiveCarrier && aliasesCarrier);
+                        if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem) != (fold ? 1u : 0u))
+                            return Result::Error;
+                    }
+                }
+            }
     return Result::Continue;
 }
 SWC_TEST_END()

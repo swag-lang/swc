@@ -1653,6 +1653,12 @@ bool MicroPassHelpers::amcLayoutFor(AmcLayout& out, MicroInstrOpcode op)
                 out.addIdx = 5;
             }
             return true;
+        case MicroInstrOpcode::OpBinaryRegRegAmcMem:
+            out.baseIdx  = 2;
+            out.indexIdx = 3;
+            out.mulIdx   = 6;
+            out.addIdx   = 7;
+            return true;
         case MicroInstrOpcode::CmpAmcImm:
             out.baseIdx  = 0;
             out.indexIdx = 1;

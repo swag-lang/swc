@@ -70,7 +70,7 @@ void MicroInstrUseDef::addUseDef(MicroReg reg)
 
 namespace
 {
-    void collectRegUseDefFromModes(MicroInstrUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 3>& modes)
+    void collectRegUseDefFromModes(MicroInstrUseDef& info, const MicroInstrOperand* ops, const std::array<MicroInstrRegMode, 4>& modes)
     {
         for (size_t i = 0; i < modes.size(); ++i)
         {

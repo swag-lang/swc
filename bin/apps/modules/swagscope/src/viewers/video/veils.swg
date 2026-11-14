@@ -12,8 +12,6 @@ private
     const VeilTrack:    Color = 0x38FFFFFF     // The part of the timeline still to come.
     const VeilBuffered: Color = 0x66FFFFFF     // The part of the timeline already read.
     const VeilTick:     Color = 0x99FFFFFF     // The mark of a chapter on the timeline.
-    // A chip's ground and words, at rest, under the pointer, pressed.
-    const ChipColors       = "btnIcon_Bk 0x24FFFFFF\nbtnIcon_HotBk 0x3DFFFFFF\nbtnIcon_PressedBk 0x52FFFFFF\nbtnIcon_Text 0xFFFFFFFF\nbtnIcon_HotText 0xFFFFFFFF\nbtnIcon_PressedText 0xFFFFFFFF"
     const VeilTipBk: Color = 0xE0101114     // Ground of the time read under the pointer.
     const VeilShade: Color = 0xB8000000     // Darkest end of a veil's shade.
     const VeilClear: Color = 0x00000000     // Clear end of a veil's shade.
@@ -30,8 +28,7 @@ const TimelineBottom = 83.0       // Distance from the bottom of the window to t
 const TimelineHeight = 24.0       // Height the timeline takes for the pointer.
 const RowBottom      = 38.0       // Distance from the bottom of the window to the centre of the row.
 const RowGap         = 12.0       // Air between two parts of the row.
-const ChipHeight     = 24.0       // Height of a chip.
-const ChipPadding    = 10.0       // Air at each end of a chip's words.
+const VolumeWidth    = 88.0       // Width of the sound control beside mute.
 const TrackSize      = 3.0        // Thickness of the timeline.
 const KnobSize       = 14.0       // Diameter of the timeline's knob.
 const KnobInset      = KnobSize * 0.5 + 1     // Room for the knob and its outline at either endpoint.
@@ -200,23 +197,6 @@ impl IWnd for VideoTimeline
     }
 }
 
-// Creates a chip of the bottom veil: a choice of the film named in a word or two, on a faint
-// ground. Its words are written with [[Gui.IconButton.setQuietText]], which fits it to them; a
-// press opens the page of the options it names, joined to it.
-func createChip(parent: *Wnd, id: WndId)->*IconButton
-{
-    with let result = IconButton.create(parent, {}, Math.Rectangle{0, 0, 0, ChipHeight}, id, flags: .CenterContent)
-    {
-        .setForm(.RoundedRectangle)
-        .setTextPosition(.Right)
-        .padding = Math.Vector4{ChipPadding, 0, ChipPadding, 0}
-        .style.addStyleSheetColors(ChipColors)
-        .style.setFont(parent.theme().createDefaultFont(parent.themeMetrics().defaultFontSize - 1), .Regular)
-    }
-
-    return result
-}
-
 /*
 The veil at the top of the picture: the name of the film and its facts in mono, on a shade that
 keeps them legible over any picture.
@@ -280,8 +260,7 @@ impl IWnd for TopVeil
 
 /*
 The veil at the bottom of the picture: the timeline, then a row of the play button, the time in
-mono and the chapter on the left, and on the right the chips of the subtitles, the sound track
-and the speed, the sound and full screen.
+mono and the chapter on the left, and on the right the options, tracks, sound and full screen.
 */
 struct BottomVeil
 {
@@ -291,10 +270,10 @@ struct BottomVeil
     {
         timeline:         *VideoTimeline
         playButton:       *IconButton
-        subtitleChip:     *IconButton
-        audioChip:        *IconButton
-        speedChip:        *IconButton
+        optionsButton:    *IconButton
+        tracksButton:     *IconButton
         muteButton:       *IconButton
+        volumeSlider:     *Slider
         fullScreenButton: *IconButton
     }
 
@@ -327,10 +306,16 @@ impl BottomVeil
 
         result.timeline         = Wnd.create'VideoTimeline(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
         result.playButton       = createGlyph(result, .Play, "scope.video.play")
-        result.subtitleChip     = createChip(result, "scope.video.subtitles")
-        result.audioChip        = createChip(result, "scope.video.audio")
-        result.speedChip        = createChip(result, "scope.video.speed")
+        result.optionsButton    = createGlyph(result, .Settings, "scope.video.options")
+        result.tracksButton     = createGlyph(result, .AudioTracks, "scope.video.tracks")
         result.muteButton       = createGlyph(result, .Volume, "scope.video.mute", .Toggle)
+        with result.volumeSlider = Slider.create(result, Math.Rectangle{0, 0, VolumeWidth, parent.themeMetrics().slider_Height}, "scope.video.volume")
+        {
+            .style.addStyleSheetColors("slider_BkRight 0x38FFFFFF\nslider_HilightBk $arc\nslider_Mark 0xFFFFFFFF\nslider_MarkBorder 0xB8000000\nslider_HotMark 0xFFFFFFFF\nslider_DisabledBk 0x38FFFFFF\nslider_DisabledMark 0x66FFFFFF")
+            .setBounds(0, 1, 0.05)
+            .setValueWithoutGesture(1)
+            .enable(false)
+        }
         result.fullScreenButton = createGlyph(result, .FullScreen, "scope.video.fullScreen")
         result.muteButton.setCheckIndicator(.Ink)
         return result
@@ -362,22 +347,18 @@ impl BottomVeil
                                              TimelineHeight})
         .playButton.setPosition(Math.Rectangle{room.x + VeilInset - glyph * 0.25, lineY - glyph * 0.5, glyph, glyph})
 
-        // The right end of the row reads from the edge inwards: full screen, the sound, then the chips.
+        // The right end of the row reads from the edge inwards: full screen, volume, mute, tracks and options.
         var right = room.right() - VeilInset + glyph * 0.25
-        for button in [.fullScreenButton, .muteButton]
-        {
-            right -= glyph
-            button.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
-            right -= RowGap * 0.5
-        }
-
-        right -= RowGap
-        for chip in [.speedChip, .audioChip, .subtitleChip] where chip.isLocallyVisible()
-        {
-            right -= chip.position.width
-            chip.setPosition(Math.Rectangle{right, lineY - ChipHeight * 0.5, chip.position.width, ChipHeight})
-            right -= RowGap
-        }
+        right -= glyph
+        .fullScreenButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
+        right -= RowGap + VolumeWidth
+        .volumeSlider.setPosition(Math.Rectangle{right, lineY - .volumeSlider.position.height * 0.5, VolumeWidth, .volumeSlider.position.height})
+        right -= glyph + RowGap * 0.5
+        .muteButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
+        right -= glyph + RowGap
+        .tracksButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
+        right -= glyph + RowGap * 0.5
+        .optionsButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
     }
 }
 

@@ -1022,6 +1022,12 @@ namespace
                 return naturalBinaryExpression(lhs, ops[2].microOp, rhs);
             }
 
+            case MicroInstrOpcode::OpBinaryRegRegAmcMem:
+            {
+                const auto right = memAmcString(ops[2].reg, ops[3].reg, ops[6].valueU64, ops[7].valueU64, regPrintMode, encoder);
+                return std::format("{} = {}({}, {})", regName(ops[0].reg, regPrintMode, encoder), tagInstructionToken(microOpName(ops[5].microOp)), regName(ops[1].reg, regPrintMode, encoder), right);
+            }
+
             case MicroInstrOpcode::OpBinaryRegRegReg:
             case MicroInstrOpcode::OpBinaryRegRegMem:
             {
@@ -2230,6 +2236,18 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[2].microOp));
                 appendSep(out);
                 appendMemImmBits(out, ctx, ops, 0, 1, 3, 4, regPrintMode, encoder, false);
+                break;
+
+            case MicroInstrOpcode::OpBinaryRegRegAmcMem:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[5].microOp));
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendMemAmc(out, ctx, ops[2].reg, ops[3].reg, ops[6].valueU64, ops[7].valueU64, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[4].opBits);
                 break;
 
             case MicroInstrOpcode::OpBinaryRegRegReg:

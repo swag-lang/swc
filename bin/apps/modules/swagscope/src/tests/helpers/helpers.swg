@@ -40,8 +40,9 @@ func assertVideoRendererGolden(image: const *Pixel.Image, name: string, options:
                        name == "viewer.video.subtitle.outline" or
                        name == "viewer.video.subtitle.shadow" or
                        name == "viewer.video.options" or
+                       name == "viewer.video.options.speed" or
                        name == "viewer.video.hover.ink" or
-                       name == "viewer.video.options.audio")
+                       name == "viewer.video.muted.ink")
     Pixel.Testing.assertImageGolden(image, cpuSpecific ? Format.toString("%.cpu", name) : name, options)
 }
 

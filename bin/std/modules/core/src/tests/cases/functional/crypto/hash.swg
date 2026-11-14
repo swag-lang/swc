@@ -38,6 +38,18 @@ namespace HashTestTypes
     {
         mtd const impl compute()->u64 => 0x0123_4567_DEAD_BEEF'u64 + .value
     }
+
+    struct StringHolder
+    {
+        text: string
+        tag:  s64
+    }
+
+    struct OwnedStringHolder
+    {
+        text: Core.String
+        tag:  s64
+    }
 }
 
 const TEXT        = "abc"
@@ -85,6 +97,36 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
     Swag.require(Hash.hash32(false) != Hash.hash32(true))
     Swag.require(Hash.hash64(false) != Hash.hash64(true))
+}
+
+#test
+{
+    // Struct equality compares string content, so hashing must not include the buffer address.
+    var left:  [4] u8 = ['s', 'a', 'm', 'e']
+    var right: [4] u8 = ['s', 'a', 'm', 'e']
+    let leftText  = cast(string, Swag.makeSlice(cast(const [*] u8, left.buffer), 4))
+    let rightText = cast(string, Swag.makeSlice(cast(const [*] u8, right.buffer), 4))
+    Swag.require(leftText.buffer != rightText.buffer)
+    let leftValue = HashTestTypes.StringHolder{text: leftText, tag: 7}
+    let rightValue = HashTestTypes.StringHolder{text: rightText, tag: 7}
+    Swag.require(leftValue == rightValue)
+    Swag.require(Hash.hash32(leftValue) == Hash.hash32(rightValue))
+    Swag.require(Hash.hash64(leftValue) == Hash.hash64(rightValue))
+
+    // Core.String owns a separate buffer but compares by its text as well.
+    let leftOwned  = Core.String.from("same")
+    let rightOwned = Core.String.from("same")
+    Swag.require(leftOwned.toSlice().buffer != rightOwned.toSlice().buffer)
+    Swag.require(leftOwned == rightOwned)
+    Swag.require(Hash.hash32(leftOwned) == Hash.hash32(rightOwned))
+    Swag.require(Hash.hash64(leftOwned) == Hash.hash64(rightOwned))
+
+    let leftOwnedValue  = HashTestTypes.OwnedStringHolder{text: Core.String.from("same"), tag: 9}
+    let rightOwnedValue = HashTestTypes.OwnedStringHolder{text: Core.String.from("same"), tag: 9}
+    Swag.require(leftOwnedValue.text.buffer != rightOwnedValue.text.buffer)
+    Swag.require(leftOwnedValue == rightOwnedValue)
+    Swag.require(Hash.hash32(leftOwnedValue) == Hash.hash32(rightOwnedValue))
+    Swag.require(Hash.hash64(leftOwnedValue) == Hash.hash64(rightOwnedValue))
 }
 
 #assert(Hash.hashBytes32("abc") == Hash.hashBytes32("abc"))

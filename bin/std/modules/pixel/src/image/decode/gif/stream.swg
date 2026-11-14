@@ -72,6 +72,9 @@ impl Decoder
 
         // Discard plain text sub-blocks.
         .discardSubBlocks()
+        // A graphic control extension applies to this plain-text rendering block, so it must
+        // not carry over to the next image descriptor.
+        .gce = {}
     }
 
     #[Swag.Propagate]

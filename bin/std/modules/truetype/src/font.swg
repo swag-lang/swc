@@ -112,17 +112,28 @@ impl FaceImpl
 {
     mtd opDrop()
     {
-        .fontData.clear()
-        .tables.clear()
-        .glyphMetrics.clear()
-        .glyphLocations.clear()
-        .outlinePoints.clear()
-        .outlineTags.clear()
-        .outlineContours.clear()
-        .bitmapPixels.clear()
+        // These buffers belong to the face, so release capacity instead of only
+        // clearing elements; the reusable glyph workspace dies with the face too.
+        .fontData.free()
+        .tables.free()
+        .glyphMetrics.free()
+        .glyphLocations.free()
+        .outlinePoints.free()
+        .outlineTags.free()
+        .outlineContours.free()
+        .bitmapPixels.free()
         .kernPairs.free()
-        .gposPairSubtables.clear()
+        .gposPairSubtables.free()
         .syntheticCMap.free()
+
+        // A custom drop owns nested cleanup, so release each string and parser
+        // table explicitly and reset its fields afterwards.
+        .face.releaseMetadataStrings()
+        Swag.init(&.face, 1)
+        Swag.drop(&.cff)
+        Swag.init(&.cff, 1)
+        Swag.drop(&.type1)
+        Swag.init(&.type1, 1)
     }
 
     // Returns the glyph a name selects, or zero when the face cannot be addressed by name.

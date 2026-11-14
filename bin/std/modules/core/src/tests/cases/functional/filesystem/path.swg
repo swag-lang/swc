@@ -120,6 +120,12 @@ using Swag
     Swag.require(Path.rootLength("/src/core.swg") == 1)
     Swag.require(Path.equals(Path.rootName("/src/core.swg") orelse "", "/"))
     Swag.require(Path.isRooted("/src/core.swg"))
+    const VolumeRoot = #raw "\\?\Volume{01234567-89AB-CDEF-0123-456789ABCDEF}\"
+    const VolumeChild = #raw "\\?\Volume{01234567-89AB-CDEF-0123-456789ABCDEF}\folder\file.txt"
+    Swag.require(Path.extendedVolumeGuidRootLength(VolumeRoot) == VolumeRoot.count)
+    Swag.require(Path.extendedVolumeGuidRootLength(VolumeChild) == VolumeRoot.count)
+    Swag.require(Path.extendedVolumeGuidRootLength(#raw "\\?\Volume{0123456Z-89AB-CDEF-0123-456789ABCDEF}\") == 0)
+    Swag.require(Path.extendedVolumeGuidRootLength(#raw "\\?\Volume{01234567-89AB-CDEF-0123-456789ABCDEF}") == 0)
     if WINDOWS
     {
         Swag.require(Path.rootLength("C:/src/core.swg") == 3)
@@ -137,6 +143,16 @@ using Swag
         Swag.require(Path.rootLength(#raw "\\?\UNC\server\share\src\core.swg") == (#raw "\\?\UNC\server\share\").count)
         Swag.require(Path.equals(Path.rootName(#raw "\\?\UNC\server\share\src\core.swg") orelse "", #raw "\\?\UNC\server\share\"))
         Swag.require(Path.isRooted(#raw "\\?\UNC\server\share\src\core.swg"))
+
+        Swag.require(Path.isValidPathName(VolumeRoot))
+        Swag.require(Path.rootLength(VolumeRoot) == VolumeRoot.count)
+        Swag.require(Path.equals(Path.rootName(VolumeRoot) orelse "", VolumeRoot))
+        Swag.require(Path.directoryName(VolumeRoot) == null)
+        Swag.require(Path.rootLength(VolumeChild) == VolumeRoot.count)
+        Swag.require(Path.equals(Path.rootName(VolumeChild) orelse "", VolumeRoot))
+        Swag.require(Path.equals(Path.directoryName(VolumeChild) orelse "", #raw "\\?\Volume{01234567-89AB-CDEF-0123-456789ABCDEF}\folder"))
+        Swag.require(not Path.isValidPathName(#raw "\\?\Volume{0123456Z-89AB-CDEF-0123-456789ABCDEF}\"))
+        Swag.require(not Path.isValidPathName(#raw "\\?\Volume{01234567-89AB-CDEF-0123-456789ABCDEF}"))
     }
     else
     {

@@ -209,10 +209,9 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
 
 // Reads YUV4MPEG2 streams one frame at a time.
 //
-// Frames of a stream all have the same payload size, and every practical writer emits the
-// same bare frame marker, so the decoder locates frame `n` by arithmetic instead of indexing
-// the file: opening a stream reads its header and nothing else, whatever its length. A stream
-// whose markers are not uniform is read sequentially instead, and reports no frame count.
+// Frames of a stream all have the same payload size. The decoder checks each frame marker at
+// open while skipping the image payloads; uniform markers permit arithmetic seeks without an
+// offset table. Variable markers fall back to sequential reading and report no frame count.
 struct Decoder
 {
     internal
@@ -246,15 +245,15 @@ impl IDecoder for Decoder
             fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
 
         // Every frame occupies the same number of bytes when its marker carries no per-frame
-        // parameter, which is how the whole format is written in practice. Two cheap checks prove
-        // it on a stream of any length: the frames must tile the file exactly, and the last marker
-        // must be where that tiling says it is. A stream failing either one is walked instead,
-        // and reports no frame count rather than a computed one that would be wrong.
+        // parameter, which is how the whole format is written in practice. Tiling and the last
+        // marker are cheap filters; checking every marker is still needed because variable marker
+        // lengths can cancel each other out. A stream failing any check is walked instead, and
+        // reports no frame count rather than a computed one that would be wrong.
         let span = source.size() - .firstMarker
         var result: #returntype = .header.info
         result.codecName = "Uncompressed YUV"
         result.frameCount = span / .frameStride
-        .isRandomAccess   = not (span % .frameStride) and .probeLastFrame(source, result.frameCount)
+        .isRandomAccess   = not (span % .frameStride) and .probeUniformFrames(source, result.frameCount)
         if not .isRandomAccess do
             result.frameCount = 0
 
@@ -343,28 +342,33 @@ private impl Decoder
         }
     }
 
-    // Reports whether the last frame really starts where a constant frame size says it does.
+    // Reports whether every frame really starts where a constant frame size says it does.
     //
-    // The position of `source` is left wherever the probe stopped; the caller seeks back to the
-    // first frame either way.
-    mtd probeLastFrame(source: *ByteSource, frameCount: u64)->bool
+    // Marker sizes can differ and later changes can compensate for earlier ones, leaving the
+    // file length and last marker at the expected offsets. The caller seeks back to the first
+    // frame after this probe either way.
+    mtd probeUniformFrames(source: *ByteSource, frameCount: u64)->bool
     {
         if not frameCount do
             return false
 
         var probeErrorOutcome: Swag.Error
-        catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as probeErrorOutcome
+        catch .checkUniformFrames(source, frameCount) as probeErrorOutcome
         let probeError = probeErrorOutcome.value()
         return probeError == null
     }
 
-    // Fails unless a complete frame of the constant size starts at `offset`.
-    mtd checkFrameAt(source: *ByteSource, offset: u64) fail
+    // Fails unless every frame in the candidate count has the first marker's size.
+    mtd checkUniformFrames(source: *ByteSource, frameCount: u64) fail
     {
-        try source.seek(offset)
-        if try .readMarker(source) != .markerSize do
-            fail InvalidFormatError{"YUV4MPEG2 frame markers do not have a constant size"}
-        if .payloadSize > source.remaining() do
-            fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+        try source.seek(.firstMarker)
+        for frameCount
+        {
+            if try .readMarker(source) != .markerSize do
+                fail InvalidFormatError{"YUV4MPEG2 frame markers do not have a constant size"}
+            if .payloadSize > source.remaining() do
+                fail InvalidFormatError{"YUV4MPEG2 frame payload is truncated"}
+            try source.skip(.payloadSize)
+        }
     }
 }

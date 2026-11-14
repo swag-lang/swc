@@ -218,8 +218,37 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         let encodingID = try readU16(cmapTable, base + 2)
         let offset     = try readU32(cmapTable, base + 4)
         try assertRange(cmapTable, offset, 0)
-        let subTable = try getSlice(cmapTable, offset, cmapTable.count - offset)
-        let format   = try readU16(subTable, 0)
+        let remaining = try getSlice(cmapTable, offset, cmapTable.count - offset)
+        let format    = try readU16(remaining, 0)
+
+        // Each subtable format declares its own extent. Keep lookups inside that
+        // extent rather than letting a truncated map consume the next subtable.
+        var subTableLength = 0'u64
+        var minimumLength  = 0'u64
+        switch format
+        {
+        case 0:
+            subTableLength = try readU16(remaining, 2)
+            minimumLength  = 262
+        case 4:
+            subTableLength = try readU16(remaining, 2)
+            minimumLength  = 18
+        case 6:
+            subTableLength = try readU16(remaining, 2)
+            minimumLength  = 10
+        case 12, 13:
+            subTableLength = try readU32(remaining, 4)
+            minimumLength  = 16
+        case 14:
+            subTableLength = try readU32(remaining, 2)
+            minimumLength  = 10
+        default:
+            continue
+        }
+
+        if subTableLength < minimumLength do
+            try fault(0x03)
+        let subTable = try getSlice(remaining, 0, subTableLength)
 
         // Variation sequences supplement the selected map rather than compete with
         // it: they resolve a base character already mapped elsewhere.
@@ -230,8 +259,6 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         }
 
         let formatScore = scoreCMapFormat(format)
-        if formatScore < 0 do
-            continue
 
         let score = formatScore + scoreNameRecord(platformID, encodingID, 0)
         if score > bestScore

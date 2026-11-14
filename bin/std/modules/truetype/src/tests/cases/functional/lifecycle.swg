@@ -112,3 +112,31 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     context.allocator = allocatorB
     face.destroy()
 }
+
+// A face's nested storage follows its explicit allocator, and destroy releases every block.
+#test
+{
+    var bytes = loadFontBytes()
+    var faceAllocator:    Swag.Allocator
+    var contextAllocator: Swag.Allocator
+    faceAllocator.setup()
+    contextAllocator.setup()
+    defer faceAllocator.releaseAll()
+    defer contextAllocator.releaseAll()
+
+    let context = Swag.getContext()
+    let previousAllocator = context.allocator
+    defer context.allocator = previousAllocator
+    let contextAllocatorView: IAllocator = &contextAllocator
+    let faceAllocatorView:    IAllocator = &faceAllocator
+    context.allocator = contextAllocatorView
+
+    let faceBaseline    = faceAllocator.stats().countAlloc
+    let contextBaseline = contextAllocator.stats().countAlloc
+    let face = expect Face.load(bytes.toSlice(), faceAllocatorView)
+    let loadedAllocations = faceAllocator.stats().countAlloc
+    Swag.require(contextAllocator.stats().countAlloc == contextBaseline)
+    Swag.require(loadedAllocations > faceBaseline)
+    face.destroy()
+    Swag.require(faceAllocator.stats().countAlloc < loadedAllocations)
+}

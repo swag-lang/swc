@@ -1176,6 +1176,30 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(decoded.second == 1138)
 }
 
+// An indexed shaped stream cannot point two fields at the same payload bytes.
+#test
+{
+    let bytes = encodeTagBin(makeTagBinPayload())
+    let first = findTagBinV1Field(bytes.toSlice(), "id")
+    let second = findTagBinV1Field(bytes.toSlice(), "name")
+
+    var patched: Array'u8
+    patched.add(bytes.toSlice())
+    var reader = ByteStream.openRead(bytes.toSlice())
+    reader.setPosition(first.fatEntrySeek)
+    let duplicateOffset = expect reader.readNative'u32()
+    var writer = ByteStream.openWrite(&patched)
+    writer.setPosition(second.fatEntrySeek)
+    writer.writeNative(duplicateOffset)
+
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    decoder.serializer.ignoreElements.add("doesNotExist")
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(
+        &decoder, patched.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() != null)
+}
+
 #test
 {
     var payload: TagBinEmptyArray

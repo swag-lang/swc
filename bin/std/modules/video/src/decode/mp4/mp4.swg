@@ -1178,6 +1178,40 @@ impl Track
         return result
     }
 
+    // Returns the end of the presentation timeline, in the same raw ticks as sampleTimes.
+    mtd const samplePresentationEnd(times: const [..] s64)->s64 fail
+    {
+        if times.count == 0 do
+            return 0
+
+        var result = Swag.S64.Min
+        var index  = 0'u64
+        for entry in .times
+        {
+            for entry.sampleCount
+            {
+                if index >= times.count do
+                    break
+                let delta = cast(s64, entry.sampleDelta)
+                if times[index] > Swag.S64.Max - delta do
+                    fail InvalidFormatError{"MP4 sample presentation end overflows"}
+                result = Math.max(result, times[index] + delta)
+                index += 1
+            }
+        }
+
+        let lastDelta = cast(s64, .times.isEmpty() ? 1'u32 : .times.back().sampleDelta)
+        while index < times.count
+        {
+            if times[index] > Swag.S64.Max - lastDelta do
+                fail InvalidFormatError{"MP4 sample presentation end overflows"}
+            result = Math.max(result, times[index] + lastDelta)
+            index += 1
+        }
+
+        return result
+    }
+
     // Expands the chunk tables into one direct frame table.
     mtd buildFrames(sourceSize: u64)->Array'FrameEntry fail
     {
@@ -1277,6 +1311,7 @@ struct Decoder
         soundTracks:           Array'SoundFile
         presentationTimes:     Array's64
         presentationTimescale: u32
+        presentationEndTime:   s64
     }
 }
 
@@ -1290,6 +1325,7 @@ impl IDecoder for Decoder
         try layout.parse(source)
         var frames: Array'FrameEntry
         var times:  Array's64
+        var presentationEndTime = Swag.S64.Min
         if layout.hasFragments
         {
             frames.reserve(layout.fragments.count)
@@ -1298,12 +1334,17 @@ impl IDecoder for Decoder
             {
                 frames.add({sample.offset, sample.size})
                 times.add(sample.presentationTime)
+                let delta = cast(s64, sample.duration)
+                if sample.presentationTime > Swag.S64.Max - delta do
+                    fail InvalidFormatError{"MP4 sample presentation end overflows"}
+                presentationEndTime = Math.max(presentationEndTime, sample.presentationTime + delta)
             }
         }
         else
         {
             frames = try layout.track.buildFrames(source.size())
             times  = try layout.track.sampleTimes()
+            presentationEndTime = try layout.track.samplePresentationEnd(times.toSlice())
         }
 
         .presentationTimescale = layout.track.timescale
@@ -1334,6 +1375,8 @@ impl IDecoder for Decoder
             videoOrigin = .presentationTimes[0]
             for &time in .presentationTimes do
                 time[] -= videoOrigin
+            if presentationEndTime != Swag.S64.Min do
+                .presentationEndTime = presentationEndTime - videoOrigin
         }
 
         let path = source.path()
@@ -1574,7 +1617,7 @@ impl ITimedDecoder for Decoder
             return 0
         if seconds < 0 do
             return 0
-        if seconds >= cast(f64, .info.frameCount) * cast(f64, .info.frameRate.denominator()) / cast(f64, .info.frameRate.numerator()) do
+        if seconds * cast(f64, .presentationTimescale) >= cast(f64, .presentationEndTime) do
             return .info.frameCount
 
         let ticks = cast(s64, (seconds * cast(f64, .presentationTimescale)))

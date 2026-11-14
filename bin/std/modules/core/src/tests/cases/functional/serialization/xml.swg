@@ -18,6 +18,11 @@ struct XmlPayload
     pair:   XmlPair
 }
 
+struct XmlTextPayload
+{
+    value: String
+}
+
 // Fields are elements in declaration order, a sequence holds blank-separated values, and text
 // decodes the predefined entities.
 #test
@@ -72,6 +77,26 @@ struct XmlPayload
     var errorOutcome: Swag.Error
     catch decoder.startRead(invalidXml) as errorOutcome
     Swag.require(errorOutcome.value() is SyntaxError)
+}
+
+// XML 1.0 rejects forbidden controls but permits tab, line feed, and carriage return in text.
+#test
+{
+    let invalidXml: String = "<p><value>before\x01after</value></p>"
+    var decoder:    Serialization.Decoder'Serialization.Read.Xml
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errorOutcome
+    Swag.require(errorOutcome.value() is SyntaxError)
+
+    let validXml: String = "<p><value>a\tb\nc\rd</value></p>"
+    let decoded = expect decoder.readAll'XmlTextPayload(validXml.toSlice())
+    defer Memory.delete(decoded)
+    Swag.require(decoded.value.count == 7)
+
+    let lineEndXml: String = "<p><value>a\r\nb\rc</value></p>"
+    let normalized = expect decoder.readAll'XmlTextPayload(lineEndXml.toSlice())
+    defer Memory.delete(normalized)
+    Swag.require(normalized.value == "a\nb\nc")
 }
 
 // Numeric dispatch keeps the value width and leaves the following tag unread.

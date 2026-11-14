@@ -1,5 +1,5 @@
 //! Format: Sequential sound-file decoding.
-//! Supported: Bounded PCM16 decoding and sample-frame ranges, with direct PCM/AAC positioning.
+//! Supported: PCM16 decoding in bounded input windows and sample-frame ranges, with direct PCM/AAC positioning.
 //! Not supported: Channel remixing, sample-rate conversion, and retaining callback slices.
 //! Role: This file owns device-independent decoding for analysis and export consumers.
 //
@@ -11,8 +11,9 @@ private const SoundDecodeReadSize = 256 * 1024'u64
 
 // Receives one borrowed chunk of interleaved PCM16 samples.
 //
-// The slice remains valid only for the duration of the call. Return `true` to continue decoding or
-// `false` to stop successfully after this chunk.
+// The slice remains valid only for the duration of the call. PCM sources are read in complete
+// sample frames with a 256 KiB input window, enlarged when one frame is larger. Packet codecs
+// deliver one decoded packet per call. Return `true` to continue or `false` to stop successfully.
 alias SoundPcm16Consumer = func||(const [..] s16)->bool
 
 impl SoundFile
@@ -21,12 +22,14 @@ impl SoundFile
     //
     // Compressed packets are decoded in playback order with codec priming and padding omitted.
     // The delivered frame count matches [[Audio.SoundFile.sampleFrameCount]]. PCM sources are converted
-    // without requiring an audio engine. `consumer` borrows each bounded chunk only until it
-    // returns; returning `false` cancels the remaining work without failure.
+    // without requiring an audio engine; their input reads target 256 KiB and contain whole frames,
+    // except that a frame larger than the window is read in full. Packet-codec callback sizes follow
+    // the decoded packet size. `consumer` borrows each chunk only until it returns; returning `false`
+    // cancels the remaining work without failure.
     mtd const decodePcm16(consumer: SoundPcm16Consumer)->void fail
         => try .decodePcm16(0, .frameCount, consumer)
 
-    // Decodes a selected audible sample-frame range to bounded interleaved PCM16 chunks.
+    // Decodes a selected audible sample-frame range to interleaved PCM16 chunks.
     //
     // `firstFrame` and `frameCount` exclude codec priming and padding and must fit
     // [[Audio.SoundFile.sampleFrameCount]]. An empty range makes no callback. PCM seeks directly;
@@ -78,8 +81,9 @@ impl SoundFile
         var decoded: Array's16
         while byteOffset < byteEnd
         {
-            // Keep reads on complete interleaved frames.
-            var wantedBytes = Math.min(SoundDecodeReadSize, byteEnd - byteOffset)
+            // Keep reads bounded, except when one complete interleaved frame is larger than
+            // the window. A non-empty range always has at least one full frame remaining.
+            var wantedBytes = Math.min(Math.max(SoundDecodeReadSize, bytesPerFrame), byteEnd - byteOffset)
             wantedBytes -= wantedBytes % bytesPerFrame
             if not wantedBytes do
                 break

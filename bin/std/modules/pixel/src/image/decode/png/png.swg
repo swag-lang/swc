@@ -412,8 +412,48 @@ impl Decoder
                 }
 
             case .BKGD:
+                if .seenBKGD do
+                    fail InvalidFormatError{"PNG data contains more than one bKGD chunk"}
+                if seenIDAT do
+                    fail InvalidFormatError{"PNG bKGD chunk appears after image data"}
+                if .header.colorType & .Paletted and not .seenPLTE do
+                    fail InvalidFormatError{"PNG indexed-color bKGD chunk appears before PLTE"}
+
+                let chunk = try .readChunk(ch)
+                let data  = Decoder.safeDatas(chunk)
+                switch cast(u8, .header.colorType)
+                {
+                case 0, 4:
+                    if data.count != 2 do
+                        fail InvalidFormatError{"PNG grayscale bKGD chunk size is not 2 bytes"}
+                    if .header.bitDepth < 16
+                    {
+                        let maxSample = (1'u32 << cast(u32, .header.bitDepth)) - 1
+                        if cast(u32, .read16(data.buffer)) > maxSample do
+                            fail InvalidFormatError{"PNG grayscale bKGD sample exceeds the bit depth"}
+                    }
+
+                case 2, 6:
+                    if data.count != 6 do
+                        fail InvalidFormatError{"PNG true-color bKGD chunk size is not 6 bytes"}
+                    if .header.bitDepth < 16
+                    {
+                        let maxSample = (1'u32 << cast(u32, .header.bitDepth)) - 1
+                        for component in 3
+                        {
+                            if cast(u32, .read16(data.buffer + cast(u64, component) * 2)) > maxSample do
+                                fail InvalidFormatError{"PNG true-color bKGD sample exceeds the bit depth"}
+                        }
+                    }
+
+                case 3:
+                    if data.count != 1 do
+                        fail InvalidFormatError{"PNG indexed-color bKGD chunk size is not 1 byte"}
+                    if data[0] >= .paletteCount do
+                        fail InvalidFormatError{"PNG bKGD palette index exceeds the palette"}
+                }
+
                 .seenBKGD = true
-                discard try .readChunk(ch)
 
             case .IEND:
                 if ch.length do
@@ -446,6 +486,8 @@ impl Decoder
                     fail InvalidFormatError{"PNG PLTE chunk appears after image data"}
                 if .seenTRSN do
                     fail InvalidFormatError{"PNG PLTE chunk appears after tRNS"}
+                if .seenBKGD do
+                    fail InvalidFormatError{"PNG PLTE chunk appears after bKGD"}
                 if cast(u8, .header.colorType) == 0 or cast(u8, .header.colorType) == 4 do
                     fail InvalidFormatError{"PNG grayscale image contains a PLTE chunk"}
                 let chunk = try .readChunk(ch)

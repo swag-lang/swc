@@ -1009,6 +1009,100 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     assertPngDecodeFails("non-empty-iend.png", &nonEmptyEnd)
 }
 
+// bKGD must be unique, precede IDAT, have the color type's sample layout, and follow PLTE for indexed images.
+#test
+{
+    const grayRow:       [2] u8 = [0, 10]
+    const trueColorRow:  [4] u8 = [0, 10, 20, 30]
+    const indexedRow:    [2] u8 = [0, 0]
+    const palette:       [3] u8 = [10, 20, 30]
+    const grayBg:        [2] u8 = [0, 12]
+    const trueColorBg:   [6] u8 = [0, 10, 0, 20, 0, 30]
+    const indexedBg:     [1] u8 = [0]
+    const badGrayBg:     [1] u8 = [0]
+    const badColorBg:    [2] u8 = [0, 1]
+    const invalidIndex:  [1] u8 = [1]
+
+    var validGray: ConcatBuffer
+    addPngSignature(&validGray)
+    addPngHeader(&validGray, 1, 1, 8, 0)
+    addPngChunk(&validGray, "bKGD", grayBg)
+    addPngImageData(&validGray, grayRow)
+    addPngChunk(&validGray, "IEND", "")
+    let grayImage = expect Image.decode("valid-gray-bkgd.png", nnBytes(validGray.toSlice()))
+    Swag.require(grayImage.isValid())
+
+    var validTrueColor: ConcatBuffer
+    addPngSignature(&validTrueColor)
+    addPngHeader(&validTrueColor, 1, 1, 8, 2)
+    addPngChunk(&validTrueColor, "bKGD", trueColorBg)
+    addPngImageData(&validTrueColor, trueColorRow)
+    addPngChunk(&validTrueColor, "IEND", "")
+    let trueColorImage = expect Image.decode("valid-truecolor-bkgd.png", nnBytes(validTrueColor.toSlice()))
+    Swag.require(trueColorImage.isValid())
+
+    var validIndexed: ConcatBuffer
+    addPngSignature(&validIndexed)
+    addPngHeader(&validIndexed, 1, 1, 1, 3)
+    addPngChunk(&validIndexed, "PLTE", palette)
+    addPngChunk(&validIndexed, "bKGD", indexedBg)
+    addPngImageData(&validIndexed, indexedRow)
+    addPngChunk(&validIndexed, "IEND", "")
+    let indexedImage = expect Image.decode("valid-indexed-bkgd.png", nnBytes(validIndexed.toSlice()))
+    Swag.require(indexedImage.isValid())
+
+    var duplicate: ConcatBuffer
+    addPngSignature(&duplicate)
+    addPngHeader(&duplicate, 1, 1, 8, 0)
+    addPngChunk(&duplicate, "bKGD", grayBg)
+    addPngChunk(&duplicate, "bKGD", grayBg)
+    addPngImageData(&duplicate, grayRow)
+    addPngChunk(&duplicate, "IEND", "")
+    assertPngDecodeFails("duplicate-bkgd.png", &duplicate)
+
+    var afterData: ConcatBuffer
+    addPngSignature(&afterData)
+    addPngHeader(&afterData, 1, 1, 8, 0)
+    addPngImageData(&afterData, grayRow)
+    addPngChunk(&afterData, "bKGD", grayBg)
+    addPngChunk(&afterData, "IEND", "")
+    assertPngDecodeFails("late-bkgd.png", &afterData)
+
+    var wrongGraySize: ConcatBuffer
+    addPngSignature(&wrongGraySize)
+    addPngHeader(&wrongGraySize, 1, 1, 8, 0)
+    addPngChunk(&wrongGraySize, "bKGD", badGrayBg)
+    addPngImageData(&wrongGraySize, grayRow)
+    addPngChunk(&wrongGraySize, "IEND", "")
+    assertPngDecodeFails("bad-gray-bkgd-size.png", &wrongGraySize)
+
+    var wrongColorSize: ConcatBuffer
+    addPngSignature(&wrongColorSize)
+    addPngHeader(&wrongColorSize, 1, 1, 8, 2)
+    addPngChunk(&wrongColorSize, "bKGD", badColorBg)
+    addPngImageData(&wrongColorSize, trueColorRow)
+    addPngChunk(&wrongColorSize, "IEND", "")
+    assertPngDecodeFails("bad-color-bkgd-size.png", &wrongColorSize)
+
+    var beforePalette: ConcatBuffer
+    addPngSignature(&beforePalette)
+    addPngHeader(&beforePalette, 1, 1, 1, 3)
+    addPngChunk(&beforePalette, "bKGD", indexedBg)
+    addPngChunk(&beforePalette, "PLTE", palette)
+    addPngImageData(&beforePalette, indexedRow)
+    addPngChunk(&beforePalette, "IEND", "")
+    assertPngDecodeFails("bkgd-before-plte.png", &beforePalette)
+
+    var badPaletteIndex: ConcatBuffer
+    addPngSignature(&badPaletteIndex)
+    addPngHeader(&badPaletteIndex, 1, 1, 1, 3)
+    addPngChunk(&badPaletteIndex, "PLTE", palette)
+    addPngChunk(&badPaletteIndex, "bKGD", invalidIndex)
+    addPngImageData(&badPaletteIndex, indexedRow)
+    addPngChunk(&badPaletteIndex, "IEND", "")
+    assertPngDecodeFails("bkgd-index-out-of-palette.png", &badPaletteIndex)
+}
+
 // Decoder and encoder registries recognise PNG files.
 #test
 {

@@ -160,6 +160,38 @@ using Core, Core.Errors, Pixel
     videoAssertColor(again.pixelColor(0, 0), 255, 0, 0)
 }
 
+// Variable marker lengths can cancel out, so matching file size and the final marker alone
+// does not prove that every frame has the first marker's stride.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "YUV4MPEG2 W1 H1 F1:1 Ip C444\n"))
+
+    bytes.add(cast(const [..] u8, "FRAME \n"))
+    bytes.add([81'u8, 90, 240])
+    bytes.add(cast(const [..] u8, "FRAME X\n"))
+    bytes.add([145'u8, 54, 34])
+    bytes.add(cast(const [..] u8, "FRAME\n"))
+    bytes.add([41'u8, 255, 107])
+    bytes.add(cast(const [..] u8, "FRAME \n"))
+    bytes.add([210'u8, 16, 146])
+
+    var reader = expect Reader.openMemory("compensating-markers.y4m", bytes.toSlice())
+    Swag.require(not reader.frameCount())
+    let red    = expect reader.decodeFrame(0)
+    let green  = expect reader.decodeFrame(1)
+    let blue   = expect reader.decodeFrame(2)
+    let yellow = expect reader.decodeFrame(3)
+    videoAssertColor(red.pixelColor(0, 0), 255, 0, 0)
+    videoAssertColor(green.pixelColor(0, 0), 0, 255, 0)
+    videoAssertColor(blue.pixelColor(0, 0), 0, 0, 255)
+    videoAssertColor(yellow.pixelColor(0, 0), 255, 255, 0)
+
+    // The sequential fallback also repositions correctly for a backward request.
+    let first = expect reader.decodeFrame(0)
+    videoAssertColor(first.pixelColor(0, 0), 255, 0, 0)
+}
+
 // A read that fails part way through a frame leaves the source between two of them. The next
 // decode must reposition rather than continue from there, whether it asks for the frame that
 // failed or for another one.

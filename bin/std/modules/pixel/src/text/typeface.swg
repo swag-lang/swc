@@ -86,6 +86,8 @@ public impl TypeFace
     {
         if .faceLoaded do
             .face.destroy()
+        .fullName.opDrop()
+        Swag.init(&.fullName, 1)
     }
 
     // Reports whether the font declares a bold style.

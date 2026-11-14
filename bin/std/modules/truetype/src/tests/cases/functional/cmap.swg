@@ -61,6 +61,61 @@ using Swag, Core
     Swag.require(error != null)
 }
 
+// A truncated format-12 subtable must not consume a valid-looking group that
+// happens to follow its declared extent in the cmap table.
+#test
+{
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C,
+        0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x41, 0x00, 0x00, 0x00, 0x41,
+        0x00, 0x00, 0x00, 0x07])
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+
+    discard expect parseCMap(&faceData, false)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 0)
+}
+
+// A format-12 subtable shorter than its fixed header is rejected.
+#test
+{
+    const Cmap: [28] u8 = [
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C,
+        0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    var faceData: FaceImpl
+    faceData.fontData.add(Cmap)
+    faceData.tables.add({tag: TAG_CMAP, length: Cmap.count})
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+// A declared format-12 extent may not run past the containing cmap table.
+#test
+{
+    const Cmap: [28] u8 = [
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C,
+        0x00, 0x0C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+    var faceData: FaceImpl
+    faceData.fontData.add(Cmap)
+    faceData.tables.add({tag: TAG_CMAP, length: Cmap.count})
+
+    var rejected: Swag.Error
+    discard catch parseCMap(&faceData, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 #test
 {
     var faceScope: FaceScope

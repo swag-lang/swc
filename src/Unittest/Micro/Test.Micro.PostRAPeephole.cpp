@@ -4335,6 +4335,51 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryPreservesEveryLane)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_IndexedNonDestructiveFloatMemoryKeepsLanes)
+{
+    const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg index  = MicroReg::intReg(10);
+    constexpr MicroReg left   = MicroReg::floatReg(1);
+    constexpr MicroReg loaded = MicroReg::floatReg(2);
+    constexpr MicroReg result = MicroReg::floatReg(3);
+    for (const auto bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const std::array<uint64_t, 4> samples = bits == MicroOpBits::B32
+                                                    ? std::array<uint64_t, 4>{0x40400000, 0x80000000, 0x7FC01234, 0x7F801234}
+                                                    : std::array<uint64_t, 4>{0x4008000000000000, 0x8000000000000000, 0x7FF8000000001234, 0x7FF0000000001234};
+        for (const auto op : {MicroOp::FloatAdd, MicroOp::FloatSubtract, MicroOp::FloatMultiply, MicroOp::FloatDivide, MicroOp::FloatMin, MicroOp::FloatMax})
+        {
+            for (const uint64_t first : samples)
+            {
+                for (const uint64_t second : samples)
+                {
+                    std::array<uint64_t, 8> reference{};
+                    for (const bool optimize : {false, true})
+                    {
+                        std::array<uint64_t, 8> values = {first | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, second, UINT64_MAX};
+                        MicroBuilder            builder(ctx);
+                        builder.emitLoadRegImm(index, ApInt(4, 64), MicroOpBits::B64);
+                        builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+                        builder.emitLoadAmcRegMem(loaded, bits, base, index, 8, static_cast<uint64_t>(-16), MicroOpBits::B64);
+                        builder.emitOpBinaryRegRegReg(result, left, loaded, op, bits);
+                        builder.emitClearReg(loaded, MicroOpBits::B128);
+                        builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+                        builder.emitLoadMemReg(base, 48, left, MicroOpBits::B128);
+                        builder.emitRet();
+                        SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                        if (!optimize)
+                            reference = values;
+                        else if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) != 1)
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_CommutedFloatMemoryKeepsScalarBits)
 {
     const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
@@ -4396,28 +4441,33 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
         ClaimedGap,
         SubtractLeft,
         Indexed,
+        IndexedChangedIndex,
+        IndexedAliasStore,
+        IndexedLiveCarrier,
         ProductToAccumulate
     };
     const auto         base   = CallConv::get(CallConvKind::C).intArgRegs[0];
     constexpr MicroReg left   = MicroReg::floatReg(1);
     constexpr MicroReg loaded = MicroReg::floatReg(2);
     constexpr MicroReg result = MicroReg::floatReg(3);
-    for (const auto test : {Case::Direct, Case::Commute, Case::StrictCommute, Case::LiveUpper, Case::LiveCarrier, Case::AliasStore, Case::ChangedBase, Case::ClaimedGap, Case::SubtractLeft, Case::Indexed, Case::ProductToAccumulate})
+    for (const auto test : {Case::Direct, Case::Commute, Case::StrictCommute, Case::LiveUpper, Case::LiveCarrier, Case::AliasStore, Case::ChangedBase, Case::ClaimedGap, Case::SubtractLeft, Case::Indexed, Case::IndexedChangedIndex, Case::IndexedAliasStore, Case::IndexedLiveCarrier, Case::ProductToAccumulate})
     {
         MicroBuilder builder(ctx);
         auto         cfg = builder.backendBuildCfg();
         cfg.math.noNaN   = test != Case::StrictCommute;
         cfg.math.fma     = test == Case::ProductToAccumulate;
         builder.setBackendBuildCfg(cfg);
-        if (test == Case::Indexed)
+        if (test == Case::Indexed || test == Case::IndexedChangedIndex || test == Case::IndexedAliasStore || test == Case::IndexedLiveCarrier)
             builder.emitLoadAmcRegMem(loaded, MicroOpBits::B64, base, MicroReg::intReg(8), 8, 16, MicroOpBits::B64);
         else
             builder.emitLoadRegMem(loaded, base, 16, MicroOpBits::B64);
         const auto loadRef = builder.instructions().lastInstructionRef();
         builder.emitLoadRegImm(MicroReg::intReg(9), ApInt(17, 64), MicroOpBits::B64);
         const auto gapRef = builder.instructions().lastInstructionRef();
-        if (test == Case::AliasStore)
+        if (test == Case::AliasStore || test == Case::IndexedAliasStore)
             builder.emitLoadMemReg(base, 16, left, MicroOpBits::B64);
+        if (test == Case::IndexedChangedIndex)
+            builder.emitOpBinaryRegImm(MicroReg::intReg(8), ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         if (test == Case::ChangedBase)
             builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
         const bool commute = test == Case::Commute || test == Case::StrictCommute || test == Case::LiveUpper || test == Case::SubtractLeft;
@@ -4428,7 +4478,7 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
         if (test == Case::ProductToAccumulate)
             builder.emitOpBinaryRegReg(left, result, MicroOp::FloatAdd, MicroOpBits::B64);
         builder.emitLoadMemReg(base, 32, result, test == Case::LiveUpper ? MicroOpBits::B128 : MicroOpBits::B64);
-        if (test == Case::LiveCarrier)
+        if (test == Case::LiveCarrier || test == Case::IndexedLiveCarrier)
             builder.emitLoadMemReg(base, 48, loaded, MicroOpBits::B128);
         builder.emitClearReg(loaded, MicroOpBits::B128);
         builder.emitClearReg(result, MicroOpBits::B128);
@@ -4445,7 +4495,7 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
             context.claimAll({gapRef});
         PostRaPeephole::foldFloatMemoryOperands(context);
         const bool folded = context.isClaimed(loadRef);
-        if (folded != (test == Case::Direct || test == Case::Commute))
+        if (folded != (test == Case::Direct || test == Case::Commute || test == Case::Indexed))
             return Result::Error;
         if (folded && (!context.isClaimed(gapRef) || !context.isClaimed(opRef)))
             return Result::Error;

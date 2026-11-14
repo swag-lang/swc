@@ -96,7 +96,7 @@ namespace
     {
         return info.special != MicroInstrRegSpecial::None ||
                info.regModes[0] != MicroInstrRegMode::None || info.regModes[1] != MicroInstrRegMode::None ||
-               info.regModes[2] != MicroInstrRegMode::None;
+               info.regModes[2] != MicroInstrRegMode::None || info.regModes[3] != MicroInstrRegMode::None;
     }
 
     using MicroOptimizationLimits::RegisterAllocation::K_LOOP_DEPTH_WEIGHTS;
@@ -109,7 +109,7 @@ namespace
             const MicroInstrDef& info                = MicroInstr::info(inst.op);
             const bool           hasEncoderRegUseDef = encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef);
             if (info.regModes[0] == MicroInstrRegMode::None && info.regModes[1] == MicroInstrRegMode::None &&
-                info.regModes[2] == MicroInstrRegMode::None && !hasEncoderRegUseDef)
+                info.regModes[2] == MicroInstrRegMode::None && info.regModes[3] == MicroInstrRegMode::None && !hasEncoderRegUseDef)
                 continue;
 
             const MicroInstrOperand* ops = inst.ops(operands);

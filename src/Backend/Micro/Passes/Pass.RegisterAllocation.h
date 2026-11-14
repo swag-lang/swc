@@ -77,7 +77,8 @@ public:
 
 private:
     // Only explicit operands introduce virtual registers. ABI and encoder
-    // effects are physical, so these lists cannot outgrow the operand modes.
+    // effects are physical. Bound uses and definitions separately so a form with
+    // an independent destination and three inputs keeps these lists compact.
     class VirtualIndices
     {
     public:
@@ -101,7 +102,21 @@ private:
         }
 
     private:
-        static constexpr size_t          K_CAPACITY = std::tuple_size_v<decltype(MicroInstrDef::regModes)>;
+        static constexpr size_t K_CAPACITY = [] {
+            size_t capacity = 0;
+            for (const auto& info : MICRO_INSTR_OPCODE_INFOS)
+            {
+                size_t uses = 0;
+                size_t defs = 0;
+                for (const auto mode : info.regModes)
+                {
+                    uses += mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef;
+                    defs += mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef;
+                }
+                capacity = std::max(capacity, std::max(uses, defs));
+            }
+            return capacity;
+        }();
         std::array<uint32_t, K_CAPACITY> values_;
         uint32_t                         count_ = 0;
     };

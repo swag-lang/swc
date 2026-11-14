@@ -310,9 +310,9 @@ namespace PostRaPeephole
                 demand.read(ops[2].reg, mask);
                 return;
             }
-            if (inst.op == MicroInstrOpcode::OpBinaryRegRegMem)
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegMem || inst.op == MicroInstrOpcode::OpBinaryRegRegAmcMem)
             {
-                const uint8_t mask  = FloatLaneDemand::mask(ops[3].opBits);
+                const uint8_t mask  = FloatLaneDemand::mask(ops[inst.op == MicroInstrOpcode::OpBinaryRegRegAmcMem ? 4 : 3].opBits);
                 const uint8_t upper = demand.lanes[ops[0].reg.index()] & ~mask;
                 demand.clear(ops[0].reg);
                 demand.read(ops[1].reg, mask | upper);
@@ -1438,8 +1438,12 @@ namespace PostRaPeephole
         if (op == MicroOp::FloatAnd || op == MicroOp::FloatXor)
             return false;
 
-        if (fused || (isFloat && threeOperand && !indexed && consumerOps[0].reg != consumerOps[1].reg && consumerOps[0].reg != loaded))
+        if (fused || (isFloat && threeOperand && consumerOps[0].reg != consumerOps[1].reg && consumerOps[0].reg != loaded))
         {
+            // This VEX memory form uses a full-width base and index. A
+            // narrowed address would wrap before dereferencing instead.
+            if (indexed && loadOps[4].opBits != MicroOpBits::B64)
+                return false;
             if (!ctx.encoder || (fused ? !ctx.encoder->supportsFusedFloatMultiplyAdd() : !ctx.encoder->supportsNonDestructiveFloatBinary()))
                 return false;
             // A queued copy rewrite can expose contraction on the next sweep.
@@ -1454,15 +1458,25 @@ namespace PostRaPeephole
             if (floatLanesReadAfter(ctx, opRef, loaded))
                 return false;
 
-            MicroInstrOperand direct[6] = {};
+            MicroInstrOperand direct[8] = {};
             direct[0]                   = consumerOps[0];
             direct[1]                   = consumerOps[commute ? 2 : 1];
             direct[2].reg               = base;
             direct[3].opBits            = opBits;
             direct[4].microOp           = op;
             direct[5]                   = loadOps[3];
-            const auto opcode           = fused ? MicroInstrOpcode::OpTernaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegMem;
-            if (!encoderAcceptsAsIs(ctx, opcode, direct))
+            auto opcode                 = fused ? MicroInstrOpcode::OpTernaryRegRegMem : MicroInstrOpcode::OpBinaryRegRegMem;
+            if (indexed)
+            {
+                direct[3].reg     = index;
+                direct[4].opBits  = opBits;
+                direct[5].microOp = op;
+                direct[6]         = loadOps[5];
+                direct[7]         = loadOps[6];
+                opcode            = MicroInstrOpcode::OpBinaryRegRegAmcMem;
+            }
+            const std::span<const MicroInstrOperand> directOps{direct, indexed ? 8u : 6u};
+            if (!encoderAcceptsAsIs(ctx, opcode, directOps))
                 return false;
 
             // Reserve the complete motion window: another queued rewrite must
@@ -1478,7 +1492,7 @@ namespace PostRaPeephole
                 return false;
             if (loadRelocation)
                 loadRelocation->instructionRef = opRef;
-            ctx.emitRewrite(opRef, opcode, direct, true);
+            ctx.emitRewrite(opRef, opcode, directOps, true);
             ctx.emitErase(loadRef);
             return true;
         }
@@ -1579,7 +1593,7 @@ namespace PostRaPeephole
         ctx.instructionIndex = 0;
         for (auto it = ctx.storage->view().begin(); it.current.isValid(); ++it, ++ctx.instructionIndex)
         {
-            if ((it->op != MicroInstrOpcode::LoadRegMem && it->op != MicroInstrOpcode::LoadVecRegMem) || ctx.isClaimed(it.current))
+            if ((it->op != MicroInstrOpcode::LoadRegMem && it->op != MicroInstrOpcode::LoadVecRegMem && it->op != MicroInstrOpcode::LoadAmcRegMem) || ctx.isClaimed(it.current))
                 continue;
             const auto* ops = it->ops(*ctx.operands);
             if (ops[0].reg.isFloat())

@@ -633,6 +633,10 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::OpBinaryRegAmcMem:
             encoder.encodeOpBinaryRegAmcMem(ops[0].reg, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, ops[7].microOp, ops[3].opBits);
             break;
+        case MicroInstrOpcode::OpBinaryRegRegAmcMem:
+            encoder.encodeOpBinaryRegRegAmcMem(ops[0].reg, ops[1].reg, ops[2].reg, ops[3].reg, ops[6].valueU64, ops[7].valueU64, ops[5].microOp, ops[4].opBits);
+            break;
+
         case MicroInstrOpcode::OpBinaryRegRegMem:
         {
             const uint32_t opStart = encoder.size();

@@ -60,7 +60,7 @@ using MicroInstrFlags = EnumFlags<MicroInstrFlagsE>;
 
 struct MicroInstrDef
 {
-    std::array<MicroInstrRegMode, 3> regModes;
+    std::array<MicroInstrRegMode, 4> regModes;
     MicroInstrRegSpecial             special = MicroInstrRegSpecial::None;
 
     uint8_t microOpIndex  = 0;
@@ -74,7 +74,7 @@ struct MicroInstrDef
     // Only these union operands contain MicroOpBits, never immediates or registers.
     uint8_t opBitsMask = 0;
 
-    std::array<MicroInstrRegMode, 3> resolvedRegModes(const MicroInstrOperand* ops) const;
+    std::array<MicroInstrRegMode, 4> resolvedRegModes(const MicroInstrOperand* ops) const;
 };
 
 // Register width contract, inherited from x86-64: an integer instruction with
@@ -154,7 +154,7 @@ struct MicroInstrOperand
     }
 };
 
-inline std::array<MicroInstrRegMode, 3> MicroInstrDef::resolvedRegModes(const MicroInstrOperand* ops) const
+inline std::array<MicroInstrRegMode, 4> MicroInstrDef::resolvedRegModes(const MicroInstrOperand* ops) const
 {
     auto modes = regModes;
     if (!ops)
@@ -213,8 +213,8 @@ struct MicroInstrRegOperandRef
     bool      def = false;
 };
 
-// resolvedRegModes exposes at most three register operands per instruction.
-using MicroInstrRegOperandRefs = SmallVector<MicroInstrRegOperandRef, 3>;
+// resolvedRegModes exposes at most four register operands per instruction.
+using MicroInstrRegOperandRefs = SmallVector<MicroInstrRegOperandRef, 4>;
 
 struct MicroInstr
 {

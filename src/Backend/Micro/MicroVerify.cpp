@@ -270,6 +270,7 @@ namespace
 
             case MicroInstrOpcode::LoadAmcMemImm:
             case MicroInstrOpcode::VecUnaryAmcRegMem:
+            case MicroInstrOpcode::OpBinaryRegRegAmcMem:
             case MicroInstrOpcode::OpBinaryRegAmcMem:
             case MicroInstrOpcode::OpBinaryAmcMemReg:
             case MicroInstrOpcode::OpUnaryAmcMem:

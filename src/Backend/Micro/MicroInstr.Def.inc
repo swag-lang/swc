@@ -1139,3 +1139,17 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
         .opBitsMask            = (1 << 3) | (1 << 4),
     })
+
+// Scalar VEX arithmetic: dst = left op [base + index * scale + offset].
+SWC_MICRO_INSTR_DEF(
+    OpBinaryRegRegAmcMem,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Def, MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 5,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::RegisterDefsAtOutput,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 0,
+        .opBitsMask            = (1 << 4),
+    })

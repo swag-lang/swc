@@ -154,6 +154,14 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   styles keep the prose readable with a simplification notice. Unsupported images are named and
   external image relationships are never loaded. Page/section geometry, headers, footers,
   footnotes, comments, floating objects and complex table layout are not reproduced.
+- `OpenDocument Text` reads ODT paragraphs, styled headings, nested lists, simple tables and
+  bounded embedded raster pictures. Common and automatic styles preserve inherited typography,
+  relative sizes, spacing, indents and paper colors; headings populate the filterable outline.
+  Bookmarks and internal links stay within the document. Repeated table cells/rows retain their
+  reading order. Unsupported pictures, footnotes and embedded objects are labelled. External
+  resources, macros and revision records never load or execute. Page/section geometry, headers,
+  footers, comments, floating drawings and complex table layout are not reproduced; encrypted
+  packages report that a password is required. Archive remains available as an alternative.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
   and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
@@ -231,7 +239,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
-  packed, its size and date in mono. EPUB, CBZ, DOCX, XLSX and PPTX offer their reading viewers first;
+  packed, its size and date in mono. EPUB, CBZ, DOCX, ODT, XLSX and PPTX offer their reading viewers first;
   Archive remains available to inspect their package members. The count in the bottom line adds the packed and extracted
   weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
   Opening an entry asynchronously prepares a bounded temporary

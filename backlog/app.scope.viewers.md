@@ -24,7 +24,7 @@ viewer packages, helper binaries, or network service required to open supported 
    See [std.gui.pdf.md](std.gui.pdf.md) and the fixture matrix. Verify Encre and Papier across
    sibling scenarios, including previews and keyboard use.
 3. Reassess new format selectors only after their existing neighbors meet this reading contract.
-   Recorded candidates include Jupyter notebooks, OpenDocument (`.odt`, `.ods`, `.odp`), AVIF,
+   Recorded candidates include Jupyter notebooks, OpenDocument sheets/slides (`.ods`, `.odp`), AVIF,
    HEIC, JPEG XL, embedded RAW previews, VP9, AV1, DjVu, XPS, CBR, other archives and legacy
    Office files. Keep those leads in their owning backlogs; do not schedule them ahead of fixes to
    current readers. See [app.scope.image.md](app.scope.image.md) and [std.video.md](std.video.md).
@@ -238,7 +238,8 @@ viewer packages, helper binaries, or network service required to open supported 
 | DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.document.020](app.scope.document.md) |
 | XLSX | `.xlsx` | virtual sheets, authored geometry and common cell/numeric styles | default styles, frozen panes and search | [app.scope.document.025](app.scope.document.md) |
 | PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text mode | notes, thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
-| OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
+| ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.document.030](app.scope.document.md) |
+| OpenDocument sheets/slides | `.ods` `.odp` | archive and binary structure | document reading | [app.scope.document.030](app.scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | spine chapters through `HtmlView` | TOC, book search, saved position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
 | Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |

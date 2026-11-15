@@ -9,7 +9,7 @@ directory may retain older names when those files serve a particular screenshot 
 The executable fixture matrix includes every `viewer.*` file in this directory and is
 [`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg). It checks that every listed
 file exists and selects the expected reader. The image cases also decode their payloads;
-format-owned tests exercise EPUB, CBZ, PDF, DOCX, RTF and XLSX content and negative cases. The
+format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF and XLSX content and negative cases. The
 registry smoke opens one file for each viewer. A selector check alone does not prove that every
 legal variation of a format can be read.
 
@@ -18,7 +18,7 @@ selection correctly offers Text first for those bytes.
 
 | Family | Canonical fixtures | Variants exercised here |
 | --- | --- | --- |
-| Documents | `viewer.pdf`, `.epub`, `.docx`, `.rtf`, `.xlsx`, `.pptx`, `.cbz` | PDF object streams, rotation, JPEG and CCITT images; nested EPUB/CBZ paths; licensed 3-page and 15-page comics; split and formatted DOCX runs and an embedded photo with a blocked external reference; RTF Unicode, tables, ignorable destinations and damage; inline XLSX strings; relative and package-absolute slide/sheet relationships; slide order; damaged packages |
+| Documents | `viewer.pdf`, `.epub`, `.docx`, `.odt`, `.rtf`, `.xlsx`, `.pptx`, `.cbz` | PDF object streams, rotation, JPEG and CCITT images; nested EPUB/CBZ paths; licensed 3-page and 15-page comics; split and formatted DOCX runs and an embedded photo with a blocked external reference; RTF Unicode, tables, ignorable destinations and damage; inline XLSX strings; relative and package-absolute slide/sheet relationships; slide order; damaged packages |
 | Images | `viewer.svg`, `.bmp`, `.cur`, `.dds`, `.exr`, `.gif`, `.ico`, `.jpg`, `.jpeg`, `.ktx2`, `.png`, `.apng`, `.psd`, `.qoi`, `.tga`, `.tif`, `.tiff`, `.webp` | CMYK and progressive JPEG; GIF, APNG and WebP animation |
 | Sound | `viewer.wav`, `.flac`, `.mp3`, `.aac`, `.ac3`, `.eac3`, `.ec3`, `.dts`, `.ogg`, `.oga`, `.opus` | Surround FLAC/E-AC-3 and hybrid Opus |
 | Video | `viewer.mp4`, `.m4v`, `.mov`, `.mkv`, `.avi`, `.y4m` | H.264 and HEVC in MP4, raw AVI and RV40 MKV |
@@ -26,8 +26,8 @@ selection correctly offers Text first for those bytes.
 | Code and plain text | `viewer.cpp`, `.json`, `.xml`, `.py`, `.swg`, `.txt`, `.rst` | Syntax families and common prose; many spelling aliases share these parsers |
 | Font and archive | `viewer.ttf`, `.ttc`, `.zip` | Collection wrapper; existing archive navigation fixture |
 
-`viewer.odt`, `.ods`, `.odp` and `.jar` exercise the Archive fallback and do **not**
-mean that Swag Scope reads their document content. They remain in the backlog for dedicated
+`viewer.ods`, `.odp` and `.jar` exercise the Archive fallback and do **not**
+mean that Swag Scope reads their document content. ODS and ODP remain in the backlog for dedicated
 readers. Other ZIP package suffixes currently share the same Archive implementation; they
 need genuine representative packages before entering this matrix. The many Code and Basic Text
 extension aliases need selector coverage, but do not each need a duplicate payload unless
@@ -83,3 +83,14 @@ it contains no external assets.
 `viewer.styles.xlsx` adds repository-authored theme colors, font sizes/emphasis, filled headers,
 a wrapped reading note and bordered totals to the geometry workbook. Its theme lives at a
 relationship-resolved path; it contains no external assets.
+
+`viewer.odt` and `viewer.image.odt` are repository-authored reading examples produced by
+LibreOfficeDev 26.8.0.0.alpha0 (build 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5), using the
+HTML (StarWriter) import filter and the `odt:writer8` export filter. The first contains a green
+24-point title, three 16-point section headings, 12-point body text, bold/italic passages,
+an indented blue note, a three-row table with a green header, and a link to the final section.
+The second contains a title, introduction, embedded 320-by-240 photo and following paragraph.
+The photograph reuses the existing `viewer.jpg` corpus image and its existing provenance; it was
+embedded as a data URL in the HTML input before conversion. These ZIP packages contain genuine
+Writer styles, manifests and metadata, no local filesystem links. Functional tests supplement
+those producer files with small controlled packages for inheritance, repeats, omissions and damage.

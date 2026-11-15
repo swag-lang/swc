@@ -185,8 +185,10 @@ is the current scorecard.
   pre-call copy remains diagnosed as released. A sibling-field probe stays silent. This uncovered
   two caller-side gaps: functions with summary-based releases did not enable release-provenance
   tracking, and aliases of fields passed to a callee were removed before the field summary could
-  classify them. Globals, inferred summaries, wrapper calls and unavailable bodies are not solved by
-  this prototype.
+  classify them. An imported `freesIndirect` summary also activates provenance tracking and catches
+  a copy of the old pointer held in the passed box. The box itself stays unclassified because the
+  callee may reassign it. Globals, inferred summaries, wrapper calls and unavailable bodies are not
+  solved by this prototype.
 - Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
   extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Check
   unknown calls before integrating the complete result with `SanitizerState`.

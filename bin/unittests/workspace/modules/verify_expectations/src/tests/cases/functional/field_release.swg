@@ -30,6 +30,16 @@ using Core, StaticApi
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
+    var pointer = cast(*s32, Memory.alloc(#sizeof(s32)))
+    let copy = pointer
+    depUafReleaseIndirect(&pointer)
+    let value = copy[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
     let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
     node.padding = 0
     node.data = cast(*s32, Memory.alloc(#sizeof(s32)))

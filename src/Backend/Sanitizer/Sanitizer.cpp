@@ -392,7 +392,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks, SmallVector<MicroIn
             {
                 callTargets_.set(rel.instructionRef, rel.targetSymbol);
                 if (const auto* callee = rel.targetSymbol->safeCast<SymbolFunction>())
-                    needsReleaseProvenance_ |= callee->freesParamsMask() || !callee->freedParamFields().empty() || !callee->importedFreedParamFields().empty();
+                    needsReleaseProvenance_ |= callee->freesParamsMask() || callee->freesIndirectParamsMask() || !callee->freedParamFields().empty() || !callee->importedFreedParamFields().empty();
             }
         }
     }

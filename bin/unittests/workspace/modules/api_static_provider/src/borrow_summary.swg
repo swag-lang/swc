@@ -152,3 +152,12 @@ func depUafReplaceField(node: *DepUafNode)
     Swag.getContext().allocator!.alloc(&replacement)
     node.data = cast(*s32, unwrap replacement.address)
 }
+
+#[Swag.BorrowSummary(0, freesIndirect: 1)]
+func depUafReleaseIndirect(pointer: **s32)
+{
+    var req: Swag.AllocatorRequest
+    req.address = pointer[]
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}

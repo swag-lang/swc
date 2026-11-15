@@ -140,6 +140,19 @@ func depUafReleaseField(node: *DepUafNode)
     Swag.getContext().allocator!.free(&req)
 }
 
+func depUafInferredReleasePointer(pointer: *s32)
+{
+    var req: Swag.AllocatorRequest
+    req.address = pointer
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReleaseProjected(node: *DepUafNode)
+{
+    depUafInferredReleasePointer(node.data)
+}
+
 func depUafInferredReleaseField(node: *DepUafNode)
 {
     var req: Swag.AllocatorRequest

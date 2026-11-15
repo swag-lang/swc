@@ -5857,6 +5857,16 @@ namespace SemaEscape
             }
 
             const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramType.payloadTypeRef());
+            if (!payloadType.isStruct() && callerField && unwrapAliasEnum(sema, callerField->typeRef()) == paramTypeRef)
+            {
+                for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+                {
+                    const size_t origin = std::countr_zero(remaining);
+                    sema.ctx().compiler().addEscapeFieldSummaryForwarding({caller, callee, static_cast<uint32_t>(origin), static_cast<uint32_t>(thisParam), callerField, true});
+                }
+                continue;
+            }
+
             if (!payloadType.isStruct())
                 continue;
 
@@ -6329,13 +6339,16 @@ namespace SemaEscape
                     continue;
 
                 const std::string_view fieldName = forwarding.field->name(ctx);
-                if (!forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName))
+                const bool calleeFreesField = forwarding.calleeFreesProjectedPointer ?
+                                                  (forwarding.callee->freesParamsMask() & (1ULL << forwarding.calleeParamIndex)) != 0 :
+                                                  forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName);
+                if (!calleeFreesField)
                     continue;
 
                 const size_t beforeFreed = forwarding.caller->freedParamFields().size();
                 const size_t beforeReset = forwarding.caller->resetParamFields().size();
                 forwarding.caller->addFreedParamField(forwarding.callerParamIndex, fieldName);
-                if (forwarding.callee->hasResetParamField(forwarding.calleeParamIndex, fieldName) &&
+                if (!forwarding.calleeFreesProjectedPointer && forwarding.callee->hasResetParamField(forwarding.calleeParamIndex, fieldName) &&
                     forwarding.caller->hasFreedParamField(forwarding.callerParamIndex, fieldName))
                     forwarding.caller->addResetParamField(forwarding.callerParamIndex, fieldName);
                 changed |= beforeFreed != forwarding.caller->freedParamFields().size() || beforeReset != forwarding.caller->resetParamFields().size();
@@ -6344,7 +6357,7 @@ namespace SemaEscape
 
         for (const SemaEscapeFieldSummaryForwarding& forwarding : fieldForwardings)
         {
-            if (forwarding.caller && forwarding.callee && forwarding.field &&
+            if (forwarding.caller && forwarding.callee && forwarding.field && !forwarding.calleeFreesProjectedPointer &&
                 !forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, forwarding.field->name(ctx)))
                 forwarding.caller->markParamFieldPossiblyWritten(forwarding.callerParamIndex, forwarding.field->name(ctx));
         }

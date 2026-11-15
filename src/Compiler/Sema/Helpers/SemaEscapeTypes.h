@@ -201,6 +201,7 @@ struct SemaEscapeFieldSummaryForwarding
     uint32_t              callerParamIndex = 0;
     uint32_t              calleeParamIndex = 0;
     const SymbolVariable* field            = nullptr;
+    bool                  calleeFreesProjectedPointer = false;
 };
 
 // Only release-forwarding edges propagate frees: either directly through the

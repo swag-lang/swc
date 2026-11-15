@@ -185,16 +185,19 @@ integration around those engines.
   stay hidden until explicitly revealed. The native grid preserves declared column widths, row
   heights, sparse addresses, disjoint merged cells and hidden rows/columns; a separate command
   reveals hidden ranges. Cell selection, keyboard moves, copy and a theme-aware text view support
-  reading. Only visible rows are painted, including million-row address spans. Style XFs resolve common built-in and custom currency, grouped decimal,
-  percentage, date and elapsed-time formats; both Excel date systems and the fictitious 1900 leap
-  day are retained. Unsupported formats keep the stored value and an explicit notice. Cell
-  colors/fonts, frozen panes, filters, comments and
-  charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
+  reading. Only visible rows are painted, including million-row address spans. Direct and base
+  XFs now retain font size/emphasis, colors, solid fills, common borders, alignment, wrapping and
+  Normal-font indents. Spreadsheet theme/indexed colors and luminance tints are resolved; numeric
+  overflow stays explicit. Common built-in and custom currency, grouped decimal, percentage,
+  date and elapsed-time formats retain both Excel date systems and the fictitious 1900 leap day.
+  Unsupported formats keep the stored value and a notice; unsupported visual effects are labelled
+  simplified. Exact named font matching, row/column default styles, frozen panes, filters, comments
+  and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: preserve cell styling and frozen panes, then add rectangular selection, direct cell
-  addressing and sheet-wide search before read-only chart previews. Extend numeric
-  formatting to conditions, fractions, scientific notation and localized date profiles with
-  producer fixtures; keep unsupported codes explicit.
+- Next: resolve row/column defaults and named font families, then preserve frozen panes and add
+  rectangular selection, direct cell addressing and sheet-wide search before read-only chart
+  previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
+  date profiles with producer fixtures; keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
   behave as declared, formulas never execute, large sheets stay bounded, and every omitted construct
   is explicitly reported.

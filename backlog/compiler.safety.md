@@ -184,10 +184,12 @@ is the current scorecard.
   its field reload. If the method writes that field or passes its carrier to another call, inference
   suppresses the field release because no must-reset proof exists. The field remains usable after
   an unannotated release-and-replace method, but aliases copied before that call are not yet
-  diagnosed. Globals, reset inference, wrapper propagation and unavailable bodies remain unsolved.
+  diagnosed. Known direct wrappers now forward explicit and inferred field effects after module
+  analysis; release-and-replace wrappers preserve both the old-alias diagnostic and safe field
+  reload. Globals, automatic reset inference and unavailable bodies remain unsolved.
 - Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
-  extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Refine
-  conservative suppression for calls that receive a carrier while retaining soundness.
+  extend the same before/after distinction to globals and unavailable bodies. Refine conservative
+  suppression for calls that receive a carrier while retaining soundness.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

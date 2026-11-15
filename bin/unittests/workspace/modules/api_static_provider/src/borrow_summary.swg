@@ -157,6 +157,16 @@ func depUafInferredAliasReleaseField(node: *DepUafNode)
     Swag.getContext().allocator!.free(&req)
 }
 
+func depUafInferredReleaseWrapper(node: *DepUafNode)
+{
+    depUafInferredReleaseField(node)
+}
+
+func depUafInferredReplaceWrapper(node: *DepUafNode)
+{
+    depUafReplaceField(node)
+}
+
 func depUafInferredReplaceField(node: *DepUafNode)
 {
     var req: Swag.AllocatorRequest
@@ -206,6 +216,22 @@ func depUafReplaceField(node: *DepUafNode)
     replacement.size = #sizeof(s32)
     Swag.getContext().allocator!.alloc(&replacement)
     node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafInferredReplaceWrapper2(node: *DepUafNode)
+{
+    depUafInferredReplaceWrapper(node)
+}
+
+func depUafInferredReleaseWrapper2(node: *DepUafNode)
+{
+    depUafInferredReleaseWrapper(node)
+}
+
+func depUafInferredReleaseSecond(left: *DepUafNode, right: *DepUafNode)
+{
+    discard left
+    depUafInferredReleaseField(right)
 }
 
 #[Swag.BorrowSummary(0, freesIndirect: 1)]

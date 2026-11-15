@@ -212,8 +212,9 @@ is the current scorecard.
   that fails the build in `release`, so it cannot be a maybe.
 - Next: decide whether a MAY-release fact deserves a diagnostic of its own — a warning under the
   warning policy layer rather than an error, so the report exists without a build failing on a
-  guess. Start by counting how many sites in `bin/` a may-analysis would name, which is what says
-  whether the report is readable or noise.
+  guess. The new warning currently names one corpus use and two `core` thread-field reads in the
+  early consumer run. Count unique sites across `bin/` before judging whether the report is
+  readable or noise; the full tree sweep is still pending.
 - Done when: either a warning exists with its count on `bin/` recorded, or the reference states
   that a conditional release is outside what the proof covers and the corpus records the decision.
 - Related: compiler.safety.017.

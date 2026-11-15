@@ -307,9 +307,8 @@ func readNestedFieldAfterFree()->s32
     Swag.require(heap.duplicates == 0)
 }
 
-// GAP compiler.safety.018 - a release on one path only cannot be proven. Retaining the
-// allocation lets the corpus exercise BOTH paths, including the stale read, without
-// accessing physically freed storage. This pins a limitation, not a static guarantee.
+// A conditional release is reported as a warning rather than a proof: the retained
+// allocation lets both runtime paths execute without physically reading freed storage.
 #[Swag.Sanity(.Lifecycle, true)]
 func conditionalFree(release: bool)->s32
 {
@@ -317,6 +316,34 @@ func conditionalFree(release: bool)->s32
     pointer[] = 3
     if release do
         heapFree(pointer, 4)
+    return pointer[]     // swc-expected-warning {{sanity_warn_possible_use_after_free}}
+}
+
+// The release path returns before the read. The read itself is reachable only when the
+// allocation remains live, so a path-sensitive may analysis must stay silent here.
+#[Swag.Sanity(.Lifecycle, true)]
+func readOnlyOnKeptPath(release: bool)->s32
+{
+    let pointer = cast(*s32, heapAlloc(4))
+    pointer[] = 5
+    if release
+    {
+        heapFree(pointer, 4)
+        return 0
+    }
+    return pointer[]
+}
+
+// Rebinding after a conditional release makes the old allocation irrelevant to the
+// later dereference, even when the released fact reached that point along one path.
+#[Swag.Sanity(.Lifecycle, true)]
+func readAfterConditionalRebind(release: bool)->s32
+{
+    var pointer = cast(*s32, heapAlloc(4))
+    if release do
+        heapFree(pointer, 4)
+    pointer = cast(*s32, heapAlloc(4))
+    pointer[] = 7
     return pointer[]
 }
 
@@ -334,6 +361,21 @@ func conditionalFree(release: bool)->s32
     Swag.require(heap.count == 2)
     Swag.require(heap.frees == 1)
     Swag.require(heap.liveCount() == 1)
+    Swag.require(heap.duplicates == 0)
+}
+
+#test
+{
+    let context = Swag.getContext()
+    var heap    = RetainedHeap{base: unwrap context.allocator}
+    context.allocator = &heap
+    defer context.allocator = heap.base
+
+    Swag.require(readOnlyOnKeptPath(opaqueBool(false)) == 5)
+    Swag.require(readAfterConditionalRebind(opaqueBool(true)) == 7)
+    Swag.require(heap.count == 3)
+    Swag.require(heap.frees == 1)
+    Swag.require(heap.liveCount() == 2)
     Swag.require(heap.duplicates == 0)
 }
 

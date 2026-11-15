@@ -173,6 +173,13 @@ void UseAfterFreeCheck::run(Sanitizer& sanitizer, const SanitizerState& state, c
         return;
     }
 
+    const auto maybeFreed = baseInfo->hasPointerOriginSlot ? state.maybeFreedPtrSlots.find(baseInfo->pointerOriginSlot) : state.maybeFreedPtrSlots.end();
+    if (maybeFreed != state.maybeFreedPtrSlots.end())
+    {
+        sanitizer.report(inst, DiagnosticId::sanity_warn_possible_use_after_free);
+        return;
+    }
+
     // The pointer came out of an object rather than out of the frame: same proof, other
     // kind of storage.
     const SourceCodeRef* freedLocation = baseInfo->hasOriginLocation ? state.findFreedPtrLocation(baseInfo->originLocation) : nullptr;

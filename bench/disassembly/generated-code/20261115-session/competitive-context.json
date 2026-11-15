@@ -1,0 +1,228 @@
+{
+  "campaign": "20261023-175718",
+  "protocol": 3,
+  "raw_campaign_sha256": "d3a59f453a91e3130212bb3032a3cdaa1e05a77b7f6a63cb35f27f422113806a",
+  "published_history_sha256": "7e34bfb2e559e87859483864a29d059ec8ba52e3d4139c6dc2e1bea9a724cfc6",
+  "geomean_current_12_task_historical_competitive_ratios": 0.9641840556453137,
+  "geomean_original_7_task_historical_competitive_ratios": 0.8831757914431527,
+  "published_history_has_run_index": false,
+  "published_history_has_null_run_tasks": false,
+  "rows": [
+    {
+      "task": "binarytrees",
+      "fastest_non_swag": "java-hotspot",
+      "swag_raw_median_ms": 9.78874997,
+      "competitor_raw_median_ms": 6.6097,
+      "competitive_ratio": 1.480967361604914,
+      "published_progress_run_release": {
+        "value": 0.9955424880647592,
+        "low": 0.9720183568872445,
+        "high": 1.0119690543683948,
+        "n": 30,
+        "se": 0.009940858304411848,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "nbody",
+      "fastest_non_swag": "zig",
+      "swag_raw_median_ms": 18.681300045,
+      "competitor_raw_median_ms": 17.7314,
+      "competitive_ratio": 1.0535716325276063,
+      "published_progress_run_release": {
+        "value": 0.8710087196367768,
+        "low": 0.8411091605542272,
+        "high": 0.9290571270167778,
+        "n": 30,
+        "se": 0.024544217088212115,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "sort",
+      "fastest_non_swag": "cpp-msvc",
+      "swag_raw_median_ms": 19.007199964999998,
+      "competitor_raw_median_ms": 18.40775,
+      "competitive_ratio": 1.0325650861729434,
+      "published_progress_run_release": {
+        "value": 0.9774137280769,
+        "low": 0.947441169809654,
+        "high": 1.0202254489734608,
+        "n": 30,
+        "se": 0.01826686345169479,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "fannkuch",
+      "fastest_non_swag": "rust",
+      "swag_raw_median_ms": 16.243700054999998,
+      "competitor_raw_median_ms": 15.78125,
+      "competitive_ratio": 1.029303765861386,
+      "published_progress_run_release": {
+        "value": 0.9718220468896368,
+        "low": 0.9192930152166159,
+        "high": 1.027658117647863,
+        "n": 30,
+        "se": 0.02750193088138459,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "leven",
+      "fastest_non_swag": "odin",
+      "swag_raw_median_ms": 14.862399955,
+      "competitor_raw_median_ms": 15.6891,
+      "competitive_ratio": 0.947307363392419,
+      "published_progress_run_release": {
+        "value": 1.0348379032949788,
+        "low": 0.9296587930548186,
+        "high": 1.0803951011973827,
+        "n": 30,
+        "se": 0.03708565839519712,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "lz77",
+      "fastest_non_swag": "cpp-clang-cl",
+      "swag_raw_median_ms": 21.412149999999997,
+      "competitor_raw_median_ms": 23.05375,
+      "competitive_ratio": 0.9287924957978635,
+      "published_progress_run_release": {
+        "value": 0.9416086292873211,
+        "low": 0.9165513937851838,
+        "high": 0.9621119509942055,
+        "n": 30,
+        "se": 0.011973054205301484,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "wordfreq",
+      "fastest_non_swag": "d-ldc",
+      "swag_raw_median_ms": 48.914750049999995,
+      "competitor_raw_median_ms": 54.155699999999996,
+      "competitive_ratio": 0.9032244075877516,
+      "published_progress_run_release": {
+        "value": 0.9758400853291971,
+        "low": 0.9281988223867983,
+        "high": 0.9948891330987806,
+        "n": 30,
+        "se": 0.017124484247360135,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "dijkstra",
+      "fastest_non_swag": "cpp-msvc",
+      "swag_raw_median_ms": 31.359250015,
+      "competitor_raw_median_ms": 34.93145,
+      "competitive_ratio": 0.8977368536089971,
+      "published_progress_run_release": {
+        "value": 1.0205759500581775,
+        "low": 0.9449974619795823,
+        "high": 1.0749531981877327,
+        "n": 30,
+        "se": 0.03180055436077697,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "sha256",
+      "fastest_non_swag": "zig",
+      "swag_raw_median_ms": 35.999300015,
+      "competitor_raw_median_ms": 41.2697,
+      "competitive_ratio": 0.8722937170611854,
+      "published_progress_run_release": {
+        "value": 1.023681474340242,
+        "low": 0.9908474402699368,
+        "high": 1.0805429705256824,
+        "n": 30,
+        "se": 0.021387509987119448,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "raytrace",
+      "fastest_non_swag": "cpp-msvc",
+      "swag_raw_median_ms": 9.90859995,
+      "competitor_raw_median_ms": 11.584,
+      "competitive_ratio": 0.8553694708218231,
+      "published_progress_run_release": {
+        "value": 1.0001440447357504,
+        "low": 0.8659331829895937,
+        "high": 1.0752122960417443,
+        "n": 30,
+        "se": 0.05342428596250029,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "csvagg",
+      "fastest_non_swag": "odin",
+      "swag_raw_median_ms": 15.9312,
+      "competitor_raw_median_ms": 18.627699999999997,
+      "competitive_ratio": 0.8552424614955149,
+      "published_progress_run_release": {
+        "value": 0.8629711058971581,
+        "low": 0.8325998509867547,
+        "high": 0.9041323708471178,
+        "n": 30,
+        "se": 0.020342117070629412,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    },
+    {
+      "task": "chacha",
+      "fastest_non_swag": "cpp-clang-cl",
+      "swag_raw_median_ms": 21.84395003,
+      "competitor_raw_median_ms": 25.547150000000002,
+      "competitive_ratio": 0.8550444973314048,
+      "published_progress_run_release": {
+        "value": 1.0135306779131121,
+        "low": 0.9834359657842624,
+        "high": 1.0406563735659071,
+        "n": 30,
+        "se": 0.013957771350296137,
+        "exact": true
+      },
+      "this_session_run_index": null,
+      "this_session_null_band": null,
+      "this_session_confirmation": "unconfirmed"
+    }
+  ]
+}

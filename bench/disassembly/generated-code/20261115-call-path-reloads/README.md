@@ -79,7 +79,10 @@ its allocation buffers. Per candidate, each incoming edge costs a traversal of
 at most 256 distinct instructions and their predecessor edges; the additional
 restore list is linear in the join's incoming edges. The existing pass changes
 one candidate and refreshes its CFG before continuing. No new whole-function
-analysis or configurable threshold is added. Compilation cost was not measured.
+analysis or configurable threshold is added. Four alternating before/after Wordfreq
+compilations and their per-child peak RSS are retained in
+[compile-cost-samples.json.gz](compile-cost-samples.json.gz). The host is noisy;
+these samples do not establish a compilation-speed or memory change.
 
 This is the eighth accepted optimization batch of the session (investigation
 round nine; the preceding scan-retention trial was rejected). Runtime improvement

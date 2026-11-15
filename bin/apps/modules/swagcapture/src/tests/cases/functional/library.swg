@@ -498,6 +498,9 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(libWnd.dateFilters[5].month == 1 and libWnd.dateFilters[6].day == 2)
     Swag.require(libWnd.view.items.count == 3)
 
+    // The library tab counts the captures the first fill listed, not the empty page before it.
+    Swag.require(libWnd.folderTabs.items[0]!.count == "3")
+
     // Narrowing to a date keeps its captures only.
     libWnd.applyDateFilter(libWnd.dateFilters[3])
     Swag.require(libWnd.view.items.count == 1)

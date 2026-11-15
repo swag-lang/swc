@@ -350,10 +350,11 @@ impl LibraryWnd
             .deleteObserverRegistered = true
         }
 
+        // The folder tabs count what the page lists, so the sidebar follows the fill.
+        catch .view.fill()
         .sidebarApplications.clear()
         .sidebarTags.clear()
         .rebuildSidebar()
-        catch .view.fill()
         .filledRevision = g_Library.revision
     }
 

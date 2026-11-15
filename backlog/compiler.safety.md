@@ -193,7 +193,8 @@ is the current scorecard.
   the generated `freesFields` effect through a wrapper around a read-only carrier call and diagnoses
   both the field reload and its old alias. Replacement and refill-before-release cases remain
   silent for aliases to the old allocation. Globals, automatic reset inference and unavailable
-  bodies remain unsolved.
+  bodies remain unsolved. Linux `release-safe` validation passes the complete `workspace` suite
+  (56/56 stages), the complete `sanity` suite, and the focused `use_after_free.swg` corpus.
 - One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
   projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
   single run; repeat it before treating the small timing difference as a regression.

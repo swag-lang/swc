@@ -6331,6 +6331,8 @@ namespace SemaEscape
         // Known body calls need not invalidate every field of a carrier. Propagate their
         // actual possible writes first; bodyless and unknown callees remain conservative.
         auto hasEscapeBody = [](const SymbolFunction& function) {
+            if (function.isForeignOrEmptyOrAttribute())
+                return false;
             const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
             return decl && decl->nodeBodyRef.isValid();
         };

@@ -7,7 +7,9 @@ SWC_BEGIN_NAMESPACE();
 // Pre-RA scheduling for register pressure: a pure, flag-free, single-use
 // definition moves down to sit just before its one consumer in the same
 // basic block. A single-use constant-offset address is folded into its
-// memory consumer here, after frame promotion and vectorization.
+// memory consumer or a frame address is formed in its final copied register, after frame
+// promotion and vectorization. Copy retargeting currently requires an acyclic CFG.
+// Cross-block address folds require a stable base.
 //
 // The front end emits a block in source order, so a run of declarations
 // materializes every value before the first one is consumed - sixteen sample

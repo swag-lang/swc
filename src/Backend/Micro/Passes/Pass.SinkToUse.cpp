@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/Passes/Pass.SinkToUse.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
@@ -42,6 +43,7 @@ namespace
         MicroInstrOpcode               op = MicroInstrOpcode::Nop;
         SmallVector<MicroInstrOperand> ops;
         bool                           foldAddress = false;
+        bool                           replaceCopy = false;
     };
 
     struct SinkScratch
@@ -236,6 +238,9 @@ namespace
         bool                       relocationsReady = false;
         thread_local MicroSsaState addressSsa;
         bool                       addressSsaReady = false;
+        const MicroReg             stackPointer    = CallConv::get(context.callConvKind).stackPointer;
+        MicroReg                   frameBase;
+        bool                       frameBaseReady = false;
 
         for (uint32_t i = 0; i < n; ++i)
         {
@@ -262,8 +267,9 @@ namespace
             const MicroInstrOperand*    ops      = inst->ops(operands);
             const MicroInstr*           consumer = storage.ptr(instructionRefs[useIdx]);
             MicroPassHelpers::AmcLayout layout;
-            bool                        foldAddress  = false;
-            uint64_t                    displacement = 0;
+            bool                        foldAddress     = false;
+            bool                        retargetAddress = false;
+            uint64_t                    displacement    = 0;
             if (inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 &&
                 consumer->op != MicroInstrOpcode::LoadAddrRegMem && consumer->op != MicroInstrOpcode::LoadAddrAmcRegMem)
             {
@@ -282,10 +288,35 @@ namespace
                     foldAddress             = consumerOps[layout.baseIdx].reg == value && static_cast<int64_t>(displacement) == static_cast<int64_t>(static_cast<int32_t>(displacement));
                 }
             }
+            if (inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[2].opBits == MicroOpBits::B64 &&
+                consumer->op == MicroInstrOpcode::LoadRegReg)
+            {
+                const auto* copied = consumer->ops(operands);
+                // This replaces the copy at its original point; it does not
+                // coalesce its protected argument lane with an older source.
+                retargetAddress = copied[0].reg.isAnyInt() && copied[1].reg == value && copied[2].opBits == MicroOpBits::B64;
+                // Moving a frame address into a loop can reshuffle its carried
+                // values into spills. Keep that extension for a loop cost model.
+                if (retargetAddress && context.builder->controlFlowGraph().hasLoop())
+                    retargetAddress = false;
+                if (retargetAddress && ops[1].reg != stackPointer && ops[1].reg != context.debugStackBaseVirtualReg)
+                {
+                    // The frame base already lives wherever locals are addressed.
+                    // Extending a heap base can instead displace another hot value.
+                    if (!frameBaseReady)
+                    {
+                        MicroInstrRef frameDefinition;
+                        uint64_t      frameOffset = 0;
+                        frameBase = MicroPassHelpers::detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameDefinition, frameOffset);
+                        frameBaseReady = true;
+                    }
+                    retargetAddress = ops[1].reg == frameBase;
+                }
+            }
             const bool crossesBlocks = scratch.blockIds[useIdx] != scratch.blockIds[i];
             if (crossesBlocks)
             {
-                if (!foldAddress)
+                if (!foldAddress && !retargetAddress)
                     continue;
                 // Address substitution can cross a branch without moving a load.
                 // Only build SSA when such a candidate needs an all-path proof.
@@ -390,7 +421,7 @@ namespace
                 scratch.foldedConsumers.insert(useIdx);
                 continue;
             }
-            if (!meaningfulGap)
+            if (!meaningfulGap && !retargetAddress)
                 continue;
 
             Move move;
@@ -399,6 +430,14 @@ namespace
             move.op        = inst->op;
             if (ops && inst->numOperands)
                 move.ops.assign(ops, ops + inst->numOperands);
+            if (retargetAddress)
+            {
+                // Form the address in its final argument/result register instead
+                // of carrying a temporary across intervening calls and branches.
+                move.ops[0].reg  = consumer->ops(operands)[0].reg;
+                move.replaceCopy = true;
+                scratch.foldedConsumers.insert(useIdx);
+            }
             scratch.moves.push_back(std::move(move));
         }
 
@@ -413,7 +452,11 @@ namespace
             if (move.foldAddress)
                 std::ranges::copy(move.ops, storage.ptr(move.beforeRef)->ops(operands));
             else
+            {
                 storage.insertDerivedBefore(operands, move.beforeRef, move.op, move.ops);
+                if (move.replaceCopy)
+                    storage.erase(move.beforeRef);
+            }
             storage.erase(move.ref);
         }
 

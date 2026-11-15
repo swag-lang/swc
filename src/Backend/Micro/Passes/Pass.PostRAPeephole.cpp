@@ -1421,6 +1421,8 @@ namespace
         r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftNoCopy);
         r.add(MicroInstrOpcode::CmpRegReg, tryFactorCommonConditionalShiftBare);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseRepeatedCompare);
+        for (const MicroInstrOpcode op : {MicroInstrOpcode::CmpRegReg, MicroInstrOpcode::CmpRegImm, MicroInstrOpcode::TestRegReg, MicroInstrOpcode::TestRegImm})
+            r.add(op, tryEraseCompareAtJoin);
         r.add(MicroInstrOpcode::CmpRegReg, tryEraseDeadCompare);
         r.add(MicroInstrOpcode::CmpRegImm, tryEraseDeadCompare);
         for (const MicroInstrOpcode op : {MicroInstrOpcode::CmpRegReg, MicroInstrOpcode::CmpRegImm, MicroInstrOpcode::CmpMemReg,

@@ -96,6 +96,7 @@ struct Panel
     services:           Viewer.HostServices
     pendingPage:        u64 = Swag.U64.Max
     activePage:         u64 = Swag.U64.Max
+    rightToLeft:        bool
     awaitingRetirement: bool
     retiring:           bool
     retryTimer:         *Timer?
@@ -105,7 +106,7 @@ struct Panel
         status:         *Label
         previousButton: *IconButton
         nextButton:     *IconButton
-        pageLabel:      *Label
+        pageLabel:      *IconButton
     }
 }
 
@@ -166,8 +167,8 @@ private impl IWnd for Panel
 
         switch evt.key
         {
-        case .Left:  .turn(-1)
-        case .Right: .turn(1)
+        case .Left:  .turn(.rightToLeft ? 1 : -1)
+        case .Right: .turn(.rightToLeft ? -1 : 1)
         default:     evt.accepted = false
         }
     }
@@ -207,6 +208,41 @@ private impl Panel
             .showPage(page - 1)
         elif delta > 0 and page + 1 < .book.pages.count do
             .showPage(page + 1)
+    }
+
+    mtd toggleReadingDirection()
+    {
+        .rightToLeft = not .rightToLeft
+    }
+
+    internal mtd goToTypedPage(text: string)->bool
+    {
+        var parseErrorOutcome: Swag.Error
+        var parsed: #decltype(expect StrConv.parseU64(text))
+        catch { parsed = try StrConv.parseU64(text) } as parseErrorOutcome
+        let parseError = parseErrorOutcome.value()
+        if parseError != null or
+           parsed.eat != text.count or
+           parsed.ovf or
+           not parsed.value or
+           parsed.value > .book.pages.count do
+            return false
+        .showPage(parsed.value - 1)
+        return true
+    }
+
+    mtd promptGoToPage()
+    {
+        if not .surface or .book.pages.isEmpty() do
+            return
+        var options: EditDlgOptions
+        options.title   = texts().ui_GoToPage
+        options.message = Format.toString(texts().ui_PageRange, .book.pages.count).toString()
+        options.text    = Format.toString("%", .activePage + 1).toString()
+        let dialog = EditDlg.createSingleLine(.surface, options)
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        discard .goToTypedPage(dialog.text())
     }
 
     mtd showPage(index: u64)
@@ -307,6 +343,8 @@ private impl Panel
     {
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.None, .Left))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts().ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
+        entries.add(texts().ui_RightToLeft, .Sort, func|view = me|() { view.toggleReadingDirection() }, checked: .rightToLeft, shortcut: Input.formatKeyShortcut(.Control, .R))
     }
 
     func create(host: Viewer.Host)->*Panel
@@ -330,7 +368,10 @@ private impl Panel
             .sigPressed      += func|view = result|(_) { view.turn(-1) }
         }
 
-        result.pageLabel = Viewer.createPageLabel(info)
+        with result.pageLabel = Viewer.createPageReadout(info, "scope.comic.page", texts().ui_GoToPage)
+        {
+            .sigPressed += func|view = result|(_) { view.promptGoToPage() }
+        }
         with result.nextButton = Viewer.createPageStep(info, 1)
         {
             .dockStyle       = .Left

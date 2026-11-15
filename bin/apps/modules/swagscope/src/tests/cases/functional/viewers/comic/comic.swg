@@ -37,6 +37,42 @@ using Core, Gui, Gui.Testing, Viewers
 
 }
 
+// The page readout accepts a one-based page number and rejects values outside the book.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
+    let view = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(view.goToTypedPage("0") == false)
+    Swag.require(view.goToTypedPage("3") == false)
+    Swag.require(view.goToTypedPage("page") == false)
+    Swag.require(view.goToTypedPage("2"))
+    Swag.require(view.activePage == 1 or view.pendingPage == 1)
+    Swag.drainWork()
+    host.pump()
+    Swag.require(view.activePage == 1 and view.pageLabel.text() == "2 / 2")
+}
+
+// Horizontal keys follow Western order by default and reverse for manga reading.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
+    let view = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+
+    view.rightToLeft = true
+    var nextPage = KeyEvent{kind: .Pressed, key: .Left}
+    view.sendEvent(&nextPage)
+    Swag.require(view.activePage == 1)
+
+    var previousPage = KeyEvent{kind: .Pressed, key: .Right}
+    view.sendEvent(&previousPage)
+    Swag.require(view.activePage == 0 or view.pendingPage == 0)
+    Swag.drainWork()
+    host.pump()
+    Swag.require(view.activePage == 0)
+}
+
 // Nested image paths and mixed PNG/JPEG pages still follow natural archive order.
 #test
 {

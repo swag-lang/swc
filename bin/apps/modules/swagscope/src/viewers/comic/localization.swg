@@ -6,12 +6,15 @@ using Core, Gui
 // Visible strings of the comic-book reader.
 struct Texts
 {
-    ui_Name:      string = "Comic book"
-    ui_Previous:  string = "Previous page"
-    ui_Next:      string = "Next page"
-    ui_Preparing: string = "Preparing page…"
-    ui_Details:   string = "Comic book · page % of %"
-    err_NoPages:  string = "This comic book contains no readable pages."
+    ui_Name:        string = "Comic book"
+    ui_Previous:    string = "Previous page"
+    ui_Next:        string = "Next page"
+    ui_RightToLeft: string = "Read right to left"
+    ui_Preparing:   string = "Preparing page…"
+    ui_Details:     string = "Comic book · page % of %"
+    ui_GoToPage:    string = "Go to page"
+    ui_PageRange:   string = "Enter a page number from 1 to %."
+    err_NoPages:    string = "This comic book contains no readable pages."
 }
 
 private const FrenchStringsName = "lang/fr/scope.comic.tweak"

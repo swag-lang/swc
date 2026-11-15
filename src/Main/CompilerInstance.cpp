@@ -1590,6 +1590,18 @@ void CompilerInstance::addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
     escapeSummaryEdgesVersion_.fetch_add(1, std::memory_order_release);
 }
 
+void CompilerInstance::addEscapeFieldSummaryForwarding(const SemaEscapeFieldSummaryForwarding& forwarding)
+{
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
+    fieldSummaryForwardings_.push_back(forwarding);
+}
+
+std::vector<SemaEscapeFieldSummaryForwarding> CompilerInstance::takeEscapeFieldSummaryForwardings()
+{
+    const std::unique_lock lock(deferredEscapeChecksMutex_);
+    return std::exchange(fieldSummaryForwardings_, {});
+}
+
 bool CompilerInstance::freesPropagationAlreadyDone(const uint64_t signature) const
 {
     const std::scoped_lock lock(freesPropagationMutex_);

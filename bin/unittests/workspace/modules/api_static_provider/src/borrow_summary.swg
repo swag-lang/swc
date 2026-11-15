@@ -157,6 +157,16 @@ func depUafInferredAliasReleaseField(node: *DepUafNode)
     Swag.getContext().allocator!.free(&req)
 }
 
+func depUafInferredReleaseWrapper(node: *DepUafNode)
+{
+    depUafInferredReleaseField(node)
+}
+
+func depUafInferredReplaceWrapper(node: *DepUafNode)
+{
+    depUafReplaceField(node)
+}
+
 func depUafInferredReplaceField(node: *DepUafNode)
 {
     var req: Swag.AllocatorRequest

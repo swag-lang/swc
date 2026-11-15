@@ -287,3 +287,30 @@ func testPopulate(capture: *Capture)
     f.capture.pushUndo(undo)
     Swag.require(movedCache.dirty and not stillCache.dirty)
 }
+
+// A new picture of the same shape replaces the background texture in place, as each frame of
+// an animation does, and the forms that bake the background still see that it changed.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+    discard f.gui.render(f.main)
+    let handle = f.capture.backTexture.handle
+    let serial = f.capture.serialBackTexture
+
+    f.capture.backImg.fill(Argb.Red)
+    f.capture.dirtyBackImg = true
+    var shown = f.gui.render(f.main)
+    Swag.require(f.capture.backTexture.handle == handle and f.capture.serialBackTexture == serial + 1)
+
+    let rect = f.editView.getCaptureRect()
+    let center = f.editView.localToSurface(Math.Point{rect.x + rect.width * 0.5, rect.y + rect.height * 0.5})
+    let color = shown.pixelColor(cast(s32, center.x), cast(s32, center.y))
+    Swag.require(color.r > 200 and color.g < 60 and color.b < 60)
+
+    f.capture.backImg = Image.create(200, 100, .BGRA8)
+    f.capture.dirtyBackImg = true
+    discard f.gui.render(f.main)
+    Swag.require(f.capture.backTexture.width == 200 and f.capture.serialBackTexture == serial + 2)
+}

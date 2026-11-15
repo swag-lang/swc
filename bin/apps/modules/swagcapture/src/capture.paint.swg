@@ -521,11 +521,21 @@ impl Capture
                 .serialBackTexture += 1
             }
 
-            // Re-upload the texture after a background edit.
+            // Re-upload the texture after a background edit. Pixels of the same shape replace
+            // the old ones in place: animation playback changes them on every frame.
             if .backTexture.isValid() and .dirtyBackImg
             {
-                renderer.removeTexture(&.backTexture)
-                .backTexture       = renderer.addImage(.backImg)
+                let texture = .backTexture
+                let reused  = texture.width == .backImg.width and
+                              texture.height == .backImg.height and
+                              texture.pixelFormat == .backImg.pixelFormat and
+                              renderer.updateTexture(texture, cast(const *u8, unwrap .backImg.pixels.buffer))
+                if not reused
+                {
+                    renderer.removeTexture(&.backTexture)
+                    .backTexture = renderer.addImage(.backImg)
+                }
+
                 .dirtyBackImg      = false
                 .serialBackTexture += 1
             }

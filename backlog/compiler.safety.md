@@ -186,10 +186,22 @@ is the current scorecard.
   an unannotated release-and-replace method, but aliases copied before that call are not yet
   diagnosed. Known direct wrappers now forward explicit and inferred field effects after module
   analysis; release-and-replace wrappers preserve both the old-alias diagnostic and safe field
-  reload. Globals, automatic reset inference and unavailable bodies remain unsolved.
-- Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
-  extend the same before/after distinction to globals and unavailable bodies. Refine conservative
-  suppression for calls that receive a carrier while retaining soundness.
+  reload. A pointer value projected from a field also carries a callee's direct `frees` effect back
+  to that field through wrappers. For body-visible carrier calls, possible field writes now
+  propagate separately from releases: a known read-only call no longer suppresses a later
+  field-release summary, while bodyless calls remain conservative. The consumer regression verifies
+  the generated `freesFields` effect through a wrapper around a read-only carrier call and diagnoses
+  both the field reload and its old alias. Replacement and refill-before-release cases remain
+  silent for aliases to the old allocation. Globals, automatic reset inference and unavailable
+  bodies remain unsolved. Linux `release-safe` validation passes the complete `workspace` suite
+  (56/56 stages), the complete `sanity` suite, the focused `use_after_free.swg` corpus, and 1,699
+  C++ unit tests.
+- One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
+  projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
+  single run; repeat it before treating the small timing difference as a regression.
+- Next: extend the same before/after distinction to globals and unavailable bodies. Infer
+  guaranteed resets where control flow proves every return leaves valid storage, and consider
+  explicit write summaries for bodyless calls before relaxing their conservative suppression.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

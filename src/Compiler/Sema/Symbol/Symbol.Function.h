@@ -119,6 +119,8 @@ public:
 
     bool hasFreedParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
     bool hasResetParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
+    bool hasPossiblyWrittenParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
+    bool mayWriteUnknownParamFields() const noexcept { return unknownCallMayWriteParamFields_; }
     void addFreedParamField(size_t paramIndex, std::string_view fieldName);
     // Possible writes suppress inferred freesFields when no must-reset proof exists.
     void markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName);

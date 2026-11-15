@@ -276,11 +276,16 @@ private impl Panel
 
 func createViewer(host: Viewer.Host)
 {
+    createPresentationViewer(host, &Presentation.load)
+}
+
+func createPresentationViewer(host: Viewer.Host, loader: func(string)->Presentation fail)
+{
     let view = Panel.create(host)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index) { view.showSlide(index) }
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
-    view.load.start(host.fileName(), &Presentation.load, view)
+    view.load.start(host.fileName(), loader, view)
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

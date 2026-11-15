@@ -5842,6 +5842,7 @@ namespace SemaEscape
 
             const uint64_t origins = parameterOriginsMask(*caller, info);
             const SymbolVariable* callerField = callerArgumentProjectionField(sema, resolvedRef, *callee, thisParam, argument.argRef);
+            const SymbolVariable* projectedField = callerField ? callerField : info.borrowedParameterField;
             if (callerField)
             {
                 const TypeRef fieldTypeRef   = unwrapAliasEnum(sema, callerField->typeRef());
@@ -5857,6 +5858,16 @@ namespace SemaEscape
             }
 
             const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramType.payloadTypeRef());
+            if (!payloadType.isStruct() && projectedField && unwrapAliasEnum(sema, projectedField->typeRef()) == paramTypeRef)
+            {
+                for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+                {
+                    const size_t origin = std::countr_zero(remaining);
+                    sema.ctx().compiler().addEscapeFieldSummaryForwarding({caller, callee, static_cast<uint32_t>(origin), static_cast<uint32_t>(thisParam), projectedField, true});
+                }
+                continue;
+            }
+
             if (!payloadType.isStruct())
                 continue;
 
@@ -6317,8 +6328,43 @@ namespace SemaEscape
         const std::vector<SemaEscapeSummaryEdge> edges  = ctx.compiler().takeEscapeSummaryEdges();
         const std::vector<SemaEscapeFieldSummaryForwarding> fieldForwardings = ctx.compiler().takeEscapeFieldSummaryForwardings();
 
-        // Field summaries can cross wrappers only after every callee has finished sema.
-        // Resolve field releases to a fixpoint so wrapper chains are independent of job order.
+        // Known body calls need not invalidate every field of a carrier. Propagate their
+        // actual possible writes first; bodyless and unknown callees remain conservative.
+        auto hasEscapeBody = [](const SymbolFunction& function) {
+            if (function.isForeignOrEmptyOrAttribute())
+                return false;
+            const auto* decl = function.decl() ? function.decl()->safeCast<AstFunctionDecl>() : nullptr;
+            return decl && decl->nodeBodyRef.isValid();
+        };
+
+        bool writesChanged = true;
+        while (writesChanged)
+        {
+            writesChanged = false;
+            for (const SemaEscapeFieldSummaryForwarding& forwarding : fieldForwardings)
+            {
+                if (!forwarding.caller || !forwarding.callee || !forwarding.field || forwarding.calleeFreesProjectedPointer)
+                    continue;
+
+                const std::string_view fieldName = forwarding.field->name(ctx);
+                if (forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName))
+                    continue;
+
+                const bool bodylessMayWrite = !hasEscapeBody(*forwarding.callee);
+                if (!bodylessMayWrite && !forwarding.callee->mayWriteUnknownParamFields() &&
+                    !forwarding.callee->hasPossiblyWrittenParamField(forwarding.calleeParamIndex, fieldName))
+                    continue;
+
+                if (!forwarding.caller->hasPossiblyWrittenParamField(forwarding.callerParamIndex, fieldName))
+                {
+                    forwarding.caller->markParamFieldPossiblyWritten(forwarding.callerParamIndex, fieldName);
+                    writesChanged = true;
+                }
+            }
+        }
+
+        // Field frees can cross wrappers only after every callee has finished sema.
+        // Resolve release effects to a fixpoint so wrapper chains are independent of job order.
         bool changed = true;
         while (changed)
         {
@@ -6329,24 +6375,20 @@ namespace SemaEscape
                     continue;
 
                 const std::string_view fieldName = forwarding.field->name(ctx);
-                if (!forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName))
+                const bool calleeFreesField = forwarding.calleeFreesProjectedPointer ?
+                                                  (forwarding.callee->freesParamsMask() & (1ULL << forwarding.calleeParamIndex)) != 0 :
+                                                  forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName);
+                if (!calleeFreesField)
                     continue;
 
                 const size_t beforeFreed = forwarding.caller->freedParamFields().size();
                 const size_t beforeReset = forwarding.caller->resetParamFields().size();
                 forwarding.caller->addFreedParamField(forwarding.callerParamIndex, fieldName);
-                if (forwarding.callee->hasResetParamField(forwarding.calleeParamIndex, fieldName) &&
+                if (!forwarding.calleeFreesProjectedPointer && forwarding.callee->hasResetParamField(forwarding.calleeParamIndex, fieldName) &&
                     forwarding.caller->hasFreedParamField(forwarding.callerParamIndex, fieldName))
                     forwarding.caller->addResetParamField(forwarding.callerParamIndex, fieldName);
                 changed |= beforeFreed != forwarding.caller->freedParamFields().size() || beforeReset != forwarding.caller->resetParamFields().size();
             }
-        }
-
-        for (const SemaEscapeFieldSummaryForwarding& forwarding : fieldForwardings)
-        {
-            if (forwarding.caller && forwarding.callee && forwarding.field &&
-                !forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, forwarding.field->name(ctx)))
-                forwarding.caller->markParamFieldPossiblyWritten(forwarding.callerParamIndex, forwarding.field->name(ctx));
         }
 
         // Chain opaque-call summaries before judging escapes: returned and stored

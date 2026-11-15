@@ -1,4 +1,6 @@
-using Core
+using Core, Gui, Pixel
+
+private const VaultIcon = #include("../../swagvault/datas/appicon.png")
 
 // Retains provenance in memory even when the mount disappears or an archive is extracted.
 struct ViewerPrivacySource
@@ -19,10 +21,82 @@ struct ViewerPrivacy
     batch:        Array'String
     musicChoices: Array'MusicChoice
     folderViews:  Array'ExplorerFolderState
+    caption:      *CaptionButton?
+    icons:        ImageList
 }
 
 impl ViewerPrivacy
 {
+    mtd createIndicator()
+    {
+        .caption = CaptionButton.createLeading(unwrap .window.surface, .Lock)
+        .caption.hide()
+    }
+
+    // Reuse Vault's actual mark as a tintable mask; its tile and background stay out of the strip.
+    private mtd createIcon()
+    {
+        var source = expect Image.decode(".png", VaultIcon)
+        source.resize(64, 64, .Bilinear)
+        var mask      = Image.create(64, 64, .RGBA8)
+        var left: s32 = 64
+        var top:  s32 = 64
+        var right, bottom: s32
+        for y in 64
+        {
+            for x in 64
+            {
+                let color = source.pixelColor(x, y)
+                let level = cast(s32, Math.max(color.r, Math.max(color.g, color.b)))
+                let alpha = cast(u8, Math.clamp((level - 32) * 255 / 160, 0, 255))
+
+                // Image coordinates start at the top; packed image rows start at the bottom.
+                let pixel = mask.pixels.storage() + cast(u64, (63 - y) * mask.rowStride + x * 4)
+                pixel[0] = 255
+                pixel[1] = 255
+                pixel[2] = 255
+                pixel[3] = alpha
+                if alpha > 32
+                {
+                    left   = Math.min(left, x)
+                    top    = Math.min(top, y)
+                    right  = Math.max(right, x)
+                    bottom = Math.max(bottom, y)
+                }
+            }
+        }
+
+        mask.crop(left, top, right - left + 1, bottom - top + 1)
+        .icons = ImageList.create(.window.app().renderer.addImage(&mask))
+    }
+
+    mtd refreshIndicator()
+    {
+        if not .caption do
+            return
+        let path        = .window.isExploring() ? .window.explorer!.listing.path.toString() : .window.currentFile.toString()
+        let privateMode = path.count and .policy(path).privateMode
+        .caption.toolTip = appStrings().ui_PrivateVault
+        if privateMode
+        {
+            if not .icons.isValid() do
+                .createIcon()
+            let size  = .window.themeMetrics().wnd_CaptionButtonGlyph
+            let width = size * cast(f32, .icons.frameWidth) / cast(f32, .icons.frameHeight)
+            .caption.button.setIcon(Icon.from(&.icons, 0, width, size))
+            .caption.setIconColor(.window.themeColors().critical)
+        }
+
+        .caption.show(privateMode and not .window.fullScreen)
+    }
+
+    mtd destroyIndicator()
+    {
+        .caption?.destroy()
+        .caption = null
+        .icons.release(.window.app().renderer)
+    }
+
     mtd track(path: string, policy: File.MountPrivacy)
     {
         if not path.count do

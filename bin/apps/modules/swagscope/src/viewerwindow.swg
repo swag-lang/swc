@@ -354,6 +354,7 @@ impl IWnd for ViewerWindow
         if evt.timer == .privacyTimer
         {
             discard .privacy.refresh()
+            .privacy.refreshIndicator()
             if .privacy.dirty
             {
                 .refreshHome()
@@ -453,6 +454,7 @@ impl IWnd for ViewerWindow
         .stopSlide()
         .stopTimer(&.privacyTimer)
         .privacy.flush()
+        .privacy.destroyIndicator()
         .stopTimer(&.fileWatchTimer)
         .stopTimer(&.viewerBarTimer)
 
@@ -520,10 +522,12 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &Viewers.Film.g_SubtitleSettings)
+        catch evt.serializer.serialize("ViewerWindow.movieDetection", &Viewers.Film.g_MovieDetectionSettings)
         catch evt.serializer.serialize("ViewerWindow.markdown", &Viewers.MarkdownText.g_ViewerSettings)
         catch evt.serializer.serialize("ViewerWindow.midi", &Viewers.Midi.g_ViewerSettings)
         if evt.serializer.isReading()
         {
+            Viewers.Film.g_MovieDetectionSettings.sanitize()
             .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
@@ -717,6 +721,7 @@ impl ViewerWindow
 
     mtd refreshExplorerCaption()
     {
+        .privacy.refreshIndicator()
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
@@ -1141,6 +1146,7 @@ impl ViewerWindow
         }
 
         result.privacy.window = result
+        result.privacy.createIndicator()
         result.privacyTimer   = result.addTimer(250'ms)
         result.hookChildEvents()
 

@@ -6,7 +6,7 @@ using Core, Gui
 struct ThumbnailSettings
 {
     onlineMovies:        bool
-    allMovieNames:       bool     // Explicit poster presentation also searches short, undated films.
+    movieDetection:      Viewers.Film.MovieDetectionSettings
     localArtworkOnly:    bool
     onlineMusic:         bool
     movieLanguage:       String
@@ -27,7 +27,7 @@ impl ThumbnailSettings
     {
         var settings: ThumbnailSettings
         settings.onlineMovies     = window.onlineMovies
-        settings.allMovieNames    = window.explorer and window.explorer.forced and window.explorer.forcedBoard == .Posters
+        settings.movieDetection   = Viewers.Film.g_MovieDetectionSettings
         settings.localArtworkOnly = localArtworkOnly
         settings.onlineMusic      = window.onlineMusic
         settings.previewEpoch     = previewEpoch

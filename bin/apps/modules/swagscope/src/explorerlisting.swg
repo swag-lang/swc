@@ -16,6 +16,7 @@ struct ExplorerEntry
     albumTrack:    String     // First direct audio file when this folder is an album.
     archiveIndex:  u64 = Swag.U64.Max
     texture:       Texture
+    framing:       ThumbnailFraming
     duration:      u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
     children:      u64 = Swag.U64.Max     // Items a folder holds, when they were counted.
 

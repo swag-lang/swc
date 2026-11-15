@@ -1547,6 +1547,7 @@ impl Explorer
             .restoredView.restorePosition(me)
             .restoringView = false
         }
+        .window.privacy.refreshIndicator()
     }
 
     // Chooses the preview shape from the files listed, before any image arrives. A folder of films
@@ -2150,7 +2151,7 @@ impl Explorer
         entry.attempted = true
         if online do
             entry.onlinePending = false
-        preview.start(me)
+        preview.start(me, durationHint: entry.duration)
         .grid.invalidate()
         return true
     }
@@ -2239,6 +2240,8 @@ impl IWnd for Explorer
 
                 if preview.generation == .generation
                 {
+                    if not preview.opening and preview.durationHint do
+                        .entries[preview.index].duration = preview.durationHint
                     if not preview.opening and not preview.online do
                         .entries[preview.index].onlinePending = preview.needsOnline
                     if preview.index == .selected and not preview.error.isEmpty() do
@@ -2275,6 +2278,7 @@ impl IWnd for Explorer
                         if replacing do
                             .app().renderer.removeTexture(&.entries[preview.index].texture)
                         .entries[preview.index].texture = uploaded
+                        .entries[preview.index].framing = ThumbnailFraming.fromImage(&preview.image)
                         let duration = thumbnailDuration(&preview.image)
                         if duration or not preview.online do
                             .entries[preview.index].duration = duration
@@ -2656,6 +2660,13 @@ impl ExplorerGrid
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
         {
             let entry = &grid.explorer.entries[index]
+            let glyph = grid.theme().fileGlyph(entry.name, entry.directory, 16)
+            if entry.texture.isValid() and
+               (glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
+            {
+                entry.framing.paint(grid, painter, entry.texture, tile)
+                return true
+            }
             if grid.board == .Grid and grid.paintCard(painter, tile, entry) do
                 return true
             if grid.board == .Covers and entry.texture.isValid() and entry.texture.width <= 1

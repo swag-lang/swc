@@ -9,6 +9,8 @@ struct ScopeMediaOptions
     #[Properties.Name("Online Movie Posters and Details"), Properties.Description("TMDB first, then Apple and Wikipedia.")]
     onlineMovies: bool
 
+    using movieDetection: Viewers.Film.MovieDetectionSettings
+
     #[Properties.Name("Online Music Covers and Details"), Properties.Description("MusicBrainz and Cover Art Archive need no API key.")]
     onlineMusic: bool
 
@@ -66,6 +68,7 @@ impl ViewerWindow
         elif hasKey do
             status = appStrings().ui_TMDBKeyConfigured
         var media = ScopeMediaOptions{onlineMovies: .onlineMovies, onlineMusic: .onlineMusic,
+                                      movieDetection: Viewers.Film.g_MovieDetectionSettings,
                                       tmdbCredentialStatus: status}
         let oldMarkdown = Viewers.MarkdownText.g_ViewerSettings
         let oldMidi     = Viewers.Midi.g_ViewerSettings
@@ -85,6 +88,12 @@ impl ViewerWindow
 
         if dialog.doModal() != Dialog.BtnOk do
             return
+        catch media.movieDetection.validate()
+        {
+            MessageDlg.error(unwrap .surface, appStrings().ui_InvalidMoviePattern)
+            return
+        }
+
         let token = Latin1.trim(media.tmdbToken.toString())
         let key   = Latin1.trim(media.tmdbKey.toString())
         if not media.clearTMDB and token.count and not validTMDBToken(token)
@@ -110,7 +119,9 @@ impl ViewerWindow
 
         .onlineMovies = media.onlineMovies
         .onlineMusic  = media.onlineMusic
+        Viewers.Film.g_MovieDetectionSettings = media.movieDetection
         Viewers.Film.g_SubtitleSettings.sanitize()
+        Viewers.Film.g_MovieDetectionSettings.sanitize()
         Viewers.MarkdownText.g_ViewerSettings.sanitize()
         Viewers.Midi.g_ViewerSettings.sanitize()
         if .explorer do

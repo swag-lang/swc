@@ -21,17 +21,8 @@ func localAlbumArtwork(file: string)->String
 
 func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings, duration: u64 = 0)->bool =>
     not settings.localArtworkOnly and
-    ((settings.onlineMovies and automaticMoviePreview(file, duration, settings.allMovieNames)) or
+    ((settings.onlineMovies and settings.movieDetection.matches(file, duration)) or
      (settings.onlineMusic and albumAudio(file)))
-
-// A release name or feature-length video merits a catalog search; ordinary clips stay local.
-func automaticMoviePreview(file: string, duration: u64 = 0, allNames = false)->bool
-{
-    if albumAudio(file) or not Reader.canOpen(file) do
-        return false
-    let query = MovieQuery.fromFile(file)
-    return not query.title.isEmpty() and (allNames or not query.year.isEmpty() or duration >= 40 * 60)
-}
 
 // Reads a sound file's duration without decoding its samples.
 func localSoundDuration(file: string)->u64
@@ -76,16 +67,18 @@ struct ExplorerPreview
     opening:         bool
     online:          bool     // Resolves final artwork before an eligible film is published.
     needsOnline:     bool
+    durationHint:    u64     // Metadata-only movie classification, before any frame is decoded.
     settings:        String
     privacy:         File.MountPrivacy
 }
 
 impl ExplorerPreview
 {
-    mtd start(owner: *Wnd)
+    mtd start(owner: *Wnd, durationHint: u64 = 0)
     {
-        .image       = {}
-        .needsOnline = false
+        .durationHint = durationHint
+        .image        = {}
+        .needsOnline  = false
         .error.clear()
         .temporary.clear()
         let operation = me
@@ -186,11 +179,25 @@ impl ExplorerPreview
                 }
             }
 
+            .durationHint = Math.max(.durationHint, thumbnailDuration(&.image))
+            if .archivePath.isEmpty() and
+               settings.onlineMovies and
+               not settings.localArtworkOnly and
+               settings.movieDetection.nameMatches(file) and
+               not .durationHint
+            {
+                catch
+                {
+                    var reader = try Reader.open(file, pictureOnly: true)
+                    .durationHint = cast(u64, Math.ceil(reader.durationInSeconds()))
+                }
+            }
+
             if not .online
             {
                 // A named release goes straight to its final artwork. Decode a local frame
                 // only if the catalog has no poster, so a successful lookup never pays for it.
-                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings)
+                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings, .durationHint)
                 if .needsOnline and not albumAudio(file) do
                     return
                 if albumAudio(file)
@@ -224,7 +231,7 @@ impl ExplorerPreview
             var movie:     OnlineMovie
             var music:     OnlineMusic
             var musicTags: SoundTags
-            var localDuration = thumbnailDuration(&.image)
+            var localDuration = Math.max(.durationHint, thumbnailDuration(&.image))
             var posterLoaded  = false
             if not localDuration and albumAudio(file) do
                 localDuration = localSoundDuration(file)
@@ -233,7 +240,7 @@ impl ExplorerPreview
             if settings.onlineMovies and
                not settings.localArtworkOnly and
                .archivePath.isEmpty() and
-               automaticMoviePreview(file, localDuration, settings.allMovieNames)
+               settings.movieDetection.matches(file, localDuration)
             {
                 providerAttempted = true
                 catch

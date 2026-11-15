@@ -12,7 +12,7 @@ using Core, Gui, Pixel
     window.onlineMovies = true
     let explorer = Explorer.create(window.documentPanel, window)
     window.explorer = explorer
-    explorer.entries.add({name: "Release (1982).mkv", path: Testing.tempFilePath("scope-release-", " (1982).mkv")})
+    explorer.entries.add({name: "Release (1982).mkv", path: Testing.tempFilePath("scope-release-", " (1982).mkv"), duration: 5400})
     explorer.entries.add({name: "Clip.mp4", path: Testing.tempFilePath("scope-clip-", ".mp4")})
     explorer.setMode(.Medium)
     explorer.requestPreview()

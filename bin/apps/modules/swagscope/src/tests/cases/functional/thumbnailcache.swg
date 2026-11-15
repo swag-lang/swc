@@ -78,7 +78,7 @@ using Core, Pixel, Gui
     defer catch File.delete(source)
     var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
-    expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true})
+    expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true, movieDetection: {minimumMinutes: 0}})
     var preview: ExplorerPreview
     preview.path     = source
     preview.settings = buffer.toString()
@@ -125,7 +125,7 @@ using Core, Pixel, Gui
     defer catch File.delete(source)
     var buffer:  ConcatBuffer
     var encoder: Serialization.Encoder'Serialization.Write.TagBin
-    expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true})
+    expect encoder.writeAll(&buffer, ThumbnailSettings{onlineMovies: true, movieDetection: {minimumMinutes: 0}})
     let settings = buffer.toString()
     let key      = expect ThumbnailCache.key(source, settings: settings)
     defer catch File.delete(key)

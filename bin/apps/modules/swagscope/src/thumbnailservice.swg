@@ -32,6 +32,14 @@ impl ThumbnailService
                          .Bilinear)
         }
 
+        var pluginIndex: u64
+        if .registry.namePlugin(path, &pluginIndex) and
+           (.registry.plugins[pluginIndex].key == "image" or .registry.plugins[pluginIndex].key == "video")
+        {
+            let framing = ThumbnailFraming.analyze(&image)
+            framing.label(&image)
+        }
+
         return image
     }
 }

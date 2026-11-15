@@ -389,6 +389,10 @@ struct SanitizerState
     // call so a proven fault can point back to its origin.
     SanitizerSparseMap<int64_t, SourceCodeRef> freedPtrSlots;
 
+    // Slots that may hold a released pointer on at least one incoming path. Unlike
+    // 'freedPtrSlots', this fact joins by union and can only produce a warning.
+    SanitizerSparseMap<int64_t, SourceCodeRef> maybeFreedPtrSlots;
+
     // Proven slot copies: the key holds the very value the mapped slot holds. Only slots
     // inside a declared local whose address is never formed take part, so nothing but an
     // explicit store to one of the two can break the equality - neither a callee nor a

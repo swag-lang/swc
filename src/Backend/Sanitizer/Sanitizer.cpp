@@ -60,6 +60,28 @@ namespace
         }
     }
 
+    // Keeps every location present on any incoming path. A disagreement loses only
+    // the note origin; the warning still points at the possible use.
+    template<typename TMap>
+    void unionSourceLocations(TMap& into, const TMap& from, bool& changed)
+    {
+        for (const auto& [key, source] : from)
+        {
+            const auto found = into.find(key);
+            if (found == into.end())
+            {
+                into.insertOrAssign(key, source);
+                changed = true;
+            }
+            else if (found->second.isValid() && source.isValid() &&
+                     (found->second.srcViewRef != source.srcViewRef || found->second.tokRef != source.tokRef))
+            {
+                found->second = {};
+                changed      = true;
+            }
+        }
+    }
+
     uint8_t sanitizerCheckInterests(const MicroInstr& inst, const MicroInstrDef& def)
     {
         if (inst.compilerSafetyCall)
@@ -1050,6 +1072,8 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
         intersectSourceLocations(into.freedPtrSlots, from.freedPtrSlots, changed);
     }
 
+    unionSourceLocations(into.maybeFreedPtrSlots, from.maybeFreedPtrSlots, changed);
+
     if (!clearOnEmptyIntersection(into.aliasPtrRegs, from.aliasPtrRegs, changed))
     {
         for (auto it = into.aliasPtrRegs.begin(); it != into.aliasPtrRegs.end();)
@@ -1179,6 +1203,7 @@ namespace
 void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t slot) const
 {
     state.freedPtrSlots.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
+    state.maybeFreedPtrSlots.eraseIf([slot](const auto& entry) { return storeOverlapsPointer(entry.first, slot); });
 
     // An object is named by where its pointer lives: rewriting that pointer makes the
     // name mean another object, so nothing said about the old one may survive it.
@@ -1195,6 +1220,7 @@ void Sanitizer::forgetWrittenLifecycleFacts(SanitizerState& state, const int64_t
 void Sanitizer::forgetReachableLifecycleFacts(SanitizerState& state) const
 {
     state.freedPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
+    state.maybeFreedPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
     state.aliasPtrSlots.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first) || frameObjectReachable(state, entry.second); });
     state.aliasPtrRegs.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
     state.aliasPtrLocations.eraseIf([&](const auto& entry) { return frameObjectReachable(state, entry.first); });
@@ -1223,7 +1249,10 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
         else if (valueReg.isVirtual() && hasSingleDefinition(valueReg))
             state.aliasPtrRegs.insertOrAssign(slot, valueReg);
         if (source && source->releasedPointer)
+        {
             state.freedPtrSlots.insertOrAssign(slot, source->releasedOrigin);
+            state.maybeFreedPtrSlots.insertOrAssign(slot, source->releasedOrigin);
+        }
         if (source && source->hasOriginLocation)
             state.aliasPtrLocations.insertOrAssign(slot, source->originLocation);
         else if (source && source->hasOriginSlot)
@@ -1249,10 +1278,16 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
 
     // Copying a pointer that is already released carries the release with it.
     const auto released = state.freedPtrSlots.find(root);
-    if (released == state.freedPtrSlots.end())
+    if (released != state.freedPtrSlots.end())
+    {
+        state.freedPtrSlots.insertOrAssign(slot, released->second);
+        state.maybeFreedPtrSlots.insertOrAssign(slot, released->second);
         return;
-    const SourceCodeRef origin = released->second;
-    state.freedPtrSlots.insertOrAssign(slot, origin);
+    }
+
+    const auto maybeReleased = state.maybeFreedPtrSlots.find(root);
+    if (maybeReleased != state.maybeFreedPtrSlots.end())
+        state.maybeFreedPtrSlots.insertOrAssign(slot, maybeReleased->second);
 }
 
 void Sanitizer::appendAliasClass(SmallVector<int64_t>& out, const SanitizerState& state, const int64_t slot)
@@ -1339,7 +1374,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
     // Lifecycle facts - a released pointer, and the slot copies that share it - follow
     // one aliasing discipline: any write that could reassign a slot revalidates it. Calls
     // are handled below, after the freeing call has marked its own arguments.
-    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.aliasPtrSlots.empty() || !state.aliasPtrRegs.empty() || !state.aliasPtrLocations.empty() ||
+    const bool hasLifecycleFacts = !state.freedPtrSlots.empty() || !state.maybeFreedPtrSlots.empty() || !state.aliasPtrSlots.empty() || !state.aliasPtrRegs.empty() || !state.aliasPtrLocations.empty() ||
                                    (state.freedPtrLocations && !state.freedPtrLocations->empty());
     if (hasLifecycleFacts && !def.flags.has(MicroInstrFlagsE::IsCallInstruction) && def.flags.has(MicroInstrFlagsE::WritesMemory))
     {
@@ -1378,6 +1413,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             // A frame write the analysis cannot pin to one slot: it lands anywhere in the
             // object it indexes, so every fact about the frame goes.
             state.freedPtrSlots.clear();
+            state.maybeFreedPtrSlots.clear();
             state.aliasPtrSlots.clear();
             state.aliasPtrRegs.clear();
             state.aliasPtrLocations.clear();
@@ -1413,6 +1449,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 for (const int64_t alias : released)
                 {
                     state.freedPtrSlots.insertOrAssign(alias, inst.debugSourceInfo.sourceCodeRef);
+                    state.maybeFreedPtrSlots.insertOrAssign(alias, inst.debugSourceInfo.sourceCodeRef);
 
                     const auto reg = state.aliasPtrRegs.find(alias);
                     if (reg != state.aliasPtrRegs.end())
@@ -2020,6 +2057,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             if (extent && std::ranges::find(addressedByCallee, extent->start) != addressedByCallee.end())
                 continue;
             state.freedPtrSlots.insertOrAssign(slot, inst.debugSourceInfo.sourceCodeRef);
+            state.maybeFreedPtrSlots.insertOrAssign(slot, inst.debugSourceInfo.sourceCodeRef);
         }
         return;
     }
@@ -2262,7 +2300,7 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArgu
     // The same source location can be reached by several paths and can lower to several
     // instructions; report each (location, diagnostic) pair at most once.
     const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 40) ^ (static_cast<uint64_t>(codeRef.tokRef.get()) << 8) ^ static_cast<uint64_t>(id);
-    reported_          = true;
+    reported_ |= Diagnostic::diagIdSeverity(id) == DiagnosticSeverity::Error;
     if (!reportedLocations_)
         reportedLocations_.emplace();
     if (!reportedLocations_->insert(key).second)
@@ -2278,7 +2316,7 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArgu
         diag.last().addArgument(Diagnostic::ARG_SYM, arguments.sym);
     if (!arguments.what.empty())
         diag.last().addArgument(Diagnostic::ARG_WHAT, arguments.what);
-    diag.last().addSpan(resolved.codeRange, "", DiagnosticSeverity::Error);
+    diag.last().addSpan(resolved.codeRange, "", Diagnostic::diagIdSeverity(id));
     for (const ReportNote& note : notes)
     {
         ResolvedDebugSourceInfo resolvedNote;

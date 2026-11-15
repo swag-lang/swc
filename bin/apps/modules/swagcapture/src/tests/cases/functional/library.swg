@@ -425,32 +425,63 @@ impl IAllocator for LibraryRejectAllocator
     let libWnd = f.main.libWnd
 
     let oldLibraryLoaded = g_Library.loaded
+    var paths: Array'String
+    var loadingStarted: bool
     defer
     {
+        if loadingStarted
+        {
+            libWnd.view.thread.safeForceEnd()
+            libWnd.view.thread.wait()
+        }
+
+        for path in paths do
+            discard catch File.delete(path[])
         g_Library.files.clear()
         g_Library.loaded = oldLibraryLoaded
     }
 
     g_Library.loaded = true
     g_Library.files.clear()
+    for index in 3
+    {
+        let capture = Memory.new'Capture()
+        capture.width, capture.widthOrg   = 8
+        capture.height, capture.heightOrg = 6
+        capture.backImg                   = Gui.Testing.indexedImage(8, 6)
+        let path = testTempCapturePath()
+        capture.file    = path
+        capture.changed = true
+        expect capture.save()
+        Memory.delete(capture)
 
-    var fi: File.FileInfo
-    fi.fullName = "libfill_a.scc"
-    fi.lastWriteTime.year  = 2024
-    fi.lastWriteTime.month = 5
-    fi.lastWriteTime.day   = 11
-    g_Library.files.add(fi)
-    fi.fullName = "libfill_b.scc"
-    fi.lastWriteTime.day = 10
-    g_Library.files.add(fi)
-    fi.fullName = "libfill_c.scc"
-    fi.lastWriteTime.year  = 2023
-    fi.lastWriteTime.month = 1
-    fi.lastWriteTime.day   = 2
-    g_Library.files.add(fi)
+        var fi: File.FileInfo
+        fi.fullName = path
+        if index == 0
+        {
+            fi.lastWriteTime.year  = 2024
+            fi.lastWriteTime.month = 5
+            fi.lastWriteTime.day   = 11
+        }
+        elif index == 1
+        {
+            fi.lastWriteTime.year  = 2024
+            fi.lastWriteTime.month = 5
+            fi.lastWriteTime.day   = 10
+        }
+        else
+        {
+            fi.lastWriteTime.year  = 2023
+            fi.lastWriteTime.month = 1
+            fi.lastWriteTime.day   = 2
+        }
+        g_Library.files.add(fi)
+        paths.add(path)
+    }
 
     Swag.require(libWnd.dateFilters.isEmpty())
     libWnd.fill()
+    loadingStarted = true
 
     // The dates the lens offers: each year, then its months, then their days, newest first,
     // each with the captures it holds.
@@ -477,8 +508,6 @@ impl IAllocator for LibraryRejectAllocator
     libWnd.fill()
     Swag.require(libWnd.dateFilters.count == 7)
 
-    libWnd.view.thread.safeForceEnd()
-    libWnd.view.thread.wait()
 }
 
 // Source metadata, tags, favorites and ratings are first-class filters, and the sort

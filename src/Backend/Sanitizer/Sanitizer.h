@@ -84,7 +84,7 @@ public:
     bool callParameterRegister(MicroReg& outReg, const SymbolFunction& fn, CallConvKind callConvKind, size_t paramIndex) const;
 
     // Reports a diagnostic at an instruction's source location (deduplicated). Marks the
-    // run as having found something so the pass can abort codegen.
+    // run as having found something for the diagnostic; only errors abort codegen.
     void report(const MicroInstr& inst, DiagnosticId id);
     void report(const MicroInstr& inst, DiagnosticId id, const SourceCodeRef& noteSource, DiagnosticId noteId);
     void report(const MicroInstr& inst, DiagnosticId id, std::string_view sym, std::string_view what);

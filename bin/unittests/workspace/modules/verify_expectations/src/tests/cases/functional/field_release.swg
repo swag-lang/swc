@@ -32,6 +32,22 @@ using Core, StaticApi
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
+    let left = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    let right = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    left.padding = 0
+    right.padding = 0
+    left.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    right.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    depUafInferredReadFirstThenReleaseSecond(left, right)
+    let leftValue = left.data[]
+    discard leftValue
+    let rightValue = right.data[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard rightValue
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
     let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
     node.padding = 0
     node.data = cast(*s32, Memory.alloc(#sizeof(s32)))

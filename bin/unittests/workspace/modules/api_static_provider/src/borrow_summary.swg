@@ -170,6 +170,12 @@ func depUafInferredReadThenReleaseProjectedWrapper(node: *DepUafNode)
     depUafInferredReadThenReleaseProjected(node)
 }
 
+func depUafInferredReadFirstThenReleaseSecond(left: *DepUafNode, right: *DepUafNode)
+{
+    depUafReadProjected(left)
+    depUafInferredReleaseProjected(right)
+}
+
 func depUafInferredReleaseProjectedAlias(node: *DepUafNode)
 {
     let pointer: *s32 = node.data

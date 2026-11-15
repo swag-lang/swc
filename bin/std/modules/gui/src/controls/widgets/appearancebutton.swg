@@ -319,7 +319,8 @@ impl AppearanceButton
         {
             with let entry = results.addSection(texts.lens_Application).addEntry(texts.appearance_About)
             {
-                .run = func|button = me|() { button.sigAboutRequested.call(button) }
+                .glyph = me.theme().icon(.About)
+                .run   = func|button = me|() { button.sigAboutRequested.call(button) }
             }
         }
     }

@@ -930,10 +930,12 @@ impl MainWnd
             .addCommand(func()->string => strings().lens_Application, ActionGlobal.ShowHub, inMenu: false)
         }
 
+        // The appearance button answers About in the lens, as in every application; the command
+        // keeps its place in the command menu only.
         .appearanceButton.addToLens(.lens)
         with .lens
         {
-            .addCommand(func()->string => strings().lens_Application, ActionAbout.About, menuSection: 2)
+            .addCommand(func()->string => strings().lens_Application, ActionAbout.About, menuSection: 2, inLens: false)
             .addCommand(func()->string => strings().lens_Application, ActionGlobal.Exit, menuSection: 3)
         }
     }

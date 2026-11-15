@@ -65,6 +65,34 @@ func createRecordOption(parent: *Wnd, icon: Icon, label: string, checked: bool, 
     return result
 }
 
+// Returns the width of the video quality choice, wide enough for each of its names.
+func qualityOptionWidth(theme: *Theme)->f32
+{
+    var widest = 0'f32
+    for quality in [VideoQuality.Maximum, .Balanced, .Compact] do
+        widest = Math.max(widest, recordOptionWidth(theme, Format.toString(appStrings().ui_AimQuality, quality.label())))
+    return widest
+}
+
+// Creates the video quality choice of a recording about to start. A press moves to the next
+// quality, and the button always names the one the recording will use.
+func createQualityOption(parent: *Wnd, options: *CaptureOptions)->*IconButton
+{
+    let label = Format.toString(appStrings().ui_AimQuality, options.recordVideoQuality.label())
+    with let result = createRecordOption(parent, parent.theme().icon(.Settings), label, false, toggle: false)
+    {
+        .toolTip = appStrings().tip_AimQuality
+        .resize(qualityOptionWidth(parent.theme()), .position.height)
+        .sigPressed += func|options, result|(_)
+        {
+            options.recordVideoQuality = options.recordVideoQuality.next()
+            result.setText(Format.toString(appStrings().ui_AimQuality, options.recordVideoQuality.label()))
+        }
+    }
+
+    return result
+}
+
 // Side of the dot of a recording on Record.
 const RecordDotSize = 8.0
 

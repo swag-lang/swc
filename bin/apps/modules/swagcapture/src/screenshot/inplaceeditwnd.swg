@@ -343,6 +343,7 @@ impl InPlaceEditWnd
             .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, enabled: false))
         else
         {
+            .bar.addItem(createQualityOption(.bar, options))
             #static if #os == Swag.TargetOs.Windows
             {
                 with let microphone = createRecordOption(.bar, .theme().icon(.AudioTracks), texts.ui_AimMicrophone, options.recordMicrophone)

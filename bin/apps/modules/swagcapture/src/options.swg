@@ -29,6 +29,8 @@ impl AnimationRate
     }
 }
 
+// How much of the picture a video keeps: every sample, a sharp picture in a file a few hours can
+// afford, or the smallest file.
 enum VideoQuality
 {
     Maximum
@@ -38,12 +40,33 @@ enum VideoQuality
 
 impl VideoQuality
 {
+    mtd next()->VideoQuality
+    {
+        switch #complete me
+        {
+        case .Maximum:  return .Balanced
+        case .Balanced: return .Compact
+        case .Compact:  return .Maximum
+        }
+    }
+
+    // Returns the name the interface shows for this quality.
+    mtd label()->string
+    {
+        switch #complete me
+        {
+        case .Maximum:  return appStrings().prop_QualityMaximum
+        case .Balanced: return appStrings().prop_QualityBalanced
+        case .Compact:  return appStrings().prop_QualityCompact
+        }
+    }
+
     mtd quantizationQp()->u32
     {
         switch #complete me
         {
         case .Maximum:  return 0
-        case .Balanced: return 18
+        case .Balanced: return 22
         case .Compact:  return 28
         }
     }
@@ -87,7 +110,7 @@ struct CaptureOptions
     #[Description("Record system sound on its own video sound track")]
     recordSystemSound = false
 
-    #[Description("Balance video detail and file size")]
+    #[Description("Keep every pixel, balance detail and file size, or make the smallest file")]
     recordVideoQuality: VideoQuality = .Balanced
 
     #[Description("Stop an animation after this many seconds"), SliderMinMax(1, 60), Unit("s")]

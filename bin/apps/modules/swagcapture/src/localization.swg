@@ -144,6 +144,8 @@ struct AppStrings
     ui_AimCountdown:              string = "Countdown"                       // Option of the aiming overlay counting down before a recording.
     ui_AimRate:                   string = "% fps"                           // Cadence shown on the recording bar.
     tip_AimRate:                  string = "Change recording frame rate"     // Action of the cadence control.
+    ui_AimQuality:                string = "Quality: %"                      // Video quality shown on the recording bar.
+    tip_AimQuality:               string = "Change video quality: Maximum keeps every pixel in a very large file, Balanced suits long recordings, Compact makes the smallest file" // Action of the quality control.
     ui_AimNoSound:                string = "No sound in a GIF"               // Why the sound of a recording is out of reach on the aiming overlay.
     ui_AimMicrophone:             string = "Microphone"                      // Separate microphone track in a video recording.
     ui_AimSystemSound:            string = "System sound"                    // Separate system-output track in a video recording.
@@ -564,7 +566,7 @@ struct AppStrings
     prop_RecordSystemSound:      string = "Record System Sound"
     prop_RecordSystemSoundDesc:  string = "Record system sound on its own video sound track"
     prop_RecordVideoQuality:     string = "Record Video Quality"
-    prop_RecordVideoQualityDesc: string = "Balance video detail and file size"
+    prop_RecordVideoQualityDesc: string = "Keep every pixel, balance detail and file size, or make the smallest file"
     prop_QualityMaximum:         string = "Maximum"
     prop_QualityBalanced:        string = "Balanced"
     prop_QualityCompact:         string = "Compact"

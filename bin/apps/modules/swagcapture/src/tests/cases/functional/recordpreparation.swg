@@ -49,6 +49,17 @@ using Swag, Core, Gui
         Swag.require(hud.prepOptions.count == 3 and not hud.prepOptions[2].isEnabled())
     let options = &f.main.captureOptions
     Swag.require(options.recordVideoQuality == .Balanced)
+
+    // The quality is chosen on the pill: a press moves to the next one and the button names it.
+    let quality = unwrap hud.qualityButton
+    Swag.require(quality.isLocallyVisible() and quality.position.right() <= hud.position.width)
+    for expected in [VideoQuality.Compact, .Maximum, .Balanced]
+    {
+        quality.sigPressed.call(quality)
+        Swag.require(options.recordVideoQuality == expected)
+        Swag.require(Utf8.contains(quality.name.text.toString(), expected.label()))
+    }
+    Swag.require(VideoQuality.Maximum.quantizationQp() == 0 and VideoQuality.Balanced.quantizationQp() == 22)
     let before = [options.captureCursor, options.recordCountdown,
                   options.recordMicrophone, options.recordSystemSound]
     for button, index in hud.prepOptions where button.isEnabled()

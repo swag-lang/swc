@@ -111,6 +111,8 @@ ui_AimAllScreens       Tous les écrans
 ui_AimCountdown        Compte à rebours
 ui_AimRate             % i/s
 tip_AimRate            Changer la cadence d'enregistrement
+ui_AimQuality          Qualité : %
+tip_AimQuality         Changer la qualité vidéo : Maximale garde chaque pixel dans un très gros fichier, Équilibrée convient aux longs enregistrements, Compacte donne le plus petit fichier
 ui_AimNoSound          Pas de son dans un GIF
 ui_AimMicrophone       Microphone
 ui_AimSystemSound      Son du système
@@ -457,7 +459,7 @@ prop_RecordMicrophoneDesc Enregistrer le microphone sur sa propre piste audio da
 prop_RecordSystemSound     Enregistrer le son système
 prop_RecordSystemSoundDesc Enregistrer le son système sur sa propre piste audio dans la vidéo
 prop_RecordVideoQuality    Qualité vidéo
-prop_RecordVideoQualityDesc Équilibrer les détails de la vidéo et la taille du fichier
+prop_RecordVideoQualityDesc Garder chaque pixel, équilibrer détails et taille du fichier, ou produire le plus petit fichier
 prop_QualityMaximum        Maximale
 prop_QualityBalanced       Équilibrée
 prop_QualityCompact        Compacte

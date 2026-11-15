@@ -37,6 +37,7 @@ struct RecordHud
     hasShownState:     bool
     hasCommands:       bool     // The commands exist; the window is resized before they do.
     prepOptions:       Array'(*IconButton) // Choices shown only before a video starts.
+    qualityButton:     *IconButton?     // Video quality, chosen before a video starts.
 }
 
 impl IWnd for RecordHud
@@ -115,6 +116,7 @@ impl IWnd for RecordHud
                 option[].move(x, rowTop)
                 x += option[].position.width + .themeMetrics().miniBar_Padding
             }
+            .qualityButton?.move(x, rowTop)
         }
     }
 
@@ -304,6 +306,7 @@ impl RecordHud
         {
             optionsWidth += recordOptionWidth(g_App.theme, label) + g_App.theme.metrics.miniBar_Padding
         }
+        optionsWidth += qualityOptionWidth(g_App.theme) + g_App.theme.metrics.miniBar_Padding
         return Math.ceil(Math.max(normalWidth, optionsWidth))
     }
 
@@ -537,6 +540,7 @@ impl RecordHud
         }
         else do
             .prepOptions.add(createRecordOption(me, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
+        .qualityButton = createQualityOption(me, options)
     }
 }
 

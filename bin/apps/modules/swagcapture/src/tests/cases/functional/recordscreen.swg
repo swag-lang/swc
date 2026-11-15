@@ -16,8 +16,8 @@ impl Recorder
     defer f.shutdown()
 
     f.main.monitors.clear()
-    testAddMonitorAt(f.main, {0, 0, 800, 600})
-    testAddMonitorAt(f.main, {800, 0, 800, 600})
+    testAddMonitorAt(f.main, {0, 0, 1000, 600})
+    testAddMonitorAt(f.main, {1000, 0, 1000, 600})
 
     let recorder = Memory.new'Recorder()
     defer Memory.delete(recorder)
@@ -105,7 +105,7 @@ impl Recorder
     else do
         secondMenu.sigCommandSelected.call(secondMenu, AllScreensChoiceId)
     Swag.require(recorder.screenIndex == Swag.U64.Max)
-    Swag.require(recorder.area == Math.Rectangle{0, 0, 1600, 600})
+    Swag.require(recorder.area == Math.Rectangle{0, 0, 2000, 600})
     Swag.require(chooser.name.text.toString() == appStrings().ui_AimAllScreens)
     Swag.require(recorder.testChromeGeometry().outer == recorder.area)
 

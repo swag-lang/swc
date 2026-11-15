@@ -218,6 +218,16 @@ func depUafReplaceField(node: *DepUafNode)
     node.data = cast(*s32, unwrap replacement.address)
 }
 
+func depUafInferredReplaceWrapper2(node: *DepUafNode)
+{
+    depUafInferredReplaceWrapper(node)
+}
+
+func depUafInferredReleaseWrapper2(node: *DepUafNode)
+{
+    depUafInferredReleaseWrapper(node)
+}
+
 #[Swag.BorrowSummary(0, freesIndirect: 1)]
 func depUafReleaseIndirect(pointer: **s32)
 {

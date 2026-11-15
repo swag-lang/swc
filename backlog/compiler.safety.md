@@ -189,6 +189,7 @@ is the current scorecard.
   a copy of the old pointer held in the passed box. The box itself stays unclassified because the
   callee may reassign it. Globals, inferred summaries, wrapper calls and unavailable bodies are not
   solved by this prototype.
+  A follow-up inference probe found that `SemaEscape` recognizes a pointer loaded from a field as an indirect parameter borrow, but loses the field projection when that pointer is stored into `AllocatorRequest.address`; only the root receiver survives. Inference therefore needs exact field-path provenance through address-taking and must prove both the release and the post-call write/reset before emitting a summary.
 - Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
   extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Check
   unknown calls before integrating the complete result with `SanitizerState`.

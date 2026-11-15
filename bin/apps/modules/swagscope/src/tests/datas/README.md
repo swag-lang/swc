@@ -107,7 +107,8 @@ saved active-sheet settings, sparse million-row addresses, repeated column defau
 input by LibreOfficeDev 26.8.0.0.alpha0 (build 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5),
 using headless `--convert-to odp:impress8`. Its two slides contain green 28-point titles,
 18-point prose with bold emphasis, a green rectangle with white text, the existing `viewer.jpg`
-photo in a 4-by-3-inch frame, and speaker-only notes. Photo provenance is unchanged.
+photo in a 4-by-3-inch frame, and an empty notes-page placeholder. This export does not retain
+the flat input's standalone speaker paragraph. Photo provenance is unchanged.
 `viewer.poi-sample.odp` is an Impress conversion of the licensed `viewer.poi-sample.pptx` corpus
 file using the same producer/filter; it exercises presentation style parents, mixed character
 sizes, lists, master placeholders and notes. Controlled packages supplement these producer files

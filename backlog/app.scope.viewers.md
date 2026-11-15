@@ -225,7 +225,7 @@ viewer packages, helper binaries, or network service required to open supported 
 | Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.text.040](app.scope.text.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
-| Markdown | `.md` `.markdown` | rendered and raw text with heading outline | outline filtering/current-section tracking, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
+| Markdown | `.md` `.markdown` | rendered and raw text with filterable heading outline | current-section tracking, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
 | HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
 | JSON and JSON Lines | `.json` `.jsonl` | code and raw text | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
 | XML | `.xml` `.xsd` `.xsl` `.xslt` | code and raw text | namespace-aware tree and paths | [app.scope.text.038](app.scope.text.md) |
@@ -243,7 +243,7 @@ viewer packages, helper binaries, or network service required to open supported 
 | ODP | `.odp` | fitted slides, basic styles/masters, positioned text/pictures, title list, text and notes modes | complete drawings, master placeholders and lazy slides | [app.scope.document.032](app.scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | chapters, EPUB 2/3 contents, passage-preserving zoom/columns and back/forward | book search, persistent position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
-| Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
+| Comic book | `.cbz` | natural-order single image pages, page jump and optional right-to-left keys | spreads, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
 | RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |

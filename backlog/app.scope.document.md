@@ -33,12 +33,13 @@ integration around those engines.
   and back/forward restores a reading location without retaining the whole source.
 - Related: std.gui.markdown.005, app.scope.viewers.003
 
-### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history
+### app.scope.document.013 — PDF bookmark navigation has no back/forward history
 
 - Evidence: `PdfDocument.Panel` fills the shared `DocumentOutline` from `Pdf.Reader.loadOutline`
-  and navigates through `PdfView.showPosition`. The panel has no filtering or back/forward
-  state, and page-link annotations are not exposed by the engine (std.gui.pdf.017).
-- Next: add filtering and a bounded page/position/zoom history to the existing bookmark panel,
+  and navigates through `PdfView.showPosition`. The shared panel provides text filtering, but
+  the PDF adapter retains no back/forward state. Page-link annotations are not exposed by the
+  engine (std.gui.pdf.017).
+- Next: add bounded page/position/zoom history to the existing bookmark panel,
   then route supported page links through the same navigation contract when the engine exposes them.
 - Done when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
   and zoom, and supported local links share the same behavior while invalid targets remain visible.
@@ -245,7 +246,7 @@ integration around those engines.
   [OpenComic](https://github.com/ollm/OpenComic) offers right-to-left manga, double-page spreads,
   continuous webtoon scroll, bookmarks and reading-position restore.
 - Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous
-  layouts, right-to-left order, cover alignment and per-page fit/zoom. Read safe `ComicInfo.xml`
+  layouts, right-to-left spreads, cover alignment and per-page fit/zoom. Read safe `ComicInfo.xml`
   metadata when present without treating it as an image page.
 - Done when: natural order, nested folders, spreads, manga direction, tall pages and damaged
   members remain readable and navigable across real CBZ books; page changes never require

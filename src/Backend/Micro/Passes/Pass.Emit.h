@@ -50,11 +50,13 @@ private:
     {
         uint64_t offset          = 0;
         uint32_t paddingBefore   = 0;
+        uint32_t paddingBytes    = 0; // actual header padding in this layout
         uint32_t offsetStamp     = 0; // layout
         uint32_t seenStamp       = 0; // function
         uint32_t loopHeaderStamp = 0; // function
         uint32_t pinnedStamp     = 0; // function
         uint32_t pinnedPhase     = 0;
+        uint32_t pinnedAlignment = 0;
     };
 
     struct SlotInfo
@@ -69,6 +71,8 @@ private:
         MicroLabelRef labelRef = MicroLabelRef::invalid();
         uint32_t      start    = 0;
         uint32_t      end      = 0;
+        uint32_t      alignment  = 0;
+        uint32_t      phaseShift = 0;
     };
 
     LabelInfo&       labelInfo(MicroLabelRef labelRef);
@@ -88,7 +92,7 @@ private:
     uint32_t                      layoutStamp_      = 0;
     uint32_t                      shortJumpEpoch_   = 0;
     uint32_t                      paddingBudget_    = 0;
-    uint32_t                      pinnedLabels_     = 0;
+    uint32_t                      pinnedAlignment_  = 0;
     uint32_t                      prevInstrStart_   = 0;
     uint32_t                      prevInstrEnd_     = 0;
     FusionKind                    prevFusion_       = FusionKind::None;

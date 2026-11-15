@@ -133,6 +133,9 @@ namespace MicroOptimizationLimits
 
         // [target-layout] Keep fused loop compare/branch groups away from the affected x64 fetch boundary.
         inline constexpr uint32_t K_BRANCH_BOUNDARY = 32;
+
+        // [target-layout] Keep a short nested loop within one x64 instruction-cache line.
+        inline constexpr uint32_t K_LOOP_FETCH_BOUNDARY = 64;
     }
 
     namespace InductionVariable

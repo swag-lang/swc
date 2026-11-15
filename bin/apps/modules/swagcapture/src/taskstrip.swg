@@ -1,5 +1,8 @@
 using Core, Gui
 
+// The room the title keeps between the groups of the strip, enough to name the window.
+const TaskStripTitleRoom = 64.0
+
 // The repeated capture and output gestures of the window, set in its top strip.
 //
 // Image, video and the library stand after the command menu, where work comes in; the output of the
@@ -19,6 +22,8 @@ struct TaskStrip
         trailing:      *StackLayoutCtrl     // Save and copy the picture, while the editor shows one.
         captureChoice: *IconButton          // The chevron that opens the capture modes.
         videoButton:   *IconButton          // Opens video area selection without the long command label.
+        libraryButton: *IconButton          // Swaps between the editor and the library.
+        saveButton:    *IconButton          // Saves the picture under a chosen name.
         shortcutPanel:  *FloatingPanel      // Unavailable capture keys, anchored below Capture.
         shortcutWarning: *IconButton        // Opens the unavailable key names.
         frozenPanel:    *FloatingPanel      // Selection mode, anchored beside the inspector.
@@ -62,17 +67,42 @@ impl IWnd for TaskStrip
         // its trailing ones; in a band of their own, the edges of the window less the floating inset.
         var start = metrics.floating_Inset
         var end   = width - metrics.floating_Inset
+        var title = false
+        var center: f32
         let frame = .surfaceFrame()
         if strip > 0 and frame
         {
             let room = frame.captionRoomRect()
             let dx   = frame.surfaceRect().x - .surfaceRect().x
-            start = room.x + dx
-            end   = room.right() + dx
+            start  = room.x + dx
+            end    = room.right() + dx
+            center = frame.clientRect().horzCenter() + dx
+            title  = true
         }
 
-        let leadingSize  = .leading.itf.measureContent({})
-        let trailingSize = .trailing.isLocallyVisible() ? .trailing.itf.measureContent({}) : Math.Point{}
+        // The words of both groups and a title share the strip while they fit; the title is
+        // centred on the window, so each group leaves half of its room on its side. Past that,
+        // Video and the library keep their glyphs and give up their words, which their tips still
+        // say, then the save control does; Capture always names what it takes again, and Copy is
+        // the primary action.
+        var leadingSize, trailingSize: Math.Point
+        for words in [2'u32, 1, 0]
+        {
+            .showWords(words)
+            leadingSize  = .leading.itf.measureContent({})
+            trailingSize = .trailing.isLocallyVisible() ? .trailing.itf.measureContent({}) : Math.Point{}
+
+            var fits = leadingSize.x + trailingSize.x + metrics.wnd_CaptionActionGap <= end - start
+            if title
+            {
+                let half = metrics.wnd_CaptionMarginTitle + TaskStripTitleRoom * 0.5
+                fits = start + leadingSize.x + half <= center and end - trailingSize.x - half >= center
+            }
+
+            if fits do
+                break
+        }
+
         .leading.setPosition(Math.Rectangle{start, Math.round((height - leadingSize.y) * 0.5), leadingSize.x, leadingSize.y})
         .trailing.setPosition(Math.Rectangle{end - trailingSize.x, Math.round((height - trailingSize.y) * 0.5), trailingSize.x, trailingSize.y})
         .leading.applyLayout()
@@ -110,6 +140,31 @@ impl IWnd for TaskStrip
 
 impl TaskStrip
 {
+    // Writes the words of the secondary controls: all of them at 2, the save control alone at 1,
+    // none at 0. A control without its words says them in its tip.
+    mtd showWords(level: u32)
+    {
+        func show(button: *IconButton, shown: bool, tip: string)
+        {
+            if button.flags.has(.IconOnly) != shown do
+                return
+            if shown do
+                button.updateFlags(remove: .IconOnly)
+            else do
+                button.updateFlags(add: .IconOnly)
+            button.toolTip = tip
+
+            // A control sized to its words is sized again; one that follows its command is
+            // measured from its content by the group.
+            if button.preferredSize.x > 0 do
+                button.resize(Math.ceil(button.itf.measureContent({}).x), button.position.height)
+        }
+
+        show(.videoButton, level >= 2, appStrings().act_RecordVideo)
+        show(.libraryButton, level >= 2, level >= 2 ? "" : appStrings().act_Library)
+        show(.saveButton, level >= 1, level >= 1 ? "" : .saveButton.name.text)
+    }
+
     // Builds the two groups in `main`, posting their commands to it.
     func create(main: *MainWnd)->*TaskStrip
     {
@@ -152,7 +207,7 @@ impl TaskStrip
             .sigPressed += func|main|(_) { main.postCommandEvent(ActionCapture.RecordVideo) }
         }
 
-        with let libraryButton = IconButton.createQuiet(result.leading, ActionGlobal.ShowLibrary, menu: false)
+        with result.libraryButton = IconButton.createQuiet(result.leading, ActionGlobal.ShowLibrary, menu: false)
         {
             .owner       = main
             .focusPolicy = .None
@@ -164,7 +219,7 @@ impl TaskStrip
             .spacing         = main.themeMetrics().wnd_CaptionActionGap
         }
 
-        with let saveButton = IconButton.createQuiet(result.trailing, ActionFile.SaveAsImage, menu: false)
+        with result.saveButton = IconButton.createQuiet(result.trailing, ActionFile.SaveAsImage, menu: false)
         {
             .owner       = main
             .focusPolicy = .None

@@ -186,7 +186,9 @@ is the current scorecard.
   an unannotated release-and-replace method, but aliases copied before that call are not yet
   diagnosed. Known direct wrappers now forward explicit and inferred field effects after module
   analysis; release-and-replace wrappers preserve both the old-alias diagnostic and safe field
-  reload. Globals, automatic reset inference and unavailable bodies remain unsolved.
+  reload. A pointer value projected from a field also carries a callee's direct `frees` effect back
+  to that field through wrappers. Globals, automatic reset inference and unavailable bodies remain
+  unsolved.
 - Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
   extend the same before/after distinction to globals and unavailable bodies. Refine conservative
   suppression for calls that receive a carrier while retaining soundness.

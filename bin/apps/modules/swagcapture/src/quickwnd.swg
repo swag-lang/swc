@@ -1110,10 +1110,24 @@ impl QuickWnd
     }
 
     // Checks the quick style button that matches the model of the active tool.
+    //
+    // A property edit reaches the row only through here, and can make the model equal to a
+    // preset or different from all of them: the chip of the unsaved style then comes or goes
+    // with the rebuild, rather than standing checked beside the preset it now equals.
     mtd updateSelection()
     {
         if not .currentStyle do
             return
+
+        var showsCurrent = false
+        for c in .layout.children where not c.isPendingDestroy and (assume cast(*QuickButton, c)).isTransient do
+            showsCurrent = true
+        if showsCurrent != .canAddCurrentStyle()
+        {
+            .updateQuickStyles(forceRebuild: true)
+            return
+        }
+
         var done  = false
         let mode  = .presetMode().mode
         let model = .main.editModeToModel(mode)

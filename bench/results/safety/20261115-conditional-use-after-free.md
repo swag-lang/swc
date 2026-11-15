@@ -15,4 +15,4 @@
 
 ## Commit
 
-- Pending direct push to `master`.
+- Integrated into remote `master` by `b457b0fa70` (after the campaign commit `dbc4b8f4c6`).

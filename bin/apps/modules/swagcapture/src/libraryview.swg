@@ -74,6 +74,7 @@ struct LibraryItem
     visible:  bool
     filtered: bool
     loaded:   bool
+    sortName: String     // The name a sort by name compares, taken once per sort.
 }
 
 impl LibraryItem
@@ -1006,7 +1007,14 @@ impl LibraryView
         // Only the active criterion is read. A comparator runs O(n log n) times per re-sort and
         // the list re-sorts while the previews stream in, so materializing every criterion — two
         // file names, two applications, two window titles — on each comparison was most of the
-        // cost of a re-sort, whichever criterion was actually selected.
+        // cost of a re-sort, whichever criterion was actually selected. A name is built from the
+        // capture, so it is built once per item rather than twice per comparison.
+        if .libWnd.sortMethod == .Name
+        {
+            for it in .items do
+                it.sortName = it.name()
+        }
+
         .items.sort(func|libWnd = me.libWnd|(a, b)
         {
             var value: s32
@@ -1025,7 +1033,7 @@ impl LibraryView
                 value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
 
             case .Name:
-                value = Utf8.compare(a.name(), b.name(), .Latin1NoCase)
+                value = Utf8.compare(a.sortName.toSlice(), b.sortName.toSlice(), .Latin1NoCase)
 
             case .Application:
                 let applicationA: const [..] u8 = captureA ? captureA.sourceApplication.toSlice() : ""

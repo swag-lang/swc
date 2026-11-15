@@ -760,10 +760,10 @@ namespace
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem ||
                     ops[def.memOffsetOperandIndex].valueU64 > INT32_MAX)
                     return false;
-                if (inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadRegMem)
+                if (inst.op != MicroInstrOpcode::LoadMemReg && inst.op != MicroInstrOpcode::LoadRegMem && inst.op != MicroInstrOpcode::StoreZero32MemReg)
                     return false;
                 const uint64_t offset = ops[def.memOffsetOperandIndex].valueU64;
-                const uint64_t width  = getNumBytes(ops[2].opBits);
+                const uint64_t width  = std::max<uint64_t>(getNumBytes(ops[2].opBits), def.fixedMemoryBytes);
                 if (context.spillAreaLo >= context.spillAreaHi ||
                     offset < context.spillAreaLo || offset > context.spillAreaHi || width > context.spillAreaHi - offset)
                     return false;
@@ -979,9 +979,9 @@ namespace
             const bool           direct = ops && def.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && ops[def.memBaseOperandIndex].reg == conv.stackPointer;
             if (direct)
             {
-                if ((inst->op != MicroInstrOpcode::LoadRegMem && inst->op != MicroInstrOpcode::LoadMemReg) ||
+                if ((inst->op != MicroInstrOpcode::LoadRegMem && inst->op != MicroInstrOpcode::LoadMemReg && inst->op != MicroInstrOpcode::StoreZero32MemReg) ||
                     inst->numOperands != 4 || ops[def.memOffsetOperandIndex].valueU64 > frameSize ||
-                    getNumBytes(ops[2].opBits) > frameSize - ops[def.memOffsetOperandIndex].valueU64)
+                    std::max<uint64_t>(getNumBytes(ops[2].opBits), def.fixedMemoryBytes) > frameSize - ops[def.memOffsetOperandIndex].valueU64)
                     return false;
                 MicroInstrOperand candidate[4];
                 std::copy_n(ops, 4, candidate);

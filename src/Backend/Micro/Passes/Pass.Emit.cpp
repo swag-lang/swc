@@ -401,6 +401,13 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
         case MicroInstrOpcode::LoadVolatileRegMem:
             encoder.encodeLoadRegMem(ops[0].reg, ops[1].reg, ops[3].valueU64, ops[2].opBits);
             break;
+        case MicroInstrOpcode::StoreZero32MemReg:
+        {
+            const MicroInstrRef nextRef = context.instructions->findNextInstructionRef(instructionRef);
+            const MicroInstr*   next    = nextRef.isValid() ? context.instructions->ptr(nextRef) : nullptr;
+            encoder.encodeStoreZero32MemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, !next || next->op != MicroInstrOpcode::StoreZero32MemReg);
+            break;
+        }
         case MicroInstrOpcode::StoreVolatileMemReg:
             encoder.encodeLoadMemReg(ops[0].reg, ops[3].valueU64, ops[1].reg, ops[2].opBits);
             break;

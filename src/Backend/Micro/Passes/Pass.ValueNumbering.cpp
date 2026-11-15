@@ -515,7 +515,7 @@ namespace
             }
             if (!info.flags.has(MicroInstrFlagsE::WritesMemory))
                 continue;
-            uint64_t width = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0;
+            uint64_t width = std::max<uint64_t>(info.fixedMemoryBytes, info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0);
             for (uint32_t operand = 0; operand < inst->numOperands; ++operand)
                 if (info.opBitsMask & (1u << operand))
                     width = std::max<uint64_t>(width, getNumBytes(ops[operand].opBits));

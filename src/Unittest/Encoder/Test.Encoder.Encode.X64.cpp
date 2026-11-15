@@ -271,6 +271,10 @@ namespace
         ENCODE_CASE("load_mem_reg_r12_r8_b64", "4D 89 04 24", b.emitLoadMemReg(R12, 0, R8, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_r13_xmm0_b64", "C4 C1 7B 11 45 7F", b.emitLoadMemReg(R13, 0x7F, XMM0, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_rbx_10_xmm3_b128", "C5 F8 11 5B 10", b.emitLoadMemReg(RBX, 0x10, XMM3, MicroOpBits::B128););
+        ENCODE_CASE("store_zero32_rsp_xmm0", "C5 FC 11 44 24 08 C5 F8 77", b.emitLoadMemReg(RSP, 8, XMM0, MicroOpBits::B128); b.instructions().ptr(b.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg;);
+        ENCODE_CASE("store_zero32_r12_xmm9", "C4 41 7C 11 4C 24 20 C5 F8 77", b.emitLoadMemReg(R12, 32, XMM9, MicroOpBits::B128); b.instructions().ptr(b.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg;);
+        ENCODE_CASE("store_zero32_run_one_upper_cleanup", "C5 FC 11 44 24 08 C5 FC 11 44 24 28 C5 F8 77", b.emitLoadMemReg(RSP, 8, XMM0, MicroOpBits::B128); b.instructions().ptr(b.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg; b.emitLoadMemReg(RSP, 40, XMM0, MicroOpBits::B128); b.instructions().ptr(b.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg;);
+        ENCODE_CASE("store_zero32_label_ends_run", "C5 FC 11 44 24 08 C5 F8 77 C5 FC 11 44 24 28 C5 F8 77", b.emitLoadMemReg(RSP, 8, XMM0, MicroOpBits::B128); b.instructions().ptr(b.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg; b.placeLabel(b.createLabel()); b.emitLoadMemReg(RSP, 40, XMM0, MicroOpBits::B128); b.instructions().ptr(b.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg;);
         ENCODE_CASE("load_mem_reg_r13_neg80_r8_b64", "4D 89 45 80", b.emitLoadMemReg(R13, 0xFFFFFFFFFFFFFF80, R8, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_rsp_70_rcx_b64", "48 89 4C 24 70", b.emitLoadMemReg(RSP, 0x70, RCX, MicroOpBits::B64););
         ENCODE_CASE("load_mem_reg_rsp_b32", "44 89 8C 24 20 01 00 00", b.emitLoadMemReg(RSP, 0x120, R9, MicroOpBits::B32););

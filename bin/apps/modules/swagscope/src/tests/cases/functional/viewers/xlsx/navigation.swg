@@ -10,7 +10,7 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(workbook.sheets.count == 3 and workbook.activeSheet == 2 and workbook.hiddenSheets == 1)
     Swag.require(workbook.cells == 6 and workbook.sheets[1].hidden)
     Swag.require(workbook.sheets[2].name == "Notes & plans" and workbook.sheets[2].cells == 2)
-    Swag.require(not Utf8.contains(workbook.sheets[0].html, "Intermediate result"))
+    Swag.require(not Utf8.contains(workbook.sheets[0].readingHtml(), "Intermediate result"))
 }
 
 // Arrows, keyboard and outline switch only visible sheets; ordinary page keys still scroll.
@@ -22,9 +22,9 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.sheet == 2 and view.visible.count == 2 and view.sheetLabel.text() == "2 / 2")
     Swag.require(not view.nextButton.isEnabled() and view.previousButton.isEnabled())
     var page = KeyEvent{kind: .Pressed, key: .PageUp}
-    Swag.require(not view.hookOnChildEvent!(unwrap view.view, &page) and view.sheet == 2)
+    Swag.require(not view.hookOnChildEvent!(unwrap view.grid, &page) and view.sheet == 2)
     page.modifiers = .Control
-    Swag.require(view.hookOnChildEvent(view.view, &page) and view.sheet == 0)
+    Swag.require(view.hookOnChildEvent(view.grid, &page) and view.sheet == 0)
     view.turn(-1)
     view.showSheet(999)
     view.showSheet(1)
@@ -48,12 +48,12 @@ using Core, Gui, Gui.Testing, Viewers
     var host: HeadlessHost
     let window = framedViewerWindow(&host, path, true)
     let view   = assume cast(*Xlsx.Panel, window.currentView)
-    Swag.require(view.view == null and view.visible.isEmpty() and view.status.text() == Xlsx.texts().ui_AllHidden)
+    Swag.require(view.grid == null and view.visible.isEmpty() and view.status.text() == Xlsx.texts().ui_AllHidden)
     Swag.require(not view.previousButton.isEnabled() and not view.nextButton.isEnabled())
     view.setShowHidden(true)
-    Swag.require(view.view != null and view.sheet == 0 and view.visible.count == 2)
+    Swag.require(view.grid != null and view.sheet == 0 and view.visible.count == 2)
     view.setShowHidden(false)
-    Swag.require(view.view == null and view.sheet == Swag.U64.Max)
+    Swag.require(view.grid == null and view.sheet == Swag.U64.Max)
 }
 
 // Sheet labels and translated details fit the minimum reading window in every shipped language.

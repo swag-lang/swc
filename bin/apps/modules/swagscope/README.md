@@ -167,8 +167,12 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   Formulas without cached values show their expression or an explicit unavailable-result label.
   Common number formats preserve currency, grouping, percentages, decimal precision, dates and
   elapsed time, including the 1900 and 1904 date systems. Unsupported formats retain the stored
-  value with a visible limitation notice. The reading grid is capped at 512 columns. It does not
-  calculate formulas or reproduce cell styling, charts, merged cells or images.
+  value with a visible limitation notice. The native grid retains authored widths/heights,
+  sparse addresses and disjoint merged cells, with selection and copy. Hidden rows/columns
+  require an explicit reveal; a text mode reflows the same values. Undefined widths fit ordinary
+  labels, while authored widths take precedence. Only visible rows are painted, including
+  million-row gaps. The reading grid is capped at 512 columns. It does not calculate formulas
+  or reproduce cell styling, frozen panes, charts or images.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The

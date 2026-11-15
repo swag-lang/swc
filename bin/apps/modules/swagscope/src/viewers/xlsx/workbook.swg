@@ -97,71 +97,7 @@ private func readSharedStrings(source: string)->Array'String fail
     return result
 }
 
-private func cellColumn(reference: string)->u64
-{
-    var result = 0'u64
-    for value in reference
-    {
-        if value < 'A'u8 or value > 'Z'u8 do
-            break
-        result = result * 26 + value - 'A'u8 + 1
-        if result > 512 do
-            return Swag.U64.Max
-    }
-
-    return result ? result - 1 : Swag.U64.Max
-}
-
-private func checkedCellColumn(reference: string)->u64 fail
-{
-    let column = cellColumn(reference)
-    if column != Swag.U64.Max or not reference.count do
-        return column
-    if reference[0] >= 'A'u8 and reference[0] <= 'Z'u8 do
-        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-    fail Errors.InvalidFormatError{texts().err_Invalid}
-}
-
-private func sheetColumns(source: string)->u64 fail
-{
-    var scan       = Package.Scanner.create(source)
-    var token: Package.Token
-    var nextColumn = 0'u64
-    var columns    = 0'u64
-    while scan.next(&token)
-    {
-        if token.kind != .Start do
-            continue
-        if token.isElement("row")
-        {
-            nextColumn = 0
-        }
-        elif token.isElement("c")
-        {
-            let column = try checkedCellColumn(token.attribute("r") orelse "")
-            if column != Swag.U64.Max and column > nextColumn do
-                nextColumn = column
-            nextColumn += 1
-            if nextColumn > columns do
-                columns = nextColumn
-            if columns > 512 do
-                fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-        }
-    }
-
-    if scan.damaged do
-        fail Errors.InvalidFormatError{texts().err_Invalid}
-    return columns
-}
-
-private func appendColumnName(result: *String, column: u64)
-{
-    if column >= 26 do
-        result[] += cast(u8, 'A'u8 + cast(u8, column / 26 - 1))
-    result[] += cast(u8, 'A'u8 + cast(u8, column % 26))
-}
-
-private func appendCell(result: *Sheet, value, kind: string, shared: const *Array'String, formats: const *CellFormats, style: u32, numeric = true) fail
+private func appendCell(result: *Sheet, value, kind: string, shared: const *Array'String, formats: const *CellFormats, style: u32, numeric = true, formula: string = "") fail
 {
     var display: String
     let numericCell = numeric and (kind == "" or kind == "n") and value.count
@@ -188,26 +124,29 @@ private func appendCell(result: *Sheet, value, kind: string, shared: const *Arra
         display = value
     }
 
-    result.html += numericCell ? "<td style=\"text-align:right;padding-right:8px\">" : "<td>"
-    Package.appendHtmlEscaped(&result.html, display)
-    result.html  += "</td>"
-    result.cells += 1
-    if result.cells > 100_000 or result.html.count > 32 * 1024 * 1024 do
+    var cell: Cell
+    cell.text    = #move display
+    cell.style   = style
+    cell.numeric = numericCell
+    cell.formula = formula
+    if cell.text.count > 1024 * 1024 or cell.formula.count > 64 * 1024 do
         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+    result.rows.backPtr().cells.add(cell)
+    result.cells        += 1
+    result.readingBytes += cell.text.count + cell.formula.count + 80
+    for byte in cell.text
+    {
+        if byte == '&'u8 do
+            result.readingBytes += 4
+        elif byte == '<'u8 or byte == '>'u8 do
+            result.readingBytes += 3
+        elif byte == '"'u8 do
+            result.readingBytes += 5
+    }
 }
 
 private func appendSheet(result: *Sheet, source: string, shared: const *Array'String, formats: const *CellFormats, cellBudget, htmlBudget: u64) fail
 {
-    let columns = try sheetColumns(source)
-    result.html += "<tr><th></th>"
-    for column in 0 until columns
-    {
-        result.html += "<th>"
-        appendColumnName(&result.html, column)
-        result.html += "</th>"
-    }
-
-    result.html += "</tr>"
     var scan           = Package.Scanner.create(source)
     var token:   Package.Token
     var inRow          = false
@@ -225,7 +164,7 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
     var formula: String
     while scan.next(&token)
     {
-        if result.cells > cellBudget or result.html.count > htmlBudget do
+        if result.cells > cellBudget or result.readingBytes > htmlBudget do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         if token.kind == .Start
         {
@@ -234,18 +173,19 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
                 let rowValue  = token.attribute("r") orelse ""
                 let rowNumber = rowValue.count ?
                                 catch StrConv.toU64(rowValue) { fail Errors.InvalidFormatError{texts().err_Invalid} } : nextRow
-                if not rowNumber or rowNumber > 1_048_576 do
+                if rowNumber < nextRow or rowNumber > 1_048_576 do
                     fail Errors.InvalidFormatError{texts().err_Invalid}
-                nextRow     = rowNumber + 1
-                result.html += "<tr><th style=\"padding-right:8px\">"
-                result.html += Format.toString("%", rowNumber)
-                result.html += "</th>"
-                inRow       = true
-                nextColumn  = 0
+                nextRow = rowNumber + 1
+                var row: Row
+                row.index = cast(u32, rowNumber - 1)
+                result.rows.add(row)
+                result.rowCount     = cast(u32, rowNumber)
+                result.readingBytes += 80
+                inRow               = true
+                nextColumn          = 0
                 if token.empty
                 {
-                    result.html += "</tr>"
-                    inRow       = false
+                    inRow = false
                 }
             }
             elif inRow and token.isElement("c")
@@ -258,21 +198,20 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
                 hasCachedValue = false
                 let typeName = token.attribute("t")
                 kind = typeName ? typeName : ""
-                let referenceName = token.attribute("r")
-                let reference     = referenceName ? referenceName : ""
-                let column        = try checkedCellColumn(reference)
-                if column != Swag.U64.Max and column > nextColumn
+                if let reference = token.attribute("r")
                 {
-                    while nextColumn < column
-                    {
-                        result.html += "<td></td>"
-                        nextColumn  += 1
-                    }
+                    let address = try Address.parse(reference)
+                    if address.row + 1 != nextRow - 1 or address.column < nextColumn do
+                        fail Errors.InvalidFormatError{texts().err_Invalid}
+                    nextColumn = address.column
                 }
 
+                if nextColumn >= 512 do
+                    fail Errors.UnsupportedFormatError{texts().err_TooLarge}
                 if token.empty
                 {
                     try appendCell(result, "", "", shared, formats, style)
+                    result.rows.backPtr().cells.backPtr().column = cast(u32, nextColumn)
                     nextColumn += 1
                     inCell     = false
                 }
@@ -322,14 +261,14 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
                     }
                 }
 
-                try appendCell(result, value, kind, shared, formats, style, numeric: not hasFormula or hasCachedValue)
+                try appendCell(result, value, kind, shared, formats, style, numeric: not hasFormula or hasCachedValue, formula: formula)
+                result.rows.backPtr().cells.backPtr().column = cast(u32, nextColumn)
                 nextColumn += 1
                 inCell     = false
             }
             elif token.isElement("row")
             {
-                result.html += "</tr>"
-                inRow       = false
+                inRow = false
             }
         }
         elif inCell and inFormula
@@ -395,23 +334,12 @@ impl Workbook
             var sheet: Sheet
             sheet.name   = reference.name
             sheet.hidden = reference.hidden
-            sheet.html   = "<html><body><h2>"
-            Package.appendHtmlEscaped(&sheet.html, sheet.name)
-            sheet.html += "</h2><table>"
             let source = try parts.text(reference.path)
             try appendSheet(&sheet, source, &shared, &formats, 100_000 - result.cells, 32 * 1024 * 1024 - htmlBytes)
-            sheet.html += "</table></body></html>"
-            if sheet.omittedFormats
-            {
-                var notice: String = "<p><small>"
-                Package.appendHtmlEscaped(&notice, texts().ui_FormatNotice)
-                notice += "</small></p>"
-                sheet.html.insert("<html><body>".count, notice)
-            }
-
+            try sheet.readGeometry(source)
             result.cells += sheet.cells
             result.omittedFormats += sheet.omittedFormats
-            htmlBytes    += sheet.html.count
+            htmlBytes    += sheet.readingBytes
             if result.cells > 100_000 or htmlBytes > 32 * 1024 * 1024 do
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
             if sheet.hidden do

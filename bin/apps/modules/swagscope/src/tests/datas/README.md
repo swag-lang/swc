@@ -75,3 +75,7 @@ sheet, a hidden intermediate sheet and literal sheet labels. It contains no exte
 
 `viewer.styles.rtf` is a repository-authored reading note with two fonts, a color table,
 highlights, paragraph indents and spacing, and grouped character formatting. It has no external assets.
+
+`viewer.geometry.xlsx` derives from the repository-authored numeric-format workbook. Its first
+sheet adds declared dimensions, horizontal/vertical merges, hidden ranges and distant totals;
+it contains no external assets.

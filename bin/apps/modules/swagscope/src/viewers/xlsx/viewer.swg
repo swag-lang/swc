@@ -26,13 +26,18 @@ struct Panel
 {
     using wnd: Wnd
 
-    workbook:   Workbook
-    load:       Viewer.BackgroundLoad'Workbook
-    services:   Viewer.HostServices
-    view:       *HtmlView?
-    sheet:      u64 = Swag.U64.Max
-    visible:    Array'u64
-    showHidden: bool
+    workbook:         Workbook
+    load:             Viewer.BackgroundLoad'Workbook
+    services:         Viewer.HostServices
+    view:             *HtmlView?
+    grid:             *Grid?
+    gridHost:         *Wnd?
+    selection:        Address
+    textMode:         bool
+    showHiddenRanges: bool
+    sheet:            u64 = Swag.U64.Max
+    visible:          Array'u64
+    showHidden:       bool
 
     late
     {
@@ -93,10 +98,17 @@ private impl Panel
         .sheetLabel.setText(Viewer.pageText(position, .visible.count))
         .previousButton.toolTip = texts().ui_Previous
         .nextButton.toolTip     = texts().ui_Next
-        if .sheet < .workbook.sheets.count do
-            .services.showDetails(me, .workbook.sheets[.sheet].details())
-        else do
+        if .sheet < .workbook.sheets.count
+        {
+            var details = .workbook.sheets[.sheet].details()
+            if .grid and .grid.hasSelection do
+                details += Format.toString(" · %", .grid.selected.label())
+            .services.showDetails(me, details)
+        }
+        else
+        {
             .services.showDetails(me, .workbook.details())
+        }
     }
 
     mtd publishSheets()
@@ -120,9 +132,8 @@ private impl Panel
         if target == Swag.U64.Max
         {
             .sheet = target
-            .view?.hide()
-            .view?.destroy()
-            .view = null
+            .clearSheet()
+
             .status.setText(texts().ui_AllHidden)
             .status.show()
             .applyLayout()
@@ -139,21 +150,10 @@ private impl Panel
     {
         if index >= .workbook.sheets.count or (.workbook.sheets[index].hidden and not .showHidden) do
             return
-        if index != .sheet or not .view
+        if index != .sheet or (not .view and not .grid)
         {
             .sheet = index
-            .view?.hide()
-            .view?.destroy()
-            var style = HtmlStyle.theme()
-            style.maxContentWidth = 680
-            with .view = HtmlView.createText(me, .workbook.sheets[index].html, style)
-            {
-                .dockStyle = .Center
-                .margin    = {.themeMetrics().floating_Inset, 0, .themeMetrics().floating_Inset, 0}
-            }
-
-            .status.hide()
-            .applyLayout()
+            .buildSheet()
         }
 
         for row, position in .outline.rows where cast(u64, row.userData0) == index + 1
@@ -164,6 +164,83 @@ private impl Panel
         }
 
         .refreshNavigation()
+    }
+
+    mtd clearSheet()
+    {
+        .view?.hide()
+        .view?.destroy()
+        .view = null
+        .gridHost?.hide()
+        .gridHost?.destroy()
+        .gridHost = null
+        .grid     = null
+    }
+
+    mtd buildSheet(preserveSelection = false)
+    {
+        let address = preserveSelection ? .selection : Address{}
+        .clearSheet()
+        let sheet = &.workbook.sheets[.sheet]
+        if .textMode
+        {
+            var style = HtmlStyle.theme()
+            style.maxContentWidth = 680
+            with .view = HtmlView.createText(me, sheet.readingHtml(.showHiddenRanges), style)
+            {
+                .dockStyle = .Center
+                .margin    = {.themeMetrics().floating_Inset, 0, .themeMetrics().floating_Inset, 0}
+            }
+        }
+        else
+        {
+            let inset = .themeMetrics().floating_Inset
+            with .gridHost = Wnd.create'Wnd(me, "scope.xlsx.grid")
+            {
+                .dockStyle       = .Center
+                .backgroundStyle = .Transparent
+                .margin          = {inset, .stripInset() + inset, inset, .themeMetrics().miniBar_ButtonSize + 2 * inset}
+            }
+
+            with let title = Label.create(.gridHost, sheet.name, {0, 0, 0, 40}, null, .Ellipsis)
+            {
+                .dockStyle = .Top
+                .setTextAlignment(.Left, .Top)
+                .style.setFont(.theme().createDefaultFont(24, .Bold), .Regular)
+            }
+
+            .grid = Grid.create(.gridHost, sheet, .showHiddenRanges)
+            .grid.selectAddress(address)
+            .selection        = .grid.selected
+            .grid.sigSelected += func|view = me|(_)
+            {
+                if view.grid do
+                    view.selection = view.grid.selected
+                view.refreshNavigation()
+            }
+        }
+
+        .status.hide()
+        .applyLayout()
+        .refreshNavigation()
+    }
+
+    internal mtd setTextMode(enabled: bool)
+    {
+        if .textMode == enabled do
+            return
+        .textMode = enabled
+        if .sheet < .workbook.sheets.count do
+            .buildSheet(true)
+    }
+
+    internal mtd setHiddenRanges(enabled: bool)
+    {
+        if .showHiddenRanges == enabled do
+            return
+        .showHiddenRanges = enabled
+        if .sheet < .workbook.sheets.count do
+            .buildSheet(true)
     }
 
     internal mtd turn(direction: s32)
@@ -203,6 +280,12 @@ private impl Panel
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         if .workbook.hiddenSheets do
             entries.add(texts().ui_ShowHidden, .File, func|view = me|() { view.setShowHidden(not view.showHidden) }, checked: .showHidden)
+        entries.add(texts().ui_Grid, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode)
+        entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode)
+        if .grid do
+            entries.add(texts().ui_CopyCell, .Copy, func|view = me|() { view.grid?.copy() }, disabled: not .grid.hasSelection, shortcut: Input.formatKeyShortcut(.Control, .C))
+        if .sheet < .workbook.sheets.count and .workbook.sheets[.sheet].hiddenRanges do
+            entries.add(texts().ui_HiddenRanges, .File, func|view = me|() { view.setHiddenRanges(not view.showHiddenRanges) }, checked: .showHiddenRanges)
     }
 
     func create(host: Viewer.Host)->*Panel

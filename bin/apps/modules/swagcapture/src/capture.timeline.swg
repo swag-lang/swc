@@ -419,8 +419,7 @@ impl Capture
     mtd copyAnimation() fail
     {
         let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "Swag Capture")
-        if not Directory.exists(folder) do
-            try Directory.create(folder)
+        try Directory.create(folder, recurse: true)
 
         var name = String.from(Path.fileNameWithoutExtension(.displayName()) orelse "animation")
         name += ".gif"

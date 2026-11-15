@@ -51,10 +51,11 @@ enum LibraryItemKind
 }
 
 // The selection and the focus of the grid, by file, so they survive a rebuild of the
-// visible set.
+// visible set. The rebuild runs while previews stream in and looks up every cell, so the
+// files are hashed: a whole selected library must not cost a scan of itself per cell.
 struct LibrarySelection
 {
-    files:   Array'String
+    files:   HashSet'String
     focused: String
 }
 
@@ -1022,13 +1023,13 @@ impl LibraryView
                 value = Utf8.compare(a.name(), b.name(), .Latin1NoCase)
 
             case .Application:
-                let applicationA = captureA ? captureA.sourceApplication.toString() : ""
-                let applicationB = captureB ? captureB.sourceApplication.toString() : ""
+                let applicationA: const [..] u8 = captureA ? captureA.sourceApplication.toSlice() : ""
+                let applicationB: const [..] u8 = captureB ? captureB.sourceApplication.toSlice() : ""
                 value = Utf8.compare(applicationA, applicationB, .Latin1NoCase)
 
             case .WindowTitle:
-                let windowA = captureA ? captureA.sourceWindowTitle.toString() : ""
-                let windowB = captureB ? captureB.sourceWindowTitle.toString() : ""
+                let windowA: const [..] u8 = captureA ? captureA.sourceWindowTitle.toSlice() : ""
+                let windowB: const [..] u8 = captureB ? captureB.sourceWindowTitle.toSlice() : ""
                 value = Utf8.compare(windowA, windowB, .Latin1NoCase)
 
             case .Dimensions:

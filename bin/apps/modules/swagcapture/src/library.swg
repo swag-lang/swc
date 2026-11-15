@@ -17,14 +17,11 @@ struct Library
 
 impl Library
 {
+    // Creates the folder and its trash, with any missing parent: the documents folder of a
+    // new account may not exist yet.
     func ensureFolder(folder: String) fail
     {
-        if not Directory.exists(folder) do
-            try Directory.create(folder)
-
-        let trash = Path.combine(folder, ".trash")
-        if not Directory.exists(trash) do
-            try Directory.create(trash)
+        try Directory.create(Path.combine(folder, ".trash"), recurse: true)
     }
 
     func init() fail

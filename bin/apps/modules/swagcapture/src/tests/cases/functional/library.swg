@@ -961,3 +961,16 @@ impl IAllocator for LibraryRejectAllocator
     f.gui.keyPress(.Oem2)
     Swag.require(lib.searchEdit.hasFocus())
 }
+
+// A library folder whose parents are missing, as the documents folder of a new account can be,
+// is created with them rather than stopping the application before its first window.
+#test
+{
+    testUseScratchLibrary()
+    defer discard catch g_Library.setFolder("")
+
+    let folder = Path.combine(Env.sandboxRoot(), "newaccount", "Documents", "Swag Capture")
+    expect g_Library.setFolder(folder)
+    Swag.require(Directory.exists(folder))
+    Swag.require(Directory.exists(Path.combine(folder, ".trash")))
+}

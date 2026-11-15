@@ -227,11 +227,12 @@ integration around those engines.
 
 - Evidence: EPUB 2 NCX and EPUB 3 contents now expose authored titles, hierarchy and chapter
   fragments in the shared filterable outline. Internal spine links keep the chapter counter in
-  sync, and chapter reading has its own zoom. Book-wide search, landmarks, non-spine footnotes,
-  reading-position restore, bookmarks and link history remain absent. Extraction still prepares
-  every package member before the first chapter is shown.
+  sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
+  returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
+  Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
+  remain absent. Extraction still prepares every package member before the first chapter is shown.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
-  bookmarks, link back/forward and lazy extraction of the visible chapter's resources.
+  bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010
@@ -252,14 +253,14 @@ integration around those engines.
   extracting all images first, and unsupported image pages are named in place.
 - Related: app.scope.image.005, app.scope.viewers.003
 
-### app.scope.document.028 — EPUB has no adjustable book-reading layout
+### app.scope.document.028 — EPUB needs paged layout and persistent logical reading positions
 
-- Evidence: each spine document is currently shown as one HTML chapter, with no book-level paged
-  layout, continuous flow choice, reading width, type scale, line spacing or margin policy.
-  [calibre's viewer](https://manual.calibre-ebook.com/viewer.html) supports paged and flow modes.
-- Next: add book-owned paged and continuous modes over the existing HTML layout, preserve a logical
-  location while typography or viewport size changes, and keep navigation and search mapped to
-  that location.
+- Evidence: the chapter reader offers compact, comfortable and wide default reading measures,
+  plus zoom. A logical text location preserves the visible passage through those changes, while
+  authored CSS keeps priority. There is no book-level paged/continuous-flow choice, line-spacing
+  control or persistent position restore, and ordinary viewport reflow still keeps pixel scroll.
+- Next: build book-owned paged and continuous modes over the HTML layout, retain a logical
+  location across viewport changes, and connect it to navigation, search and safe position restore.
 - Done when: readers can choose fit-to-width flow or pages, adjust typography without corrupting
   authored content, and reopen at the same logical passage across window and theme changes.
 - Related: app.scope.document.021, app.scope.viewers.003
@@ -387,3 +388,17 @@ integration around those engines.
 - Done when: current or selected pages can be copied/rendered at chosen DPI, supported embedded
   assets can be saved without silent conversion, filenames are sanitized, and unsupported or
   lossy extraction is explained.
+
+### app.scope.document.032 — OpenDocument reading needs fuller Writer/Calc/Impress fidelity
+
+- Evidence: ODT omits physical pages, headers/footers, notes, comments and complex drawings.
+  ODS uses saved formatted strings; raw typed values lack full ODF number-style reconstruction.
+  Its charts, annotations, advanced geometry and exact font metrics are simplified. ODP fits
+  common positioned text, rectangles and raster pictures with basic style/master inheritance,
+  but group transforms and unsupported drawings fall back to text; notes, media, gradients,
+  full master placeholder geometry and complex shapes are not reproduced. Slides are loaded eagerly.
+- Next: cover ODS number styles when saved display strings are absent, expose unsupported
+  components explicitly, deepen Impress master/shape fidelity and defer off-screen slide work.
+- Done when: genuine LibreOffice files retain common authored layout and components; notes
+  can be inspected separately; unsupported content remains explicit; navigation stays responsive
+  and cancellation/package budgets hold on large and damaged documents.

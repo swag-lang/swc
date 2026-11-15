@@ -106,6 +106,8 @@ struct AttributeList
     std::vector<BorrowFieldOrigin> returnFieldBorrows;
     std::vector<BorrowFieldOrigin> freesParamFields;
     std::vector<BorrowFieldOrigin> resetsParamFields;
+    std::vector<BorrowFieldOrigin> writesParamFields;
+    bool writesParamFieldsComplete = false;
 
     // Debug print options are rare, but every scope copies its attribute list.
     // Keep their string storage in vectors instead of inflating each copied list.
@@ -143,6 +145,8 @@ struct AttributeList
                returnFieldBorrows.empty() &&
                freesParamFields.empty() &&
                resetsParamFields.empty() &&
+               writesParamFields.empty() &&
+               !writesParamFieldsComplete &&
                !observesExternalBorrows.has_value() &&
                returnsIndirectParamsMask == 0 &&
                storesIndirectParamsMask == 0 &&

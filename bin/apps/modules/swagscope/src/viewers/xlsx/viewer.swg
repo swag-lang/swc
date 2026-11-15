@@ -331,11 +331,16 @@ private impl Panel
 
 func createViewer(host: Viewer.Host)
 {
+    createWorkbookViewer(host, &Workbook.load)
+}
+
+func createWorkbookViewer(host: Viewer.Host, loader: func(string)->Workbook fail)
+{
     let view = Panel.create(host)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index) { view.showSheet(index) }
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
-    view.load.start(host.fileName(), &Workbook.load, view)
+    view.load.start(host.fileName(), loader, view)
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

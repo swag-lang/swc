@@ -159,7 +159,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
   labelled. Only Windows-1252 encoded text is supported; page geometry, fonts, colors, complex
   tables and fields are not reproduced.
-- `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
+- `Workbook` opens one XLSX sheet at a time, respecting the saved active sheet. Arrows,
+  Ctrl+Page Up/Down and the filterable outline switch sheets in workbook order. Hidden and
+  very-hidden sheets require the explicit Show Hidden Sheets command. It presents shared or inline text, numbers,
   booleans and cached formula values at their row and column coordinates, with visible headings.
   Formulas without cached values show their expression or an explicit unavailable-result label.
   Common number formats preserve currency, grouping, percentages, decimal precision, dates and

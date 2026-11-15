@@ -6,6 +6,13 @@ using Core, Gui
 struct Texts
 {
     ui_Name:               string = "Workbook"
+    ui_Previous:           string = "Previous Sheet"
+    ui_Next:               string = "Next Sheet"
+    ui_ShowHidden:         string = "Show Hidden Sheets"
+    ui_Hidden:             string = "% (hidden)"
+    ui_AllHidden:          string = "All sheets in this workbook are hidden."
+    ui_Cell:               string = "% · % cell"
+    ui_Cells:              string = "% · % cells"
     ui_Preparing:          string = "Preparing workbook…"
     ui_Details:            string = "Workbook · % sheets · % cells"
     ui_FormatsOmitted:     string = " · % number formats not shown"

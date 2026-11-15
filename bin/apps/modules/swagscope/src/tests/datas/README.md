@@ -69,3 +69,6 @@ retain their original provenance and licences. They contain no external resource
 `viewer.styles.docx` is a repository-authored document with relationship-resolved style and theme
 parts. It exercises custom heading IDs, parent styles, character styles, theme fonts/colors,
 paragraph spacing/indents, direct bold resets and a simple table. It contains no external assets.
+
+`viewer.navigation.xlsx` is a repository-authored three-sheet workbook with a saved active
+sheet, a hidden intermediate sheet and literal sheet labels. It contains no external assets.

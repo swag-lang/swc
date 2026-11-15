@@ -130,11 +130,13 @@ namespace
     // escaped pointer into either space can reach stack-pointer slots.
     struct FrameReachability
     {
-        bool                       computed          = false;
-        bool                       wholeFramePrivate = false;
-        bool                       spSpaceEscapes    = false;
-        bool                       localSpaceEscapes = false;
+        bool                       computed               = false;
+        bool                       wholeFramePrivate      = false;
+        bool                       spSpaceEscapes         = false;
+        bool                       localSpaceEscapes      = false;
+        bool                       localValuesStayPrivate = true;
         std::vector<MicroInstrRef> spEscapes;
+        std::vector<MicroInstrRef> indexedLocalTouches;
         MicroReg                   localBaseReg;
         MicroInstrRef              localBaseRef = MicroInstrRef::invalid();
         bool                       extentsKnown = false;
@@ -245,6 +247,75 @@ namespace
         // An address into no known object: the extents cannot vouch for what it
         // reaches.
         out.localSpaceEscapes = true;
+        out.localValuesStayPrivate = false;
+    }
+
+    // A short-lived copy that only reads known source objects cannot expose an
+    // allocator home. Keep the broader frame model conservative: this proof is
+    // only consumed by the private-spill cache, whose slots have separate bounds.
+    bool isBoundedReadOnlyFrameCopy(const MicroPassContext& context, const FrameReachability& reach, MicroInstrRef ref)
+    {
+        const auto&       storage  = *context.instructions;
+        const auto&       operands = *context.operands;
+        const MicroInstr* copy     = storage.ptr(ref);
+        const auto*       copyOps  = copy ? copy->ops(operands) : nullptr;
+        if (!reach.extentsKnown || !copy || !copyOps || copy->op != MicroInstrOpcode::LoadRegReg ||
+            copyOps[1].reg != reach.localBaseReg || !copyOps[0].reg.isInt() || copyOps[2].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg alias        = copyOps[0].reg;
+        uint64_t       displacement = 0;
+        for (ref = storage.findNextInstructionRef(ref); ref.isValid(); ref = storage.findNextInstructionRef(ref))
+        {
+            const MicroInstr* inst = storage.ptr(ref);
+            if (!inst)
+                return false;
+            const auto& info = MicroInstr::info(inst->op);
+            const auto* ops  = inst->ops(operands);
+            if (inst->op == MicroInstrOpcode::Label || inst->op == MicroInstrOpcode::Ret ||
+                info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return false;
+            const auto touch = MicroPassHelpers::regTouch(*inst, operands, alias, context.encoder);
+            if (touch.use && ops && inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[0].reg == alias && ops[1].opBits == MicroOpBits::B64)
+            {
+                const uint64_t amount = ops[3].valueU64;
+                if (ops[2].microOp == MicroOp::Add && amount <= UINT64_MAX - displacement)
+                    displacement += amount;
+                else if (ops[2].microOp == MicroOp::Subtract && amount <= displacement)
+                    displacement -= amount;
+                else
+                    return false;
+                continue;
+            }
+            if (touch.use)
+            {
+                if (!ops || inst->op != MicroInstrOpcode::LoadRegMem || ops[1].reg != alias || ops[0].reg == alias ||
+                    MicroPassHelpers::isAtomicOrdering(*inst, ops))
+                    return false;
+                if (ops[3].valueU64 > UINT64_MAX - displacement)
+                    return false;
+                const uint64_t offset = displacement + ops[3].valueU64;
+                const uint64_t width  = getNumBytes(ops[2].opBits);
+                if (!width || offset + width < offset)
+                    return false;
+                const bool withinSourceObject = std::ranges::any_of(reach.objects, [&](const FrameObject& object) {
+                    if (object.start < 0 || offset < static_cast<uint64_t>(object.start))
+                        return false;
+                    const uint64_t relative = offset - static_cast<uint64_t>(object.start);
+                    return relative <= object.size && width <= object.size - relative;
+                });
+                if (!withinSourceObject)
+                    return false;
+            }
+            if (touch.def)
+            {
+                // These unconditional writes replace every pointer bit. Partial
+                // writes and read/modify/write instructions retain an alias.
+                return !touch.use && ops && ops[0].reg == alias &&
+                       (inst->op == MicroInstrOpcode::ClearReg || inst->op == MicroInstrOpcode::LoadRegImm) &&
+                       (ops[1].opBits == MicroOpBits::B32 || ops[1].opBits == MicroOpBits::B64);
+            }
+        }
+        return false;
     }
 
     void analyzeFrameReachability(FrameReachability& out, const MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv)
@@ -290,7 +361,10 @@ namespace
                 else if (ops && out.localBaseReg.isValid() && ops[1].reg == out.localBaseReg)
                 {
                     if (!out.extentsKnown)
+                    {
                         out.localSpaceEscapes = true;
+                        out.localValuesStayPrivate = false;
+                    }
                     else if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
                         markEscapedObject(out, static_cast<int64_t>(ops[3].valueU64));
                     else
@@ -316,12 +390,25 @@ namespace
                     continue;
                 if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && i == info.memBaseOperandIndex)
                     continue;
+                uint8_t memoryBase = 0;
+                if (ops[i].reg == out.localBaseReg && MicroPassHelpers::dereferenceBaseOperandIndex(memoryBase, inst.op, info) && i == memoryBase)
+                {
+                    // An indexed access does not expose the address as a value,
+                    // but its byte range is unknown. Spill caching can cross it
+                    // only when it is outside the loop being rewritten.
+                    out.localSpaceEscapes = true;
+                    out.indexedLocalTouches.push_back(it.current);
+                    continue;
+                }
                 if (inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem)
                     continue; // classified above, per object
                 if (isFrameBaseRegister(ops[i].reg, conv))
                     markStackEscape();
                 else
+                {
                     out.localSpaceEscapes = true;
+                    out.localValuesStayPrivate &= isBoundedReadOnlyFrameCopy(context, out, it.current);
+                }
             }
         }
 
@@ -947,7 +1034,8 @@ namespace
         return result;
     }
 
-    // Integer spill homes prefer an idle, already saved integer register, then
+    // Scalar spill homes may borrow the other register bank without arithmetic
+    // conversion. Integer homes prefer an idle, already saved integer register, then
     // an unused caller-saved SIMD register, even when the original GP register
     // changes roles between accesses. Keeping every read and write coherent also
     // handles branch arms and distinct loop exits.
@@ -961,12 +1049,18 @@ namespace
         const bool stackEscaped,
         std::vector<uint8_t>& visited)
     {
-        if (stackEscaped || reach.localSpaceEscapes || context.spillAreaLo >= context.spillAreaHi)
+        if (stackEscaped || (reach.localSpaceEscapes && !reach.localValuesStayPrivate) || context.spillAreaLo >= context.spillAreaHi)
             return false;
         const CallConv& conv     = CallConv::get(context.callConvKind);
         auto&           storage  = *context.instructions;
         auto&           operands = *context.operands;
         const auto      refs     = cfg.instructionRefs();
+        for (const MicroInstrRef touch : reach.indexedLocalTouches)
+        {
+            const uint32_t index = cfg.indexOf(touch);
+            if (index == MicroControlFlowGraph::K_NO_INDEX || loop.inBody[index])
+                return false;
+        }
 
         SmallVector<uint32_t, 4>      entries;
         SmallVector<MicroInstrRef, 4> seeds;
@@ -1008,6 +1102,8 @@ namespace
                 const auto*       ops  = inst ? inst->ops(operands) : nullptr;
                 if (!inst || !ops)
                     return false;
+                if (frameBase == reach.localBaseReg && isBoundedReadOnlyFrameCopy(context, reach, refs[index]))
+                    continue;
                 const auto&                 info = MicroInstr::info(inst->op);
                 MicroPassHelpers::AmcLayout layout;
                 if (!info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) ||
@@ -1042,6 +1138,11 @@ namespace
                 candidates.push_back(reg);
         for (const MicroReg reg : conv.floatTransientRegs)
             candidates.push_back(reg);
+        // Floating spill bits may also use an otherwise idle caller-saved GP
+        // register. Integer homes keep their existing register preference.
+        for (const MicroReg reg : conv.intTransientRegs)
+            if (!isFrameBaseRegister(reg, conv) && reg != reach.localBaseReg && reg != context.debugStackBasePhysReg)
+                candidates.push_back(reg);
         for (const MicroReg reg : candidates)
             if (!(unavailable & (1ull << MicroPhysLiveness::bitOf(reg))) &&
                 std::ranges::none_of(entries, [&](const uint32_t entry) { return liveness.isLiveOut(entry, reg); }))
@@ -1080,6 +1181,7 @@ namespace
             SmallVector<MicroInstrRef, 4> accesses;
             uint32_t                      writes   = 0;
             bool                          eligible = true;
+            bool                          floating = false;
         };
         SmallVector<Slot, 16>    slots;
         SmallVector<uint32_t, 4> exits;
@@ -1129,7 +1231,9 @@ namespace
                 slots.push_back({.range = {conv.stackPointer, offset, offset + width}});
                 found = slots.end() - 1;
             }
-            found->eligible &= (load || store) && width == 8 && found->range.hi == offset + width && ops[load ? 0 : 1].reg.isInt();
+            const MicroReg value = (load || store) ? ops[load ? 0 : 1].reg : MicroReg::invalid();
+            found->eligible &= (load || store) && width == 8 && found->range.hi == offset + width && (value.isInt() || value.isFloat());
+            found->floating |= value.isFloat();
             found->range.hi = std::max(found->range.hi, offset + width);
             found->accesses.push_back(refs[index]);
             found->writes += store;
@@ -1185,7 +1289,12 @@ namespace
             const bool writeThrough   = slot.writes && (!calls.empty() || !exclusiveExits);
             const bool needsWriteBack = slot.writes && !writeThrough;
 
-            const MicroReg cached       = available[selected];
+            const auto candidate = std::find_if(available.begin() + selected, available.end(), [&](const MicroReg reg) {
+                return slot.floating ? reg.isInt() : reg.isFloat() || conv.isIntPersistentReg(reg);
+            });
+            if (candidate == available.end())
+                continue;
+            const MicroReg cached       = *candidate;
             const auto     needsRestore = [&](const uint32_t call) {
                 return call + 1 < refs.size() && loop.inBody[call + 1] &&
                        liveness.useDefs[call].definesReg(cached);
@@ -1196,6 +1305,7 @@ namespace
             const auto readsRemoved = slot.accesses.size() - (writeThrough ? slot.writes : 0);
             if ((!callFreeTrip && restores) || (writeThrough && !readsRemoved) || (!calls.empty() && readsRemoved <= seeds.size() + restores))
                 continue;
+            std::iter_swap(available.begin() + selected, candidate);
             ++selected;
             MicroInstrOperand seed[4] = {};
             seed[0].reg               = cached;

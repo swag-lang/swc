@@ -1,0 +1,27 @@
+{
+  "production_baseline": "f8143cb098",
+  "host": "Linux x86-64 SysV; Swag internal ABI",
+  "compiler_configuration": "DevMode, GCC 14.2.0",
+  "program_configuration": "release",
+  "workers": 3,
+  "functions": {
+    "Nbody.__main_48499bfd338fc06e": {
+      "base": {
+        "address": "0x4118e0",
+        "bytes": 4089
+      },
+      "new": {
+        "address": "0x40a580",
+        "bytes": 4058
+      }
+    }
+  },
+  "compilers": {
+    "base": "9678ebeffd6e0c36f4d9290aa78f016f296960f6c86d7ed77f3a39bf2d40d628",
+    "new": "35b1a0645ff662dedcb75fbce580010bedb8d559198c528791680bd5bf3deeb7"
+  },
+  "binaries": {
+    "base": "7608bb5277e0238e44459d04f89d3ddcb36f84272e6cd895b95b338a0225ed6d",
+    "new": "c1338afca5c8b26d0538c5041a4feae417c5c8554b2c6eadfdbd466871c4b42a"
+  }
+}

@@ -199,6 +199,11 @@ namespace
         if (!file)
             return false;
 
+        // Local functions need their enclosing function's lexical frames. A deferred runner
+        // starts from a symbol map and cannot reconstruct those active local declarations.
+        if (!sym.ownerSymMap())
+            return false;
+
         // Imported methods need the receiver binding created while walking their declaration
         // scope. Replaying only the function body cannot currently reconstruct that binding.
         const bool delayImported = file->isImportedApi() && !sym.isMethod();

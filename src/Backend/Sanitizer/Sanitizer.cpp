@@ -2066,7 +2066,64 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             applyFieldEffects(calleeFn->freedParamFields());
             applyFieldEffects(calleeFn->importedFreedParamFields());
         }
-        state.aliasPtrLocations.eraseIf([&](const auto& entry) { return locationOwnerPassed(state, entry.second, callConvKind); });
+        const auto callMayWriteLocation = [&](const SanitizerLocation& location) {
+            if (!calleeFn || !calleeFn->hasCompleteParamFieldWriteSummary() || !ops)
+                return true;
+
+            const auto& parameters = calleeFn->parameters();
+            for (size_t i = 0; i < parameters.size(); ++i)
+            {
+                if (!parameters[i] || !parameters[i]->typeRef().isValid())
+                    continue;
+                const TypeInfo& paramType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), parameters[i]->typeRef());
+                if (!paramType.isPointerOrReference())
+                    continue;
+                const TypeInfo& payloadType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), paramType.payloadTypeRef());
+                if (!payloadType.isStruct())
+                    continue;
+
+                MicroReg argReg;
+                if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
+                    continue;
+                const SanitizerRegInfo* argInfo = findReg(state, argReg);
+                if (!argInfo)
+                    continue;
+
+                for (const SymbolVariable* field : payloadType.payloadSymStruct().fields())
+                {
+                    if (!field)
+                        continue;
+                    SanitizerLocation fieldLocation;
+                    bool haveLocation = false;
+                    if (argInfo->value.isStackAddr())
+                    {
+                        fieldLocation.fromSlot = true;
+                        fieldLocation.slot = argInfo->value.stackOffset;
+                        fieldLocation.offset = field->offset();
+                        haveLocation = true;
+                    }
+                    else if (argInfo->hasOriginSlot)
+                    {
+                        fieldLocation.fromSlot = true;
+                        fieldLocation.slot = argInfo->originSlot;
+                        fieldLocation.offset = field->offset();
+                        haveLocation = true;
+                    }
+                    else if (argInfo->hasAddressLocation)
+                    {
+                        fieldLocation = argInfo->addressLocation;
+                        fieldLocation.offset += field->offset();
+                        haveLocation = true;
+                    }
+                    if (haveLocation && fieldLocation == location)
+                        return calleeFn->hasPossiblyWrittenParamField(i, field->name(ctx()));
+                }
+            }
+            return true;
+        };
+        state.aliasPtrLocations.eraseIf([&](const auto& entry) {
+            return locationOwnerPassed(state, entry.second, callConvKind) && callMayWriteLocation(entry.second);
+        });
 
         // A callee releasing the pointer STORED in the box it is handed leaves the box to
         // the callee, which may refill it: what is proven released is every other copy

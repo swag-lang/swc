@@ -133,6 +133,9 @@ namespace MicroOptimizationLimits
 
         // [target-layout] Keep fused loop compare/branch groups away from the affected x64 fetch boundary.
         inline constexpr uint32_t K_BRANCH_BOUNDARY = 32;
+
+        // [target-layout] Keep a short nested loop within one x64 instruction-cache line.
+        inline constexpr uint32_t K_LOOP_FETCH_BOUNDARY = 64;
     }
 
     namespace InductionVariable
@@ -395,6 +398,9 @@ namespace MicroOptimizationLimits
 
         // [analysis-budget] Bound the preheader search for an existing invariant memory read.
         inline constexpr uint32_t K_MAX_ENTRY_READ_LOOKBACK = 16;
+
+        // [analysis-budget] Bound raw-bit copy tracing for an invariant spill source.
+        inline constexpr uint32_t K_MAX_SPILL_SOURCE_LOOKBACK = 16;
     }
 
     namespace PostRALoopRotate
@@ -470,6 +476,9 @@ namespace MicroOptimizationLimits
 
         // [analysis-budget] Bound the search for a prior comparison with still-available flags.
         inline constexpr uint32_t K_REPEATED_COMPARE_WINDOW = 4;
+
+        // [analysis-budget] Bound all-path backward expansion before reusing flags at a join.
+        inline constexpr uint32_t K_COMPARE_JOIN_PATH_WINDOW = 64;
     }
 
     namespace PostRAPeepholeFloatThreeOperand

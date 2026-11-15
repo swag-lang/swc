@@ -126,6 +126,7 @@ namespace PostRaPeephole
     bool tryDropSignExtendBeforeNarrowCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryThreadJumpToJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryMergeWideZeroStores(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseRepeatedVectorClear(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseFloatClearBeforeFullWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -163,6 +164,7 @@ namespace PostRaPeephole
     bool tryUseTestForDeadMask(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseDeadCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseRepeatedCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryEraseCompareAtJoin(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConstantBooleanSet(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConditionalBitwiseNot(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldConditionalAddSubtract(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -198,6 +200,8 @@ namespace PostRaPeephole
     bool tryLoadIntoFirstFloatConsumer(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryRetargetLoadedValueBeforeOffset(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryRetargetOffsetSelectResult(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldMaskedIndexIncrement(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSignedFloorAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

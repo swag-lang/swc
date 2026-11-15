@@ -18,6 +18,20 @@ owned by a viewer lives in the corresponding domain:
 
 Reusable engine work remains in the backlog of the standard module that owns it.
 
+### app.scope.012 — Explorer fixture-folder tests can stop without completing
+
+- Evidence: a native Linux GPU/X11 functional campaign passes 25 tests, starts
+  `explorer.menus.swg:50`, then reports no pass/fail event before a 110-second timeout.
+  The compiler-launched functional campaign also exceeds 100 seconds. The golden campaign
+  can stop at `explorer.swg:41`, although another full golden invocation finishes. The
+  unchanged menu/background captures are tracked in std.pixel.037; these stalls are a
+  separate completion problem, and isolated video tests pass all 30 cases.
+- Next: trace listing waits, popup completion and shutdown at the active test boundary;
+  identify the outstanding task or event before changing retries or deadlines.
+- Done when: the fixture-folder menu and failure-view tests complete reliably with three
+  workers on the native headless host and the routine application campaign finishes.
+- Related: app.scope.011, std.pixel.037
+
 ### app.scope.011 — Reduce repeated rendering in Scope's visual tests
 
 - Evidence: with the existing DevMode compiler, devmode artifacts and three workers,

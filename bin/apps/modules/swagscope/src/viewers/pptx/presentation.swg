@@ -101,6 +101,7 @@ impl Presentation
         for slide in order
         {
             let page = try SlidePage.load(&parts, slide.path, result.width)
+            textBytes += page.notesHtml.count
             for shape in page.shapes do
                 textBytes += shape.html.count
             result.omittedImages += page.omittedImages

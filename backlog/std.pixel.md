@@ -15,6 +15,21 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.037 — Linux offscreen UI references differ consistently on the baseline
+
+- Evidence: the GPU/Mesa golden campaign on Linux produces 6 GUI, 21 Capture and 7 Vault
+  mismatches, mostly menus and floating surfaces. All 34 actual images are byte-identical with
+  and without the HTML viewport-gutter correction. Scope's selected menu, details, framing and
+  narrow-search actuals also match the unchanged baseline byte for byte. A second campaign
+  proves the Markdown typography/image captures match the baseline byte for byte too. The
+  complete Scope pass can stall in `explorer.swg:41` while enumerating the fixture folder;
+  selecting other golden owners separately allows the document captures to complete. These references were
+  left untouched; the HTML documentation reference is the sole changed GUI capture.
+- Next: reduce one stable menu/background difference and compare recorded colors, rasterization
+  and backend readback against the reference platform before changing any expected image.
+- Done when: the differences have a demonstrated cause and supported backends pass their
+  declared tolerances with independently reviewed references.
+
 ### std.pixel.036 — Scaled comic reference differs across offscreen backends
 
 - Evidence: Scope's unchanged `viewer.comic.page` reference differs on Linux by 41 pixels beyond

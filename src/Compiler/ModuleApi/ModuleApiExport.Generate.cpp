@@ -828,6 +828,46 @@ namespace
         return result;
     }
 
+    std::string encodePossibleWriteFields(const SymbolFunction& function, const SymbolFunction* variant)
+    {
+        std::vector<SymbolFunction::ReturnFieldBorrow> origins;
+        const auto append = [&origins](const SymbolFunction* source) {
+            if (!source)
+                return;
+            const auto local = source->writtenParamFields();
+            const auto imported = source->importedWrittenParamFields();
+            origins.insert(origins.end(), local.begin(), local.end());
+            origins.insert(origins.end(), imported.begin(), imported.end());
+        };
+        append(&function);
+        append(variant);
+        std::ranges::sort(origins, [](const auto& lhs, const auto& rhs) {
+            return std::tie(lhs.paramIndex, lhs.fieldName) < std::tie(rhs.paramIndex, rhs.fieldName);
+        });
+        origins.erase(std::unique(origins.begin(), origins.end()), origins.end());
+
+        constexpr char HEX[] = "0123456789abcdef";
+        std::string result;
+        for (const auto& entry : origins)
+        {
+            if (!result.empty())
+                result += ';';
+            result += std::to_string(entry.paramIndex);
+            result += ':';
+            for (const unsigned char byte : entry.fieldName)
+            {
+                result += HEX[byte >> 4];
+                result += HEX[byte & 15];
+            }
+        }
+        return result;
+    }
+
+    bool hasCompletePossibleWriteSummary(const SymbolFunction& function)
+    {
+        return function.hasCompleteParamFieldWriteSummary();
+    }
+
     void collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const bool hasExportedBody, const Utf8& snippet, const SymbolFunction* fwdMoveVariant)
     {
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Macro, "Macro");
@@ -875,6 +915,11 @@ namespace
         const std::string returnFieldOrigins = encodeReturnFieldOrigins(symbolFunction, fwdMoveVariant);
         const std::string freedFieldOrigins = encodeEffectFields(symbolFunction, fwdMoveVariant, false);
         const std::string writtenFieldOrigins = encodeEffectFields(symbolFunction, fwdMoveVariant, true);
+        const std::string possibleWriteFieldOrigins = encodePossibleWriteFields(symbolFunction, fwdMoveVariant);
+        const bool        completePossibleWriteSummary = hasCompletePossibleWriteSummary(symbolFunction) && intoPairs == 0 && storesIndirectMask == 0 &&
+                                                   intoIndirectPairs == 0 &&
+                                                   (!fwdMoveVariant || (hasCompletePossibleWriteSummary(*fwdMoveVariant) && intoPairs == 0 && storesIndirectMask == 0 &&
+                                                                        intoIndirectPairs == 0));
 
         if ((returnsMask != 0 ||
              storesMask != 0 ||
@@ -889,6 +934,7 @@ namespace
              !returnFieldOrigins.empty() ||
              !freedFieldOrigins.empty() ||
              !writtenFieldOrigins.empty() ||
+             completePossibleWriteSummary ||
              !observesExternal) &&
             (!hasExportedBody || !snippetSpellsAttribute(snippet.view(), "BorrowSummary")))
         {
@@ -917,6 +963,8 @@ namespace
                 summary += std::format(", freesFields: \"{}\"", freedFieldOrigins);
             if (!writtenFieldOrigins.empty())
                 summary += std::format(", resetsFields: \"{}\"", writtenFieldOrigins);
+            if (completePossibleWriteSummary)
+                summary += std::format(", writesFields: \"{}\", writesFieldsComplete: true", possibleWriteFieldOrigins);
 
             summary += ")";
             ioAttributes.push_back(std::move(summary));

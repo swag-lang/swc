@@ -186,10 +186,27 @@ is the current scorecard.
   an unannotated release-and-replace method, but aliases copied before that call are not yet
   diagnosed. Known direct wrappers now forward explicit and inferred field effects after module
   analysis; release-and-replace wrappers preserve both the old-alias diagnostic and safe field
-  reload. Globals, automatic reset inference and unavailable bodies remain unsolved.
-- Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
-  extend the same before/after distinction to globals and unavailable bodies. Refine conservative
-  suppression for calls that receive a carrier while retaining soundness.
+  reload. A pointer value projected from a field also carries a callee's direct `frees` effect back
+  to that field through wrappers. For body-visible carrier calls, possible field writes now
+  propagate separately from releases: a known read-only call no longer suppresses a later
+  field-release summary. Generated APIs publish possible writes in `writesFields`; the
+  `writesFieldsComplete` marker lets the backend preserve alias provenance through bodyless calls
+  for fields outside that complete list. An incomplete or unavailable summary remains
+  conservative. Consumer regressions verify a no-write API preserves release diagnostics and a
+  writer of `data` does not suppress a release through `other`; a wrapper API exports both effects
+  together and the consumer keeps `data` usable while diagnosing the released `other`. Replacement
+  and refill-before-release cases keep aliases to the old allocation valid. Globals and automatic
+  reset inference remain unsolved. Aggregate `into` effects deliberately omit the complete-write marker
+  when their field set cannot be proven. Linux `release-safe` validation passes the complete
+  `workspace` suite (56/56 stages), the complete `sanity` suite, the focused `use_after_free.swg`
+  corpus from the preceding validation pass, and 1,699 C++ unit tests.
+- One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
+  projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
+  single run; repeat it before treating the small timing difference as a regression.
+- Next: extend the same before/after distinction to globals and unavailable bodies. Infer
+  guaranteed resets where control flow proves every return leaves valid storage; retain
+  conservative behavior whenever an incomplete write summary or unknown target prevents that
+  proof.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

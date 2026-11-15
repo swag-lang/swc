@@ -24,7 +24,7 @@ viewer packages, helper binaries, or network service required to open supported 
    See [std.gui.pdf.md](std.gui.pdf.md) and the fixture matrix. Verify Encre and Papier across
    sibling scenarios, including previews and keyboard use.
 3. Reassess new format selectors only after their existing neighbors meet this reading contract.
-   Recorded candidates include Jupyter notebooks, OpenDocument (`.odt`, `.ods`, `.odp`), AVIF,
+   Recorded candidates include Jupyter notebooks, AVIF,
    HEIC, JPEG XL, embedded RAW previews, VP9, AV1, DjVu, XPS, CBR, other archives and legacy
    Office files. Keep those leads in their owning backlogs; do not schedule them ahead of fixes to
    current readers. See [app.scope.image.md](app.scope.image.md) and [std.video.md](std.video.md).
@@ -35,7 +35,7 @@ viewer packages, helper binaries, or network service required to open supported 
 
 - Evidence: Image, Video, Comic, PDF and Sound can supply content thumbnails. Text, Code,
   Markdown, HTML, RTF, Subtitle and Table still show a bounded source sample; Archive, Binary,
-  DOCX, EPUB, Font, Hex, MIDI, PPTX and XLSX show neutral file facts. The old fallback's byte map
+  DOCX, ODT, ODS, ODP, EPUB, Font, Hex, MIDI, PPTX and XLSX show neutral file facts. The old fallback's byte map
   was misleading for binary documents and is no longer used.
 - Next: give each remaining visual reader a bounded thumbnail callback using its own decoded
   model: EPUB cover or first spine page, Office first page/slide/sheet, font specimen, MIDI score
@@ -225,7 +225,7 @@ viewer packages, helper binaries, or network service required to open supported 
 | Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.text.040](app.scope.text.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
-| Markdown | `.md` `.markdown` | rendered and raw text with heading outline | outline filtering/current-section tracking, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
+| Markdown | `.md` `.markdown` | rendered and raw text with filterable heading outline | current-section tracking, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
 | HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
 | JSON and JSON Lines | `.json` `.jsonl` | code and raw text | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
 | XML | `.xml` `.xsd` `.xsl` `.xslt` | code and raw text | namespace-aware tree and paths | [app.scope.text.038](app.scope.text.md) |
@@ -236,12 +236,14 @@ viewer packages, helper binaries, or network service required to open supported 
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.document.020](app.scope.document.md) |
-| XLSX | `.xlsx` | virtual sheets, authored geometry and common cell/numeric styles | default styles, frozen panes and search | [app.scope.document.025](app.scope.document.md) |
-| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text mode | notes, thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
-| OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
+| XLSX | `.xlsx` | virtual sheets, authored geometry, row/column defaults and common cell/numeric styles | unsaved blank-region styles, frozen panes and search | [app.scope.document.025](app.scope.document.md) |
+| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text and notes modes | thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
+| ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.document.032](app.scope.document.md) |
+| ODS | `.ods` | native sheets, saved formatted values, inherited cell paint and common geometry | complete number styles, drawings, exact geometry and search | [app.scope.document.032](app.scope.document.md) |
+| ODP | `.odp` | fitted slides, basic styles/masters, positioned text/pictures, title list, text and notes modes | complete drawings, master placeholders and lazy slides | [app.scope.document.032](app.scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
-| EPUB | `.epub` | spine chapters through `HtmlView` | TOC, book search, saved position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
-| Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
+| EPUB | `.epub` | chapters, EPUB 2/3 contents, passage-preserving zoom/columns and back/forward | book search, persistent position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
+| Comic book | `.cbz` | natural-order single image pages, page jump and optional right-to-left keys | spreads, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
 | RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |

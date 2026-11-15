@@ -245,6 +245,68 @@ SWC_TEST_BEGIN(SinkToUse_CopiesCrossOnlyIndependentCalls)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SinkToUse_FormsSingleUseAddressInCopiedRegister)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::C);
+    for (uint32_t variant = 0; variant < 10; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        const MicroReg base    = MicroReg::virtualIntReg(1);
+        const MicroReg address = MicroReg::virtualIntReg(2);
+        const MicroReg result  = variant == 9 ? MicroReg::virtualFloatReg(3) : conv.intArgRegs[1];
+        builder.emitLoadRegReg(base, variant == 7 ? conv.intArgRegs[0] : conv.stackPointer, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(address, base, 48, MicroOpBits::B64);
+        const auto definition = builder.instructions().lastInstructionRef();
+        if (variant != 0)
+        {
+            const auto join = builder.createLabel();
+            builder.emitCmpRegImm(conv.intArgRegs[0], ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+            builder.emitCallReg(conv.intReturn, CallConvKind::C, 0, 0);
+            if (variant == 2)
+                builder.emitOpBinaryRegImm(base, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.placeLabel(join);
+        }
+        if (variant == 4)
+            builder.preserveVirtualCopy(address);
+        if (variant == 5)
+            builder.emitLoadMemReg(conv.stackPointer, 80, address, MicroOpBits::B64);
+        if (variant == 6)
+            builder.emitOpBinaryRegImm(base, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadRegReg(result, address, variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        const auto copy = builder.instructions().lastInstructionRef();
+        if (variant == 8)
+        {
+            const auto loop = builder.createLabel();
+            builder.placeLabel(loop);
+            builder.emitCmpRegImm(conv.intArgRegs[0], ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, loop);
+        }
+        builder.emitLoadMemReg(conv.stackPointer, 88, result, MicroOpBits::B64);
+        builder.emitRet();
+
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
+        const bool retargeted = variant == 0 || variant == 1 || variant == 4;
+        if (retargeted != (builder.instructions().ptr(copy) == nullptr))
+            return Result::Error;
+        if (!retargeted)
+            continue;
+        if (builder.instructions().ptr(definition))
+            return Result::Error;
+        bool found = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::LoadAddrRegMem && ops[0].reg == result)
+                found = ops[1].reg == base && ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == 48;
+        }
+        if (!found)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

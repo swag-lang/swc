@@ -38,7 +38,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let registry = createViewerPluginRegistry()
-    Swag.require(registry.plugins.count == 21)
+    Swag.require(registry.plugins.count == 24)
     for plugin in registry.plugins do
         Swag.require(plugin.apiVersion == Viewer.ApiVersion and
                      plugin.create != null and
@@ -143,9 +143,10 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.require(registry.choices("score.mid")[0].key == "midi")
     Swag.require(registry.choices("dialogue.srt")[0].key == "subtitle")
     let openDocumentChoices = registry.choices("budget.ods")
-    Swag.require(openDocumentChoices[0].key == "archive" and
-                 openDocumentChoices[1].key == "binary" and
-                 openDocumentChoices[2].key == "hex")
+    Swag.require(openDocumentChoices[0].key == "ods" and
+                 openDocumentChoices[1].key == "archive" and
+                 openDocumentChoices[2].key == "binary" and
+                 openDocumentChoices[3].key == "hex")
     Swag.require(registry.choices("bundle.zip")[0].key == "archive")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]

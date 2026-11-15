@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
@@ -256,6 +258,74 @@ namespace PostRaPeephole
                 return false;
         }
         return false;
+    }
+
+    // Every incoming path may already carry this exact integer comparison's
+    // flags, even when a label separates it from the branches that read them.
+    // Bound the backward path expansion: cycles or a large join retain the CMP.
+    bool tryEraseCompareAtJoin(Context& ctx, const MicroInstrRef ref, const MicroInstr& inst)
+    {
+        if (!ctx.builder || ctx.isClaimed(ref))
+            return false;
+        const MicroInstr* previous = ctx.instruction(ctx.previousRef(ref));
+        const auto*       compared = inst.ops(*ctx.operands);
+        if (!previous || previous->op != MicroInstrOpcode::Label || !compared || !compared[0].reg.isInt())
+            return false;
+        const bool registerPair = inst.op == MicroInstrOpcode::CmpRegReg || inst.op == MicroInstrOpcode::TestRegReg;
+        if (registerPair && !compared[1].reg.isInt())
+            return false;
+        for (uint32_t operand = 0; operand < inst.numOperands; ++operand)
+            if (compared[operand].hasWideImmediateValue())
+                return false;
+
+        const auto& cfg = ctx.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.addressTakenLabelIndices().empty())
+            return false;
+        const auto     refs    = cfg.instructionRefs();
+        const uint32_t current = cfg.indexOf(ref);
+        if (current == MicroControlFlowGraph::K_NO_INDEX || cfg.predecessors(current).empty())
+            return false;
+        SmallVector<uint32_t, 8> pending;
+        for (const uint32_t predecessor : cfg.predecessors(current))
+            pending.push_back(predecessor);
+        SmallVector<MicroInstrRef, 16> proof;
+        proof.push_back(ref);
+        using MicroOptimizationLimits::PostRAPeepholeFlags::K_COMPARE_JOIN_PATH_WINDOW;
+        uint32_t steps = 0;
+        while (!pending.empty())
+        {
+            if (++steps > K_COMPARE_JOIN_PATH_WINDOW)
+                return false;
+            const uint32_t index = pending.back();
+            pending.pop_back();
+            if (index >= refs.size() || index == current || ctx.isClaimed(refs[index]))
+                return false;
+            const MicroInstr* source = ctx.instruction(refs[index]);
+            const auto*       ops    = source ? source->ops(*ctx.operands) : nullptr;
+            if (!source)
+                return false;
+            proof.push_back(refs[index]);
+            bool identical = source->op == inst.op && source->numOperands == inst.numOperands && ops;
+            if (identical)
+                for (uint32_t operand = 0; operand < inst.numOperands; ++operand)
+                    identical &= !ops[operand].hasWideImmediateValue() && ops[operand].valueU64 == compared[operand].valueU64;
+            if (identical)
+                continue;
+            const auto& info = MicroInstr::info(source->op);
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*source, ops) ||
+                regTouch(ctx, *source, compared[0].reg).def || (registerPair && regTouch(ctx, *source, compared[1].reg).def))
+                return false;
+            const auto predecessors = cfg.predecessors(index);
+            if (predecessors.empty() || predecessors.size() > K_COMPARE_JOIN_PATH_WINDOW - steps ||
+                pending.size() > K_COMPARE_JOIN_PATH_WINDOW - steps - predecessors.size())
+                return false;
+            for (const uint32_t predecessor : predecessors)
+                pending.push_back(predecessor);
+        }
+        if (!ctx.claimAll(proof.span()))
+            return false;
+        ctx.emitErase(ref);
+        return true;
     }
 
     // A SETcc of a known zero or one after a compare with zero is itself a

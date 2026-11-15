@@ -14,6 +14,56 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    // A VEX clear zeros the whole YMM register without allocating a wide value.
+    // Consecutive, nonvolatile frame stores may therefore share one 32-byte write.
+    bool tryMergeWideZeroStores(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    {
+        const auto* clear = inst.ops(*ctx.operands);
+        if (!ctx.encoder || !ctx.encoder->supportsWideZeroStores() || !clear || !clear[0].reg.isFloat() || ctx.isClaimed(ref))
+            return false;
+        struct Pair
+        {
+            MicroInstrRef first;
+            MicroInstrRef second;
+        };
+        SmallVector<Pair, 4>          pairs;
+        SmallVector<MicroInstrRef, 8> proof;
+        proof.push_back(ref);
+        const auto isStore = [&](const MicroInstr* store, const MicroInstrOperand* ops) {
+            return store && ops && (store->op == MicroInstrOpcode::LoadMemReg || store->op == MicroInstrOpcode::StoreVecMemReg) &&
+                   ctx.isPrivateFrameBase(ops[0].reg) && ops[1].reg == clear[0].reg && ops[2].opBits == MicroOpBits::B128;
+        };
+        for (MicroInstrRef first = ctx.nextRef(ref); first.isValid();)
+        {
+            const MicroInstrRef second = ctx.nextRef(first);
+            const MicroInstr*   a      = ctx.instruction(first);
+            const MicroInstr*   b      = ctx.instruction(second);
+            const auto*         x      = a ? a->ops(*ctx.operands) : nullptr;
+            const auto*         y      = b ? b->ops(*ctx.operands) : nullptr;
+            if (!isStore(a, x) || !isStore(b, y) || ctx.isClaimed(first) || ctx.isClaimed(second) || x[0].reg != y[0].reg)
+                break;
+            const int64_t offset = static_cast<int64_t>(x[3].valueU64);
+            if (offset < INT32_MIN || offset > INT32_MAX - 16 || x[3].valueU64 + 32 < x[3].valueU64 ||
+                y[3].valueU64 != static_cast<uint64_t>(offset + 16))
+                break;
+            pairs.push_back({first, second});
+            proof.push_back(first);
+            proof.push_back(second);
+            first = ctx.nextRef(second);
+        }
+        // Repay the run-ending upper-state cleanup with fewer instructions,
+        // even before accounting for the reduction in memory operands.
+        if (pairs.size() < 2 || !ctx.claimAll(proof.span()))
+            return false;
+        for (const Pair& pair : pairs)
+        {
+            const auto* ops = ctx.instruction(pair.first)->ops(*ctx.operands);
+            ctx.emitRewrite(pair.first, MicroInstrOpcode::StoreZero32MemReg, std::span{ops, 4});
+            ctx.emitErase(pair.second);
+        }
+        return true;
+    }
+
     // A value stored both in its source local and in a spill home can be read
     // from the local while both locations still hold the same bits. Leave the
     // spill store for readers outside the proven region; dead-store elimination

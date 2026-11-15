@@ -439,6 +439,10 @@ namespace
             SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[13], outAttributes.freesParamFields));
         if (args.size() >= 15 && args[14].argRef.isValid())
             SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[14], outAttributes.resetsParamFields));
+        if (args.size() >= 16 && args[15].argRef.isValid())
+            SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[15], outAttributes.writesParamFields));
+        if (args.size() >= 17 && args[16].argRef.isValid())
+            SWC_RESULT(collectResolvedBoolValue(sema, args[16], outAttributes.writesParamFieldsComplete));
 
         outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal, returnsIndirectMask, storesIndirectMask, intoIndirectPairs, freesIndirectMask);
         return Result::Continue;

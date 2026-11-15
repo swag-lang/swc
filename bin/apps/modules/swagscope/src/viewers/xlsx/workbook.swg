@@ -148,6 +148,9 @@ private func appendCell(result: *Sheet, value, kind: string, shared: const *Arra
 
 private func appendSheet(result: *Sheet, source: string, shared: const *Array'String, formats: const *CellFormats, cellBudget, htmlBudget: u64) fail
 {
+    let defaults       = try SheetStyleDefaults.parse(source)
+    var rowStyle       = 0'u32
+    var hasRowStyle    = false
     var scan           = Package.Scanner.create(source)
     var token:   Package.Token
     var inRow          = false
@@ -176,7 +179,10 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
                                 catch StrConv.toU64(rowValue) { fail Errors.InvalidFormatError{texts().err_Invalid} } : nextRow
                 if rowNumber < nextRow or rowNumber > 1_048_576 do
                     fail Errors.InvalidFormatError{texts().err_Invalid}
-                nextRow = rowNumber + 1
+                nextRow     = rowNumber + 1
+                hasRowStyle = token.attribute("customFormat") == "1" or token.attribute("customFormat") == "true"
+                if hasRowStyle do
+                    rowStyle = catch StrConv.toU32(token.attribute("s") orelse "0") { fail Errors.InvalidFormatError{texts().err_Invalid} }
                 var row: Row
                 row.index = cast(u32, rowNumber - 1)
                 result.rows.add(row)
@@ -192,7 +198,6 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
             elif inRow and token.isElement("c")
             {
                 inCell = true
-                style  = catch StrConv.toU32(token.attribute("s") orelse "0") { fail Errors.InvalidFormatError{texts().err_Invalid} }
                 value.clear()
                 formula.clear()
                 hasFormula     = false
@@ -209,6 +214,10 @@ private func appendSheet(result: *Sheet, source: string, shared: const *Array'St
 
                 if nextColumn >= 512 do
                     fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                if let direct = token.attribute("s") do
+                    style = catch StrConv.toU32(direct) { fail Errors.InvalidFormatError{texts().err_Invalid} }
+                else do
+                    style = hasRowStyle ? rowStyle : defaults.columns[nextColumn]
                 if token.empty
                 {
                     try appendCell(result, "", "", shared, formats, style)

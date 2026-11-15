@@ -38,6 +38,7 @@ public:
         return reg == MicroReg::intReg(0) || reg == MicroReg::intReg(2) || reg == MicroReg::intReg(3);
     }
     bool supportsCarryArithmetic() const override { return true; }
+    bool supportsWideZeroStores() const override { return true; }
     bool supportsHighByteExtract(MicroReg regDst, MicroReg regSrc) const override;
     bool queryConformanceIssue(MicroConformanceIssue& outIssue, const MicroInstr& inst, const MicroInstrOperand* ops) const override;
 
@@ -91,6 +92,7 @@ protected:
     void encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc) override;
     void encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue) override;
     void encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue) override;
+    void encodeStoreZero32MemReg(MicroReg memReg, uint64_t memOffset, MicroReg zeroReg, bool finishRun) override;
     void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits) override;
     void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits) override;
     void encodeTestRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits) override;

@@ -1360,6 +1360,146 @@ SWC_TEST_BEGIN(PostRAPeephole_ConstantBooleanSet_LiveFlagsKept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_LoadedValueOffsetKeepsBothResults)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value = MicroReg::intReg(8);
+    constexpr MicroReg saved = MicroReg::intReg(9);
+    constexpr MicroReg index = MicroReg::intReg(10);
+    constexpr MicroReg flags = MicroReg::intReg(11);
+    for (const bool indexed : {false, true})
+    {
+        for (const bool liveFlags : {false, true})
+        {
+            for (const uint64_t input : {0ull, 1ull, 0x7FFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull})
+            {
+                for (const int64_t offset : {-1ll, 1ll, 0x7FFFFFFFll, -0x80000000ll})
+                {
+                    for (const bool optimize : {false, true})
+                    {
+                        MicroBuilder builder(ctx);
+                        if (indexed)
+                        {
+                            builder.emitClearReg(index, MicroOpBits::B64);
+                            builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, index, 8, 0, MicroOpBits::B64);
+                        }
+                        else
+                            builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                        builder.emitLoadRegReg(saved, value, MicroOpBits::B64);
+                        builder.emitOpBinaryRegImm(value, ApInt(static_cast<uint64_t>(offset), 64), MicroOp::Add, MicroOpBits::B64);
+                        if (!liveFlags)
+                            builder.emitCmpRegReg(value, saved, MicroOpBits::B64);
+                        builder.emitSetCondReg(flags, MicroCond::Below);
+                        builder.emitLoadMemReg(base, 8, saved, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 24, flags, MicroOpBits::B8);
+                        builder.emitRet();
+
+                        uint64_t values[] = {input, 0, 0, 0};
+                        SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+                        const uint64_t result   = input + static_cast<uint64_t>(offset);
+                        const bool     expected = result < input;
+                        if (values[1] != input || values[2] != result || values[3] != expected)
+                            return Result::Error;
+                        if (optimize && !liveFlags && hasLoadRegReg(builder, saved, value))
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_OffsetSelectionUpdatesItsBaseDirectly)
+{
+    const MicroReg     base      = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg result    = MicroReg::intReg(8);
+    constexpr MicroReg other     = MicroReg::intReg(9);
+    constexpr MicroReg temporary = MicroReg::intReg(10);
+    constexpr MicroReg flags     = MicroReg::intReg(11);
+    constexpr MicroReg index     = MicroReg::intReg(0);
+    for (const MicroCond condition : {MicroCond::Below, MicroCond::Above, MicroCond::Less, MicroCond::Greater})
+    {
+        for (const bool swapCompare : {false, true})
+        {
+            for (uint32_t storeKind = 0; storeKind < 3; ++storeKind)
+            {
+                for (uint32_t liveValues = 0; liveValues < 4; ++liveValues)
+                {
+                    for (const uint64_t input : {0ull, 1ull, 0x7FFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull})
+                    {
+                        std::array<uint64_t, 7> reference;
+                        for (const bool optimize : {false, true})
+                        {
+                            MicroBuilder builder(ctx);
+                            builder.emitLoadRegMem(result, base, 0, MicroOpBits::B64);
+                            builder.emitLoadRegMem(other, base, 8, MicroOpBits::B64);
+                            if (storeKind == 2)
+                                builder.emitClearReg(index, MicroOpBits::B64);
+                            builder.emitLoadAddressRegMem(temporary, result, 1, MicroOpBits::B64);
+                            builder.emitCmpRegReg(swapCompare ? other : temporary, swapCompare ? temporary : other, MicroOpBits::B64);
+                            builder.emitLoadCondRegReg(other, temporary, condition, MicroOpBits::B64);
+                            if (storeKind == 1)
+                                builder.emitLoadMemReg(base, 16, other, MicroOpBits::B64);
+                            else if (storeKind == 2)
+                                builder.emitLoadAmcMemReg(base, index, 8, 16, MicroOpBits::B64, other, MicroOpBits::B64);
+                            builder.emitLoadRegReg(result, other, MicroOpBits::B64);
+                            builder.emitSetCondReg(flags, MicroCond::Below);
+                            builder.emitLoadMemReg(base, 24, result, MicroOpBits::B64);
+                            if (liveValues & 1)
+                                builder.emitLoadMemReg(base, 32, other, MicroOpBits::B64);
+                            if (liveValues & 2)
+                                builder.emitLoadMemReg(base, 40, temporary, MicroOpBits::B64);
+                            builder.emitLoadMemReg(base, 48, flags, MicroOpBits::B8);
+                            builder.emitRet();
+
+                            std::array<uint64_t, 7> values = {input, 2};
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else if (values != reference || (!liveValues && hasLoadRegReg(builder, result, other)))
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_LoadedValueOffsetPreservesPartialLoads)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value = MicroReg::intReg(8);
+    constexpr MicroReg saved = MicroReg::intReg(9);
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+    {
+        for (const bool optimize : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(value, ApInt(0x123456789ABCDEF0ull, 64), MicroOpBits::B64);
+            builder.emitLoadRegMem(value, base, 0, bits);
+            builder.emitLoadRegReg(saved, value, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 8, saved, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+            builder.emitRet();
+
+            uint64_t values[] = {0xFFFFFFFFFFFFFFFFull, 0, 0};
+            SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+            const uint64_t expected = bits == MicroOpBits::B32 ? 0xFFFFFFFFull : 0x123456789ABCDEF0ull | getBitsMask(bits);
+            if (values[1] != expected || values[2] != expected + 1)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_CommutesCopiedSumWithLaterCompare)
 {
     constexpr MicroReg sum     = MicroReg::intReg(0);
@@ -5495,6 +5635,224 @@ SWC_TEST_BEGIN(PostRAPeephole_CopiedCompareAfterBranch_Erased)
 }
 SWC_TEST_END()
 
+// A join may reuse flags only when every path preserves the compared bits
+// and reaches an identical producer. Observe signed, unsigned and overflow flags.
+SWC_TEST_BEGIN(PostRAPeephole_JoinComparePreservesAllIncomingFlags)
+{
+    const CallConv&    conv     = CallConv::get(CallConvKind::C);
+    const MicroReg     base     = conv.intArgRegs[0];
+    const MicroReg     value    = conv.intReturn;
+    constexpr MicroReg selector = MicroReg::intReg(8);
+    constexpr MicroReg other    = MicroReg::intReg(9);
+    constexpr MicroReg result   = MicroReg::intReg(10);
+    for (uint32_t variant = 0; variant < 10; ++variant)
+    {
+        for (const uint64_t input : {0ull, 1ull, 2ull, 0xFFFFFFFFFFFFFFFFull, 0x8000000000000000ull, 0x7FFFFFFFFFFFFFFFull})
+        {
+            for (const uint64_t path : {0ull, 1ull})
+            {
+                std::array<uint64_t, 4> reference;
+                for (const bool optimize : {false, true})
+                {
+                    MicroBuilder builder(ctx);
+                    const auto   right            = builder.createLabel();
+                    const auto   join             = builder.createLabel();
+                    const auto   early            = builder.createLabel();
+                    const auto   done             = builder.createLabel();
+                    const auto   emitRegisterTest = [&](MicroReg left, MicroReg right, MicroOpBits bits) {
+                        builder.emitCmpRegReg(left, right, bits);
+                        builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = MicroInstrOpcode::TestRegReg;
+                    };
+                    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                    builder.emitLoadRegMem(selector, base, 8, MicroOpBits::B64);
+                    builder.emitLoadRegImm(other, ApInt(1, 64), MicroOpBits::B64);
+                    emitRegisterTest(selector, selector, MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, right);
+                    const auto compare = [&](bool rightArm) {
+                        const MicroOpBits width = rightArm && variant == 4 ? MicroOpBits::B32 : MicroOpBits::B64;
+                        if (variant == 6)
+                            builder.emitCmpRegReg(value, other, width);
+                        else if (variant == 7)
+                        {
+                            builder.emitCmpRegImm(value, ApInt(1, 64), width);
+                            builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = MicroInstrOpcode::TestRegImm;
+                        }
+                        else if (variant == 8)
+                            emitRegisterTest(value, other, width);
+                        else
+                            builder.emitCmpRegImm(value, ApInt(rightArm && variant == 1 ? 2 : 1, 64), width);
+                    };
+                    compare(false);
+                    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, early);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+                    builder.placeLabel(right);
+                    if (variant != 9)
+                        compare(true);
+                    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, early);
+                    if (variant == 2)
+                        emitRegisterTest(selector, selector, MicroOpBits::B64);
+                    if (variant == 3 || variant == 5)
+                        builder.emitLoadRegImm(value, ApInt(7, 64), variant == 5 ? MicroOpBits::B8 : MicroOpBits::B64);
+                    builder.placeLabel(join);
+                    compare(false);
+                    for (const auto& [condition, offset] : {std::pair{MicroCond::Less, 16ull}, {MicroCond::Below, 17ull}, {MicroCond::Overflow, 18ull}, {MicroCond::Zero, 19ull}})
+                    {
+                        builder.emitSetCondReg(result, condition);
+                        builder.emitLoadMemReg(base, offset, result, MicroOpBits::B8);
+                    }
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+                    builder.placeLabel(early);
+                    builder.emitLoadMemImm(base, 16, ApInt(0, 32), MicroOpBits::B32);
+                    builder.placeLabel(done);
+                    builder.emitRet();
+
+                    std::array<uint64_t, 4> values = {input, path, 0xFEDCBA9876543210ull, 0x0123456789ABCDEFull};
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        reference = values;
+                    else if (values != reference)
+                        return Result::Error;
+                    if (optimize && (variant == 0 || variant == 6 || variant == 7 || variant == 8))
+                    {
+                        MicroInstrOpcode opcode = MicroInstrOpcode::CmpRegImm;
+                        if (variant == 6)
+                            opcode = MicroInstrOpcode::CmpRegReg;
+                        else if (variant == 7)
+                            opcode = MicroInstrOpcode::TestRegImm;
+                        else if (variant == 8)
+                            opcode = MicroInstrOpcode::TestRegReg;
+                        const uint32_t comparisons = Backend::Unittest::countOpcode(builder, opcode);
+                        if (comparisons != (variant == 8 ? 3u : 2u))
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_JoinCompareRejectsUnknownFlagsAndCycles)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg other = MicroReg::intReg(8);
+    for (uint32_t variant = 0; variant < 7; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const auto   join = builder.createLabel();
+        const auto   exit = builder.createLabel();
+        if (variant == 5)
+            builder.emitLoadLabelAddress(other, join);
+        builder.emitCmpRegImm(value, ApInt(1, 64), variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        if (variant == 1)
+            builder.emitCallReg(other, CallConvKind::Swag, 0, 0);
+        if (variant == 2)
+            builder.emitLoadRegImm(value, ApInt(7, 8), MicroOpBits::B8);
+        if (variant == 4)
+        {
+            const auto cycle = builder.createLabel();
+            builder.placeLabel(cycle);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, cycle);
+        }
+        if (variant == 6)
+            builder.emitOpUnaryReg(other, MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+        const MicroInstrRef compare = builder.instructions().lastInstructionRef();
+        builder.emitSetCondReg(other, MicroCond::Less);
+        builder.placeLabel(exit);
+        builder.emitRet();
+        X64Encoder              encoder(ctx);
+        PostRaPeephole::Context context;
+        context.storage   = &builder.instructions();
+        context.operands  = &builder.operands();
+        context.encoder   = &encoder;
+        context.builder   = &builder;
+        const bool erased = PostRaPeephole::tryEraseCompareAtJoin(context, compare, *builder.instructions().ptr(compare));
+        if (erased != (variant == 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Wide stores must write exactly the two original chunks, with no assumption
+// about nearby padding, alignment, volatile accesses or a changed source.
+SWC_TEST_BEGIN(PostRAPeephole_WideZeroStoresPreserveBytesAndFlags)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg zero  = MicroReg::floatReg(0);
+    constexpr MicroReg other = MicroReg::intReg(8);
+    constexpr MicroReg flag  = MicroReg::intReg(10);
+    for (uint32_t variant = 0; variant < 16; ++variant)
+    {
+        std::array<uint64_t, 48> reference;
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 48> values;
+            for (uint32_t i = 0; i < values.size(); ++i)
+                values[i] = 0xFEDCBA9876543210ull ^ i;
+            MicroBuilder builder(ctx);
+            const auto   join = builder.createLabel();
+            builder.emitLoadRegImm(other, ApInt(0x8000000000000000ull, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(other, ApInt(1, 64), MicroOpBits::B64);
+            if (variant == 10)
+                builder.emitLoadAddressRegMem(other, base, 64, MicroOpBits::B64);
+            builder.emitLoadRegMem(MicroReg::floatReg(1), base, 128, MicroOpBits::B128);
+            builder.emitLoadRegMem(zero, base, 128, MicroOpBits::B128);
+            if (variant != 5)
+                builder.emitClearReg(zero, variant == 14 ? MicroOpBits::B64 : MicroOpBits::B128);
+            const uint64_t first  = variant == 13 ? 0ull - 16 : variant == 15 ? 0ull - 80
+                                                                              : 8;
+            uint64_t       second = first + 16;
+            if (variant == 2)
+                second = first + 24;
+            else if (variant == 3)
+                second = first + 8;
+            else if (variant == 4)
+                second = first - 16;
+            builder.emitLoadMemReg(base, first, zero, variant == 9 ? MicroOpBits::B64 : MicroOpBits::B128);
+            if (variant == 6)
+                builder.emitLoadRegMem(zero, base, 128, MicroOpBits::B128);
+            if (variant == 8)
+                builder.placeLabel(join);
+            if (variant == 11)
+                builder.emitClearReg(MicroReg::floatReg(1), MicroOpBits::B128);
+            if (variant == 7)
+                builder.emitStoreVolatileMemReg(base, second, zero, MicroOpBits::B128);
+            else
+                builder.emitLoadMemReg(variant == 10 ? other : base, second, variant == 11 ? MicroReg::floatReg(1) : zero, MicroOpBits::B128);
+            const uint32_t chunks = variant == 0 ? 6 : variant == 12 ? 5 : 4;
+            for (uint32_t i = 2; i < chunks; ++i)
+                builder.emitLoadMemReg(base, first + i * 16, zero, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 160, MicroReg::floatReg(1), MicroOpBits::B128);
+            builder.emitSetCondReg(flag, MicroCond::Overflow);
+            builder.emitLoadMemReg(base, 152, flag, MicroOpBits::B8);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder, base));
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data() + 16));
+            if (!optimize)
+                reference = values;
+            else
+            {
+                uint32_t expected = 0;
+                if (variant == 0)
+                    expected = 3;
+                else if (variant == 1 || (variant >= 12 && variant != 13))
+                    expected = 2;
+                if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreZero32MemReg) != expected)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A narrow copy cannot stand in for a wider comparison.
 SWC_TEST_BEGIN(PostRAPeephole_NarrowCopyBeforeCompare_KeepsTest)
 {
@@ -8588,6 +8946,129 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatMemoryCrossesOnlyDisjointOrdinaryStores)
                     }
                 }
             }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// Some incoming edges preserve a spill's value, while other explicit and
+// fallthrough edges need its reload. The join establishes equality on every trip.
+SWC_TEST_BEGIN(PostRAPeephole_PartitionsDelayedSpillReloadEdges)
+{
+    const MicroReg     base    = CallConv::get(CallConvKind::C).intArgRegs[0];
+    const MicroReg     sp      = CallConv::get(CallConvKind::C).stackPointer;
+    constexpr MicroReg flag    = MicroReg::intReg(8);
+    constexpr MicroReg counter = MicroReg::intReg(9);
+    constexpr MicroReg sum     = MicroReg::intReg(10);
+    constexpr MicroReg value   = MicroReg::intReg(11);
+    constexpr MicroReg zero    = MicroReg::intReg(3);
+    for (uint32_t variant = 0; variant < 11; ++variant)
+    {
+        for (const uint64_t selected : {0ull, 1ull, 2ull, 3ull})
+        {
+            for (const uint64_t payload : {0ull, 0x8000000000000000ull, 0x7FF0000000000001ull, 0xFFFFFFFFFFFFFFFFull})
+            {
+                std::array<uint64_t, 4> reference{};
+                for (const bool optimize : {false, true})
+                {
+                    MicroBuilder   builder(ctx);
+                    const auto     loop        = builder.createLabel();
+                    const auto     join        = builder.createLabel();
+                    const auto     exit        = builder.createLabel();
+                    const auto     afterReload = builder.createLabel();
+                    const uint64_t slot        = variant == 8 ? 24 : 8;
+                    builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Subtract, MicroOpBits::B64);
+                    builder.emitClearReg(zero, MicroOpBits::B64);
+                    for (const uint64_t offset : {0ull, 8ull, 16ull, 24ull})
+                        builder.emitLoadMemReg(sp, offset, zero, MicroOpBits::B64);
+                    builder.emitLoadRegMem(flag, base, 0, MicroOpBits::B64);
+                    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+                    builder.emitClearReg(counter, MicroOpBits::B64);
+                    builder.emitClearReg(sum, MicroOpBits::B64);
+                    if (variant == 6)
+                    {
+                        builder.emitCmpRegImm(flag, ApInt(3, 64), MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                    }
+                    builder.emitLoadMemReg(sp, slot, value, MicroOpBits::B64);
+                    if (variant == 9)
+                        builder.emitLoadRegImm(value, ApInt(99, 64), MicroOpBits::B64);
+                    builder.placeLabel(loop);
+                    if (variant == 3 || variant == 5)
+                        builder.emitLoadMemReg(sp, variant == 3 ? slot : 16, zero, MicroOpBits::B64);
+                    if (variant == 4)
+                        builder.emitLoadRegImm(value, ApInt(7, 8), MicroOpBits::B8);
+                    if (variant == 7)
+                        builder.emitLoadMemReg(base, 24, zero, MicroOpBits::B64);
+                    builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                    builder.emitLoadRegImm(value, ApInt(99, 64), MicroOpBits::B64);
+                    builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                    if (variant == 10)
+                    {
+                        builder.emitCmpRegImm(flag, ApInt(2, 64), MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, afterReload);
+                    }
+                    else
+                    {
+                        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, exit);
+                    }
+                    builder.placeLabel(join);
+                    MicroReg prefix = counter;
+                    if (variant == 1)
+                        prefix = value;
+                    if (variant == 10)
+                        prefix = zero;
+                    if (variant == 2)
+                        builder.emitOpBinaryRegImm(sp, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+                    else
+                        builder.emitOpUnaryReg(prefix, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitLoadRegMem(value, sp, slot, MicroOpBits::B64);
+                    const MicroInstrRef reload = builder.instructions().lastInstructionRef();
+                    if (variant == 10)
+                    {
+                        builder.placeLabel(afterReload);
+                        builder.emitClearReg(flag, MicroOpBits::B64);
+                        builder.emitOpUnaryReg(counter, MicroOp::Add, MicroOpBits::B64);
+                    }
+                    if (variant == 2)
+                        builder.emitOpBinaryRegImm(sp, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+                    if (variant == 1 || variant == 2)
+                        builder.emitOpUnaryReg(counter, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+                    builder.placeLabel(exit);
+                    builder.emitLoadMemReg(base, 16, sum, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Add, MicroOpBits::B64);
+                    builder.emitRet();
+                    X64Encoder encoder(ctx);
+                    if (optimize)
+                    {
+                        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 8, 16));
+                        const bool moved = builder.instructions().ptr(reload) == nullptr;
+                        // Negative cases compare executed results: independent
+                        // dead-definition/slot forwarding may also erase their reload.
+                        if ((variant == 0 || variant == 5 || variant == 6) && !moved)
+                        {
+                            Logger::print(ctx, std::format("spill edge shape variant={} moved={}\n", variant, moved));
+                            return Result::Error;
+                        }
+                    }
+                    std::array<uint64_t, 4> values = {selected, payload, 0, 0x123456789ABCDEF0ull};
+                    SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+                    if (!optimize)
+                        reference = values;
+                    else if (values != reference)
+                    {
+                        Logger::print(ctx, std::format("spill edge value variant={} selected={} payload={}\n", variant, selected, payload));
+                        return Result::Error;
+                    }
+                }
+            }
+        }
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

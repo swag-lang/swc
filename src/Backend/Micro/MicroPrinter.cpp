@@ -942,6 +942,8 @@ namespace
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), false, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadAddrRegMem:
                 return std::format("{} = &{}", regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[3].valueU64, regPrintMode, encoder));
+            case MicroInstrOpcode::StoreZero32MemReg:
+                return std::format("zero32 {} via {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::LoadMemReg:
                 return std::format("{} = {}", memBaseOffsetString(ops[0].reg, ops[3].valueU64, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder));
             case MicroInstrOpcode::StoreVolatileMemReg:
@@ -2089,6 +2091,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::TestMemReg:
             case MicroInstrOpcode::CmpMemReg:
             case MicroInstrOpcode::StoreVecMemReg:
+            case MicroInstrOpcode::StoreZero32MemReg:
                 appendMemRegBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
                 break;
 

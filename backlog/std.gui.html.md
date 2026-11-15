@@ -281,4 +281,13 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 - Note: the Markdown view solved the same problem with a position model of its own — a text view
   plus a byte offset into its text — which is the shape this entry needs here.
 
----
+### std.gui.html.025 — Text-transform applies Latin-1 casing to UTF-8 bytes
+
+- Evidence: `HtmlLayout.storeText` applies `Latin1.toUpper` and `Latin1.toLower` to each byte
+  of a UTF-8 text range. A Latin-1 letter byte can also be a UTF-8 lead or continuation byte,
+  so non-ASCII casing can corrupt the encoded run instead of transforming its Unicode text.
+  This is separate from the corrected whitespace scanner's no-break-space split.
+- Next: reduce accented text under lowercase, uppercase and capitalize to layout fixtures,
+  then transform decoded runes with the supported Unicode casing rules and retain source offsets.
+- Done when: transformed text remains valid UTF-8, accented words render correctly and logical
+  reading/search locations still address the original decoded source.

@@ -1,0 +1,6 @@
+ui_Name "Présentation OpenDocument"
+ui_Hidden "% (masquée)"
+ui_ObjectOmitted "[Dessin ou contenu incorporé non affiché]"
+err_Invalid "La structure de cette présentation OpenDocument est endommagée."
+err_TooLarge "Cette présentation est trop volumineuse pour être ouverte sans risque."
+err_Encrypted "Cette présentation est protégée par un mot de passe."

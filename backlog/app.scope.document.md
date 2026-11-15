@@ -33,12 +33,13 @@ integration around those engines.
   and back/forward restores a reading location without retaining the whole source.
 - Related: std.gui.markdown.005, app.scope.viewers.003
 
-### app.scope.document.013 — The PDF bookmark panel has no filtering or navigation history
+### app.scope.document.013 — PDF bookmark navigation has no back/forward history
 
 - Evidence: `PdfDocument.Panel` fills the shared `DocumentOutline` from `Pdf.Reader.loadOutline`
-  and navigates through `PdfView.showPosition`. The panel has no filtering or back/forward
-  state, and page-link annotations are not exposed by the engine (std.gui.pdf.017).
-- Next: add filtering and a bounded page/position/zoom history to the existing bookmark panel,
+  and navigates through `PdfView.showPosition`. The shared panel provides text filtering, but
+  the PDF adapter retains no back/forward state. Page-link annotations are not exposed by the
+  engine (std.gui.pdf.017).
+- Next: add bounded page/position/zoom history to the existing bookmark panel,
   then route supported page links through the same navigation contract when the engine exposes them.
 - Done when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
   and zoom, and supported local links share the same behavior while invalid targets remain visible.
@@ -57,12 +58,6 @@ integration around those engines.
 - Done when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
-
-### app.scope.document.023 — Keep an HTML reading inset beside its outline
-
-- Evidence: `viewer.html.filtered-outline.paper` shows the article starting at the window's left edge when the outline takes the right side. The headings and body text have no breathing room at that edge.
-- Next: define a reading inset for the hosted HTML page while the side panel is visible, without changing the document's own CSS layout or clipping its content.
-- Done when the full-window HTML golden keeps a readable gap beside the window edge at a narrow width and still preserves authored page margins.
 
 ### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
 
@@ -191,10 +186,13 @@ integration around those engines.
   overflow stays explicit. Common built-in and custom currency, grouped decimal, percentage,
   date and elapsed-time formats retain both Excel date systems and the fictitious 1900 leap day.
   Unsupported formats keep the stored value and a notice; unsupported visual effects are labelled
-  simplified. Exact named font matching, row/column default styles, frozen panes, filters, comments
+  simplified. Saved cells now inherit custom row XFs and then column XFs when their own style
+  is absent; explicit cell XF zero remains an override. Producer output and a LibreOffice re-save
+  confirm this precedence. Unsaved blank regions still have no inherited paint. Exact named
+  font matching, frozen panes, filters, comments
   and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: resolve row/column defaults and named font families, then preserve frozen panes and add
+- Next: paint inherited styles in unsaved blank regions and resolve named font families, then preserve frozen panes and add
   rectangular selection, direct cell addressing and sheet-wide search before read-only chart
   previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
   date profiles with producer fixtures; keep unsupported codes explicit.
@@ -211,10 +209,12 @@ integration around those engines.
   outline; arrows, Page Up/Down and a theme-aware text mode support reading. Unsupported geometry
   falls back to a labelled simplified layout. The real Apache POI sample and a widescreen deck
   cover inherited title placement, authored colors, pictures and navigation. Charts, complex
-  drawings, complete text inheritance, speaker notes and a thumbnail overview remain absent.
+  drawings, complete text inheritance and a thumbnail overview remain absent. A dedicated
+  theme-aware notes reader now exposes bounded speaker prose and emphasis through the lens,
+  follows slide navigation and omits notes-page thumbnails, footers and counters.
   [PowerPoint Reading and Slide Show views](https://support.microsoft.com/en-us/powerpoint/how-certain-features-behave-in-web-based-powerpoint)
   retain slide navigation and notes.
-- Next: add speaker notes and a thumbnail overview, then lazy slide decoding so the first canvas
+- Next: add a thumbnail overview, then lazy slide decoding so the first canvas
   can appear before the rest of the deck is projected. Extend shapes, paragraph styles, color
   transforms and font/theme inheritance with producer fixtures. Keep animation, embedded media
   and external actions inert and make omitted content explicit.
@@ -227,11 +227,12 @@ integration around those engines.
 
 - Evidence: EPUB 2 NCX and EPUB 3 contents now expose authored titles, hierarchy and chapter
   fragments in the shared filterable outline. Internal spine links keep the chapter counter in
-  sync, and chapter reading has its own zoom. Book-wide search, landmarks, non-spine footnotes,
-  reading-position restore, bookmarks and link history remain absent. Extraction still prepares
-  every package member before the first chapter is shown.
+  sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
+  returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
+  Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
+  remain absent. Extraction still prepares every package member before the first chapter is shown.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
-  bookmarks, link back/forward and lazy extraction of the visible chapter's resources.
+  bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010
@@ -245,21 +246,21 @@ integration around those engines.
   [OpenComic](https://github.com/ollm/OpenComic) offers right-to-left manga, double-page spreads,
   continuous webtoon scroll, bookmarks and reading-position restore.
 - Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous
-  layouts, right-to-left order, cover alignment and per-page fit/zoom. Read safe `ComicInfo.xml`
+  layouts, right-to-left spreads, cover alignment and per-page fit/zoom. Read safe `ComicInfo.xml`
   metadata when present without treating it as an image page.
 - Done when: natural order, nested folders, spreads, manga direction, tall pages and damaged
   members remain readable and navigable across real CBZ books; page changes never require
   extracting all images first, and unsupported image pages are named in place.
 - Related: app.scope.image.005, app.scope.viewers.003
 
-### app.scope.document.028 — EPUB has no adjustable book-reading layout
+### app.scope.document.028 — EPUB needs paged layout and persistent logical reading positions
 
-- Evidence: each spine document is currently shown as one HTML chapter, with no book-level paged
-  layout, continuous flow choice, reading width, type scale, line spacing or margin policy.
-  [calibre's viewer](https://manual.calibre-ebook.com/viewer.html) supports paged and flow modes.
-- Next: add book-owned paged and continuous modes over the existing HTML layout, preserve a logical
-  location while typography or viewport size changes, and keep navigation and search mapped to
-  that location.
+- Evidence: the chapter reader offers compact, comfortable and wide default reading measures,
+  plus zoom. A logical text location preserves the visible passage through those changes, while
+  authored CSS keeps priority. There is no book-level paged/continuous-flow choice, line-spacing
+  control or persistent position restore, and ordinary viewport reflow still keeps pixel scroll.
+- Next: build book-owned paged and continuous modes over the HTML layout, retain a logical
+  location across viewport changes, and connect it to navigation, search and safe position restore.
 - Done when: readers can choose fit-to-width flow or pages, adjust typography without corrupting
   authored content, and reopen at the same logical passage across window and theme changes.
 - Related: app.scope.document.021, app.scope.viewers.003
@@ -387,3 +388,18 @@ integration around those engines.
 - Done when: current or selected pages can be copied/rendered at chosen DPI, supported embedded
   assets can be saved without silent conversion, filenames are sanitized, and unsupported or
   lossy extraction is explained.
+
+### app.scope.document.032 — OpenDocument reading needs fuller Writer/Calc/Impress fidelity
+
+- Evidence: ODT omits physical pages, headers/footers, notes, comments and complex drawings.
+  ODS uses saved formatted strings; raw typed values lack full ODF number-style reconstruction.
+  Its charts, annotations, advanced geometry and exact font metrics are simplified. ODP fits
+  common positioned text, rectangles and raster pictures with basic style/master inheritance,
+  with speaker notes available in a separate theme-aware prose reader. Group transforms and
+  unsupported drawings fall back to text; media, gradients,
+  full master placeholder geometry and complex shapes are not reproduced. Slides are loaded eagerly.
+- Next: cover ODS number styles when saved display strings are absent, expose unsupported
+  components explicitly, deepen Impress master/shape fidelity and defer off-screen slide work.
+- Done when: genuine LibreOffice files retain common authored layout and components; notes
+  can be inspected separately; unsupported content remains explicit; navigation stays responsive
+  and cancellation/package budgets hold on large and damaged documents.

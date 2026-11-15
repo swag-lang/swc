@@ -133,7 +133,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes. Default document text
-  size follows the common zoom control.
+  size follows the common zoom control. The hosted page keeps a reading inset at narrow widths,
+  including beside the outline; authored CSS margins remain inside that inset.
 - `PDF` displays pages progressively as they enter the viewport, with text selection, shared
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.
@@ -143,6 +144,12 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   their fragment destinations and keep the chapter counter in sync. Books without authored contents
   fall back to their spine order. The book is extracted to a bounded temporary folder while it is
   open. Script and remote resources do not execute or load.
+  The lens also selects compact (520 px), comfortable (680 px) and wide (900 px) default
+  reading columns. Zoom and column changes retain the visible text passage instead of its old
+  pixel scroll position; authored CSS keeps priority. These choices last for the open book.
+  Back/Forward in the lens, or `Alt+Left` / `Alt+Right` while reading, returns through chapter
+  and fragment visits at the previous text passage. History keeps up to 128 visits in each
+  direction for the open book; a new destination clears the forward branch.
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.
@@ -154,6 +161,14 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   styles keep the prose readable with a simplification notice. Unsupported images are named and
   external image relationships are never loaded. Page/section geometry, headers, footers,
   footnotes, comments, floating objects and complex table layout are not reproduced.
+- `OpenDocument Text` reads ODT paragraphs, styled headings, nested lists, simple tables and
+  bounded embedded raster pictures. Common and automatic styles preserve inherited typography,
+  relative sizes, spacing, indents and paper colors; headings populate the filterable outline.
+  Bookmarks and internal links stay within the document. Repeated table cells/rows retain their
+  reading order. Unsupported pictures, footnotes and embedded objects are labelled. External
+  resources, macros and revision records never load or execute. Page/section geometry, headers,
+  footers, comments, floating drawings and complex table layout are not reproduced; encrypted
+  packages report that a password is required. Archive remains available as an alternative.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
   and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
@@ -174,15 +189,41 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   million-row gaps. Direct/base cell styles retain sizes, emphasis, theme/indexed colors, solid
   fills, common borders, alignment, wrapping and Normal-font indents; faces use available sans/mono
   substitutes. Unsupported visual effects are labelled simplified, and numeric overflow uses hashes
-  while selection and copy retain the value. The reading grid is capped at 512 columns. It does not
-  calculate formulas or reproduce row/column default styles, frozen panes, charts or images.
+  while selection and copy retain the value. Saved cells without a direct style inherit the
+  row's custom format, then the column default; explicit cell styles, including Normal, win.
+  Unsaved blank regions do not synthesize cell paint. The reading grid is capped at 512 columns.
+  It does not calculate formulas or reproduce frozen panes, charts or images.
+- `OpenDocument Spreadsheet` opens ODS in the same native grid, sheet outline and text mode.
+  Saved display strings retain the producer's number/date formatting; when only a typed value is
+  present, its stored value is shown with a number-format limitation notice. Cached formula
+  results remain readable, and formulas without a saved result show their expression. Common
+  inherited cell styles, solid fills, borders, alignment, wrapping, column widths, row heights,
+  disjoint merges and saved visibility survive. Row/column default cell styles apply before direct
+  cell styles. Empty repeated tails stay sparse; populated content is capped at 100,000 cells,
+  512 columns and one million row addresses. The grid shares its selection, copy, navigation and
+  explicit hidden-range reveal with XLSX. Formulas and external links never run. Charts, drawings,
+  annotations, exact font metrics and advanced ODF number-style reconstruction are not reproduced.
+- `OpenDocument Presentation` reads ODP through the same fitted canvas, title outline, slide
+  navigation and text mode. Authored page dimensions, common graphic/presentation/text style
+  inheritance, basic master backgrounds/static shapes, positioned text boxes, rectangles and
+  bounded raster pictures survive. Master placeholder samples and speaker notes stay out of the
+  slide; hidden slides are labelled. The slide can hide master objects or its background.
+  Unsupported transforms and drawings use an explicit simplified reading layout; unavailable
+  images and embedded objects are named. Animations, media, charts, gradients, advanced shapes,
+  full master placeholder geometry and exact font reproduction are not supported. Macros,
+  actions and external links never execute or fetch resources.
+  Read Speaker Notes in the lens opens the slide's text notes separately, retaining emphasis
+  in a theme-aware reading flow. Notes-page counters, thumbnails, dates and footers stay out.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
   filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
   offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly
-  labelled simplified layout. Animation, charts, complex drawings, speaker notes, embedded media
-  and exact font reproduction remain unsupported; actions and external relationships never run.
+  labelled simplified layout. Read Speaker Notes in the lens opens the current slide's text notes
+  with emphasis and the normal slide navigation; empty notes are stated explicitly. Notes are
+  capped at 1 MiB per slide and share the deck's text budget. Notes-page thumbnails, counters,
+  dates and footers stay out. Animation, charts, complex drawings, embedded media and exact font
+  reproduction remain unsupported; actions and external relationships never run.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a
@@ -231,7 +272,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
-  packed, its size and date in mono. EPUB, CBZ, DOCX, XLSX and PPTX offer their reading viewers first;
+  packed, its size and date in mono. EPUB, CBZ, DOCX, ODT, XLSX, ODS, PPTX and ODP offer their reading viewers first;
   Archive remains available to inspect their package members. The count in the bottom line adds the packed and extracted
   weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
   Opening an entry asynchronously prepares a bounded temporary

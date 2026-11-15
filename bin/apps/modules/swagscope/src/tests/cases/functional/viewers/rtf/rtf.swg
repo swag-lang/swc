@@ -8,10 +8,11 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let document = expect Rtf.Document.load(scopeTestDataPath("viewer.rtf"))
     Swag.require(document.paragraphs == 3 and document.omittedObjects == 0)
-    Swag.require(Utf8.contains(document.html, "<p style=\"text-align:center\"><b>Rich text reading</b></p>"))
-    Swag.require(Utf8.contains(document.html, "This is <i>formatted</i> and <u>searchable</u> text."))
+    Swag.require(Utf8.contains(document.html, "text-align:center;") and Utf8.contains(document.html, "<b>Rich text reading</b>"))
+    Swag.require(Utf8.contains(document.html, "This is ") and Utf8.contains(document.html, "<i>formatted</i>"))
+    Swag.require(Utf8.contains(document.html, "<u>searchable</u>") and Utf8.contains(document.html, " text."))
     Swag.require(Utf8.contains(document.html, "First&emsp;second<br>next line."))
-    Swag.require(not Utf8.contains(document.html, "Arial"))
+    Swag.require(Utf8.contains(document.html, "font-family:'Arial';") and not Utf8.contains(document.html, "Arial;"))
 }
 
 // The registered reader opens an RTF page before generic text and hex alternatives.
@@ -37,7 +38,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let document = expect Rtf.Document.load(scopeTestDataPath("viewer.table.rtf"))
     Swag.require(Utf8.contains(document.html, "<table><tr><td>One</td><td>Two</td></tr></table>"))
-    Swag.require(Utf8.contains(document.html, "<p>After the table.</p>"))
+    Swag.require(Utf8.contains(document.html, "<p style=\"margin-top:0pt;margin-bottom:0pt\">After the table.</p>"))
 }
 
 // A document written outside this repository keeps its repeated prose and paragraph structure.

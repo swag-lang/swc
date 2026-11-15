@@ -9,6 +9,7 @@ struct Texts
     ui_Name:             string = "Rich text document"
     ui_Preparing:        string = "Preparing document…"
     ui_Details:          string = "Rich text document · % paragraphs"
+    ui_StylesSimplified: string = " · some styles simplified"
     ui_OneImage:         string = " · 1 image"
     ui_OneOmitted:       string = " · 1 image or object not shown"
     ui_Images:           string = " · % images"

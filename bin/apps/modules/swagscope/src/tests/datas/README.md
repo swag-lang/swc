@@ -72,3 +72,6 @@ paragraph spacing/indents, direct bold resets and a simple table. It contains no
 
 `viewer.navigation.xlsx` is a repository-authored three-sheet workbook with a saved active
 sheet, a hidden intermediate sheet and literal sheet labels. It contains no external assets.
+
+`viewer.styles.rtf` is a repository-authored reading note with two fonts, a color table,
+highlights, paragraph indents and spacing, and grouped character formatting. It has no external assets.

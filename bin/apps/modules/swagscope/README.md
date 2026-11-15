@@ -157,8 +157,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
   and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
-  labelled. Only Windows-1252 encoded text is supported; page geometry, fonts, colors, complex
-  tables and fields are not reproduced.
+  labelled. Bounded font/color tables preserve faces, sizes, foreground colors, highlights and
+  paragraph spacing/indents. Unsupported style references are reported. Only Windows-1252 encoded
+  text is supported; named styles, page geometry, complex tables and fields are not reproduced.
 - `Workbook` opens one XLSX sheet at a time, respecting the saved active sheet. Arrows,
   Ctrl+Page Up/Down and the filterable outline switch sheets in workbook order. Hidden and
   very-hidden sheets require the explicit Show Hidden Sheets command. It presents shared or inline text, numbers,

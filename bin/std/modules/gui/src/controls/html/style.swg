@@ -844,7 +844,8 @@ impl HtmlComputedStyle
             if name.count >= 2 and (name[0] == '"' or name[0] == '\'') do
                 name = name[1 until name.count - 1]
 
-            switch name
+            let folded = String.from(name).toLower()
+            switch folded.toString()
             {
             case "monospace", "ui-monospace", "consolas", "menlo",
                  "courier", "courier new", "cascadia mono", "cascadia code",

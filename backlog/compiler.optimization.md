@@ -100,24 +100,6 @@ new language syntax.
   flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
 - Related: compiler.optimization.094, compiler.optimization.117.
 
-### compiler.optimization.055 — Keep both quicksort global pointers resident across comparator calls
-
-- Evidence: `wordfreq`'s `qsort` compares through file-level `late` globals `g_Idx` and `g_Cnt`.
-  In the native Release `qsort` (34aaf7520), private-global hoisting keeps `g_Idx` in `r15` but
-  parks `g_Cnt`, `g_Off` and `g_Text` in the transient `rsi`, `rax` and `r9`, spilled before the
-  first inner loop and reloaded from `[rsp+0xA8..0xB8]` at that loop's shared latch: three frame
-  reloads run on every iteration, including the common count-mismatch path that never calls
-  `memcmp`. The compile-time (JIT) lowering of the same loop keeps both pointers in saved
-  registers and has no latch reloads. The allocator parks values around a call only when the
-  straight-line path jumps over the call block; here the call block is a jump target behind two
-  other branches. An earlier value-numbering trial also added a hot-path spill reload and
-  branch; do not repeat that unchanged variant.
-- Next: place the post-call restores of hoisted globals on the call path only, or give hoisted
-  globals that cross a call a saved register, so the latch carries no reload. Compare the tie and
-  post-call paths with LDC after the change.
-- Done when: both pointers remain resident through comparator calls without extra spill traffic and
-  checksums remain correct, or a current dump shows the gap has closed.
-
 ### compiler.optimization.011 — Keep hot SIMD values out of the frame
 
 - Evidence: `Video.H264.mcChroma`, `Hevc.Decoder.filterLumaEdge`, and `Hevc.Decoder.interpolateLuma` have had frame traffic in their hot loops. Previous measurements predate the split allocator and are no longer a current baseline.
@@ -446,8 +428,7 @@ new language syntax.
 - Done when: a third-party readonly helper preserves an unrelated load without being inlined;
   transitive writers/callbacks invalidate it; recursion converges; summary-only imports help callers
   even when their bodies are not imported.
-- Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.055,
-  compiler.optimization.020.
+- Related: compiler.optimization.108, compiler.optimization.109, compiler.optimization.020.
 
 ### compiler.optimization.111 — Inline ordinary functions across module boundaries
 

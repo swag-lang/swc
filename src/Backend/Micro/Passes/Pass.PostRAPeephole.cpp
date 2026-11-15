@@ -428,13 +428,13 @@ namespace
         return false;
     }
 
-    // Put a frame reload on the fallthrough edge of a join when every jump
-    // into that join already carries the stored value in the same register.
+    // Put a frame reload only on incoming edges that need it. Proven jumps
+    // retain the stored value; other edges enter a shared restore block.
     // A loop's common branch can then skip a reload needed only after its
     // uncommon branch has reused the register. The reload may sit behind a
     // comparison of other registers, which only writes the flags the reload
     // leaves alone: a branch on the joined value typically comes first.
-    bool sinkFrameReloadToFallthrough(MicroPassContext& context)
+    bool sinkFrameReloadToNeededEdges(MicroPassContext& context)
     {
         if (!context.builder || !context.builder->hasLabelReferences() || context.instructions->count() < 3)
             return false;
@@ -478,13 +478,13 @@ namespace
             if (incoming.size() < 2 || !std::ranges::binary_search(incoming, labelIndex - 1))
                 continue;
             const MicroInstr* fallthrough = storage.ptr(refs[labelIndex - 1]);
-            if (!fallthrough || MicroInstr::info(fallthrough->op).flags.has(MicroInstrFlagsE::TerminatorInstruction))
+            const bool        conditionalFallthrough = delayed && fallthrough && fallthrough->op == MicroInstrOpcode::JumpCond &&
+                                                       fallthrough->ops(operands)[0].cpuCond != MicroCond::Unconditional;
+            if (!fallthrough || (MicroInstr::info(fallthrough->op).flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalFallthrough))
                 continue;
             if (delayed)
             {
-                if (fallthrough->op != MicroInstrOpcode::Label || cfg.successors(labelIndex - 1).size() != 1 ||
-                    cfg.successors(labelIndex - 1)[0] != labelIndex ||
-                    context.spillAreaHi < context.spillAreaLo ||
+                if (context.spillAreaHi < context.spillAreaLo ||
                     context.spillAreaHi - context.spillAreaLo < sizeof(uint64_t) ||
                     at[3].valueU64 < context.spillAreaLo ||
                     at[3].valueU64 > context.spillAreaHi - sizeof(uint64_t))
@@ -504,6 +504,10 @@ namespace
                     continue;
             }
 
+            const bool               partitionEdges = delayed && fallthrough->op != MicroInstrOpcode::Label;
+            SmallVector<uint32_t, 4> restoreEdges;
+            uint32_t                 knownEdges = 0;
+
             // The adjacent label is the new cold-edge reload. Walk each hot
             // incoming edge back to a register/frame equivalence source. A
             // balanced stack adjustment changes the meaning of an offset only
@@ -515,7 +519,16 @@ namespace
                 {
                     const auto [index, delta] = delayedPending.back();
                     delayedPending.pop_back();
-                    if (index == labelIndex - 1)
+                    // The transformed join establishes register/home equality:
+                    // proven edges retain it, all other edges execute the reload.
+                    // This is an induction hypothesis for a preceding loop trip.
+                    if (partitionEdges && index == loadIndex)
+                    {
+                        if (delta != 0)
+                            return false;
+                        continue;
+                    }
+                    if (!partitionEdges && index == labelIndex - 1)
                     {
                         if (delta != 0)
                             return false;
@@ -531,7 +544,7 @@ namespace
                     if (delayedSeen.size() > K_MAX_BACKTRACK)
                         return false;
                     const MicroInstr* inst = storage.ptr(refs[index]);
-                    if (!inst)
+                    if (!inst || (partitionEdges && std::ranges::find(cfg.addressTakenLabelIndices(), index) != cfg.addressTakenLabelIndices().end()))
                         return false;
                     const auto* ops = inst->ops(operands);
                     if (index != loadIndex && ops && inst->op == MicroInstrOpcode::LoadMemReg &&
@@ -617,9 +630,24 @@ namespace
                 }
                 if (delayed)
                 {
-                    valid = proveDelayedJump(jumpIndex);
-                    if (!valid)
+                    const bool known = proveDelayedJump(jumpIndex);
+                    if (partitionEdges)
+                    {
+                        if (jumpOps[2].valueU64 != label->ops(operands)[0].valueU64)
+                        {
+                            valid = false;
+                            break;
+                        }
+                        if (known)
+                            ++knownEdges;
+                        else
+                            restoreEdges.push_back(jumpIndex);
+                    }
+                    else if (!known)
+                    {
+                        valid = false;
                         break;
+                    }
                     continue;
                 }
 
@@ -680,11 +708,20 @@ namespace
                 if (!valid)
                     break;
             }
-            if (!valid)
+            if (!valid || (partitionEdges && !knownEdges))
                 continue;
 
             MicroInstrOperand movedOps[4];
             std::copy_n(at, 4, movedOps);
+            if (!restoreEdges.empty())
+            {
+                const MicroLabelRef restore = context.builder->createLabel();
+                MicroInstrOperand   restoreLabel{};
+                restoreLabel.valueU64 = restore.get();
+                storage.insertDerivedBefore(operands, refs[labelIndex], MicroInstrOpcode::Label, std::span(&restoreLabel, 1));
+                for (const uint32_t edge : restoreEdges)
+                    storage.ptr(refs[edge])->ops(operands)[2].valueU64 = restore.get();
+            }
             storage.insertDerivedBefore(operands, refs[labelIndex], MicroInstrOpcode::LoadRegMem, movedOps);
             storage.erase(refs[loadIndex]);
             return true;
@@ -1082,7 +1119,7 @@ namespace
 
     // A spill store is dead when every path from it overwrites the whole slot
     // before anything reads it. Moving a reload to the uncommon branch of a
-    // join (sinkFrameReloadToFallthrough) typically leaves the common branch
+    // join (sinkFrameReloadToNeededEdges) typically leaves the common branch
     // storing a value only the uncommon branch, which stores it again, reads.
     //
     // Only allocator-owned slots qualify: program pointers cannot reach them,
@@ -1577,7 +1614,7 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     if (context.instructions->count() == 0)
         return Result::Continue;
 
-    if (reuseIndexedResultFlags(context) || forwardGuardedStore(context) || forwardConditionalSwap(context) || reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToFallthrough(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
+    if (reuseIndexedResultFlags(context) || forwardGuardedStore(context) || forwardConditionalSwap(context) || reuseGuardedAdjacentValue(context) || reuseLocalStoresForSpillReloads(context) || eraseGuardedReload(context) || sinkFrameReloadToNeededEdges(context) || sinkFrameStoreIntoBranchTarget(context) || sinkRipLoadIntoBranchTarget(context) ||
         eraseDeadSpillStore(context))
     {
         context.passChanged = true;

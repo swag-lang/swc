@@ -8950,6 +8950,129 @@ SWC_TEST_BEGIN(PostRAPeephole_FloatMemoryCrossesOnlyDisjointOrdinaryStores)
 }
 SWC_TEST_END()
 
+// Some incoming edges preserve a spill's value, while other explicit and
+// fallthrough edges need its reload. The join establishes equality on every trip.
+SWC_TEST_BEGIN(PostRAPeephole_PartitionsDelayedSpillReloadEdges)
+{
+    const MicroReg     base    = CallConv::get(CallConvKind::C).intArgRegs[0];
+    const MicroReg     sp      = CallConv::get(CallConvKind::C).stackPointer;
+    constexpr MicroReg flag    = MicroReg::intReg(8);
+    constexpr MicroReg counter = MicroReg::intReg(9);
+    constexpr MicroReg sum     = MicroReg::intReg(10);
+    constexpr MicroReg value   = MicroReg::intReg(11);
+    constexpr MicroReg zero    = MicroReg::intReg(3);
+    for (uint32_t variant = 0; variant < 11; ++variant)
+    {
+        for (const uint64_t selected : {0ull, 1ull, 2ull, 3ull})
+        {
+            for (const uint64_t payload : {0ull, 0x8000000000000000ull, 0x7FF0000000000001ull, 0xFFFFFFFFFFFFFFFFull})
+            {
+                std::array<uint64_t, 4> reference{};
+                for (const bool optimize : {false, true})
+                {
+                    MicroBuilder   builder(ctx);
+                    const auto     loop        = builder.createLabel();
+                    const auto     join        = builder.createLabel();
+                    const auto     exit        = builder.createLabel();
+                    const auto     afterReload = builder.createLabel();
+                    const uint64_t slot        = variant == 8 ? 24 : 8;
+                    builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Subtract, MicroOpBits::B64);
+                    builder.emitClearReg(zero, MicroOpBits::B64);
+                    for (const uint64_t offset : {0ull, 8ull, 16ull, 24ull})
+                        builder.emitLoadMemReg(sp, offset, zero, MicroOpBits::B64);
+                    builder.emitLoadRegMem(flag, base, 0, MicroOpBits::B64);
+                    builder.emitLoadRegMem(value, base, 8, MicroOpBits::B64);
+                    builder.emitClearReg(counter, MicroOpBits::B64);
+                    builder.emitClearReg(sum, MicroOpBits::B64);
+                    if (variant == 6)
+                    {
+                        builder.emitCmpRegImm(flag, ApInt(3, 64), MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                    }
+                    builder.emitLoadMemReg(sp, slot, value, MicroOpBits::B64);
+                    if (variant == 9)
+                        builder.emitLoadRegImm(value, ApInt(99, 64), MicroOpBits::B64);
+                    builder.placeLabel(loop);
+                    if (variant == 3 || variant == 5)
+                        builder.emitLoadMemReg(sp, variant == 3 ? slot : 16, zero, MicroOpBits::B64);
+                    if (variant == 4)
+                        builder.emitLoadRegImm(value, ApInt(7, 8), MicroOpBits::B8);
+                    if (variant == 7)
+                        builder.emitLoadMemReg(base, 24, zero, MicroOpBits::B64);
+                    builder.emitCmpRegImm(flag, ApInt(0, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                    builder.emitLoadRegImm(value, ApInt(99, 64), MicroOpBits::B64);
+                    builder.emitCmpRegImm(flag, ApInt(1, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+                    if (variant == 10)
+                    {
+                        builder.emitCmpRegImm(flag, ApInt(2, 64), MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, afterReload);
+                    }
+                    else
+                    {
+                        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+                        builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, exit);
+                    }
+                    builder.placeLabel(join);
+                    MicroReg prefix = counter;
+                    if (variant == 1)
+                        prefix = value;
+                    if (variant == 10)
+                        prefix = zero;
+                    if (variant == 2)
+                        builder.emitOpBinaryRegImm(sp, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+                    else
+                        builder.emitOpUnaryReg(prefix, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitLoadRegMem(value, sp, slot, MicroOpBits::B64);
+                    const MicroInstrRef reload = builder.instructions().lastInstructionRef();
+                    if (variant == 10)
+                    {
+                        builder.placeLabel(afterReload);
+                        builder.emitClearReg(flag, MicroOpBits::B64);
+                        builder.emitOpUnaryReg(counter, MicroOp::Add, MicroOpBits::B64);
+                    }
+                    if (variant == 2)
+                        builder.emitOpBinaryRegImm(sp, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+                    if (variant == 1 || variant == 2)
+                        builder.emitOpUnaryReg(counter, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitOpBinaryRegReg(sum, value, MicroOp::Add, MicroOpBits::B64);
+                    builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+                    builder.placeLabel(exit);
+                    builder.emitLoadMemReg(base, 16, sum, MicroOpBits::B64);
+                    builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Add, MicroOpBits::B64);
+                    builder.emitRet();
+                    X64Encoder encoder(ctx);
+                    if (optimize)
+                    {
+                        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 8, 16));
+                        const bool moved = builder.instructions().ptr(reload) == nullptr;
+                        // Negative cases compare executed results: independent
+                        // dead-definition/slot forwarding may also erase their reload.
+                        if ((variant == 0 || variant == 5 || variant == 6) && !moved)
+                        {
+                            Logger::print(ctx, std::format("spill edge shape variant={} moved={}\n", variant, moved));
+                            return Result::Error;
+                        }
+                    }
+                    std::array<uint64_t, 4> values = {selected, payload, 0, 0x123456789ABCDEF0ull};
+                    SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data()));
+                    if (!optimize)
+                        reference = values;
+                    else if (values != reference)
+                    {
+                        Logger::print(ctx, std::format("spill edge value variant={} selected={} payload={}\n", variant, selected, payload));
+                        return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

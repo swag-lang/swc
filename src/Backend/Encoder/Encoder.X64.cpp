@@ -2737,6 +2737,9 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
         case MicroCond::Overflow:
             emitCpuOp(store_, 0x90);
             break;
+        case MicroCond::NotOverflow:
+            emitCpuOp(store_, 0x91);
+            break;
         case MicroCond::AboveOrEqual:
             emitCpuOp(store_, 0x93);
             break;
@@ -2744,6 +2747,7 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
             emitCpuOp(store_, 0x9F);
             break;
         case MicroCond::NotEqual:
+        case MicroCond::NotZero:
             emitCpuOp(store_, 0x95);
             break;
         case MicroCond::NotAbove:
@@ -2756,6 +2760,7 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
             emitCpuOp(store_, 0x96);
             break;
         case MicroCond::Equal:
+        case MicroCond::Zero:
             emitCpuOp(store_, 0x94);
             break;
         case MicroCond::GreaterOrEqual:
@@ -2768,9 +2773,11 @@ void X64Encoder::encodeSetCondReg(MicroReg reg, MicroCond cpuCond)
             emitCpuOp(store_, 0x9E);
             break;
         case MicroCond::Parity:
+        case MicroCond::EvenParity:
             emitCpuOp(store_, 0x9A);
             break;
         case MicroCond::NotParity:
+        case MicroCond::NotEvenParity:
             emitCpuOp(store_, 0x9B);
             break;
         case MicroCond::Sign:

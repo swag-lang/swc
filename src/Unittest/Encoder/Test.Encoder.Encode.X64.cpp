@@ -301,6 +301,11 @@ namespace
         ENCODE_CASE("cmp_mem_imm_r12_12345678_b8", "41 80 BC 24 78 56 34 12 12", b.emitCmpMemImm(R12, 0x12345678, ApInt(0x12, 64), MicroOpBits::B8););
         ENCODE_CASE("cmp_mem_imm_r13_b8", "41 80 7D 44 55", b.emitCmpMemImm(R13, 0x44, ApInt(0x55, 64), MicroOpBits::B8););
         ENCODE_CASE("set_cond_above_r8", "41 0F 97 C0", b.emitSetCondReg(R8, MicroCond::Above););
+        ENCODE_CASE("set_cond_zero_r8", "41 0F 94 C0", b.emitSetCondReg(R8, MicroCond::Zero););
+        ENCODE_CASE("set_cond_not_zero_r8", "41 0F 95 C0", b.emitSetCondReg(R8, MicroCond::NotZero););
+        ENCODE_CASE("set_cond_not_overflow_r8", "41 0F 91 C0", b.emitSetCondReg(R8, MicroCond::NotOverflow););
+        ENCODE_CASE("set_cond_even_parity_r8", "41 0F 9A C0", b.emitSetCondReg(R8, MicroCond::EvenParity););
+        ENCODE_CASE("set_cond_not_even_parity_r8", "41 0F 9B C0", b.emitSetCondReg(R8, MicroCond::NotEvenParity););
         ENCODE_CASE("set_cond_above_r8_zext", "41 0F 97 C0 45 0F B6 C0", b.emitSetCondReg(R8, MicroCond::Above); b.emitLoadZeroExtendRegReg(R8, R8, MicroOpBits::B32, MicroOpBits::B8););
         ENCODE_CASE("load_cond_reg_reg_gt", "4D 0F 4F CA", b.emitLoadCondRegReg(R9, R10, MicroCond::Greater, MicroOpBits::B64););
         ENCODE_CASE("load_cond_reg_reg_ae", "4D 0F 43 CA", b.emitLoadCondRegReg(R9, R10, MicroCond::AboveOrEqual, MicroOpBits::B64););

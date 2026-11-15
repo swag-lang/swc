@@ -470,6 +470,9 @@ namespace MicroOptimizationLimits
 
         // [analysis-budget] Bound the search for a prior comparison with still-available flags.
         inline constexpr uint32_t K_REPEATED_COMPARE_WINDOW = 4;
+
+        // [analysis-budget] Bound all-path backward expansion before reusing flags at a join.
+        inline constexpr uint32_t K_COMPARE_JOIN_PATH_WINDOW = 64;
     }
 
     namespace PostRAPeepholeFloatThreeOperand

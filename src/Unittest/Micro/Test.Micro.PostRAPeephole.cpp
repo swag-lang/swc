@@ -5635,6 +5635,149 @@ SWC_TEST_BEGIN(PostRAPeephole_CopiedCompareAfterBranch_Erased)
 }
 SWC_TEST_END()
 
+// A join may reuse flags only when every path preserves the compared bits
+// and reaches an identical producer. Observe signed, unsigned and overflow flags.
+SWC_TEST_BEGIN(PostRAPeephole_JoinComparePreservesAllIncomingFlags)
+{
+    const CallConv&    conv     = CallConv::get(CallConvKind::C);
+    const MicroReg     base     = conv.intArgRegs[0];
+    const MicroReg     value    = conv.intReturn;
+    constexpr MicroReg selector = MicroReg::intReg(8);
+    constexpr MicroReg other    = MicroReg::intReg(9);
+    constexpr MicroReg result   = MicroReg::intReg(10);
+    for (uint32_t variant = 0; variant < 10; ++variant)
+    {
+        for (const uint64_t input : {0ull, 1ull, 2ull, 0xFFFFFFFFFFFFFFFFull, 0x8000000000000000ull, 0x7FFFFFFFFFFFFFFFull})
+        {
+            for (const uint64_t path : {0ull, 1ull})
+            {
+                std::array<uint64_t, 4> reference;
+                for (const bool optimize : {false, true})
+                {
+                    MicroBuilder builder(ctx);
+                    const auto   right            = builder.createLabel();
+                    const auto   join             = builder.createLabel();
+                    const auto   early            = builder.createLabel();
+                    const auto   done             = builder.createLabel();
+                    const auto   emitRegisterTest = [&](MicroReg left, MicroReg right, MicroOpBits bits) {
+                        builder.emitCmpRegReg(left, right, bits);
+                        builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = MicroInstrOpcode::TestRegReg;
+                    };
+                    builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                    builder.emitLoadRegMem(selector, base, 8, MicroOpBits::B64);
+                    builder.emitLoadRegImm(other, ApInt(1, 64), MicroOpBits::B64);
+                    emitRegisterTest(selector, selector, MicroOpBits::B64);
+                    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, right);
+                    const auto compare = [&](bool rightArm) {
+                        const MicroOpBits width = rightArm && variant == 4 ? MicroOpBits::B32 : MicroOpBits::B64;
+                        if (variant == 6)
+                            builder.emitCmpRegReg(value, other, width);
+                        else if (variant == 7)
+                        {
+                            builder.emitCmpRegImm(value, ApInt(1, 64), width);
+                            builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = MicroInstrOpcode::TestRegImm;
+                        }
+                        else if (variant == 8)
+                            emitRegisterTest(value, other, width);
+                        else
+                            builder.emitCmpRegImm(value, ApInt(rightArm && variant == 1 ? 2 : 1, 64), width);
+                    };
+                    compare(false);
+                    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, early);
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+                    builder.placeLabel(right);
+                    if (variant != 9)
+                        compare(true);
+                    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B32, early);
+                    if (variant == 2)
+                        emitRegisterTest(selector, selector, MicroOpBits::B64);
+                    if (variant == 3 || variant == 5)
+                        builder.emitLoadRegImm(value, ApInt(7, 64), variant == 5 ? MicroOpBits::B8 : MicroOpBits::B64);
+                    builder.placeLabel(join);
+                    compare(false);
+                    for (const auto& [condition, offset] : {std::pair{MicroCond::Less, 16ull}, {MicroCond::Below, 17ull}, {MicroCond::Overflow, 18ull}, {MicroCond::Zero, 19ull}})
+                    {
+                        builder.emitSetCondReg(result, condition);
+                        builder.emitLoadMemReg(base, offset, result, MicroOpBits::B8);
+                    }
+                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+                    builder.placeLabel(early);
+                    builder.emitLoadMemImm(base, 16, ApInt(0, 32), MicroOpBits::B32);
+                    builder.placeLabel(done);
+                    builder.emitRet();
+
+                    std::array<uint64_t, 4> values = {input, path, 0xFEDCBA9876543210ull, 0x0123456789ABCDEFull};
+                    SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                    if (!optimize)
+                        reference = values;
+                    else if (values != reference)
+                        return Result::Error;
+                    if (optimize && (variant == 0 || variant == 6 || variant == 7 || variant == 8))
+                    {
+                        MicroInstrOpcode opcode = MicroInstrOpcode::CmpRegImm;
+                        if (variant == 6)
+                            opcode = MicroInstrOpcode::CmpRegReg;
+                        else if (variant == 7)
+                            opcode = MicroInstrOpcode::TestRegImm;
+                        else if (variant == 8)
+                            opcode = MicroInstrOpcode::TestRegReg;
+                        const uint32_t comparisons = Backend::Unittest::countOpcode(builder, opcode);
+                        if (comparisons != (variant == 8 ? 3u : 2u))
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_JoinCompareRejectsUnknownFlagsAndCycles)
+{
+    constexpr MicroReg value = MicroReg::intReg(0);
+    constexpr MicroReg other = MicroReg::intReg(8);
+    for (uint32_t variant = 0; variant < 7; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        const auto   join = builder.createLabel();
+        const auto   exit = builder.createLabel();
+        if (variant == 5)
+            builder.emitLoadLabelAddress(other, join);
+        builder.emitCmpRegImm(value, ApInt(1, 64), variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        if (variant == 1)
+            builder.emitCallReg(other, CallConvKind::Swag, 0, 0);
+        if (variant == 2)
+            builder.emitLoadRegImm(value, ApInt(7, 8), MicroOpBits::B8);
+        if (variant == 4)
+        {
+            const auto cycle = builder.createLabel();
+            builder.placeLabel(cycle);
+            builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, cycle);
+        }
+        if (variant == 6)
+            builder.emitOpUnaryReg(other, MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(value, ApInt(1, 64), MicroOpBits::B64);
+        const MicroInstrRef compare = builder.instructions().lastInstructionRef();
+        builder.emitSetCondReg(other, MicroCond::Less);
+        builder.placeLabel(exit);
+        builder.emitRet();
+        X64Encoder              encoder(ctx);
+        PostRaPeephole::Context context;
+        context.storage   = &builder.instructions();
+        context.operands  = &builder.operands();
+        context.encoder   = &encoder;
+        context.builder   = &builder;
+        const bool erased = PostRaPeephole::tryEraseCompareAtJoin(context, compare, *builder.instructions().ptr(compare));
+        if (erased != (variant == 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A narrow copy cannot stand in for a wider comparison.
 SWC_TEST_BEGIN(PostRAPeephole_NarrowCopyBeforeCompare_KeepsTest)
 {

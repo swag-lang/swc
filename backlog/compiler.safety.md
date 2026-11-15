@@ -197,27 +197,6 @@ is the current scorecard.
 - Done when: the compiler either diagnoses a documented set of proven leak shapes with sound
   counterparts, or the reference explicitly limits leak detection to allocator diagnostics and
   the corpus reflects that decision.
-- Related: compiler.safety.018.
-
-### compiler.safety.018 — A release proven on one path only is never reported
-
-- Evidence: `conditionalFree` in `cwe416_use_after_free.swg` releases inside an `if` and reads
-  after it. The engine's join is an intersection, so the fact does not survive the merge and
-  nothing is reported — which is what keeps the analysis free of false positives, and also what
-  makes the shape a real program has, a release under a condition, invisible. The neighbouring
-  limits were closed: a copy of the pointer into another local is now proven, and a release
-  survives an ordinary call.
-- Elsewhere: a path-sensitive analyzer (clang's, Infer) reports this class and accepts the false
-  positives that come with it. That trade is not this repository's: a sanity proof is an error
-  that fails the build in `release`, so it cannot be a maybe.
-- Next: decide whether a MAY-release fact deserves a diagnostic of its own — a warning under the
-  warning policy layer rather than an error, so the report exists without a build failing on a
-  guess. The new warning currently names one corpus use and two `core` thread-field reads in the
-  early consumer run. Count unique sites across `bin/` before judging whether the report is
-  readable or noise; the full tree sweep is still pending.
-- Done when: either a warning exists with its count on `bin/` recorded, or the reference states
-  that a conditional release is outside what the proof covers and the corpus records the decision.
-- Related: compiler.safety.017.
 
 ### compiler.safety.010 — An integer becomes an enum value that no member names
 

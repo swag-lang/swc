@@ -1,13 +1,16 @@
 impl Capture
 {
     // Returns the name a reader knows the capture by: the title they gave it, the application it
-    // was taken from, or its file; empty for a capture that has none of them yet.
+    // was taken from, the picture it is linked to, or its file; empty for a capture that has none
+    // of them yet. The library file name is generated, so an opened picture keeps its own name.
     mtd const displayName()->String
     {
         if not .title.isEmpty() do
             return .title
         if not .sourceApplication.isEmpty() do
             return .sourceApplication
+        if not .linkedImage.isEmpty() do
+            return Path.fileNameWithoutExtension(.linkedImage) orelse ""
         return Path.fileNameWithoutExtension(.file) orelse ""
     }
 

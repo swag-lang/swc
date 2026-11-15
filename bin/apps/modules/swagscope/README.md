@@ -138,9 +138,11 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.
 - `EPUB` reads the package manifest and spine, presents XHTML chapters in their declared order,
-  keeps local CSS and images available to the HTML reader, and offers previous/next chapter
-  navigation. The book is extracted to a bounded temporary folder while it is open. Script and
-  remote resources do not execute or load.
+  keeps local CSS and images available, and offers a filterable EPUB 2/3 table of contents,
+  previous/next chapter navigation and text zoom. Contents entries and local chapter links follow
+  their fragment destinations and keep the chapter counter in sync. Books without authored contents
+  fall back to their spine order. The book is extracted to a bounded temporary folder while it is
+  open. Script and remote resources do not execute or load.
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.
@@ -307,7 +309,7 @@ and returns to the last file viewed in a selected recent folder. Audio and video
 ten-second seeks while active, and use Space for play/pause, M for mute, Up/Down for volume, and
 Home for the start. Paged viewers share Previous, `page / total`, and Next in the bottom command
 panel, with `Ctrl+PageUp` / `Ctrl+PageDown`; endpoints are disabled. EPUB chapters and comic pages
-use this group too, and their embedded reader contributes controls to the same footer. Zoom is always a percentage
+use this group too. Comics contribute their embedded image controls to the same footer. Zoom is always a percentage
 at the right of the bottom line, with `Ctrl++`, `Ctrl+-`, `Ctrl+0` and `Ctrl+Wheel`. In MIDI,
 `Ctrl+Shift++`, `Ctrl+Shift+-` and `Ctrl+Shift+Wheel` change pitch spacing separately.
 An installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.

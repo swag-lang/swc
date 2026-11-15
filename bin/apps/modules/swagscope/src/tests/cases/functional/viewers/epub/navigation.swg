@@ -1,0 +1,131 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Core, Gui, Gui.Testing, Viewers
+
+// EPUB 2 and EPUB 3 expose the same authored titles, nesting, order and fragment destinations.
+#test
+{
+    for name in ["viewer.navigation.epub", "viewer.navigation.ncx.epub"]
+    {
+        let book = expect Epub.Book.load(scopeTestDataPath(name))
+        Swag.require(book.navigation.failure.isEmpty())
+        Swag.require(book.navigation.entries.count == 3)
+        let entries = book.navigation.entries.toSlice()
+        Swag.require(entries[0].title == "First & foremost" and entries[0].chapter == 0)
+        Swag.require(entries[1].title == "A quiet passage" and entries[1].level == 2)
+        Swag.require(entries[1].chapter == 0 and entries[1].fragment == "passage")
+        Swag.require(entries[2].chapter == 1 and entries[2].fragment == "arrival")
+    }
+}
+
+// The real Gutenberg publication's navigation is usable, including nested sections.
+#test
+{
+    let book = expect Epub.Book.load(scopeTestDataPath("viewer.christmas-carol.epub"))
+    Swag.require(book.navigation.failure.isEmpty())
+    var linked = 0'u64
+    var nested = 0'u64
+    for entry in book.navigation.entries
+    {
+        if entry.chapter != Swag.U64.Max do
+            linked += 1
+        if entry.level > 1 do
+            nested += 1
+    }
+
+    Swag.require(linked > 10 and nested > 0)
+}
+
+// Encoded Unicode and spaces are decoded without permitting a URL to leave the package.
+#test
+{
+    let entry = Epub.NavigationEntry.resolve("OPS/nav/toc.xhtml", "../chapters/part%20one.xhtml#caf%C3%A9")
+    Swag.require(entry.path == "OPS/chapters/part one.xhtml" and entry.fragment == "café")
+    let same = Epub.NavigationEntry.resolve("OPS/part.xhtml", "#end")
+    Swag.require(same.path == "OPS/part.xhtml" and same.fragment == "end")
+    for reference in ["https://example.org/a", "file:///tmp/private", "//host/a", "../../../secret",
+                      "../%2e%2e/../secret", "%2fetc/passwd", "%5csecret", "%66ile:secret", "bad%QQ"]
+    {
+        let blocked = Epub.NavigationEntry.resolve("OPS/nav.xhtml", reference)
+        Swag.require(blocked.path.isEmpty())
+    }
+}
+
+// Only the table of contents is collected; landmarks and scripts cannot add destinations.
+#test
+{
+    let source     = """<html><body><nav epub:type="landmarks"><a href="a.xhtml">Landmark</a></nav>
+                    <nav epub:type="toc"><ol><li><a href="one.xhtml">One <span>chapter</span></a></li></ol></nav>
+                    <script>ignored</script></body></html>"""
+    let navigation = expect Epub.Navigation.parse(source, "OPS/nav.xhtml", false)
+    Swag.require(navigation.entries.count == 1 and navigation.entries[0].title == "One chapter")
+}
+
+// Broken navigation and external entities cannot start an unbounded or external parse.
+#test
+{
+    for source in ["<nav epub:type=\"toc\"><ol>", "<html><body></div></html>", "<!DOCTYPE html [<!ENTITY x SYSTEM 'file:///tmp/secret'>]><html/>"]
+    {
+        var error: Swag.Error
+        discard catch Epub.Navigation.parse(source, "OPS/nav.xhtml", false) as error
+        Swag.require(error.value() is Errors.InvalidFormatError)
+    }
+
+    var nested: String
+    for 65 do
+        nested += "<div>"
+    var error: Swag.Error
+    discard catch Epub.Navigation.parse(nested, "OPS/nav.xhtml", false) as error
+    Swag.require(error.value() is Errors.UnsupportedFormatError)
+}
+
+// A table-of-contents selection can reach a passage in the current or another chapter.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    Swag.require(view.contents.count == 3 and view.outline.headings.count == 3)
+    view.selectContents(2)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1 and view.chapterLabel.text() == "2 / 2")
+    Swag.require(view.view != null)
+    view.selectContents(1)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 0)
+    Swag.require(view.outline.headings[1].level == 2)
+    view.outline.setFilter("second")
+    Swag.require(view.outline.rows.count == 1)
+    view.selectContents(99)
+    Swag.require(view.chapter == 0)
+}
+
+// Book-owned link navigation updates the chapter counter and keeps external targets local.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    view.followLink("two.xhtml#arrival")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1)
+    view.followLink("one.xhtml#passage")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 0)
+    for url in ["https://example.org", "../../secret.html", "missing.xhtml"]
+    {
+        view.followLink(url)
+        Swag.require(view.chapter == 0)
+    }
+}
+
+// EPUB 2's ordinary external DOCTYPE is ignored without loading its external DTD.
+#test
+{
+    let source     = """<?xml version="1.0"?>
+                    <!DOCTYPE ncx PUBLIC "-//NISO//DTD ncx 2005-1//EN" "http://www.daisy.org/z3986/2005/ncx-2005-1.dtd">
+                    <ncx><navMap><navPoint><navLabel><text>Chapter</text></navLabel><content src="one.xhtml"/></navPoint></navMap></ncx>"""
+    let navigation = expect Epub.Navigation.parse(source, "OPS/toc.ncx", true)
+    Swag.require(navigation.entries.count == 1 and navigation.entries[0].title == "Chapter")
+}

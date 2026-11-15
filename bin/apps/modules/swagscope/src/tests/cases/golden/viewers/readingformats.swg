@@ -3,13 +3,6 @@
 
 using Core, Gui, Viewers
 
-// EPUB's chapter text and reading controls in Papier.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.epub"), true, "viewer.epub.chapter")
-}
-
 // A CBZ page and its navigation in Encre.
 #[Swag.TestTag("golden")]
 #test

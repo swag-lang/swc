@@ -120,6 +120,9 @@ private struct HtmlRegionScrollState
     top:  f32
 }
 
+// Handles a link activation in an HTML view; true consumes it, false permits default navigation.
+alias HtmlLinkHandler = func||(*HtmlView, string)->bool
+
 // Displays HTML as a laid-out document.
 //
 // [[Gui.HtmlView.createText]] renders in-memory source, and [[Gui.HtmlView.createFile]] streams a
@@ -147,6 +150,13 @@ struct HtmlView
         sigLinkActivated:   SigArray'func||(*Wnd, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
         sigLoadFailed:      SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
         sigDocumentChanged: SigArray'func||(*Wnd)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
+
+        // Handles a clicked link before built-in fragment or local-file navigation.
+        //
+        // Return true to consume the activation, including a deliberately blocked destination;
+        // false retains normal navigation and the [[Gui.HtmlView.sigLinkActivated]] fallback.
+        // The URL is borrowed for the call. Null keeps the default offline navigation policy.
+        linkHandler: HtmlLinkHandler?
 
         readonly
         {
@@ -966,6 +976,8 @@ internal impl HtmlView
 
     private mtd activateLink(url: string)->bool
     {
+        if .linkHandler and .linkHandler(me, url) do
+            return true
         if .embedded do
             return false
         if .navigateToFragment(url) do

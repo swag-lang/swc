@@ -47,3 +47,7 @@ The seven `viewer.christmas-carol.epub`, `viewer.poi-sample.docx`,
 upstream URLs, licences, and SHA-256 hashes in `THIRDPARTY.md`. Content tests read chapters,
 paragraphs, cells, slides, and distant PDF pages from them; the small generated fixtures keep
 their separate role in isolating individual format variants and failures.
+
+`viewer.navigation.epub` and `viewer.navigation.ncx.epub` are repository-authored,
+minimal EPUB 3 and EPUB 2 books. Each has two spine chapters, nested contents, inline
+labels, and same-chapter and cross-chapter fragment targets. They contain no external assets.

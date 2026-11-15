@@ -66,6 +66,7 @@ struct Scanner
     source:  string
     offset:  u64
     damaged: bool
+    allowDocumentType: bool // Skips one DOCTYPE without an internal subset; external identifiers are never read.
 }
 
 private impl Scanner
@@ -240,6 +241,45 @@ impl Scanner
                     return false
                 continue
             }
+            if .allowDocumentType and
+               .offset + 10 <= .source.count and
+               .source[.offset until .offset + 9] == "<!DOCTYPE" and
+               .space(.source[.offset + 9])
+            {
+                .allowDocumentType = false
+                .offset += 9
+                var quote  = 0'u8
+                var closed = false
+                while .offset < .source.count
+                {
+                    let value = .source[.offset]
+                    .offset += 1
+                    if quote
+                    {
+                        if value == quote do
+                            quote = 0
+                    }
+                    elif value == '\''u8 or value == '"'u8
+                    {
+                        quote = value
+                    }
+                    elif value == '['u8
+                    {
+                        break
+                    }
+                    elif value == '>'u8
+                    {
+                        closed = true
+                        break
+                    }
+                }
+
+                if closed do
+                    continue
+                .damaged = true
+                return false
+            }
+
             if .offset + 2 <= .source.count and .source[.offset + 1] == '!'u8
             {
                 .damaged = true

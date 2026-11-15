@@ -198,14 +198,13 @@ integration around those engines.
 
 ### app.scope.document.021 — EPUB chapter reading needs complete navigation
 
-- Evidence: `.epub` now reads `META-INF/container.xml`, the OPF manifest and spine, and opens
-  each XHTML document through the HTML reader in declared order. ZIP extraction is bounded and
-  rejects escaping paths. The first fixtures cover spine ordering and a nested package root.
-  There is no EPUB table of contents, book-wide search or position restore, and extraction prepares
+- Evidence: EPUB 2 NCX and EPUB 3 contents now expose authored titles, hierarchy and chapter
+  fragments in the shared filterable outline. Internal spine links keep the chapter counter in
+  sync, and chapter reading has its own zoom. Book-wide search, landmarks, non-spine footnotes,
+  reading-position restore, bookmarks and link history remain absent. Extraction still prepares
   every package member before the first chapter is shown.
-- Next: expose EPUB 2 NCX and EPUB 3 navigation/landmarks, resolve chapter fragments and local
-  footnotes, add book-wide search with chapter/all-book scope and stable chapter positions,
-  explicit bookmarks and link back/forward, then lazily extract resources needed for the visible chapter.
+- Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
+  bookmarks, link back/forward and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010

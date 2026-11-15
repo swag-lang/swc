@@ -972,7 +972,19 @@ bool SymbolFunction::hasResetParamField(size_t paramIndex, std::string_view fiel
 
 bool SymbolFunction::hasPossiblyWrittenParamField(size_t paramIndex, std::string_view fieldName) const noexcept
 {
-    return hasBorrowSummaryField(writtenParamFields_, paramIndex, fieldName);
+    const AttributeList* attrs = attributesIfAny();
+    return hasBorrowSummaryField(writtenParamFields_, paramIndex, fieldName) || (attrs && hasBorrowSummaryField(attrs->writesParamFields, paramIndex, fieldName));
+}
+
+bool SymbolFunction::hasCompleteParamFieldWriteSummary() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    if (attrs && attrs->writesParamFieldsComplete)
+        return true;
+    if (mayWriteUnknownParamFields() || isForeignOrEmptyOrAttribute())
+        return false;
+    const auto* decl = declAs<AstFunctionDecl>();
+    return decl && decl->nodeBodyRef.isValid();
 }
 
 void SymbolFunction::addFreedParamField(size_t paramIndex, std::string_view fieldName)
@@ -1023,6 +1035,12 @@ std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedReset
 {
     const AttributeList* attrs = attributesIfAny();
     return attrs ? std::span<const ReturnFieldBorrow>(attrs->resetsParamFields) : std::span<const ReturnFieldBorrow>{};
+}
+
+std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedWrittenParamFields() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return attrs ? std::span<const ReturnFieldBorrow>(attrs->writesParamFields) : std::span<const ReturnFieldBorrow>{};
 }
 
 bool SymbolFunction::observesExternalBorrows() const noexcept

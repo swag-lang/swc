@@ -1826,6 +1826,74 @@ namespace
         }
     }
 
+    bool markWrittenParameterCarrier(Sema& sema, const SymbolVariable& root, TypeRef carrierTypeRef)
+    {
+        SymbolFunction* function = sema.currentFunction();
+        if (!function || !carrierTypeRef.isValid())
+            return false;
+
+        const TypeInfo& carrierValueType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), carrierTypeRef);
+        const TypeInfo& carrierType = carrierValueType.isPointerOrReference() ?
+                                          sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), carrierValueType.payloadTypeRef()) :
+                                          carrierValueType;
+        if (!carrierType.isStruct())
+            return false;
+
+        uint64_t origins = 0;
+        if (const SymbolVariable* parameter = signatureParameterFor(sema, root))
+        {
+            const TypeInfo& parameterType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), parameter->typeRef());
+            if (!parameterType.isPointerOrReference())
+                return false;
+            size_t index = 0;
+            if (findCallerParameterIndex(*function, *parameter, index) && index < 64)
+                origins = 1ULL << index;
+        }
+        else if (const SemaEscapeInfo* rootInfo = sema.variableEscapeInfo(root); rootInfo && rootInfo->kind == SemaEscapeKind::Parameter)
+            origins = rootInfo->parameterOriginsMask | rootInfo->parameterIndirectOriginsMask;
+
+        // Some aggregate projections (notably `ptr[] = value`) resolve to a
+        // temporary storage root that has lost its parameter provenance. Keep
+        // the summary conservative by attributing the whole-carrier write to
+        // every compatible reference parameter in that case.
+        if (!origins)
+        {
+            for (size_t index = 0; index < function->parameters().size() && index < 64; ++index)
+            {
+                const SymbolVariable* parameter = function->parameters()[index];
+                if (!parameter || !parameter->typeRef().isValid())
+                    continue;
+                const TypeInfo& parameterType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), parameter->typeRef());
+                if (!parameterType.isPointerOrReference())
+                    continue;
+                const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), parameterType.payloadTypeRef());
+                if (payloadType.isStruct() && &payloadType.payloadSymStruct() == &carrierType.payloadSymStruct())
+                    origins |= 1ULL << index;
+            }
+        }
+
+        bool markedAnyField = false;
+        for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+        {
+            const size_t index = std::countr_zero(remaining);
+            if (index >= function->parameters().size() || !function->parameters()[index])
+                continue;
+            const TypeInfo& parameterType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), function->parameters()[index]->typeRef());
+            if (!parameterType.isPointerOrReference())
+                continue;
+            const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), parameterType.payloadTypeRef());
+            if (!payloadType.isStruct() || &payloadType.payloadSymStruct() != &carrierType.payloadSymStruct())
+                continue;
+            for (const SymbolVariable* field : carrierType.payloadSymStruct().fields())
+                if (field)
+                {
+                    function->markParamFieldPossiblyWritten(index, field->name(sema.ctx()));
+                    markedAnyField = true;
+                }
+        }
+        return markedAnyField;
+    }
+
     uint64_t parameterOriginsMask(const SymbolFunction& fn, const SemaEscapeInfo& info)
     {
         if (info.parameterOriginsMask || info.parameterIndirectOriginsMask)
@@ -5263,8 +5331,22 @@ namespace SemaEscape
         if (storageProjection(sema, leftRef, replacedProjection) && replacedProjection.root && !replacedProjection.components.empty())
         {
             markWrittenParameterField(sema, replacedProjection);
+            const bool writesWholeCarrier = targetTypeRef.isValid() &&
+                                            sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), targetTypeRef).isStruct() &&
+                                            std::ranges::none_of(replacedProjection.components, [](const SemaEscapeProjectionComponent& component) {
+                                                return component.kind == SemaEscapeProjectionKind::Field;
+                                            });
+            if (writesWholeCarrier && !markWrittenParameterCarrier(sema, *replacedProjection.root, targetTypeRef))
+            {
+                // Do not export a complete empty write set when an aggregate store
+                // through a carrier could not be tied back to its parameter.
+                if (SymbolFunction* function = sema.currentFunction())
+                    function->suppressInferredFreedParamFields();
+            }
             detachReplacedOwnedPayloadViews(sema, replacedProjection, targetTypeRef);
         }
+        else if (!hasProjection && dstVar)
+            markWrittenParameterCarrier(sema, *dstVar, targetTypeRef);
 
         // A store through a destination that provably stays in this frame (a self-reference
         // through a local-derived pointer) never escapes, whatever borrow it carries.
@@ -6350,7 +6432,8 @@ namespace SemaEscape
                 if (forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName))
                     continue;
 
-                const bool bodylessMayWrite = !hasEscapeBody(*forwarding.callee);
+                const bool bodylessMayWrite = !hasEscapeBody(*forwarding.callee) &&
+                                              !forwarding.callee->hasCompleteParamFieldWriteSummary();
                 if (!bodylessMayWrite && !forwarding.callee->mayWriteUnknownParamFields() &&
                     !forwarding.callee->hasPossiblyWrittenParamField(forwarding.calleeParamIndex, fieldName))
                     continue;

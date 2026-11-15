@@ -198,7 +198,7 @@ struct AttrCounterWidget
 | 'Safety(what: SafetyWhat, value: bool)' | Enable or disable runtime guards |
 | 'Sanity(what: SafetyWhat, value: bool)' | Enable or disable static proven-fault checks |
 | 'Warning(what: string, level: WarningLevel)' | Disable, restore, or promote named warnings |
-| 'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0, ..., returnsFields = "", freesFields = "", resetsFields = "")' | Describe pointer escape, payload borrowing, and invalidation behavior |
+| 'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0, ..., returnsFields = "", freesFields = "", resetsFields = "", writesFields = "", writesFieldsComplete = false)' | Describe pointer escape, payload borrowing, and invalidation behavior |
 
 'SafetyWhat' is shared by runtime safety and static sanity, although not every
 flag has meaningful behavior in both systems. See the dedicated safety and
@@ -213,6 +213,12 @@ multiple entries use semicolons. 'freesFields' names first-level pointer fields
 of pointer parameters whose contents the function releases. 'resetsFields'
 names those fields when the function also leaves a live replacement in the field
 on return; copies made before that replacement still refer to the released value.
+'writesFields' lists first-level pointer fields a function may change. A generated
+'writesFieldsComplete: true' means the list covers every possible write visible to
+the compiler; callers can preserve provenance through bodyless API calls for fields
+absent from the list. A partial or unavailable summary leaves every unlisted field
+conservative. This write list is not a guarantee about the order of a write and a
+release, and does not make a post-call field valid.
 
 # Native Interoperability
 

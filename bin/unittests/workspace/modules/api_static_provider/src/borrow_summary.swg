@@ -131,6 +131,27 @@ struct DepUafNode
     public other: *s32
 }
 
+#[Swag.NoInline]
+func depUafNoWriteCarrier(node: *DepUafNode)
+{
+    discard node
+}
+
+#[Swag.NoInline]
+func depUafWriteDataCarrier(node: *DepUafNode)
+{
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+#[Swag.NoInline]
+func depUafWriteWholeCarrier(node: *DepUafNode, replacement: DepUafNode)
+{
+    node[] = replacement
+}
+
 #[Swag.BorrowSummary(0, freesFields: "0:64617461")]
 func depUafReleaseField(node: *DepUafNode)
 {

@@ -152,9 +152,15 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
 Result NativeObjFileWriterCoff::buildTextSection(const NativeObjDescription& description, CoffSectionBuild& textSection) const
 {
     if (description.startup)
+    {
+        textSection.data.requireAlignment(description.startup->code.codeAlignment);
         textSection.data.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
+    }
     for (NativeFunctionInfo* info : description.functions)
+    {
+        textSection.data.requireAlignment(info->machineCode->codeAlignment);
         textSection.data.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
+    }
 
     if (description.startup)
         SWC_RESULT(appendCodeRelocations(*description.startup, description.startup->code, textSection, description.allowUnresolvedSymbols, description.splitRDataReferences));

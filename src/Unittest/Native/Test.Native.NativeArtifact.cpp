@@ -4,19 +4,20 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/RuntimeName.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/JIT/JITExecManager.h"
-#include "Backend/Linker/Reader.COFF.h"
-#include "Backend/Linker/ObjectWriter.ELF.h"
 #include "Backend/Linker/LinkDebugMerge.CodeView.h"
+#include "Backend/Linker/ObjectWriter.ELF.h"
+#include "Backend/Linker/Reader.COFF.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Native/NativeImageBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeRDataCollector.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
@@ -1390,6 +1391,52 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataEmitsFunctionRelocations)
         return Result::Error;
     if (relocation.addend != 0)
         return Result::Error;
+}
+SWC_TEST_END()
+
+// Function offsets and the containing section must preserve the same alignment.
+// Exercise both startup-owned and ordinary-function-owned constraints in memory.
+SWC_TEST_BEGIN(NativeArtifact_CodeSectionsPreserveRequiredAlignment)
+{
+    for (const uint32_t alignment : {32u, 64u, 128u})
+    {
+        for (const bool startupOwnsAlignment : {false, true})
+        {
+            const NativeArtifactTestFixture fixture(ctx.global(), makeNativeArtifactCmdLine());
+            NativeBackendBuilder&           builder = *fixture.nativeBuilder;
+            MachineCode                     prefix;
+            prefix.bytes.pushBack(std::byte{0xC3});
+            MachineCode aligned;
+            aligned.bytes.pushBack(std::byte{0xC3});
+            aligned.codeAlignment = startupOwnsAlignment ? 16 : alignment;
+            addNativeFunctionInfo(builder, *fixture.compilerCtx, prefix, "code_prefix");
+            addNativeFunctionInfo(builder, *fixture.compilerCtx, aligned, "aligned_code");
+            NativeStartupInfo startup;
+            startup.code.bytes.pushBack(std::byte{0xC3});
+            startup.code.codeAlignment = alignment;
+            NativeObjDescription description;
+            description.startup = startupOwnsAlignment ? &startup : nullptr;
+            for (auto& info : builder.functionInfos)
+                description.functions.push_back(&info);
+            LinkImage image;
+            SWC_RESULT(NativeImageBuilder::buildObject(image, builder, description));
+            const auto text = std::ranges::find(image.sections, Utf8(".text"), &LinkSection::name);
+            if (text == image.sections.end() || text->align != alignment ||
+                (startupOwnsAlignment ? startup.textOffset : builder.functionInfos.back().textOffset) % alignment)
+                return Result::Error;
+            ByteArray  bytes;
+            const auto writer = NativeObjFileWriter::create(builder);
+            SWC_RESULT(writer->buildObjectFile(bytes, description));
+            Diagnostic diagnostic;
+            CoffObject object;
+            if (!readCoffObject(object, diagnostic, bytes))
+                return Result::Error;
+            const auto section = std::ranges::find(object.sections, Utf8(".text"), &CoffInputSection::name);
+            if (section == object.sections.end() || coffSectionAlignmentFromCharacteristics(section->characteristics) != alignment)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
 }
 SWC_TEST_END()
 

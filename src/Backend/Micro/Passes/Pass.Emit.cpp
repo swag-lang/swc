@@ -57,6 +57,7 @@ SWC_BEGIN_NAMESPACE();
 namespace
 {
     using MicroOptimizationLimits::Emit::K_BRANCH_BOUNDARY;
+    using MicroOptimizationLimits::Emit::K_LOOP_FETCH_BOUNDARY;
     using MicroOptimizationLimits::Emit::K_LOOP_HEADER_ALIGNMENT;
 
     // LLVM's MCAssembler needPadding: a branch group must neither cross a boundary nor end on one.
@@ -189,12 +190,12 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
                 const uint32_t offset = static_cast<uint32_t>(encoder.currentOffset());
                 if (label.pinnedStamp == functionStamp_)
                 {
-                    // A pinned header keeps its place in the 32-byte window whatever moves
+                    // A pinned header keeps its place in the selected fetch window whatever moves
                     // before it, so the loop that fixed its branch group stays fixed.
-                    const uint32_t padding = (label.pinnedPhase - offset) & (K_BRANCH_BOUNDARY - 1);
+                    const uint32_t padding = (label.pinnedPhase - offset) & (label.pinnedAlignment - 1);
                     if (padding)
                         encoder.encodeNopPadding(padding);
-                    paddingBudget_ += K_BRANCH_BOUNDARY - 1;
+                    paddingBudget_ += label.pinnedAlignment - 1;
                 }
                 else
                 {
@@ -206,6 +207,7 @@ void MicroEmitPass::encodeInstruction(const MicroPassContext& context, MicroInst
             }
 
             label.offset        = encoder.currentOffset();
+            label.paddingBytes  = static_cast<uint32_t>(label.offset - instructionCodeStartOffset);
             label.paddingBefore = paddingBudget_;
             label.offsetStamp   = layoutStamp_;
             break;
@@ -820,7 +822,87 @@ bool MicroEmitPass::pinLoopBranchGroups()
             continue;
         if (!needsBoundaryPadding(pending.groupStart, pending.groupEnd))
             continue;
-        pinCandidates_.push_back({.labelRef = pending.labelRef, .start = static_cast<uint32_t>(label->offset), .end = pending.groupEnd});
+        pinCandidates_.push_back({.labelRef = pending.labelRef, .start = static_cast<uint32_t>(label->offset), .end = pending.groupEnd, .alignment = K_BRANCH_BOUNDARY, .phaseShift = K_LOOP_HEADER_ALIGNMENT});
+    }
+
+    // The first branch in a loop can be hotter than its closing branch:
+    // a character classifier executes on every byte. LLVM's branch alignment
+    // also protects these internal forward groups. Move the header, keeping padding
+    // outside the loop, only when either phase keeps its closing group safe.
+    if (pinCandidates_.empty())
+    {
+        for (const PendingLabelJump& forward : pendingLabelJumps_)
+        {
+            const LabelInfo* destination = findLabelInfo(forward.labelRef);
+            if (!destination || destination->offset <= forward.groupStart || forward.groupEnd - forward.groupStart > K_LOOP_HEADER_ALIGNMENT ||
+                !needsBoundaryPadding(forward.groupStart, forward.groupEnd))
+                continue;
+            const PendingLabelJump* enclosing       = nullptr;
+            const LabelInfo*        reusablePadding = nullptr;
+            for (const PendingLabelJump& back : pendingLabelJumps_)
+            {
+                const LabelInfo* header = findLabelInfo(back.labelRef);
+                if (!header || header->loopHeaderStamp != functionStamp_ || header->pinnedStamp == functionStamp_ ||
+                    header->offset > forward.groupStart || back.groupStart < forward.groupEnd || destination->offset > back.groupStart ||
+                    forward.groupEnd - header->offset > K_BRANCH_BOUNDARY ||
+                    needsBoundaryPadding(back.groupStart + K_LOOP_HEADER_ALIGNMENT, back.groupEnd + K_LOOP_HEADER_ALIGNMENT))
+                    continue;
+                // Labels and earlier branches end the entry block. Do not
+                // shift a cold arm laid out near an unrelated loop header.
+                const bool split         = std::ranges::any_of(labels_, [&](const LabelInfo& label) {
+                    return label.offsetStamp == layoutStamp_ && label.offset > header->offset && label.offset <= forward.groupStart;
+                });
+                const bool earlierBranch = std::ranges::any_of(pendingLabelJumps_, [&](const PendingLabelJump& other) {
+                    return other.groupStart >= header->offset && other.groupStart < forward.groupStart;
+                });
+                const bool unsafeClosing = std::ranges::any_of(pendingLabelJumps_, [&](const PendingLabelJump& other) {
+                    return other.labelRef == back.labelRef && other.groupStart >= header->offset &&
+                           (needsBoundaryPadding(other.groupStart, other.groupEnd) ||
+                            needsBoundaryPadding(other.groupStart + K_LOOP_HEADER_ALIGNMENT, other.groupEnd + K_LOOP_HEADER_ALIGNMENT));
+                });
+                // Moving existing padding from a nested entry to the outer
+                // entry repays the shift on every repeated outer trip. Do not
+                // grow entry work in a flat scan or an allocator retry loop.
+                const LabelInfo* absorber = nullptr;
+                for (const LabelInfo& label : labels_)
+                    if (label.offsetStamp == layoutStamp_ && label.loopHeaderStamp == functionStamp_ &&
+                        label.pinnedStamp == functionStamp_ && label.offset >= forward.groupEnd && label.offset < back.groupStart &&
+                        (!absorber || label.offset < absorber->offset))
+                        absorber = &label;
+                if (split || earlierBranch || unsafeClosing || !absorber || absorber->paddingBytes < K_LOOP_HEADER_ALIGNMENT)
+                    continue;
+                if (!enclosing || header->offset > findLabelInfo(enclosing->labelRef)->offset)
+                {
+                    enclosing       = &back;
+                    reusablePadding = absorber;
+                }
+            }
+            if (enclosing)
+            {
+                const LabelInfo* header   = findLabelInfo(enclosing->labelRef);
+                const LabelInfo* absorber = reusablePadding;
+                SWC_ASSERT(absorber);
+                uint32_t nestedBytes = 0;
+                for (const PendingLabelJump& inner : pendingLabelJumps_)
+                    if (findLabelInfo(inner.labelRef) == absorber && inner.groupStart >= absorber->offset)
+                        nestedBytes = std::max(nestedBytes, inner.groupEnd - static_cast<uint32_t>(absorber->offset));
+                uint32_t   alignment       = K_BRANCH_BOUNDARY;
+                uint32_t   shift           = K_LOOP_HEADER_ALIGNMENT;
+                const bool nestedWidePhase = std::ranges::any_of(labels_, [&](const LabelInfo& label) {
+                    return label.offsetStamp == layoutStamp_ && label.pinnedStamp == functionStamp_ &&
+                           label.pinnedAlignment > K_BRANCH_BOUNDARY && label.offset >= absorber->offset && label.offset < enclosing->groupStart;
+                });
+                if (nestedBytes > K_BRANCH_BOUNDARY && nestedBytes <= K_LOOP_FETCH_BOUNDARY && absorber->offset % K_BRANCH_BOUNDARY == 0 && !nestedWidePhase)
+                {
+                    // A further half-line shift happens before the outer loop,
+                    // never on each nested entry. The nested header keeps its
+                    // modulo-32 branch phase and gains a full cache-line phase.
+                    alignment = K_LOOP_FETCH_BOUNDARY;
+                    shift += static_cast<uint32_t>(absorber->offset) & (K_LOOP_FETCH_BOUNDARY - 1);
+                }
+                pinCandidates_.push_back({.labelRef = enclosing->labelRef, .start = static_cast<uint32_t>(header->offset), .end = enclosing->groupEnd, .alignment = alignment, .phaseShift = shift});
+            }
+        }
     }
 
     bool pinned = false;
@@ -836,8 +918,9 @@ bool MicroEmitPass::pinLoopBranchGroups()
         if (label.pinnedStamp == functionStamp_)
             continue;
         label.pinnedStamp = functionStamp_;
-        label.pinnedPhase = (candidate.start + K_LOOP_HEADER_ALIGNMENT) & (K_BRANCH_BOUNDARY - 1);
-        pinnedLabels_++;
+        label.pinnedAlignment = candidate.alignment;
+        label.pinnedPhase     = (candidate.start + candidate.phaseShift) & (candidate.alignment - 1);
+        pinnedAlignment_      = std::max(pinnedAlignment_, candidate.alignment);
         pinned = true;
     }
 
@@ -854,7 +937,7 @@ Result MicroEmitPass::run(MicroPassContext& context)
 
     nextFunctionStamp();
     nextShortJumpEpoch();
-    pinnedLabels_ = 0;
+    pinnedAlignment_ = 0;
     (context.builder)->pruneDeadRelocations();
 
     if (slots_.size() < context.instructions->slotCount())
@@ -948,10 +1031,10 @@ Result MicroEmitPass::run(MicroPassContext& context)
         nextShortJumpEpoch();
     }
 
-    // Offsets are measured from the start of the function; a pinned phase means that start
-    // has to sit on a 32-byte boundary in the image too.
-    if (pinnedLabels_)
-        context.codeAlignment = std::max(context.codeAlignment, K_BRANCH_BOUNDARY);
+    // Offsets are relative to the function. Its final placement must preserve
+    // the widest branch/fetch window used by a pinned header.
+    if (pinnedAlignment_)
+        context.codeAlignment = std::max(context.codeAlignment, pinnedAlignment_);
 
     // Every relocation the code still carries names an instruction that was
     // encoded, and encoding that instruction is what writes its patch site

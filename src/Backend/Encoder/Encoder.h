@@ -73,6 +73,7 @@ public:
     virtual bool                    supportsNonDestructiveFloatBinary() const { return false; }
     virtual bool                    supportsFusedFloatMultiplyAdd() const { return false; }
     virtual bool                    supportsCarryArithmetic() const { return false; }
+    virtual bool                    supportsWideZeroStores() const { return false; }
     virtual bool                    supportsHighByteExtract(MicroReg, MicroReg) const { return false; }
     void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
     const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
@@ -163,6 +164,7 @@ protected:
     virtual void encodeLoadAmcMemReg(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, MicroReg regSrc, MicroOpBits opBitsSrc)              = 0;
     virtual void encodeLoadAmcMemImm(MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsBaseMul, const ApInt& value, MicroOpBits opBitsValue)         = 0;
     virtual void encodeLoadAddressAmcRegMem(MicroReg regDst, MicroOpBits opBitsDst, MicroReg regBase, MicroReg regMul, uint64_t mulValue, uint64_t addValue, MicroOpBits opBitsValue)         = 0;
+    virtual void encodeStoreZero32MemReg(MicroReg memReg, uint64_t memOffset, MicroReg zeroReg, bool finishRun)                                                                               = 0;
     virtual void encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)                                                                                      = 0;
     virtual void encodeLoadMemImm(MicroReg memReg, uint64_t memOffset, const ApInt& value, MicroOpBits opBits)                                                                                = 0;
     virtual void encodeTestRegReg(MicroReg reg0, MicroReg reg1, MicroOpBits opBits)                                                                                                           = 0;

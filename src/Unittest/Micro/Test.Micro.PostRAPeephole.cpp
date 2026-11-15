@@ -5778,6 +5778,81 @@ SWC_TEST_BEGIN(PostRAPeephole_JoinCompareRejectsUnknownFlagsAndCycles)
 }
 SWC_TEST_END()
 
+// Wide stores must write exactly the two original chunks, with no assumption
+// about nearby padding, alignment, volatile accesses or a changed source.
+SWC_TEST_BEGIN(PostRAPeephole_WideZeroStoresPreserveBytesAndFlags)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg zero  = MicroReg::floatReg(0);
+    constexpr MicroReg other = MicroReg::intReg(8);
+    constexpr MicroReg flag  = MicroReg::intReg(10);
+    for (uint32_t variant = 0; variant < 16; ++variant)
+    {
+        std::array<uint64_t, 48> reference;
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 48> values;
+            for (uint32_t i = 0; i < values.size(); ++i)
+                values[i] = 0xFEDCBA9876543210ull ^ i;
+            MicroBuilder builder(ctx);
+            const auto   join = builder.createLabel();
+            builder.emitLoadRegImm(other, ApInt(0x8000000000000000ull, 64), MicroOpBits::B64);
+            builder.emitCmpRegImm(other, ApInt(1, 64), MicroOpBits::B64);
+            if (variant == 10)
+                builder.emitLoadAddressRegMem(other, base, 64, MicroOpBits::B64);
+            builder.emitLoadRegMem(MicroReg::floatReg(1), base, 128, MicroOpBits::B128);
+            builder.emitLoadRegMem(zero, base, 128, MicroOpBits::B128);
+            if (variant != 5)
+                builder.emitClearReg(zero, variant == 14 ? MicroOpBits::B64 : MicroOpBits::B128);
+            const uint64_t first  = variant == 13 ? 0ull - 16 : variant == 15 ? 0ull - 80
+                                                                              : 8;
+            uint64_t       second = first + 16;
+            if (variant == 2)
+                second = first + 24;
+            else if (variant == 3)
+                second = first + 8;
+            else if (variant == 4)
+                second = first - 16;
+            builder.emitLoadMemReg(base, first, zero, variant == 9 ? MicroOpBits::B64 : MicroOpBits::B128);
+            if (variant == 6)
+                builder.emitLoadRegMem(zero, base, 128, MicroOpBits::B128);
+            if (variant == 8)
+                builder.placeLabel(join);
+            if (variant == 11)
+                builder.emitClearReg(MicroReg::floatReg(1), MicroOpBits::B128);
+            if (variant == 7)
+                builder.emitStoreVolatileMemReg(base, second, zero, MicroOpBits::B128);
+            else
+                builder.emitLoadMemReg(variant == 10 ? other : base, second, variant == 11 ? MicroReg::floatReg(1) : zero, MicroOpBits::B128);
+            const uint32_t chunks = variant == 0 ? 6 : variant == 12 ? 5 : 4;
+            for (uint32_t i = 2; i < chunks; ++i)
+                builder.emitLoadMemReg(base, first + i * 16, zero, MicroOpBits::B128);
+            builder.emitLoadMemReg(base, 160, MicroReg::floatReg(1), MicroOpBits::B128);
+            builder.emitSetCondReg(flag, MicroCond::Overflow);
+            builder.emitLoadMemReg(base, 152, flag, MicroOpBits::B8);
+            builder.emitRet();
+            X64Encoder encoder(ctx);
+            if (optimize)
+                SWC_RESULT(runPostRaPeepholePass(builder, &encoder, base));
+            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values.data() + 16));
+            if (!optimize)
+                reference = values;
+            else
+            {
+                uint32_t expected = 0;
+                if (variant == 0)
+                    expected = 3;
+                else if (variant == 1 || (variant >= 12 && variant != 13))
+                    expected = 2;
+                if (values != reference || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreZero32MemReg) != expected)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A narrow copy cannot stand in for a wider comparison.
 SWC_TEST_BEGIN(PostRAPeephole_NarrowCopyBeforeCompare_KeepsTest)
 {

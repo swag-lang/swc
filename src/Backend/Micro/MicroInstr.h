@@ -73,6 +73,8 @@ struct MicroInstrDef
 
     // Only these union operands contain MicroOpBits, never immediates or registers.
     uint8_t opBitsMask = 0;
+    // A memory footprint wider than the register operand (late zero-store forms).
+    uint8_t fixedMemoryBytes = 0;
 
     std::array<MicroInstrRegMode, 4> resolvedRegModes(const MicroInstrOperand* ops) const;
 };

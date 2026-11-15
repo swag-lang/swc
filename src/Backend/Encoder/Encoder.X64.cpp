@@ -656,12 +656,12 @@ namespace
     constexpr uint8_t VEX_MAP_0F38 = 2;
     constexpr uint8_t VEX_MAP_0F3A = 3;
 
-    // VEX prefix for the 128-bit forms this encoder emits: L = 0 and
+    // VEX prefix, normally 128-bit (L = 0), or 256-bit for a wide zero store, and
     // the opcode map named explicitly. The two-byte C5 form only exists for
     // the 0F map, so the other maps always take the three-byte form. The
     // R/X/B/vvvv fields are stored inverted, which is why every one of them
     // is written as its complement. Use Rax for src1 when vvvv is reserved.
-    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, bool wide = false, bool extendedIndex = false)
+    void emitVex(PagedStore& store, uint8_t mandatoryPrefix, uint8_t map, X64Reg dst, X64Reg src1, X64Reg src2, bool wide = false, bool extendedIndex = false, bool vector256 = false)
     {
         const uint8_t pp     = vexPrefixBits(mandatoryPrefix);
         const uint8_t vvvv   = static_cast<uint8_t>(~x64RegNumber(src1) & 0x0F);
@@ -671,7 +671,7 @@ namespace
         if (map == VEX_MAP_0F && !extSrc && !wide && !extendedIndex)
         {
             store.pushU8(0xC5);
-            store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (vvvv << 3) | pp));
+            store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (vvvv << 3) | (vector256 ? 4 : 0) | pp));
             return;
         }
 
@@ -679,7 +679,7 @@ namespace
         // names the opcode map.
         store.pushU8(0xC4);
         store.pushU8(static_cast<uint8_t>((extDst ? 0 : 0x80) | (extendedIndex ? 0 : 0x40) | (extSrc ? 0 : 0x20) | map));
-        store.pushU8(static_cast<uint8_t>((wide ? 0x80 : 0) | (vvvv << 3) | pp));
+        store.pushU8(static_cast<uint8_t>((wide ? 0x80 : 0) | (vvvv << 3) | (vector256 ? 4 : 0) | pp));
     }
 
     struct VecOpEncoding
@@ -2648,6 +2648,25 @@ void X64Encoder::encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uin
     emitCpuOp(store_, 0x70);
     emitModRm(store_, regDst, regSrc);
     emitValue(store_, control, MicroOpBits::B8);
+}
+
+void X64Encoder::encodeStoreZero32MemReg(MicroReg memReg, uint64_t memOffset, MicroReg zeroReg, bool finishRun)
+{
+    SWC_ASSERT(memReg.isInt() && zeroReg.isFloat());
+    SWC_INTERNAL_CHECK(X64Immediate::canEncodeSigned32(memOffset));
+    // The peephole requires a VEX zero idiom immediately before its store run:
+    // both the named XMM value and the unmodelled upper YMM half are zero.
+    emitVex(store_, 0, VEX_MAP_0F, microRegToX64Reg(zeroReg), X64Reg::Rax, microRegToX64Reg(memReg), false, false, true);
+    emitCpuOp(store_, 0x11);
+    emitMemoryOperand(store_, memOffset, zeroReg, memReg);
+    // End each straight-line run before any branch or external/SSE boundary.
+    // This leaves the modelled XMM values intact, as in GCC/LLVM memset lowering.
+    if (finishRun)
+    {
+        store_.pushU8(0xC5);
+        store_.pushU8(0xF8);
+        store_.pushU8(0x77);
+    }
 }
 
 void X64Encoder::encodeLoadMemReg(MicroReg memReg, uint64_t memOffset, MicroReg reg, MicroOpBits opBits)

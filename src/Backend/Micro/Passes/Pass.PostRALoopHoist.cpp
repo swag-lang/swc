@@ -53,6 +53,7 @@ namespace
         {
             case MicroInstrOpcode::LoadMemReg:
             case MicroInstrOpcode::StoreVecMemReg:
+            case MicroInstrOpcode::StoreZero32MemReg:
                 bits   = ops[2].opBits;
                 offset = ops[3].valueU64;
                 break;
@@ -82,7 +83,7 @@ namespace
 
         out.base = ops[0].reg;
         out.lo   = offset;
-        out.hi   = offset + getNumBytes(bits);
+        out.hi   = offset + std::max<uint64_t>(getNumBytes(bits), MicroInstr::info(inst.op).fixedMemoryBytes);
         return true;
     }
 
@@ -1115,7 +1116,7 @@ namespace
                 for (size_t operand = 0; operand < modes.size(); ++operand)
                     if (operand != info.memBaseOperandIndex && modes[operand] != MicroInstrRegMode::None && ops[operand].reg == frameBase)
                         return false;
-                uint64_t width = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0;
+                uint64_t width = std::max<uint64_t>(info.fixedMemoryBytes, info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0);
                 for (uint32_t operand = 0; operand < inst->numOperands; ++operand)
                     if (info.opBitsMask & (1u << operand))
                         width = std::max<uint64_t>(width, getNumBytes(ops[operand].opBits));
@@ -1217,7 +1218,7 @@ namespace
                 inst->op == MicroInstrOpcode::LoadAddrRegMem || MicroPassHelpers::amcLayoutFor(layout, inst->op))
                 return false;
             const uint64_t offset = ops[info.memOffsetOperandIndex].valueU64;
-            uint64_t       width  = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0;
+            uint64_t       width  = std::max<uint64_t>(info.fixedMemoryBytes, info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) ? 16 : 0);
             for (uint32_t operand = 0; operand < inst->numOperands; ++operand)
                 if (info.opBitsMask & (1u << operand))
                     width = std::max<uint64_t>(width, getNumBytes(ops[operand].opBits));

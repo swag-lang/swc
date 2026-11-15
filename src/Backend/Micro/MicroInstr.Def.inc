@@ -1153,3 +1153,20 @@ SWC_MICRO_INSTR_DEF(
         .memOffsetOperandIndex = 0,
         .opBitsMask            = (1 << 4),
     })
+
+// Both halves of the 32-byte memory result are zero. The source must come from
+// a target zero idiom that also clears the upper vector state; only the late
+// paired-zero-store rule emits this form. Register width stays 128 bits.
+SWC_MICRO_INSTR_DEF(
+    StoreZero32MemReg,
+    MicroInstrDef{
+        .regModes              = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::None},
+        .special               = MicroInstrRegSpecial::None,
+        .microOpIndex          = 0,
+        .callConvIndex         = 0,
+        .flags                 = MicroInstrFlagsE::HasMemBaseOffsetOperands | MicroInstrFlagsE::WritesMemory,
+        .memBaseOperandIndex   = 0,
+        .memOffsetOperandIndex = 3,
+        .opBitsMask            = (1 << 2),
+        .fixedMemoryBytes      = 32,
+    })

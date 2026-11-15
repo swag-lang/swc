@@ -126,6 +126,7 @@ namespace PostRaPeephole
     bool tryDropSignExtendBeforeNarrowCompare(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryInvertBranchOverJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryThreadJumpToJump(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
+    bool tryMergeWideZeroStores(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseRepeatedVectorClear(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryEraseFloatClearBeforeFullWrite(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldFloatReturnSelectDiamond(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

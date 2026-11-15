@@ -850,6 +850,63 @@ SWC_TEST_BEGIN(PostRALoopHoist_PrivateSpillWithBoundedLocalReadCopy)
 }
 SWC_TEST_END()
 
+// A 32-byte zero write must block promotion in its upper half as well as its
+// lower half, while an adjacent disjoint slot remains promotable.
+SWC_TEST_BEGIN(PostRALoopHoist_WideZeroStoreCoversItsUpperHalf)
+{
+    const auto&    conv  = CallConv::get(CallConvKind::Swag);
+    const MicroReg sp    = conv.stackPointer;
+    const MicroReg value = conv.intReturn;
+    const MicroReg count = conv.intTransientRegs[3];
+    const MicroReg zero  = MicroReg::floatReg(0);
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        const auto     loop   = builder.createLabel();
+        const uint64_t offset = variant == 3 ? 48 : 32;
+        builder.emitClearReg(zero, MicroOpBits::B128);
+        builder.emitClearReg(value, MicroOpBits::B64);
+        builder.emitClearReg(count, MicroOpBits::B64);
+        builder.emitLoadMemImm(sp, offset, ApInt(7, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        builder.emitLoadMemReg(sp, 8, zero, MicroOpBits::B128);
+        builder.instructions().ptr(builder.instructions().lastInstructionRef())->op = MicroInstrOpcode::StoreZero32MemReg;
+        if (variant != 2)
+            builder.emitLoadRegMem(value, sp, offset, MicroOpBits::B64);
+        if (variant == 1 || variant == 2)
+        {
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadMemReg(sp, offset, value, MicroOpBits::B64);
+        }
+        builder.emitOpBinaryRegReg(count, value, MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(count, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(count, ApInt(20, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.emitLoadRegMem(value, sp, offset, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(runPostRaLoopHoistPass(builder, offset, offset + 8));
+        uint32_t bodyLoads  = 0;
+        uint32_t bodyStores = 0;
+        bool     inLoop     = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::Label)
+                inLoop = true;
+            if (inst.op == MicroInstrOpcode::JumpCond)
+                inLoop = false;
+            const auto* ops = inst.ops(builder.operands());
+            if (inLoop && inst.op == MicroInstrOpcode::LoadRegMem && ops[1].reg == sp && ops[3].valueU64 == offset)
+                ++bodyLoads;
+            if (inLoop && inst.op == MicroInstrOpcode::LoadMemReg && ops[0].reg == sp && ops[3].valueU64 == offset)
+                ++bodyStores;
+        }
+        if (bodyLoads != (variant == 0 || variant == 1 ? 1u : 0u) || bodyStores != (variant == 1 || variant == 2 ? 1u : 0u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRALoopHoist_FloatingSpillCachePreservesBitsAndUpperLanes)
 {
     const CallConv&    conv    = CallConv::get(CallConvKind::C);

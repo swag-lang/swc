@@ -267,8 +267,9 @@ options, full screen, the play modes, the explored folder's history and order, t
 language and About, and every command of the viewer on screen under its name. The readings of the
 open file are in the information sheet (`I`) and, faint, on the line at the foot of the document;
 the viewer's controls share a persistent, centered panel in a reserved area above that line.
-Search (`Ctrl+F`) opens a row above the content with the query, result count, previous/next,
-options and Close (`Esc`). At narrow widths it uses two rows to preserve a usable query field.
+Search (`Ctrl+F`) opens a padded floating card above the content. Its subtle surface ground
+groups a generous query field with the result count, previous/next, options and Close (`Esc`).
+At narrow widths, navigation moves below the query while Close stays beside it.
 The viewer's outline or inspector can stand beside the document when requested. Recent files,
 neighboring files and folder history are available in the lens (`Ctrl+Space`, then `/`);
 the home keeps recent files and explored folders at hand.

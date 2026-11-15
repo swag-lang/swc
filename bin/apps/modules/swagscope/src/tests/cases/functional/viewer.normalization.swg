@@ -61,6 +61,8 @@ using Core, Gui, Viewers
     Swag.require(window.searchBox.position.width >= 120)
     Swag.require(window.searchBar.position.right() <= window.infoSheet.position.x)
     Swag.require(window.searchBox.surfaceRect().right() <= window.searchCloseButton.surfaceRect().x)
+    Swag.require(window.searchNavigation.position.y == window.searchBox.position.y)
+    Swag.require(window.searchOptionsButton.position.y == window.searchNavigation.position.y)
     Swag.require(window.searchBar.position.bottom() <= window.documentArea().y)
     window.searchBox.setText("the")
     host.clickWnd(window.searchCloseButton)

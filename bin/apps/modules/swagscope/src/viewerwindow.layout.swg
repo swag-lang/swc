@@ -28,9 +28,9 @@ impl ViewerWindow
     private mtd createSearchBar()
     {
         let height = themeActionButtonSize(.themeMetrics())
-        with .searchBar = Wnd.create'Wnd(me, "scope.search")
+        with .searchBar = FloatingPanel.create(me, id: "scope.search")
         {
-            .backgroundStyle = .Transparent
+            .padding = {x: SearchGroupSpacing, y: SearchGroupSpacing, z: SearchGroupSpacing, w: SearchGroupSpacing}
             .hide()
         }
 

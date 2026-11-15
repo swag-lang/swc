@@ -37,7 +37,7 @@ struct ViewerWindow
 
     late
     {
-        searchBar:                   *Wnd
+        searchBar:                   *FloatingPanel
         searchGroup:                 *Wnd
         searchNavigation:            *Wnd
         searchBox:                   *EditBox
@@ -879,13 +879,16 @@ impl ViewerWindow
                 area.width = beside
         }
 
-        let width       = Math.min(640'f32, Math.max(area.width - 2 * inset, 0))
-        let top         = (.fullScreen ? 0 : .stripInset()) + inset * 0.5
-        let compact     = width < 480 and .searchNavigation.isLocallyVisible()
-        let rowY        = compact ? height + SearchGroupSpacing : 0
-        let totalHeight = height + rowY
-        let resized     = .searchBar.position.height != totalHeight
-        let sheetInset  = sheetBelowSearch and .searchBar.isLocallyVisible() ? totalHeight + inset : 0
+        let width         = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
+        let pad           = .searchBar.padding
+        let innerWidth    = Math.max(width - pad.x - pad.z, 0)
+        let top           = (.fullScreen ? 0 : .stripInset()) + inset * 0.5
+        let compact       = innerWidth < 400 and .searchNavigation.isLocallyVisible()
+        let rowY          = compact ? height + SearchGroupSpacing : 0
+        let contentHeight = height + rowY
+        let totalHeight   = contentHeight + pad.y + pad.w
+        let resized       = .searchBar.position.height != totalHeight
+        let sheetInset    = sheetBelowSearch and .searchBar.isLocallyVisible() ? totalHeight + inset : 0
         if .infoSheet.margin.y != sheetInset
         {
             .infoSheet.margin.y = sheetInset
@@ -893,10 +896,10 @@ impl ViewerWindow
         }
 
         .searchBar.setPosition({area.right() - inset - width, top, width, totalHeight}, computeLayout: false)
-        .searchGroup.setPosition({0, 0, width, totalHeight}, computeLayout: false)
+        .searchGroup.setPosition({pad.x, pad.y, innerWidth, contentHeight}, computeLayout: false)
 
-        var right = compact ? width : width - height
-        .searchCloseButton.setPosition({x: width - height, y: 0, width: height, height: height}, computeLayout: false)
+        var right = compact ? innerWidth : innerWidth - height - SearchGroupSpacing
+        .searchCloseButton.setPosition({x: innerWidth - height, y: 0, width: height, height: height}, computeLayout: false)
         if .searchOptionsButton.isLocallyVisible()
         {
             let options = themeDropDownButtonWidth(metrics)
@@ -916,7 +919,7 @@ impl ViewerWindow
             .searchNext.setPosition({x: count + height, y: 0, width: height, height: height}, computeLayout: false)
         }
 
-        let fieldWidth = compact ? width - height - SearchGroupSpacing : right - SearchGroupSpacing
+        let fieldWidth = compact ? innerWidth - height - SearchGroupSpacing : right - SearchGroupSpacing
         .searchBox.setPosition({0, 0, Math.max(fieldWidth, 0), height})
         if .searchBar.isLocallyVisible()
         {

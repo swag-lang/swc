@@ -1102,6 +1102,11 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Swag.require(window.searchBar.position.x >= area.x and window.searchBar.position.right() <= area.right())
     Swag.require(window.searchBar.position.bottom() <= area.y)
     let actionSize = themeActionButtonSize(window.themeMetrics())
+    Swag.require(window.searchGroup.position.x == window.searchBar.padding.x and
+                 window.searchGroup.position.y == window.searchBar.padding.y)
+    Swag.require(window.searchGroup.position.right() + window.searchBar.padding.z == window.searchBar.position.width)
+    Swag.require(window.searchGroup.position.bottom() + window.searchBar.padding.w == window.searchBar.position.height)
+    Swag.require(window.searchBox.position.width >= 320)
     Swag.require(window.searchOptionsButton.isVisible() and window.searchOptionsButton.icon.sizeX == themeActionIconSize(window.themeMetrics()))
     Swag.require(window.searchOptionsButton.position.height == actionSize)
     Swag.require(window.searchPrevious.icon.sizeX == themeActionIconSize(window.themeMetrics()) and window.searchNext.icon.sizeX == themeActionIconSize(window.themeMetrics()))

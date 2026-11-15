@@ -120,6 +120,9 @@ public:
     bool hasFreedParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
     bool hasResetParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
     void addFreedParamField(size_t paramIndex, std::string_view fieldName);
+    // Possible writes suppress inferred freesFields when no must-reset proof exists.
+    void markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName);
+    void suppressInferredFreedParamFields();
     void addResetParamField(size_t paramIndex, std::string_view fieldName);
     std::span<const ReturnFieldBorrow> freedParamFields() const noexcept { return freedParamFields_; }
     std::span<const ReturnFieldBorrow> resetParamFields() const noexcept { return resetParamFields_; }
@@ -648,6 +651,8 @@ private:
     std::vector<ReturnFieldBorrow> returnFieldBorrows_;
     std::vector<ReturnFieldBorrow> freedParamFields_;
     std::vector<ReturnFieldBorrow> resetParamFields_;
+    std::vector<ReturnFieldBorrow> writtenParamFields_;
+    bool                            unknownCallMayWriteParamFields_ = false;
     uint64_t returnsStorageParamsMask_ = 0;
     bool     observesExternalBorrows_  = false;
     bool     borrowEffectsComputed_    = false;

@@ -21,6 +21,61 @@ using Core, StaticApi
     let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
     node.padding = 0
     node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    depUafInferredAliasReleaseField(node)
+    let value = node.data[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    depUafInferredReplaceField(node)
+    let value = node.data[]
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    depUafInferredReleaseThenCallback(node, &depUafRefillField)
+    let value = node.data[]
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    depUafInferredReleaseThenRefill(node)
+    let value = node.data[]
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    depUafInferredReleaseField(node)
+    let value = node.data[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
     node.other = cast(*s32, Memory.alloc(#sizeof(s32)))
     depUafReleaseField(node)
     let value = node.other[]

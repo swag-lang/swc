@@ -140,6 +140,61 @@ func depUafReleaseField(node: *DepUafNode)
     Swag.getContext().allocator!.free(&req)
 }
 
+func depUafInferredReleaseField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredAliasReleaseField(node: *DepUafNode)
+{
+    let data: *s32 = node.data
+    var req: Swag.AllocatorRequest
+    req.address = data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReplaceField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafRefillField(node: *DepUafNode)
+{
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafInferredReleaseThenRefill(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    depUafRefillField(node)
+}
+
+func depUafInferredReleaseThenCallback(node: *DepUafNode, refill: func(*DepUafNode))
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    refill(node)
+}
+
 #[Swag.BorrowSummary(0, freesFields: "0:64617461", resetsFields: "0:64617461")]
 func depUafReplaceField(node: *DepUafNode)
 {

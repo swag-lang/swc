@@ -161,10 +161,9 @@ is the current scorecard.
 - Evidence: caller-side use after a call can escape detection for receiver fields and globals.
   The body-local release/use check is already covered; this entry is only about what the caller can
   prove after a callee returns.
-- A per-field summary was prototyped and reverted because a release does not prove the storage
-  remains empty on return. The missing proof is negative: the callee did not restore storage
-  reachable from the caller. Establishing it requires excluding writes through aliases, so a
-  release-only summary is insufficient.
+- A release summary alone cannot prove the storage remains empty on return. An earlier prototype
+  omitted that post-call write proof and failed the reset-safe sanity case. Establishing the proof
+  requires excluding writes through aliases, so a release-only summary is insufficient.
 - Release-safe probes confirm the boundary: a helper freeing `n.data` or a global pointer is not
   reported by the caller; counterparts that free and replace the field or global remain silent.
   At a call, the sanitizer drops facts about heap locations when their owner is passed, because the
@@ -176,23 +175,19 @@ is the current scorecard.
 - Prototype: `BorrowSummary` now has `freesFields` and `resetsFields` entries for first-level
   pointer fields, and caller-side sanitizer transfer distinguishes a released field from a reset
   field. Same-module positive and reset-safe probes pass in Release-safe with summaries supplied.
-  An inference attempt derived field releases through wrapper calls and the static-provider API
-  generator emitted the inferred `freesFields` entry, but it also marked a release-and-replace
-  method as released because it did not infer the post-call reset. That attempt was reverted after
-  the existing reset-safe sanity case failed. A consumer probe with an explicit summary confirms
-  the generated API imports the field effect and now diagnoses both a reload and a copy of the old
-  pointer made before the call. The same probe confirms a replacement field remains usable while a
-  pre-call copy remains diagnosed as released. A sibling-field probe stays silent. This uncovered
-  two caller-side gaps: functions with summary-based releases did not enable release-provenance
-  tracking, and aliases of fields passed to a callee were removed before the field summary could
-  classify them. An imported `freesIndirect` summary also activates provenance tracking and catches
-  a copy of the old pointer held in the passed box. The box itself stays unclassified because the
-  callee may reassign it. Globals, inferred summaries, wrapper calls and unavailable bodies are not
-  solved by this prototype.
-  A follow-up inference probe found that `SemaEscape` recognizes a pointer loaded from a field as an indirect parameter borrow, but loses the field projection when that pointer is stored into `AllocatorRequest.address`; only the root receiver survives. Inference therefore needs exact field-path provenance through address-taking and must prove both the release and the post-call write/reset before emitting a summary.
+  Consumer probes with explicit summaries confirm that the generated API imports the field effect,
+  diagnoses a reload and a copy of the old pointer, keeps a replacement field usable, and leaves a
+  sibling field alone. An imported `freesIndirect` summary also catches a copy of the old pointer
+  held in the passed box; the box itself stays unclassified because the callee may reassign it.
+  Inferred summaries now retain a first-level field identity through `AllocatorRequest.address`:
+  the static-provider API emits `freesFields` for a release-only method, and the consumer diagnoses
+  its field reload. If the method writes that field or passes its carrier to another call, inference
+  suppresses the field release because no must-reset proof exists. The field remains usable after
+  an unannotated release-and-replace method, but aliases copied before that call are not yet
+  diagnosed. Globals, reset inference, wrapper propagation and unavailable bodies remain unsolved.
 - Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
-  extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Check
-  unknown calls before integrating the complete result with `SanitizerState`.
+  extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Refine
+  conservative suppression for calls that receive a carrier while retaining soundness.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

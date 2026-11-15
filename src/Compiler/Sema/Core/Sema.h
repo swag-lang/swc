@@ -110,6 +110,10 @@ struct SemaEscapeInfo
     // rules still apply, but freeing the carrier does not free the borrowed storage.
     bool viaStoredField = false;
 
+    // A pointer read from a first-level field of a parameter can be released
+    // independently from the carrier. Keep the field identity for the freesFields summary.
+    const SymbolVariable* borrowedParameterField = nullptr;
+
     // This value is the pointer read from a parameter-designated box; indirect
     // origins identify that box exactly. Releasing it frees the contents while
     // leaving the caller's box alive.
@@ -158,6 +162,9 @@ struct SemaEscapeInfo
 
             // Naming the box's content exactly takes every alternative agreeing on it.
             viaParameterPointee = viaParameterPointee && other.viaParameterPointee;
+
+            if (borrowedParameterField != other.borrowedParameterField)
+                borrowedParameterField = nullptr;
 
             return;
         }

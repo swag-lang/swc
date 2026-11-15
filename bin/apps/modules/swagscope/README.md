@@ -133,7 +133,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes. Default document text
-  size follows the common zoom control.
+  size follows the common zoom control. The hosted page keeps a reading inset at narrow widths,
+  including beside the outline; authored CSS margins remain inside that inset.
 - `PDF` displays pages progressively as they enter the viewport, with text selection, shared
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.

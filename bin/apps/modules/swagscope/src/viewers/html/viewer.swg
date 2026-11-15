@@ -97,7 +97,7 @@ private impl Panel
     {
         let width = Math.round(ReadingColumn * cast(f32, .zoomPercent) / 100)
         let room  = .view.clientRect().width
-        return {x: Math.round(Math.max((room - width) * 0.5, 0)), width: Math.min(width, room)}
+        return {x: .view.position.x + Math.round(Math.max((room - width) * 0.5, 0)), width: Math.min(width, room)}
     }
 
     // Lists the sections of the page in the right margin.
@@ -239,9 +239,12 @@ func createViewer(host: Viewer.Host)
     if host.isEmbedded() do
         result.band.hide()
 
+    // Host air remains separate from authored page margins and responsive CSS.
+    let inset = result.themeMetrics().floating_Inset
     with result.view = HtmlView.createFile(result, host.fileName())
     {
         .dockStyle = .Center
+        .margin    = {inset, 0, inset, 0}
     }
 
     // The sections of the page in the right margin; choosing one goes there.

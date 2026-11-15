@@ -56,7 +56,7 @@ impl HtmlView
         if .virtualSource do
             return result
         let top    = .scroll.scrollPosition().y
-        let bottom = top + .scroll.paddedClientRect().height
+        let bottom = top + .scroll.view.paddedClientRect().height
         var best   = Swag.F32.Inf
         var left   = Swag.F32.Inf
         for box, index in .layout.boxes

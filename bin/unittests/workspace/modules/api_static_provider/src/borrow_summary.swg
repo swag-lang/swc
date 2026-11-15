@@ -164,6 +164,11 @@ func depUafInferredReleaseProjectedSecond(left: *DepUafNode, right: *DepUafNode)
     depUafInferredReleasePointer(right.data)
 }
 
+func depUafInferredReleaseOther(node: *DepUafNode)
+{
+    depUafInferredReleasePointer(node.other)
+}
+
 func depUafInferredReleaseField(node: *DepUafNode)
 {
     var req: Swag.AllocatorRequest

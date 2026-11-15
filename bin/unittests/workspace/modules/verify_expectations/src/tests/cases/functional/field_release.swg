@@ -101,6 +101,23 @@ using Core, StaticApi
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    node.other = cast(*s32, Memory.alloc(#sizeof(s32)))
+    let oldOther = node.other
+    depUafInferredReleaseOther(node)
+    let dataValue = node.data[]
+    discard dataValue
+    let otherValue = node.other[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard otherValue
+    let oldOtherValue = oldOther[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard oldOtherValue
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
     let left = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
     let right = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
     left.padding = 0

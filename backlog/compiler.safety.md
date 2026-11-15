@@ -176,9 +176,9 @@ is the current scorecard.
 - Prototype: `BorrowSummary` now has `freesFields` and `resetsFields` entries for first-level
   pointer fields, and caller-side sanitizer transfer distinguishes a released field from a reset
   field. Same-module positive and reset-safe probes pass in Release-safe. A static-provider API
-  exports and imports both entries, but the consumer-side positive probe still misses the UAF;
-  remove that regression only after the imported location and pointer provenance are joined
-  correctly. Old local copies across a reset and global effects are not solved by this prototype.
+  exports and imports both entries, but the consumer-side positive probe still misses the UAF,
+  including with a non-zero field offset; this is not limited to the field at offset zero. Old
+  local copies across a reset and global effects are not solved by this prototype.
 - Next: repair imported-call tracking, then infer these summaries from ordinary function bodies
   instead of relying on a manually supplied summary. Extend the must-free/post-call-write proof
   to field paths only when aliases and control flow remain sound, and handle globals, wrapper calls

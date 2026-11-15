@@ -1075,8 +1075,8 @@ impl Surface
     // Clears the keyboard focus and its saved return point on this surface.
     //
     // Use this when replacing a page: the next page starts without a chosen control, while its
-    // first Tab can still enter the traversal. A temporary native deactivation instead uses
-    // [[Gui.Surface.restoreFocus]] to return to the control the reader was using.
+    // first Tab can still enter the traversal. A temporary native deactivation keeps the return
+    // point instead, and the surface goes back to the control the reader was using.
     mtd clearFocus()
     {
         if .app.keyboardFocusWnd and .app.keyboardFocusWnd.surface == me do

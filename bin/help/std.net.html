@@ -99,7 +99,7 @@
         offset += sent
     }
 }</span></div>
-<p>Streams own their connections and close them on drop. Operations can fail and may transfer fewer bytes than requested. Networking is available on Windows in this implementation.</p>
+<p>Streams own their connections and close them on drop. Operations can fail and may transfer fewer bytes than requested. TCP, HTTP and HTTPS are available on Windows and Linux.</p>
 <h2 id="overview_Request_an_HTTPS_resource">Request an HTTPS resource</h2>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"net"</span>)
 <span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_Net">Net</a></span>
@@ -111,7 +111,7 @@
     <span class="SLgc">if</span> response.status == <span class="SNum">200</span> <span class="SLgc">do</span>
         <span class="SCst"><a href="std.core.html#namespace_Core_Console">Console</a></span>.<span class="SFct">println</span>(<span class="SKwd">cast</span>(<span class="STpe">string</span>, response.body.<span class="SFct">toSlice</span>()))
 }</span></div>
-<p>HTTPS uses the Windows trust store. Requests have bounded response bodies and return redirects without following them, so the caller can decide which destinations are acceptable.</p>
+<p>HTTPS verifies certificates and host names against the platform trust roots. Linux loads <span class="code-inline">libcurl.so.4</span> on the first HTTP request and needs thread-safe initialization and asynchronous DNS support; TCP-only programs do not load it. Standard proxy settings remain effective, including <span class="code-inline">NO_PROXY</span>. <span class="code-inline">SSL_CERT_FILE</span> and <span class="code-inline">SSL_CERT_DIR</span> override Linux CA roots for the server and HTTPS proxy. Requests have bounded response bodies and return redirects without following them, so the caller can decide which destinations are acceptable. <a href="#Net_Http_get">Net.Http.get</a> documents timeout and header limits.</p>
 </section>
 <section class="api-overview">
 <h2 id="api-reference">API reference</h2>
@@ -274,7 +274,7 @@
 </td></tr>
 <tr><td id="Net_Http_GetOptions_maxBodyBytes" class="code-type">maxBodyBytes</td><td class="code-type">u64</td><td><p>Maximum response body size in bytes.</p>
 </td></tr>
-<tr><td id="Net_Http_GetOptions_timeoutMs" class="code-type">timeoutMs</td><td class="code-type">u32</td><td><p>WinHTTP timeout setting per phase, in milliseconds; not a strict deadline.</p>
+<tr><td id="Net_Http_GetOptions_timeoutMs" class="code-type">timeoutMs</td><td class="code-type">u32</td><td><p>Timeout in milliseconds: per phase on Windows, whole transfer on Linux.</p>
 </td></tr>
 <tr><td id="Net_Http_GetOptions_userAgent" class="code-type">userAgent</td><td class="code-type">string</td><td><p>User-Agent sent to the server.</p>
 </td></tr>
@@ -411,9 +411,9 @@
 </table>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Http_get" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Http.get</span> <a class="api-item-permalink" href="#Net_Http_get" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/client.win32.swg#L49">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Http_get" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Http.get</span> <a class="api-item-permalink" href="#Net_Http_get" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/client.swg#L32">src</a></div>
 <p>Issues a bounded HTTP or HTTPS GET to <span class="code-inline">host</span>, <span class="code-inline">port</span> and an absolute request <span class="code-inline">path</span>.</p>
-<p><span class="code-inline">path</span> must be absolute, fragment-free and already percent-encoded. HTTPS verifies the peer using the Windows trust store. Redirects are returned to the caller instead of being followed. Each phase has the configured timeout setting; WinHTTP may enforce it with coarse timing and can exceed the requested value. The operation is synchronous and cannot be cancelled while a native call is blocked. The result owns its body and includes non-success status codes. Invalid input, transport errors, and a body exceeding <span class="code-inline">maxBodyBytes</span> fail without returning a partial result.</p>
+<p><span class="code-inline">path</span> must be absolute, fragment-free and already percent-encoded. HTTPS verifies the peer's certificate and host name using the platform trust store. On Linux, libcurl supplies system trust roots; <span class="code-inline">SSL_CERT_FILE</span> and <span class="code-inline">SSL_CERT_DIR</span> can override the CA file/directory. Linux needs <span class="code-inline">libcurl.so.4</span> with thread-safe initialization and asynchronous DNS support. Its proxy environment variables, including <span class="code-inline">NO_PROXY</span>, retain libcurl's native behavior. Redirects are returned without being followed. WinHTTP applies <span class="code-inline">timeoutMs</span> per phase, with coarse enforcement; Linux applies it to the whole transfer, including connection setup. The synchronous operation cannot be cancelled while a native call is blocked. The result owns its body and includes non-success status codes. Invalid input, transport errors, and responses exceeding limits fail without returning a partial result. Linux limits total response headers to 64 KiB and Location to 4096 bytes; Windows limits Location to 8192 bytes of UTF-16 storage. Linux transport failures use libcurl codes in <a href="#Net_NetworkError">Net.NetworkError</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"net"</span>)
 <span class="SKwd">using</span> <span class="SCst">Core</span>, <span class="SCst"><a href="#namespace_Net">Net</a></span>
 
@@ -426,33 +426,33 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">get</span>(host: <span class="STpe">string</span>, port: <span class="STpe">u16</span>, path: <span class="STpe">string</span>, secure = <span class="SKwd">true</span>, options: <span class="SCst"><a href="#Net_Http_GetOptions">GetOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Net_Http_Response">Response</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.accept</span> <a class="api-item-permalink" href="#Net_TcpListener_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L146">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_accept" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.accept</span> <a class="api-item-permalink" href="#Net_TcpListener_accept" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L130">src</a></div>
 <p>Blocks until a peer connects and returns an independently owned stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">accept</span>()-&gt;<span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.close</span> <a class="api-item-permalink" href="#Net_TcpListener_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L162">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.close</span> <a class="api-item-permalink" href="#Net_TcpListener_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcplistener.swg#L14">src</a></div>
 <p>Closes the listener; repeated calls do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.listen</span> <a class="api-item-permalink" href="#Net_TcpListener_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L116">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_listen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.listen</span> <a class="api-item-permalink" href="#Net_TcpListener_listen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L100">src</a></div>
 <p>Binds an IPv4 endpoint and starts listening for connections.</p>
 <p>Port zero selects an available port, which <a href="#Net_TcpListener_localEndpoint">Net.TcpListener.localEndpoint</a> returns.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">listen</span>(endpoint: <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span>, backlog = <span class="SNum">16</span>)-&gt;<span class="SCst"><a href="#Net_TcpListener">TcpListener</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_localEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localEndpoint</span> <a class="api-item-permalink" href="#Net_TcpListener_localEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L134">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_localEndpoint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.localEndpoint</span> <a class="api-item-permalink" href="#Net_TcpListener_localEndpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L118">src</a></div>
 <p>Returns the bound local address and port.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">localEndpoint</span>()-&gt;<span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpListener_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.opDrop</span> <a class="api-item-permalink" href="#Net_TcpListener_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L172">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpListener_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpListener.opDrop</span> <a class="api-item-permalink" href="#Net_TcpListener_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcplistener.swg#L24">src</a></div>
 <p>Closes the listener when this owner is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.close</span> <a class="api-item-permalink" href="#Net_TcpStream_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L98">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.close</span> <a class="api-item-permalink" href="#Net_TcpStream_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L17">src</a></div>
 <p>Closes the connection; repeated calls do nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>()</span></div>
 </section>
@@ -462,41 +462,41 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">connect</span>(endpoint: <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span>)-&gt;<span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.isOpen</span> <a class="api-item-permalink" href="#Net_TcpStream_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L69">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_isOpen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.isOpen</span> <a class="api-item-permalink" href="#Net_TcpStream_isOpen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L14">src</a></div>
 <p>Returns whether this stream still owns a connection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isOpen</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.opDrop</span> <a class="api-item-permalink" href="#Net_TcpStream_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L108">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.opDrop</span> <a class="api-item-permalink" href="#Net_TcpStream_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L27">src</a></div>
 <p>Closes the connection when this owner is dropped.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.read</span> <a class="api-item-permalink" href="#Net_TcpStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L72">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_read" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.read</span> <a class="api-item-permalink" href="#Net_TcpStream_read" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L69">src</a></div>
 <p>Reads up to <span class="code-inline">buffer.count</span> bytes; zero indicates EOF or an empty buffer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read</span>(buffer: [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_TcpStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.write</span> <a class="api-item-permalink" href="#Net_TcpStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L85">src</a></div>
+<div class="api-item api-item-func"><span id="Net_TcpStream_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TcpStream.write</span> <a class="api-item-permalink" href="#Net_TcpStream_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcp.win32.swg#L82">src</a></div>
 <p>Writes up to <span class="code-inline">buffer.count</span> bytes and returns the amount accepted by the host.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Url_decodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.decodeComponent</span> <a class="api-item-permalink" href="#Net_Url_decodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L144">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Url_decodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.decodeComponent</span> <a class="api-item-permalink" href="#Net_Url_decodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L169">src</a></div>
 <p>Decodes percent escapes in one URL component into its original bytes.</p>
 <p><span class="code-inline">+</span> remains <span class="code-inline">+</span>. A truncated escape or a non-hexadecimal digit fails; unescaped bytes are copied without interpreting or validating UTF-8.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeComponent</span>(text: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Url_encodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.encodeComponent</span> <a class="api-item-permalink" href="#Net_Url_encodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L113">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Url_encodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.encodeComponent</span> <a class="api-item-permalink" href="#Net_Url_encodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L138">src</a></div>
 <p>Percent-encodes bytes for one URL component using the RFC 3986 unreserved alphabet.</p>
 <p>UTF-8 text is encoded byte by byte. Spaces become <span class="code-inline">%20</span>, not <span class="code-inline">+</span>; separators such as <span class="code-inline">&amp;</span>, <span class="code-inline">=</span>, <span class="code-inline">/</span> and <span class="code-inline">%</span> are encoded so the result can be inserted as one query value or path segment.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodeComponent</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Net_Url_parseHttp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.parseHttp</span> <a class="api-item-permalink" href="#Net_Url_parseHttp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L25">src</a></div>
+<div class="api-item api-item-func"><span id="Net_Url_parseHttp" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.parseHttp</span> <a class="api-item-permalink" href="#Net_Url_parseHttp" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L26">src</a></div>
 <p>Parses an absolute HTTP or HTTPS URL into owned request parts.</p>
-<p>This deliberately accepts only ASCII host names and IPv4 literals as hosts. User information, IPv6 literals, relative references and non-ASCII URL text are rejected. The path and query stay percent-encoded, an absent path becomes <span class="code-inline">/</span>, and a fragment is omitted. Invalid escapes, malformed ports, spaces and control characters fail.</p>
+<p>This deliberately accepts only ASCII host names and IPv4 literals as hosts. User information, IPv6 literals, relative references and non-ASCII URL text are rejected. The path and query stay percent-encoded, an absent path becomes <span class="code-inline">/</span>, and a fragment is omitted. Invalid escapes, malformed ports, overlong DNS names, spaces and control characters fail. DNS names have labels of at most 63 characters and a total of at most 253 characters, excluding an optional final dot.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseHttp</span>(text: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Net_Url_HttpTarget">HttpTarget</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 </article>
@@ -777,7 +777,7 @@
 "s|Net.Http.GetOptions|Net_Http_GetOptions|Limits and headers for a synchronous GET request.",
 "v|Net.Http.GetOptions.headers|Net_Http_GetOptions_headers|Request headers, whose strings are borrowed for the call.",
 "v|Net.Http.GetOptions.maxBodyBytes|Net_Http_GetOptions_maxBodyBytes|Maximum response body size in bytes.",
-"v|Net.Http.GetOptions.timeoutMs|Net_Http_GetOptions_timeoutMs|WinHTTP timeout setting per phase, in milliseconds; not a strict deadline.",
+"v|Net.Http.GetOptions.timeoutMs|Net_Http_GetOptions_timeoutMs|Timeout in milliseconds: per phase on Windows, whole transfer on Linux.",
 "v|Net.Http.GetOptions.userAgent|Net_Http_GetOptions_userAgent|User-Agent sent to the server.",
 "s|Net.Http.Header|Net_Http_Header|One HTTP request header; both strings are borrowed for the duration of the request.",
 "v|Net.Http.Header.name|Net_Http_Header_name|HTTP token field name using ASCII letters, digits, and permitted punctuation.",

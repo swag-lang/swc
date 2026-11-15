@@ -55,7 +55,7 @@ typographic family names when available, bringing light and semibold variants in
 family. If a query matches no typographic family, legacy family names are searched instead;
 asking for a separately named light family still selects that family's faces.
 
-On Linux, [[Pixel.FontCatalog.loadSystem]] scans conventional system and user font directories
+On Linux, `Pixel.FontCatalog.loadSystem` scans conventional system and user font directories
 into a fresh snapshot. It includes the XDG user data directory and legacy `$HOME/.fonts`,
 ignores unavailable directories and invalid fonts, and does not consult Fontconfig aliases.
 

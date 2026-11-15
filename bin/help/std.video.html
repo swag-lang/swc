@@ -108,7 +108,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">203</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">204</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Video_H264_AnnexBAccessUnit_parse">AnnexBAccessUnit.parse</a></li>
@@ -129,6 +129,7 @@
 <li><a href="#Video_H264_Encoder_create">Encoder.create</a></li>
 <li><a href="#Video_H264_Encoder_decoderConfig">Encoder.decoderConfig</a></li>
 <li><a href="#Video_H264_Encoder_encode">Encoder.encode</a></li>
+<li><a href="#Video_H264_Encoder_repeatPrevious">Encoder.repeatPrevious</a></li>
 <li><a href="#Video_Mp4_FragmentedIndex_close">FragmentedIndex.close</a></li>
 <li><a href="#Video_Mp4_FragmentedIndex_entryCount">FragmentedIndex.entryCount</a></li>
 <li><a href="#Video_Mp4_FragmentedIndex_open">FragmentedIndex.open</a></li>
@@ -476,7 +477,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <h3 id="file_src_decode_mp4_fragmented_summary_swg"><code>src/decode/mp4/fragmented.summary.swg</code></h3>
 <p>Format: ISO Base Media File Format (MP4) fragmented recording summary. Supported: Bounded H.264 and AAC-LC fragments, including a partially written final box. Not supported: Classic sample tables and files changing during the scan. Role: This file reports track durations and recovery boundaries without a packet table.</p>
 <h3 id="file_src_decode_mp4_mp4_swg"><code>src/decode/mp4/mp4.swg</code></h3>
-<p>Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component. Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits. Not supported: Complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC. Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.</p>
+<p>Format: ISO Base Media File Format (MP4/M4V/MOV) decoder component. Supported: Classic sample-table files containing Motion JPEG, H.264, or H.265 video and AAC-LC audio, plus bounded H.264 and AAC-LC movie fragments with simple final audio edits. Not supported: Classic tracks with more than 1,048,576 samples, complex edit lists, multiple tracks in one movie fragment, encrypted media, unsupported sample-entry versions, picture codecs other than Motion JPEG/H.264/H.265, and audio codecs other than AAC-LC. Role: This file owns box parsing, sample tables, track selection, timestamps, and top-level decoding.</p>
 <h3 id="file_src_decode_mpeg4_block_swg"><code>src/decode/mpeg4/block.swg</code></h3>
 <p>Format: MPEG-4 Part 2 (Simple and Advanced Simple Profile) decoder component. Supported: Rectangular 8-bit 4:2:0 video object layers: I, P and B video object planes, half-sample motion, four motion vectors a macroblock, unrestricted vectors, intra AC/DC prediction, and both the H.263 and MPEG quantisers. Not supported: Quarter-sample motion, global motion compensation, interlacing, data partitioning, reversible codes, sprites, and arbitrary object shapes. Role: This file owns inverse quantisation and the inverse transform.</p>
 <h3 id="file_src_decode_mpeg4_decoder_swg"><code>src/decode/mpeg4/decoder.swg</code></h3>
@@ -706,6 +707,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_H264_Encoder_encode">Encoder.encode</a></td><td><p>Encodes one picture and returns its MP4-ready access unit.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Video_H264_Encoder_repeatPrevious">Encoder.repeatPrevious</a></td><td><p>Holds the last encoded picture for another video slot without analyzing its pixels.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_FragmentedIndex_close">FragmentedIndex.close</a></td><td><p>Releases the indexed file; repeated calls do nothing.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_Mp4_FragmentedIndex_entryCount">FragmentedIndex.entryCount</a></td><td><p>Returns the number of indexed key frames.</p>
@@ -878,7 +881,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_chromaHeight">PlanarFrame.chromaHeight</a></td><td><p>Returns the number of chroma rows: the luma rows shifted down and rounded up.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame_isValid">PlanarFrame.isValid</a></td><td><p>Returns whether the picture holds samples.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_isValid">PlanarFrame.isValid</a></td><td><p>Reports whether all planes contain the samples described by this picture.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_resize">PlanarFrame.resize</a></td><td><p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
 </td></tr>
@@ -1311,7 +1314,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_H264_Encoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">H264.Encoder</span> <a class="api-item-permalink" href="#Video_H264_Encoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L295">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_H264_Encoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">H264.Encoder</span> <a class="api-item-permalink" href="#Video_H264_Encoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L304">src</a></div>
 <p>Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.</p>
 <p>This portable first stage codes flat intra blocks and exact quantized luma/chroma residuals at QP 0, integer-pixel motion copies, and P-skip. A residual is used only when local inverse reconstruction matches all input samples and its code is smaller than I_PCM. Other changes use I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks are not suitable for arbitrary high-motion 1080p60 recording. The result borrows the encoder's packet storage until the next call to encode. The AVC configuration remains valid for the encoder's lifetime and uses four-byte NAL lengths.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"video"</span>)
@@ -1337,6 +1340,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <tr><td class="code-type"><a href="#Video_H264_Encoder_decoderConfig">decoderConfig</a></td><td><p>Borrows the AVC decoder configuration until this encoder is destroyed.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_H264_Encoder_encode">encode</a></td><td><p>Encodes one picture and returns its MP4-ready access unit.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Video_H264_Encoder_repeatPrevious">repeatPrevious</a></td><td><p>Holds the last encoded picture for another video slot without analyzing its pixels.</p>
 </td></tr>
 </tbody>
 </table>
@@ -2251,7 +2256,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_PlanarFrame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.PlanarFrame</span> <a class="api-item-permalink" href="#Video_PlanarFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L29">src</a></div>
 <p>One decoded picture in planar YUV, the layout every modern video codec produces.</p>
 <p>A codec reconstructs luma and two chroma planes; turning them into packed RGB costs more than every other stage of a 4K decode put together, and a consumer that draws the picture through a renderer does not need it done on the processor at all. A reader hands the planes over as they are through <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a>. The resulting texture is drawn with <a href="std.pixel.html#Pixel_Painter_drawTexture">Pixel.Painter.drawTexture</a>; a shader backend converts it while sampling.</p>
-<p>Rows are tightly packed: <span class="code-inline">strideLuma</span> is <span class="code-inline">width</span>, and <span class="code-inline">strideChroma</span> and the chroma row count are the picture size shifted right by <span class="code-inline">chromaShift</span>, rounded up. That shift is one for a 4:2:0 picture and none for a 4:4:4 one. Storage is reused across frames, so a caller decoding a whole stream allocates one picture in total.</p>
+<p><span class="code-inline">resize</span> creates tightly packed rows, while the public strides also describe padded planes when their buffers cover every visible row. The chroma width and row count are the picture size shifted right by <span class="code-inline">chromaShift</span>, rounded up. That shift is one for 4:2:0 and none for 4:4:4. Storage is reused across frames, so a caller decoding a whole stream allocates one picture in total.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> picture: <span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span>
 <span class="SKwd">try</span> reader.<span class="SFct">decodeFramePlanesInto</span>(&amp;picture, index)
 <span class="SKwd">let</span> planes = picture.<span class="SFct">view</span>()
@@ -2276,9 +2281,9 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </td></tr>
 <tr><td id="Video_PlanarFrame_matrix" class="code-type">matrix</td><td class="code-type"><a href="std.pixel.html#Pixel_YuvMatrix">Pixel.YuvMatrix</a></td><td><p>Matrix the renderer uses to convert these planes to RGB.</p>
 </td></tr>
-<tr><td id="Video_PlanarFrame_strideChroma" class="code-type">strideChroma</td><td class="code-type">u32</td><td><p>Bytes between chroma rows.</p>
+<tr><td id="Video_PlanarFrame_strideChroma" class="code-type">strideChroma</td><td class="code-type">u32</td><td><p>Bytes between chroma rows; at least the chroma width.</p>
 </td></tr>
-<tr><td id="Video_PlanarFrame_strideLuma" class="code-type">strideLuma</td><td class="code-type">u32</td><td><p>Bytes between luma rows, equal to <span class="code-inline">width</span>.</p>
+<tr><td id="Video_PlanarFrame_strideLuma" class="code-type">strideLuma</td><td class="code-type">u32</td><td><p>Bytes between luma rows; at least <span class="code-inline">width</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_studioRange">studioRange</a></td><td class="code-type">bool</td><td><p>Whether the samples use the studio range of 16 to 235 rather than the full range of 0 to 255.</p>
 </td></tr>
@@ -2299,7 +2304,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <tbody>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_chromaHeight">chromaHeight</a></td><td><p>Returns the number of chroma rows: the luma rows shifted down and rounded up.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Video_PlanarFrame_isValid">isValid</a></td><td><p>Returns whether the picture holds samples.</p>
+<tr><td class="code-type"><a href="#Video_PlanarFrame_isValid">isValid</a></td><td><p>Reports whether all planes contain the samples described by this picture.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Video_PlanarFrame_resize">resize</a></td><td><p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
 </td></tr>
@@ -2622,22 +2627,28 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">startTime</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.create</span> <a class="api-item-permalink" href="#Video_H264_Encoder_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L329">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.create</span> <a class="api-item-permalink" href="#Video_H264_Encoder_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L339">src</a></div>
 <p>Creates an encoder for even NV12 dimensions and an IDR interval in frames.</p>
 <p>The image may be cropped within its final macroblock. Dimensions are limited to 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size. The interval is 1 to 255 pictures. A new encoder starts with an IDR picture. <span class="code-inline">quantizationQp</span> is 0 for exact samples or 1 through 51 for quantized intra and inter residuals. This fixed QP is not a target-bitrate controller. <span class="code-inline">sliceCount</span> divides each picture into 1 to 8 complete macroblock-row bands. The default single slice preserves the original bitstream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>,
             quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_H264_Encoder">Encoder</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_decoderConfig" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.decoderConfig</span> <a class="api-item-permalink" href="#Video_H264_Encoder_decoderConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L358">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_decoderConfig" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.decoderConfig</span> <a class="api-item-permalink" href="#Video_H264_Encoder_decoderConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L368">src</a></div>
 <p>Borrows the AVC decoder configuration until this encoder is destroyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decoderConfig</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.encode</span> <a class="api-item-permalink" href="#Video_H264_Encoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L366">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.encode</span> <a class="api-item-permalink" href="#Video_H264_Encoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L376">src</a></div>
 <p>Encodes one picture and returns its MP4-ready access unit.</p>
 <p>The input must have the dimensions supplied to create and exactly one tightly packed NV12 picture. Decode times may have gaps but cannot overlap; durations are positive. The packet payload is borrowed until the next encode call. Validation failure leaves the previously encoded picture and packet intact.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">encode</span>(frame: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Nv12Frame">Nv12Frame</a></span>, decodeTime: <span class="STpe">u64</span>, duration: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_repeatPrevious" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.repeatPrevious</span> <a class="api-item-permalink" href="#Video_H264_Encoder_repeatPrevious" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L447">src</a></div>
+<p>Holds the last encoded picture for another video slot without analyzing its pixels.</p>
+<p>The first picture must already have been encoded. At an IDR boundary the stored input picture is encoded normally, preserving the configured clean-point interval. The packet borrows its bytes until the next encode or repeat call.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">repeatPrevious</span>(decodeTime: <span class="STpe">u64</span>, duration: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Mp4_FragmentedIndex_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FragmentedIndex.close</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedIndex_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.index.swg#L203">src</a></div>
@@ -3104,39 +3115,39 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">trimSoftwareRecording</span>(sourceFileName, targetFileName: <span class="STpe">string</span>, firstFrame, afterLastFrame: <span class="STpe">u64</span>, options: <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span> = {<span class="SNum">60</span>, <span class="SNum">4</span> * <span class="SNum">1024</span> * <span class="SNum">1024</span>, <span class="SNum">100</span>, <span class="SKwd">true</span>}, edits: <span class="SCst"><a href="#Video_Mp4_SoftwareTrimEdits">SoftwareTrimEdits</a></span> = {})-&gt;<span class="SCst"><a href="#Video_Mp4_SoftwareTrimResult">SoftwareTrimResult</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Nv12Frame_chroma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.chroma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_chroma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L117">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Nv12Frame_chroma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.chroma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_chroma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L125">src</a></div>
 <p>Borrows the interleaved Cb/Cr plane until the next conversion or frame mutation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chroma</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Nv12Frame_convertFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.convertFrom</span> <a class="api-item-permalink" href="#Video_Nv12Frame_convertFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L124">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Nv12Frame_convertFrom" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.convertFrom</span> <a class="api-item-permalink" href="#Video_Nv12Frame_convertFrom" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L132">src</a></div>
 <p>Converts a bottom-up packed image into top-down NV12 using the BT.709 studio range.</p>
 <p>Accepts RGB8, BGR8, RGBA8, and BGRA8; alpha is ignored. Width and height must be positive and even. Invalid inputs leave the previous picture intact. Conversion keeps and reuses the owned byte capacity when dimensions stay the same.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">convertFrom</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Nv12Frame_luma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.luma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_luma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L114">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Nv12Frame_luma" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Nv12Frame.luma</span> <a class="api-item-permalink" href="#Video_Nv12Frame_luma" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L122">src</a></div>
 <p>Borrows the full-resolution luma plane until the next conversion or frame mutation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">luma</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.chromaHeight</span> <a class="api-item-permalink" href="#Video_PlanarFrame_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L62">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_chromaHeight" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.chromaHeight</span> <a class="api-item-permalink" href="#Video_PlanarFrame_chromaHeight" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L81">src</a></div>
 <p>Returns the number of chroma rows: the luma rows shifted down and rounded up.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">chromaHeight</span>()-&gt;<span class="STpe">s32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_PlanarFrame_isValid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.isValid</span> <a class="api-item-permalink" href="#Video_PlanarFrame_isValid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L59">src</a></div>
-<p>Returns whether the picture holds samples.</p>
+<p>Reports whether all planes contain the samples described by this picture.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isValid</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.resize</span> <a class="api-item-permalink" href="#Video_PlanarFrame_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L86">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_resize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.resize</span> <a class="api-item-permalink" href="#Video_PlanarFrame_resize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L106">src</a></div>
 <p>Resizes the planes for a picture of <span class="code-inline">width</span> by <span class="code-inline">height</span>, keeping the storage it can.</p>
 <p>The chroma planes are <span class="code-inline">chromaShift</span> halvings smaller than the luma plane in each direction.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resize</span>(width, height: <span class="STpe">s32</span>, chromaShift = <span class="SNum">1</span>'<span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_PlanarFrame_view" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.view</span> <a class="api-item-permalink" href="#Video_PlanarFrame_view" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Video_PlanarFrame_view" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PlanarFrame.view</span> <a class="api-item-permalink" href="#Video_PlanarFrame_view" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/planarframe.swg#L88">src</a></div>
 <p>Describes the picture as a borrowed planar view.</p>
 <p>Hand it to <a href="std.pixel.html#Pixel_IRenderer_addImage">Pixel.IRenderer.addImage</a> or <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a> and the renderer converts where it draws, which is the whole reason a decoder produces planes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">view</span>()-&gt;<span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_YuvPlanarView">YuvPlanarView</a></span></span></div>
@@ -3978,8 +3989,8 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "v|Video.PlanarFrame.height|Video_PlanarFrame_height|Visible picture height in luma samples.",
 "v|Video.PlanarFrame.luma|Video_PlanarFrame_luma|Full-resolution luma, height rows of strideLuma.",
 "v|Video.PlanarFrame.matrix|Video_PlanarFrame_matrix|Matrix the renderer uses to convert these planes to RGB.",
-"v|Video.PlanarFrame.strideChroma|Video_PlanarFrame_strideChroma|Bytes between chroma rows.",
-"v|Video.PlanarFrame.strideLuma|Video_PlanarFrame_strideLuma|Bytes between luma rows, equal to width.",
+"v|Video.PlanarFrame.strideChroma|Video_PlanarFrame_strideChroma|Bytes between chroma rows; at least the chroma width.",
+"v|Video.PlanarFrame.strideLuma|Video_PlanarFrame_strideLuma|Bytes between luma rows; at least width.",
 "v|Video.PlanarFrame.studioRange|Video_PlanarFrame_studioRange|Whether the samples use the studio range of 16 to 235 rather than the full range of 0 to 255.",
 "v|Video.PlanarFrame.width|Video_PlanarFrame_width|Visible picture width in luma samples.",
 "s|Video.StreamFormat|Video_StreamFormat|Names one video file format and the filename extensions that select it.",
@@ -4136,7 +4147,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "f|Video.Nv12Frame.convertFrom|Video_Nv12Frame_convertFrom|Converts a bottom-up packed image into top-down NV12 using the BT.709 studio range.",
 "f|Video.Nv12Frame.luma|Video_Nv12Frame_luma|Borrows the full-resolution luma plane until the next conversion or frame mutation.",
 "f|Video.PlanarFrame.chromaHeight|Video_PlanarFrame_chromaHeight|Returns the number of chroma rows: the luma rows shifted down and rounded up.",
-"f|Video.PlanarFrame.isValid|Video_PlanarFrame_isValid|Returns whether the picture holds samples.",
+"f|Video.PlanarFrame.isValid|Video_PlanarFrame_isValid|Reports whether all planes contain the samples described by this picture.",
 "f|Video.PlanarFrame.resize|Video_PlanarFrame_resize|Resizes the planes for a picture of width by height, keeping the storage it can.",
 "f|Video.PlanarFrame.view|Video_PlanarFrame_view|Describes the picture as a borrowed planar view.",
 "f|Video.StreamFormat.matches|Video_StreamFormat_matches|Returns whether this format claims fileName, by its extension alone.",
@@ -4243,6 +4254,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "f|Video.H264.Encoder.create|Video_H264_Encoder_create|Creates an encoder for even NV12 dimensions and an IDR interval in frames.",
 "f|Video.H264.Encoder.decoderConfig|Video_H264_Encoder_decoderConfig|Borrows the AVC decoder configuration until this encoder is destroyed.",
 "f|Video.H264.Encoder.encode|Video_H264_Encoder_encode|Encodes one picture and returns its MP4-ready access unit.",
+"f|Video.H264.Encoder.repeatPrevious|Video_H264_Encoder_repeatPrevious|Holds the last encoded picture for another video slot without analyzing its pixels.",
 "f|Video.Mp4.copyRanges|Video_Mp4_copyRanges|Copies key-frame-aligned H.264 ranges with every AAC-LC track from a fragmented MP4.",
 "f|Video.Mp4.copyVideoRanges|Video_Mp4_copyVideoRanges|Copies retained video ranges from a fragmented H.264 MP4 into a new video-only MP4.",
 "f|Video.Mp4.FragmentedWriter.addAudioPacket|Video_Mp4_FragmentedWriter_addAudioPacket|Appends one 1024-sample AAC-LC access unit to sound track trackIndex.",

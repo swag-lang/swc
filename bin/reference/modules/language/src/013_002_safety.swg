@@ -94,7 +94,7 @@ the new storage. Those writes are checked too. 'Swag.NoCopy' still forbids an ex
 An API that deliberately accepts an alias uses an explicit pointer parameter. For example,
 'array.addBorrowed(&array[0])' saves the element before growing the array, and
 'transform.multiplyBorrowed(&transform)' reads every product before updating the transform.
-These [[Core.Array.addBorrowed]] and [[Core.Math.Transform2.multiplyBorrowed]] contracts
+These 'Core.Array.addBorrowed' and 'Core.Math.Transform2.multiplyBorrowed' contracts
 accept the alias without introducing an extra argument copy. A 'const *T' restricts writes
 through that pointer; it does not promise that other aliases leave the pointee unchanged.
 */

@@ -112,3 +112,14 @@ photo in a 4-by-3-inch frame, and speaker-only notes. Photo provenance is unchan
 file using the same producer/filter; it exercises presentation style parents, mixed character
 sizes, lists, master placeholders and notes. Controlled packages supplement these producer files
 for master visibility, style resets, hidden slides, omissions, malformed XML and expansion limits.
+
+`viewer.default-styles.xlsx` is a repository-authored five-row workshop budget written with
+openpyxl 3.1.5, without external assets. Column A uses a 14-point font; B has a pale green fill,
+green 14-point type and `"€"#,##0.00`; C has grey italic type. Row 3 has bold purple 15-point
+type, a pale purple fill and `#,##0.00`; row 5 uses bold green type and `0.0%`. A1 and B4 have
+direct cell styles, while the other saved cells, including empty B1/C1, omit a cell XF.
+The source writer assigns these through `column_dimensions`, `row_dimensions` and cell styles.
+An independent LibreOfficeDev 26.8 re-save materializes B2's column XF, B3/B5's row XF and
+B4's unchanged direct XF, confirming the expected precedence. The workbook itself is the
+unmodified openpyxl package, not that materialized re-save. Its licence is this repository's.
+SHA-256: `0a251d0cab7928d459a051dc43da26a39e49ab7fea1ef85912860e3e7323a8f3`.

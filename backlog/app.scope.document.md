@@ -191,10 +191,13 @@ integration around those engines.
   overflow stays explicit. Common built-in and custom currency, grouped decimal, percentage,
   date and elapsed-time formats retain both Excel date systems and the fictitious 1900 leap day.
   Unsupported formats keep the stored value and a notice; unsupported visual effects are labelled
-  simplified. Exact named font matching, row/column default styles, frozen panes, filters, comments
+  simplified. Saved cells now inherit custom row XFs and then column XFs when their own style
+  is absent; explicit cell XF zero remains an override. Producer output and a LibreOffice re-save
+  confirm this precedence. Unsaved blank regions still have no inherited paint. Exact named
+  font matching, frozen panes, filters, comments
   and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: resolve row/column defaults and named font families, then preserve frozen panes and add
+- Next: paint inherited styles in unsaved blank regions and resolve named font families, then preserve frozen panes and add
   rectangular selection, direct cell addressing and sheet-wide search before read-only chart
   previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
   date profiles with producer fixtures; keep unsupported codes explicit.

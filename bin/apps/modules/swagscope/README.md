@@ -188,8 +188,10 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   million-row gaps. Direct/base cell styles retain sizes, emphasis, theme/indexed colors, solid
   fills, common borders, alignment, wrapping and Normal-font indents; faces use available sans/mono
   substitutes. Unsupported visual effects are labelled simplified, and numeric overflow uses hashes
-  while selection and copy retain the value. The reading grid is capped at 512 columns. It does not
-  calculate formulas or reproduce row/column default styles, frozen panes, charts or images.
+  while selection and copy retain the value. Saved cells without a direct style inherit the
+  row's custom format, then the column default; explicit cell styles, including Normal, win.
+  Unsaved blank regions do not synthesize cell paint. The reading grid is capped at 512 columns.
+  It does not calculate formulas or reproduce frozen panes, charts or images.
 - `OpenDocument Spreadsheet` opens ODS in the same native grid, sheet outline and text mode.
   Saved display strings retain the producer's number/date formatting; when only a typed value is
   present, its stored value is shown with a number-format limitation notice. Cached formula

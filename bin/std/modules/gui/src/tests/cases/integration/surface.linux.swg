@@ -11,6 +11,7 @@ using Core, Pixel
     var app: Application
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(70, 60, 360, 240, surfaceId: "linux-native-gui")
+    surface.minSize = {300, 200}
     surface.setTitle("Native GUI — é")
     discard PushButton.create(surface.wnd.view, "Native button", {24, 72, 160, 36})
     surface.show()
@@ -34,6 +35,10 @@ using Core, Pixel
     let fields = assume cast(const [*]u32, hints.buffer)
     Swag.require(hints.count == 18 * 4)
     Swag.require((fields[0] & 5) == 5)
+
+    // A minimum size set after creation, as an application sets it, still reaches the hints.
+    Swag.require((fields[0] & 16) == 16)
+    Swag.require(fields[5] == cast(u32, 300 * surface.dpiScale) and fields[6] == cast(u32, 200 * surface.dpiScale))
 
     app.renderer.setCurrentContext(surface.rc)
     let expected = app.renderer.readRenderTarget(&surface.rt, 160, 140, 1, 1).pixelColor(0, 0)

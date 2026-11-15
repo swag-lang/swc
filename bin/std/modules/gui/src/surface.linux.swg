@@ -659,8 +659,11 @@ impl Surface
             return
         }
 
+        // The size limits and the place are set after creation, once the application knows
+        // them: the window manager reads them again before the window appears.
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
+        .applyNativeSizeHints(context)
         expect LinuxDesktop.check(context, context.xcb_map_window_checked(connection, .windowId))
 
         let curFocus = .wnd.view.focusedWindow()

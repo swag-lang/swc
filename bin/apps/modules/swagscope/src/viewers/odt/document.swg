@@ -76,28 +76,8 @@ impl Document
 
     func load(fileName: string)->Document fail
     {
-        let info = try File.info(fileName)
-        if info.size > 64 * 1024 * 1024 do
-            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-        let archive = try Archive.Zip.load(fileName)
-        if archive.entries.count > 4096 do
-            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-        let mime = archive.tryFindEntry("mimetype")
-        if not mime or mime.uncompressedSize > 256 do
-            fail Errors.InvalidFormatError{texts().err_Invalid}
-        let mimeBytes = try Archive.Zip.loadEntry(fileName, mime)
-        if cast(string, mimeBytes.toSlice()) != "application/vnd.oasis.opendocument.text" do
-            fail Errors.InvalidFormatError{texts().err_Invalid}
-        let parts    = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
-        let manifest = try parts.text("META-INF/manifest.xml", required: false, limit: 1024 * 1024)
-        var scan     = Package.Scanner.create(manifest)
-        var token: Package.Token
-        while scan.next(&token)
-        {
-            if token.kind == .Start and token.isElement("encryption-data") do
-                fail Errors.UnsupportedFormatError{texts().err_Encrypted}
-        }
-
+        let archive = try Odf.openPackage(fileName, "application/vnd.oasis.opendocument.text", texts().err_Invalid, texts().err_TooLarge, texts().err_Encrypted)
+        let parts = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
         let content = try parts.text("content.xml")
         var reader: Reader
         reader.fileName = fileName

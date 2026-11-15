@@ -91,6 +91,7 @@ func createViewerPluginRegistry()->ViewerPluginRegistry
     expect result.register(Viewers.Docx.viewerPlugin())
     expect result.register(Viewers.Odt.viewerPlugin())
     expect result.register(Viewers.Xlsx.viewerPlugin())
+    expect result.register(Viewers.Ods.viewerPlugin())
     expect result.register(Viewers.Pptx.viewerPlugin())
     expect result.register(Viewers.Epub.viewerPlugin())
     expect result.register(Viewers.Comic.viewerPlugin())

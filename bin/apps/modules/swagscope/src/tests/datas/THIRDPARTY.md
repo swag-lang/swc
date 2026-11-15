@@ -151,3 +151,12 @@ on it: a PE32+ image with its sections and its imports, small enough to keep in 
 
 - SHA-256: `3bde0ddc065ea3b2497607f7d615ea420dad2e96b3fcd18d8a02d6cc1d35a0c9`
 - License: same as this repository.
+
+`viewer.monthly-budget.ods` is a LibreOffice Calc conversion of `viewer.monthly-budget.xlsx`
+listed above (Apache POI test corpus, Apache License 2.0). It retains that file's content and
+licence; this derived package exercises genuine ODF saved strings, styles and geometry.
+
+- Producer: LibreOfficeDev 26.8.0.0.alpha0, build 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5;
+  headless `--convert-to ods:calc8`.
+- SHA-256: `b1c87161311b219b1e1e18d514e78d87e7a0b0612813095b13839a0b7819831e`
+- License: Apache License 2.0, as for the source workbook above.

@@ -184,6 +184,16 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   substitutes. Unsupported visual effects are labelled simplified, and numeric overflow uses hashes
   while selection and copy retain the value. The reading grid is capped at 512 columns. It does not
   calculate formulas or reproduce row/column default styles, frozen panes, charts or images.
+- `OpenDocument Spreadsheet` opens ODS in the same native grid, sheet outline and text mode.
+  Saved display strings retain the producer's number/date formatting; when only a typed value is
+  present, its stored value is shown with a number-format limitation notice. Cached formula
+  results remain readable, and formulas without a saved result show their expression. Common
+  inherited cell styles, solid fills, borders, alignment, wrapping, column widths, row heights,
+  disjoint merges and saved visibility survive. Row/column default cell styles apply before direct
+  cell styles. Empty repeated tails stay sparse; populated content is capped at 100,000 cells,
+  512 columns and one million row addresses. The grid shares its selection, copy, navigation and
+  explicit hidden-range reveal with XLSX. Formulas and external links never run. Charts, drawings,
+  annotations, exact font metrics and advanced ODF number-style reconstruction are not reproduced.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
@@ -239,7 +249,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
-  packed, its size and date in mono. EPUB, CBZ, DOCX, ODT, XLSX and PPTX offer their reading viewers first;
+  packed, its size and date in mono. EPUB, CBZ, DOCX, ODT, XLSX, ODS and PPTX offer their reading viewers first;
   Archive remains available to inspect their package members. The count in the bottom line adds the packed and extracted
   weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
   Opening an entry asynchronously prepares a bounded temporary

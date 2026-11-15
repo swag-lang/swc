@@ -30,10 +30,11 @@ enum ViewerIcons
     Pptx         // Presentation slide reader.
     Rtf          // Rich-text document reader.
     Odt          // OpenDocument text reading page.
+    Ods          // OpenDocument workbook reading grid.
 }
-const ViewerIconValues: [22] ViewerIcons = [
+const ViewerIconValues: [23] ViewerIcons = [
     .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
-    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf, .Odt,
+    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf, .Odt, .Ods,
 ]
 
 private const IconsSvg = #include("../datas/icons.svg")

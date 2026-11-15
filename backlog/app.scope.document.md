@@ -388,14 +388,16 @@ integration around those engines.
   assets can be saved without silent conversion, filenames are sanitized, and unsupported or
   lossy extraction is explained.
 
-### app.scope.document.030 — OpenDocument needs sheet/slide reading and faithful Writer pages
+### app.scope.document.030 — OpenDocument needs Impress reading and fuller Writer/Calc fidelity
 
-- Evidence: ODT has a bounded reading projection with common/automatic styles, headings,
-  outline, lists, simple repeated tables, bookmarks and raster pictures. It does not reproduce
-  physical pages, headers/footers, comments, footnotes, floating drawings or complex merges.
-  ODS and ODP still open as archive structure without their sheet or slide content.
-- Next: reuse the workbook and presentation reading models for ODS and ODP, then expose the
-  unsupported Writer components and add authored page geometry where it improves reading.
+- Evidence: ODT projects styled prose, headings, lists, simple tables and raster pictures, but
+  omits physical pages, headers/footers, notes, comments and complex drawings. ODS uses the native
+  workbook grid with saved formatted strings, inherited cell paint, common geometry and explicit
+  hidden-range reveal; raw typed values lack full ODF number-style reconstruction. Charts,
+  annotations, advanced geometry and exact font metrics are simplified. ODP still opens as archive
+  structure without slide content.
+- Next: reuse the presentation reading model for ODP, then cover ODS number styles when display
+  strings are absent and expose the unsupported Writer/Calc components.
 - Done when: genuine LibreOffice files open as text, sheets or slides first; saved values,
   reading order, navigation, common styling and pictures survive; unsupported components remain
   explicit; cancellation and package-expansion budgets hold on large and damaged files.

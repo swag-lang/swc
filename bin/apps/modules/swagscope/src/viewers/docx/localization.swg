@@ -6,12 +6,18 @@ using Core, Gui
 // Visible strings of the Word document reader.
 struct Texts
 {
-    ui_Name:         string = "Word document"
-    ui_Preparing:    string = "Preparing document…"
-    ui_Details:      string = "Word document · % paragraphs · % tables · % images not shown"
-    ui_ImageOmitted: string = "[Image not shown]"
-    err_Invalid:    string = "This Word document has a damaged structure."
-    err_TooLarge:   string = "This Word document is too large to open safely."
+    ui_Name:             string = "Word document"
+    ui_Preparing:        string = "Preparing document…"
+    ui_Details:          string = "Word document · % paragraphs"
+    ui_OneParagraph:     string = "Word document · 1 paragraph"
+    ui_OneTable:         string = " · 1 table"
+    ui_Tables:           string = " · % tables"
+    ui_OneImageOmitted:  string = " · 1 image not shown"
+    ui_ImagesOmitted:    string = " · % images not shown"
+    ui_StylesSimplified: string = " · some styles simplified"
+    ui_ImageOmitted:     string = "[Image not shown]"
+    err_Invalid:         string = "This Word document has a damaged structure."
+    err_TooLarge:        string = "This Word document is too large to open safely."
 }
 
 private const FrenchStringsName = "lang/fr/scope.docx.tweak"

@@ -146,12 +146,14 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.
-- `Word document` reads the main DOCX body as paragraphs and tables, preserving text-run order,
-  direct bold, italic, underline and strike formatting, heading levels, alignment, line breaks,
-  visible page-break separators and tabs. Bounded embedded PNG, JPEG, GIF and WebP pictures appear
-  inline at their declared width with any available description as alternative text; other images
-  are labelled with their description, and external image relationships are never loaded. Page
-  layout, inherited styles, headers, footers and comments are not reproduced.
+- `Word document` reads DOCX paragraphs, simple tables, page-break separators and bounded raster
+  pictures. Paragraph and character styles inherit document defaults, named parent styles and
+  basic theme fonts/colors; direct formatting can override them. Font sizes, emphasis, highlights,
+  paragraph spacing and indents are retained, and styled headings populate the filterable outline.
+  Authored colors use paper contrast; unavailable fonts use the GUI's fallback. Broken optional
+  styles keep the prose readable with a simplification notice. Unsupported images are named and
+  external image relationships are never loaded. Page/section geometry, headers, footers,
+  footnotes, comments, floating objects and complex table layout are not reproduced.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
   and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are

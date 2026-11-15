@@ -18,6 +18,7 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "viewer.docx"
         .addSelectors(".docx")
     }
+
     return result
 }
 
@@ -26,11 +27,12 @@ struct Panel
 {
     using wnd: Wnd
 
-    document: Document
-    load:     Viewer.BackgroundLoad'Document
-    services: Viewer.HostServices
-    view:     *HtmlView?
-    late status: *Label
+    document:     Document
+    load:         Viewer.BackgroundLoad'Document
+    services:     Viewer.HostServices
+    view:         *HtmlView?
+    late status:  *Label
+    late outline: *DocumentOutline
 }
 
 private impl IWnd for Panel
@@ -52,20 +54,23 @@ private impl IWnd for Panel
 
         var style = HtmlStyle.theme()
         style.maxContentWidth = 680
+        style.followTheme     = not .document.usePaperColors
         with .view = HtmlView.createText(me, .document.html, style)
         {
             .dockStyle = .Center
         }
+
+        .outline.bindHtml(.view)
         .status.hide()
         .applyLayout()
-        .services.showDetails(me, Format.toString(texts().ui_Details, .document.paragraphs, .document.tables, .document.omittedImages))
+        .services.showDetails(me, .document.details())
         .services.loadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged and .document.paragraphs do
-            .services.showDetails(me, Format.toString(texts().ui_Details, .document.paragraphs, .document.tables, .document.omittedImages))
+            .services.showDetails(me, .document.details())
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -81,13 +86,14 @@ private impl Panel
             .backgroundStyle = .View
             .services        = host.services()
         }
+
         with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
             .setTextAlignment(.Center, .Center)
         }
-        result.load.start(host.fileName(), &Document.load, result)
+
         result.applyLayout()
         return result
     }
@@ -97,5 +103,7 @@ func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
+    view.outline = DocumentOutline.create(host)
+    view.load.start(host.fileName(), &Document.load, view)
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

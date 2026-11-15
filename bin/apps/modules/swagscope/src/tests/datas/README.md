@@ -65,3 +65,7 @@ and zero sections, grouping, optional decimals, dates, elapsed time and cached f
 `viewer.alternate-picture.rtf` wraps the existing `viewer.png` as a modern shape picture and
 its compatibility fallback. Both documents are repository-authored; the reused image bytes
 retain their original provenance and licences. They contain no external resources.
+
+`viewer.styles.docx` is a repository-authored document with relationship-resolved style and theme
+parts. It exercises custom heading IDs, parent styles, character styles, theme fonts/colors,
+paragraph spacing/indents, direct bold resets and a simple table. It contains no external assets.

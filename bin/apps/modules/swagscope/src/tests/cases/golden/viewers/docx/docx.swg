@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui, Viewers
+using Core, Gui, Pixel, Viewers
 
 // Word paragraphs and the omitted-image notice in Papier.
 #[Swag.TestTag("golden")]
@@ -29,4 +29,26 @@ using Core, Gui, Viewers
 #test
 {
     picturedViewer(scopeTestDataPath("viewer.image.docx"), true, "viewer.docx.image")
+}
+
+// Authored Word typography stays readable on paper beside a dark, filterable heading list.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.styles.docx"), false, 1040, 720)
+    let view   = assume cast(*Docx.Panel, window.currentView)
+    Swag.require(view.outline.headings.count == 3)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    window.applyLayout()
+    host.finishAnimations()
+    var image = host.renderSettled(window)
+    assertScopeImageGolden(&image, "viewer.docx.styles.encre")
+}
+
+// Real Word-produced defaults, theme-tinted type and a page separator are visible in Papier.
+#[Swag.TestTag("golden")]
+#test
+{
+    picturedViewer(scopeTestDataPath("viewer.poi-sample.docx"), true, "viewer.docx.producer.paper", 960, 660)
 }

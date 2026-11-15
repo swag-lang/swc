@@ -235,7 +235,7 @@ viewer packages, helper binaries, or network service required to open supported 
 | Subtitles | `.srt` `.vtt` `.ass` `.ssa` | timed transcript with cue/time jump | previous/next/current cue, timeline, source/styled modes, media check | [app.scope.text.011](app.scope.text.md) |
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
-| DOCX | `.docx` | paragraphs, simple tables and images in reading order | page geometry, styles, notes and fidelity | [app.scope.document.020](app.scope.document.md) |
+| DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.document.020](app.scope.document.md) |
 | XLSX | `.xlsx` | ordered sheets and common numeric/date formats in a bounded grid | cell styling, authored layout and navigation | [app.scope.document.025](app.scope.document.md) |
 | PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text mode | notes, thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
 | OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |

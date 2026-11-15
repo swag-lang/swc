@@ -158,14 +158,17 @@ integration around those engines.
 
 ### app.scope.document.020 — DOCX lacks faithful page reading
 
-- Evidence: the DOCX reader shows ordered body paragraphs, simple tables, direct run formatting,
-  headings, page-break separators and bounded raster images. It loses page size and margins,
-  section columns, styles and themes, headers and footers, footnotes, comments, floating objects,
-  and complex table geometry. [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
+- Evidence: the DOCX reader retains ordered paragraphs, simple tables, bounded raster images,
+  page-break separators and common inherited paragraph/character styles. Document defaults,
+  parent styles, basic theme fonts/colors, sizes, emphasis, spacing and indents are resolved;
+  styled headings populate the filterable outline. Broken optional styles retain readable prose
+  and a visible simplification notice. Authored page size/margins, section columns, headers,
+  footers, footnotes, comments, floating objects and complex table geometry remain absent.
+  [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
   preserves navigable pages and adapts them to the reading surface.
-- Next: resolve styles and relationships before laying out page and section geometry; compare
-  representative real producer documents page by page, then add document-wide search, selection,
-  and position restore without materializing every page at open.
+- Next: lay out page and section geometry, then headers, footers and footnotes; extend numbering,
+  tabs, table styles and complex-script font/theme fidelity with real producer fixtures. Add
+  document-wide search, selection and position restore without materializing every page at open.
 - Done when: authored pages, text flow, images and table structure remain recognizable across a
   freely licensed DOCX corpus, unsupported constructs are named at their location, and the first
   page appears without decoding the full package.

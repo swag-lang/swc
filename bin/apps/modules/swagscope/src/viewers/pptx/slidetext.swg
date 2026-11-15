@@ -139,7 +139,7 @@ impl SlideText
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
-                    if isRgbHex(color) do
+                    if Package.isRgbHex(color) do
                         runStyle.color = color
                 }
                 elif token.isElement("t")

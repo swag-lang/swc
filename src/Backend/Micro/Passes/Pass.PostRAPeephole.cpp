@@ -1532,6 +1532,8 @@ namespace
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldSignedFloorAverage);
         r.add(MicroInstrOpcode::LoadRegReg, tryNarrowCopyOf32BitResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldAddMultiplyResultCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetLoadedValueBeforeOffset);
+        r.add(MicroInstrOpcode::LoadRegReg, tryRetargetOffsetSelectResult);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldIntegerAddResultCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage64);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldUnsignedCeilAverage);

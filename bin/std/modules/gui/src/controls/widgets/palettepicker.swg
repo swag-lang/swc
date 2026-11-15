@@ -168,6 +168,7 @@ impl PalettePicker
         Swag.assert(parent != null)
         let result = Wnd.create'PalettePicker(parent, null, position, id)
         result.focusPolicy = .Tab
+        result.wndFlags    |= .FocusRing
         return result
     }
 

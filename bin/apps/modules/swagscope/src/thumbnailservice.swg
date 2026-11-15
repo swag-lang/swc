@@ -14,7 +14,7 @@ struct ThumbnailService
 
 impl ThumbnailService
 {
-    mtd render(path: string, settings: string = "")->Image fail
+    mtd render(path: string)->Image fail
     {
         if not .ready
         {
@@ -23,8 +23,7 @@ impl ThumbnailService
             .ready    = true
         }
 
-        var options = try ThumbnailSettings.decode(settings)
-        var image   = try renderThumbnail(&.registry, &.renderer, &options, path)
+        var image   = try renderThumbnail(&.registry, &.renderer, path)
         let largest = Math.max(image.width, image.height)
         if largest > ThumbnailMaxSize
         {
@@ -41,14 +40,11 @@ impl ThumbnailService
 // Uses a plugin decoder when it has one, otherwise renders a bounded source sample.
 func renderThumbnail(registry: const *ViewerPluginRegistry,
                      renderer: *ThumbnailRenderer,
-                     settings: *ThumbnailSettings,
                      path: string)->Image fail
 {
     var pluginIndex: u64
     let knownPlugin = registry.namePlugin(path, &pluginIndex)
-    if knownPlugin and
-       registry.plugins[pluginIndex].thumbnail and
-       settings.usesDefaultViewer(registry.plugins[pluginIndex].key)
+    if knownPlugin and registry.plugins[pluginIndex].thumbnail
     {
         return try registry.plugins[pluginIndex].thumbnail!(path, ThumbnailMaxSize)
     }

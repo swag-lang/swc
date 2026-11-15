@@ -26,7 +26,7 @@ using Core, Gui, Pixel, Viewers
     Swag.require((expect ThumbnailCache.key(source, settings: explorer.previewSettings)) != refreshed)
 }
 
-// Appearance changes leave previews intact; changing the selected viewer retires them.
+// Appearance and temporary file-viewer choices leave default previews intact.
 #test
 {
     let previousMarkdown = MarkdownText.g_ViewerSettings
@@ -54,13 +54,11 @@ using Core, Gui, Pixel, Viewers
     Swag.require(originalKey == (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
     Swag.require(ThumbnailSettings.capture(window) == explorer.previewSettings)
 
-    window.preferences.add(ViewerPreference{"markdown", "text"})
+    window.setFileViewer(source, "markdown", "text")
     explorer.refreshPreviewSettings()
-    let transferred = expect ThumbnailSettings.decode(explorer.previewSettings)
-    Swag.require(not transferred.usesDefaultViewer("markdown"))
-    Swag.require(explorer.generation == generation + 1 and explorer.cached.isEmpty())
-    Swag.require(not explorer.entries[0].attempted and not explorer.entries[0].texture.isValid())
-    Swag.require(originalKey != (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
+    Swag.require(explorer.generation == generation and explorer.cached.count == 1)
+    Swag.require(explorer.entries[0].attempted and explorer.entries[0].texture.isValid())
+    Swag.require(originalKey == (expect ThumbnailCache.key(source, settings: explorer.previewSettings)))
 }
 
 // Both user corrections survive the same application-state save and restore as the real window.

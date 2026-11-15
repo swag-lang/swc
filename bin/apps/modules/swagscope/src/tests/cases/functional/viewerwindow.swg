@@ -3,13 +3,26 @@
 
 using Core, Pixel, Gui, Viewers
 
-internal func saveViewerState(window: *ViewerWindow)->String
+struct LegacyViewerPreference
+{
+    kind:   String
+    viewer: String
+}
+
+internal func saveViewerState(window: *ViewerWindow, legacyViewer = false)->String
 {
     var result:     ConcatBuffer
     var encoder:    Serialization.Encoder'Serialization.Write.TagBin
     var serializer: Serialization.Serializer
     expect serializer.startWrite(&encoder, &result)
     expect serializer.beginSection(.Unordered)
+    if legacyViewer
+    {
+        var oldPreferences: Array'LegacyViewerPreference
+        oldPreferences.add({"text", "hex"})
+        expect serializer.serialize("ViewerWindow.preferences", &oldPreferences)
+    }
+
     expect window.serializeState(&serializer)
     expect serializer.endSection()
     expect serializer.end()
@@ -608,8 +621,8 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     host.pump()
 }
 
-// The viewer a reader picks for one file becomes the viewer that kind of file opens in, and
-// choosing the ordinary one back is the removal of that decision rather than one more.
+// An alternate viewer belongs only to that file in this window session, including a return
+// through history. Saving and restoring a window never revives the exception.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -631,7 +644,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     window.openFile(first)
     completeQueuedViewerFile(&host, window)
     Swag.require(window.choices.count == 3 and window.choices[0].key == PlainText.ViewerKey)
-    Swag.require(window.activeChoiceIndex == 0 and window.preferences.isEmpty())
+    Swag.require(window.activeChoiceIndex == 0 and window.fileViewerChoices.isEmpty())
 
     // Every viewer the file can open in is a segment of one row of the lens, the one in use
     // checked; the keys land on it.
@@ -646,23 +659,43 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     window.selectViewer(2)
     Swag.require(window.choices[window.activeChoiceIndex].key == "hex")
-    Swag.require(window.preferences.count == 1 and
-                 window.preferences[0].kind == PlainText.ViewerKey and
-                 window.preferences[0].viewer == "hex")
+    Swag.require(window.fileViewer(first) == "hex")
 
-    // The next file of the same kind opens where the reader left the previous one.
     window.openFile(second)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
+    window.openFile(first)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "hex")
+    window.reloadCurrentFile()
     completeQueuedViewerFile(&host, window)
     Swag.require(window.choices[window.activeChoiceIndex].key == "hex")
 
-    // The decision crosses a session with the other panel choices.
-    let state = saveViewerState(window)
-    window.preferences.clear()
-    loadViewerState(window, state.toSlice())
-    Swag.require(window.preferences.count == 1 and window.preferences[0].viewer == "hex")
+    // An old resume point may name an alternate viewer; it cannot select it in a fresh session.
+    window.openFile(second)
+    completeQueuedViewerFile(&host, window)
+    var point: ViewerResumePoint
+    point.file           = first
+    point.reading.viewer = "hex"
+    point.progress       = 0.5
+    window.resumePoints.add(#move point)
+    let state = saveViewerState(window, legacyViewer: true)
+    var nextHost: Testing.HeadlessHost
+    nextHost.setup(960, 680)
+    let fresh = ViewerWindow.create(&nextHost.surfaceWnd, createViewerPluginRegistry())
+    loadViewerState(fresh, state.toSlice())
+    Swag.require(fresh.fileViewerChoices.isEmpty())
+    Swag.require(fresh.resumePoint(first) != null)
+    fresh.resumeFile(first)
+    completeQueuedViewerFile(&nextHost, fresh)
+    Swag.require(fresh.choices[fresh.activeChoiceIndex].key == PlainText.ViewerKey)
 
+    window.openFile(first)
+    completeQueuedViewerFile(&host, window)
     window.selectViewer(0)
-    Swag.require(window.preferences.isEmpty())
+    Swag.require(window.fileViewerChoices.isEmpty())
+    window.openFile(second)
+    completeQueuedViewerFile(&host, window)
     window.openFile(first)
     completeQueuedViewerFile(&host, window)
     Swag.require(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)

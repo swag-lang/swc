@@ -321,7 +321,7 @@ impl ViewerWindow
             let choices  = .index.choices(fileName)
             if index >= choices.count or choices[index].key == "archive" do
                 return
-            .setPreferredViewer(choices[0].key, choices[index].key)
+            .setFileViewer(fileName, choices[0].key, choices[index].key)
             .queueFile(fileName)
             return
         }

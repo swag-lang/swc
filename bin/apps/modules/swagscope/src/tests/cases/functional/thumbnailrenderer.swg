@@ -12,12 +12,9 @@ private func thumbnailFixture(name: string)->String => Path.combine(testSourceRo
     defer catch File.delete(file)
     discard expect File.writeAllText(file, "WEBVTT\n\n00:00.000 --> 00:01.000\nVisible subtitle words\n")
     var service: ThumbnailService
-    var buffer:  ConcatBuffer
-    var encoder: Serialization.Encoder'Serialization.Write.TagBin
-    expect encoder.writeAll(&buffer, ThumbnailSettings{localArtworkOnly: true})
-    let subtitle = expect service.render(file, buffer.toString())
+    let subtitle = expect service.render(file)
     Swag.require(subtitle.width == 256 and subtitle.height == 320)
-    let video = expect service.render(thumbnailFixture("glint-aac-mjpeg.mp4"), buffer.toString())
+    let video = expect service.render(thumbnailFixture("glint-aac-mjpeg.mp4"))
     Swag.require(video.isValid())
 }
 
@@ -44,34 +41,32 @@ private func thumbnailFixture(name: string)->String => Path.combine(testSourceRo
 {
     var renderer = expect ThumbnailRenderer.create()
     let registry = createViewerPluginRegistry()
-    var settings: ThumbnailSettings
 
-    let markdown = expect renderThumbnail(&registry, &renderer, &settings, thumbnailFixture("markdown.images.md"))
+    let markdown = expect renderThumbnail(&registry, &renderer, thumbnailFixture("markdown.images.md"))
     Swag.require(markdown.width == 256 and markdown.height == 320)
 
-    let pdf = expect renderThumbnail(&registry, &renderer, &settings, thumbnailFixture("viewer.pdf"))
+    let pdf = expect renderThumbnail(&registry, &renderer, thumbnailFixture("viewer.pdf"))
     Swag.require(pdf.isValid())
     let genericPdf = expect renderer.render(thumbnailFixture("viewer.pdf"), "PDF", false)
     Swag.require(not Slice.equals(pdf.pixels.toSlice(), genericPdf.pixels.toSlice()))
 
-    let image = expect renderThumbnail(&registry, &renderer, &settings, thumbnailFixture("sample.svg"))
+    let image = expect renderThumbnail(&registry, &renderer, thumbnailFixture("sample.svg"))
     Swag.require(image.isValid())
 
-    let video = expect renderThumbnail(&registry, &renderer, &settings, thumbnailFixture("glint-aac-mjpeg.mp4"))
+    let video = expect renderThumbnail(&registry, &renderer, thumbnailFixture("glint-aac-mjpeg.mp4"))
     Swag.require(video.isValid())
 
-    let comic = expect renderThumbnail(&registry, &renderer, &settings, thumbnailFixture("viewer.comic.cbz"))
+    let comic = expect renderThumbnail(&registry, &renderer, thumbnailFixture("viewer.comic.cbz"))
     Swag.require(comic.isValid())
     let genericComic = expect renderer.render(thumbnailFixture("viewer.comic.cbz"), "Comic book", false)
     Swag.require(not Slice.equals(comic.pixels.toSlice(), genericComic.pixels.toSlice()))
-    let sound = expect renderThumbnail(&registry, &renderer, &settings, thumbnailFixture("pacman_beginning.wav"))
+    let sound = expect renderThumbnail(&registry, &renderer, thumbnailFixture("pacman_beginning.wav"))
     Swag.require(sound.width == 256 and sound.height == 128)
     Swag.require(sound.pixelColor(0, 0).argb == Color.fromRgb(248, 249, 250).argb)
     var waveform = false
     for x in 16 to 240 where sound.pixelColor(x, 64).argb != Color.fromRgb(248, 249, 250).argb do
         waveform = true
     Swag.require(waveform)
-
 }
 
 // Every registered reader produces a bounded Explorer thumbnail from its smoke fixture.
@@ -80,7 +75,7 @@ private func thumbnailFixture(name: string)->String => Path.combine(testSourceRo
     // Every shipped reader must yield a real image or a neutral file card, never a byte map.
     let registry = createViewerPluginRegistry()
     var service: ThumbnailService
-    var checked = 0'u64
+    var checked  = 0'u64
     for &plugin in registry.plugins where plugin.smokeFixture.count
     {
         let file  = thumbnailFixture(plugin.smokeFixture)
@@ -88,6 +83,7 @@ private func thumbnailFixture(name: string)->String => Path.combine(testSourceRo
         Swag.require(image.isValid() and Math.max(image.width, image.height) <= 320)
         checked += 1
     }
+
     Swag.require(checked == registry.plugins.count)
 }
 

@@ -49,7 +49,7 @@ impl PlaybackButton
             .playback          = playback
             .showSlideDuration = showSlideDuration
             .focusPolicy       = .Tab
-            .wndFlags          |= .ActivatesOnKey
+            .wndFlags          |= .ActivatesOnKey | .FocusRing
             .padding           = metrics.btnIcon_Padding
             .toolTip           = appStrings().ui_PlayMode
             .updateFlags(.CenterContent)

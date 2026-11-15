@@ -166,6 +166,7 @@ impl Stepper
         with let result = Wnd.create'Stepper(parent, null, pos, id)
         {
             .focusPolicy = .Tab
+            .wndFlags    |= .FocusRing
             .minSize.y   = metrics.editBox_Height
         }
 

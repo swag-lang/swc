@@ -3,6 +3,9 @@
 ui_Name      Bande dessinée
 ui_Previous  Page précédente
 ui_Next      Page suivante
+ui_RightToLeft Lire de droite à gauche
 ui_Preparing Préparation de la page…
 ui_Details   Bande dessinée · page % sur %
+ui_GoToPage  Aller à la page
+ui_PageRange Saisissez un numéro de page entre 1 et %.
 err_NoPages  Cette bande dessinée ne contient aucune page lisible.

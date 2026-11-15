@@ -1,15 +1,10 @@
 using Core, Pixel, Gui
 
-// One remembered answer to "which viewer opens a file of this kind".
-//
-// A reader who turns to the bytes of one picture is telling the application what to do with the
-// next one, so the choice is kept against the viewer the file would have opened in rather than
-// against its extension: every video reaches the byte view through one decision, not one per
-// container.
-struct ViewerPreference
+// One file's explicit viewer choice, retained only by this window for its current session.
+struct ViewerFileChoice
 {
-    kind:   String     // Stable key of the viewer a file of this kind opens in by default.
-    viewer: String     // Stable key of the viewer the reader chose for it instead.
+    file:   String
+    viewer: String
 }
 
 // One recently viewed folder and the last file that made it current.
@@ -162,7 +157,7 @@ struct ViewerWindow
     resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
     exploredFolders:     Array'String     // Directories explored lately, most recent first.
     systemPlaces:        Array'String     // The system's own folders a first launch offers to explore.
-    preferences:         Array'ViewerPreference
+    fileViewerChoices:   Array'ViewerFileChoice
     musicChoices:        Array'MusicChoice
     onlineMovies:        bool = true
     onlineMusic:         bool = true
@@ -490,7 +485,6 @@ impl IWnd for ViewerWindow
             .captureResume()
         catch evt.serializer.serialize("ViewerWindow.resumePoints", &me.resumePoints)
         catch evt.serializer.serialize("ViewerWindow.exploredFolders", &me.exploredFolders)
-        catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
         catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
         catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)

@@ -213,7 +213,9 @@ integration around those engines.
 ### app.scope.document.027 — CBZ has page turns but no complete comic reading modes
 
 - Evidence: `Viewers.Comic` lists image members in natural filename order and opens one page through
-  `EmbeddedViewer`; the controls only offer previous and next. A dedicated reader such as
+  `EmbeddedViewer`. Previous and next controls are available, and a lens option maps left/right
+  keys to manga reading order. A clickable page counter accepts a one-based page number. There is
+  still no thumbnail index or multi-page reading layout. A dedicated reader such as
   [OpenComic](https://github.com/ollm/OpenComic) offers right-to-left manga, double-page spreads,
   continuous webtoon scroll, bookmarks and reading-position restore.
 - Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous

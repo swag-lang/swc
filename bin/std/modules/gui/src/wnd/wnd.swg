@@ -259,6 +259,7 @@ enum WndFlags
     // question; see [[Gui.Dialog.keyboardEntry]].
     ActivatesOnKey
     NoPointerFocus     // Keeps pointer presses from assigning focus; explicit keyboard focus still works.
+    FocusRing          // Draws the automatic outer ring for a keyboard-focusable widget; views and panels leave it off.
 }
 
 // Forms one node in a retained GUI tree and provides layout, event, and painting services.
@@ -1142,7 +1143,10 @@ impl Wnd
         if .isPendingDestroy or not .isLocallyVisible() or not .isLocallyEnabled() do
             return
 
-        if .focusPolicy == .Tab and not .wndFlags.has(.NoFocusRing) and .showsFocusRing()
+        if .focusPolicy == .Tab and
+           .wndFlags.has(.FocusRing) and
+           not .wndFlags.has(.NoFocusRing) and
+           .showsFocusRing()
         {
             var rect = .surfaceRect()
             rect.offset(-root.x, -root.y)

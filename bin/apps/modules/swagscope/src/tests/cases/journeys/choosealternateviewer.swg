@@ -3,13 +3,13 @@
 
 using Core, Gui, Pixel
 
-// Choose the hex view of a text file, carry that choice to its neighbor, then return to text.
+// Choose hex for one file, keep its neighbor in text, then return to the original exception.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
     var journey: ScopeJourney
     journey.setup()
-    let first = journey.copyData("comprehensive.txt", "A-first.txt")
+    let first  = journey.copyData("comprehensive.txt", "A-first.txt")
     let second = journey.copyData("comprehensive.txt", "B-second.txt")
     let window = journey.window
 
@@ -26,9 +26,12 @@ using Core, Gui, Pixel
 
     window.sendCommandEvent(ViewerCommands.NextFile)
     journey.waitForFile(second)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "text")
+    window.sendCommandEvent(ViewerCommands.PreviousFile)
+    journey.waitForFile(first)
     Swag.require(window.choices[window.activeChoiceIndex].key == "hex")
 
     window.selectViewer(0)
     journey.waitFor("text viewer restored", func|window|()->bool => window.choices[window.activeChoiceIndex].key == "text")
-    Swag.require(window.preferences.isEmpty())
+    Swag.require(window.fileViewerChoices.isEmpty())
 }

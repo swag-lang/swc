@@ -16,7 +16,7 @@ struct Text
     limited: bool
 }
 
-func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFormat, width: f32)->Text fail
+func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFormat, width: f32, readerStyle = false)->Text fail
 {
     var result: Text
     var scan        = Package.Scanner.create(source)
@@ -29,7 +29,7 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
     var skip        = Swag.U64.Max
     var lists:  Array'bool
 
-    func flush(result: *Text, text: *String, run: Docx.RunFormat, width: f32)
+    func flush(result: *Text, text: *String, run: Docx.RunFormat, width: f32, readerStyle: bool)
     {
         if text.isEmpty() do
             return
@@ -39,11 +39,20 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
             var escaped: String
             Package.appendHtmlEscaped(&escaped, text[])
             let pixels = cast(f32, run.size ? run.size : 36) / 2 * 4 / 3
-            result.html += Format.toString("<span style=\"font-size:%{f4}vw;\">", pixels / width * 100)
+            if not readerStyle do
+                result.html += Format.toString("<span style=\"font-size:%{f4}vw;\">", pixels / width * 100)
             var inner = run
             inner.size = 0
+            if readerStyle
+            {
+                inner.family.clear()
+                inner.color.clear()
+                inner.highlight.clear()
+            }
+
             inner.appendHtml(&result.html, escaped)
-            result.html += "</span>"
+            if not readerStyle do
+                result.html += "</span>"
         }
 
         text.clear()
@@ -82,7 +91,7 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
                 {
                     if token.isElement("span")
                     {
-                        flush(&result, &text, run, width)
+                        flush(&result, &text, run, width, readerStyle)
                         stack.add(Inline{run})
                         let properties = styles.lookup(token.attribute("style-name") orelse "", .Text)
                         properties.applyRun(&run)
@@ -90,7 +99,7 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
                     }
                     elif token.isElement("line-break")
                     {
-                        flush(&result, &text, run, width)
+                        flush(&result, &text, run, width, readerStyle)
                         result.html  += "<br>"
                         result.plain += "\n"
                     }
@@ -137,12 +146,12 @@ func readText(source: string, styles: const *Odf.StyleCatalog, base: Docx.RunFor
             {
                 if token.isElement("span") and not stack.isEmpty()
                 {
-                    flush(&result, &text, run, width)
+                    flush(&result, &text, run, width, readerStyle)
                     run = stack.popBack().run
                 }
                 elif (token.isElement("p") or token.isElement("h")) and inParagraph
                 {
-                    flush(&result, &text, run, width)
+                    flush(&result, &text, run, width, readerStyle)
                     result.html  += "</p>"
                     result.plain += "\n"
                     inParagraph  = false

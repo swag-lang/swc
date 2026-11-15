@@ -33,6 +33,7 @@ struct Panel
     view:         *HtmlView?
     slide:        u64 = Swag.U64.Max
     textMode:     bool
+    notesMode:    bool
 
     late
     {
@@ -85,8 +86,14 @@ private impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged do
-            .refreshNavigation()
+        if evt.kind == .LanguageChanged
+        {
+            if .notesMode and .slide < .presentation.slides.count do
+                .buildSlide()
+            else do
+                .refreshNavigation()
+        }
+
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -106,7 +113,9 @@ private impl Panel
         if .slide >= count do
             return
         var detail = Format.toString(texts().ui_CurrentSlide, .slide + 1, count)
-        if .textMode do
+        if .notesMode do
+            detail += Format.toString(" · %", texts().ui_NotesMode)
+        elif .textMode do
             detail += Format.toString(" · %", texts().ui_TextMode)
         elif .presentation.slides[.slide].simplified do
             detail += Format.toString(" · %", texts().ui_Simplified)
@@ -138,9 +147,20 @@ private impl Panel
 
     internal mtd setTextMode(enabled: bool)
     {
-        if .textMode == enabled do
+        if .textMode == enabled and not .notesMode do
             return
-        .textMode = enabled
+        .textMode  = enabled
+        .notesMode = false
+        if .slide < .presentation.slides.count do
+            .buildSlide()
+    }
+
+    internal mtd showNotes()
+    {
+        if .notesMode do
+            return
+        .notesMode = true
+        .textMode  = false
         if .slide < .presentation.slides.count do
             .buildSlide()
     }
@@ -152,7 +172,27 @@ private impl Panel
         let page  = &.presentation.slides[.slide]
         var source: String
         var style = HtmlStyle.theme()
-        if .textMode or page.simplified
+        if .notesMode
+        {
+            source = "<html><body><h1>"
+            Package.appendHtmlEscaped(&source, page.title.isEmpty() ? Format.toString(texts().ui_Slide, .slide + 1) : page.title)
+            source += "</h1>"
+            if page.notesHtml.isEmpty()
+            {
+                source += "<p>"
+                Package.appendHtmlEscaped(&source, texts().ui_NoNotes)
+                source += "</p>"
+            }
+            else
+            {
+                source += page.notesHtml
+            }
+
+            source += "</body></html>"
+            style.maxContentWidth = 680
+            style.bodyFontSize    = 18
+        }
+        elif .textMode or page.simplified
         {
             source                = "<html><body>"
             source                += page.readingHtml()
@@ -187,7 +227,7 @@ private impl Panel
         let roomWidth  = Math.max(area.width - 2 * inset, 1)
         let roomHeight = Math.max(area.height - top - inset, 1)
         var bounds     = Math.Rectangle{inset, top, roomWidth, roomHeight}
-        if not .textMode and not .presentation.slides[.slide].simplified
+        if not .notesMode and not .textMode and not .presentation.slides[.slide].simplified
         {
             let scale = Math.min(roomWidth / .presentation.width, roomHeight / .presentation.height)
             bounds.width  = Math.round(.presentation.width * scale)
@@ -229,8 +269,9 @@ private impl Panel
     {
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: .slide == 0 or .slide >= .presentation.slides.count, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: .slide >= .presentation.slides.count or .slide + 1 >= .presentation.slides.count, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
-        entries.add(texts().ui_ShowSlides, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode)
+        entries.add(texts().ui_ShowSlides, .File, func|view = me|() { view.setTextMode(false) }, checked: not .textMode and not .notesMode)
         entries.add(texts().ui_ReadText, .Wrap, func|view = me|() { view.setTextMode(true) }, checked: .textMode)
+        entries.add(texts().ui_ReadNotes, .Wrap, func|view = me|() { view.showNotes() }, checked: .notesMode)
     }
 
     func create(host: Viewer.Host)->*Panel

@@ -209,13 +209,18 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   images and embedded objects are named. Animations, media, charts, gradients, advanced shapes,
   full master placeholder geometry and exact font reproduction are not supported. Macros,
   actions and external links never execute or fetch resources.
+  Read Speaker Notes in the lens opens the slide's text notes separately, retaining emphasis
+  in a theme-aware reading flow. Notes-page counters, thumbnails, dates and footers stay out.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
   filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
   offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly
-  labelled simplified layout. Animation, charts, complex drawings, speaker notes, embedded media
-  and exact font reproduction remain unsupported; actions and external relationships never run.
+  labelled simplified layout. Read Speaker Notes in the lens opens the current slide's text notes
+  with emphasis and the normal slide navigation; empty notes are stated explicitly. Notes are
+  capped at 1 MiB per slide and share the deck's text budget. Notes-page thumbnails, counters,
+  dates and footers stay out. Animation, charts, complex drawings, embedded media and exact font
+  reproduction remain unsupported; actions and external relationships never run.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a

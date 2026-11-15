@@ -237,10 +237,10 @@ viewer packages, helper binaries, or network service required to open supported 
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | DOCX | `.docx` | inherited typography, styled headings/outline, paragraphs, tables and pictures | authored pages, sections, annotations and complex tables | [app.scope.document.020](app.scope.document.md) |
 | XLSX | `.xlsx` | virtual sheets, authored geometry and common cell/numeric styles | default styles, frozen panes and search | [app.scope.document.025](app.scope.document.md) |
-| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text mode | notes, thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
+| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text and notes modes | thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
 | ODT | `.odt` | styled prose, headings/outline, lists, simple tables and embedded pictures | authored pages, drawings and annotations | [app.scope.document.032](app.scope.document.md) |
 | ODS | `.ods` | native sheets, saved formatted values, inherited cell paint and common geometry | complete number styles, drawings, exact geometry and search | [app.scope.document.032](app.scope.document.md) |
-| ODP | `.odp` | fitted slides, basic styles/masters, positioned text/pictures, title list and text mode | complete drawings, notes, master placeholders and lazy slides | [app.scope.document.032](app.scope.document.md) |
+| ODP | `.odp` | fitted slides, basic styles/masters, positioned text/pictures, title list, text and notes modes | complete drawings, master placeholders and lazy slides | [app.scope.document.032](app.scope.document.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | chapters, EPUB 2/3 contents, passage-preserving zoom/columns and back/forward | book search, persistent position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
 | Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |

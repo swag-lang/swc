@@ -173,6 +173,7 @@ private impl Reader
         var skip       = Swag.U64.Max
         var shapeAt    = Swag.U64.Max
         var shapeDepth = Swag.U64.Max
+        var notesAt    = Swag.U64.Max
         while true
         {
             let at = scan.offset
@@ -183,6 +184,8 @@ private impl Reader
                 depth += 1
                 if skip == Swag.U64.Max
                 {
+                    if token.isElement("notes") and not masterMode do
+                        notesAt = at
                     if token.isElement("notes") or
                        token.isElement("annotation") or
                        token.isElement("animations") or
@@ -223,6 +226,15 @@ private impl Reader
             {
                 if skip == depth
                 {
+                    if notesAt != Swag.U64.Max
+                    {
+                        result.notesHtml += try readSpeakerNotes(source[notesAt until scan.offset], &.styles.typography)
+                        .textBytes       += result.notesHtml.count
+                        if .textBytes > 32 * 1024 * 1024 do
+                            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+                        notesAt = Swag.U64.Max
+                    }
+
                     skip = Swag.U64.Max
                 }
                 elif skip == Swag.U64.Max and shapeDepth == depth

@@ -12,3 +12,7 @@ ui_ReadText "Lire le texte des diapositives"
 ui_TextMode "vue texte"
 ui_Simplified "mise en page simplifiée"
 ui_CurrentSlide "Présentation · diapositive % sur %"
+
+ui_ReadNotes "Lire les notes de présentation"
+ui_NotesMode "notes de présentation"
+ui_NoNotes "Cette diapositive ne contient pas de notes de présentation."

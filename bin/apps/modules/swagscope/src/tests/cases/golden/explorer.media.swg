@@ -42,11 +42,11 @@ using Core, Gui, Pixel
     Swag.require(Utf8.contains(window.infoSheet.text(), "Distribution\nHarrison Ford"))
     explorer.entries[0].movie.imdbRating = "8.2/10"
     explorer.entries[0].movie.date       = "1982-06-25"
-    explorer.entries[0].movie.overview   = "Un dÃ©tective dans le futur."
+    explorer.entries[0].movie.overview   = "Un détective dans le futur."
     explorer.showMediaInfo()
     Swag.require(Utf8.contains(window.infoSheet.text(), "8.2 IMDb"))
     Swag.require(Utf8.contains(window.infoSheet.text(), "1982"))
-    Swag.require(Utf8.contains(window.infoSheet.text(), "Un dÃ©tective dans le futur."))
+    Swag.require(Utf8.contains(window.infoSheet.text(), "Un détective dans le futur."))
     explorer.entries[1].music = {title: "Discovery", artist: "Daft Punk", date: "2001-03-12"}
     explorer.grid.select(1)
     Swag.require(Utf8.contains(window.infoSheet.text(), "Discovery"))
@@ -66,7 +66,7 @@ using Core, Gui, Pixel
     host.theme.setLight()
     host.notify(.ThemeChanged)
     shipFrame(&host)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let explorer = Explorer.create(window.documentPanel, window)
     window.explorer       = explorer
     window.explorerActive = true
@@ -83,6 +83,7 @@ using Core, Gui, Pixel
         .add(.Frames, "2,880")
         .add(.Bitrate, "4,560 kb/s")
     }
+
     explorer.fill()
     explorer.setShown(true)
     explorer.grid.select(0)

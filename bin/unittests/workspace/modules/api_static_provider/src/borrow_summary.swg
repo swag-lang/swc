@@ -165,6 +165,11 @@ func depUafInferredReadThenReleaseProjected(node: *DepUafNode)
     depUafInferredReleaseProjected(node)
 }
 
+func depUafInferredReadThenReleaseProjectedWrapper(node: *DepUafNode)
+{
+    depUafInferredReadThenReleaseProjected(node)
+}
+
 func depUafInferredReleaseProjectedAlias(node: *DepUafNode)
 {
     let pointer: *s32 = node.data

@@ -190,9 +190,10 @@ is the current scorecard.
   to that field through wrappers. For body-visible carrier calls, possible field writes now
   propagate separately from releases: a known read-only call no longer suppresses a later
   field-release summary, while bodyless calls remain conservative. The consumer regression verifies
-  the generated `freesFields` effect and diagnoses both the field reload and its old alias after a
-  read-only carrier call. Replacement and refill-before-release cases remain silent for aliases to
-  the old allocation. Globals, automatic reset inference and unavailable bodies remain unsolved.
+  the generated `freesFields` effect through a wrapper around a read-only carrier call and diagnoses
+  both the field reload and its old alias. Replacement and refill-before-release cases remain
+  silent for aliases to the old allocation. Globals, automatic reset inference and unavailable
+  bodies remain unsolved.
 - One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
   projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
   single run; repeat it before treating the small timing difference as a regression.

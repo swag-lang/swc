@@ -6,6 +6,8 @@ using Core, Gui
 // Visible strings of the EPUB reader.
 struct Texts
 {
+    ui_Back:                string = "Back in Book"
+    ui_Forward:             string = "Forward in Book"
     ui_CompactColumn:       string = "Compact Reading Column"
     ui_ComfortableColumn:   string = "Comfortable Reading Column"
     ui_WideColumn:          string = "Wide Reading Column"

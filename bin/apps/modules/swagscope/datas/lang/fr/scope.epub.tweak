@@ -16,3 +16,6 @@ err_ContentsTooLarge   La table des matières de ce livre est trop volumineuse p
 ui_CompactColumn "Colonne de lecture étroite"
 ui_ComfortableColumn "Colonne de lecture confortable"
 ui_WideColumn "Colonne de lecture large"
+
+ui_Back "Retour dans le livre"
+ui_Forward "Avancer dans le livre"

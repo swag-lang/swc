@@ -227,11 +227,12 @@ integration around those engines.
 
 - Evidence: EPUB 2 NCX and EPUB 3 contents now expose authored titles, hierarchy and chapter
   fragments in the shared filterable outline. Internal spine links keep the chapter counter in
-  sync, and chapter reading has its own zoom. Book-wide search, landmarks, non-spine footnotes,
-  reading-position restore, bookmarks and link history remain absent. Extraction still prepares
-  every package member before the first chapter is shown.
+  sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
+  returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
+  Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
+  remain absent. Extraction still prepares every package member before the first chapter is shown.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
-  bookmarks, link back/forward and lazy extraction of the visible chapter's resources.
+  bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010

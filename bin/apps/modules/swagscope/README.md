@@ -146,6 +146,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   The lens also selects compact (520 px), comfortable (680 px) and wide (900 px) default
   reading columns. Zoom and column changes retain the visible text passage instead of its old
   pixel scroll position; authored CSS keeps priority. These choices last for the open book.
+  Back/Forward in the lens, or `Alt+Left` / `Alt+Right` while reading, returns through chapter
+  and fragment visits at the previous text passage. History keeps up to 128 visits in each
+  direction for the open book; a new destination clears the forward branch.
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.

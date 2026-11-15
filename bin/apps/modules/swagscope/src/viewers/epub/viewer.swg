@@ -24,19 +24,37 @@ func viewerPlugin()->Viewer.Plugin
 
 enum ReadingColumn { Compact, Comfortable, Wide }
 
+struct ReadingVisit
+{
+    chapter:  u64
+    position: HtmlReadingPosition
+    fragment: String
+}
+
+private func pushVisit(stack: *Array'ReadingVisit, visit: ReadingVisit)
+{
+    if stack.count >= 128 do
+        stack.removeAtOrdered(0)
+    stack.add(visit)
+}
+
 // Owns book navigation while the HTML control streams the selected chapter and its resources.
 struct Panel
 {
     using wnd: Wnd
 
-    book:          Book
-    load:          Viewer.BackgroundLoad'Book
-    services:      Viewer.HostServices
-    chapter:       u64 = Swag.U64.Max
-    view:          *HtmlView?
-    contents:      Array'NavigationEntry
-    zoomPercent:   u32 = 100
-    readingColumn: ReadingColumn = .Comfortable
+    book:            Book
+    load:            Viewer.BackgroundLoad'Book
+    services:        Viewer.HostServices
+    chapter:         u64 = Swag.U64.Max
+    view:            *HtmlView?
+    contents:        Array'NavigationEntry
+    zoomPercent:     u32 = 100
+    readingColumn:   ReadingColumn = .Comfortable
+    backVisits:      Array'ReadingVisit
+    forwardVisits:   Array'ReadingVisit
+    pendingPosition: HtmlReadingPosition
+    fragment:        String
 
     late
     {
@@ -73,6 +91,8 @@ private impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        if .handleHistoryKey(evt) do
+            return
         let direction = Viewer.pageKeyDirection(evt)
         if direction
         {
@@ -160,15 +180,36 @@ private impl Panel
         return result
     }
 
-    internal mtd showChapter(index: u64, fragment: string = "")
+    internal mtd showChapter(index: u64, fragment: string = "", remember = true)
     {
-        if index >= .book.chapters.count do
+        if index >= .book.chapters.count or fragment.count > 4096 do
             return
         if index == .chapter and .view
         {
-            discard .view.navigateToFragment(Format.toString("#%", fragment))
+            let previous = .currentVisit()
+            if .view.navigateToFragment(Format.toString("#%", fragment))
+            {
+                if remember
+                {
+                    pushVisit(&.backVisits, previous)
+                    .forwardVisits.clear()
+                }
+
+                .fragment        = fragment
+                .pendingPosition = {}
+            }
+
             return
         }
+
+        if remember and .view and .chapter < .book.chapters.count
+        {
+            pushVisit(&.backVisits, .currentVisit())
+            .forwardVisits.clear()
+        }
+
+        .pendingPosition = {}
+        .fragment        = fragment
 
         .view?.hide()
         .view?.destroy()
@@ -183,6 +224,11 @@ private impl Panel
             {
                 panel.followLink(url)
                 return true
+            }
+
+            .sigDocumentChanged += func|panel = me|(_)
+            {
+                panel.restorePendingPosition()
             }
 
             .sigLoadFailed += func|panel = me|(_, reason)
@@ -216,6 +262,65 @@ private impl Panel
         }
     }
 
+    mtd currentVisit()->ReadingVisit
+    {
+        var result: ReadingVisit
+        result.chapter  = .chapter
+        result.fragment = .fragment
+        if .pendingPosition.isValid() do
+            result.position = .pendingPosition
+        elif .view do
+            result.position = .view.readingPosition()
+        return result
+    }
+
+    mtd restorePendingPosition()
+    {
+        if not .pendingPosition.isValid() or not .view do
+            return
+        if .view.restoreReadingPosition(.pendingPosition) or not .view.isLoading() do
+            .pendingPosition = {}
+    }
+
+    mtd restoreVisit(visit: ReadingVisit)
+    {
+        .showChapter(visit.chapter, visit.fragment, false)
+        .pendingPosition = visit.position
+        .restorePendingPosition()
+    }
+
+    internal mtd goBack()
+    {
+        if .backVisits.isEmpty() do
+            return
+        let visit = .backVisits.popBack()
+        pushVisit(&.forwardVisits, .currentVisit())
+        .restoreVisit(visit)
+    }
+
+    internal mtd goForward()
+    {
+        if .forwardVisits.isEmpty() do
+            return
+        let visit = .forwardVisits.popBack()
+        pushVisit(&.backVisits, .currentVisit())
+        .restoreVisit(visit)
+    }
+
+    mtd handleHistoryKey(evt: const *KeyEvent)->bool
+    {
+        if evt.kind != .Pressed or evt.modifiers != .Alt do
+            return false
+        switch evt.key
+        {
+        case .Left:  .goBack()
+        case .Right: .goForward()
+        default:     return false
+        }
+
+        return true
+    }
+
     mtd applyReadingStyle()
     {
         if not .view do
@@ -242,6 +347,8 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: .backVisits.isEmpty(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: .forwardVisits.isEmpty(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
@@ -304,6 +411,8 @@ private impl Panel
         {
             if evt is KeyEvent as key
             {
+                if result.handleHistoryKey(key) do
+                    return true
                 let direction = Viewer.pageKeyDirection(key)
                 if direction
                 {

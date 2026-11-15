@@ -615,8 +615,8 @@ impl QuickWnd
         if .qsCallout.forms.isEmpty() do
             .defaultQuickStyleCallout()
 
-        .updateQuickStyles(forceRebuild: true)
-
+        // The row of presets and the properties of the inspector are written from the models:
+        // the models take their first entries before either is written again.
         .main.updateModel(.qsArrow.forms[0])
         .main.updateModel(.qsLine.forms[0])
         .main.updateModel(.qsShape.forms[0])
@@ -626,7 +626,8 @@ impl QuickWnd
         .main.updateModel(.qsText.forms[0])
         .main.updateModel(.qsDraw.forms[0])
         .main.updateModel(.qsCallout.forms[0])
-        .updateSelection()
+        .updateQuickStyles(forceRebuild: true)
+        .main.updateState()
     }
 
     // Shows the quick-style menu at `pos`: keep the current style, edit a saved preset, or reset.

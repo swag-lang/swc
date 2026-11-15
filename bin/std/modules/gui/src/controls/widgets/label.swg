@@ -14,13 +14,17 @@ enum LabelFlags
     LinkActions       // Keeps links underlined and exposes their actions to keyboard traversal.
 }
 
-// Displays rich text and an optional icon, and reports activated links.
+// Displays text and an optional icon, and reports activated links.
+//
+// The text given at creation and through [[Gui.Label.setText]] is literal. A sentence that
+// styles some of its words is written in inline markup and given to [[Gui.Label.setMarkup]],
+// or built as a [[Pixel.RichString]] and given to [[Gui.Label.setRichText]].
 //
 // Use [[Gui.LabelFlags.LinkActions]] for an action inside prose. The rich string owns wrapping,
 // baseline alignment and trailing text; disabling links keeps the rest of the paragraph readable.
 //
 // ```swag
-// let sentence = Label.create(parent, "Retry after <url>15\u00A0minutes</url>.", flags: .LinkActions)
+// let sentence = Label.createMarkup(parent, "Retry after <a>15\u00A0minutes</a>.", flags: .LinkActions)
 // sentence.setLinksEnabled(false)
 // ```
 struct Label
@@ -29,7 +33,7 @@ struct Label
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted when the user activates a rich-text link.
+        sigLinkActivated: SigArray'func||(*Wnd, string)     // Emitted with the target of the link the user activates.
 
         readonly
         {
@@ -77,7 +81,7 @@ impl IWnd for Label
                         .activeLink = index
                 }
 
-                let target = .name.urlText(.hotChunk.urlStart)
+                let target = .name.urlTarget(.hotChunk.urlStart)
                 .sigLinkActivated.call(me, target.toString())
             }
             else
@@ -142,7 +146,7 @@ impl IWnd for Label
              evt.modifiers == .None and
              .activeLink < .name.chunks.count
         {
-            let target = .name.urlText(.name.chunks[.activeLink].urlStart)
+            let target = .name.urlTarget(.name.chunks[.activeLink].urlStart)
             .sigLinkActivated.call(me, target.toString())
             evt.accepted = true
         }
@@ -319,7 +323,8 @@ impl Label
         return sf
     }
 
-    // Creates a label with optional wrapping, sizing, and link behavior.
+    // Creates a label showing the literal text `name`, with optional wrapping, sizing, and link
+    // behavior.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: LabelFlags = .None)->*Label
     {
@@ -335,22 +340,59 @@ impl Label
         return lbl
     }
 
-    // Replaces the displayed rich text and reapplies automatic sizing.
+    // Creates a label showing a sentence written in inline markup, as [[Gui.Label.create]] does
+    // with literal text.
+    //
+    // See [[Gui.Label.setMarkup]] for what the sentence may contain.
+    #[Swag.Discardable]
+    func createMarkup(parent: *Wnd, markup: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: LabelFlags = .None)->*Label
+    {
+        let lbl = create(parent, null, position, id, flags)
+        lbl.setMarkup(markup)
+        return lbl
+    }
+
+    // Replaces the displayed text with the literal `text` and reapplies automatic sizing.
+    //
+    // No character of `text` is interpreted, so outside text is safe as it is.
     mtd setText(text: string?)
     {
-        if .name == (text orelse "") do
+        if .name.isPlain() and .name == (text orelse "") do
             return
+        .name.set(text)
+        .textChanged()
+    }
+
+    // Replaces the displayed text with a sentence written in inline markup.
+    //
+    // See [[Pixel.RichString.setMarkup]] for the markup, and pass outside text through
+    // [[Pixel.RichString.escape]] before formatting it into the sentence.
+    mtd setMarkup(markup: string?)
+    {
+        .name.setMarkup(markup)
+        .textChanged()
+    }
+
+    // Replaces the displayed text with a copy of the styled runs of `text`.
+    mtd setRichText(text: RichString)
+    {
+        .name = text
+        .textChanged()
+    }
+
+    // Forgets the links of the previous text and fits the label to the new one.
+    private mtd textChanged()
+    {
         .hotChunk   = null
         .activeLink = Swag.U64.Max
-        .name.set(text)
         .updateActionFocus()
         .invalidate()
         .invalidateLayout()
         .updateAutomaticHeight()
     }
 
-    // Returns the displayed text, including any formatting markers.
-    mtd text()->string => .name.raw
+    // Returns the displayed text, without any style information.
+    mtd text()->string => .name.text
 
     // Enables or disables only the rich-text links, preserving the paragraph's text emphasis.
     mtd setLinksEnabled(enabled: bool)

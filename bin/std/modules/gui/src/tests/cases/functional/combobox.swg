@@ -128,7 +128,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 
     combo.removeItemAt(0)
     Swag.require(combo.items.count == 2 and combo.selectedIndex == 1)
-    Swag.require(combo.selectedItem()!.name.raw == "Three")
+    Swag.require(combo.selectedItem()!.name.text == "Three")
     Swag.require(combo.editBox != null)
     Swag.require(combo.editBox.text() == "Three")
 
@@ -160,7 +160,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     Swag.require(combo.selectedIndex == 1)
     Swag.require(ComboHeadlessChangedCount == 1)
     Swag.require(ComboHeadlessLastIdx == 1)
-    Swag.require(combo.selectedItem()!.name.raw == "Two")
+    Swag.require(combo.selectedItem()!.name.text == "Two")
     Swag.require(host.commandCount == 1)
     Swag.require(host.lastCommand == ComboHeadless_Item2)
 
@@ -394,7 +394,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
         item.fontStyle = style
         let regular = unwrap combo.font().regular
         let face    = combo.font().getFont(style) orelse regular
-        contentWidth += Painter.measureString(item.name.raw, face).width
+        contentWidth += Painter.measureString(item.name.text, face).width
     }
 
     let metrics = combo.themeMetrics()

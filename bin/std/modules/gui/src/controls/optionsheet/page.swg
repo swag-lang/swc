@@ -60,7 +60,7 @@ impl Row
     mtd const buildLink(page: *Page)
     {
         Swag.assert(.kind == .Link, "only a link opens a page")
-        page.title = .label.raw
+        page.title = .label.text
         let build = unwrap .open
         build(page)
     }
@@ -107,13 +107,15 @@ impl Page
     //
     // `choose` applies the value. `detail` is written on a second line under the wording, such as
     // the channels and rate of a sound track. `icon` is written after the wording, for a value a
-    // glyph already names elsewhere in the interface.
-    mtd addChoice(label: string, checked: bool, choose: func||(), detail: string? = null, icon: Icon = {}, disabled = false)
+    // glyph already names elsewhere in the interface. `note` is written right after the wording
+    // in a quieter ink, such as the language of a track; it is part of the row label.
+    mtd addChoice(label: string, checked: bool, choose: func||(), detail: string? = null, icon: Icon = {}, disabled = false, note: string? = null)
     {
         with var row: Row
         {
             .kind = .Choice
             .label.set(label)
+            .label.append(note, {paletteIndex: 2})
             .detail.set(detail orelse "")
             .icon     = icon
             .checked  = checked

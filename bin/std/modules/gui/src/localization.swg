@@ -59,30 +59,30 @@ struct Strings
         inspector_Tab: string = "Properties"     // Word on the edge tab of a folded inspector.
 
         about_Build:     string = "Build of %{f}"       // Application build date in the standard about dialog.
-        about_Source:    string = "% is open source and written in <url>Swag</url>. Its code is <url>here</url>."     // Product and source links in the standard about dialog.
+        about_Source:    string = "% is open source and written in <a>Swag</a>. Its code is <a>here</a>."     // Markup: product and source links in the standard about dialog.
         about_Copyright: string = "Copyright © % %"     // Copyright year and holder in the standard about dialog.
 
-        fileDlg_TitleSaveFile:     string = "Save File"                                   // File dialog title when saving a file.
-        fileDlg_TitleSelectFile:   string = "Select File"                                 // File dialog title when picking one file.
-        fileDlg_TitleSelectFiles:  string = "Select Files"                                // File dialog title when picking several files.
-        fileDlg_TitleSelectFolder: string = "Select Folder"                               // File dialog title when picking a folder.
-        fileDlg_NewFolderTitle:    string = "New Folder"                                  // Title of the folder-creation dialog.
-        fileDlg_NewFolderField:    string = "Name"                                        // Label of the folder-name field.
-        fileDlg_NewFolderDefault:  string = "New Folder"                                  // Proposed name of a created folder.
-        fileDlg_NewFolderHint:     string = "Folder name"                                 // Placeholder of the folder-name field.
-        fileDlg_ErrFolderName:     string = "The folder name is not valid."               // Rejected folder name.
-        fileDlg_ErrFolderExists:   string = "A folder with this name already exists."     // Name collision when creating a folder.
-        fileDlg_ErrFolderCreate:   string = "The folder could not be created."            // Filesystem refusal when creating a folder.
-        fileDlg_ReplaceTitle:      string = "<p1>%</p> already exists."                   // Title of the overwrite confirmation, naming the file in quiet ink.
-        fileDlg_ReplaceText:       string = "Replace it? The old file is lost."           // Body of the overwrite confirmation.
-        fileDlg_ReplaceDetail:     string = "% · modified %"                              // Size and date of the file a save would replace.
-        fileDlg_BtnReplace:        string = "Replace"                                     // Destructive action of the overwrite confirmation.
-        fileDlg_BtnCreate:         string = "Create"                                      // Primary action of the folder-creation form.
-        fileDlg_NewFolderWhere:    string = "In %"                                        // Where a created folder goes, under its name field.
-        fileDlg_BtnOpenCount:      string = "Open the %"                                  // Primary action of a multiple file box, counting the files.
-        fileDlg_BtnSave:           string = "Save"                                        // Confirmation button when saving a file.
-        fileDlg_BtnOpen:           string = "Open"                                        // Confirmation button when opening a file.
-        fileDlg_BtnSelect:         string = "Select"                                      // Confirmation button when selecting a folder.
+        fileDlg_TitleSaveFile:     string = "Save File"                                       // File dialog title when saving a file.
+        fileDlg_TitleSelectFile:   string = "Select File"                                     // File dialog title when picking one file.
+        fileDlg_TitleSelectFiles:  string = "Select Files"                                    // File dialog title when picking several files.
+        fileDlg_TitleSelectFolder: string = "Select Folder"                                   // File dialog title when picking a folder.
+        fileDlg_NewFolderTitle:    string = "New Folder"                                      // Title of the folder-creation dialog.
+        fileDlg_NewFolderField:    string = "Name"                                            // Label of the folder-name field.
+        fileDlg_NewFolderDefault:  string = "New Folder"                                      // Proposed name of a created folder.
+        fileDlg_NewFolderHint:     string = "Folder name"                                     // Placeholder of the folder-name field.
+        fileDlg_ErrFolderName:     string = "The folder name is not valid."                   // Rejected folder name.
+        fileDlg_ErrFolderExists:   string = "A folder with this name already exists."         // Name collision when creating a folder.
+        fileDlg_ErrFolderCreate:   string = "The folder could not be created."                // Filesystem refusal when creating a folder.
+        fileDlg_ReplaceTitle:      string = "<span class=\"p1\">%</span> already exists."     // Markup: title of the overwrite confirmation, naming the file in quiet ink.
+        fileDlg_ReplaceText:       string = "Replace it? The old file is lost."               // Body of the overwrite confirmation.
+        fileDlg_ReplaceDetail:     string = "% · modified %"                                  // Size and date of the file a save would replace.
+        fileDlg_BtnReplace:        string = "Replace"                                         // Destructive action of the overwrite confirmation.
+        fileDlg_BtnCreate:         string = "Create"                                          // Primary action of the folder-creation form.
+        fileDlg_NewFolderWhere:    string = "In %"                                            // Where a created folder goes, under its name field.
+        fileDlg_BtnOpenCount:      string = "Open the %"                                      // Primary action of a multiple file box, counting the files.
+        fileDlg_BtnSave:           string = "Save"                                            // Confirmation button when saving a file.
+        fileDlg_BtnOpen:           string = "Open"                                            // Confirmation button when opening a file.
+        fileDlg_BtnSelect:         string = "Select"                                          // Confirmation button when selecting a folder.
 
         browser_Desktop:     string = "Desktop"                    // Default shortcut to the desktop.
         browser_Documents:   string = "Documents"                  // Default shortcut to the documents folder.

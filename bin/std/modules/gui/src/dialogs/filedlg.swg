@@ -165,10 +165,11 @@ impl FileDlg
     internal func createReplaceBox(from: *Surface, name, detail: string)->*MessageDlg
     {
         var options: MessageDlgOptions
-        let title = Format.toString(strings().fileDlg_ReplaceTitle, name)
-        options.title  = title.toString()
-        options.detail = detail
-        options.mark   = .Warning
+        let title = Format.toString(strings().fileDlg_ReplaceTitle, RichString.escape(name))
+        options.title       = title.toString()
+        options.markupTitle = true
+        options.detail      = detail
+        options.mark        = .Warning
 
         // The answer finishes the box at its bottom right, as in every other box.
         let box = MessageDlg.create(from, strings().fileDlg_ReplaceText, options)

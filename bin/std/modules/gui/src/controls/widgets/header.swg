@@ -152,7 +152,7 @@ impl IWnd for Header
                 }
                 else
                 {
-                    var words = Painter.measureString(item.name.raw, nnFont(.font().regular)).width
+                    var words = Painter.measureString(item.name.text, nnFont(.font().regular)).width
                     if item.icon.isValid() do
                         words += item.icon.sizeX + metrics.iconText_Margin
                     markX = Math.min(labelPos.x + words + gap, labelPos.right() - icon.sizeX)

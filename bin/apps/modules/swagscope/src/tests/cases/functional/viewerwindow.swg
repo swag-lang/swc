@@ -783,7 +783,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     // Headless surfaces stay outside Application.surfaces, so deliver the broadcast they would
     // receive from setLanguage in a native window.
     host.notify(.LanguageChanged)
-    Swag.require(window.surface!.wnd.name.raw == ProductName)
+    Swag.require(window.surface!.wnd.name.text == ProductName)
     Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.Open).name == "Ouvrir…")
     Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.Close).name == "Fermer le fichier")
     Swag.require(window.hintLine.hints[0].text == "tout le reste")
@@ -1194,7 +1194,7 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     Swag.require(window.readingLine.isLocallyVisible())
     Swag.require(window.readingLine.details.text() == "UTF-8 · streamed · 1.2 KiB")
     Swag.require(window.readingLine.details.position.width >= Math.ceil(window.readingLine.details.itf.measureContent({}).x))
-    Swag.require(window.surface!.wnd.name.raw == (Path.fileName(viewerFixturePath()) orelse ""))
+    Swag.require(window.surface!.wnd.name.text == (Path.fileName(viewerFixturePath()) orelse ""))
 
     // A long line keeps its start and ends in an ellipsis at the narrowest window.
     let wideDetails = "3840 × 2160 · 120000 frames · 59.94 fps · 01:02:03 · AAC-LC · 48000 Hz · 6 channels · 24 bit · Swag CPU decoder · 3840 × 2160 · 120000 frames · 59.94 fps"
@@ -1405,9 +1405,9 @@ func downwardArrows(wnd: *Wnd)->u64
     Swag.require(window.currentCommands == null)
     Swag.require(window.instances.isEmpty())
     Swag.require(window.currentFile.isEmpty())
-    Swag.require(window.readingLine.details.name.raw.isEmpty() and not window.readingLine.isLocallyVisible())
+    Swag.require(window.readingLine.details.name.text.isEmpty() and not window.readingLine.isLocallyVisible())
     Swag.require(window.home.isLocallyVisible() and window.hintLine.isLocallyVisible())
-    Swag.require(window.surface!.wnd.name.raw == ProductName)
+    Swag.require(window.surface!.wnd.name.text == ProductName)
 }
 
 // The active viewer's right pane shares bounded splitter geometry and saves its current width.
@@ -1498,7 +1498,7 @@ func downwardArrows(wnd: *Wnd)->u64
     Swag.require(window.currentCommands == cachedCommands)
     Swag.require(window.children.count == childCount)
     Swag.require(window.viewerBar.children.count == commandCount)
-    Swag.require(window.surface!.wnd.name.raw == (Path.fileName(fileName) orelse ""))
+    Swag.require(window.surface!.wnd.name.text == (Path.fileName(fileName) orelse ""))
 }
 
 // Replacing a streaming document retires its short-period loader before deferred destruction.

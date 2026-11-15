@@ -9,7 +9,7 @@ using Core, Gui, Pixel
     var host: Testing.HeadlessHost
     let window   = archivePage(&host, false)
     let explorer = unwrap window.explorer
-    Swag.require(explorer.extractAll.isLocallyVisible() and explorer.extractAll.name.raw == appStrings().cmd_ExtractAll)
+    Swag.require(explorer.extractAll.isLocallyVisible() and explorer.extractAll.name.text == appStrings().cmd_ExtractAll)
     for &entry in explorer.entries do
         Swag.require(entry.directory and entry.modified.length == 16)
 

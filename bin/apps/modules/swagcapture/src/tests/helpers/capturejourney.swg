@@ -372,12 +372,12 @@ impl CaptureJourney
             {
                 if row.field is EditBox as edit
                 {
-                    if row.label.name.raw == appStrings().ui_Width
+                    if row.label.name.text == appStrings().ui_Width
                     {
                         edit.setText(Format.toString("%", width))
                         foundWidth = true
                     }
-                    elif row.label.name.raw == appStrings().ui_Height
+                    elif row.label.name.text == appStrings().ui_Height
                     {
                         edit.setText(Format.toString("%", height))
                         foundHeight = true

@@ -102,12 +102,26 @@ loading, and missing-character lookup. The first such request initializes the sn
 
 ## Rich text
 
-[[Pixel.RichString.set]] takes text written in Pixel's lightweight inline markup.
-[[Pixel.RichString.compute]] splits it into styled chunks after the text changes,
+A [[Pixel.RichString]] holds a text and the runs that style parts of it. Text given through
+[[Pixel.RichString.set]] or [[Pixel.RichString.append]] is literal, and each call can carry a
+[[Pixel.RichStyle]]; [[Pixel.RichString.appendLink]] adds a link the reader can activate.
+
+```swag
+var status: Pixel.RichString
+status.append("Saved to ")
+status.append(fileName, {bold: true})
+```
+
+When the styling belongs to the sentence itself, as in a translated string, write it in inline
+markup and call [[Pixel.RichString.setMarkup]]. The markup is a strict subset of inline HTML:
+`<b>`, `<i>`, `<u>`, `<a>`, `<span class="p1">` and `<br>`, with the usual entities. Pass outside
+text through [[Pixel.RichString.escape]] before formatting it into such a sentence.
+
+[[Pixel.RichString.compute]] splits the content into styled chunks after it changes,
 and [[Pixel.Painter.drawRichString]] lays the chunks out and records the result.
 
 Keep the [[Pixel.FontFamily]] and formatting inputs alive while computing and
-drawing the text. The rich string retains its source text and derived layout state,
+drawing the text. The rich string retains its text and derived layout state,
 so it can be reused until one of those inputs changes.
 
 ## Mathematical expressions

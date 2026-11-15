@@ -1155,7 +1155,7 @@ impl Surface
     {
         if not .hWnd do
             return
-        let title = .wnd.name.raw.isEmpty() ? Utf16.toZeroTerminated(.surfaceId) : Utf16.toZeroTerminated(.wnd.name.raw)
+        let title = .wnd.name.text.isEmpty() ? Utf16.toZeroTerminated(.surfaceId) : Utf16.toZeroTerminated(.wnd.name.text)
         discard SetWindowTextW(.hWnd, title.buffer)
     }
 

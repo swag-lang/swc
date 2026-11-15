@@ -1190,6 +1190,7 @@ impl ViewerWindow
     // Returns every registered viewer name in selection order, as one compact capability line.
     //
     // The names carry the content families without repeating the registry's extension inventory.
+    // The line is an inline markup sentence, as an about section expects.
     mtd const aboutViewerList()->String
     {
         var result: #returntype
@@ -1199,9 +1200,7 @@ impl ViewerWindow
             // opens on one.
             if not result.isEmpty() do
                 result += "\u00A0\u00A0·  "
-            result += "<b>"
-            result += plugin.displayName()
-            result += "</b>"
+            result += Format.toString("<b>%</b>", RichString.escape(plugin.displayName()))
         }
 
         return result

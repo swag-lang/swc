@@ -19,18 +19,18 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     completeViewerBackgroundLoad(&host, &outline.load)
     Swag.require(outline.rows.count == 1)
     Swag.require(outline.headings[0].title == title)
-    Swag.require(Pixel.RichString.plainText(outline.rows[0].items[0]!.name.raw) == title)
+    Swag.require(outline.rows[0].items[0]!.name == title)
+    Swag.require(not outline.rows[0].items[0]!.name.isPlain())
 
     outline.add(" \t\r\n\u00A0\u2003First\t\r\n\u00A0\u2003second \t\u00A0", 2, 1)
     Swag.require(outline.rows[1].items[0]!.name == "First second")
     outline.add(" \t\r\n\u00A0\u2003", 2, 2)
     Swag.require(outline.rows[2].items[0]!.name == "")
 
-    let literal = "<b>Literal</b> <url>address</url> <p1>ink</p>"
+    let literal = "<b>Literal</b> <a>address</a> &amp; <span class=\"p1\">ink</span>"
     outline.add(literal, 4, 3)
-    let display = Pixel.RichString.plainText(outline.rows[3].items[0]!.name.raw)
-    display.replace("\u2060", "")
-    Swag.require(display == literal)
+    Swag.require(outline.rows[3].items[0]!.name == literal)
+    Swag.require(outline.rows[3].items[0]!.name.isPlain())
     Swag.require(outline.rows[3].level == 3)
 }
 

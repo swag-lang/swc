@@ -55,9 +55,6 @@ impl ThumbnailRenderer
             var source = catch .readText(path)
             if source.count
             {
-                // RichString uses angle brackets as its own small formatting language.
-                source.replace('<', "‹")
-                source.replace('>', "›")
                 var content: RichString = #move source
                 var format:  RichStringFormat
                 format.font.regular  = unwrap .bodyFont

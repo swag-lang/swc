@@ -985,7 +985,7 @@ private impl ListView
             // What a search found in the label stands on the highlight ground, under the words.
             if item.matchCount and item.horzAlign == .Left
             {
-                let raw  = item.name.raw
+                let raw  = item.name.text
                 let font = unwrap format.font.regular
                 if item.matchStart + item.matchCount <= raw.length
                 {
@@ -1797,8 +1797,8 @@ impl ListCtrl
 
             let it0   = a.itemAt(column)
             let it1   = b.itemAt(column)
-            let sort0 = it0.sortKey.isEmpty() ? &it0.name.raw : &it0.sortKey
-            let sort1 = it1.sortKey.isEmpty() ? &it1.name.raw : &it1.sortKey
+            let sort0 = it0.sortKey.isEmpty() ? &it0.name.text : &it0.sortKey
+            let sort1 = it1.sortKey.isEmpty() ? &it1.name.text : &it1.sortKey
             var res   = Latin1.compareNatural(sort0[], sort1[])
             if descending do
                 res *= -1

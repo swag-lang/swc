@@ -403,7 +403,7 @@ private impl ComboBox
 
         let regular = unwrap .font().regular
         let face    = .font().getFont(item.fontStyle) orelse regular
-        return Painter.measureString(item.name.raw, face).width
+        return Painter.measureString(item.name.text, face).width
     }
 
     // Reports whether the entries stand as segments: the combo asks for it and every entry fits
@@ -521,7 +521,7 @@ private impl ComboBox
             else
             {
                 let face  = .font().getFont(item.fontStyle) orelse font
-                let text  = item.name.raw
+                let text  = item.name.text
                 let width = Painter.measureString(text, face).width
                 painter.drawString(Math.round(rect.horzCenter() - width * 0.5), face.opticalLineTop(rect.vertCenter()), text, face, ink)
             }
@@ -598,7 +598,7 @@ private impl ComboBox
             }
             else
             {
-                let popupItem = popup.addItem(item.name.raw, item.id, item.icon, item.userData0, item.userData1)
+                let popupItem = popup.addItem(item.name.text, item.id, item.icon, item.userData0, item.userData1)
                 popupItem.disabled = item.disabled
             }
         }
@@ -819,7 +819,7 @@ private impl ComboBox
         if editBox
         {
             if .selectedIndex < .items.count do
-                editBox.setText(.items[.selectedIndex]!.name.raw)
+                editBox.setText(.items[.selectedIndex]!.name.text)
             else do
                 editBox.setText("")
         }

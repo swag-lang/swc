@@ -774,7 +774,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     Swag.require(change.form.rows.count == 2)
     Swag.require(change.form.rows[0].field == cast(*Wnd, fields.replacement))
-    Swag.require(change.form.rows[0].label.name.raw == texts.ui_NewPassword)
+    Swag.require(change.form.rows[0].label.name.text == texts.ui_NewPassword)
     Swag.require(change.form.rows[1].field == cast(*Wnd, fields.confirm))
     openAndDismiss(&host, change)
 
@@ -783,7 +783,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     Swag.require(resize.form.rows.count == 2)
     Swag.require(resize.form.rows[0].field == cast(*Wnd, resizeFields.capacity))
-    Swag.require(resize.form.rows[0].label.name.raw == texts.ui_NewCapacity)
+    Swag.require(resize.form.rows[0].label.name.text == texts.ui_NewCapacity)
     Swag.require(resizeFields.capacity.text() == "256")
     Swag.require(resizeFields.unit.selectedIndex == 0)
     Swag.require(resizeFields.keepCapacity.isChecked())

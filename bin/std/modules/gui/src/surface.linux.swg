@@ -303,7 +303,7 @@ impl Surface
         if .windowId == 0 do
             return
         let context = expect LinuxDesktop.ensure()
-        let title   = .wnd.name.raw.isEmpty() ? .surfaceId.toString() : .wnd.name.raw.toString()
+        let title   = .wnd.name.text.isEmpty() ? .surfaceId.toString() : .wnd.name.text.toString()
         expect LinuxDesktop.property(context,
                                      .windowId,
                                      expect LinuxDesktop.atom(context, "_NET_WM_NAME"),

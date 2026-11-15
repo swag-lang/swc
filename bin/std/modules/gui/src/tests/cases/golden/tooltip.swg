@@ -44,7 +44,7 @@ using Swag, Core, Pixel
     let truncated = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&truncated, "tooltip.truncated")
 
-    discard showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url>, or ask on <p1>Discord</p>")
+    discard showMarkupTip(btn, "Read <b>the guide</b> at <a>swag-lang.org</a>, or ask on <span class=\"p1\">Discord</span>")
     let rich = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&rich, "tooltip.rich")
 }

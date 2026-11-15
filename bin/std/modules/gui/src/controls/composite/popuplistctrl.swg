@@ -416,7 +416,7 @@ impl PopupListCtrl
             let it = unwrap item
             if it.isSeparator or it.contentPainter do
                 continue
-            text = Math.max(text, Painter.measureString(it.name.raw, unwrap font.regular).width)
+            text = Math.max(text, Painter.measureString(it.name.text, unwrap font.regular).width)
         }
 
         if text == 0 do

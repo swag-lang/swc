@@ -227,8 +227,8 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         Swag.require(menu.items.count == choices.count + 1)
         Swag.require(menu.items[0]!.id == "scope.viewer.choice.0")
         Swag.require(menu.items[1]!.separator and menu.items[2]!.id == "scope.viewer.choice.1")
-        Swag.require(menu.items[0]!.name.raw == Format.toString(appStrings().ui_DefaultViewerChoice,
-                                                                window.index.plugins[choices[0].pluginIndex].displayName()))
+        Swag.require(menu.items[0]!.name.text == Format.toString(appStrings().ui_DefaultViewerChoice,
+                                                                 window.index.plugins[choices[0].pluginIndex].displayName()))
         menu.destroyNow()
 
         host.clickPopupMenuItemWhenShown("scope.viewer.choice.0")

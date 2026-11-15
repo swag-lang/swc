@@ -35,17 +35,17 @@ ui_QuickStyleName      Nom du style rapide
 dlg_TitleRenameQuickStyle Renommer le style rapide
 ui_SectionEditor       Éditeur
 ui_SectionApplication  Application
-ui_DetailFile          <b>Fichier</b>
-ui_DetailLinkedImage   <b>Image liée</b>
-ui_DetailImageSize     <b>Taille de l'image</b>
-ui_DetailCapturedAt    <b>Capturée</b>
-ui_DetailApplication   <b>Application</b>
-ui_DetailWindowTitle   <b>Fenêtre</b>
-ui_DetailExecutable    <b>Exécutable</b>
-ui_DetailWindowClass   <b>Classe de fenêtre</b>
-ui_DetailTags          <b>Étiquettes</b>
-ui_DetailRating        <b>Note</b>
-ui_DetailFileSize      <b>Taille du fichier</b>
+ui_DetailFile          Fichier
+ui_DetailLinkedImage   Image liée
+ui_DetailImageSize     Taille de l'image
+ui_DetailCapturedAt    Capturée
+ui_DetailApplication   Application
+ui_DetailWindowTitle   Fenêtre
+ui_DetailExecutable    Exécutable
+ui_DetailWindowClass   Classe de fenêtre
+ui_DetailTags          Étiquettes
+ui_DetailRating        Note
+ui_DetailFileSize      Taille du fichier
 ui_Width               Largeur
 ui_Height              Hauteur
 ui_KeepRatio           Conserver les proportions

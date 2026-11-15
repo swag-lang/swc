@@ -225,8 +225,8 @@ impl OptionsPage
         .timeoutIndex = index
         var words = Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index])
         words.replace(' ', "\u00A0")
-        let action = Format.toString("<url>%</url>", words)
-        .timeout.setText(Format.toString(appStrings().ui_UnmountOnIdleHelp, action))
+        let action = Format.toString("<a>%</a>", RichString.escape(words))
+        .timeout.setMarkup(Format.toString(appStrings().ui_UnmountOnIdleHelp, action))
         .timeout.setLinksEnabled(.window.autoUnmount.onIdle)
         .arrange()
     }

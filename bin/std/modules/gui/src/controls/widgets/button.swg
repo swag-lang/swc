@@ -73,9 +73,9 @@ impl Button
 {
     // Replaces the displayed label, repaints, and lets the next layout pass re-measure it.
     //
-    // Pass `null` for a button that shows only its icon. `text` may carry the markers
-    // [[Pixel.RichString.set]] accepts. A button carrying no explicit width follows its
-    // label, so re-labelling one after a language switch is enough to size it again.
+    // Pass `null` for a button that shows only its icon. `text` is literal; style a label by
+    // writing the runs of `name`, a [[Pixel.RichString]]. A button carrying no explicit width
+    // follows its label, so re-labelling one after a language switch is enough to size it again.
     mtd setText(text: string?)
     {
         .name.set(text)
@@ -83,8 +83,8 @@ impl Button
         .invalidateLayout()
     }
 
-    // Returns the displayed label, including any formatting markers.
-    mtd text()->string => .name.raw
+    // Returns the displayed label, without any style information.
+    mtd text()->string => .name.text
 
     // Replaces the displayed icon and repaints the button.
     mtd setIcon(icon: Icon)

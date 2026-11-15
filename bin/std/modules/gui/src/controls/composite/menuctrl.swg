@@ -249,7 +249,7 @@ public impl IWnd for MenuCtrl
             {
                 labelPos.x += metrics.menuPopup_IconMargin
                 labelPos.width -= metrics.menuPopup_IconMargin
-                SectionLabel.paint(me, painter, labelPos, it.name.raw)
+                SectionLabel.paint(me, painter, labelPos, it.name.text)
                 continue
             }
 
@@ -1126,7 +1126,7 @@ impl MenuCtrl
             if it.label
             {
                 let labelFont = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
-                let labelText = it.name.raw.toUpper(.Unicode)
+                let labelText = it.name.text.toUpper(.Unicode)
                 w = Painter.shapeRun(labelText, labelFont, letterSpacing: metrics.sectionLabel_LetterSpacing).metrics.width
             }
 
@@ -1335,7 +1335,7 @@ public impl MenuCtrl
         for offset in count
         {
             let index = (current + offset + 1) % count
-            if .canSelectKeyboard(index) and Utf8.startsWith(.items[index]!.name.raw, letter, .UnicodeNoCase)
+            if .canSelectKeyboard(index) and Utf8.startsWith(.items[index]!.name.text, letter, .UnicodeNoCase)
             {
                 .setKeyboardSelection(index)
                 return

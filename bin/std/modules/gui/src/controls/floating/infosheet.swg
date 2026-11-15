@@ -693,13 +693,13 @@ impl InfoSheet
 
         if .action and .actionPage == .pageIndex
         {
-            result += .action.name.raw
+            result += .action.name.text
             result += "\n"
         }
 
         if .action and .secondary and .actionPage == .pageIndex
         {
-            result += .secondary.name.raw
+            result += .secondary.name.text
             result += "\n"
         }
 

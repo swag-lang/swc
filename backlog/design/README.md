@@ -924,7 +924,7 @@ options page. Reuse these semantic glyphs instead of choosing a similar-looking 
 
 **Actions inside prose use RichString links.** A localized sentence owns its full layout,
 including the action and the words after it. Use `Gui.LabelFlags.LinkActions` on the label,
-with `<url>` around the interactive words. Enabled actions keep a link-colored underline;
+with `<a>` around the interactive words. Enabled actions keep a link-colored underline;
 disabled actions derive their underline from the disabled text ink, at reduced opacity. The rule
 must never be brighter or have greater contrast than the disabled text. Inline rules use
 `label_LinkUnderlineOpacity` (35%) so they stay subordinate to the words. They remain keyboard

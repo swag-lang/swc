@@ -44,8 +44,7 @@ impl ViewerWindow
             plugin.options(grid, plugin.displayName())
 
         let mediaSection = unwrap grid.list.selectedLine()
-        let mediaName    = RichString.plainText(mediaSection.items[0]!.name.raw)
-        grid.setSectionIcon(mediaName, .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
+        grid.setSectionIcon(mediaSection.items[0]!.name.text, .theme().icon(.Settings, themeRowIconSize(.themeMetrics())))
         for &plugin in .index.plugins where plugin.options do
             grid.setSectionIcon(plugin.displayName(), .pluginIcon(plugin))
 

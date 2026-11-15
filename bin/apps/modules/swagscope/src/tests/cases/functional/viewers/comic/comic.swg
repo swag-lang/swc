@@ -33,7 +33,7 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.drainWork()
     host.pump()
     Swag.require(not view.status.isVisible())
-    Swag.require(view.pageLabel.name.raw == "2 / 2")
+    Swag.require(view.pageLabel.name.text == "2 / 2")
 
 }
 

@@ -357,7 +357,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.require(border.sliderBox.label.name == "Outline")
     Swag.require(border.sliderBox.slider.minimum() == MinTextBorderSize)
     Swag.require(border.sliderBox.slider.maximum() == MaxTextBorderSize)
-    let labelWidth = Math.ceil(Painter.measureString(border.sliderBox.label.name.raw, unwrap border.sliderBox.label.font().regular).width)
+    let labelWidth = Math.ceil(Painter.measureString(border.sliderBox.label.name.text, unwrap border.sliderBox.label.font().regular).width)
     Swag.require(border.sliderBox.labelWidth >= labelWidth)
 
     // The joins row is a generated combo omitting JoinStyle.None: Round selects index 1
@@ -608,7 +608,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     // A slider row carries its label, and a combo row its entries. Both come from an
     // attribute literal: #[Name("Size")] and the JoinStyle case names.
     Swag.require(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Size")
-    Swag.require(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Round")
+    Swag.require(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.text == "Round")
 
     expect f.gui.app.setLanguage("fr")
 
@@ -619,7 +619,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
 
     Swag.require(testFindItem(prop, #nameof(FormText.fontSize))!.sliderBox.label.name == "Taille")
-    Swag.require(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.raw == "Arrondi")
+    Swag.require(testFindItem(prop, #nameof(BaseForm.joinStyle))!.comboBox.items[1]!.name.text == "Arrondi")
 
     f.capture.selection.clear()
     discard testAddShape(f.capture, 20, 20, 80, 40)
@@ -628,7 +628,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     f.gui.pump()
 
     let thickness     = testFindItem(prop, #nameof(BaseForm.borderSize))!.sliderBox
-    let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.raw, unwrap thickness.label.font().regular).width)
+    let expectedWidth = Math.ceil(Painter.measureString(thickness.label.name.text, unwrap thickness.label.font().regular).width)
     Swag.require(thickness.label.name == "Épaisseur")
     Swag.require(thickness.labelWidth >= expectedWidth)
     Swag.require(testFindItem(prop, "Effects")!.label.name == "EFFETS")

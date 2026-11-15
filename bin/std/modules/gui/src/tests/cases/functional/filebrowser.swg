@@ -23,14 +23,14 @@ using Swag, Core, File
     dlg.surface.setPosition(rect)
     let primary     = unwrap dlg.surface.defaultButton
     let normalWidth = primary.position.width
-    let normalText  = String.from(primary.name.raw)
+    let normalText  = String.from(primary.name.text)
 
     for name in [longName, "Short", ""]
     {
         rect.width = 1400 * dlg.surface.dpiScale
         dlg.surface.setPosition(rect)
         dlg.browser.setFileName(name)
-        Swag.require(primary.name.raw == normalText and primary.position.width == normalWidth)
+        Swag.require(primary.name.text == normalText and primary.position.width == normalWidth)
         Swag.require(name.count ? dlg.browser.selectedPath() == dlg.browser.choiceLabel.text() : dlg.browser.choiceLabel.text().count == 0)
         rect.width = 540 * dlg.surface.dpiScale
         dlg.surface.setPosition(rect)
@@ -76,9 +76,9 @@ using Swag, Core, File
             return
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 3)
-        Swag.require(menu.items[0]!.name.raw == "Folder 1")
-        Swag.require(menu.items[1]!.name.raw == "Folder 2" and menu.items[1]!.checked)
-        Swag.require(menu.items[2]!.name.raw == "Folder 10")
+        Swag.require(menu.items[0]!.name.text == "Folder 1")
+        Swag.require(menu.items[1]!.name.text == "Folder 2" and menu.items[1]!.checked)
+        Swag.require(menu.items[2]!.name.text == "Folder 10")
         for item in menu.items
         {
             let icon = item!.icon
@@ -465,7 +465,7 @@ using Swag, Core, File
         for idx in 0 until popup.items.count
         {
             let item = popup.itemAt(cast(u32, idx))
-            if item.name.raw.toString() == strings().browser_Downloads
+            if item.name.text.toString() == strings().browser_Downloads
             {
                 Swag.require((item.id orelse "") == downloads[].toString())
                 found = true

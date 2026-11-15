@@ -16,7 +16,7 @@ struct ThemeColors
 {
     public
     {
-        // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`.
+        // The three slots rich text addresses through [[Pixel.RichStyle.paletteIndex]].
         richColor1: Color     // First rich-text palette slot.
         richColor2: Color     // Second rich-text palette slot.
         richColor3: Color     // Third rich-text palette slot.

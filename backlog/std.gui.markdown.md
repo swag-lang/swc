@@ -139,3 +139,18 @@ Markdown as over code.
   state and connect it to the host.
 - Done when: repeated find advances match-by-match across and within blocks, and the match
   count is exposed to the host
+
+### std.gui.markdown.013 — Inline runs travel as a private tag string
+
+`controls/markdown/syntax.swg` lowers inline syntax to a string of private elements (`<b>`, `<s>`,
+`<c>`, `<h>`, `<lm>`, `<sup>`, `<img>`..., with `<<` standing for a literal `<`), and
+`controls/markdown/inlineview.swg` reads that string back into runs. It is a second inline
+vocabulary beside the one `Pixel.RichString` now owns as typed runs, with its own escaping rule
+that every producer has to remember (`richText`). The two ends live in the same module, so nothing
+needs the intermediate text.
+
+- Intent: Markdown inline content is a typed run list from the parser to the view
+- Next: list the run attributes `inlineview.swg` rebuilds from the tags, and replace the string by
+  that run list in one block kind first (paragraphs).
+- Done when: no inline element string is produced or parsed inside `controls/markdown`, and the
+  `<<` escape is gone

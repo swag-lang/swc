@@ -19,7 +19,7 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawTextCardSurface(painter, left, Color.fromArgb(255, 247, 249, 251))
     drawTextCardSurface(painter, right, Color.fromArgb(255, 244, 247, 252))
 
-    var story:         RichString = "<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <p1>justified</p> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable."
+    var story = RichString.fromMarkup("<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <span class=\"p1\">justified</span> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable.")
     with var storyFmt: RichStringFormat
     {
         .flags         = .WordWrap | .Clip
@@ -36,7 +36,7 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     painter.drawRichString(insetRect(left, 16, 14, 16, 14), &story, storyFmt)
 
-    var labels:        RichString = "<u>Centered panel</u>\n<p1>palette run</p>\n<url><b>styled URL</b></url>\ntab\tstop"
+    var labels = RichString.fromMarkup("<u>Centered panel</u>\n<span class=\"p1\">palette run</span>\n<a><b>styled URL</b></a>\ntab\tstop")
     with var labelFmt: RichStringFormat
     {
         .flags         = .WordWrap | .Clip
@@ -142,8 +142,8 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawString(bigX, bigTop, big, g_TitleFont, Argb.MidnightBlue)
     painter.drawString(smallX, smallTop, small, g_HelpFont, Argb.DarkSlateGray)
 
-    var paragraph: RichString = "<b>Large</b> and regular spans\nadvance by per-line height.\nThis third line is intentionally clipped."
-    var fmt:       RichStringFormat
+    var paragraph = RichString.fromMarkup("<b>Large</b> and regular spans\nadvance by per-line height.\nThis third line is intentionally clipped.")
+    var fmt: RichStringFormat
     fmt.flags         = .WordWrap | .Clip
     fmt.font.regular  = g_HelpFont
     fmt.font.bold     = g_LabelFont

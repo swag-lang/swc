@@ -36,9 +36,15 @@ public struct MessageDlgOptions
 {
     public
     {
-        title:   string = ""     // Title of the box; empty keeps the helper's default.
-        failure: bool            // Whether the title reports a failure, led by a critical glyph.
-        mark:   MessageDlgMark   // Status glyph; failure always keeps its critical glyph.
+        title: string = ""     // Title of the box; empty keeps the helper's default.
+
+        // A sentence written in inline markup follows [[Pixel.RichString.setMarkup]]; pass any
+        // outside text formatted into it through [[Pixel.RichString.escape]].
+        markupTitle:   bool     // Whether `title` is an inline markup sentence rather than literal text.
+        markupMessage: bool     // Whether the message is an inline markup sentence rather than literal text.
+
+        failure: bool     // Whether the title reports a failure, led by a critical glyph.
+        mark:    MessageDlgMark     // Status glyph; failure always keeps its critical glyph.
 
         // Technical detail set under the message on a mono faint line — an error code, the report
         // of the system — or empty for none. It is for whoever files the report, never a
@@ -64,7 +70,11 @@ public impl MessageDlg
         let dlg = Wnd.create'MessageDlg()
 
         discard dlg.createSurface(from, 0, 0, cast(s32, MinMessageWidth), 300)
-        dlg.setTitle(options.title, options.failure)
+        if options.markupTitle do
+            dlg.setTitleMarkup(options.title, options.failure)
+        else do
+            dlg.setTitle(options.title, options.failure)
+
         if not options.failure
         {
             switch options.mark
@@ -92,9 +102,13 @@ public impl MessageDlg
         let row = Wnd.create'Wnd(body)
         row.dockStyle = .Center
 
-        with dlg.label = Label.create(row, message, {})
+        with dlg.label = Label.create(row, null, {})
         {
             .dockStyle = .Center
+            if options.markupMessage do
+                .setMarkup(message)
+            else do
+                .setText(message)
 
             // Ellipsis backs the wrap up: a run that wrapping cannot break — a path, a URL —
             // is cut at the box's maximum width instead of forcing the box as wide as itself.
@@ -328,22 +342,21 @@ public impl MessageDlg
     // confirmation line is set there in bold.
     func confirm(from: *Surface, message: string, question: string? = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
-        var txt = String.from(message)
+        // The box is composed as one markup sentence, so the standard line can be set in bold;
+        // literal text given by the caller is escaped into it.
+        func sentence(text: string, isMarkup: bool)->String => isMarkup ? String.from(text) : RichString.escape(text)
+
+        var txt = sentence(message, options.markupMessage)
         while not txt.isEmpty() and txt.back() == '\n' do
             txt.removeBack()
         txt += "\n\n"
-        if question != null
-        {
-            txt += question
-        }
-        else
-        {
-            txt += "<b>"
-            txt += strings().dlg_ConfirmText
-            txt += "</b>"
-        }
+        if question != null do
+            txt += sentence(question, options.markupMessage)
+        else do
+            txt += Format.toString("<b>%</b>", RichString.escape(strings().dlg_ConfirmText))
 
         var opt = options
+        opt.markupMessage = true
         if not opt.title.count do
             opt.title = strings().dlg_ConfirmTitle
         if opt.mark == .None do

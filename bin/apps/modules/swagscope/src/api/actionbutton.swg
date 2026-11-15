@@ -66,7 +66,7 @@ func createInfoOptionsButton(info: *Wnd)->*IconButton
 // playback rate that is not the normal one. The button widens to hold it.
 func setOptionsBadge(button: *IconButton, badge: string)
 {
-    if button.name.raw == badge do
+    if button.name.text == badge do
         return
     button.setText(badge)
 

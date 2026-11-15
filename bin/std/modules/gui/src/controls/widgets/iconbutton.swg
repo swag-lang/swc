@@ -406,7 +406,7 @@ impl IWnd for IconButton
             if showsLabel
             {
                 let fontR = nnFont(.font().regular)
-                let sm    = Painter.measureString(.name.raw.toString(), fontR)
+                let sm    = Painter.measureString(.name.text.toString(), fontR)
                 switch #complete .textPosition
                 {
                 case .Left, .Right:
@@ -530,7 +530,7 @@ impl IWnd for IconButton
                 // A painter that declares no size keeps taking what the label leaves it.
                 if not icon.isValid() and not .iconWidth
                 {
-                    let textWidth = Painter.measureString(.name.raw.toString(), nnFont(sf.font.regular)).width
+                    let textWidth = Painter.measureString(.name.text.toString(), nnFont(sf.font.regular)).width
                     icon.sizeX = Math.max(pos.width - textWidth - metrics.btnIcon_SpacingTextH, 0)
                 }
 
@@ -751,7 +751,7 @@ impl IconButton
         let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
         var textWidth = 0'f32
         if showsText do
-            textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
+            textWidth = Painter.measureString(.name.text.toString(), nnFont(.font().regular)).width
 
         var width = hasIcon ? icon.sizeX : 0
         if showsText
@@ -792,7 +792,7 @@ impl IconButton
         let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
         var textWidth = 0'f32
         if showsText do
-            textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
+            textWidth = Painter.measureString(.name.text.toString(), nnFont(.font().regular)).width
 
         var x = .menuAnchorContentLeft(rect)
         if hasIcon

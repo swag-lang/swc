@@ -995,7 +995,7 @@ impl FileBrowserCtrl
             let font   = fileBrowser.theme().createDefaultFont(metrics.defaultFontSize)
             var widest = 0'f32
             for item in .items where item do
-                widest = Math.max(widest, Painter.measureString(item.name.raw.toString(), font).width)
+                widest = Math.max(widest, Painter.measureString(item.name.text.toString(), font).width)
             .resize(widest + metrics.fileBrowser_TypeChrome, metrics.control_DialogHeight)
             .sigChanged += func|fileBrowser|(_, _)
             {

@@ -782,7 +782,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     Swag.require(not view.failureReason.isEmpty())
 }
 
-internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichString.plainText(line.itemAt(cast(u32, column)).name.raw)
+internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => line.itemAt(cast(u32, column)).name.text
 
 // What leaves through the clipboard is the report a reader is looking at.
 #test
@@ -831,7 +831,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     Swag.require(view.list.selectedLine() != null)
     Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == "e_lfanew")
     let item = view.list.selectedLine()!.itemAt(cast(u32, Binary.Column.Detail))
-    Swag.require(item.name.raw == "file offset of the PE signature")
+    Swag.require(item.name.text == "file offset of the PE signature")
     Swag.require(not item.colorBk.a)
 
     var bounds: Math.Rectangle
@@ -900,7 +900,7 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
 
     Swag.require(findRow(&view.doc.report, "Fichier") != null)
     Swag.require(findRow(&view.doc.report, "En-tête DOS") != null)
-    Swag.require(view.list.header.itemAt(cast(u32, Binary.Column.Detail)).name.raw == "Signification")
+    Swag.require(view.list.header.itemAt(cast(u32, Binary.Column.Detail)).name.text == "Signification")
     Swag.require(view.list.selectedLine() != null)
     Swag.require(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
 }

@@ -68,7 +68,7 @@ internal func assertScopeAnchoredMenuWith(host: *Testing.HeadlessHost, window: *
                 Swag.require(item.icon.isValid(), item.id)
         if sheet do
             for &row in sheet.page.rows where row.kind == .Action or row.kind == .Link or row.kind == .Toggle do
-                Swag.require(row.icon.isValid(), row.label.raw)
+                Swag.require(row.icon.isValid(), row.label.text)
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
         assertScopeImageGolden(&image, golden)

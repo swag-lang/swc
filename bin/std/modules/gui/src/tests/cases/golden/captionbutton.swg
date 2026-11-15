@@ -76,7 +76,7 @@ using Swag, Core
 
     expect host.app.setLanguage("fr")
     host.pump()
-    Swag.require(button.name.raw == "Commandes")
+    Swag.require(button.name.text == "Commandes")
     Swag.require(button.position.width >= button.itf.measureContent({}).x)
     var image = host.renderSettled(&host.surfaceWnd)
     Pixel.Testing.assertImageGolden(&image, light ? "lens.launcher.light" : "lens.launcher.dark")

@@ -85,7 +85,7 @@ var g_LinkText:  String
     host.setup(460, 220)
 
     let btn = PushButton.create(&host.root, "Docs", {20, 20, 100, 30})
-    let lbl = showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url> for the rest")
+    let lbl = showMarkupTip(btn, "Read <b>the guide</b> at <a>swag-lang.org</a> for the rest")
 
     assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
     Swag.require(lbl.name.hasUrl)
@@ -110,7 +110,7 @@ var g_LinkText:  String
         g_LinkText  = link
     }
 
-    let again = showTip(btn, "Read <url>swag-lang.org</url>")
+    let again = showMarkupTip(btn, "Read <a>swag-lang.org</a>")
     again.sigLinkActivated.call(again, "swag-lang.org")
     Swag.require(g_LinkOwner == btn)
     Swag.require(g_LinkText == "swag-lang.org")

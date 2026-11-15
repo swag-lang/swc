@@ -155,8 +155,7 @@ internal impl Properties
     {
         if item.label == null do
             return Swag.U64.Max
-        let plain = RichString.plainText(item.label.text())
-        return Utf8.indexOf(plain.toSlice(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase)
+        return Utf8.indexOf(item.label.text(), .stringFilter, comparisonType: Utf8.ComparisonType.Latin1NoCase)
     }
 
     // Lays the highlight ground under the characters of the name of `item` the text filter found.
@@ -172,8 +171,8 @@ internal impl Properties
 
         // The first line of the name, as the marks after it: a list name wraps from the top, a
         // grid name is centred.
-        let plain  = RichString.plainText(label.text())
-        let count  = Math.min(.stringFilter.length, plain.length - start)
+        let plain  = label.text()
+        let count  = Math.min(.stringFilter.length, plain.count - start)
         let before = Painter.measureString(Swag.makeString(plain.buffer, start), font).width
         let after  = Painter.measureString(Swag.makeString(plain.buffer, start + count), font).width
         let left   = label.position.x + label.textPadding.x
@@ -210,7 +209,7 @@ internal impl Properties
         // The first line of the name: a list name wraps from the top, a grid name is centred.
         let metrics = .themeMetrics()
         let size    = metrics.property_ModifiedMarkSize
-        let width   = Painter.measureString(RichString.plainText(label.text()), font).width
+        let width   = Painter.measureString(label.text(), font).width
         let x       = label.position.x + label.textPadding.x + Math.min(width, label.position.width) + size
         var centerY = label.position.vertCenter()
         if not .isGridLike() do
@@ -259,7 +258,7 @@ internal impl Properties
             if not font or not words.isLocallyVisible() do
                 return false
             let rect  = words.rectRelativeTo(item.line)
-            let width = Painter.measureString(RichString.plainText(words.text()), font).width
+            let width = Painter.measureString(words.text(), font).width
             right   = rect.x + words.textPadding.x + Math.min(width, rect.width)
             centerY = rect.vertCenter()
         }
@@ -270,7 +269,7 @@ internal impl Properties
             if not font do
                 return false
             let rect  = check.rectRelativeTo(item.line)
-            let width = Painter.measureString(RichString.plainText(check.name.raw), font).width
+            let width = Painter.measureString(check.name.text, font).width
             right   = rect.x + metrics.btnCheck_Size + metrics.btnCheck_Padding + width
             centerY = rect.vertCenter()
         }

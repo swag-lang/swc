@@ -156,7 +156,7 @@ impl Panel
         let audioCount = .video.audioTrackCount()
         if audioCount and .audio
         {
-            let current = RichString.plainText(audioTrackName(.audioTrackIndex, .audio))
+            let current = audioTrackName(.audioTrackIndex, .audio)
             page.addLink(strings.ui_OptionAudio, current, func|view = me|(tracks) { view.describeAudioTracks(tracks) }, theme.icon(.AudioTracks, iconSize), disabled: audioCount < 2)
         }
 
@@ -175,13 +175,14 @@ impl Panel
         for index in .video.audioTrackCount()
         {
             let sound = unwrap .video.audioTrack(index)
-            page.addChoice(audioTrackName(index, sound),
+            page.addChoice(audioTrackTitle(index, sound),
                            index == .audioTrackIndex,
                            func|view = me, index|()
                            {
                                catch view.selectAudioTrack(index) { view.services.failed(view, Viewer.failureText(Swag.err)) }
                            },
-                           detail: audioDetailsText(sound))
+                           detail: audioDetailsText(sound),
+                           note: audioTrackLanguage(sound))
         }
     }
 
@@ -191,7 +192,7 @@ impl Panel
         let track = .subtitleTrack()
         if not track do
             return String.from(texts().ui_SubtitleOff)
-        return RichString.plainText(subtitleTrackName(.subtitleTrackIndex, track))
+        return subtitleTrackName(.subtitleTrackIndex, track)
     }
 
     // Describes the subtitles: the tracks to choose from, then how they are drawn and when.
@@ -204,19 +205,24 @@ impl Panel
         {
             let track = unwrap .video.subtitleTrack(index)
             let on    = .subtitleSource == .Embedded and .subtitleTrackIndex == index
-            page.addChoice(subtitleTrackName(index, track), on, func|view = me, index|() { view.selectSubtitle(.Embedded, index) }, detail: strings.ui_SubtitleEmbedded)
+            page.addChoice(subtitleTrackTitle(index, track),
+                           on,
+                           func|view = me, index|() { view.selectSubtitle(.Embedded, index) },
+                           detail: strings.ui_SubtitleEmbedded,
+                           note: subtitleTrackLanguage(track))
         }
 
         for track, index in .subtitleOverlay.sidecars
         {
             let on = .subtitleSource == .Sidecar and .subtitleTrackIndex == index
-            page.addChoice(subtitleTrackName(cast(u32, index), track),
+            page.addChoice(subtitleTrackTitle(cast(u32, index), track),
                            on,
                            func|view = me, index|()
                            {
                                view.selectSubtitle(.Sidecar, cast(u32, index))
                            },
-                           detail: strings.ui_SubtitleSidecar)
+                           detail: strings.ui_SubtitleSidecar,
+                           note: subtitleTrackLanguage(track))
         }
 
         // The appearance is shared by every film and saved with the window, so each choice is

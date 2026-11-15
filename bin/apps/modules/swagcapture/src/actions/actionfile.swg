@@ -303,10 +303,12 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 
     if main.editorOptions.confirmLinkedOverwrite
     {
-        let message = Format.toString("%\n<i>%</i>", appStrings().msg_OverwriteLinked, capture.linkedImage)
+        // The path is outside text, escaped into the sentence that sets it in italic.
+        let message = Format.toString("%\n<i>%</i>", RichString.escape(appStrings().msg_OverwriteLinked), RichString.escape(capture.linkedImage))
 
         var options: MessageDlgOptions
-        options.onCreated = func|main|(dialog)
+        options.markupMessage = true
+        options.onCreated     = func|main|(dialog)
         {
             let askAgain = CheckButton.create(dialog.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
             askAgain.sigChanged += func|main|(button)
@@ -390,7 +392,11 @@ private func addDetail(rows: *FormLayoutCtrl, title, value: string)
 {
     let label = Label.create(rows, value, flags: .Ellipsis)
     label.setTextHorizontalAlignment(.Left)
-    discard rows.addField(title, label)
+
+    // The name of a detail is a bold run; its wording carries no styling of its own.
+    var name: RichString
+    name.set(title, {bold: true})
+    rows.rows[rows.addField(title, label)].label.setRichText(name)
 }
 
 // Offers exactly the image formats the pixel codec registry supports, so a codec added

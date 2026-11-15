@@ -100,17 +100,17 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
 
     let menu = lens.createCommandMenu()
     Swag.require(menu.items.count == 3)
-    Swag.require(menu.items[0]!.name.raw == "File")
+    Swag.require(menu.items[0]!.name.text == "File")
     Swag.require(menu.items[1]!.separator)
 
     let file = menu.items[0]!.popup
     Swag.require(file.items.count == 3 and file.items[0]!.id == LensOpen)
-    Swag.require(file.items[1]!.separator and file.items[2]!.name.raw == "Export")
+    Swag.require(file.items[1]!.separator and file.items[2]!.name.text == "Export")
     let export = file.items[2]!.popup
     Swag.require(export.items.count == 1 and export.items[0]!.id == LensSave)
 
     menu.updateState()
-    Swag.require(menu.items[2]!.id == LensDisabled and menu.items[2]!.name.raw == "Center Disabled" and menu.items[2]!.disabled)
+    Swag.require(menu.items[2]!.id == LensDisabled and menu.items[2]!.name.text == "Center Disabled" and menu.items[2]!.disabled)
 
     lens.open(">")
     var foundExcluded: bool

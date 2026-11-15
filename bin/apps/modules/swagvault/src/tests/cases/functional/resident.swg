@@ -36,7 +36,7 @@ using Core, Gui
     for item in panel.menu.items
     {
         Swag.require(item!.popup == null)
-        let text = item.name.raw.toString()
+        let text = item.name.text.toString()
         Swag.require(not Utf8.contains(text, "papiers"))
         Swag.require(not Utf8.contains(text, "Users"))
     }

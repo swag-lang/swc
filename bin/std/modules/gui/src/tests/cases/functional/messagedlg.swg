@@ -52,7 +52,7 @@ func unbreakableMessage()->String
     host.setup(900, 400)
 
     let message  = unbreakableMessage()
-    with let dlg = MessageDlg.create(&host.surface, message.toString())
+    with let dlg = MessageDlg.create(&host.surface, message.toString(), {markupMessage: true})
     {
         .addButton("Ok", Dialog.BtnOk, true)
     }

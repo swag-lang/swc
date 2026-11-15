@@ -55,7 +55,7 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
         let about = AboutDlg.create(&host.surface, {
             surfaceTitle: "Swag Scope",
             contentTitle: "Swag Scope",
-            message: "Code, text, Markdown, HTML, PDF, images, video, sound, MIDI, fonts, tables, subtitles, archives.\n\nCreated with <url>Swag</url> · <url>Source</url>\nCopyright © 2026 Christophe Beaudet",
+            message: "Code, text, Markdown, HTML, PDF, images, video, sound, MIDI, fonts, tables, subtitles, archives.\n\nCreated with <a>Swag</a> · <a>Source</a>\nCopyright © 2026 Christophe Beaudet",
             surfaceIcon: {},
             contentIcon: host.theme.icon(.About, host.theme.metrics.dialog_TileSize),
             identity: "0.1.1173 · 28 October 2026"})

@@ -230,9 +230,9 @@ struct RichStringFormat
     {
         font:                FontFamily                                           // Fonts used for regular, bold, italic, and bold-italic runs.
         fontStyle:           FontFamilyStyle     = Regular                        // Initial font style.
-        palette:             [4] Color                                            // Colors selected by `<p?>` rich-text markers.
-        colorUrl:            Color               = Color.fromArgb(Argb.White)     // Normal `<url>` text color.
-        colorHotUrl:         Color               = Color.fromArgb(Argb.Blue)      // Hovered `<url>` text color.
+        palette:             [4] Color                                            // Colors selected by [[Pixel.RichStyle.paletteIndex]].       
+        colorUrl:            Color               = Color.fromArgb(Argb.White)     // Normal link text color.    
+        colorHotUrl:         Color               = Color.fromArgb(Argb.Blue)      // Hovered link text color.    
         colorDisabledUrl:    Color                                                // Disabled link color; transparent uses palette entry zero.
         urlsEnabled:         bool                = true                           // Whether URL runs use their active colors.
         urlUnderlineOpacity: f32                 = 1                              // Opacity of URL decorations, clamped to 0–1; does not dim glyphs.
@@ -988,7 +988,7 @@ impl Painter
 
         // A wrap may only fall where a word ends, so the line is remembered as it stood at the
         // last space, together with the chunk the word after it starts at. A style boundary is
-        // not a break: `<url>here</url>.` is three chunks and one word, and breaking between
+        // not a break: a link followed by a period is three chunks and one word, and breaking between
         // them left its closing period alone on the next line.
         var wordLine: OneLine
         var wordStart = 0

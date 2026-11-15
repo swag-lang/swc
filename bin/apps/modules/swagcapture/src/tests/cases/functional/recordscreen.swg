@@ -46,7 +46,7 @@ impl Recorder
 
     let chooser = unwrap hud.screenButton
     Swag.require(chooser is Button and chooser.isEnabled())
-    Swag.require(chooser.name.raw.toString() == Format.toString(appStrings().ui_AimScreen, 1))
+    Swag.require(chooser.name.text.toString() == Format.toString(appStrings().ui_AimScreen, 1))
     Swag.require(recorder.testChromeGeometry().outer == recorder.area and
                  recorder.testChromeGeometry().thick >= RecordFrameWidth)
     hud.follow(recorder.area, 1)
@@ -81,7 +81,7 @@ impl Recorder
         firstMenu.sigCommandSelected.call(firstMenu, "record.screen.1")
     Swag.require(recorder.screenIndex == 1)
     Swag.require(recorder.area == f.main.monitors[1].physicalBounds)
-    Swag.require(chooser.name.raw.toString() == Format.toString(appStrings().ui_AimScreen, 2))
+    Swag.require(chooser.name.text.toString() == Format.toString(appStrings().ui_AimScreen, 2))
     hud.follow(recorder.area, 1)
     Swag.require(not surface.position.intersects(recorder.area) and
                  f.main.monitors[0].physicalWorkArea.intersects(surface.position))
@@ -106,7 +106,7 @@ impl Recorder
         secondMenu.sigCommandSelected.call(secondMenu, AllScreensChoiceId)
     Swag.require(recorder.screenIndex == Swag.U64.Max)
     Swag.require(recorder.area == Math.Rectangle{0, 0, 1600, 600})
-    Swag.require(chooser.name.raw.toString() == appStrings().ui_AimAllScreens)
+    Swag.require(chooser.name.text.toString() == appStrings().ui_AimAllScreens)
     Swag.require(recorder.testChromeGeometry().outer == recorder.area)
 
     f.gui.clickWnd(chooser)

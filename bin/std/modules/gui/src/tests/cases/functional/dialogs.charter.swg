@@ -34,7 +34,7 @@ func assertDialogCharter(dlg: *Dialog)
 
     // One inset on every side; the title, when there is one, opens the body above the content.
     Swag.require(dlg.padding.x == pad and dlg.padding.z == pad and dlg.padding.w == pad)
-    if dlg.title.raw.isEmpty() do
+    if dlg.title.text.isEmpty() do
         Swag.require(dlg.padding.y == pad)
     else do
         Swag.require(dlg.padding.y > pad + gap)
@@ -42,7 +42,7 @@ func assertDialogCharter(dlg: *Dialog)
 
     // The title line remains a native caption hit target even when the content view fills the
     // body beneath it, while an action keeps its own click.
-    if not dlg.title.raw.isEmpty()
+    if not dlg.title.text.isEmpty()
     {
         var titlePoint = srf.wnd.view.surfaceRect().topLeft()
         titlePoint.x += pad + 100
@@ -134,7 +134,7 @@ func assertDialogCharter(dlg: *Dialog)
         surfaceIcon: {},
         contentIcon: {}})
     assertDialogCharter(&about.dialog)
-    Swag.require(about.title.raw.isEmpty())
+    Swag.require(about.title.text.isEmpty())
 
     let file = FileDlg.create(&host.surface, {mode: .SelectFile})
     assertDialogCharter(&file.dialog)

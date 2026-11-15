@@ -168,9 +168,9 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(480, 120)
     buildChromeWindow(&host)
-    let title = String.from(host.surfaceWnd.name.raw)
+    let title = String.from(host.surfaceWnd.name.text)
     host.surfaceWnd.showTitle(false)
-    Swag.require(host.surfaceWnd.titleHidden and host.surfaceWnd.name.raw == title)
+    Swag.require(host.surfaceWnd.titleHidden and host.surfaceWnd.name.text == title)
     host.surfaceWnd.showTitle(true)
     Swag.require(not host.surfaceWnd.titleHidden)
 }

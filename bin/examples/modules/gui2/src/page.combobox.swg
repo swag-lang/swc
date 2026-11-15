@@ -24,9 +24,9 @@ func createComboBoxPage(parent: *Wnd)
         combo.setSelectedIndex(1)
 
         combo = ComboBox.create(left, {24, 144, 240})
-        combo.addItem("<b>Bold item", "bold")
-        combo.addItem("<i>Italic item", "italic")
-        combo.addItem("<p1>Palette item", "palette")
+        combo.addItem(null, "bold").name.set("Bold item", {bold: true})
+        combo.addItem(null, "italic").name.set("Italic item", {italic: true})
+        combo.addItem(null, "palette").name.set("Palette item", {paletteIndex: 1})
         combo.setSelectedIndex(0)
     }
 

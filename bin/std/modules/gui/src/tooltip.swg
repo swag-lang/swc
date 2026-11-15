@@ -10,6 +10,7 @@ struct Request
     late owner: *Wnd           // Window that requested the tooltip.
     surfacePos: Math.Point     // Anchor in surface coordinates.
     str:        String         // Text to display.
+    isMarkup:   bool           // Whether `str` is an inline markup sentence rather than literal text.
     delay:      f32            // Remaining delay in seconds.
     startDelay: f32            // Full delay restored after pointer movement.
 }
@@ -55,7 +56,7 @@ impl State
             // tip has read it: `show` starts by hiding, which is what frees `pending`.
             .pending = null
             defer Memory.delete(pending)
-            .show(pending.owner, pending.surfacePos, pending.str, 0's)
+            .present(pending.owner, pending.surfacePos, pending.str, pending.isMarkup, 0's)
         }
     }
 
@@ -141,13 +142,7 @@ impl State
         }
     }
 
-    // Shows `str` near `surfacePos`, after `delay`, for `owner`.
-    //
-    // `str` is [[Pixel.RichString]] markup, so a tip is not limited to one flat sentence: it can
-    // set bold, italic and underline, reach the three palette colors with `<pN>`, and carry
-    // `<url>` spans the reader can click. A tip holding a link stays while the pointer is over it
-    // and reports the activation through [[Gui.ToolTip.State.sigLinkActivated]]; one holding none is
-    // passive and goes as soon as the pointer reaches it.
+    // Shows the literal text `str` near `surfacePos`, after `delay`, for `owner`.
     //
     // The tip is exactly as large as the text it holds. Past [[Gui.ThemeMetrics.toolTip_MaxWidth]]
     // it wraps rather than grow, past [[Gui.ThemeMetrics.toolTip_MaxHeight]] it ends its last line
@@ -155,6 +150,24 @@ impl State
     // knowing the reader is shown a box, not a viewport onto something longer. Keep a tip to what
     // fits: text the height cap truncates is text nobody reads.
     public mtd show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500'ms)
+    {
+        .present(owner, surfacePos, str, false, delay)
+    }
+
+    // Shows the inline markup sentence `markup` near `surfacePos`, after `delay`, for `owner`.
+    //
+    // The sentence follows [[Pixel.RichString.setMarkup]], so a tip is not limited to one flat
+    // sentence: it can set bold, italic and underline, reach the three palette colors, and carry
+    // links the reader can click. A tip holding a link stays while the pointer is over it and
+    // reports the activation through [[Gui.ToolTip.State.sigLinkActivated]]; one holding none is
+    // passive and goes as soon as the pointer reaches it. Size and wrapping are those of
+    // [[Gui.ToolTip.State.show]].
+    public mtd showMarkup(owner: *Wnd, surfacePos: Math.Point, markup: string?, delay: Time.Duration = 500'ms)
+    {
+        .present(owner, surfacePos, markup, true, delay)
+    }
+
+    mtd present(owner: *Wnd, surfacePos: Math.Point, str: string?, isMarkup: bool, delay: Time.Duration)
     {
         if str == null or str.count == 0 do
             return
@@ -167,6 +180,7 @@ impl State
             pending.owner      = owner
             pending.surfacePos = surfacePos
             pending.str        = str
+            pending.isMarkup   = isMarkup
             pending.startDelay = cast(f32, delay.seconds)
             pending.delay      = cast(f32, delay.seconds)
             return
@@ -217,7 +231,10 @@ impl State
         // placed before anything paints, and a caller reading its colors in between would read the
         // colors of the surface underneath.
         label.computeStyle()
-        label.setText(copy.toString())
+        if isMarkup do
+            label.setMarkup(copy.toString())
+        else do
+            label.setText(copy.toString())
 
         // The label reports the link; the tip reports which annotation it came from, because the
         // owner is what a handler can act on and the label is gone a moment later.
@@ -238,10 +255,18 @@ impl State
 
 // Shows a tip for `owner`, in the application `owner` belongs to.
 //
-// See [[Gui.ToolTip.State.show]] for what a tip may contain and how large it may become.
+// `str` is literal text. See [[Gui.ToolTip.State.show]] for how large a tip may become.
 public func show(owner: *Wnd, surfacePos: Math.Point, str: string?, delay: Time.Duration = 500'ms)
 {
     owner.app().toolTip.show(owner, surfacePos, str, delay)
+}
+
+// Shows a tip written in inline markup for `owner`, in the application `owner` belongs to.
+//
+// See [[Gui.ToolTip.State.showMarkup]] for what the sentence may contain.
+public func showMarkup(owner: *Wnd, surfacePos: Math.Point, markup: string?, delay: Time.Duration = 500'ms)
+{
+    owner.app().toolTip.showMarkup(owner, surfacePos, markup, delay)
 }
 
 // Hides `owner`'s tip, if it is the one showing.

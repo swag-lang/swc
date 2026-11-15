@@ -132,7 +132,7 @@ struct ThemePalette
         kindDocument: Color     // Glyph of a paged document, such as a PDF.
         kindArchive:  Color     // Glyph of an archive.
 
-        // The three slots rich text addresses with `<p1>`, `<p2>` and `<p3>`, in labels and in
+        // The three slots rich text addresses through its palette index, in labels and in
         // every other rich string the theme formats.
         rich1: Color     // First rich-text palette slot.
         rich2: Color     // Second rich-text palette slot.

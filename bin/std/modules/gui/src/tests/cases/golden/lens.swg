@@ -135,7 +135,7 @@ using Swag, Core, Pixel
             section.addEntry(Format.toString("Result %", index + 1))
     })
     lens.open(">")
-    Swag.require(lens.input.name.raw == strings().lens_Placeholder)
+    Swag.require(lens.input.name.text == strings().lens_Placeholder)
     Swag.require(lens.nextPage.isVisible() and lens.nextPage.isEnabled())
     Swag.require(lens.previousPage.isVisible() and not lens.previousPage.isEnabled())
     var image = host.renderSettled(&host.root)

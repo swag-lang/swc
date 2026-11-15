@@ -65,7 +65,7 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
             Console.println("content does not fit in ",
                             Swag.kindOf(root.itf).name,
                             " '",
-                            root.name.raw,
+                            root.name.text,
                             "': needs ",
                             content.x,
                             "x",

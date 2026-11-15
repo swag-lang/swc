@@ -123,3 +123,31 @@ func depBorrowAnnotatedObserve()
 // An older annotation that omits the external-observation promise stays conservative.
 #[Swag.NoInline, Swag.BorrowSummary(0)]
 func depBorrowLegacyObserver() {}
+
+struct DepUafNode
+{
+    public padding: u64
+    public data: *s32
+}
+
+#[Swag.BorrowSummary(0, freesFields: "0:64617461")]
+func depUafReleaseField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+#[Swag.BorrowSummary(0, freesFields: "0:64617461", resetsFields: "0:64617461")]
+func depUafReplaceField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}

@@ -180,17 +180,15 @@ is the current scorecard.
   generator emitted the inferred `freesFields` entry, but it also marked a release-and-replace
   method as released because it did not infer the post-call reset. That attempt was reverted after
   the existing reset-safe sanity case failed. A consumer probe with an explicit summary confirms
-  the generated API imports the field effect and caller-side transfer resolves the receiver field,
-  but the UAF still goes unreported: the pointer loaded from that field after the call has lost its
-  link to the field location. A separate probe that copies the pointer before the call also misses,
-  so the summary transfer cannot yet relate either an existing alias or a reload to the field. A
-  non-zero field offset did not change the result. Old local copies across a reset and global effects
-  are not solved by this prototype.
-- Next: preserve the field location in pointer provenance across caller-side field loads, while
-  keeping aliases and sibling fields distinct. Then infer must-free and post-call-write facts
-  together so reset-safe methods remain silent, and handle globals, wrapper calls and unavailable
-  bodies. Check old local copies, sibling fields, receiver resets and global resets before
-  integrating the complete result with `SanitizerState`.
+  the generated API imports the field effect and now diagnoses both a reload and a copy of the old
+  pointer made before the call. The same probe confirms a replacement field remains usable while a
+  pre-call copy remains diagnosed as released. This uncovered two caller-side gaps: functions with
+  summary-based releases did not enable release-provenance tracking, and aliases of fields passed to
+  a callee were removed before the field summary could classify them. Globals, inferred summaries,
+  wrapper calls and unavailable bodies are not solved by this prototype.
+- Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
+  extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Check
+  sibling fields and unknown calls before integrating the complete result with `SanitizerState`.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

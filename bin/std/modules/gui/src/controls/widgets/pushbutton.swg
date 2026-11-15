@@ -293,7 +293,7 @@ impl PushButton
             pos.width = parent.themeMetrics().btnPush_Width
         let res = Wnd.create'PushButton(parent, name, pos, id)
         res.focusPolicy = .Tab
-        res.wndFlags    |= .ActivatesOnKey
+        res.wndFlags    |= .ActivatesOnKey | .FocusRing
         res.form        = form
 
         // An unstated width belongs to the caption: the theme width above only gives the

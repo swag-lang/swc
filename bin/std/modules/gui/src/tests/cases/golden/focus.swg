@@ -21,6 +21,28 @@ using Swag, Core, Pixel
     Swag.require(focused.pixelColor(103, 40) != idle.pixelColor(103, 40))
 }
 
+// A keyboard-operated view keeps its input without an outer ring, even in the ring diagnostic.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 160)
+    host.app.theme.setLight()
+
+    let panel = Wnd.create'Wnd(&host.root, {20, 20, 200, 120})
+    let view  = Wnd.create'Wnd(panel, {12, 12, 176, 96})
+    view.focusPolicy = .Tab
+    let idle = host.render()
+
+    host.keyPress(.Tab)
+    Swag.require(view.hasFocus() and view.hasVisibleFocus())
+    let focused = host.render()
+    Swag.require(Slice.equals(focused.pixels.toSlice(), idle.pixels.toSlice()))
+
+    host.app.options.showFocusRings = true
+    let diagnostic = host.render()
+    Swag.require(Slice.equals(diagnostic.pixels.toSlice(), idle.pixels.toSlice()))
+}
+
 // What the ring looks like on a control that has nothing else to show for the focus.
 //
 // The image is the contract: a rule inside the button, one accent, and the same visible focus

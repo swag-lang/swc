@@ -669,6 +669,7 @@ impl ComboBox
         result.mode        = mode
         result.flags       = flags
         result.focusPolicy = .Tab
+        result.wndFlags    |= .FocusRing
         result.minSize.y   = metrics.comboBox_Height
 
         // An unstated width belongs to the items: the theme width above only gives the

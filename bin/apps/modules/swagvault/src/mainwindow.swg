@@ -55,6 +55,9 @@ enum StatusMessage
     Camouflaged              // The logical capacity stayed unchanged and the physical size changed.
     AutoUnmounted            // A configured security event closed every protected drive.
     AutoUnmountStopped       // The drives closed, but at least one final synchronization stopped.
+    AutoUnmountBusy          // Some protected drives remain accessible after an automatic attempt.
+    UnmountStopped           // An ordinary unmount left one or more drives mounted.
+    UnmountSyncStopped       // The drive detached, but its final commit failed.
     ChangingPassword         // The key slot is being rewritten.
     PasswordChanged          // The container now opens with the new password.
     PasswordRemoved          // The container now opens without a password.
@@ -71,7 +74,7 @@ enum WindowPage
     List         // The vaults, the chosen locked one unfolded to unlock it.
     Create       // The form that makes a new vault.
     Progress     // A creation, a resize or a camouflage refresh while it runs.
-    Options      // Privacy and automatic unmounting.
+    Options      // Privacy, residence and automatic unmounting.
 }
 
 // A Windows condition that can close protected drives without an explicit button press.
@@ -160,6 +163,7 @@ struct VaultOperation
     replacement:    VaultAccess        // Access installed by a password or key-file change.
     resultKeyFiles: Array'String       // Key-file selection published after a verified change.
     volume:         *MountedVault?     // Mount a mount operation produced, or the one an unmount closes.
+    forceUnmount:   bool               // Explicitly confirmed invalidation of outstanding handles.
 
     // What the result has to report but the wiped inputs no longer say.
     readOnly:          bool     // Whether a mount operation exposes the drive read only.
@@ -185,6 +189,7 @@ impl VaultOperation
         .kind = .None
         .error.reset()
         .volume            = null
+        .forceUnmount      = false
         .usedProtection    = false
         .leavesUnprotected = false
         .createHidden      = false
@@ -217,6 +222,7 @@ struct MainWindow
         appearanceButton: *AppearanceButton
         lens:             *Lens.View
         lensLauncher:     *Lens.Launcher
+        optionsButton:    *CaptionButton
         hintLine:         *HintLine
         dropHighlight:    *FileDropHighlight
         list:             *VaultList
@@ -250,7 +256,7 @@ struct MainWindow
         unmountOnLock:      *ToggleButton
         unmountOnSuspend:   *ToggleButton
         unmountOnIdle:      *ToggleButton
-        idleTimeout:        *IconButton
+        idleTimeout:        *Label
     }
 
     page:        WindowPage
@@ -291,6 +297,10 @@ struct MainWindow
     mountDestinations: Array'MountDestination
     autoUnmount:       AutoUnmountSettings
     securityEpoch:     u64
+    resident:          VaultResident
+    initialized:       bool
+    autoRetryAfter:    u64
+    statusDetail:      String
 
     // What the notice line says, plus the two values its wording interpolates: the drive
     // letter of the mounted message and the percentage of the randomizing one.
@@ -359,6 +369,7 @@ func kindMessage(kind: ErrorKind)->String
     case .Elevated:          return texts.msg_ErrElevated
     case .DriverUnavailable: return texts.msg_ErrDriverUnavailable
     case .Canceled:          return texts.msg_OperationStopped
+    case .Busy:              return texts.msg_DriveBusy
     case .InvalidInput:      return texts.msg_ErrInvalidRequest
     case .General:           return texts.msg_SystemError
     case .NotDirectory, .IsDirectory, .DirectoryNotEmpty: return texts.msg_ErrDamaged
@@ -485,10 +496,17 @@ impl MainWindow
         surface.minSize        = {MinWidth, MinHeight}
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
+        result.resident.window = result
 
         result.createAppearanceButton()
         result.createPages()
         result.createLens()
+        with result.optionsButton = CaptionButton.create(surface, .Settings, VaultCommands.Options)
+        {
+            .toolTip    = appStrings().cmd_Options
+            .sigPressed += func|window = result|(_) { discard window.runCommand(VaultCommands.Options) }
+        }
+
         result.lensLauncher = Lens.Launcher.create(result, VaultCommands.Lens)
         result.lensLauncher.captionButton.hide()
         result.createHint()
@@ -596,6 +614,7 @@ impl MainWindow
         if outgoing != incoming do
             .surface?.clearFocus()
         .page = page
+        .optionsButton.show(page == .List)
 
         if animate and outgoing != incoming
         {
@@ -914,8 +933,10 @@ impl MainWindow
     mtd retranslate()
     {
         .surface?.setTitle(appStrings().ui_WindowTitle)
+        .optionsButton.toolTip = appStrings().cmd_Options
         .createPage.retranslate()
         .optionsPage.retranslate()
+        .resident.applySettings()
         .applyAutoUnmountControls()
         .list.retranslate()
         .dropHighlight.setPrompt(appStrings().ui_DropTitle)
@@ -928,18 +949,46 @@ impl MainWindow
     // Whether a drive is already exposing this container.
     mtd isMounted(path: string)->bool => .mountedDrives.find(path) != null
 
-    // Releases the pending operation and every mounted volume. Safe to call more than once.
+    // Restores state and arms security monitoring even when startup leaves the surface hidden.
+    mtd initialize()
+    {
+        if .initialized do
+            return
+        .initialized = true
+        catch g_App.loadState()
+        if .privacyMode
+        {
+            .clearPrivateState()
+            catch g_App.saveState()
+        }
+
+        .applyTheme()
+        .applyLanguage()
+        .resident.applySettings()
+        .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
+        .securityMonitor.start(me)
+        .securityTimer = .addTimer(1's)
+        if not .privacyMode do
+            .startupQueue.add(.startupVaults.toSlice())
+        if .startupQueue.count do
+            .startupTimer = .addTimer(200'ms)
+    }
+
+    // Terminal teardown cannot leave native callbacks behind. Interactive close first goes
+    // through the resident owner, which keeps busy mounts alive instead of reaching this fallback.
     mtd shutdown()
     {
         if .shuttingDown do
             return
         .shuttingDown = true
+        .resident.stop()
 
         .stopTimer(&.operation.timer)
         .stopTimer(&.startupTimer)
         .stopTimer(&.securityTimer)
         .securityMonitor.stop()
 
+        let borrowedUnmount = .operation.kind == .Unmount
         if .operation.kind != .None
         {
             // Randomizing a hundred-gigabyte container takes minutes. Asking it to stop before
@@ -954,14 +1003,19 @@ impl MainWindow
         // the list is exactly as real to Windows as one that did.
         if .operation.volume
         {
-            discard catch .operation.volume.close()
-            Memory.delete(.operation.volume)
+            // An unmount worker borrows the row's mount; that row releases it below.
+            if not borrowedUnmount
+            {
+                discard catch .operation.volume.close(force: true)
+                Memory.delete(.operation.volume)
+            }
+
             .operation.volume = null
         }
 
         for &one in .mountedDrives.drives where one.volume
         {
-            discard catch one.volume.close()
+            discard catch one.volume.close(force: true)
             Memory.delete(one.volume)
             one.volume = null
         }
@@ -982,6 +1036,33 @@ impl MainWindow
 
 impl IWnd for MainWindow
 {
+    mtd impl onSysUserEvent(evt: *SysUserEvent)
+    {
+        if evt.kind == .TrayIcon
+        {
+            if evt.trayAction == .Activate do
+                .resident.showWindow()
+            elif evt.trayAction == .ContextMenu do
+                ResidentMenu.open(me)
+        }
+        elif evt.kind == .CustomMessage and evt.messageId == ShowWindowMessage
+        {
+            .resident.activate()
+        }
+    }
+
+    mtd impl onSysCommandEvent(evt: *SysCommandEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Close do
+            return
+        evt.accepted = true
+        if .resident.settings.enabled do
+            .resident.hideWindow()
+        else do
+            .resident.unmountAll(quit: true)
+    }
+
     // Takes a container dropped anywhere on the window that no field claimed first.
     //
     // Dropping one file says "open this" regardless of its name: the container format, not a
@@ -1034,9 +1115,12 @@ impl IWnd for MainWindow
         }
         elif evt.timer == .securityTimer
         {
+            .resident.refreshTray()
             #static if #os == Swag.TargetOs.Linux do
                 .securityMonitor.poll()
-            if .autoUnmount.onIdle and autoUnmountIdleMilliseconds() >= cast(u64, .autoUnmount.idleMinutes) * 60 * 1000 do
+            if .autoUnmount.onIdle and
+               Time.monotonicMilliseconds() >= .autoRetryAfter and
+               autoUnmountIdleMilliseconds() >= cast(u64, .autoUnmount.idleMinutes) * 60 * 1000 do
                 .handleAutoUnmount(.Idle)
         }
 
@@ -1047,31 +1131,7 @@ impl IWnd for MainWindow
     {
         if evt.kind == .Init
         {
-            // Runs before the surface is first displayed: restore the persisted window
-            // placement, language and dialog state, then keep the window on a visible
-            // screen area. The surface is built in English, and the restored language
-            // reaches it through the notification the switch below emits.
-            catch g_App.loadState()
-            if .privacyMode
-            {
-                .clearPrivateState()
-                catch g_App.saveState()
-            }
-
-            .applyTheme()
-            .applyLanguage()
-            .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
-
-            .securityMonitor.start(me)
-            .securityTimer = .addTimer(1's)
-
-            // The startup mounts wait for a surface a reader can see: the first one may need
-            // access input, and a box on a window that is not up yet has nothing to sit on.
-            if not .privacyMode do
-                .startupQueue.add(.startupVaults.toSlice())
-            if .startupQueue.count do
-                .startupTimer = .addTimer(200'ms)
-
+            .initialize()
             evt.accepted = true
         }
     }
@@ -1081,6 +1141,7 @@ impl IWnd for MainWindow
         catch evt.serializer.serialize("MainWindow.privacyMode", &me.privacyMode)
         catch evt.serializer.serialize("MainWindow.language", &me.language)
         catch evt.serializer.serialize("MainWindow.themeIndex", &me.themeIndex)
+        catch evt.serializer.serialize("MainWindow.resident", &me.resident.settings)
 
         // Privacy is the default, including for state written before this setting
         // existed. Only an explicit opt-out permits paths or browse history on disk.
@@ -1108,6 +1169,7 @@ impl IWnd for MainWindow
                 .clearPrivateState()
             .applyPrivacyControl()
             .applyAutoUnmountControls()
+            .resident.applySettings()
             .refreshVaults()
         }
     }
@@ -1116,8 +1178,11 @@ impl IWnd for MainWindow
     {
         switch evt.kind
         {
-        case .LanguageChanged: .retranslate()
+        case .LanguageChanged:
+            .retranslate()
+
         case .ThemeChanged where .layoutReady:
+            .optionsButton.button.setIcon(.theme().icon(.Settings, .themeMetrics().wnd_CaptionButtonGlyph))
             .refreshVaults()
             .dropHighlight.refreshTheme()
         }

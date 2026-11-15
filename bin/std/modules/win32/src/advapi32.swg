@@ -62,6 +62,7 @@ const REG_QWORD_LITTLE_ENDIAN        = 11'u32     // 64-bit number (same as REG_
     func RegSetValueExA(hKey: HKEY, lpValueName: LPCSTR, reserved: DWORD, dwType: DWORD, lpData: const *BYTE?, cbData: DWORD)->LSTATUS
     func RegSetValueExW(hKey: HKEY, lpValueName: LPCWSTR?, reserved: DWORD, dwType: DWORD, lpData: const *BYTE?, cbData: DWORD)->LSTATUS
     func RegCloseKey(hKey: HKEY)->LSTATUS
+    func RegDeleteValueW(hKey: HKEY, lpValueName: LPCWSTR)->LSTATUS
 }
 
 // Imports `RtlGenRandom` through the `SystemFunction036` export in `advapi32.dll`.

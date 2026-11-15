@@ -111,7 +111,7 @@ internal func fillPictureList(window: *MainWindow)
 }
 
 // Writes and reads the state event at the same boundary the application state file uses.
-func saveMainWindowState(window: *MainWindow)->String
+internal func saveMainWindowState(window: *MainWindow)->String
 {
     var result:     ConcatBuffer
     var encoder:    Serialization.Encoder'Serialization.Write.TagBin
@@ -124,7 +124,7 @@ func saveMainWindowState(window: *MainWindow)->String
     return result.toString()
 }
 
-func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
+internal func loadMainWindowState(window: *MainWindow, bytes: const [..] u8)
 {
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var serializer: Serialization.Serializer
@@ -149,7 +149,7 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
 }
 
 // Reports whether the lens of `window` shows an entry titled `title`.
-func lensHasEntry(window: *MainWindow, title: string)->bool
+internal func lensHasEntry(window: *MainWindow, title: string)->bool
 {
     for section in window.lens.results.sections
     {
@@ -287,7 +287,16 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
             window.showPage(.Options, animate: false)
             Testing.assertContentFits(window)
-            assertColumnFits(window, window.optionsPage, window.optionsPage.column)
+            let options = window.optionsPage
+            assertColumnFits(window, options, options.headColumn)
+            Swag.require(options.headColumn.position.bottom() < options.scroll.position.y)
+            Swag.require(options.column.position.bottom() <= options.scroll.scrollSize.y + 0.5)
+            options.scroll.setScrollPos(0, options.scroll.scrollSize.y)
+            let last     = options.startup.surfaceRect()
+            let viewport = options.scroll.view.surfaceRect()
+            Swag.require(last.y >= viewport.y and last.bottom() <= viewport.bottom() + 0.5)
+            Swag.require(last.bottom() <= window.hintLine.surfaceRect().y)
+            options.scroll.setScrollPos(0, 0)
         }
 
         window.showPage(.List, animate: false)
@@ -333,7 +342,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(row.open.text() == "P:" and row.open.toolTip == "Ouvrir P:")
     Swag.require(window.createButton.text() == "Créer le coffre chiffré")
     Swag.require(window.mountButton.text() == "Monter")
-    Swag.require(window.optionsPage.head.title.text() == "Vie privée")
+    Swag.require(window.optionsPage.head.title.text() == "Options")
     Swag.require(Utf8.startsWith(window.vaultIdentity(PictureMountedPath), "monté sur P:"))
 
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
@@ -446,7 +455,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.unmountOnLock.isChecked())
     Swag.require(window.unmountOnSuspend.isChecked())
     Swag.require(not window.unmountOnIdle.isChecked())
-    Swag.require(not window.idleTimeout.isEnabled())
+    Swag.require(not window.idleTimeout.linksEnabled)
 
     window.unmountOnLock.toggle()
     window.unmountOnIdle.toggle()
@@ -462,7 +471,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.autoUnmount.onSuspend)
     Swag.require(window.autoUnmount.onIdle)
     Swag.require(window.autoUnmount.idleMinutes == 30)
-    Swag.require(window.idleTimeout.isEnabled())
+    Swag.require(window.idleTimeout.linksEnabled)
 
     // The switches are lens entries too, and the lens says which are on.
     discard window.runCommand(VaultCommands.UnmountOnSuspend)

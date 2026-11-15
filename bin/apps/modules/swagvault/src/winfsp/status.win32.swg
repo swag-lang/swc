@@ -10,6 +10,7 @@ namespace WinFsp
     const CleanupSetChangeTime     = 0x80'u32
 
     const StatusSuccess             = 0's32
+    const StatusDeviceBusy          = cast #bit (s32, 0x80000011'u32)
     const StatusBufferOverflow      = cast #bit (s32, 0x80000005'u32)
     const StatusInvalidParameter    = cast #bit (s32, 0xC000000D'u32)
     const StatusAccessDenied        = cast #bit (s32, 0xC0000022'u32)
@@ -43,6 +44,7 @@ namespace WinFsp
             case .NotFound:          return StatusObjectNameNotFound
             case .AlreadyExists:     return StatusObjectNameCollision
             case .AccessDenied:      return StatusAccessDenied
+            case .Busy:              return StatusDeviceBusy
             case .HiddenProtected:   return StatusMediaWriteProtected
             case .WriteProtected:    return StatusMediaWriteProtected
             case .NotDirectory:      return StatusNotADirectory

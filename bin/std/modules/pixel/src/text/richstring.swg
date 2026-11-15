@@ -10,15 +10,16 @@ struct RichChunk
 {
     public
     {
-        slice:        string = ""     // Borrowed UTF-8 slice represented by this run.
+        slice:        string = ""                   // Borrowed UTF-8 slice represented by this run.
         fontStyle:    FontFamilyStyle = Regular     // Requested family style.
-        hasFontStyle: bool            // Whether markup explicitly selected `fontStyle`.
-        isSpace:      bool            // Whether the chunk is whitespace.
-        isEol:        bool            // Whether the chunk terminates a line.
-        isUrl:        bool            // Whether the chunk belongs to `<url>` markup.
-        isHotUrl:     bool            // Whether pointer interaction currently highlights the URL.
-        visible:      bool            // Whether layout retained the chunk for painting.
-        colorIdx:     s32             // Palette color index selected by `<pN>` markup.
+        hasFontStyle: bool                          // Whether markup explicitly selected `fontStyle`.
+        isSpace:      bool                          // Whether the chunk is whitespace.
+        isEol:        bool                          // Whether the chunk terminates a line.
+        isUrl:        bool                          // Whether the chunk belongs to `<url>` markup.
+        urlStart:     u64    = Swag.U64.Max         // Source byte offset identifying the URL span, or U64.Max outside links.
+        isHotUrl:     bool                          // Whether pointer interaction currently highlights the URL.
+        visible:      bool                          // Whether layout retained the chunk for painting.
+        colorIdx:     s32                           // Palette color index selected by `<pN>` markup.
 
         boundRect: Math.Rectangle            // Bounds local to `pos`, in pixels.
         pos:       Math.Point                // Chunk origin in the containing layout.
@@ -90,6 +91,7 @@ impl RichString
         chunk.isSpace      = space
         chunk.isEol        = eol
         chunk.isUrl        = url or isUrl.back()
+        chunk.urlStart     = chunk.isUrl ? (isUrl.back() ? urlStarts.back() : startChunk) : Swag.U64.Max
         chunk.visible      = false
         chunk.colorIdx     = colorFg.back()
         chunk.under        = under.back()
@@ -231,6 +233,17 @@ impl RichString
         return null
     }
 
+    // Returns the complete plain text of a URL span identified by [[Pixel.RichChunk.urlStart]].
+    // A span can contain several styled runs or wrapped words. An unknown offset returns empty.
+    mtd urlText(start: u64)->String
+    {
+        .compute()
+        var result: #returntype
+        for &chunk in .chunks where chunk.isUrl and chunk.urlStart == start do
+            result += chunk.slice
+        return result
+    }
+
     // Splits the marked-up text into chunks that each carry one style.
     //
     // The chunks are rebuilt only when the text changed or when `force` is true, and the last
@@ -253,15 +266,17 @@ impl RichString
         var chunk: RichChunk
 
         var byteIdx = 0'u64
-        var isBold:   Array'bool
-        var isItalic: Array'bool
-        var isUrl:    Array'bool
-        var colorFg:  Array'u32
-        var under:    Array'UnderlineStyle
+        var isBold:    Array'bool
+        var isItalic:  Array'bool
+        var isUrl:     Array'bool
+        var urlStarts: Array'u64
+        var colorFg:   Array'u32
+        var under:     Array'UnderlineStyle
 
         isBold.add(false)
         isItalic.add(false)
         isUrl.add(false)
+        urlStarts.add(Swag.U64.Max)
         colorFg.add(0)
         under.add(UnderlineStyle.None)
 
@@ -352,6 +367,7 @@ impl RichString
             case Utf8.startsWith(sl, "<url>"):
                 .addChunk(byteIdx)
                 isUrl.add(true)
+                urlStarts.add(byteIdx + 5)
                 byteIdx, scan, startChunk += 5
                 count   -= 5
                 handled = true
@@ -360,6 +376,8 @@ impl RichString
                 .addChunk(byteIdx)
                 if isUrl.count > 1 do
                     isUrl.removeBack()
+                if urlStarts.count > 1 do
+                    urlStarts.removeBack()
                 byteIdx, scan, startChunk += 6
                 count   -= 6
                 handled = true

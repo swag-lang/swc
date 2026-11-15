@@ -43,7 +43,7 @@ impl ThumbnailSettings
 
         if entry
         {
-            settings.musicId = musicChoiceId(window.musicChoices.toSlice(), entry)
+            settings.musicId = window.privacy.selectedMusicId(entry)
             if not settings.musicId.isEmpty()
             {
                 settings.choiceSize = entry.size

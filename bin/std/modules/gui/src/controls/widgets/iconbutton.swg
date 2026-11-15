@@ -446,7 +446,9 @@ impl IWnd for IconButton
             let fontR    = nnFont(.font().regular)
             let baseline = pos.vertCenter() - fontR.height * 0.5 + fontR.ascent
             let size     = bc.painter.hairline(Math.max(1, Math.floor(fontR.underlineSize)))
-            bc.painter.fillRect(Math.Rectangle{pos.x, Math.round(baseline - fontR.underlinePos), pos.width, size}, colors.faintText)
+            var underline = bc.isDisabled ? colorText : colors.link
+            underline.a = cast(u8, Math.round(underline.a * Math.clamp(metrics.label_LinkUnderlineOpacity, 0, 1)))
+            bc.painter.fillRect(Math.Rectangle{pos.x, Math.round(baseline - fontR.underlinePos), pos.width, size}, underline)
         }
 
         // Arrow. It is a chevron of the theme icon set — the same glyph a combo box, a submenu and

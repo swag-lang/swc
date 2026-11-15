@@ -270,12 +270,10 @@ namespace Integration
             if not .mountedActive do
                 return
             let mounted = unwrap .mounted
-            var closeErrorOutcome: Swag.Error
-            discard catch mounted.close() as closeErrorOutcome
+            try mounted.close()
             Memory.delete(mounted)
             .mounted       = null
             .mountedActive = false
-            try closeErrorOutcome.raise()
         }
 
         mtd cleanup()
@@ -283,7 +281,7 @@ namespace Integration
             if .mountedActive
             {
                 let mounted = unwrap .mounted
-                discard catch mounted.close()
+                discard catch mounted.close(force: true)
                 Memory.delete(mounted)
                 .mounted       = null
                 .mountedActive = false
@@ -564,6 +562,7 @@ namespace Integration
         box.mountVolume(HiddenPassword)
         let secret = Path.combine(driveRoot(box.mountPoint), "secret.txt")
         File.writeAllBytes(secret, "hidden integration bytes")
+        trace("HIDDEN: unmount hidden write")
         box.unmountVolume()
 
         box.mountVolume(password(), HiddenPassword)
@@ -586,12 +585,20 @@ namespace Integration
 
         stream.close()
         verify(written > 0 and stopped and box.mounted!.volume.file.protectionTriggered, "ordinary Windows writes must succeed until hidden protection stops them")
-        discard catch box.unmountVolume()
+        trace("HIDDEN: unmount protected write collision")
+
+        // A write collision can leave dirty Windows cache pages that cannot be flushed.
+        // This scenario deliberately invalidates them before checking the hidden data.
+        let protectedMount = unwrap box.mounted
+        discard catch protectedMount.close(force: true)
+        verify(not protectedMount.volumeOpen, "forced collision cleanup must close the volume even when its final commit fails")
+        box.unmountVolume()
         box.mountVolume(HiddenPassword)
         verify(File.readAllText(secret) == "hidden integration bytes", "hidden data must survive a protected outer write collision")
+        trace("HIDDEN: unmount hidden read")
         box.unmountVolume()
         box.mountVolume(password())
-        verify(box.mounted!.volume.file.protectedEnd == 0, "protection must be opt-in on every ordinary mount")
+        verify(box.mounted.volume.file.protectedEnd == 0, "protection must be opt-in on every ordinary mount")
         box.unmountVolume()
         box.closeSandbox()
     }
@@ -630,6 +637,34 @@ namespace Integration
         verify(firstIdentity == expectedFirst and secondIdentity == expectedSecond, "WinFsp must read the complete staged identities")
         verify(firstIdentity.startsWith("swagvault-") and secondIdentity.startsWith("swagvault-"), "each runtime identity must belong to Swag Vault")
         verify(firstIdentity != secondIdentity, "independent guardians must never share a driver registration")
+    }
+
+    // Busy is a refusal, while explicit force invalidates live native handles and releases keys.
+    #[Swag.Propagate]
+    func runUnmountContract(box: *Sandbox) fail
+    {
+        let path = Path.combine(driveRoot(box.mountPoint), "resident-busy.txt")
+        File.writeAllText(path, "retained after refusal")
+        var opened  = File.open(path, .Open, .ReadWrite, .ReadWrite)
+        let mounted = unwrap box.mounted
+        var error: Swag.Error
+        catch mounted.close() as error
+        verify(isBusyError(error.value()), "ordinary unmount must report an open native file as busy")
+        verify(mounted.volumeOpen and mounted.mount.fileSystem != null, "busy unmount must retain the filesystem and its keys")
+        var buffer: [22] u8
+        verify(opened.readExact(buffer), "a file must remain readable after refused unmount")
+        verify(Slice.equals(buffer, cast(const [..] u8, "retained after refusal")), "busy unmount must preserve file contents")
+        opened.flush()
+        mounted.close(force: true)
+        verify(not mounted.volumeOpen and mounted.mount.fileSystem == null, "force must stop callbacks before closing the volume")
+        verify(not Directory.exists(driveRoot(box.mountPoint)), "force must remove the exposed drive")
+        var flushError: Swag.Error
+        catch opened.flush() as flushError
+        verify(flushError.value() != null, "an invalidated native file handle must reject a flush")
+        opened.close()
+        box.unmountVolume()
+        box.mountVolume(password())
+        verify(File.readAllText(path) == "retained after refusal", "force must commit writes already accepted by the filesystem")
     }
 
     #[Swag.Propagate]
@@ -675,8 +710,11 @@ namespace Integration
         let probeExitCode  = probe.waitForExit()
         verify(probeExitCode == 0, "the visibility probe must exit without reporting a failure")
         verify(File.exists(visibilityMarker) and File.readAllText(visibilityMarker) == "VISIBLE", "an independent non-elevated process must see the mounted drive")
+        runPrivacyScenarios(box, visibilityMarker)
         runFilesystemScenarios(box, payload.toSlice())
         trace("STAGE: live filesystem scenarios complete")
+        trace("STAGE: ordinary and forced unmount contract")
+        runUnmountContract(box)
 
         Console.println("Unmounting, rejecting a wrong password, and remounting...")
         trace("STAGE: persistence scenarios")

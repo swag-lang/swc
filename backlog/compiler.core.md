@@ -4,6 +4,18 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
+
+- Evidence: the Linux Release compiler reports that `state` may refer to released memory at
+  `state.id` in `bin/std/modules/core/src/thread/thread.linux.swg`. The allocation is freed only
+  when `pthread_create` fails, immediately before `try Errors.failLinuxError(error)`; every arm
+  of that helper raises a failure. The reported dereferences belong to the successful creation
+  path, where the allocation remains owned by the thread handle.
+- Next: reduce allocation, conditional release and an always-failing helper to a standalone
+  sanity case, then distinguish a terminal helper from a fallible helper that can return.
+- Done when: the terminal failure path produces no lifetime warning, while a helper with a
+  reachable success path still diagnoses a following access to the released allocation.
+
 ### compiler.core.110 — An inferred duration constant is refused as a cast from `s32` to `s32`
 
 - Evidence: `const WatchPeriod = 30'ms` inside `impl ResidentPanel` of Swag Capture

@@ -15,11 +15,6 @@ struct OptionRow
         help:   *Label
         toggle: *ToggleButton
     }
-
-    helpText:   String         // The paragraph as the string table writes it, `%` standing for the choice.
-    choice:     *Wnd?          // Quiet word inside the paragraph, when the option needs one.
-    choiceTail: String         // Words of the paragraph after the choice, such as its closing period.
-    tailPos:    Math.Point     // Where those words start, in the row: the end of the choice, on its line.
 }
 
 impl OptionRow
@@ -48,71 +43,15 @@ impl OptionRow
             .setTextAlignment(.Left, .Top)
         }
 
-        result.toggle   = ToggleButton.create(result)
-        result.helpText = help
+        result.toggle = ToggleButton.create(result)
         return result
     }
 
-    // Says the option again in the language now active.
+    // Says the option again in the active language; RichString owns all inline layout.
     mtd setTexts(title, help: string)
     {
         .title.setText(title)
-        .helpText = help
-        .applyHelp()
-    }
-
-    // Sets `choice` inside the paragraph, where its `%` stands.
-    mtd setChoice(choice: *Wnd)
-    {
-        .choice = choice
-        .applyHelp()
-    }
-
-    // Writes the paragraph: whole, or up to the choice, keeping what follows it for the row to
-    // write after the choice.
-    private mtd applyHelp()
-    {
-        let mark = .choice ? Utf8.indexOf(.helpText.toSlice(), "%") : Swag.U64.Max
-        if mark == Swag.U64.Max
-        {
-            .help.setText(.helpText)
-            .choiceTail.clear()
-            return
-        }
-
-        .help.setText(Latin1.trim(.helpText[until mark]))
-        .choiceTail = .helpText[mark + 1 to]
-    }
-
-    // Lays the paragraph out at `width` and returns where the choice stands in it: after its last
-    // word on the same line, or at the start of the next one when the line cannot hold it and the
-    // words that follow it. The words of the choice line up with the words of the paragraph.
-    private mtd choiceRect(width: f32)->Math.Rectangle
-    {
-        let chooser = unwrap .choice
-        let size    = chooser.measure({}).preferred
-        let inset   = chooser.padding.x
-        let font    = unwrap .help.font().regular
-        let tail    = Painter.measureString(.choiceTail, font).width - chooser.padding.z
-
-        discard .help.measure(Math.Point{width, 0})
-        var lineEnd, lineTop: f32
-        var lineHeight = font.height
-        for &chunk in .help.name.chunks where chunk.visible and not chunk.isEol
-        {
-            lineEnd    = chunk.pos.x + chunk.boundRect.width
-            lineTop    = chunk.pos.y
-            lineHeight = chunk.boundRect.height
-        }
-
-        var x = lineEnd + Painter.measureString(" ", font).width - inset
-        if x + size.x + tail > width
-        {
-            x       = -inset
-            lineTop += lineHeight
-        }
-
-        return Math.Rectangle{x, Math.round(lineTop + (lineHeight - size.y) * 0.5), size.x, size.y}
+        .help.setText(help)
     }
 
     // Returns the width the words have beside the switch, in a row `width` wide.
@@ -134,15 +73,6 @@ impl OptionRow
 
         let helpHeight = Math.ceil(.help.measure(Math.Point{words, 0}).preferred.y)
         .help.arrange(Math.Rectangle{room.x, room.y + TitleHeight + HelpGap, words, helpHeight})
-        if .choice
-        {
-            var rect = .choiceRect(words)
-            rect.offset(.help.position.x, .help.position.y)
-            .choice.arrange(rect)
-
-            // The words go on right after the chevron, where the choice's own air begins.
-            .tailPos = Math.Point{rect.right() - .choice.padding.z, rect.vertCenter()}
-        }
     }
 }
 
@@ -153,20 +83,8 @@ impl IWnd for OptionRow
         if .toggle == null do
             return {}
         let words = .wordsWidth(available.x)
-        var help  = .help.measure(Math.Point{words, 0}).preferred.y
-        if .choice do
-            help = Math.max(help, .choiceRect(words).bottom())
+        let help  = .help.measure(Math.Point{words, 0}).preferred.y
         return Math.Point{0, Math.ceil(TitleHeight + HelpGap + help)}
-    }
-
-    // Writes the words of the paragraph that follow the choice, on the choice's line.
-    mtd impl onPaint(evt: *PaintEvent)
-    {
-        if .choice == null or .choiceTail.isEmpty() do
-            return
-        let font    = unwrap .help.font().regular
-        let painter = evt.paintContext.painter
-        painter.drawString(.tailPos.x, font.opticalLineTop(.tailPos.y), .choiceTail, font, .themeColors().label_TextLight)
     }
 
     mtd impl onResizeEvent(_: *ResizeEvent)
@@ -185,17 +103,22 @@ struct OptionsPage
 
     late
     {
-        window:  *MainWindow
-        column:  *StackLayoutCtrl
-        privacy: *OptionRow
-        lock:    *OptionRow
-        suspend: *OptionRow
-        idle:    *OptionRow
-        timeout: *IconButton
+        window:     *MainWindow
+        column:     *StackLayoutCtrl
+        headColumn: *StackLayoutCtrl
+        privacy:    *OptionRow
+        lock:       *OptionRow
+        suspend:    *OptionRow
+        idle:       *OptionRow
+        timeout:    *Label
+        resident:   *OptionRow
+        startup:    *OptionRow
+        scroll:     *ScrollWnd
     }
 
     head:         PageHead
     timeoutIndex: u32 = MainWindow.IdleDefaultIndex     // Entry of `MainWindow.IdleChoices` the delay says.
+    arranging:    bool
 }
 
 impl OptionsPage
@@ -217,23 +140,44 @@ impl OptionsPage
         }
 
         let texts = appStrings()
-        result.column = createPageColumn(result)
-        result.head   = PageHead.create(result.column, texts.ui_PrivacyTitle, texts.ui_OptionsHelp)
-        result.head.back.sigPressed += func|window|(_) { window.showPage(.List) }
-
-        result.privacy = result.addRow(texts.ui_PrivacyMode, texts.ui_PrivacyModeHelp, first: true)
-        result.lock    = result.addRow(texts.ui_UnmountOnLock, texts.ui_UnmountOnLockHelp)
-        result.suspend = result.addRow(texts.ui_UnmountOnSuspend, texts.ui_UnmountOnSuspendHelp)
-        result.idle    = result.addRow(texts.ui_UnmountOnIdle, texts.ui_UnmountOnIdleHelp)
-
-        // The delay is a quiet word of the sentence, underlined so it reads as the one to change.
-        with result.timeout = IconButton.createQuiet(result.idle, "vault.idleTimeout")
+        result.headColumn = createPageColumn(result)
+        result.head       = PageHead.create(result.headColumn, texts.ui_PrivacyTitle, texts.ui_OptionsHelp)
+        with result.scroll = Wnd.create'ScrollWnd(result)
         {
-            .updateFlags(.Underline)
-            .sigPressed += func|page = result|(_) { page.chooseTimeout() }
+            .dockStyle  = .None
+            .frameFlags = .None
+            .updateFlags(.DisableHorizontal | .TransparentBars)
+            .createView'Wnd()
         }
 
-        result.idle.setChoice(result.timeout)
+        result.column = createPageColumn(result.scroll.view)
+        result.scroll.view.hookOnEvent = func|page = result|(_, event)->bool
+        {
+            if event is ResizeEvent do
+                page.arrange()
+            return false
+        }
+
+        result.head.back.sigPressed += func|window|(_)
+        {
+            window.showPage(.List)
+        }
+
+        result.privacy                    = result.addRow(texts.ui_PrivacyMode, texts.ui_PrivacyModeHelp, first: true)
+        result.lock                       = result.addRow(texts.ui_UnmountOnLock, texts.ui_UnmountOnLockHelp)
+        result.suspend                    = result.addRow(texts.ui_UnmountOnSuspend, texts.ui_UnmountOnSuspendHelp)
+        result.idle                       = result.addRow(texts.ui_UnmountOnIdle, texts.ui_UnmountOnIdleHelp)
+        result.resident                   = result.addRow(texts.ui_Resident, texts.ui_ResidentHelp)
+        result.startup                    = result.addRow(texts.ui_SessionStartup, texts.ui_SessionStartupHelp)
+        result.resident.toggle.sigChanged += func|window|(button) { window.resident.setEnabled(button.isChecked()) }
+        result.startup.toggle.sigChanged  += func|window|(button) { window.resident.setSessionStartup(button.isChecked()) }
+
+        // The delay is a rich-text action: the same layout, state and keyboard handling
+        // used by every inline action label in GUI.
+        result.timeout = result.idle.help
+        result.timeout.updateFlags(.LinkActions)
+        result.timeout.sigLinkActivated += func|page = result|(_, _) { page.chooseTimeout() }
+
         result.privacy.toggle.sigChanged += func|window|(_) { window.readPrivacyControl() }
         for row in [result.lock, result.suspend, result.idle] do
             row.toggle.sigChanged += func|window|(_) { window.readAutoUnmountControls() }
@@ -255,7 +199,7 @@ impl OptionsPage
 
         with let result = OptionRow.create(.column, title, help)
         {
-            .margin.y = first ? PageHeadGap : RowPadding
+            .margin.y = first ? 0 : RowPadding
         }
 
         return result
@@ -270,6 +214,8 @@ impl OptionsPage
         .lock.setTexts(texts.ui_UnmountOnLock, texts.ui_UnmountOnLockHelp)
         .suspend.setTexts(texts.ui_UnmountOnSuspend, texts.ui_UnmountOnSuspendHelp)
         .idle.setTexts(texts.ui_UnmountOnIdle, texts.ui_UnmountOnIdleHelp)
+        .resident.setTexts(texts.ui_Resident, texts.ui_ResidentHelp)
+        .startup.setTexts(texts.ui_SessionStartup, texts.ui_SessionStartupHelp)
         .setTimeout(.timeoutIndex)
     }
 
@@ -277,7 +223,11 @@ impl OptionsPage
     mtd setTimeout(index: u32)
     {
         .timeoutIndex = index
-        .timeout.setQuietText(Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index]))
+        var words = Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index])
+        words.replace(' ', "\u00A0")
+        let action = Format.toString("<url>%</url>", words)
+        .timeout.setText(Format.toString(appStrings().ui_UnmountOnIdleHelp, action))
+        .timeout.setLinksEnabled(.window.autoUnmount.onIdle)
         .arrange()
     }
 
@@ -288,7 +238,9 @@ impl OptionsPage
         for id, index in TimeoutIds do
             menu.addRadioItem(Format.toString(appStrings().ui_Minutes, MainWindow.IdleChoices[index]), id, checked: index == .timeoutIndex)
 
-        let chosen = menu.doModal(.timeout, autoDestroy: true) orelse ""
+        let link   = .timeout.firstLinkRect()
+        let bounds = .timeout.surfaceRect()
+        let chosen = menu.doModal(Math.Point{bounds.x + link.x, bounds.y + link.bottom()}, .TopLeft, autoDestroy: true) orelse ""
         for id, index in TimeoutIds where chosen == id
         {
             .setTimeout(cast(u32, index))
@@ -296,13 +248,24 @@ impl OptionsPage
         }
     }
 
-    // Places the column at the head of the page.
+    // The title and return stay visible; only the option rows scroll above the hint line.
     mtd arrange()
     {
-        if .timeout == null do
+        if .timeout == null or .arranging do
             return
-        placePageColumn(me, .column)
-        for row in [.privacy, .lock, .suspend, .idle] do
+        .arranging = true
+        defer .arranging = false
+        placePageColumn(me, .headColumn)
+        let viewport = .clientRect()
+        let top      = .headColumn.position.bottom() + PageHeadGap
+        .scroll.arrange({0, top, viewport.width, Math.max(0, viewport.height - PageFoot - top)})
+        let room   = .scroll.view.clientRect()
+        let width  = Math.min(PageColumnWidth, Math.max(0, room.width - 2 * PageGutter))
+        let height = Math.ceil(.column.measure({width, 0}).preferred.y)
+        .column.arrange({Math.round((room.width - width) * 0.5), 0, width, height})
+        .column.applyLayout()
+        .scroll.setScrollSize(.scroll.view.position.width, .column.position.bottom() + PageGutter)
+        for row in [.privacy, .lock, .suspend, .idle, .resident, .startup] do
             row.arrange()
     }
 }

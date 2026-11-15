@@ -766,7 +766,7 @@ impl Explorer
             return
         let selected   = .selected
         let generation = .generation
-        let previous   = musicChoiceId(.window.musicChoices.toSlice(), &.entries[selected])
+        let previous   = .window.privacy.selectedMusicId(&.entries[selected])
         let dialog     = .createMusicChoiceDialog(previous)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -780,7 +780,7 @@ impl Explorer
             return
         }
 
-        setMusicChoice(&.window.musicChoices, &.entries[selected], String.toLower(text))
+        .window.privacy.rememberMusicChoice(&.entries[selected], String.toLower(text), .listing.isArchive ? .listing.path.toString() : .entries[selected].path.toString())
         .retirePreviews()
         .requestPreview()
     }
@@ -2094,6 +2094,7 @@ impl Explorer
         preview.opening     = opening
         preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local, previewEpoch: .previewEpoch)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
+        preview.privacy = .listing.isArchive ? .window.privacy.policy(.listing.path) : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
         if not opening and
@@ -2194,6 +2195,7 @@ impl IWnd for Explorer
                 {
                     let title = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
                     let path  = Format.toString("%/%", .logicalPath(preview.archivePath), preview.path)
+                    .window.privacy.inherit(preview.temporary, preview.archivePath)
                     .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title, path})
                 }
 

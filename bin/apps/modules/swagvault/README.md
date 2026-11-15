@@ -8,15 +8,33 @@ Its source, ordinary tests, and privileged integration harness share the applica
 Run these commands from the repository root with its compiler:
 
 ```text
-tools\apps.bat dm build swagvault
-tools\apps.bat dm run swagvault
-tools\apps.bat dm test swagvault
-tools\apps.bat dm smoke swagvault
+tools\apps.bat build swagvault
+tools\apps.bat run swagvault
+tools\apps.bat test swagvault
+tools\apps.bat smoke swagvault
 ```
 
-`dm` selects the DevMode compiler. Add `-bc release` after the application name to select the
+Add `dm` to debug compiler problems. Add `-bc release` after the application name to select the
 Release program configuration. The application tool builds and places runtime dependencies before
 launching the program; use it when running from a checkout.
+
+## Resident mode and unmounting
+
+Enable **Resident Mode** in **Options** to keep Vault behind its notification-area icon when
+closing the window. Mounted drives, running operations and automatic security policies continue.
+The icon restores the window and offers per-drive actions, **Unmount All Vaults**, and
+**Unmount and Quit**. Launching Vault again restores the existing instance.
+
+**Start With the Session** is a separate opt-in that requires resident mode. It starts with
+`--hide`; the window stays accessible if the desktop has no supported notification area. Linux
+uses an XEmbed tray manager. Protected startup vaults wait for access in the main window.
+Passwords and key-file selections are cleared when hiding the window.
+
+Ordinary unmount refuses open files or directories and leaves the drive accessible. Close those
+applications and retry, or choose **Force Unmount** and confirm its warning: existing handles
+stop working and pending application writes can be lost. Automatic policies always use ordinary
+unmounts. **Unmount and Quit** keeps Vault running if any drive remains mounted or a final
+synchronization fails.
 
 ## Hidden volumes
 

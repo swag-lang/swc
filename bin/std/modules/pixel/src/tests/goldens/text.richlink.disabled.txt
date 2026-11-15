@@ -1,0 +1,34 @@
+# font#0 segoeui.ttf size=16 mode=Bitmap
+
+ResetTexture0
+Transform 1 0 0 1 0 0
+SetBlendingMode Alpha
+ColorMask rgb-
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=24 bbox=(0,5)-(32,18) uv=(0,0)-(0.656,0.406) colors=[FF969696] cov=solid
+ResetTextureFont
+EndFont
+StartFont
+UpdateFont font#0
+ResetTexture0
+EndFont
+StartFont
+UpdateFont font#0
+ResetTexture0
+StartNoOverlap
+DrawTriangles n=30 bbox=(35.5,17.391)-(114.391,19.391) colors=[595A5A5A] cov=aa
+StopNoOverlap
+BindTextureFont font#0 atlas=0
+DrawTriangles n=54 bbox=(38,5)-(114,18) uv=(0,0.203)-(0.828,0.594) colors=[FF5A5A5A] cov=solid
+ResetTextureFont
+EndFont
+StartFont
+UpdateFont font#0
+ResetTexture0
+BindTextureFont font#0 atlas=0
+DrawTriangles n=6 bbox=(114,15)-(117,18) uv=(0.344,0.203)-(0.391,0.25) colors=[FF969696] cov=solid
+ResetTextureFont
+EndFont

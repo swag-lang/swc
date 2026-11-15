@@ -228,22 +228,26 @@ struct RichStringFormat
 {
     public
     {
-        font:          FontFamily                                           // Fonts used for regular, bold, italic, and bold-italic runs.
-        fontStyle:     FontFamilyStyle     = Regular                        // Initial font style.
-        palette:       [4] Color                                            // Colors selected by `<p?>` rich-text markers.
-        colorUrl:      Color               = Color.fromArgb(Argb.White)     // Normal `<url>` text color.
-        colorHotUrl:   Color               = Color.fromArgb(Argb.Blue)      // Hovered `<url>` text color.
-        brush:         Brush                                                // Default text paint source.
-        horzAlignment: StringHorzAlignment = Left                           // Horizontal line alignment.
-        vertAlignment: StringVertAlignment = Top                            // Vertical block alignment.
-        lineGap:       s32                                                  // Extra gap between baselines, in pixels.
-        flags:         StringFormatFlags   = Default                        // Wrapping and clipping behaviors.
-        justifyLimit:  f32                 = 2                              // Maximum expansion factor for justified spaces.
-        tabSize:       u32                 = DefaultTextTabSize             // Tab width in space advances.
-        letterSpacing: f32                                                  // Extra glyph spacing, in pixels.
-        minLineHeight: f32                                                  // Minimum line height, in pixels; `0` uses font metrics.
-        paragraphGap:  s32                                                  // Extra gap after paragraphs, in pixels.
-        maxLines:      u32                                                  // Maximum laid-out line count; `0` is unlimited.
+        font:                FontFamily                                           // Fonts used for regular, bold, italic, and bold-italic runs.
+        fontStyle:           FontFamilyStyle     = Regular                        // Initial font style.
+        palette:             [4] Color                                            // Colors selected by `<p?>` rich-text markers.
+        colorUrl:            Color               = Color.fromArgb(Argb.White)     // Normal `<url>` text color.
+        colorHotUrl:         Color               = Color.fromArgb(Argb.Blue)      // Hovered `<url>` text color.
+        colorDisabledUrl:    Color                                                // Disabled link color; transparent uses palette entry zero.
+        urlsEnabled:         bool                = true                           // Whether URL runs use their active colors.
+        urlUnderlineOpacity: f32                 = 1                              // Opacity of URL decorations, clamped to 0–1; does not dim glyphs.
+        underlineUrls:       bool                                                 // Whether URL runs remain underlined at rest.
+        brush:               Brush                                                // Default text paint source.
+        horzAlignment:       StringHorzAlignment = Left                           // Horizontal line alignment.
+        vertAlignment:       StringVertAlignment = Top                            // Vertical block alignment.
+        lineGap:             s32                                                  // Extra gap between baselines, in pixels.
+        flags:               StringFormatFlags   = Default                        // Wrapping and clipping behaviors.
+        justifyLimit:        f32                 = 2                              // Maximum expansion factor for justified spaces.
+        tabSize:             u32                 = DefaultTextTabSize             // Tab width in space advances.
+        letterSpacing:       f32                                                  // Extra glyph spacing, in pixels.
+        minLineHeight:       f32                                                  // Minimum line height, in pixels; `0` uses font metrics.
+        paragraphGap:        s32                                                  // Extra gap after paragraphs, in pixels.
+        maxLines:            u32                                                  // Maximum laid-out line count; `0` is unlimited.
     }
 }
 
@@ -755,15 +759,16 @@ impl Painter
     }
 
     // Draws an already shaped run with its top-left corner at `(left, top)`.
-    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
+    // `underlineOpacity` attenuates decoration ink independently of the glyphs; it is clamped to 0–1.
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
-        .drawShapedRun(left, top, shaped, font, brush, {}, under, zoom)
+        .drawShapedRun(left, top, shaped, font, brush, {}, under, zoom, underlineOpacity)
     }
 
     // Draws an already shaped run with MSDF text effects.
     //
     // Effects are ignored when the resolved draw font is not MSDF.
-    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         if shaped.glyphs.isEmpty() do
             return
@@ -850,7 +855,9 @@ impl Painter
         // Underline
         if under != .None
         {
-            var pen = Pen.createSolid(brush.color, .hairline(Math.floor(font.underlineSize)))
+            var decoration = brush.color
+            decoration.a = cast(u8, Math.round(decoration.a * Math.clamp(underlineOpacity, 0, 1)))
+            var pen = Pen.createSolid(decoration, .hairline(Math.floor(font.underlineSize)))
             pen.begCapStyle = .None
             pen.endCapStyle = .None
 
@@ -876,29 +883,30 @@ impl Painter
     }
 
     // Draws a single-line string centered on `(x, y)`.
-    mtd drawStringCenter(x, y: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawStringCenter(x, y: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         let ms = measureString(text, font)
         var yr = y - (ms.height * 0.5 * zoom)
         yr -= (font.ascent - ms.ascent) * zoom
-        .drawString(x - (ms.width * 0.5 * zoom), yr, text, font, color, under, zoom)
+        .drawString(x - (ms.width * 0.5 * zoom), yr, text, font, color, under, zoom, underlineOpacity)
     }
 
     // Draws a single-line string with its top-left corner at `(left, top)`.
     //
     // The text is shaped with the draw font resolved for the current transform, so an
     // automatic font draws crisp bitmap glyphs at small on-screen sizes. `zoom` scales the
-    // text from its top-left corner.
-    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0)
+    // text from its top-left corner. `underlineOpacity` attenuates the decoration independently,
+    // clamped to 0–1.
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         if text.count == 0 or .isInvisible(color) do
             return
 
         let brush = Brush.createSolid(color)
-        .drawString(left, top, text, font, brush, under, zoom)
+        .drawString(left, top, text, font, brush, under, zoom, underlineOpacity)
     }
 
-    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         if text.count == 0 or .isInvisible(brush) do
             return
@@ -911,22 +919,22 @@ impl Painter
         // into the painter's reusable scratch run avoids a per-call glyph allocation.
         let info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
         Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
-        .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom)
+        .drawShapedRun(left, top, &.scratchShaped, font, brush, under, zoom, underlineOpacity)
     }
 
     // Draws a single-line string with MSDF text effects.
     //
     // Effects are ignored when the resolved draw font is not MSDF.
-    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawString(left, top: f32, text: string, font: *Font, color: Color, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         if text.count == 0 do
             return
         let brush = Brush.createSolid(color)
-        .drawString(left, top, text, font, brush, effect, under, zoom)
+        .drawString(left, top, text, font, brush, effect, under, zoom, underlineOpacity)
     }
 
     // Draws a single-line string with a brush and MSDF text effects.
-    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0)
+    mtd drawString(left, top: f32, text: string, font: *Font, brush: Brush, effect: TextEffect, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         if text.count == 0 do
             return
@@ -935,7 +943,7 @@ impl Painter
 
         let info = Painter.computeTextDrawInfo(font, zoom, .textTransformScale())
         Painter.shapeRunInto(&.scratchShaped, text, info.drawFont)
-        .drawShapedRun(left, top, &.scratchShaped, font, brush, effect, under, zoom)
+        .drawShapedRun(left, top, &.scratchShaped, font, brush, effect, under, zoom, underlineOpacity)
     }
 
     // Lays out a rich string inside `pos`.
@@ -1380,7 +1388,9 @@ impl Painter
             if c.isEol or not c.visible do
                 continue
 
-            if c.isHotUrl do
+            if c.isUrl and not format.urlsEnabled do
+                brush.color = format.colorDisabledUrl.a ? format.colorDisabledUrl : format.palette[0]
+            elif c.isHotUrl do
                 brush.color = format.colorHotUrl
             elif c.isUrl do
                 brush.color = format.colorUrl
@@ -1388,10 +1398,10 @@ impl Painter
                 brush.color = format.palette[c.colorIdx]
 
             var under = c.under
-            if c.isHotUrl do
+            if c.isUrl and format.underlineUrls or c.isHotUrl and format.urlsEnabled do
                 under = .Underline
 
-            .drawShapedRun(c.pos.x, c.pos.y, &c.shaped, c.font, brush, under)
+            .drawShapedRun(c.pos.x, c.pos.y, &c.shaped, c.font, brush, under, underlineOpacity: c.isUrl ? format.urlUnderlineOpacity : 1)
         }
 
         // Restore clipping to its previous value

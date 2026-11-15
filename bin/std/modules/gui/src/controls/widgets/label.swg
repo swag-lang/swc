@@ -11,9 +11,18 @@ enum LabelFlags
     SecondaryText     // Uses the theme's lower-emphasis text color.
     AutoHeight        // Fits the window height to laid-out text.
     Ellipsis          // Ends an overflowing line with an ellipsis instead of clipping its tail.
+    LinkActions       // Keeps links underlined and exposes their actions to keyboard traversal.
 }
 
 // Displays rich text and an optional icon, and reports activated links.
+//
+// Use [[Gui.LabelFlags.LinkActions]] for an action inside prose. The rich string owns wrapping,
+// baseline alignment and trailing text; disabling links keeps the rest of the paragraph readable.
+//
+// ```swag
+// let sentence = Label.create(parent, "Retry after <url>15\u00A0minutes</url>.", flags: .LinkActions)
+// sentence.setLinksEnabled(false)
+// ```
 struct Label
 {
     public
@@ -24,25 +33,27 @@ struct Label
 
         readonly
         {
-            icon:        Icon                                        // Optional displayed icon.
-            iconColor:   Color                                       // Fallback for an icon without an intrinsic tint; transparent uses the theme.
-            textColor:   Color                                       // Explicit text color, or transparent for theme colors.
+            icon:         Icon                                       // Optional displayed icon.
+            iconColor:    Color                                      // Fallback for an icon without an intrinsic tint; transparent uses the theme.
+            textColor:    Color                                      // Explicit text color, or transparent for theme colors.
             flags = LabelFlags.None                                  // Active text layout and presentation options.
-            lineGap:     s32                                         // Extra space between text lines, in logical pixels; zero by default.
-            maxLines:    u32                                         // Largest number of lines the text may occupy; zero keeps every line.
+            linksEnabled: bool      = true                           // Whether inline links can be activated.
+            lineGap:      s32                                        // Extra space between text lines, in logical pixels; zero by default.
+            maxLines:     u32                                        // Largest number of lines the text may occupy; zero keeps every line.
             iconHorizontalAlignment = StringHorzAlignment.Center     // Horizontal icon alignment.
             iconVerticalAlignment   = StringVertAlignment.Center     // Vertical icon alignment.
             textHorizontalAlignment = StringHorzAlignment.Center     // Horizontal text alignment.
             textVerticalAlignment   = StringVertAlignment.Center     // Vertical text alignment.
-            textPadding: Math.Vector4                                // Insets applied to the text layout rectangle.
-            iconPadding: Math.Vector4                                // Insets applied to the icon layout rectangle.
+            textPadding:  Math.Vector4                               // Insets applied to the text layout rectangle.
+            iconPadding:  Math.Vector4                               // Insets applied to the icon layout rectangle.
         }
     }
 
     letterSpacing: f32
 
     // Rich-text chunk under the mouse, tracked so a link can be hovered and clicked.
-    hotChunk: *RichChunk?
+    hotChunk:   *RichChunk?
+    activeLink: u64 = Swag.U64.Max
 }
 
 impl IWnd for Label
@@ -57,13 +68,25 @@ impl IWnd for Label
             return
 
         case .Pressed:
-            if evt.button == .Left and .hotChunk do
-                .sigLinkActivated.call(me, .hotChunk.slice)
-            else do
+            if evt.button == .Left and .linksEnabled and .hotChunk
+            {
+                if .flags.has(.LinkActions)
+                {
+                    .setFocus()
+                    for &chunk, index in .name.chunks where chunk == .hotChunk do
+                        .activeLink = index
+                }
+
+                let target = .name.urlText(.hotChunk.urlStart)
+                .sigLinkActivated.call(me, target.toString())
+            }
+            else
+            {
                 evt.accepted = false
+            }
 
         case .Move:
-            let chunk = .name.getUrlChunkAt(pos)
+            let chunk = .linksEnabled ? .name.getUrlChunkAt(pos) : null
             if chunk != .hotChunk
             {
                 .invalidate()
@@ -87,6 +110,41 @@ impl IWnd for Label
                 .hotChunk = null
                 .invalidate()
             }
+        }
+    }
+
+    mtd impl onFocusEvent(evt: *FocusEvent)
+    {
+        .wnd.IWnd.onFocusEvent(evt)
+        if evt.kind == .Gained do
+            .activeLink = .actionLink(Swag.U64.Max, false)
+        elif evt.kind == .Lost do
+            .activeLink = Swag.U64.Max
+        .invalidate()
+    }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed or not .linksEnabled or not .flags.has(.LinkActions) do
+            return
+        if evt.key == .Tab and (evt.modifiers == .None or evt.modifiers == .Shift)
+        {
+            let next = .actionLink(.activeLink, evt.modifiers == .Shift)
+            if next != Swag.U64.Max
+            {
+                .activeLink = next
+                .invalidate()
+                evt.accepted = true
+            }
+        }
+        elif (evt.key == .Enter or evt.key == .Space) and
+             evt.modifiers == .None and
+             .activeLink < .name.chunks.count
+        {
+            let target = .name.urlText(.name.chunks[.activeLink].urlStart)
+            .sigLinkActivated.call(me, target.toString())
+            evt.accepted = true
         }
     }
 
@@ -142,6 +200,13 @@ impl IWnd for Label
             posText.applyPadding(.textPadding)
 
             let sf = .getStringFormat(bc.isDisabled)
+            if .flags.has(.LinkActions)
+            {
+                for &chunk in .name.chunks where chunk.isUrl do
+                    chunk.isHotUrl = (.hotChunk and chunk.urlStart == .hotChunk.urlStart) or
+                                     (.activeLink < .name.chunks.count and chunk.urlStart == .name.chunks[.activeLink].urlStart and .hasVisibleFocus())
+            }
+
             painter.drawRichString(posText, &.name, sf)
         }
     }
@@ -209,12 +274,16 @@ impl Label
             sf.flags.add(.WordWrap)
         if .flags.has(.Ellipsis) do
             sf.flags.add(.Ellipsis)
-        sf.font          = .font()
-        sf.horzAlignment = .textHorizontalAlignment
-        sf.vertAlignment = .textVerticalAlignment
-        sf.maxLines      = .maxLines
-        sf.lineGap       = .lineGap
-        sf.letterSpacing = .letterSpacing
+        sf.font                = .font()
+        sf.horzAlignment       = .textHorizontalAlignment
+        sf.vertAlignment       = .textVerticalAlignment
+        sf.maxLines            = .maxLines
+        sf.lineGap             = .lineGap
+        sf.letterSpacing       = .letterSpacing
+        sf.urlsEnabled         = .linksEnabled and not isDisabled
+        sf.underlineUrls       = .flags.has(.LinkActions)
+        sf.urlUnderlineOpacity = .themeMetrics().label_LinkUnderlineOpacity
+        sf.colorDisabledUrl    = theme.colors.label_DisabledText
 
         if .textColor.a
         {
@@ -271,7 +340,10 @@ impl Label
     {
         if .name == (text orelse "") do
             return
+        .hotChunk   = null
+        .activeLink = Swag.U64.Max
         .name.set(text)
+        .updateActionFocus()
         .invalidate()
         .invalidateLayout()
         .updateAutomaticHeight()
@@ -279,6 +351,80 @@ impl Label
 
     // Returns the displayed text, including any formatting markers.
     mtd text()->string => .name.raw
+
+    // Enables or disables only the rich-text links, preserving the paragraph's text emphasis.
+    mtd setLinksEnabled(enabled: bool)
+    {
+        .linksEnabled = enabled
+        if .hotChunk do
+            .hotChunk.isHotUrl = false
+        .hotChunk = null
+        .updateActionFocus()
+        if not enabled and .hasFocus() do
+            .surface?.clearFocus()
+        .invalidate()
+    }
+
+    // Returns the first visible URL span's bounds in label coordinates, or an empty rectangle.
+    // Use this after layout when anchoring a popup to an inline action.
+    mtd firstLinkRect()->Math.Rectangle
+    {
+        var result: Math.Rectangle
+        var start = Swag.U64.Max
+        for &chunk in .name.chunks where chunk.isUrl and chunk.visible
+        {
+            var rect = chunk.boundRect
+            rect.offset(chunk.pos)
+            if start == Swag.U64.Max
+            {
+                start  = chunk.urlStart
+                result = rect
+            }
+            elif chunk.urlStart != start
+            {
+                break
+            }
+            else
+            {
+                let left = Math.min(result.x, rect.x)
+                let top  = Math.min(result.y, rect.y)
+                result = Math.Rectangle{left, top, Math.max(result.right(), rect.right()) - left, Math.max(result.bottom(), rect.bottom()) - top}
+            }
+        }
+
+        return result
+    }
+
+    private mtd updateActionFocus()
+    {
+        if not .flags.has(.LinkActions) do
+            return
+        .name.compute()
+        .focusPolicy = .linksEnabled and .name.hasUrl ? .Tab : .None
+    }
+
+    private mtd actionLink(after: u64, backward: bool)->u64
+    {
+        let current = after < .name.chunks.count ? .name.chunks[after].urlStart : Swag.U64.Max
+        if backward
+        {
+            for index in reversed(.name.chunks.count) where index < after and
+                                                            .name.chunks[index].isUrl and
+                                                            not .name.chunks[index].isSpace and
+                                                            .name.chunks[index].urlStart != current do
+                return index
+        }
+        else
+        {
+            for index in .name.chunks.count where (after == Swag.U64.Max or index > after) and
+                                                  .name.chunks[index].isUrl and
+                                                  not .name.chunks[index].isSpace and
+                                                  .name.chunks[index].urlStart != current do
+                return index
+        }
+
+        return Swag.U64.Max
+    }
 
     // Adds and removes label options, then updates layout and presentation.
     mtd updateFlags(add: LabelFlags = .None, remove = LabelFlags.None)
@@ -289,6 +435,14 @@ impl Label
         if .flags == newFlags do
             return
         .flags = newFlags
+        .updateActionFocus()
+        if remove.has(.LinkActions)
+        {
+            .focusPolicy = .None
+            if .hasFocus() do
+                .surface?.clearFocus()
+        }
+
         if add.has(.AutoHeight) do
             .releaseAutomaticHeight()
         .invalidate()

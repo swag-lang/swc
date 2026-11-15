@@ -68,6 +68,7 @@ struct ExplorerPreview
     online:          bool     // Movie artwork is looked up before a local frame is decoded.
     needsOnline:     bool
     settings:        String
+    privacy:         File.MountPrivacy
 }
 
 impl ExplorerPreview
@@ -123,7 +124,7 @@ impl ExplorerPreview
         if not .opening
         {
             ThumbnailCache.pruneOnce()
-            cache  = catch ThumbnailCache.key(source, member, settings: .settings)
+            cache  = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
             .image = ThumbnailCache.read(cache)
             if .image.isValid() and (.online and onlinePreviewStamped(&.image)) do
                 return
@@ -197,9 +198,9 @@ impl ExplorerPreview
                     .error = Viewer.failureText(failure.value())
                 }
 
-                let current = catch ThumbnailCache.key(source, member, settings: .settings)
+                let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
                 if .image.isValid() and not Swag.isCancelled() and cache == current do
-                    catch ThumbnailCache.write(cache, &.image)
+                    catch ThumbnailCache.write(cache, &.image, source, .privacy)
                 return
             }
 
@@ -306,9 +307,9 @@ impl ExplorerPreview
                 stampMovieCache(&.image)
 
             // A file replaced during rendering must not publish an image under its old identity.
-            let current = catch ThumbnailCache.key(source, member, settings: .settings)
+            let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
             if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current do
-                catch ThumbnailCache.write(cache, &.image)
+                catch ThumbnailCache.write(cache, &.image, source, .privacy)
         }
     }
 

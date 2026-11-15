@@ -25,7 +25,9 @@ struct MountedVaultSpace
 #[Swag.NoCopy]
 struct MountedVault
 {
-    handle: *void?
+    handle:  *void?
+    privacy: File.MountPrivacyPublisher
+    mutex:   Swag.Mutex
 }
 
 impl MountedVault
@@ -38,30 +40,53 @@ impl MountedVault
     {
         Swag.assert(.handle == null)
         .handle = try mountVaultNative(path, password, destination, readOnly, protectionPassword)
+        var root = String.from(destination)
+        if WINDOWS and root.count == 2 and root[1] == ':' do
+            root += '/'
+        catch .privacy.open(root)
+        {
+            let error = Swag.err
+            discard catch .close(force: true)
+            fail error
+        }
     }
 
     // Unmounts the drive and releases the backend object. Closing a closed mount does nothing.
     //
-    // The handle is released even when the final synchronization fails, which is what the
-    // failure then reports.
-    mtd close() fail
+    // An ordinary close refuses an occupied mount and retains ownership. A forced close
+    // invalidates outstanding handles. After detachment, even a commit failure releases the
+    // backend; callers inspect handle to distinguish that result from a retained mount.
+    mtd close(force = false) fail
     {
+        .mutex.lock()
+        defer .mutex.unlock()
         if not .handle do
             return
 
-        let handle = .handle
-        .handle = null
-        try unmountVaultNative(handle)
+        defer if not .handle do
+            .privacy.close()
+        try unmountVaultNative(&.handle, force)
+    }
+
+    // Publishes the current UI policy without changing the mount or its open files.
+    mtd setPrivateMode(privateMode: bool)
+    {
+        .mutex.lock()
+        defer .mutex.unlock()
+        .privacy.setPrivateMode(privateMode)
     }
 
     // Returns the capacity the live mount currently exposes.
     mtd space()->MountedVaultSpace
     {
-        Swag.assert(.handle != null)
+        .mutex.lock()
+        defer .mutex.unlock()
+        if not .handle do
+            return {}
         return mountedVaultSpaceNative(.handle)
     }
 
-    mtd opDrop() { discard catch .close() }
+    mtd opDrop() { discard catch .close(force: true) }
 }
 
 // Returns the destinations the active host backend can currently mount on.
@@ -72,3 +97,11 @@ func isMountHostInvocation()->bool => isMountHostInvocationNative()
 
 // Runs the host filesystem helper and returns its process exit code.
 func runMountHost()->s32 => runMountHostNative()
+
+// Whether an ordinary unmount was refused because the drive still has open handles.
+func isBusyError(err: any?)->bool
+{
+    if err is Error as error do
+        return error.kind == .Busy
+    return false
+}

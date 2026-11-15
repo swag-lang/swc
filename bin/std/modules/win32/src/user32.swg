@@ -1212,6 +1212,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
     func PeekMessageA(lpMsg: *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT)->BOOL
     func PeekMessageW(lpMsg: *MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT, wRemoveMsg: UINT)->BOOL
     func PostQuitMessage(nExitCode: s32)
+    func RegisterWindowMessageW(lpString: LPCWSTR)->UINT
     func SendMessageA(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
     func SendMessageW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
     func SendMessageTimeoutW(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, fuFlags: UINT, uTimeout: UINT, lpdwResult: *DWORD_PTR?)->LRESULT

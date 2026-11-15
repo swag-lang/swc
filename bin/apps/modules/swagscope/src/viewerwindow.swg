@@ -122,6 +122,8 @@ struct ViewerWindow
     pendingRemember:         bool = true
     pendingForgetMissing:    bool
     fileWatch:               ViewerFileWatch
+    privacy:                 ViewerPrivacy
+    privacyTimer:            *Timer?
     fileWatchTimer:          *Timer?
     readingState:            ViewerReadingState
     reloading:               bool
@@ -348,6 +350,17 @@ impl IWnd for ViewerWindow
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .privacyTimer
+        {
+            discard .privacy.refresh()
+            if .privacy.dirty
+            {
+                .refreshHome()
+                catch .saveState()
+            }
+            .privacy.clearCaches()
+            return
+        }
         if evt.timer == .fileWatchTimer
         {
             if not .pendingFile.isEmpty() or .currentFile.isEmpty() do
@@ -437,6 +450,8 @@ impl IWnd for ViewerWindow
         .stopSearch()
         .stopLoadingIndicator()
         .stopSlide()
+        .stopTimer(&.privacyTimer)
+        .privacy.flush()
         .stopTimer(&.fileWatchTimer)
         .stopTimer(&.viewerBarTimer)
 
@@ -476,6 +491,11 @@ impl IWnd for ViewerWindow
             }
         }
 
+        if not evt.serializer.isReading()
+        {
+            .privacy.sanitize()
+            .privacy.dirty = false
+        }
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
@@ -522,6 +542,7 @@ impl IWnd for ViewerWindow
             while .recent.count > RecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
             .recentOpened.resize(.recent.count)
+            .privacy.sanitize()
             .pruneResume()
             while .exploredFolders.count > FolderHistoryCount do
                 .exploredFolders.removeBack()
@@ -742,13 +763,28 @@ impl ViewerWindow
             .home.refresh()
     }
 
-    // A monitor-sized full-screen placement is transient and must never replace the saved
-    // window placement. Closing first restores the regular placement, then persists it.
+    // Saves the regular placement even during full screen. Privacy changes must reach disk
+    // immediately without changing the presentation the reader currently sees.
     mtd saveState() fail
     {
-        if .fullScreen or .thumbnailMode do
+        if .thumbnailMode do
             return
-        try g_App.saveState()
+        let surface           = unwrap .surface
+        let presentation      = surface.state
+        let presentationFlags = surface.flags
+        defer if .fullScreen
+        {
+            surface.state = presentation
+            surface.flags = presentationFlags
+        }
+        if .fullScreen
+        {
+            surface.flags = .fullScreenRestoreFlags
+            surface.position = .fullScreenRestorePosition
+            surface.restoredPosition = .fullScreenRestorePosition
+            surface.isMaximized = .fullScreenWasMaximized
+        }
+        try .app().saveState()
     }
 
     // Puts the commands of the active viewer in the floating bar, or empties it.
@@ -1101,6 +1137,8 @@ impl ViewerWindow
             .hide()
         }
 
+        result.privacy.window = result
+        result.privacyTimer   = result.addTimer(250'ms)
         result.hookChildEvents()
 
         result.applyLanguage()
@@ -1405,6 +1443,7 @@ impl ViewerWindow
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
         .explorerActive = true
+        .privacy.track(source, File.MountPrivacy.query(source))
         .rememberExplored(source)
         .closeFile(forExplorer: true)
         .home.hide()

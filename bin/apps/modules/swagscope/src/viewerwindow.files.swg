@@ -106,6 +106,8 @@ impl ViewerWindow
     // Puts `fileName` at the head of the recent list, keeping it free of repeats and bounded.
     mtd rememberRecent(fileName: string)
     {
+        if not .privacy.mayRemember(fileName) do
+            return
         .recentOpened.resize(.recent.count)
         for one, index in .recent where one[] == fileName
         {
@@ -126,7 +128,7 @@ impl ViewerWindow
     // Puts an explored directory at the head of the folders the home offers.
     mtd rememberExplored(location: string)
     {
-        if .thumbnailMode or not Directory.exists(location) do
+        if .thumbnailMode or not .privacy.mayRemember(location) or not Directory.exists(location) do
             return
         for one, index in .exploredFolders where Utf8.compare(one.toSlice(), location, .Latin1NoCase) == 0
         {
@@ -142,6 +144,8 @@ impl ViewerWindow
     // Puts the file's folder at the head of the bounded folder history.
     mtd rememberFolder(fileName: string)
     {
+        if not .privacy.mayRemember(fileName) do
+            return
         let folder = Path.directoryName(fileName)
         if not folder do
             return

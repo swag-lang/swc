@@ -23,8 +23,11 @@ impl MainWindow
     mtd refreshStatus()
     {
         let notice = .list.notice
-        notice.set(.statusText(), .statusTone())
-        let shown = .statusMessage != .Ready or notice.busy.isLocallyVisible()
+        var text   = .statusText()
+        if .statusDetail.count do
+            text = Format.toString("%\n%", text, .statusDetail)
+        notice.set(text, .statusTone())
+        let shown = .statusMessage != .Ready or .statusDetail.count != 0 or notice.busy.isLocallyVisible()
         if notice.isLocallyVisible() != shown
         {
             notice.show(shown)
@@ -41,8 +44,8 @@ impl MainWindow
              .MountedProtected, .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
             return .Active
 
-        case .CreateStopped, .MountStopped, .ResizeStopped,
-             .PasswordStopped, .KeyFilesStopped, .AutoUnmountStopped:
+        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped,
+             .AutoUnmountStopped, .AutoUnmountBusy, .UnmountStopped, .UnmountSyncStopped:
             return .Stopped
 
         case .Ready, .CreateCanceled, .HiddenCreateCanceled, .Created,
@@ -58,41 +61,119 @@ impl MainWindow
         let texts = appStrings()
         switch #complete .statusMessage
         {
-        case .Ready:                return texts.msg_Ready
-        case .Randomizing:          return Format.toString(texts.msg_Randomizing, .statusProgress)
-        case .StopRequested:        return texts.msg_StopRequested
-        case .HiddenCreateCanceled: return texts.msg_HiddenCreateCanceled
-        case .CreateCanceled:       return texts.msg_CreateCanceled
-        case .StartingDriver:       return texts.msg_StartingDriver
-        case .Unmounting:           return texts.msg_Unmounting
-        case .CreateStopped:        return texts.msg_CreateStopped
-        case .Created:              return texts.msg_Created
-        case .MountStopped:         return texts.msg_MountStopped
-        case .Mounted:              return Format.toString(texts.msg_Mounted, .statusDrive)
-        case .MountedProtected:     return Format.toString(texts.msg_MountedProtected, .statusDrive)
-        case .MountedReadOnly:      return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
-        case .Unmounted:            return texts.msg_Unmounted
-        case .Resizing:             return Format.toString(texts.msg_Resizing, .statusProgress)
-        case .Camouflaging:         return Format.toString(texts.msg_Camouflaging, .statusProgress)
-        case .ResizeCanceled:       return texts.msg_ResizeCanceled
-        case .ResizeStopped:        return texts.msg_ResizeStopped
-        case .Resized:              return Format.toString(texts.msg_Resized, .statusDrive)
-        case .Camouflaged:          return texts.msg_Camouflaged
-        case .AutoUnmounted:        return texts.msg_AutoUnmounted
-        case .AutoUnmountStopped:   return texts.msg_AutoUnmountStopped
-        case .ChangingPassword:     return texts.msg_ChangingPassword
-        case .PasswordChanged:      return texts.msg_PasswordChanged
-        case .PasswordRemoved:      return texts.msg_PasswordRemoved
-        case .PasswordStopped:      return texts.msg_PasswordStopped
-        case .ChangingKeyFiles:     return texts.msg_ChangingPassword
-        case .KeyFilesChanged:      return texts.msg_KeyFilesChanged
-        case .KeyFilesStopped:      return texts.msg_KeyFilesStopped
+        case .Ready:
+            return texts.msg_Ready
+
+        case .Randomizing:
+            return Format.toString(texts.msg_Randomizing, .statusProgress)
+
+        case .StopRequested:
+            return texts.msg_StopRequested
+
+        case .HiddenCreateCanceled:
+            return texts.msg_HiddenCreateCanceled
+
+        case .CreateCanceled:
+            return texts.msg_CreateCanceled
+
+        case .StartingDriver:
+            return texts.msg_StartingDriver
+
+        case .Unmounting:
+            return texts.msg_Unmounting
+
+        case .CreateStopped:
+            return texts.msg_CreateStopped
+
+        case .Created:
+            return texts.msg_Created
+
+        case .MountStopped:
+            return texts.msg_MountStopped
+
+        case .Mounted:
+            return Format.toString(texts.msg_Mounted, .statusDrive)
+
+        case .MountedProtected:
+            return Format.toString(texts.msg_MountedProtected, .statusDrive)
+
+        case .MountedReadOnly:
+            return Format.toString(texts.msg_MountedReadOnly, .statusDrive)
+
+        case .Unmounted:
+            return texts.msg_Unmounted
+
+        case .Resizing:
+            return Format.toString(texts.msg_Resizing, .statusProgress)
+
+        case .Camouflaging:
+            return Format.toString(texts.msg_Camouflaging, .statusProgress)
+
+        case .ResizeCanceled:
+            return texts.msg_ResizeCanceled
+
+        case .ResizeStopped:
+            return texts.msg_ResizeStopped
+
+        case .Resized:
+            return Format.toString(texts.msg_Resized, .statusDrive)
+
+        case .Camouflaged:
+            return texts.msg_Camouflaged
+
+        case .AutoUnmounted:
+            return texts.msg_AutoUnmounted
+
+        case .AutoUnmountStopped:
+            return texts.msg_AutoUnmountStopped
+
+        case .AutoUnmountBusy:
+            if .statusDrive == "1" do
+                return texts.msg_AutoUnmountBusyOne
+            return Format.toString(texts.msg_AutoUnmountBusy, .statusDrive)
+
+        case .UnmountStopped:
+            if .statusDrive == "1" do
+                return texts.msg_UnmountStoppedOne
+            return Format.toString(texts.msg_UnmountStopped, .statusDrive)
+
+        case .UnmountSyncStopped:
+            return texts.msg_UnmountSyncStopped
+
+        case .ChangingPassword:
+            return texts.msg_ChangingPassword
+
+        case .PasswordChanged:
+            return texts.msg_PasswordChanged
+
+        case .PasswordRemoved:
+            return texts.msg_PasswordRemoved
+
+        case .PasswordStopped:
+            return texts.msg_PasswordStopped
+
+        case .ChangingKeyFiles:
+            return texts.msg_ChangingPassword
+
+        case .KeyFilesChanged:
+            return texts.msg_KeyFilesChanged
+
+        case .KeyFilesStopped:
+            return texts.msg_KeyFilesStopped
         }
     }
 
     // Opens an error box saying `message`, followed by the sentence for `err` when there is one.
     mtd showError(message: string, err: any? = null)
     {
+        .statusDetail = err == null ? String.from(message) : Format.toString("%\n%", message, caughtMessage(err))
+        .refreshStatus()
+        if .resident.isHidden()
+        {
+            .resident.notify(message)
+            return
+        }
+
         if err == null do
             MessageDlg.error(unwrap .surface, message)
         else do

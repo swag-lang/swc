@@ -16,15 +16,6 @@ must not be reimplemented locally. The roadmap keeps the product adoption and it
 security result together, while a standalone standard-library optimization belongs to the owning
 module's roadmap.
 
-### app.vault.002 — Unmounting has no explicit busy-versus-force contract
-
-- Evidence: `WinFspMount.stop` stops the dispatcher, removes the mount point and destroys the
-  filesystem with no busy result or force parameter.
-- Next: define an ordinary unmount that reports open handles, and a forced unmount with
-  confirmation and outstanding-I/O cancellation.
-- Done when: unmounting a busy volume reports it instead of proceeding, and a forced unmount
-  cancels outstanding I/O and returns a truthful result.
-
 ### app.vault.007 — No normative container-format specification
 
 - Evidence: [hidden-volumes.md](../bin/apps/modules/swagvault/hidden-volumes.md) documents the

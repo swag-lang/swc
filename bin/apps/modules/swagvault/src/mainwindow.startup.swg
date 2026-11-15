@@ -40,6 +40,10 @@ impl MainWindow
     mtd pumpStartupQueue()
     {
         .startupWaiting.clear()
+
+        // Background startup never displays a credential prompt. Protected entries remain
+        // locked in the ordinary list and can be opened when the user returns to the window.
+        let hidden = .resident.isHidden()
         while .startupQueue.count
         {
             let entry = .startupQueue[0]
@@ -50,6 +54,8 @@ impl MainWindow
 
             if entry.needsPassword
             {
+                if hidden do
+                    continue
                 if not .chosenPath.isEmpty() do
                     continue
                 .unfoldStartupVault(entry)
@@ -59,6 +65,8 @@ impl MainWindow
             .operation.access.clear()
             .operation.protectHidden = entry.protectHidden and not entry.readOnly
             .operation.hiddenAccess.clear()
+            if hidden and .operation.protectHidden do
+                continue
             if .operation.protectHidden and not .askHiddenProtection()
             {
                 .operation.access.clear()

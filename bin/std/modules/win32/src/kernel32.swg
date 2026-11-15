@@ -755,7 +755,8 @@ internal namespace Win32Priv
         func SetEndOfFile(hFile: HANDLE)->BOOL
         func FlushFileBuffers(hFile: HANDLE)->BOOL
         func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: *SECURITY_ATTRIBUTES?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE
-        func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID
+        func OpenFileMappingW(dwDesiredAccess: DWORD, bInheritHandle: BOOL, lpName: LPCWSTR)->HANDLE
+    func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID
         func UnmapViewOfFile(lpBaseAddress: LPCVOID)->BOOL
         func FlushViewOfFile(lpBaseAddress: LPCVOID, dwNumberOfBytesToFlush: SIZE_T)->BOOL
         func DuplicateHandle(hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE, hTargetProcessHandle: HANDLE, lpTargetHandle: *HANDLE, dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwOptions: DWORD)->BOOL
@@ -1049,6 +1050,15 @@ internal namespace Win32Priv
     func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: *SECURITY_ATTRIBUTES?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE fail
     {
         let result = Win32Priv.CreateFileMappingW(hFile, lpFileMappingAttributes, flProtect, dwMaximumSizeHigh, dwMaximumSizeLow, lpName)
+        if not result do
+            try failWinError(GetLastError())
+        return result
+    }
+
+    // Opens an existing named file mapping. Fails when the name is absent or access is denied.
+    func OpenFileMappingW(dwDesiredAccess: DWORD, bInheritHandle: BOOL, lpName: LPCWSTR)->HANDLE fail
+    {
+        let result = Win32Priv.OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName)
         if not result do
             try failWinError(GetLastError())
         return result

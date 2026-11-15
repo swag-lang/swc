@@ -4,6 +4,7 @@ impl MainWindow
     mtd applyPrivacyControl()
     {
         .privacyModeControl.setChecked(.privacyMode)
+        .publishMountPrivacy()
         .refreshHint()
         .refreshVaults()
     }
@@ -27,11 +28,19 @@ impl MainWindow
     mtd readPrivacyControl()
     {
         .privacyMode = .privacyModeControl.isChecked()
+        .publishMountPrivacy()
         if .privacyMode do
             .clearPrivateState()
         .refreshHint()
         .refreshVaults()
         catch g_App.saveState()
+    }
+
+    // Both restored settings and interactive changes apply to every currently owned mount.
+    mtd publishMountPrivacy()
+    {
+        for &drive in .mountedDrives.drives where drive.volume do
+            drive.volume.setPrivateMode(.privacyMode)
     }
 
     // Returns the idle delay the picker entry at `index` offers, in minutes.
@@ -52,7 +61,7 @@ impl MainWindow
         .unmountOnSuspend.setChecked(.autoUnmount.onSuspend)
         .unmountOnIdle.setChecked(.autoUnmount.onIdle)
         .optionsPage.setTimeout(.idleIndexFor(.autoUnmount.idleMinutes))
-        .idleTimeout.enable(.autoUnmount.onIdle)
+        .idleTimeout.setLinksEnabled(.autoUnmount.onIdle)
     }
 
     // Reads one complete policy snapshot and persists it immediately.
@@ -62,7 +71,7 @@ impl MainWindow
         .autoUnmount.onSuspend     = .unmountOnSuspend.isChecked()
         .autoUnmount.onIdle        = .unmountOnIdle.isChecked()
         .autoUnmount.idleMinutes   = .idleMinutesAt(.optionsPage.timeoutIndex)
-        .idleTimeout.enable(.autoUnmount.onIdle)
+        .idleTimeout.setLinksEnabled(.autoUnmount.onIdle)
         catch g_App.saveState()
     }
 
@@ -77,15 +86,18 @@ impl MainWindow
         }
     }
 
-    // Closes protected mounts synchronously. Lock and suspend notifications cannot leave cleanup
+    // Attempts ordinary unmounts synchronously. Lock and suspend cannot leave cleanup
     // queued behind the event that is taking the session away.
     mtd handleAutoUnmount(cause: AutoUnmountCause)
     {
         if .shuttingDown or not .autoUnmountEnabled(cause) do
             return
 
-        .securityEpoch += 1
+        .securityEpoch  += 1
+        .autoRetryAfter = Time.monotonicMilliseconds() + 30_000
         .startupQueue.clear()
+        if .operation.kind == .Unmount do
+            .operation.task.wait()
         let interruptedMount = .operation.kind == .Mount and .operation.usedProtection
 
         // A protected mount already in flight belongs to the event too. Waiting here lets the
@@ -100,6 +112,7 @@ impl MainWindow
 
         var synchronizationStopped = interruptedMount and .statusMessage == .AutoUnmountStopped
         var unmounted = false
+        var remaining = 0'u64
         var index     = .mountedDrives.drives.count
         while index
         {
@@ -107,13 +120,35 @@ impl MainWindow
             let entry = &.mountedDrives.drives[index]
             if not entry.needsPassword do
                 continue
+
+            // The unmount worker borrows this row. Its completion owns removal and reporting.
+            if .operation.kind == .Unmount and entry.path == .operation.path
+            {
+                if entry.volume and entry.volume.handle do
+                    remaining += 1
+                continue
+            }
+
             unmounted = true
 
             let mounted = entry.volume
-            entry.volume = null
             if mounted
             {
-                discard catch mounted.close() { synchronizationStopped = true }
+                discard catch mounted.close()
+                {
+                    synchronizationStopped = true
+                    if not isBusyError(Swag.err) do
+                        .statusDetail = caughtMessage(Swag.err)
+                }
+
+                if mounted.handle
+                {
+                    mounted.setPrivateMode(.privacyMode)
+                    remaining += 1
+                    continue
+                }
+
+                entry.volume = null
                 Memory.delete(mounted)
             }
 
@@ -126,6 +161,13 @@ impl MainWindow
         .pruneVaults()
         .refreshVaults()
         .fillDriveChoice()
-        .setStatus(synchronizationStopped ? .AutoUnmountStopped : .AutoUnmounted)
+        .statusDrive = Format.toString("%", remaining)
+        if remaining do
+            .setStatus(.AutoUnmountBusy)
+        else do
+            .setStatus(synchronizationStopped ? .AutoUnmountStopped : .AutoUnmounted)
+        .resident.refreshTray()
+        if .resident.isHidden() do
+            .resident.notify(.statusText())
     }
 }

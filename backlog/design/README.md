@@ -894,12 +894,42 @@ the screen to its work.
 - Create, progress and options are pages with a back link, not tabs: a calm form with the
   capacity in large type; the randomisation progress as a huge percentage over an Arc line;
   options as rows with a title, a help paragraph and an Arc switch.
+- Resident mode is an explicit option, off for existing settings. Closing the window hides it
+  behind its notification-area icon while mounts, operations and security monitoring continue.
+  Reducing the window keeps the ordinary taskbar behavior. Activating the icon restores the
+  window; its detached menu offers the window, Open a File, mounted destinations with Open,
+  Unmount and Force Unmount, Unmount All, Options, and Unmount and Quit. These actions share the
+  lens commands. The menu and notifications disclose no container path in privacy mode.
+- An ordinary unmount retains an occupied drive and reports that it remains accessible. Force
+  Unmount is a separate warning with Cancel as the default; it invalidates open handles and can
+  lose pending application writes. Automatic policies use ordinary unmounts and retain a visible
+  failure when a protected drive remains mounted. Unmount and Quit exits only after all drives
+  close successfully; a partial failure keeps the resident owner available.
+- Session startup is a separate opt-in, available only in resident mode, and opens behind the
+  icon. Protected startup mounts wait for the user's access in the main window. A missing tray
+  always leaves the window accessible. The options viewport clears the title strip and the hint
+  line and scrolls when longer translations or the window's minimum size require it.
 
 ![List](imgs/vault.list.png) ![A locked vault under the pointer](imgs/vault.list.hover.paper.png)
 ![Home](imgs/vault.home.paper.png) ![Unlock](imgs/vault.unlock.paper.png)
 ![Create](imgs/vault.create.paper.png) ![Progress](imgs/vault.progress.png) ![Options](imgs/vault.options.png)
+![Resident icon menu, Encre](imgs/vault.resident.menu.png)
 
 ## Icons
+
+**Command meanings use fixed glyphs.** Application options and preferences always use the
+small gear, `ThemeIcons.Settings`, in the caption, command menu and lens. The sliders glyph,
+`ThemeIcons.Options`, denotes adjustments local to a viewer or task, never the application's
+options page. Reuse these semantic glyphs instead of choosing a similar-looking alternative.
+
+**Actions inside prose use RichString links.** A localized sentence owns its full layout,
+including the action and the words after it. Use `Gui.LabelFlags.LinkActions` on the label,
+with `<url>` around the interactive words. Enabled actions keep a link-colored underline;
+disabled actions derive their underline from the disabled text ink, at reduced opacity. The rule
+must never be brighter or have greater contrast than the disabled text. Inline rules use
+`label_LinkUnderlineOpacity` (35%) so they stay subordinate to the words. They remain keyboard
+reachable while enabled. Applications do not paint or position a separate button inside a
+sentence; GUI and Pixel own wrapping, baseline alignment, hit testing and state colors.
 
 **Kinds of file.** In every control — listings, menus, breadcrumbs, buttons and the lens — a
 file's glyph carries one quiet hue of its kind: pictures green, films violet, sounds amber, code

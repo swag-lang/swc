@@ -12,3 +12,7 @@ err_NoChapters       Ce livre EPUB ne contient aucun chapitre lisible.
 
 err_ContentsInvalid    La table des matières de ce livre est endommagée.
 err_ContentsTooLarge   La table des matières de ce livre est trop volumineuse pour être affichée en entier.
+
+ui_CompactColumn "Colonne de lecture étroite"
+ui_ComfortableColumn "Colonne de lecture confortable"
+ui_WideColumn "Colonne de lecture large"

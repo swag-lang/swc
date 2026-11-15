@@ -252,14 +252,14 @@ integration around those engines.
   extracting all images first, and unsupported image pages are named in place.
 - Related: app.scope.image.005, app.scope.viewers.003
 
-### app.scope.document.028 — EPUB has no adjustable book-reading layout
+### app.scope.document.028 — EPUB needs paged layout and persistent logical reading positions
 
-- Evidence: each spine document is currently shown as one HTML chapter, with no book-level paged
-  layout, continuous flow choice, reading width, type scale, line spacing or margin policy.
-  [calibre's viewer](https://manual.calibre-ebook.com/viewer.html) supports paged and flow modes.
-- Next: add book-owned paged and continuous modes over the existing HTML layout, preserve a logical
-  location while typography or viewport size changes, and keep navigation and search mapped to
-  that location.
+- Evidence: the chapter reader offers compact, comfortable and wide default reading measures,
+  plus zoom. A logical text location preserves the visible passage through those changes, while
+  authored CSS keeps priority. There is no book-level paged/continuous-flow choice, line-spacing
+  control or persistent position restore, and ordinary viewport reflow still keeps pixel scroll.
+- Next: build book-owned paged and continuous modes over the HTML layout, retain a logical
+  location across viewport changes, and connect it to navigation, search and safe position restore.
 - Done when: readers can choose fit-to-width flow or pages, adjust typography without corrupting
   authored content, and reopen at the same logical passage across window and theme changes.
 - Related: app.scope.document.021, app.scope.viewers.003

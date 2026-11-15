@@ -22,18 +22,21 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
+enum ReadingColumn { Compact, Comfortable, Wide }
+
 // Owns book navigation while the HTML control streams the selected chapter and its resources.
 struct Panel
 {
     using wnd: Wnd
 
-    book:        Book
-    load:        Viewer.BackgroundLoad'Book
-    services:    Viewer.HostServices
-    chapter:     u64 = Swag.U64.Max
-    view:        *HtmlView?
-    contents:    Array'NavigationEntry
-    zoomPercent: u32 = 100
+    book:          Book
+    load:          Viewer.BackgroundLoad'Book
+    services:      Viewer.HostServices
+    chapter:       u64 = Swag.U64.Max
+    view:          *HtmlView?
+    contents:      Array'NavigationEntry
+    zoomPercent:   u32 = 100
+    readingColumn: ReadingColumn = .Comfortable
 
     late
     {
@@ -153,7 +156,7 @@ private impl Panel
         var result = HtmlStyle.theme()
         result.bodyFontSize    = cast(u32, Math.max(Math.round(18.0 * cast(f32, .zoomPercent) / 100), 1))
         result.codeFontSize    = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
-        result.maxContentWidth = 680
+        result.maxContentWidth = .readingColumn == .Compact ? 520 : (.readingColumn == .Wide ? 900 : 680)
         return result
     }
 
@@ -213,11 +216,28 @@ private impl Panel
         }
     }
 
-    mtd setZoom(percent: u32)
+    mtd applyReadingStyle()
+    {
+        if not .view do
+            return
+        let passage = .view.readingPosition()
+        .view.setDocumentStyle(.readingStyle())
+        discard .view.restoreReadingPosition(passage)
+    }
+
+    internal mtd setZoom(percent: u32)
     {
         .zoomPercent = Viewer.clampZoom(percent)
-        .view?.setDocumentStyle(.readingStyle())
+        .applyReadingStyle()
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
+    }
+
+    internal mtd setReadingColumn(column: ReadingColumn)
+    {
+        if .readingColumn == column do
+            return
+        .readingColumn = column
+        .applyReadingStyle()
     }
 
     mtd describeLens(entries: *Viewer.LensEntries)
@@ -227,6 +247,9 @@ private impl Panel
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
         entries.addZoom(.Out, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomOut(view.zoomPercent)) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me|() { view.setZoom(100) })
+        entries.add(texts().ui_CompactColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Compact) }, checked: .readingColumn == .Compact)
+        entries.add(texts().ui_ComfortableColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Comfortable) }, checked: .readingColumn == .Comfortable)
+        entries.add(texts().ui_WideColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Wide) }, checked: .readingColumn == .Wide)
     }
 
     internal mtd retire()->bool => .load.retire()

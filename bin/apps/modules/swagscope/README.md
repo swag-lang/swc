@@ -143,6 +143,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   their fragment destinations and keep the chapter counter in sync. Books without authored contents
   fall back to their spine order. The book is extracted to a bounded temporary folder while it is
   open. Script and remote resources do not execute or load.
+  The lens also selects compact (520 px), comfortable (680 px) and wide (900 px) default
+  reading columns. Zoom and column changes retain the visible text passage instead of its old
+  pixel scroll position; authored CSS keeps priority. These choices last for the open book.
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.

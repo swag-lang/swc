@@ -514,6 +514,36 @@ namespace
         }
     }
 
+    // A conditional can return one of the locals already built in the caller's
+    // return slot. Releasing that local before copying the selected value would
+    // leave the result with its freed contents.
+    bool maySelectLocal(CodeGen& codeGen, AstNodeRef exprRef, const SymbolVariable& candidate)
+    {
+        if (exprRef.isInvalid())
+            return false;
+
+        const AstNode& node = codeGen.node(exprRef);
+        switch (node.id())
+        {
+            case AstNodeId::ParenExpr:
+                return maySelectLocal(codeGen, node.cast<AstParenExpr>().nodeExprRef, candidate);
+            case AstNodeId::ErrorManagementExpr:
+                return maySelectLocal(codeGen, node.cast<AstErrorManagementExpr>().nodeExprRef, candidate);
+            case AstNodeId::ConditionalExpr:
+            {
+                const auto& conditional = node.cast<AstConditionalExpr>();
+                return maySelectLocal(codeGen, conditional.nodeTrueRef, candidate) || maySelectLocal(codeGen, conditional.nodeFalseRef, candidate);
+            }
+            case AstNodeId::Identifier:
+            {
+                const Symbol* sym = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Symbol).sym();
+                return sym && trackedLocalVariable(sym) == &candidate;
+            }
+            default:
+                return false;
+        }
+    }
+
     // Every candidate of this return context still in scope is replaced by this return,
     // unless it is the very local returned. A defer that runs after this return must not
     // see the result change under it: an ordinary local is a copy by then. The function's
@@ -540,7 +570,8 @@ namespace
             }
 
             const bool initialized = candidate.symVar->hasExtraFlag(SymbolVariableFlagsE::Initialized);
-            if (context || returnsInScope || usedByDefer || candidate.addressTaken || !initialized || !isEvaluatedApart(codeGen, returnStmt.nodeExprRef))
+            if (context || returnsInScope || usedByDefer || candidate.addressTaken || !initialized ||
+                maySelectLocal(codeGen, returnStmt.nodeExprRef, *candidate.symVar) || !isEvaluatedApart(codeGen, returnStmt.nodeExprRef))
                 candidate.rejected = true;
             else
                 walk.replacements.push_back({.candidate = index, .returnRef = returnRef});

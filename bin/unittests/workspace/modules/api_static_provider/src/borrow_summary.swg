@@ -128,6 +128,7 @@ struct DepUafNode
 {
     public padding: u64
     public data: *s32
+    public other: *s32
 }
 
 #[Swag.BorrowSummary(0, freesFields: "0:64617461")]

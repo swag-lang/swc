@@ -182,13 +182,14 @@ is the current scorecard.
   the existing reset-safe sanity case failed. A consumer probe with an explicit summary confirms
   the generated API imports the field effect and now diagnoses both a reload and a copy of the old
   pointer made before the call. The same probe confirms a replacement field remains usable while a
-  pre-call copy remains diagnosed as released. This uncovered two caller-side gaps: functions with
-  summary-based releases did not enable release-provenance tracking, and aliases of fields passed to
-  a callee were removed before the field summary could classify them. Globals, inferred summaries,
-  wrapper calls and unavailable bodies are not solved by this prototype.
+  pre-call copy remains diagnosed as released. A sibling-field probe stays silent. This uncovered
+  two caller-side gaps: functions with summary-based releases did not enable release-provenance
+  tracking, and aliases of fields passed to a callee were removed before the field summary could
+  classify them. Globals, inferred summaries, wrapper calls and unavailable bodies are not solved by
+  this prototype.
 - Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
   extend the same before/after distinction to globals, wrapper calls and unavailable bodies. Check
-  sibling fields and unknown calls before integrating the complete result with `SanitizerState`.
+  unknown calls before integrating the complete result with `SanitizerState`.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

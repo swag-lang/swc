@@ -214,8 +214,8 @@ integration around those engines.
 
 - Evidence: `Viewers.Comic` lists image members in natural filename order and opens one page through
   `EmbeddedViewer`. Previous and next controls are available, and a lens option maps left/right
-  keys to manga reading order. There is still no page index or multi-page reading layout. A
-  dedicated reader such as
+  keys to manga reading order. A clickable page counter accepts a one-based page number. There is
+  still no thumbnail index or multi-page reading layout. A dedicated reader such as
   [OpenComic](https://github.com/ollm/OpenComic) offers right-to-left manga, double-page spreads,
   continuous webtoon scroll, bookmarks and reading-position restore.
 - Next: add a bounded page index with thumbnails and stable positions, then single/spread/continuous

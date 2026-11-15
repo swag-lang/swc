@@ -1,5 +1,33 @@
 # Swag Scope fixture sources and licences
 
+## Licensed comic pages
+
+`viewer.peppercarrot.ep01.cbz` and `viewer.peppercarrot.ep36.cbz` contain the 3 story pages of
+*The Potion of Flight* and the 15 story pages of *The Surprise Attack*, from David Revoy's
+*Pepper&Carrot*. The official source pages publish both episodes under Creative Commons
+Attribution 4.0 International (CC BY 4.0). The image pixels are unchanged; the pages are
+repackaged as CBZ files and named by their one-based reading order for the fixtures.
+
+- Sources: [Episode 1](https://www.peppercarrot.com/en/webcomic-sources/ep01_Potion-of-Flight.html),
+  [Episode 36](https://www.peppercarrot.com/en/webcomic-sources/ep36_The-Surprise-Attack.html).
+- Retrieved: 2026-11-15 from the official low-resolution English page exports.
+- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/).
+- Attribution: *The Potion of Flight* — art and scenario by David Revoy; proofreading by Amireeti
+  and Alex Gryson. *The Surprise Attack* — art and scenario by David Revoy; English translation by
+  Arlo James Barnes, Bobby Hiltz, Estefania de Vasconcellos Guimaraes, Frederic Mora, GunChleoc,
+  Karl Ove Hufthammer, Pierre-Antoine Angelini and Zane Waldman; proofreading by Craig Maloney;
+  beta-reading by Arlo James Barnes, Bobby Hiltz, Christian Aribaud, Craig Maloney, Estefania de
+  Vasconcellos Guimaraes, GunChleoc, Karl Ove Hufthammer, Nicolas Artance, Pierre-Antoine Angelini
+  and Valvin. Both stories are based on the Hereva universe created by David Revoy, maintained by
+  Craig Maloney, with writers Craig Maloney, Nicolas Artance, Scribblemaniac and Valvin, and
+  correctors Alex Gryson, CGand, Hali, Marno van der Maas, Moini and Willem Sonke.
+- Changes: page images were placed in a CBZ archive and renamed to `01.jpg` through `03.jpg` or
+  `01.jpg` through `15.jpg`; image content was not altered.
+- `viewer.peppercarrot.ep01.cbz` — SHA-256:
+  `c86463519b9092d79ca015255f4bae8544a64a7ae6d418842acf61cd910e2655`.
+- `viewer.peppercarrot.ep36.cbz` — SHA-256:
+  `12de822bae7714e8b1ee92654959c37ca8d91b3267520b22639d3029f400b37d`.
+
 ## Published reading documents
 
 `viewer.libreoffice.rtf` is an unmodified formatting regression document from LibreOffice's

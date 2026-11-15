@@ -209,7 +209,7 @@ private impl Panel
                 .style.setFont(.theme().createDefaultFont(24, .Bold), .Regular)
             }
 
-            .grid = Grid.create(.gridHost, sheet, .showHiddenRanges)
+            .grid = Grid.create(.gridHost, sheet, &.workbook.styles, .showHiddenRanges)
             .grid.selectAddress(address)
             .selection        = .grid.selected
             .grid.sigSelected += func|view = me|(_)

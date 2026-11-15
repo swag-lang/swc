@@ -80,7 +80,7 @@ using Core, Gui, Viewers
     host.theme.setLight()
     host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.openFile(scopeTestDataPath("viewer.geometry.xlsx"))
+    window.openFile(scopeTestDataPath("viewer.styles.xlsx"))
     completeQueuedViewerFile(&host, window)
     let panel = assume cast(*Xlsx.Panel, window.currentView)
     panel.setHiddenRanges(true)
@@ -97,4 +97,17 @@ using Core, Gui, Viewers
     Swag.require(Math.abs(cast(s32, pixel.r) - arc.r) + Math.abs(cast(s32, pixel.g) - arc.g) + Math.abs(cast(s32, pixel.b) - arc.b) < 20,
                  Format.toString("selection at %,% missing; cell bottom %; viewport height %; grid y %; origin %; scroll span %", point.x, point.y, selected.bottom(), grid.clientRect().height, grid.surfaceRect().y, grid.originY, grid.scroll.scrollSize.y))
     assertScopeImageGolden(&image, "viewer.xlsx.revealed.hidpi.paper")
+}
+
+// Authored green headings, filled headers, a wrapped note and total rules retain their workbook colors.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.styles.xlsx"), false, 1040, 720)
+    window.sendCommandEvent(ViewerCommands.Outline)
+    window.applyLayout()
+    host.finishAnimations()
+    var image = host.renderSettled(window)
+    assertScopeImageGolden(&image, "viewer.xlsx.styles.encre")
 }

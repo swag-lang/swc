@@ -13,6 +13,7 @@ private struct SheetReference
 // The readable cells of a spreadsheet, in workbook sheet order.
 struct Workbook
 {
+    styles:         CellStyles
     sheets:         Array'Sheet
     activeSheet:    u64
     hiddenSheets:   u64
@@ -318,7 +319,13 @@ impl Workbook
         var stylePath = Package.relationshipPath(relations.toSlice(), "/styles")
         if stylePath.isEmpty() do
             stylePath = "xl/styles.xml"
-        let formats    = try CellFormats.parse(try parts.text(stylePath, required: false), date1904)
+        let styleSource = try parts.text(stylePath, required: false)
+        let formats     = try CellFormats.parse(styleSource, date1904)
+        var theme       = Package.OfficeTheme.defaults()
+        var themePath   = Package.relationshipPath(relations.toSlice(), "/theme")
+        if themePath.isEmpty() do
+            themePath = "xl/theme/theme1.xml"
+        theme.read(try parts.text(themePath, required: false))
         var shared: Array'String
         var sharedPath = Package.relationshipPath(relations.toSlice(), "/sharedStrings")
         if sharedPath.isEmpty() do
@@ -328,6 +335,7 @@ impl Workbook
 
         var result: #returntype
         result.activeSheet = activeSheet < sheets.count ? activeSheet : 0
+        result.styles      = try CellStyles.parse(styleSource, &theme)
         var htmlBytes = 0'u64
         for &reference in sheets
         {
@@ -337,6 +345,12 @@ impl Workbook
             let source = try parts.text(reference.path)
             try appendSheet(&sheet, source, &shared, &formats, 100_000 - result.cells, 32 * 1024 * 1024 - htmlBytes)
             try sheet.readGeometry(source)
+            for row in sheet.rows
+            {
+                for cell in row.cells where result.styles.look(cell.style).limited do
+                    sheet.simplifiedStyles = true
+            }
+
             result.cells += sheet.cells
             result.omittedFormats += sheet.omittedFormats
             htmlBytes    += sheet.readingBytes

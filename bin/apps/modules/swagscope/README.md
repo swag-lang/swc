@@ -171,8 +171,11 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   sparse addresses and disjoint merged cells, with selection and copy. Hidden rows/columns
   require an explicit reveal; a text mode reflows the same values. Undefined widths fit ordinary
   labels, while authored widths take precedence. Only visible rows are painted, including
-  million-row gaps. The reading grid is capped at 512 columns. It does not calculate formulas
-  or reproduce cell styling, frozen panes, charts or images.
+  million-row gaps. Direct/base cell styles retain sizes, emphasis, theme/indexed colors, solid
+  fills, common borders, alignment, wrapping and Normal-font indents; faces use available sans/mono
+  substitutes. Unsupported visual effects are labelled simplified, and numeric overflow uses hashes
+  while selection and copy retain the value. The reading grid is capped at 512 columns. It does not
+  calculate formulas or reproduce row/column default styles, frozen panes, charts or images.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The

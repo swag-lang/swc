@@ -13,6 +13,7 @@ struct Grid
     using wnd: Wnd
 
     late scroll:          *ScrollWnd
+    late styles:          *CellStyles
     sheet:                *Sheet?
     rowOffsets:           Array'f64
     columnOffsets:        Array'f32
@@ -29,7 +30,7 @@ struct Grid
 
 impl Grid
 {
-    func create(parent: *Wnd, sheet: *Sheet, showHidden: bool)->*Grid
+    func create(parent: *Wnd, sheet: *Sheet, styles: *CellStyles, showHidden: bool)->*Grid
     {
         let scroll = Wnd.create'ScrollWnd(parent, "", {})
         scroll.dockStyle = .Center
@@ -37,6 +38,7 @@ impl Grid
         {
             .scroll          = scroll
             .sheet           = sheet
+            .styles          = styles
             .showHidden      = showHidden
             .focusPolicy     = .Tab
             .wndFlags        |= .NoScroll | .NoFocusRing | .ClipChildren
@@ -261,6 +263,20 @@ impl Grid
     {
         if rect.width <= 0 or rect.height <= 0 or cell.covered do
             return
+        let look      = .styles.look(cell.style)
+        let available = textWidth >= 0 ? textWidth : rect.width
+        let font      = look.font.create(.theme())
+        var indent    = 0.0'f32
+        if look.alignment.indent
+        {
+            // Spreadsheet indentation is measured in the Normal style's spaces, not this cell's font.
+            let normalFont = .styles.normalFont.create(.theme())
+            indent = cast(f32, look.alignment.indent) * Painter.measureStringSnapped("   ", normalFont, deviceScale: .deviceScale())
+        }
+
+        let width = Math.max(available - 6 - indent, 0)
+        if width <= 0 do
+            return
         let raw   = cell.text.toString()
         var count = Math.min(raw.count, 4096)
         while count < raw.count and count > 0 and (raw[count] & 0xC0) == 0x80 do
@@ -268,23 +284,128 @@ impl Grid
         var text = String.from(raw[until count])
         if count < raw.count do
             text += "…"
-        text.replace("<", "<\u2060")
-        .scratch.set(text)
-        var format: RichStringFormat
-        format.font.regular  = .theme().createDefaultFont(15)
-        format.palette[0]    = Argb.Black
-        format.flags         = .Clip
-        format.vertAlignment = .Center
-        format.horzAlignment = cell.numeric ? .Right : .Left
-        let available = textWidth >= 0 ? textWidth : rect.width
-        if available > rect.width and not text.isEmpty()
+        if cell.numeric and
+           not look.alignment.wrap and
+           Painter.measureStringSnapped(text, font, deviceScale: .deviceScale()) > width
         {
-            let width = Painter.measureStringSnapped(text, format.font.regular, deviceScale: .deviceScale())
-            painter.fillRect(rect.x + 1, rect.y + 1, Math.max(Math.min(width + 12, available) - 2, 0), Math.max(rect.height - 2, 0), Argb.White)
+            let hashWidth = Math.max(Painter.measureStringSnapped("#", font, deviceScale: .deviceScale()), 1)
+            let hashes    = Math.max(cast(u32, Math.floor(width / hashWidth)), 1)
+            text.clear()
+            for hashes do
+                text += '#'
         }
 
-        let content = Math.Rectangle{rect.x + 6, rect.y, Math.max(available - 12, 0), rect.height}
+        text.replace("<", "<\u2060")
+        .scratch.set(text)
+        .scratch.compute()
+        for &chunk in .scratch.chunks do
+            chunk.under = look.font.underline ? .Underline : look.font.strike ? .Strikeout : .None
+        var format: RichStringFormat
+        format.font.regular = font
+        format.palette[0]   = Color.fromArgb(look.font.color)
+        format.flags        = .Clip
+        if look.alignment.wrap do
+            format.flags |= .WordWrap
+        format.vertAlignment = look.alignment.vertical == .Top ? .Top : look.alignment.vertical == .Bottom ? .Bottom : .Center
+        format.horzAlignment = look.alignment.horizontal == .Center ? .Center :
+                               look.alignment.horizontal == .Right or (look.alignment.horizontal == .General and cell.numeric) ? .Right : .Left
+        if available > rect.width and not text.isEmpty()
+        {
+            let painted = Painter.measureStringSnapped(text, font, deviceScale: .deviceScale())
+            painter.fillRect(rect.x + 1, rect.y + 1, Math.max(Math.min(painted + 6, available) - 2, 0), Math.max(rect.height - 2, 0), Argb.White)
+        }
+
+        let content = Math.Rectangle{rect.x + 3 + (format.horzAlignment == .Right ? 0 : indent), rect.y,
+                                     width, rect.height}
         painter.drawRichString(content, &.scratch, format, forceCompute: true)
+    }
+
+    mtd paintFills(painter: *Painter, firstRow, lastRow, firstColumn, lastColumn: u32)
+    {
+        let sheet = unwrap .sheet
+        var row   = firstRow
+        while row <= lastRow
+        {
+            let index = sheet.findRow(row)
+            if index < sheet.rows.count and sheet.rows[index].index == row
+            {
+                for cell in sheet.rows[index].cells where cell.column >= firstColumn and
+                                                          cell.column <= lastColumn and
+                                                          cell.merge == Swag.U32.Max
+                {
+                    let look = .styles.look(cell.style)
+                    if look.fill do
+                        painter.fillRect(.cellRect({row, cell.column}, {row, cell.column}), Color.fromArgb(look.fill))
+                }
+            }
+
+            let next = .nextRow(row)
+            if next <= row do
+                break
+            row = next
+        }
+
+        for range in sheet.merges where range.last.row >= firstRow and
+                                        range.first.row <= lastRow and
+                                        range.last.column >= firstColumn and
+                                        range.first.column <= lastColumn
+        {
+            let rect = .cellRect(range.first, range.last)
+            var fill = 0xFFFFFFFF'u32
+            if let cell = sheet.cellAt(range.first)
+            {
+                let look = .styles.look(cell.style)
+                if look.fill do
+                    fill = look.fill
+            }
+
+            painter.fillRect(rect, Color.fromArgb(fill))
+            if sheet.showGridLines do
+                painter.drawRect(rect, Color.fromArgb(0xFFE1E5E8))
+        }
+    }
+
+    mtd paintBorders(painter: *Painter, firstRow, lastRow, firstColumn, lastColumn: u32)
+    {
+        let sheet = unwrap .sheet
+        for range in sheet.merges where range.last.row >= firstRow and
+                                        range.first.row <= lastRow and
+                                        range.last.column >= firstColumn and
+                                        range.first.column <= lastColumn
+        {
+            if let cell = sheet.cellAt(range.first) do
+                .styles.look(cell.style).paintBorders(painter, .cellRect(range.first, range.last))
+        }
+
+        var row = firstRow
+        while row <= lastRow
+        {
+            let index = sheet.findRow(row)
+            if index < sheet.rows.count and sheet.rows[index].index == row
+            {
+                for cell in sheet.rows[index].cells where cell.column >= firstColumn and cell.column <= lastColumn
+                {
+                    var mask = 15'u32
+                    if cell.merge != Swag.U32.Max
+                    {
+                        let range = sheet.merges[cell.merge]
+                        if not cell.covered do
+                            continue
+                        mask = (cell.column == range.first.column ? 1'u32 : 0) |
+                               (cell.column == range.last.column ? 2'u32 : 0) |
+                               (row == range.first.row ? 4'u32 : 0) |
+                               (row == range.last.row ? 8'u32 : 0)
+                    }
+
+                    .styles.look(cell.style).paintBorders(painter, .cellRect({row, cell.column}, {row, cell.column}), mask)
+                }
+            }
+
+            let next = .nextRow(row)
+            if next <= row do
+                break
+            row = next
+        }
     }
 }
 
@@ -420,23 +541,30 @@ impl IWnd for Grid
             lastColumn += 1
         lastColumn = Math.min(lastColumn, cast(u32, sheet.columns.count - 1))
         var row = firstRow
-        while row <= lastRow
+        if sheet.showGridLines
         {
-            let y = HeaderHeight + cast(f32, .rowOffsets[row] - .originY)
-            painter.drawLine(HeaderWidth, y, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), y, rule)
-            let next = .nextRow(row)
-            if next <= row do
-                break
-            row = next
+            row = firstRow
+            while row <= lastRow
+            {
+                let y = HeaderHeight + cast(f32, .rowOffsets[row] - .originY)
+                painter.drawLine(HeaderWidth, y, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), y, rule)
+                let next = .nextRow(row)
+                if next <= row do
+                    break
+                row = next
+            }
+
+            let bottom = HeaderHeight + cast(f32, .rowOffsets[lastRow + 1] - .originY)
+            painter.drawLine(HeaderWidth, bottom, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), bottom, rule)
+            for column in firstColumn until lastColumn + 2
+            {
+                let x = HeaderWidth + .columnOffsets[column] - .originX
+                painter.drawLine(x, HeaderHeight, x, Math.min(HeaderHeight + cast(f32, .totalHeight() - .originY), client.height), rule)
+            }
         }
 
-        let bottom = HeaderHeight + cast(f32, .rowOffsets[lastRow + 1] - .originY)
-        painter.drawLine(HeaderWidth, bottom, Math.min(HeaderWidth + .totalWidth() - .originX, client.width), bottom, rule)
-        for column in firstColumn until lastColumn + 2
-        {
-            let x = HeaderWidth + .columnOffsets[column] - .originX
-            painter.drawLine(x, HeaderHeight, x, Math.min(HeaderHeight + cast(f32, .totalHeight() - .originY), client.height), rule)
-        }
+        .paintFills(painter, firstRow, lastRow, firstColumn, lastColumn)
+        .paintBorders(painter, firstRow, lastRow, firstColumn, lastColumn)
 
         row = firstRow
         while row <= lastRow
@@ -451,13 +579,23 @@ impl IWnd for Grid
                 {
                     let rect      = .cellRect({row, cell.column}, {row, cell.column})
                     var available = rect.width
-                    if not cell.numeric and not cell.text.isEmpty()
+                    let look      = .styles.look(cell.style)
+                    if not cell.numeric and
+                       not cell.text.isEmpty() and
+                       not look.alignment.wrap and
+                       (look.alignment.horizontal == .General or look.alignment.horizontal == .Left) and
+                       not look.fill and
+                       not look.hasBorder()
                     {
                         var right = Math.max(.totalWidth(), .originX + client.width - HeaderWidth)
                         var next  = position + 1
                         while next < cells.count
                         {
-                            if not cells[next].text.isEmpty() or cells[next].merge != Swag.U32.Max
+                            let nextLook = .styles.look(cells[next].style)
+                            if not cells[next].text.isEmpty() or
+                               cells[next].merge != Swag.U32.Max or
+                               nextLook.fill or
+                               nextLook.hasBorder()
                             {
                                 right = .columnOffsets[cells[next].column]
                                 break
@@ -485,8 +623,6 @@ impl IWnd for Grid
                                         range.first.column <= lastColumn
         {
             let rect = .cellRect(range.first, range.last)
-            painter.fillRect(rect, paper)
-            painter.drawRect(rect, rule)
             if let cell = sheet.cellAt(range.first) do
                 .drawCell(painter, rect, cell)
         }

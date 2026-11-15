@@ -5,6 +5,7 @@ using Core, Gui
 
 struct Texts
 {
+    ui_StylesSimplified:   string = " · some cell styles simplified"
     ui_Grid:               string = "Show Worksheet Grid"
     ui_ReadText:           string = "Read Worksheet as Text"
     ui_CopyCell:           string = "Copy Cell Value"

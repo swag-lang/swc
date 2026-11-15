@@ -101,10 +101,12 @@ struct Sheet
     rows:             Array'Row
     columns:          Array'Column
     merges:           Array'MergedCells
-    defaultRowHeight: f32 = 20
+    defaultRowHeight: f32  = 20
     rowCount:         u32
     cells:            u64
     readingBytes:     u64
+    simplifiedStyles: bool
+    showGridLines:    bool = true
     omittedFormats:   u64
     hidden:           bool
     hiddenRanges:     bool
@@ -117,6 +119,8 @@ impl Sheet
         var result = Format.toString(.cells == 1 ? texts().ui_Cell : texts().ui_Cells, .name, .cells)
         if .omittedFormats do
             result += Format.toString(texts().ui_FormatsOmitted, .omittedFormats)
+        if .simplifiedStyles do
+            result += texts().ui_StylesSimplified
         return result
     }
 

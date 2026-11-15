@@ -35,7 +35,11 @@ impl Sheet
         {
             if token.kind != .Start do
                 continue
-            if token.isElement("sheetFormatPr")
+            if token.isElement("sheetView")
+            {
+                .showGridLines = (token.attribute("showGridLines") orelse "1") != "0" and token.attribute("showGridLines") != "false"
+            }
+            elif token.isElement("sheetFormatPr")
             {
                 if let width = token.attribute("defaultColWidth")
                 {

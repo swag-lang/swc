@@ -79,3 +79,7 @@ highlights, paragraph indents and spacing, and grouped character formatting. It 
 `viewer.geometry.xlsx` derives from the repository-authored numeric-format workbook. Its first
 sheet adds declared dimensions, horizontal/vertical merges, hidden ranges and distant totals;
 it contains no external assets.
+
+`viewer.styles.xlsx` adds repository-authored theme colors, font sizes/emphasis, filled headers,
+a wrapped reading note and bordered totals to the geometry workbook. Its theme lives at a
+relationship-resolved path; it contains no external assets.

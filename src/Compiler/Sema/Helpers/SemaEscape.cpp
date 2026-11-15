@@ -5842,6 +5842,7 @@ namespace SemaEscape
 
             const uint64_t origins = parameterOriginsMask(*caller, info);
             const SymbolVariable* callerField = callerArgumentProjectionField(sema, resolvedRef, *callee, thisParam, argument.argRef);
+            const SymbolVariable* projectedField = callerField ? callerField : info.borrowedParameterField;
             if (callerField)
             {
                 const TypeRef fieldTypeRef   = unwrapAliasEnum(sema, callerField->typeRef());
@@ -5857,12 +5858,12 @@ namespace SemaEscape
             }
 
             const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramType.payloadTypeRef());
-            if (!payloadType.isStruct() && callerField && unwrapAliasEnum(sema, callerField->typeRef()) == paramTypeRef)
+            if (!payloadType.isStruct() && projectedField && unwrapAliasEnum(sema, projectedField->typeRef()) == paramTypeRef)
             {
                 for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
                 {
                     const size_t origin = std::countr_zero(remaining);
-                    sema.ctx().compiler().addEscapeFieldSummaryForwarding({caller, callee, static_cast<uint32_t>(origin), static_cast<uint32_t>(thisParam), callerField, true});
+                    sema.ctx().compiler().addEscapeFieldSummaryForwarding({caller, callee, static_cast<uint32_t>(origin), static_cast<uint32_t>(thisParam), projectedField, true});
                 }
                 continue;
             }

@@ -187,14 +187,18 @@ is the current scorecard.
   diagnosed. Known direct wrappers now forward explicit and inferred field effects after module
   analysis; release-and-replace wrappers preserve both the old-alias diagnostic and safe field
   reload. A pointer value projected from a field also carries a callee's direct `frees` effect back
-  to that field through wrappers. Globals, automatic reset inference and unavailable bodies remain
-  unsolved.
+  to that field through wrappers. For body-visible carrier calls, possible field writes now
+  propagate separately from releases: a known read-only call no longer suppresses a later
+  field-release summary, while bodyless calls remain conservative. The consumer regression verifies
+  the generated `freesFields` effect and diagnoses both the field reload and its old alias after a
+  read-only carrier call. Replacement and refill-before-release cases remain silent for aliases to
+  the old allocation. Globals, automatic reset inference and unavailable bodies remain unsolved.
 - One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
   projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
   single run; repeat it before treating the small timing difference as a regression.
 - Next: extend the same before/after distinction to globals and unavailable bodies. Infer
-  guaranteed resets where control flow proves every return leaves valid storage, and refine
-  conservative suppression for calls that receive a carrier while retaining soundness.
+  guaranteed resets where control flow proves every return leaves valid storage, and consider
+  explicit write summaries for bodyless calls before relaxing their conservative suppression.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

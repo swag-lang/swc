@@ -970,6 +970,11 @@ bool SymbolFunction::hasResetParamField(size_t paramIndex, std::string_view fiel
     return hasBorrowSummaryField(resetParamFields_, paramIndex, fieldName) || (attrs && hasBorrowSummaryField(attrs->resetsParamFields, paramIndex, fieldName));
 }
 
+bool SymbolFunction::hasPossiblyWrittenParamField(size_t paramIndex, std::string_view fieldName) const noexcept
+{
+    return hasBorrowSummaryField(writtenParamFields_, paramIndex, fieldName);
+}
+
 void SymbolFunction::addFreedParamField(size_t paramIndex, std::string_view fieldName)
 {
     if (paramIndex >= 64 || fieldName.empty())

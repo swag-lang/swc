@@ -138,9 +138,11 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   document search, zoom, and bookmark navigation in the outline panel. Encrypted documents are
   unsupported, and embedded actions are ignored rather than executed.
 - `EPUB` reads the package manifest and spine, presents XHTML chapters in their declared order,
-  keeps local CSS and images available to the HTML reader, and offers previous/next chapter
-  navigation. The book is extracted to a bounded temporary folder while it is open. Script and
-  remote resources do not execute or load.
+  keeps local CSS and images available, and offers a filterable EPUB 2/3 table of contents,
+  previous/next chapter navigation and text zoom. Contents entries and local chapter links follow
+  their fragment destinations and keep the chapter counter in sync. Books without authored contents
+  fall back to their spine order. The book is extracted to a bounded temporary folder while it is
+  open. Script and remote resources do not execute or load.
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.
@@ -151,18 +153,24 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   are labelled with their description, and external image relationships are never loaded. Page
   layout, inherited styles, headers, footers and comments are not reproduced.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
-  tabs and simple tables. It labels embedded pictures and objects it cannot show. Only Windows-1252
-  encoded text is supported; page geometry, fonts, colors, complex tables and fields are not reproduced.
+  tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
+  and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
+  labelled. Only Windows-1252 encoded text is supported; page geometry, fonts, colors, complex
+  tables and fields are not reproduced.
 - `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
   booleans and cached formula values at their row and column coordinates, with visible headings.
   Formulas without cached values show their expression or an explicit unavailable-result label.
-  The reading grid is capped at 512 columns. It does not calculate formulas or reproduce formatting,
-  charts, merged cells or images.
-- `Presentation` reads PPTX slides in declared order and presents their text and bounded embedded
-  PNG, JPEG, GIF and WebP pictures as a continuous reading page. Direct bold/italic text and
-  paragraph alignment are preserved. Pictures use their declared size and alternative description;
-  unsupported pictures are labelled. Original slide layout, animation, speaker notes and embedded
-  media are not reproduced.
+  Common number formats preserve currency, grouping, percentages, decimal precision, dates and
+  elapsed time, including the 1900 and 1904 date systems. Unsupported formats retain the stored
+  value with a visible limitation notice. The reading grid is capped at 512 columns. It does not
+  calculate formulas or reproduce cell styling, charts, merged cells or images.
+- `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
+  raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
+  title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
+  filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
+  offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly
+  labelled simplified layout. Animation, charts, complex drawings, speaker notes, embedded media
+  and exact font reproduction remain unsupported; actions and external relationships never run.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a
@@ -307,7 +315,7 @@ and returns to the last file viewed in a selected recent folder. Audio and video
 ten-second seeks while active, and use Space for play/pause, M for mute, Up/Down for volume, and
 Home for the start. Paged viewers share Previous, `page / total`, and Next in the bottom command
 panel, with `Ctrl+PageUp` / `Ctrl+PageDown`; endpoints are disabled. EPUB chapters and comic pages
-use this group too, and their embedded reader contributes controls to the same footer. Zoom is always a percentage
+use this group too. Comics contribute their embedded image controls to the same footer. Zoom is always a percentage
 at the right of the bottom line, with `Ctrl++`, `Ctrl+-`, `Ctrl+0` and `Ctrl+Wheel`. In MIDI,
 `Ctrl+Shift++`, `Ctrl+Shift+-` and `Ctrl+Shift+Wheel` change pitch spacing separately.
 An installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.

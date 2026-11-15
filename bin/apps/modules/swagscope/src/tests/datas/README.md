@@ -47,3 +47,21 @@ The seven `viewer.christmas-carol.epub`, `viewer.poi-sample.docx`,
 upstream URLs, licences, and SHA-256 hashes in `THIRDPARTY.md`. Content tests read chapters,
 paragraphs, cells, slides, and distant PDF pages from them; the small generated fixtures keep
 their separate role in isolating individual format variants and failures.
+
+`viewer.navigation.epub` and `viewer.navigation.ncx.epub` are repository-authored,
+minimal EPUB 3 and EPUB 2 books. Each has two spine chapters, nested contents, inline
+labels, and same-chapter and cross-chapter fragment targets. They contain no external assets.
+
+`viewer.geometry.pptx` is a repository-authored two-slide widescreen presentation. It exercises
+inherited title bounds, static master decoration, theme colors, text boxes and aligned cards.
+Its embedded photograph is reused unchanged from `viewer.pictures.pptx` and retains that
+fixture's recorded provenance and licence. No external resources are included.
+
+`viewer.formats.xlsx` is a repository-authored workbook with two sheets and no external assets.
+Its style part uses a relationship-resolved path and exercises currencies, percentages, negative
+and zero sections, grouping, optional decimals, dates, elapsed time and cached formula values.
+
+`viewer.pictures.rtf` embeds the existing `viewer.jpg` as a hexadecimal JPEG picture.
+`viewer.alternate-picture.rtf` wraps the existing `viewer.png` as a modern shape picture and
+its compatibility fallback. Both documents are repository-authored; the reused image bytes
+retain their original provenance and licences. They contain no external resources.

@@ -8,6 +8,7 @@ struct Document
 {
     html:           String
     paragraphs:     u64
+    images:         u64
     omittedObjects: u64
 }
 
@@ -22,34 +23,48 @@ private enum Alignment
 // Character formatting and destination visibility are scoped by RTF groups.
 private struct State
 {
-    bold:      bool
-    italic:    bool
-    underline: bool
-    strike:    bool
-    hidden:    bool
-    skip:      bool
+    bold:            bool
+    italic:          bool
+    underline:       bool
+    strike:          bool
+    hidden:          bool
+    skip:            bool
+    ignorable:       bool
+    shapePicture:    bool
     unicodeFallback: u32 = 1
 }
 
 private struct Reader
 {
-    bytes:       Array'u8
-    offset:      u64
-    groups:      Array'State
-    state:       State
-    shown:       State
-    alignment:   Alignment
-    paragraph:   String
-    document:    Document
-    sawHeader:   bool
-    tableOpen:   bool
-    rowHasCell:  bool
-    highSurrogate: u32
+    bytes:               Array'u8
+    offset:              u64
+    groups:              Array'State
+    state:               State
+    shown:               State
+    alignment:           Alignment
+    paragraph:           String
+    document:            Document
+    sawHeader:           bool
+    tableOpen:           bool
+    rowHasCell:          bool
+    highSurrogate:       u32
+    imageBytes:          u64
+    skipFallbackPicture: bool
 }
 
 impl Document
 {
-    // Parses RTF without executing fields, loading linked resources, or decoding embedded objects.
+    mtd const details()->String
+    {
+        var result = Format.toString(texts().ui_Details, .paragraphs)
+        if .images do
+            result += .images == 1 ? String.from(texts().ui_OneImage) : Format.toString(texts().ui_Images, .images)
+        if .omittedObjects do
+            result += .omittedObjects == 1 ? String.from(texts().ui_OneOmitted) : Format.toString(texts().ui_Omitted, .omittedObjects)
+        return result
+    }
+
+    // Parses RTF and bounded raster pictures without executing fields or loading linked resources.
     func load(fileName: string)->Document fail
     {
         let info = try File.info(fileName)
@@ -108,7 +123,7 @@ private impl Reader
                       .bytes[.offset] != '{' and .bytes[.offset] != '}' and .bytes[.offset] != '\\' and
                       .bytes[.offset] != '\r' and .bytes[.offset] != '\n' do
                     .offset += 1
-                if not .state.skip and not .state.hidden do
+                if not .state.skip and not .state.hidden and not .state.ignorable do
                     .appendText(Text.decode(.bytes.toSlice()[start until .offset], .Windows1252))
             }
 
@@ -137,13 +152,18 @@ private impl Reader
         if not Latin1.isLetter(symbol)
         {
             .offset += 1
+            if .state.ignorable and symbol != '*'
+            {
+                .state.ignorable = false
+                .state.skip = true
+            }
             switch symbol
             {
             case '\\', '{', '}': .appendRune(cast(rune, symbol))
             case '~':           .appendRune(0xA0)
             case '-':           .appendRune(0xAD)
             case '_':           .appendRune(0x2011)
-            case '*':           .state.skip = true
+            case '*':           .state.ignorable = true
             case '\'':
                 if .offset + 2 > .bytes.count do
                     fail Errors.InvalidFormatError{texts().err_Invalid}
@@ -183,6 +203,12 @@ private impl Reader
         if .offset < .bytes.count and .bytes[.offset] == ' ' do
             .offset += 1
 
+        if .state.ignorable
+        {
+            .state.ignorable = false
+            if word != "shppict" do
+                .state.skip = true
+        }
         if word == "bin"
         {
             if not hasNumber or number < 0 or cast(u64, number) > .bytes.count - .offset do
@@ -229,9 +255,38 @@ private impl Reader
              "annotation", "fldinst":
             .state.skip = true
 
-        case "pict", "object":
+        case "shppict":
+            .state.shapePicture = true
+
+        case "nonshppict":
+            if .skipFallbackPicture do
+                .state.skip = true
+            .skipFallbackPicture = false
+
+        case "pict":
+            if not .state.hidden
+            {
+                let picture = try Picture.parse(.bytes.toSlice(), .offset, .groups.count)
+                .offset = picture.end
+                if picture.html.isEmpty() or .imageBytes + picture.encodedBytes > 8 * 1024 * 1024
+                {
+                    .document.omittedObjects += 1
+                    .appendText(texts().ui_ImageOmitted)
+                }
+                else
+                {
+                    .appendHtml(picture.html)
+                    .document.images     += 1
+                    .imageBytes          += picture.encodedBytes
+                    .skipFallbackPicture = .state.shapePicture
+                }
+            }
+
+            .state.skip = true
+
+        case "object":
             .document.omittedObjects += 1
-            .appendText(word == "pict" ? texts().ui_ImageOmitted : texts().ui_ObjectOmitted)
+            .appendText(texts().ui_ObjectOmitted)
             .state.skip = true
 
         case "b":       .state.bold      = not hasNumber or number != 0
@@ -346,6 +401,8 @@ private impl Reader
     {
         if .state.skip or .state.hidden do
             return
+        for byte in value where byte != ' 'u8 and byte != '\t'u8 and byte != '\r'u8 and byte != '\n'u8 do
+            .skipFallbackPicture = false
         .syncStyle()
         Package.appendHtmlEscaped(&.paragraph, value)
     }

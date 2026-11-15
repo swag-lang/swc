@@ -20,9 +20,7 @@ using Core, Gui, Gui.Testing, Viewers
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.epub"), true)
     let view = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.book.chapters.count == 2 and view.chapter == 0)
-    let embedded = assume cast(*EmbeddedViewer, view.embedded)
-    let chapter = assume cast(*Html.Panel, embedded.currentView)
-    Swag.require(not chapter.band.isLocallyVisible())
+    Swag.require(view.view != null and view.contents.count == 2)
     view.turn(1)
     Swag.require(view.chapter == 1 and view.chapterLabel.name.raw == "2 / 2")
 }

@@ -100,21 +100,21 @@ using Core, Gui, Viewers
         var host:     Testing.HeadlessHost
         let window = framedViewerWindow(&host, scopeTestDataPath(fileName), true)
         let view   = window.currentView
-        var embedded: *EmbeddedViewer
         if view is Comic.Panel as comic
         {
-            embedded = assume cast(*EmbeddedViewer, comic.embedded)
+            let embedded = assume cast(*EmbeddedViewer, comic.embedded)
+            Swag.require(embedded.externalReadings and embedded.header.parent == window.currentInfo)
+            Swag.require(not embedded.titleLabel.isLocallyVisible())
+            Swag.require(embedded.header.position.width > 0 and embedded.currentInfo!.position.width > 0)
+            Swag.require(embedded.currentInfo!.surfaceRect().right() <= window.readingLine.surfaceRect().right())
         }
         else
         {
             let epub = assume cast(*Epub.Panel, view)
-            embedded = assume cast(*EmbeddedViewer, epub.embedded)
+            Swag.require(epub.view != null and epub.zoomLabel.parent == window.currentInfo)
+            Swag.require(epub.zoomLabel.surfaceRect().right() <= window.readingLine.surfaceRect().right())
         }
 
-        Swag.require(embedded.externalReadings and embedded.header.parent == window.currentInfo)
-        Swag.require(not embedded.titleLabel.isLocallyVisible())
-        Swag.require(embedded.header.position.width > 0 and embedded.currentInfo!.position.width > 0)
-        Swag.require(embedded.currentInfo!.surfaceRect().right() <= window.readingLine.surfaceRect().right())
         Swag.require(window.viewerBar.isLocallyVisible() and window.readingLine.isLocallyVisible())
         window.viewerFocusTarget()?.setFocus()
         host.keyPress(.PageDown, .Control)

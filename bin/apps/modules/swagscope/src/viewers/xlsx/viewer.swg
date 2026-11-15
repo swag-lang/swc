@@ -18,6 +18,7 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "viewer.xlsx"
         .addSelectors(".xlsx")
     }
+
     return result
 }
 
@@ -25,10 +26,10 @@ struct Panel
 {
     using wnd: Wnd
 
-    workbook: Workbook
-    load:     Viewer.BackgroundLoad'Workbook
-    services: Viewer.HostServices
-    view:     *HtmlView?
+    workbook:    Workbook
+    load:        Viewer.BackgroundLoad'Workbook
+    services:    Viewer.HostServices
+    view:        *HtmlView?
     late status: *Label
 }
 
@@ -41,28 +42,31 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
         let failure = .load.finish(&.workbook)
         if not failure.isEmpty()
         {
             .services.failed(me, failure)
             return
         }
+
         var style = HtmlStyle.theme()
         style.maxContentWidth = 680
         with .view = HtmlView.createText(me, .workbook.html, style)
         {
             .dockStyle = .Center
         }
+
         .status.hide()
         .applyLayout()
-        .services.showDetails(me, Format.toString(texts().ui_Details, .workbook.sheets, .workbook.cells))
+        .services.showDetails(me, .workbook.details())
         .services.loadingChanged(me)
     }
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged and .workbook.sheets do
-            .services.showDetails(me, Format.toString(texts().ui_Details, .workbook.sheets, .workbook.cells))
+            .services.showDetails(me, .workbook.details())
         .wnd.IWnd.onNotifyEvent(evt)
     }
 }
@@ -78,12 +82,14 @@ private impl Panel
             .backgroundStyle = .View
             .services        = host.services()
         }
+
         with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
             .setTextAlignment(.Center, .Center)
         }
+
         result.load.start(host.fileName(), &Workbook.load, result)
         result.applyLayout()
         return result

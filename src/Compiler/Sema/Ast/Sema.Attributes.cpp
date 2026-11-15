@@ -328,7 +328,7 @@ namespace
         return Result::Error;
     }
 
-    Result collectBorrowSummaryFieldOrigins(Sema& sema, const ResolvedCallArgument& arg, AttributeList& outAttributes)
+    Result collectBorrowSummaryFieldOrigins(Sema& sema, const ResolvedCallArgument& arg, std::vector<BorrowFieldOrigin>& fields)
     {
         const ConstantValue* encoded = nullptr;
         SWC_RESULT(collectResolvedConstantValue(sema, arg, encoded));
@@ -379,8 +379,8 @@ namespace
                 fieldName.push_back(static_cast<char>(high * 16 + low));
             }
             BorrowFieldOrigin origin{static_cast<uint8_t>(paramIndex), std::move(fieldName)};
-            if (std::ranges::find(outAttributes.returnFieldBorrows, origin) == outAttributes.returnFieldBorrows.end())
-                outAttributes.returnFieldBorrows.push_back(std::move(origin));
+            if (std::ranges::find(fields, origin) == fields.end())
+                fields.push_back(std::move(origin));
 
             if (end == std::string_view::npos)
                 break;
@@ -434,7 +434,11 @@ namespace
             SWC_RESULT(collectResolvedEnumMaskValue(sema, args[11], freesIndirectMask));
 
         if (args.size() >= 13 && args[12].argRef.isValid())
-            SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[12], outAttributes));
+            SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[12], outAttributes.returnFieldBorrows));
+        if (args.size() >= 14 && args[13].argRef.isValid())
+            SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[13], outAttributes.freesParamFields));
+        if (args.size() >= 15 && args[14].argRef.isValid())
+            SWC_RESULT(collectBorrowSummaryFieldOrigins(sema, args[14], outAttributes.resetsParamFields));
 
         outAttributes.addBorrowSummary(returnsMask, storesMask, intoPairs, freesMask, reallocatesMask, returnsPayloadMask, returnsStorageMask, observesExternal, returnsIndirectMask, storesIndirectMask, intoIndirectPairs, freesIndirectMask);
         return Result::Continue;

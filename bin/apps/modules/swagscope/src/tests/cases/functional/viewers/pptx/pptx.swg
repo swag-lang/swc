@@ -7,11 +7,10 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.slides.pptx"))
-    Swag.require(presentation.slides == 2 and presentation.omittedImages == 1)
-    let first = Utf8.indexOf(presentation.html, "Opens first")
-    let second = Utf8.indexOf(presentation.html, "First &amp; final")
-    Swag.require(first != Swag.U64.Max and second != Swag.U64.Max and first < second)
-    Swag.require(Utf8.contains(presentation.html, "[Image not shown]"))
+    Swag.require(presentation.slides.count == 2 and presentation.omittedImages == 1)
+    Swag.require(Utf8.contains(presentation.slides[0].readingHtml(), "Opens first"))
+    Swag.require(Utf8.contains(presentation.slides[1].readingHtml(), "First &amp; final"))
+    Swag.require(Utf8.contains(presentation.slides[0].readingHtml(), "[Image not shown]"))
 }
 
 // A presentation opens in its reading viewer before the ZIP fallback.
@@ -21,30 +20,29 @@ using Core, Gui, Gui.Testing, Viewers
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.pptx"), true)
     Swag.require(window.choices[window.activeChoiceIndex].key == "pptx")
     let view = assume cast(*Pptx.Panel, window.instances[window.activeChoiceIndex].view)
-    Swag.require(view.view != null and view.presentation.slides == 1)
+    Swag.require(view.view != null and view.presentation.slides.count == 1)
 }
 
 // An embedded slide picture appears inline in the declared slide order.
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.pictures.pptx"))
-    Swag.require(presentation.slides == 2 and presentation.omittedImages == 0)
-    let first = Utf8.indexOf(presentation.html, "Opens first")
-    let image = Utf8.indexOf(presentation.html, "data:image/jpeg;base64,")
-    let second = Utf8.indexOf(presentation.html, "First &amp; final")
-    Swag.require(first < image and image < second)
-    Swag.require(Utf8.contains(presentation.html, "width=\"320\" height=\"240\""))
-    Swag.require(Utf8.contains(presentation.html, "alt=\"Grey &amp; silver arcs\""))
+    Swag.require(presentation.slides.count == 2 and presentation.omittedImages == 0)
+    let first = presentation.slides[0].readingHtml()
+    Swag.require(Utf8.indexOf(first, "Opens first") < Utf8.indexOf(first, "data:image/jpeg;base64,"))
+    Swag.require(Utf8.contains(presentation.slides[1].readingHtml(), "First &amp; final"))
+    Swag.require(Utf8.contains(first, "width=\"320\" height=\"240\""))
+    Swag.require(Utf8.contains(first, "alt=\"Grey &amp; silver arcs\""))
 }
 
 // Direct run styling and paragraph alignment survive the slide reading projection.
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.formatted.pptx"))
-    Swag.require(presentation.slides == 2 and presentation.omittedImages == 0)
-    Swag.require(Utf8.contains(presentation.html,
+    Swag.require(presentation.slides.count == 2 and presentation.omittedImages == 0)
+    Swag.require(Utf8.contains(presentation.slides[0].readingHtml(),
                                "<p style=\"text-align:center\"><b>Opens first</b><i> styled</i></p>"))
-    Swag.require(Utf8.contains(presentation.html,
+    Swag.require(Utf8.contains(presentation.slides[1].readingHtml(),
                                "<p style=\"text-align:right\">First &amp; final</p>"))
 }
 
@@ -52,10 +50,9 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let presentation = expect Pptx.Presentation.load(scopeTestDataPath("viewer.poi-sample.pptx"))
-    Swag.require(presentation.slides == 2)
-    let first = Utf8.indexOf(presentation.html, "Title of the first slide")
-    let second = Utf8.indexOf(presentation.html, "This is the second slide")
-    Swag.require(first != Swag.U64.Max and second != Swag.U64.Max and first < second)
+    Swag.require(presentation.slides.count == 2)
+    Swag.require(Utf8.contains(presentation.slides[0].readingHtml(), "Title of the first slide"))
+    Swag.require(Utf8.contains(presentation.slides[1].readingHtml(), "This is the second slide"))
 }
 
 // Missing presentation relationships cannot silently become an empty deck.

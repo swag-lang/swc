@@ -9,3 +9,6 @@ err_Invalid          La structure de ce livre EPUB est endommagée.
 err_TooLarge         Ce livre EPUB est trop volumineux pour être ouvert sans risque.
 err_UnsupportedChapter Ce livre EPUB contient un format de chapitre illisible.
 err_NoChapters       Ce livre EPUB ne contient aucun chapitre lisible.
+
+err_ContentsInvalid    La table des matières de ce livre est endommagée.
+err_ContentsTooLarge   La table des matières de ce livre est trop volumineuse pour être affichée en entier.

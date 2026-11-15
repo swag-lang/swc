@@ -78,7 +78,7 @@ private impl Panel
 
     mtd showDetails()
     {
-        .services.showDetails(me, Format.toString(texts().ui_Details, .document.paragraphs, .document.omittedObjects))
+        .services.showDetails(me, .document.details())
     }
 
     func create(host: Viewer.Host)->*Panel

@@ -10,9 +10,9 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(workbook.sheets == 2 and workbook.cells == 6)
     Swag.require(Utf8.contains(workbook.html, "Summary &amp; totals"))
     Swag.require(Utf8.contains(workbook.html, "<tr><th></th><th>A</th><th>B</th><th>C</th></tr>"))
-    Swag.require(Utf8.contains(workbook.html, "<td>Expense &amp; income</td><td>4</td><td>TRUE</td>"))
+    Swag.require(Utf8.contains(workbook.html, "<td>Expense &amp; income</td><td style=\"text-align:right;padding-right:8px\">4</td><td>TRUE</td>"))
     Swag.require(Utf8.contains(workbook.html, "<td>Hello world</td>"))
-    Swag.require(Utf8.contains(workbook.html, "<td>Second sheet</td><td></td><td>42</td>"))
+    Swag.require(Utf8.contains(workbook.html, "<td>Second sheet</td><td></td><td style=\"text-align:right;padding-right:8px\">42</td>"))
 }
 
 // A workbook selects its reading surface before the generic archive fallback.
@@ -40,7 +40,7 @@ using Core, Gui, Gui.Testing, Viewers
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.inline.xlsx"))
     Swag.require(workbook.sheets == 1 and workbook.cells == 2)
     Swag.require(Utf8.contains(workbook.html, "<tr><th style=\"padding-right:8px\">1</th>"))
-    Swag.require(Utf8.contains(workbook.html, "<td>Safe &amp; sound</td><td></td><td>12.5</td>"))
+    Swag.require(Utf8.contains(workbook.html, "<td>Safe &amp; sound</td><td></td><td style=\"text-align:right;padding-right:8px\">12.5</td>"))
 }
 
 // Missing relationship metadata is a damaged workbook, not an empty sheet.
@@ -57,7 +57,7 @@ using Core, Gui, Gui.Testing, Viewers
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.sparse-rows.xlsx"))
     Swag.require(Utf8.contains(workbook.html, "<th>A</th><th>B</th><th>C</th>"))
     Swag.require(Utf8.contains(workbook.html,
-                               "<tr><th style=\"padding-right:8px\">7</th><td>Safe &amp; sound</td><td></td><td>12.5</td></tr>"))
+                               "<tr><th style=\"padding-right:8px\">7</th><td>Safe &amp; sound</td><td></td><td style=\"text-align:right;padding-right:8px\">12.5</td></tr>"))
 }
 
 // Explicitly empty rows and cells keep their addresses without becoming a damaged sheet.
@@ -75,7 +75,7 @@ using Core, Gui, Gui.Testing, Viewers
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.formulas.xlsx"))
     Swag.require(workbook.cells == 4)
     Swag.require(Utf8.contains(workbook.html,
-                               "<td>Safe &amp; sound</td><td></td><td>=SUM(2,3)</td><td>[Formula result unavailable]</td><td>4</td>"))
+                               "<td>Safe &amp; sound</td><td></td><td>=SUM(2,3)</td><td>[Formula result unavailable]</td><td style=\"text-align:right;padding-right:8px\">4</td>"))
 }
 
 // A column outside the bounded reading grid cannot be silently shifted into view.

@@ -453,6 +453,18 @@ func exposed(value: *s32)->s32 => Swag.atomicAdd(value, 1)
          "=> Swag.atomicAdd(value, 1)",
          "static-library",
          "var value: s32 = 42\n    discard exposed(&value)"},
+        {"LocalFunctionInExportedBody", R"(#global public
+#[Swag.Inline]
+func exposed(value: s32)->s32
+{
+    func adjust(value: s32)->s32 => value + 1
+    return adjust(value)
+}
+)",
+         {},
+         "func adjust(value: s32)->s32 => value + 1",
+         "static-library",
+         "Swag.require(exposed(41) == 42)"},
         {"NestedConstExprNamespace", R"(#global public
 namespace DefinitionSpace
 {

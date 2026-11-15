@@ -2225,3 +2225,32 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     host.pump()
     Swag.require(Clipboard.getString() == "menu content")
 }
+
+// A host can consume a link before local navigation, or explicitly retain the default behavior.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(360, 200)
+    let view = HtmlView.createText(&host.root,
+                                   "<a href=\"#destination\">Continue</a><div style=\"height:600px\"></div><h2 id=\"destination\">Arrival</h2>")
+    view.resize(360, 200)
+    view.applyLayout()
+    view.rebuild()
+    discard host.render(view)
+
+    var seen: String
+    view.linkHandler = func|seen = &seen|(_, url)->bool
+    {
+        seen[] = url
+        return true
+    }
+
+    let hit = findVisibleLink(view, "#destination")
+    Swag.require(hit.found)
+    host.click(hit.point)
+    Swag.require(seen == "#destination" and view.scroll.scrollPosition().y == 0)
+
+    view.linkHandler = func(_, _)->bool => false
+    host.click(hit.point)
+    Swag.require(view.scroll.scrollPosition().y > 0)
+}

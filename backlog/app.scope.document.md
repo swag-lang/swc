@@ -8,10 +8,12 @@ integration around those engines.
 ### app.scope.document.024 — RTF reading omits advanced layout and encoded text variants
 
 - Evidence: the Swag RTF reader now displays paragraphs, common inline styles, alignment, simple
-  tables, Unicode escapes and Windows-1252 text. It names omitted images and embedded objects.
-  It does not reproduce fonts, colors, page geometry, complex tables, fields or other code pages.
-- Next: add a bounded font/color and paragraph model, supported code-page decoders, image extraction
-  and a richer table layout without executing fields or loading linked resources.
+  tables, Unicode escapes and Windows-1252 text. Bounded embedded PNG and JPEG pictures retain
+  their place in the prose; binary payloads and modern/compatibility picture pairs are handled
+  without duplicate images. Unsupported pictures and embedded objects remain explicit. Fonts,
+  colors, page geometry, complex tables, fields and other code pages are still absent.
+- Next: add a bounded font/color and paragraph model, supported code-page decoders and richer
+  table layout without executing fields or loading linked resources.
 - Done when: representative freely licensed RTF documents retain their reading order and common
   visual structure, unsupported content remains explicit, and all decoding remains native Swag.
 
@@ -172,11 +174,16 @@ integration around those engines.
 ### app.scope.document.025 — XLSX lacks a true workbook reading surface
 
 - Evidence: the XLSX reader orders sheets and shows values or uncached formula expressions in a
-  512-column grid, but drops widths, heights, number formats, styles, merged cells, hidden ranges,
-  frozen panes, filters, comments and charts. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
+  512-column grid. Style XFs now resolve common built-in and custom currency, grouped decimal,
+  percentage, date and elapsed-time formats; both Excel date systems and the fictitious 1900 leap
+  day are retained. Unsupported formats keep the stored value and an explicit notice. Widths,
+  heights, cell colors/fonts, merged cells, hidden ranges, frozen panes, filters, comments and
+  charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: preserve workbook view state and resolve styles, dimensions, merges and number formats;
-  add virtual cell addressing, sheet-wide search and selection before read-only chart previews.
+- Next: preserve workbook view state, cell styling, dimensions and merges, then add virtual cell
+  addressing, sheet-wide search and selection before read-only chart previews. Extend numeric
+  formatting to conditions, fractions, scientific notation and localized date profiles with
+  producer fixtures; keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
   behave as declared, formulas never execute, large sheets stay bounded, and every omitted construct
   is explicitly reported.
@@ -184,13 +191,19 @@ integration around those engines.
 
 ### app.scope.document.026 — PPTX lacks slide geometry and presentation reading
 
-- Evidence: the PPTX reader shows ordered slide text, embedded raster images and some direct text
-  styling, but flattens object placement, themes, masters, shapes and backgrounds. It also omits
-  speaker notes and a slide overview. [PowerPoint Reading and Slide Show views](https://support.microsoft.com/en-us/powerpoint/how-certain-features-behave-in-web-based-powerpoint)
+- Evidence: the PPTX reader now fits individual slides at authored aspect ratio, retaining text
+  and raster-picture geometry, solid colors, basic theme colors/text sizes, simple rectangles,
+  static master objects and inherited placeholder bounds. Slide titles appear in the shared
+  outline; arrows, Page Up/Down and a theme-aware text mode support reading. Unsupported geometry
+  falls back to a labelled simplified layout. The real Apache POI sample and a widescreen deck
+  cover inherited title placement, authored colors, pictures and navigation. Charts, complex
+  drawings, complete text inheritance, speaker notes and a thumbnail overview remain absent.
+  [PowerPoint Reading and Slide Show views](https://support.microsoft.com/en-us/powerpoint/how-certain-features-behave-in-web-based-powerpoint)
   retain slide navigation and notes.
-- Next: resolve slide masters and relationships into bounded slide canvases with shapes, pictures
-  and text placement; then add thumbnails, notes and a full-screen reading path. Declare a safe
-  policy for animation, embedded media and external links.
+- Next: add speaker notes and a thumbnail overview, then lazy slide decoding so the first canvas
+  can appear before the rest of the deck is projected. Extend shapes, paragraph styles, color
+  transforms and font/theme inheritance with producer fixtures. Keep animation, embedded media
+  and external actions inert and make omitted content explicit.
 - Done when: a real presentation is recognizable slide by slide at authored aspect ratio, notes
   and navigation remain available, unsupported effects are explicit, and slide 1 appears without
   decoding every slide.
@@ -198,14 +211,13 @@ integration around those engines.
 
 ### app.scope.document.021 — EPUB chapter reading needs complete navigation
 
-- Evidence: `.epub` now reads `META-INF/container.xml`, the OPF manifest and spine, and opens
-  each XHTML document through the HTML reader in declared order. ZIP extraction is bounded and
-  rejects escaping paths. The first fixtures cover spine ordering and a nested package root.
-  There is no EPUB table of contents, book-wide search or position restore, and extraction prepares
+- Evidence: EPUB 2 NCX and EPUB 3 contents now expose authored titles, hierarchy and chapter
+  fragments in the shared filterable outline. Internal spine links keep the chapter counter in
+  sync, and chapter reading has its own zoom. Book-wide search, landmarks, non-spine footnotes,
+  reading-position restore, bookmarks and link history remain absent. Extraction still prepares
   every package member before the first chapter is shown.
-- Next: expose EPUB 2 NCX and EPUB 3 navigation/landmarks, resolve chapter fragments and local
-  footnotes, add book-wide search with chapter/all-book scope and stable chapter positions,
-  explicit bookmarks and link back/forward, then lazily extract resources needed for the visible chapter.
+- Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
+  bookmarks, link back/forward and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010

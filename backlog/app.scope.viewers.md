@@ -236,13 +236,13 @@ viewer packages, helper binaries, or network service required to open supported 
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | DOCX | `.docx` | paragraphs, simple tables and images in reading order | page geometry, styles, notes and fidelity | [app.scope.document.020](app.scope.document.md) |
-| XLSX | `.xlsx` | ordered sheets and values in a bounded grid | formatted cells, authored layout and navigation | [app.scope.document.025](app.scope.document.md) |
-| PPTX | `.pptx` | ordered slide text and pictures | slide geometry, masters, notes and presentation | [app.scope.document.026](app.scope.document.md) |
+| XLSX | `.xlsx` | ordered sheets and common numeric/date formats in a bounded grid | cell styling, authored layout and navigation | [app.scope.document.025](app.scope.document.md) |
+| PPTX | `.pptx` | fitted slides, basic geometry and masters, title list, text mode | notes, thumbnails, complete drawing fidelity and lazy slides | [app.scope.document.026](app.scope.document.md) |
 | OpenDocument | `.odt` `.ods` `.odp` | archive and binary structure | — | — |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | spine chapters through `HtmlView` | TOC, book search, saved position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
 | Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
-| RTF | `.rtf` | bounded formatted reading with text, styles, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
+| RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |

@@ -117,6 +117,15 @@ public:
     std::span<const ReturnFieldBorrow> returnFieldBorrows() const noexcept { return returnFieldBorrows_; }
     std::span<const ReturnFieldBorrow> importedReturnFieldBorrows() const noexcept;
 
+    bool hasFreedParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
+    bool hasResetParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
+    void addFreedParamField(size_t paramIndex, std::string_view fieldName);
+    void addResetParamField(size_t paramIndex, std::string_view fieldName);
+    std::span<const ReturnFieldBorrow> freedParamFields() const noexcept { return freedParamFields_; }
+    std::span<const ReturnFieldBorrow> resetParamFields() const noexcept { return resetParamFields_; }
+    std::span<const ReturnFieldBorrow> importedFreedParamFields() const noexcept;
+    std::span<const ReturnFieldBorrow> importedResetParamFields() const noexcept;
+
     // The result aliases the parameter's storage, rather than carrying a reference
     // to it in a separate allocation. Only this route can make freeing a returned
     // pointer release the argument's storage.
@@ -637,6 +646,8 @@ private:
 
     uint64_t returnBorrowsParamsMask_  = 0;
     std::vector<ReturnFieldBorrow> returnFieldBorrows_;
+    std::vector<ReturnFieldBorrow> freedParamFields_;
+    std::vector<ReturnFieldBorrow> resetParamFields_;
     uint64_t returnsStorageParamsMask_ = 0;
     bool     observesExternalBorrows_  = false;
     bool     borrowEffectsComputed_    = false;

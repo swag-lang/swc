@@ -86,7 +86,7 @@ using Core, Gui
     Swag.require(not window.searchBox.isValid() and explorer.shown.isEmpty())
 }
 
-// Resizing and opening the folder pane keep the search strip with the document.
+// Resizing keeps the search strip with the document.
 #test
 {
     var host: Testing.HeadlessHost
@@ -95,12 +95,13 @@ using Core, Gui
     showBoard(&host, window, "Documents", "Notes")
     explorer.revealFilter()
     window.resize(ViewerWindow.MinWidth, 640)
-    window.setFilePanelVisible(true)
+
     window.applyLayout()
 
     let area = window.documentArea()
     let bar  = window.searchBar.position
-    Swag.require(Math.abs(bar.right() - (area.right() - window.themeMetrics().floating_Inset)) < 1)
+    Swag.require(Math.abs(bar.right() - (area.right() - window.themeMetrics().floating_Inset)) < 1,
+                 Format.toString("search right %, document right %, inset %", bar.right(), area.right(), window.themeMetrics().floating_Inset))
     Swag.require(bar.x >= area.x and bar.right() <= area.right())
     Swag.require(window.searchBox.hasFocus())
 }

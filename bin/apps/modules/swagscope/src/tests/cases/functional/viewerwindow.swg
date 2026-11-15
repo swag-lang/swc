@@ -307,18 +307,6 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
     return fileName
 }
 
-func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
-{
-    Swag.require(window.folderFiles.count == names.count and
-                 window.siblings.count == names.count and
-                 window.folderList.lineCount() == names.count)
-    for name, index in names
-    {
-        Swag.require(window.folderFiles[index] == name[] and window.siblings[index] == name[])
-        Swag.require(window.folderList.lineAt(cast(u32, index))!.itemAt(0).name.raw == (Path.fileName(name[]) orelse name[]))
-    }
-}
-
 // Selecting another file cancels the previous file's scan immediately, before asynchronous
 // classification has had a chance to replace the viewer.
 #test
@@ -455,99 +443,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(not PlainText.Panel.supports(file))
 }
 
-// The panel lists what is beside the current file and what was read before it, and a row opens
-// its file without the window being rebuilt.
-#test
-{
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let folder        = Path.combine(tempDirectory, Format.toString("scope_panel_%", Guid64.random()))
-    expect Directory.create(folder)
-    defer discard catch Directory.delete(folder, recurse: true)
-
-    var names: Array'String
-    for i in 3'u32
-    {
-        let one = Path.combine(folder, Format.toString("file%.txt", i))
-        discard expect File.writeAllText(one, "a readable line\n")
-        names.add(one)
-    }
-
-    var host: Testing.HeadlessHost
-    host.setup(960, 680)
-    var index = createViewerPluginRegistry()
-
-    with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    {
-        .resize(960, 680)
-        .openFile(names[0])
-    }
-
-    completeQueuedViewerFile(&host, window)
-
-    Swag.require(not window.panelVisible and not window.filePanelHost.isLocallyVisible())
-    window.toggleFilePanel()
-    Swag.require(window.panelVisible and window.filePanelHost.isLocallyVisible())
-    Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.Files).checked)
-    Swag.require(window.mainSplitter.items[0]!.minimumSize == ViewerWindow.PanelMinWidth + window.themeMetrics().floating_Inset)
-    Swag.require(window.mainSplitter.items[0]!.maximumSize == ViewerWindow.PanelMaxWidth + window.themeMetrics().floating_Inset)
-    window.mainSplitter.setPaneSize(0, 1)
-    Swag.require(window.mainSplitter.items[0]!.size == window.mainSplitter.items[0]!.minimumSize)
-    window.mainSplitter.setPaneSize(0, 2_000)
-    Swag.require(window.mainSplitter.items[0]!.size == window.mainSplitter.items[0]!.maximumSize)
-    window.mainSplitter.setPaneSize(0, 340)
-    Swag.require(window.filePanelHost.position.width == 340)
-    Swag.require(window.filePanel.isVertical() and window.filePanel.items.count == 2)
-    Swag.require(window.filePanel.items[0]!.minimumSize == ViewerWindow.PaneMinSize)
-    Swag.require(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
-    Swag.require(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
-    Swag.require(window.folderHistoryButton.isEnabled() and not window.folderHistoryButton.isLocallyVisible())
-    Swag.require(not window.kindButton.isLocallyVisible() and not window.folderLabel.text.isEmpty())
-    Swag.require(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
-    assertFolderFiles(window, names.toSlice())
-    Swag.require(window.recentList.lineCount() == 1)
-    for i in window.folderList.lineCount()
-    {
-        let icon = window.folderList.lineAt(i)!.itemAt(0).icon
-        Swag.require(icon.isValid() and icon.index == cast(s32, ViewerIcons.Text))
-    }
-
-    let recentIcon = window.recentList.lineAt(0)!.itemAt(0).icon
-    Swag.require(recentIcon.isValid() and recentIcon.index == cast(s32, ViewerIcons.Text))
-
-    // Choosing a sibling opens it, and the recent list grows by exactly that file.
-    window.folderList.selectLine(2)
-    completeQueuedViewerFile(&host, window)
-    Swag.require(window.currentFile == names[2])
-    Swag.require(window.recent.count == 2 and window.recent[0] == names[2])
-    assertFolderFiles(window, names.toSlice())
-
-    // A recent row keeps the list under the pointer stable while it opens its file.
-    window.recentList.selectLine(1)
-    completeQueuedViewerFile(&host, window)
-    Swag.require(window.currentFile == names[0])
-    Swag.require(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
-    assertFolderFiles(window, names.toSlice())
-
-    window.setFilePanelVisible(false)
-    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.Files).checked)
-    window.setFilePanelVisible(true)
-
-    window.filePanel.setPaneSize(0, 120)
-    let panelWidth = window.mainSplitter.items[0]!.size
-    let state      = saveViewerState(window)
-    window.recent.clear()
-    window.filePanel.setPaneSize(0, 180)
-    window.setFilePanelVisible(false)
-    loadViewerState(window, state.toSlice())
-    Swag.require(window.recent.count == 2 and window.panelVisible)
-    Swag.require(window.leftPanelWidth == panelWidth - window.themeMetrics().floating_Inset)
-    Swag.require(window.mainSplitter.items[0]!.size == panelWidth)
-    window.setFilePanelVisible(window.panelVisible)
-    Swag.require(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
-    Swag.require(window.recentPaneSize == 120 and window.filePanel.items[0]!.size == 120)
-}
-
-// The folder header keeps a bounded history and returns directly to the last file viewed in the
+// The lens keeps a bounded folder history and returns directly to the last file viewed in the
 // chosen folder.
 #test
 {
@@ -583,86 +479,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(window.folderHistory[0].file == files.back())
     selectedFolder = window.folderHistory.back().folder.toString()
     let selectedFile = String.from(window.folderHistory.back().file)
-    host.clickPopupMenuItemWhenShown(selectedFolder)
-    window.showFolderHistory()
+    window.lens.open(Format.toString("/%", Path.fileName(selectedFolder) orelse selectedFolder.toString()))
+    host.keyPress(.Return)
     host.pump()
     completeQueuedViewerFile(&host, window)
-    Swag.require(host.autoHandled and window.currentFile == selectedFile)
+    Swag.require(window.currentFile == selectedFile)
     Swag.require(window.folderHistory[0].folder == selectedFolder)
 }
 
-// Rebuilding the lists after a recent-file choice keeps the viewport under the pointer, and the
-// folder pane continues to own file names rather than borrowing document text.
-#test
-{
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let folder        = Path.combine(tempDirectory, Format.toString("scope_recent_scroll_%", Guid64.random()))
-    expect Directory.create(folder)
-    defer discard catch Directory.delete(folder, recurse: true)
-
-    var names: Array'String
-    for i in ViewerWindow.RecentCount
-    {
-        let fileName = Path.combine(folder, Format.toString("file%.txt", i))
-        let content  = Format.toString("document text %\n", i)
-        discard expect File.writeAllBytes(fileName, content)
-        names.add(fileName)
-    }
-
-    var host: Testing.HeadlessHost
-    host.setup(960, 680)
-    var index = createViewerPluginRegistry()
-
-    with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    {
-        .resize(960, 680)
-        .openFile(names[0])
-    }
-
-    completeQueuedViewerFile(&host, window)
-    window.recent.clear()
-    for name in names do
-        window.recent.add(name[])
-    window.setFilePanelVisible(true)
-    window.applyLayout()
-
-    window.recentList.scrollWnd.setScrollPos(0, 80)
-    let before = window.recentList.scrollWnd.scrollPosition()
-    Swag.require(before.y > 0)
-    window.recentList.selectLine(8)
-    completeQueuedViewerFile(&host, window)
-    Swag.require(window.currentFile == names[8])
-    Swag.require(window.recentList.scrollWnd.scrollPosition() == before)
-
-    for i in window.folderList.lineCount()
-    {
-        let label = window.folderList.lineAt(i)!.itemAt(0).name.raw
-        Swag.require(Utf8.startsWith(label, "file") and Utf8.endsWith(label, ".txt"))
-        Swag.require(not Utf8.contains(label, "document text"))
-    }
-}
-
-// The panel opens before any file has been read: there is no folder to name, so the section keeps
-// its own title and both lists stay empty.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(960, 680)
-
-    var index  = createViewerPluginRegistry()
-    let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    window.resize(960, 680)
-
-    Swag.require(window.currentFile.isEmpty())
-    window.setFilePanelVisible(true)
-    Swag.require(window.panelVisible and window.filePanelHost.isLocallyVisible())
-    Swag.require(window.folderList.lineCount() == 0 and window.recentList.lineCount() == 0)
-    Swag.require(not window.filePanel.isPaneVisible(0) and not window.recentPane.isLocallyVisible())
-    Swag.require(window.folderLabel.text == appStrings().ui_Folder)
-}
-
-// The history is a list the reader owns: one file leaves it, or all of them do, and the section
-// closes itself once it has nothing left to offer.
+// The history is a list the reader owns: one file leaves it, or all of them do, without closing
+// the file that is being read.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -690,19 +516,17 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         completeQueuedViewerFile(&host, window)
     }
 
-    window.setFilePanelVisible(true)
-    Swag.require(window.recent.count == 3 and window.recentList.lineCount() == 3)
+    Swag.require(window.recent.count == 3)
 
     // The most recent file is at the head, and forgetting one leaves the others in their order.
     window.forgetRecent(names[2])
-    Swag.require(window.recent.count == 2 and window.recentList.lineCount() == 2)
+    Swag.require(window.recent.count == 2)
     Swag.require(window.recent[0] == names[1] and window.recent[1] == names[0])
 
     // Forgetting what the history does not hold changes nothing, and the file stays open.
     window.forgetRecent(Path.combine(folder, "absent.txt"))
     Swag.require(window.recent.count == 2 and window.currentFile == names[2])
 
-    Swag.require(window.recentClearButton.parent == window.recentLabel.parent and not window.recentClearButton.isLocallyVisible())
     Swag.require(not Utf8.contains(appStrings().ui_ConfirmClearHistory, "?"))
 
     host.clickModalButtonWhenShown(Dialog.BtnNo)
@@ -714,15 +538,11 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.confirmClearRecent()
     host.pump()
     Swag.require(host.autoHandled)
-    Swag.require(window.recent.isEmpty() and window.recentList.lineCount() == 0)
-    Swag.require(not window.filePanel.isPaneVisible(0) and not window.recentPane.isLocallyVisible())
-    Swag.require(window.currentFile == names[2] and window.folderList.lineCount() == 3)
+    Swag.require(window.recent.isEmpty())
+    Swag.require(window.currentFile == names[2])
 }
 
-// The history row menu offers what that file can do, and its own entry removes one file.
-//
-// The folder list is not a list the reader owns, so the same menu there stops at the actions that
-// do not touch the history.
+// The document menu copies its file identity, while the lens can forget its history entry.
 #test
 {
     let tempDirectory = Env.getSpecialDirectory(.Temp)
@@ -750,15 +570,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         completeQueuedViewerFile(&host, window)
     }
 
-    window.setFilePanelVisible(true)
     window.applyLayout()
 
-    let list = window.recentList
-    Swag.require(list.lineCount() == 3)
-
-    // The row naming the file read before the one that is open, which the panel opens on its own
-    // when it is picked: what the menu acts on is the row, not the document.
-    list.selectLine(1)
+    // Reopen a recent file without changing the order of its history.
+    window.queueFile(names[1], remember: false)
     completeQueuedViewerFile(&host, window)
     Swag.require(window.currentFile == names[1])
 
@@ -766,30 +581,27 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     clipboardImage.clear()
     Clipboard.addImage(clipboardImage)
     host.clickPopupMenuItemWhenShown("scope.file.copyPath")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    window.showCurrentFileActions({120, 120})
     host.pump()
     Swag.require(host.autoHandled and Clipboard.getString() == names[1])
     Swag.require(not Clipboard.hasImage())
 
     Clipboard.addImage(clipboardImage)
     host.clickPopupMenuItemWhenShown("scope.file.copyName")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    window.showCurrentFileActions({120, 120})
     host.pump()
     Swag.require(host.autoHandled and Clipboard.getString() == "file1.txt")
     Swag.require(not Clipboard.hasImage())
 
-    host.clickPopupMenuItemWhenShown("scope.file.forget")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    window.sendCommandEvent(ViewerCommands.Forget)
     host.pump()
-    Swag.require(host.autoHandled)
     Swag.require(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
-    Swag.require(list.lineCount() == 2 and window.currentFile == names[1])
+    Swag.require(window.currentFile == names[1])
 
-    // A folder row names a file the folder holds, and nothing offers to take it out of a list it
-    // was never in.
-    window.folderList.selectLine(0)
+    // The document menu has no history action; those commands belong to the lens and home.
+    window.queueFile(names[0])
     completeQueuedViewerFile(&host, window)
-    let folderMenu = window.createFileActionsMenu(false)
+    let folderMenu = window.createFileActionsMenu()
     defer folderMenu.destroy()
     for item in folderMenu.items do
         Swag.require(item!.id != "scope.file.forget")
@@ -1183,6 +995,8 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let gutter = window.themeMetrics().floating_Inset
     Swag.require(window.backgroundStyle == .Application and window.padding.y == 0)
     Swag.require(window.mainSplitter.dockStyle == .Center)
+    Swag.require(window.mainSplitter.items.count == 2 and window.mainSplitter.items[0]!.view == window.documentHost)
+    Swag.require(window.documentHost.position.x == 0)
     Swag.require(window.appearanceButton.parent == &host.surfaceWnd and not window.appearanceButton.isLocallyVisible())
     Swag.require(window.searchBar.parent == window and
                  window.searchBar.dockStyle == .None and
@@ -1197,15 +1011,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(window.hintLine.hints[0].key == Input.formatKeyShortcut(.Control, .Space) and window.hintLine.hints[0].text == appStrings().ui_HintLens)
     Swag.require(not window.lens.isOpen())
     Swag.require(window.readingLine.parent == window.documentHost and not window.readingLine.isLocallyVisible())
-    Swag.require(window.filePanelHost.backgroundStyle == .Transparent and window.filePanel.backgroundStyle == .Transparent)
-    Swag.require(window.filePanelHost.padding.x == gutter and window.filePanelHost.padding.w == gutter)
     Swag.require(window.documentHost.backgroundStyle == .Transparent and window.documentPanel.backgroundStyle == .View)
     Swag.require(window.documentHost.padding.y == window.stripInset())
     Swag.require(window.documentPanel.parent == window.documentHost and window.home.parent == window.documentPanel)
-    Swag.require(window.recentPane.backgroundStyle == .Transparent and window.folderPane.backgroundStyle == .Transparent)
-    Swag.require(window.recentLabel.parent!.backgroundStyle == .Transparent and
-                 window.folderLabel.parent!.backgroundStyle == .Transparent)
-    Swag.require(window.recentClearButton.parent == window.recentLabel.parent)
 
     // Nothing frames the work: the bands an application once drew are the ground it sits on.
     let colors = window.themeColors()
@@ -1229,7 +1037,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // window stays out, and the key of a command is written beside it.
     window.lens.open(">")
     Swag.require(lensHasEntry(window, appStrings().cmd_Open) and lensHasEntry(window, appStrings().cmd_Explore))
-    Swag.require(lensHasEntry(window, appStrings().cmd_FullScreen) and lensHasEntry(window, appStrings().ui_Files))
+    Swag.require(lensHasEntry(window, appStrings().cmd_FullScreen))
     Swag.require(lensHasEntry(window, appStrings().ui_PlayOnce) and lensHasEntry(window, appStrings().cmd_ClearHistory))
     Swag.require(not lensHasEntry(window, appStrings().ui_CloseFile) and not lensHasEntry(window, appStrings().cmd_Reload))
     window.lens.close()
@@ -1374,7 +1182,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(scopeTestDataPath("segoeui.ttf"), remember: false)
     completeQueuedViewerFile(&host, window)
-    window.setFilePanelVisible(true)
+
     let position = host.surface.position
     let flags    = host.surface.flags
 
@@ -1382,7 +1190,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.require(window.fullScreen and window.sendComputeCommandStateEvent(ViewerCommands.FullScreen).checked)
     Swag.require(host.surface.flags.has(.NoShadow) and host.surface.flags.has(.TopMost))
     Swag.require(not host.surface.flags.has(.LargeCaption) and not host.surface.flags.has(.Border))
-    Swag.require(not window.readingLine.isLocallyVisible() and not window.filePanelHost.isLocallyVisible())
+    Swag.require(not window.readingLine.isLocallyVisible())
     Swag.require(not window.viewerBar.isLocallyVisible())
 
     // Moving the pointer brings the viewer's commands over the content without shrinking it;
@@ -1396,7 +1204,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFullScreen(false)
     Swag.require(not window.fullScreen and not window.sendComputeCommandStateEvent(ViewerCommands.FullScreen).checked)
     Swag.require(host.surface.flags == flags and host.surface.position == position)
-    Swag.require(window.readingLine.isLocallyVisible() and window.filePanelHost.isLocallyVisible())
+    Swag.require(window.readingLine.isLocallyVisible())
 }
 
 // A decoder error discovered after creation replaces the active viewer and its commands in place.
@@ -1588,36 +1396,33 @@ func downwardArrows(wnd: *Wnd)->u64
     let button = assume cast(*IconButton, window.currentSidePanelButton)
     window.sendCommandEvent(ViewerCommands.SidePanel)
     Swag.require(button.isChecked and not button.isLocallyVisible())
-    Swag.require(window.mainSplitter.items[2]!.view == window.currentSidePanelHost)
-    Swag.require(window.mainSplitter.items[2]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().floating_Inset)
-    Swag.require(window.mainSplitter.items[2]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().floating_Inset)
-    window.mainSplitter.setPaneSize(2, 1)
-    Swag.require(window.mainSplitter.items[2]!.size == window.mainSplitter.items[2]!.minimumSize)
-    window.mainSplitter.setPaneSize(2, 2_000)
-    Swag.require(window.mainSplitter.items[2]!.size == window.mainSplitter.items[2]!.maximumSize)
+    Swag.require(window.mainSplitter.items[1]!.view == window.currentSidePanelHost)
+    Swag.require(window.mainSplitter.items[1]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().floating_Inset)
+    Swag.require(window.mainSplitter.items[1]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().floating_Inset)
+    window.mainSplitter.setPaneSize(1, 1)
+    Swag.require(window.mainSplitter.items[1]!.size == window.mainSplitter.items[1]!.minimumSize)
+    window.mainSplitter.setPaneSize(1, 2_000)
+    Swag.require(window.mainSplitter.items[1]!.size == window.mainSplitter.items[1]!.maximumSize)
 
-    window.mainSplitter.setPaneSize(2, 500)
-    let panelSize = window.mainSplitter.items[2]!.size
+    window.mainSplitter.setPaneSize(1, 500)
+    let panelSize = window.mainSplitter.items[1]!.size
     let state     = saveViewerState(window)
-    window.mainSplitter.setPaneSize(2, 560)
+    window.mainSplitter.setPaneSize(1, 560)
     loadViewerState(window, state.toSlice())
     Swag.require(window.rightPanelWidth == panelSize - window.themeMetrics().floating_Inset)
-    Swag.require(window.mainSplitter.items[2]!.size == panelSize)
+    Swag.require(window.mainSplitter.items[1]!.size == panelSize)
 
     window.setFullScreen(true)
-    Swag.require(not window.mainSplitter.isPaneVisible(2))
+    Swag.require(not window.mainSplitter.isPaneVisible(1))
     window.setFullScreen(false)
-    Swag.require(window.mainSplitter.isPaneVisible(2) and button.isChecked)
-    Swag.require(window.mainSplitter.items[2]!.size == panelSize,
+    Swag.require(window.mainSplitter.isPaneVisible(1) and button.isChecked)
+    Swag.require(window.mainSplitter.items[1]!.size == panelSize,
                  Format.toString("right pane width changed from % to % after full screen (splitter: %)",
                                  panelSize,
-                                 window.mainSplitter.items[2]!.size,
+                                 window.mainSplitter.items[1]!.size,
                                  window.mainSplitter.position.width))
     Swag.require(Math.abs(window.currentSidePanelHost!.position.right() - window.mainSplitter.paddedClientRect().right()) <= 1)
     let divider = window.themeMetrics().splitView_BarSize
-    Swag.require(Math.abs(window.currentSidePanelHost.surfaceRect().x - window.documentPanel.surfaceRect().right() - divider) <= 1)
-    window.setFilePanelVisible(true)
-    Swag.require(Math.abs(window.documentPanel.surfaceRect().x - window.filePanelHost.surfaceRect().right() - divider) <= 1)
     Swag.require(Math.abs(window.currentSidePanelHost.surfaceRect().x - window.documentPanel.surfaceRect().right() - divider) <= 1)
 }
 
@@ -1709,7 +1514,7 @@ func downwardArrows(wnd: *Wnd)->u64
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
     completeViewerStatistics(&host, window)
-    window.setFilePanelVisible(true)
+
     window.searchBox.setText("verification marker")
     let recentCount = window.recent.count
     window.sendCommandEvent(ViewerCommands.Close)
@@ -1733,18 +1538,6 @@ func downwardArrows(wnd: *Wnd)->u64
     window.openFile(viewerFixturePath())
     completeQueuedViewerFile(&host, window)
     Swag.require(not window.currentFile.isEmpty() and not window.sendComputeCommandStateEvent(ViewerCommands.Close).hidden)
-}
-
-// The file panel can close itself and keeps the command of the lens in step.
-#test
-{
-    var host: Testing.HeadlessHost
-    host.setup(880, 560)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.sendCommandEvent(ViewerCommands.Files)
-    Swag.require(window.sendComputeCommandStateEvent(ViewerCommands.Files).checked and window.filePanelHost.isLocallyVisible())
-    window.closeFilesButton.sigPressed.call(window.closeFilesButton)
-    Swag.require(not window.sendComputeCommandStateEvent(ViewerCommands.Files).checked and not window.filePanelHost.isLocallyVisible())
 }
 
 // Closing a queued opening discards its classification, including a worker already in flight.
@@ -1924,7 +1717,7 @@ func downwardArrows(wnd: *Wnd)->u64
     Swag.require(Path.fileName(window.currentFile) == "t1.txt")
     Swag.require(textView.editor.hasFocus())
 
-    // Image gestures stay with images even when the folder panel's kind filter is off.
+    // Image gestures stay with images even when the same-kind navigation filter is off.
     window.openFile(Path.combine(folder, "pic1.svg"))
     completeQueuedViewerFile(&host, window)
     Swag.require(not window.folderSameKind)
@@ -1954,8 +1747,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     return folder
 }
 
-// A folder round follows the current file in the panel, keeps it visible, and softens only the
-// files already read in that round. Leaving the folder modes restores ordinary row rendering.
+// A folder round remembers each file it reads and clears that progress when the mode ends.
 #test
 {
     let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope_folder_progress_%", Guid64.random()))
@@ -1981,35 +1773,26 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     completeQueuedViewerFile(&host, window)
     window.openFile(window.folderFiles[20], remember: false)
     completeQueuedViewerFile(&host, window)
-    window.setFilePanelVisible(true)
+
     window.applyLayout()
 
     let firstIndex = window.siblingIndex
-    window.folderList.scrollWnd.setScrollPos(0, 0)
-    Swag.require(firstIndex > window.folderList.lastVisibleLineIndex())
 
     window.setPlayMode(.Folder)
-    Swag.require(window.folderList.isLineSelected(cast(u32, firstIndex)))
-    Swag.require(window.folderList.firstVisibleLineIndex() <= firstIndex and firstIndex <= window.folderList.lastVisibleLineIndex())
-    Swag.require(window.folderList.lineAt(cast(u32, firstIndex))!.colorFg == window.themeColors().label_TextLight)
-    Swag.require(window.folderList.lineAt(cast(u32, firstIndex) - 1)!.colorFg.a == 0)
+    Swag.require(window.folderReadingFiles.contains(window.currentFile))
 
     Swag.require(window.continueFile(.Folder))
     completeQueuedViewerFile(&host, window)
     let secondIndex = window.siblingIndex
-    Swag.require(secondIndex == firstIndex + 1 and window.folderList.isLineSelected(cast(u32, secondIndex)))
-    Swag.require(window.folderList.firstVisibleLineIndex() <= secondIndex and secondIndex <= window.folderList.lastVisibleLineIndex())
-    Swag.require(window.folderList.lineAt(cast(u32, firstIndex))!.colorFg == window.themeColors().label_TextLight)
-    Swag.require(window.folderList.lineAt(cast(u32, secondIndex) + 1)!.colorFg.a == 0)
+    Swag.require(secondIndex == firstIndex + 1)
+    Swag.require(window.folderReadingFiles.contains(window.currentFile))
 
     window.setPlayMode(.Once)
     Swag.require(window.folderReadingFiles.isEmpty())
-    for i in window.folderList.lineCount() do
-        Swag.require(window.folderList.lineAt(i)!.colorFg.a == 0)
 }
 
 // A folder play mode walks the files the current viewer opens, in folder order and around again
-// past the last one, whatever the panel filter says; a file alone of its kind has no successor.
+// past the last one, whatever the navigation filter says; a file alone of its kind has no successor.
 // The file it brings up is not one the reader chose, so the history does not grow with it.
 #test
 {
@@ -2176,7 +1959,9 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     host.thenActivateOptionRow(appStrings().ui_PlayShuffle)
     button.showOptions()
     Swag.require(window.playMode == .Shuffle and button.icon.index == cast(s32, ThemeIcons.Shuffle))
-    Swag.require(not window.viewerBar.isLocallyVisible())
+
+    // Windowed page controls stay visible after an option closes; only full screen hides them.
+    Swag.require(window.viewerBar.isLocallyVisible())
     window.revealViewerBar()
 
     host.activateOptionRowWhenShown(appStrings().ui_PlayMode)

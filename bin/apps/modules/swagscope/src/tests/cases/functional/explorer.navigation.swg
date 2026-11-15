@@ -96,7 +96,7 @@ using Core, Gui, Pixel
     Swag.require(explorer.status.text() == appStrings().explore_NotFound)
 }
 
-// Opening folder history reads saved entries without probing their volumes or last files.
+// Opening the folder history in the lens reads saved entries without probing their volumes or last files.
 #test
 {
     var host: Testing.HeadlessHost
@@ -104,21 +104,10 @@ using Core, Gui, Pixel
     let window  = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     var missing = Path.combine(Env.getSpecialDirectory(.Temp), Guid64.random().toString())
     window.folderHistory.add({folder: missing, file: Path.combine(missing, "missing.txt")})
-    var opened: bool
-    host.app.sigFrame += func|host = &host, &opened, &missing|(_)
-    {
-        if opened do
-            return
-        let menu = unwrap host.capturedPopupMenu()
-        Swag.require(menu.items.count == 1)
-        Swag.require(menu.items[0]!.id == missing.toString())
-        Swag.require(menu.items[0]!.icon.color == host.theme.colors.arc)
-        opened = true
-        Swag.require(host.dismissPopupMenu())
-    }
-
-    window.showFolderHistory()
-    Swag.require(opened and window.currentFile.isEmpty())
+    window.lens.open("/")
+    Swag.require(lensHasEntry(window, Path.fileName(missing) orelse missing.toString()))
+    Swag.require(window.currentFile.isEmpty())
+    window.lens.close()
 }
 
 // A short absolute path stays visible at minimum width without a redundant centered title, and

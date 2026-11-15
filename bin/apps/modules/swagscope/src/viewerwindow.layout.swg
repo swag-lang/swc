@@ -107,209 +107,6 @@ impl ViewerWindow
         }
     }
 
-    // Writes the name of a part of the file panel as a section label: in capitals.
-
-    // Creates one of the file lists of the side panel: a single-selection list of names that
-    // fills `parent` and never scrolls sideways.
-    private func createFileList(parent: *Wnd, rowIconSize: f32)->*ListCtrl
-    {
-        with let list = ListCtrl.createSimple(parent)
-        {
-            .dockStyle = .Center
-            .setIconSize(rowIconSize)
-            .setSelectionMode(.Single)
-            .updateFlags(.HotTrack | .Ellipsis)
-            .scrollWnd.padding.x = 0
-            .scrollWnd.padding.z = 0
-            .scrollWnd.updateFlags(.DisableHorizontal)
-        }
-
-        return list
-    }
-
-    // Builds the left file panel, hidden until asked for: a sheet-shaped card beside the work
-    // holding the recent files with their clear button, and the folder files with their
-    // same-kind filter and folder history.
-    private mtd createFilePanel()
-    {
-        let compactSize = themeCompactButtonSize(.themeMetrics())
-        let rowIconSize = themeRowIconSize(.themeMetrics())
-        let gutter      = .themeMetrics().floating_Inset
-
-        // The card stands in the air of the window, the floating inset away from its edges; the
-        // splitter beside it lets the reader widen it.
-        with .filePanelHost = Wnd.create'Wnd(.mainSplitter, Math.Rectangle{0, 0, .leftPanelWidth + gutter, 0})
-        {
-            .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{gutter, 0, 0, gutter}
-            .hide()
-        }
-
-        with let card = FloatingPanel.create(.filePanelHost)
-        {
-            .dockStyle = .Center
-            .padding   = {4, 8, 4, 8}
-            .setShadow(false)
-        }
-
-        with .filePanel = SplitterCtrl.create(card, Math.Rectangle{0, 0, .leftPanelWidth, 0}, vertical: true)
-        {
-            .dockStyle       = .Center
-            .backgroundStyle = .Transparent
-        }
-
-        with .recentPane = Wnd.create'Wnd(.filePanel)
-        {
-            .backgroundStyle = .Transparent
-            .padding         = {0, 4, 0, 4}
-        }
-
-        with let recentHeader = Wnd.create'Wnd(.recentPane, Math.Rectangle{0, 0, 0, compactSize})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-            .margin          = {10, 0, 10, 0}
-        }
-
-        with .closeFilesButton = IconButton.create(recentHeader, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
-        {
-            .hide()
-            .dockStyle  = .Right
-            .toolTip    = appStrings().ui_CloseFiles
-            .sigPressed += func|window = me|(_)
-            {
-                window.setFilePanelVisible(false)
-                catch window.saveState()
-            }
-        }
-
-        with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
-        {
-            .hide()
-            .dockStyle  = .Right
-            .toolTip    = appStrings().ui_ClearHistory
-            .sigPressed += func|window = me|(_) { window.confirmClearRecent() }
-        }
-
-        // The panel is a card of the charter: its parts are named by section labels, and what its
-        // headers once held as buttons — closing it, clearing the history, keeping one kind, the
-        // folders read lately — is in the lens.
-        with .recentLabel = SectionLabel.create(recentHeader, appStrings().ui_Recent, Math.Rectangle{0, 0, 0, compactSize})
-        {
-            .dockStyle = .Center
-        }
-
-        with .recentList = createFileList(.recentPane, rowIconSize)
-        {
-            .sigSelectionChanged += func|window = me|(list)
-            {
-                window.openListSelection(list, window.recent.toSlice())
-            }
-
-            .sigRightClicked += func|window = me|(list, position)
-            {
-                window.showFileMenu(list,
-                                    window.recent.toSlice(),
-                                    list.listView.localToSurface(position))
-            }
-        }
-
-        with .folderPane = Wnd.create'Wnd(.filePanel)
-        {
-            .backgroundStyle = .Transparent
-            .padding         = {0, 4, 0, 4}
-        }
-
-        // The header carries the filter beside the folder name: the toggle changes what this
-        // list holds, and the next/previous arrows walk the same list.
-        with let folderHeader = Wnd.create'Wnd(.folderPane, Math.Rectangle{0, 0, 0, compactSize})
-        {
-            .dockStyle       = .Top
-            .backgroundStyle = .Transparent
-            .margin          = {10, 0, 10, 0}
-        }
-
-        with .closeFoldersButton = IconButton.create(folderHeader, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
-        {
-            .hide()
-            .dockStyle  = .Right
-            .toolTip    = appStrings().ui_CloseFiles
-            .sigPressed += func|window = me|(_)
-            {
-                window.setFilePanelVisible(false)
-                catch window.saveState()
-            }
-        }
-
-        with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize}, flags: .Toggle)
-        {
-            .hide()
-            .dockStyle = .Right
-            .toolTip   = appStrings().ui_SameKind
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|window = me|(button) { window.setFolderSameKind(button.isChecked) }
-        }
-
-        with .folderHistoryButton = IconButton.create(folderHeader,
-                                                      .theme().icon(.History, rowIconSize),
-                                                      Math.Rectangle{0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize},
-                                                      flags: .CenterContent)
-        {
-            .hide()
-            .dockStyle = .Right
-            .toolTip   = appStrings().ui_FolderHistory
-            .setArrowPosition(.RightDownward)
-            .enable(false)
-            .sigPressed += func|window = me|(_) { window.showFolderHistory() }
-        }
-
-        with .folderLabel = SectionLabel.create(folderHeader, appStrings().ui_Folder, Math.Rectangle{0, 0, 0, compactSize})
-        {
-            .dockStyle = .Center
-        }
-
-        with .folderFilterBox = EditBox.create(.folderPane, "", Math.Rectangle{0, 0, 0, compactSize})
-        {
-            .dockStyle = .Top
-            .margin    = {8, 4, 8, 4}
-            .setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
-            .setPlaceholder(appStrings().ui_FilterFiles)
-            .updateFlags(.ClearButton)
-            .sigTextChanged += func|window = me|(edit) { window.setFolderFilter(edit.text()) }
-        }
-
-        with .folderList = createFileList(.folderPane, rowIconSize)
-        {
-            .sigSelectionChanged += func|window = me|(list)
-            {
-                window.openListSelection(list, window.siblings.toSlice())
-            }
-
-            .sigRightClicked += func|window = me|(list, position)
-            {
-                window.showFileMenu(list,
-                                    window.siblings.toSlice(),
-                                    list.listView.localToSurface(position))
-            }
-        }
-
-        with let recentItem = .filePanel.addPane(.recentPane, RecentHeight)
-        {
-            .minimumSize  = PaneMinSize
-            .preserveSize = true
-        }
-
-        .filePanel.addPane(.folderPane).minimumSize = PaneMinSize
-        with let panelItem = .mainSplitter.addPane(.filePanelHost, .leftPanelWidth + gutter)
-        {
-            .minimumSize  = PanelMinWidth + gutter
-            .maximumSize  = PanelMaxWidth + gutter
-            .preserveSize = true
-        }
-
-        .mainSplitter.setPaneVisible(0, .panelVisible)
-    }
-
     // Builds the document with its home, the faint line of readings at its foot,
     // and the loading, search and drop overlays drawn above the active viewer.
     private mtd createDocumentPanel()
@@ -352,7 +149,7 @@ impl ViewerWindow
             .preserveSize = true
         }
 
-        .mainSplitter.setPaneVisible(2, false)
+        .mainSplitter.setPaneVisible(1, false)
     }
 
     // Keeps the document below the strip floating over the top of the window, out of full screen,
@@ -379,14 +176,15 @@ impl ViewerWindow
                                       2 * .themeMetrics().miniBar_Distance : 0
         }
 
-        .filePanelHost.padding.y = top
         if .currentSidePanelHost do
             .currentSidePanelHost.padding.y = top
     }
 
     private mtd hookChildEvents()
     {
-        .mainSplitter.hookOnEvent = func|window = me|(_, evt)
+        // The splitter's resize precedes its panes. Align overlays only once the document has
+        // received its new bounds, so a narrower window cannot leave search outside the work.
+        .documentPanel.hookOnEvent = func|window = me|(_, evt)
         {
             if evt is ResizeEvent do
                 window.layoutFloatingParts()

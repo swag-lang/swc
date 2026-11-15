@@ -158,9 +158,8 @@ to the popup clearance. An underlined inline choice paints only its text line as
 | Capture library view/sort/filter/folders, editor size/zoom and pointer context menu | `golden/surface.swg` |
 | Vault timeout inside an explanatory paragraph | `golden/mainwindow.swg`: `options.timeout.menu` |
 
-The retained Scope `folderHistoryButton` in the old file-panel header is explicitly hidden by
-production layout; its `showFolderHistory` path still uses the shared button overload. Current
-folder selection history is exercised through the real FileDlg journey above. Pointer menus and
+Scope folder selection history is exercised through the real FileDlg journey above; recently
+viewed folders are also available in the lens. Pointer menus and
 lens follow-up menus keep their coordinate-based placement. Reading-viewer zoom buttons pass
 the actual `IconButton` through `Viewer.pickZoom`, so they share fitting and opening direction.
 

@@ -22,7 +22,6 @@ namespace ViewerCommands
     const CopyPath          = "scope.file.copyPath"
     const CopyName          = "scope.file.copyName"
     const Forget            = "scope.file.forget"
-    const Files             = "scope.files"
     const SameKind          = "scope.sameKind"
     const ClearHistory      = "scope.clearHistory"
     const Find              = "scope.find"
@@ -143,7 +142,7 @@ impl ViewerWindow
             .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Close, ViewerCommands.ReturnToExplorer, ViewerCommands.Reload,
                                                                     ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
                                                                     ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
-                                                                    ViewerCommands.Files, ViewerCommands.SameKind, ViewerCommands.ClearHistory])
+                                                                    ViewerCommands.SameKind, ViewerCommands.ClearHistory])
             .addCommands(func()->string => appStrings().lens_Folder, [ViewerCommands.Back, ViewerCommands.Forward, ViewerCommands.Up, ViewerCommands.Refresh,
                                                                       ViewerCommands.ClearCaches,
                                                                       ViewerCommands.EditLocation, ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
@@ -215,6 +214,7 @@ impl ViewerWindow
                     }
                 }
             }
+
             if explorer.listing.isArchive
             {
                 let choices = .index.choices(explorer.listing.path)
@@ -222,7 +222,7 @@ impl ViewerWindow
                 for choice, index in choices
                 {
                     let plugin = &.index.plugins[choice.pluginIndex]
-                    let name = plugin.displayName()
+                    let name   = plugin.displayName()
                     if not Lens.match(query, name).matched and not Lens.match(query, texts.lens_ViewAs).matched do
                         continue
                     if not viewers
@@ -230,14 +230,16 @@ impl ViewerWindow
                         viewers        = results.addSection(texts.lens_ViewAs)
                         viewers.inline = true
                     }
-                    let chosen = cast(u32, index)
+
+                    let chosen     = cast(u32, index)
                     with let entry = viewers.addEntry(name)
                     {
                         .checked = choice.key == "archive"
-                        .run = func|window = me, chosen|() { window.chooseViewerFromMenu(chosen) }
+                        .run     = func|window = me, chosen|() { window.chooseViewerFromMenu(chosen) }
                     }
                 }
             }
+
             return
         }
 
@@ -279,6 +281,7 @@ impl ViewerWindow
             let active = .activeChoiceIndex < .choices.count ? .choices[.activeChoiceIndex].key.toString() : ""
             .fillViewerChoicesMenu(menu, .choices.toSlice(), active)
         }
+
         return menu
     }
 
@@ -289,8 +292,8 @@ impl ViewerWindow
             if index == 1 do
                 menu.addSeparator()
             let plugin = &.index.plugins[choice.pluginIndex]
-            let name = plugin.displayName()
-            var label = String.from(name)
+            let name   = plugin.displayName()
+            var label  = String.from(name)
             if index == 0 do
                 label = Format.toString(appStrings().ui_DefaultViewerChoice, name)
             let item = menu.addRadioItem(label, Format.toString("scope.viewer.choice.%", index), checked: choice.key == active)
@@ -315,13 +318,14 @@ impl ViewerWindow
         if .isExploring() and .explorer and .explorer.listing.isArchive
         {
             let fileName = String.from(.explorer.listing.path)
-            let choices = .index.choices(fileName)
+            let choices  = .index.choices(fileName)
             if index >= choices.count or choices[index].key == "archive" do
                 return
             .setPreferredViewer(choices[0].key, choices[index].key)
             .queueFile(fileName)
             return
         }
+
         .selectViewer(index)
     }
 
@@ -643,12 +647,6 @@ impl ViewerWindow
             name   = texts.ui_MenuForget
             icon   = .commandGlyph(.Remove)
             hidden = not hasFile or not .recent.contains(.currentFile)
-
-        case ViewerCommands.Files:
-            name    = texts.ui_Files
-            icon    = .commandGlyph(.History)
-            toggle  = true
-            checked = .panelVisible
 
         case ViewerCommands.SameKind:
             name    = texts.ui_SameKind
@@ -1029,9 +1027,6 @@ impl ViewerWindow
         case ViewerCommands.Forget where hasFile:
             .forgetRecent(.currentFile.toString())
 
-        case ViewerCommands.Files:
-            .toggleFilePanel()
-
         case ViewerCommands.SameKind:
             .setFolderSameKind(not .folderSameKind)
 
@@ -1241,6 +1236,7 @@ impl ViewerWindow
                 explorer.describeSelectedTechnical(.infoSheet, labelled: false)
                 .infoSheet.selectPage(page)
             }
+
             return
         }
 

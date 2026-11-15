@@ -156,8 +156,6 @@ impl ViewerWindow
         .playMode = mode
         .trackFolderReading(mode)
         .layoutViewerBar()
-        if .panelVisible and not .currentFile.isEmpty() do
-            .refreshFileLists()
         .armSlide()
         catch .saveState()
     }

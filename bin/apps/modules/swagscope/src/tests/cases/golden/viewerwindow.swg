@@ -73,49 +73,6 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     Swag.require(antialiasedCorner)
 }
 
-// Pins the file panel: two named sections share the left edge, the row naming the open file is
-// the selected one, and the document keeps the rest of the surface.
-#[Swag.TestTag("golden")]
-#test
-{
-    let tempDirectory = Env.getSpecialDirectory(.Temp)
-    let folder        = Path.combine(tempDirectory, "scope_panel_golden")
-    discard catch Directory.delete(folder, recurse: true)
-    expect Directory.create(folder)
-    defer discard catch Directory.delete(folder, recurse: true)
-
-    let names: [4] string = ["changelog.md", "notes.txt", "report-with-a-name-too-long-for-the-fixed-history-panel.txt", "sample.json"]
-    for one in names do
-        discard expect File.writeAllBytes(Path.combine(folder, one), "a readable line\n")
-
-    var host: Testing.HeadlessHost
-    host.setup(960, 680)
-    shipFrame(&host)
-
-    var index = createViewerPluginRegistry()
-
-    with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
-    {
-        .resize(960, 680)
-        .openFile(Path.combine(folder, "notes.txt"))
-    }
-
-    completeQueuedViewerFile(&host, window)
-    completeViewerStatistics(&host, window)
-    window.toggleFilePanel()
-    window.setPlayMode(.Folder)
-    window.openFile(Path.combine(folder, "report-with-a-name-too-long-for-the-fixed-history-panel.txt"), remember: false)
-    completeQueuedViewerFile(&host, window)
-    completeViewerStatistics(&host, window)
-    window.applyLayout()
-    host.settleAnimations(window, 4)
-
-    Swag.require(window.folderList.lineCount() == 4)
-    var image = host.render(window)
-    Pixel.Testing.assertImageGolden(&image, "panel")
-    Testing.assertContentFits(window)
-}
-
 // The application About box presents supported content as one compact capability line instead of
 // a scrolling extension inventory.
 #[Swag.TestTag("golden")]
@@ -300,6 +257,7 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
     window.home.refresh()
+    completeHomeFolders(&host, window.home)
     window.applyLayout()
 
     let home = window.home

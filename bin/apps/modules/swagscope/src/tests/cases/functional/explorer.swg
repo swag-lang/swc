@@ -86,8 +86,8 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     explorer.activate(selected)
     completeQueuedViewerFile(&host, window)
     Swag.require(not explorer.isLocallyVisible() and window.currentView != null)
-    window.setFilePanelVisible(true)
-    Swag.require(not window.isExploring() and window.folderList.lineCount() == window.folderFiles.count)
+
+    Swag.require(not window.isExploring())
     window.closeFile()
     host.pump()
     Swag.require(explorer.isLocallyVisible() and explorer.selected == selected and explorer.mode == .Details)
@@ -405,8 +405,8 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.require(Path.isValidPathName(explorer.logicalPath(window.currentFile)))
     Swag.require(Path.fileName(explorer.logicalPath(window.currentFile)) == "readme.txt")
     Swag.require(window.folderFiles.isEmpty())
-    window.setFilePanelVisible(true)
-    Swag.require(window.isArchivePreview() and window.folderList.lineCount() == 1)
+
+    Swag.require(window.isArchivePreview())
     window.closeFile()
     host.pump()
     Swag.require(explorer.isLocallyVisible() and explorer.selected == 0)
@@ -420,7 +420,7 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
 
 // Tile geometry remains bounded by the viewport even for a large folder, and survives mode changes.
 
-// All palettes keep the gallery usable at minimum size, including French labels and the folder pane.
+// All palettes keep the gallery usable at minimum size, including French labels.
 // Set SWAG_SCOPE_REVIEW to a directory inside the test sandbox to inspect the noncanonical palettes.
 #test
 {
@@ -469,13 +469,12 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
         explorer.address.refreshPath()
         explorer.selected = 3
         explorer.setMode(.Medium)
-        window.setFilePanelVisible(true)
+
         if palette == 2
         {
             discard expect host.app.setLanguage("fr")
             host.notify(.LanguageChanged)
             Swag.require(explorer.modeMenu.isLocallyVisible())
-            Swag.require(window.folderLabel.text == appStrings().explore_Folders)
         }
 
         window.applyLayout()
@@ -533,9 +532,4 @@ func completeExtraction(host: *Testing.HeadlessHost, explorer: *Explorer)
     completeExplorer(&host, explorer)
     Swag.require(window.isExploring() and not explorer.listing.isArchive)
     Swag.require(explorer.listing.path == (expect Path.absolute(unwrap Path.directoryName(fixture("comprehensive.txt")))))
-    window.setFilePanelVisible(true)
-    var folders: u64
-    for &entry in explorer.entries where entry.directory do
-        folders += 1
-    Swag.require(window.folderList.lineCount() == folders)
 }

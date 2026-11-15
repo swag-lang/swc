@@ -30,16 +30,13 @@ func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).rep
 // Everything the window can do is an entry of its lens, which `Ctrl Space` opens; what
 // it knows about the open file is in the sheet `I` opens. Viewers can contribute contextual
 // controls and readings around their document, while search floats at the top when asked for and
-// the files beside the open one stand in a panel shown on demand.
+// the lens lists the files beside the open one on demand.
 struct ViewerWindow
 {
     using wnd: Wnd
 
     late
     {
-        kindButton:                  *IconButton
-        closeFilesButton:            *IconButton
-        closeFoldersButton:          *IconButton
         searchBar:                   *Wnd
         searchGroup:                 *Wnd
         searchNavigation:            *Wnd
@@ -73,17 +70,6 @@ struct ViewerWindow
         dropHighlight:               *FileDropHighlight
         viewerBar:                   *FloatingPanel
         home:                        *ViewerHome
-        filePanelHost:               *Wnd
-        filePanel:                   *SplitterCtrl
-        recentPane:                  *Wnd
-        recentLabel:                 *SectionLabel
-        recentClearButton:           *IconButton
-        recentList:                  *ListCtrl
-        folderPane:                  *Wnd
-        folderHistoryButton:         *IconButton
-        folderLabel:                 *SectionLabel
-        folderFilterBox:             *EditBox
-        folderList:                  *ListCtrl
     }
 
     thumbnailMode:      bool
@@ -150,14 +136,14 @@ struct ViewerWindow
     siblingIndex:            u64
     siblingsDirty:           bool = true
 
-    // Whether next/previous and the folder list keep only the neighbours the current file's
+    // Whether next/previous keep only the neighbours the current file's
     // viewer would open, so a reader flips through the pictures of a folder without landing on
     // the notes stored beside them.
     folderSameKind: bool
 
     // The play mode and what it needs: the slideshow pace, the timer counting it down, the view
     // that reported a still picture for it to count, and the files already read in the current
-    // folder round. The same round state drives shuffle choice and the file-panel progress.
+    // folder round. The same round state drives shuffle choice.
     playMode:            Viewer.PlayMode
     slideSeconds:        f32 = Viewer.SlideDefaultSeconds
     slideTimer:          *Timer?
@@ -176,16 +162,11 @@ struct ViewerWindow
     resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
     exploredFolders:     Array'String     // Directories explored lately, most recent first.
     systemPlaces:        Array'String     // The system's own folders a first launch offers to explore.
-    folderFilter:        String
     preferences:         Array'ViewerPreference
     musicChoices:        Array'MusicChoice
     onlineMovies:        bool = true
     onlineMusic:         bool = true
-    panelVisible:        bool
-    leftPanelWidth:      f32  = PanelWidth
     rightPanelWidth:     f32
-    recentPaneSize:      f32  = RecentHeight
-    refreshingLists:     bool
     fileDlgState:        FileDlgState
     themeIndex:          u32
     language:            String
@@ -481,8 +462,6 @@ impl IWnd for ViewerWindow
         catch g_App.loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
-        .kindButton.setChecked(.folderSameKind)
-        .setFilePanelVisible(.panelVisible)
         .surface?.constrainPositionToScreen(topLeft: true, margin: 10)
         .refreshHome()
         evt.accepted = true
@@ -490,10 +469,6 @@ impl IWnd for ViewerWindow
 
     mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
     {
-        if not evt.serializer.isReading() and not .filePanel.items.isEmpty() do
-            .recentPaneSize = .filePanel.items[0]!.size
-        if not evt.serializer.isReading() and .mainSplitter.items.count > 0 do
-            .leftPanelWidth = .mainSplitter.items[0]!.size - .themeMetrics().floating_Inset
         if not evt.serializer.isReading() and .currentSidePanelHost
         {
             let splitter = assume cast(*SplitterCtrl, .currentSidePanelHost.parent)
@@ -519,10 +494,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
         catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)
-        catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
-        catch evt.serializer.serialize("ViewerWindow.leftPanelWidth", &me.leftPanelWidth)
         catch evt.serializer.serialize("ViewerWindow.rightPanelWidth", &me.rightPanelWidth)
-        catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         catch evt.serializer.serialize("ViewerWindow.playMode", &me.playMode)
         catch evt.serializer.serialize("ViewerWindow.slideSeconds", &me.slideSeconds)
@@ -534,29 +506,24 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.midi", &Viewers.Midi.g_ViewerSettings)
         if evt.serializer.isReading()
         {
-            .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
-            .leftPanelWidth = Math.clamp(.leftPanelWidth, PanelMinWidth, PanelMaxWidth)
+            .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
-            .recentPaneSize = Math.max(.recentPaneSize, PaneMinSize)
-            if .mainSplitter.items.count > 0
+            if .mainSplitter.items.count > 1
             {
-                .mainSplitter.items[0]!.size = .leftPanelWidth + .themeMetrics().floating_Inset
                 if .rightPanelWidth > 0
                 {
                     let rightWidth = .rightPanelWidth + .themeMetrics().floating_Inset
-                    if .mainSplitter.items[2]!.view.isLocallyVisible()
+                    if .mainSplitter.items[1]!.view.isLocallyVisible()
                         do
-                        .mainSplitter.setPaneSize(2, rightWidth)
+                        .mainSplitter.setPaneSize(1, rightWidth)
                     else do
-                        .mainSplitter.items[2]!.size = rightWidth
+                        .mainSplitter.items[1]!.size = rightWidth
                 }
 
                 .mainSplitter.sendResizeEvent()
             }
 
-            if not .filePanel.items.isEmpty() do
-                .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > RecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
             .recentOpened.resize(.recent.count)
@@ -565,7 +532,6 @@ impl IWnd for ViewerWindow
                 .exploredFolders.removeBack()
             while .folderHistory.count > FolderHistoryCount do
                 .folderHistory.removeAtOrdered(.folderHistory.count - 1)
-            .folderHistoryButton.enable(not .folderHistory.isEmpty())
             discard .searchBox.revalidate()
             if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle) do
                 .playMode = .Once
@@ -587,8 +553,6 @@ impl IWnd for ViewerWindow
         case .ThemeChanged:
             for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
                 assume cast(*ViewerErrorView, instance.view).refreshTheme()
-            if .panelVisible and not .currentFile.isEmpty() do
-                .refreshFileLists()
             .refreshArtwork()
             .refreshHome()
             .dropHighlight.refreshTheme()
@@ -623,16 +587,11 @@ impl ViewerWindow
     // How long the viewer's commands stay after the pointer last moved.
     const ViewerBarLinger: Time.Duration = 2500'ms
 
-    // The side panel that lists what is beside the current file, and what was read before it.
-    const PanelWidth             = 276.0
-    const PanelMinWidth          = 180.0
-    const PanelMaxWidth          = 520.0
+    // The document and its viewer-specific side panel.
     const DocumentMinWidth       = 320.0
     const RightPanelMinWidth     = 220.0
     const RightPanelMaxWidth     = 600.0
     const RightPanelDefaultWidth = 368.0
-    const RecentHeight           = 188.0
-    const PaneMinSize            = 88.0
 
     // Files the recent list keeps. Long enough to cross a working session, short enough that the
     // list stays something a reader scans rather than searches.
@@ -987,8 +946,7 @@ impl ViewerWindow
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
             .documentPanel.backgroundStyle = .View
             .readingLine.hide()
-            .mainSplitter.setPaneVisible(0, false)
-            .mainSplitter.setPaneVisible(2, false)
+            .mainSplitter.setPaneVisible(1, false)
             .updateDocumentInsets()
 
             // Commit the final chrome and bounds together through the native placement path.
@@ -1003,10 +961,9 @@ impl ViewerWindow
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
             .documentPanel.backgroundStyle = .View
             .readingLine.show(.readingLine.hasContent() and .canShowReadingLine() and not .isEdgeToEdge())
-            .mainSplitter.setPaneVisible(0, .panelVisible)
-            .mainSplitter.items[2]!.view = .currentSidePanelHost orelse .sidePanelPlaceholder
-            .mainSplitter.items[2]!.view.show(.currentSidePanelButton?.isChecked orelse false)
-            .mainSplitter.setPaneVisible(2, .currentSidePanelButton?.isChecked orelse false)
+            .mainSplitter.items[1]!.view = .currentSidePanelHost orelse .sidePanelPlaceholder
+            .mainSplitter.items[1]!.view.show(.currentSidePanelButton?.isChecked orelse false)
+            .mainSplitter.setPaneVisible(1, .currentSidePanelButton?.isChecked orelse false)
             .updateDocumentInsets()
             .mainSplitter.applyLayout()
 
@@ -1028,7 +985,7 @@ impl ViewerWindow
         .layoutFloatingParts()
     }
 
-    // Builds the main window around the viewer registry `index`: the file panel, the document
+    // Builds the main window around the viewer registry `index`: the document
     // and the parts floating over it, then the lens that reaches every command.
     func create(parent: *Wnd, index: #move ViewerPluginRegistry)->*ViewerWindow
     {
@@ -1108,7 +1065,6 @@ impl ViewerWindow
             .flags           = .HideDividers
         }
 
-        result.createFilePanel()
         result.createDocumentPanel()
         result.createSearchBar()
         result.createViewerBar()
@@ -1286,12 +1242,6 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .refreshTitle()
-        .closeFilesButton.toolTip    = texts.ui_CloseFiles
-        .closeFoldersButton.toolTip  = texts.ui_CloseFiles
-        .kindButton.toolTip          = texts.ui_SameKind
-        .folderHistoryButton.toolTip = texts.ui_FolderHistory
-        .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
-        .recentClearButton.toolTip = texts.ui_ClearHistory
         .teachHints(.isExploring())
         .searchPrevious.toolTip = texts.ui_SearchPrevious
         .searchNext.toolTip     = texts.ui_SearchNext
@@ -1301,12 +1251,10 @@ impl ViewerWindow
         .refreshOutlineCaption()
         .refreshSearchPresentation()
         .refreshSearchReadout()
-        .recentLabel.setText(texts.ui_Recent)
         for &instance in .instances where instance.view and not instance.failureReason.isEmpty() do
             assume cast(*ViewerErrorView, instance.view).retranslate()
         if .currentFile.isEmpty()
         {
-            .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
             .refreshHome()
         }
 

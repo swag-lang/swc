@@ -258,8 +258,6 @@ impl ViewerWindow
 
         .updateSearchAvailability()
 
-        if .panelVisible do
-            .refreshFileLists()
         .applyLayout()
     }
 
@@ -357,11 +355,11 @@ impl ViewerWindow
         .updateDocumentInsets()
 
         let visible = button and button.isChecked and not .fullScreen
-        .mainSplitter.items[2]!.view = panel orelse .sidePanelPlaceholder
-        .mainSplitter.items[2]!.view.show(visible)
-        .mainSplitter.setPaneVisible(2, visible)
+        .mainSplitter.items[1]!.view = panel orelse .sidePanelPlaceholder
+        .mainSplitter.items[1]!.view.show(visible)
+        .mainSplitter.setPaneVisible(1, visible)
         if visible do
-            .mainSplitter.setPaneSize(2, .mainSplitter.items[2]!.size)
+            .mainSplitter.setPaneSize(1, .mainSplitter.items[1]!.size)
         .mainSplitter.applyLayout()
         .layoutFileInfo()
     }
@@ -656,7 +654,7 @@ impl ViewerWindow
             .documentParent  = me.documentPanel
             .sidePanelParent = splitter
             .sideSplitter    = splitter
-            .sidePaneIndex   = 2
+            .sidePaneIndex   = 1
             .actionParent    = me.readingLine
             .infoParent      = me.readingLine
             .commandParent   = me.viewerBar
@@ -742,6 +740,7 @@ impl ViewerWindow
             .rememberPreferredViewer(index)
             return
         }
+
         if not .activateChoice(index) do
             return
         .rememberPreferredViewer(index)
@@ -870,9 +869,6 @@ impl ViewerWindow
             .rememberRecent(.currentFile)
             .rememberFolder(.currentFile)
         }
-
-        if .panelVisible do
-            .refreshFileLists()
 
         .applyLayout()
         .invalidate()

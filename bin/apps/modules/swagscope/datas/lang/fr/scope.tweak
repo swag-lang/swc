@@ -5,7 +5,6 @@ explore_NoMatches Aucun fichier ne correspond à ce filtre.
 ui_OpenDefault  Ouvrir avec l'application par défaut
 ui_CloseFile    Fermer le fichier
 ui_Viewer       Visionneuse
-ui_Files        Fichiers à côté de celui-ci
 ui_SameKind     Seulement les fichiers du même type
 ui_Options      Options
 ui_PlayMode     Mode de lecture
@@ -15,7 +14,6 @@ ui_PlayFolder   Lire le dossier dans l'ordre
 ui_PlayShuffle  Lire le dossier au hasard
 ui_PlaySlide    Durée par image
 ui_Recent       Récents
-ui_ClearHistory Effacer l'historique
 ui_ConfirmClearHistory Tout l'historique des fichiers sera effacé.
 ui_Folder       Dossier
 ui_FilterFiles  Filtrer les fichiers par nom
@@ -136,8 +134,6 @@ explore_OnlineMusic Utiliser les pochettes et informations musicales en ligne
 explore_MusicArtist Artiste : %
 explore_MusicDate Première sortie : %
 ui_AboutWikiNotice Ce produit utilise l'API TMDB, mais n'est ni approuvé ni certifié par TMDB. TMDB fournit les affiches, résumés et notes des films. Apple, puis Wikipédia et Wikidata, fournissent des informations de repli. Les textes de Wikipédia sont sous licence CC BY-SA 4.0 : https://creativecommons.org/licenses/by-sa/4.0/.
-
-ui_CloseFiles  Fermer le panneau des fichiers
 ui_HintLens tout le reste
 lens_File Fichier
 lens_Find Rechercher

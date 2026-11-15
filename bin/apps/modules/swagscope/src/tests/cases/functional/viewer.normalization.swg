@@ -54,12 +54,12 @@ using Core, Gui, Viewers
 {
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.txt"), true, width: ViewerWindow.MinWidth)
-    window.toggleFilePanel()
+
     window.toggleInformation()
     window.showSearch()
     window.applyLayout()
     Swag.require(window.searchBox.position.width >= 120)
-    Swag.require(window.searchBar.position.bottom() <= window.infoSheet.position.y)
+    Swag.require(window.searchBar.position.right() <= window.infoSheet.position.x)
     Swag.require(window.searchBox.surfaceRect().right() <= window.searchCloseButton.surfaceRect().x)
     Swag.require(window.searchBar.position.bottom() <= window.documentArea().y)
     window.searchBox.setText("the")

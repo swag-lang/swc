@@ -110,11 +110,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.require(window.currentSidePanelButton!.id == OutlineToggleId)
 
     host.click(caption.surfaceRect().center())
-    Swag.require(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(2),
-                 Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(2)).toString())
+    Swag.require(outline.toggle.isChecked and window.mainSplitter.isPaneVisible(1),
+                 Format.toString("caption=%, checked=%, pane=%", caption.surfaceRect(), outline.toggle.isChecked, window.mainSplitter.isPaneVisible(1)).toString())
     host.focus(outline.list.listView)
     host.keyPress(.O, Input.KeyModifiers.Control | .Shift)
-    Swag.require(not outline.toggle.isChecked and not window.mainSplitter.isPaneVisible(2))
+    Swag.require(not outline.toggle.isChecked and not window.mainSplitter.isPaneVisible(1))
 }
 
 #test

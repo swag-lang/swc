@@ -103,35 +103,6 @@ impl ViewerWindow
         .invalidate()
     }
 
-    // Shows or hides the panel listing what is beside the current file.
-    mtd toggleFilePanel()
-    {
-        .setFilePanelVisible(not .panelVisible)
-        catch .saveState()
-    }
-
-    // Shows or hides the file panel, refreshing its lists before it appears and keeping the files
-    // toggle in step.
-    mtd setFilePanelVisible(visible: bool)
-    {
-        .panelVisible = visible
-        if visible
-        {
-            .refreshFileLists()
-            .filePanelHost.show()
-        }
-        else
-        {
-            .filePanelHost.hide()
-        }
-
-        if not .mainSplitter.items.isEmpty() do
-            .mainSplitter.setPaneVisible(0, visible)
-
-        .applyLayout()
-        .invalidate()
-    }
-
     // Puts `fileName` at the head of the recent list, keeping it free of repeats and bounded.
     mtd rememberRecent(fileName: string)
     {
@@ -184,129 +155,6 @@ impl ViewerWindow
         .folderHistory.insertAt(0, ViewerFolderHistory{folder, fileName})
         while .folderHistory.count > FolderHistoryCount do
             .folderHistory.removeAtOrdered(.folderHistory.count - 1)
-        .folderHistoryButton.enable(true)
-    }
-
-    // Fills one list with file names, selecting the row that names the current file, and returns
-    // that row index. A folder round keeps its already-read rows secondary until the next round.
-    private mtd fillFileList(list: *ListCtrl, files: const [..] String)->u32
-    {
-        let scrollPosition = list.scrollWnd.scrollPosition()
-        let filter         = .folderFilter.toString()
-        var currentIndex   = Swag.U32.Max
-        list.clear()
-        for one, index in files
-        {
-            let name        = one[].toString()
-            let displayName = Path.fileName(name) orelse name
-            if list == .folderList and
-               not .folderFilter.isEmpty() and
-               Utf8.indexOf(displayName, filter, comparisonType: .Latin1NoCase) == Swag.U64.Max do
-                continue
-
-            var pluginIndex = Swag.U64.Max
-            var icon: Icon
-            if .index.namePlugin(name, &pluginIndex)
-            {
-                let plugin = &.index.plugins[pluginIndex]
-                icon = .pluginIcon(plugin, themeRowIconSize(.themeMetrics()))
-            }
-
-            let line = list.createLine(displayName, icon)
-            if list == .folderList do
-                line.userData0 = cast(*void, index + 1)
-            if list == .folderList and .isFolderReading() and .folderReadingFiles.contains(one[]) do
-                line.colorFg = .themeColors().label_TextLight
-            if .currentFile == name
-            {
-                currentIndex = line.index
-                list.selectLine(line.index)
-            }
-        }
-
-        list.computeLayout()
-        list.scrollWnd.setScrollPos(scrollPosition)
-        return currentIndex
-    }
-
-    // Rebuilds the folder list when its name filter changes, keeping the filter local to this pane.
-    mtd setFolderFilter(filter: string)
-    {
-        if .folderFilter == filter do
-            return
-        .folderFilter = filter
-        if .panelVisible do
-            .refreshFileLists()
-    }
-
-    // Rebuilds both sections of the panel from what the window already knows.
-    mtd refreshFileLists()
-    {
-        if .siblingsDirty do
-            .rebuildSiblings()
-
-        .refreshingLists = true
-        defer .refreshingLists = false
-
-        discard .fillFileList(.recentList, .recent.toSlice())
-        var currentIndex = Swag.U32.Max
-        .folderFilterBox.show(not .isExploring())
-        if (.isExploring() or .isArchivePreview()) and .explorer
-        {
-            .folderList.clear()
-            for &entry, index in .explorer.entries where entry.directory == .isExploring()
-            {
-                if not .isExploring() and
-                   not .folderFilter.isEmpty() and
-                   Utf8.indexOf(entry.name, .folderFilter, comparisonType: .Latin1NoCase) == Swag.U64.Max do
-                    continue
-                let line = .folderList.createLine(entry.name, .explorer.entryIcon(index))
-                line.userData0 = cast(*void, index + 1)
-                if .isArchivePreview() and index == .explorer.selected do
-                    .folderList.selectLine(line.index)
-            }
-
-            .folderList.computeLayout()
-        }
-        else
-        {
-            currentIndex = .fillFileList(.folderList, .siblings.toSlice())
-        }
-
-        let hasRecent = not .recent.isEmpty()
-        .filePanel.setPaneVisible(0, hasRecent)
-        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString())
-        .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
-        .filePanel.applyLayout()
-        if .isFolderReading() and currentIndex != Swag.U32.Max do
-            .folderList.ensureVisibleLine(currentIndex)
-    }
-
-    // Shows what a panel row offers for the file it names.
-    //
-    // The right click has already put the row under the pointer in the selection, silently: the
-    // list moves its own selection for the button without announcing a choice, so pointing at a
-    // file to act on it never opens it.
-    mtd showFileMenu(list: *ListCtrl, files: const [..] String, position: Math.Point)
-    {
-        if list == .folderList and (.isExploring() or .isArchivePreview()) do
-            return
-        let line = list.selectedLine()
-        if not line do
-            return
-        var index = line.index
-        if list == .folderList and line.userData0 do
-            index = cast(u32, cast(u64, line.userData0) - 1)
-        if index >= files.count do
-            return
-
-        // The actions below outlive the list they were asked from: forgetting a file rebuilds
-        // both lists, and the row that named it is gone by then.
-        let fileName = String.from(files[index])
-
-        // Only the history is a list the reader owns. The folder list is what the folder holds,
-        // and an entry leaves it by leaving the disk.
-        .showFileActions(fileName, position, history: list == .recentList)
     }
 
     // Shows what the open file offers, wherever the reader pointed at it.
@@ -317,7 +165,7 @@ impl ViewerWindow
     {
         if .currentFile.isEmpty() do
             return
-        .showFileActions(.currentFile, position, history: false)
+        .showFileActions(.currentFile, position)
     }
 
     // Opens the current file with the handler registered by the operating system.
@@ -327,43 +175,8 @@ impl ViewerWindow
             discard Env.openFile(.currentFile)
     }
 
-    // Opens the bounded folder history and returns to the last file viewed in the chosen folder.
-    mtd showFolderHistory()
-    {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-
-        // Opening history is an in-memory operation, even when a saved volume is offline.
-        // The selected folder or file is validated by the navigation operation.
-        for one in .folderHistory
-        {
-            var name = Path.fileName(one.folder) orelse one.folder.toString()
-            if not name.count do
-                name = one.folder.toString()
-            let icon = .theme().icon(.Folder, themeRowIconSize(.themeMetrics()))
-            discard menu.addItem(name, one.folder, icon)
-        }
-
-        if menu.items.isEmpty()
-        {
-            menu.destroy()
-            return
-        }
-
-        let folder = menu.doModal(.folderHistoryButton, autoDestroy: true) orelse ""
-        if not folder.count do
-            return
-        for one in .folderHistory where one.folder == folder
-        {
-            if .isExploring() do
-                .openExplorer(one.folder)
-            else do
-                .queueFile(one.file)
-            return
-        }
-    }
-
     // Builds what one file offers, wherever the reader pointed at it.
-    internal mtd createFileActionsMenu(history: bool)->*MenuCtrl
+    internal mtd createFileActionsMenu()->*MenuCtrl
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
@@ -373,19 +186,14 @@ impl ViewerWindow
         menu.addSeparator()
         menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyPath, .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
         menu.addItem(texts.ui_MenuCopyName, ViewerCommands.CopyName, .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
-        if history
-        {
-            menu.addSeparator()
-            menu.addItem(texts.ui_MenuForget, ViewerCommands.Forget, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())))
-        }
 
         return menu
     }
 
     // Shows what one file offers, wherever the reader pointed at it.
-    private mtd showFileActions(fileName: string, position: Math.Point, history: bool)
+    private mtd showFileActions(fileName: string, position: Math.Point)
     {
-        let menu = .createFileActionsMenu(history)
+        let menu = .createFileActionsMenu()
 
         let chosen = menu.doModal(position, .TopLeft, autoDestroy: true)
         if not chosen do
@@ -398,7 +206,6 @@ impl ViewerWindow
         case ViewerCommands.OpenWith:    Env.openFileWith(fileName)
         case ViewerCommands.CopyPath:    Clipboard.setString(fileName)
         case ViewerCommands.CopyName:    Clipboard.setString(Path.fileName(fileName) orelse fileName)
-        case ViewerCommands.Forget:      .forgetRecent(fileName)
         }
     }
 
@@ -488,7 +295,6 @@ impl ViewerWindow
     private mtd historyChanged()
     {
         .pruneResume()
-        .refreshFileLists()
         .refreshHome()
         catch .saveState()
     }
@@ -517,31 +323,6 @@ impl ViewerWindow
             .forgetRecent(file)
     }
 
-    // Opens the file a panel row names, unless the row was selected by the refresh itself.
-    private mtd openListSelection(list: *ListCtrl, files: const [..] String)
-    {
-        if .refreshingLists do
-            return
-        let selected = list.selectedLines()
-        if selected.isEmpty() or not selected[0] do
-            return
-        var index = selected[0]!.index
-        if list == .folderList and selected[0]!.userData0 do
-            index = cast(u32, cast(u64, selected[0]!.userData0) - 1)
-        if list == .folderList and (.isExploring() or .isArchivePreview()) and .explorer
-        {
-            .explorer.selected = index
-            .explorer.activate(index)
-            return
-        }
-
-        if index >= files.count do
-            return
-        let fileName = files[index].toString()
-        if .currentFile != fileName do
-            .queueFile(fileName, remember: list != .recentList)
-    }
-
     // Rebuilds the list the next and previous commands walk: the folder's files, or only those
     // sharing the current file's viewer when the same-kind filter is on.
     mtd rebuildSiblings()
@@ -568,15 +349,12 @@ impl ViewerWindow
         if .folderSameKind == value do
             return
         .folderSameKind = value
-        .kindButton.setChecked(value)
-        .siblingsDirty = true
-        if .panelVisible and not .currentFile.isEmpty() do
-            .refreshFileLists()
+        .siblingsDirty  = true
         catch .saveState()
     }
 
     // Opens the file `delta` steps away, wrapping around at either end. Image controls stay on
-    // files named for the image viewer even when the folder panel lists every file kind.
+    // files named for the image viewer even when general navigation includes every file kind.
     mtd navigate(delta: s32, imagesOnly: bool = false)
     {
         if .currentFile.isEmpty() do
@@ -615,8 +393,8 @@ impl ViewerWindow
     }
 
     // Returns the files of the current file's folder that its viewer opens, in folder order and
-    // whatever the panel filter says: a play mode walks the movies of a folder past the notes
-    // stored beside them, whether or not the list shows those notes.
+    // whatever the navigation filter says: a play mode walks the movies of a folder past the notes
+    // stored beside them, whether or not ordinary navigation includes those notes.
     mtd kindSiblings()->Array'String
     {
         var result: #returntype

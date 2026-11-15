@@ -1543,7 +1543,6 @@ impl Explorer
         .window.teachHints(.isLocallyVisible())
         .fill()
         .scroll.setScrollPos(0, 0)
-        .window.refreshFileLists()
     }
 
     // Chooses the preview shape from the files listed, before any image arrives. A folder of films

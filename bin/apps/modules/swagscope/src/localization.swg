@@ -140,8 +140,6 @@ struct AppStrings
     ui_OpenDefault:                    string = "Open with Default Application"               // Tooltip of the system-default application button.
     ui_CloseFile:                      string = "Close File"                                  // Tooltip of the close-file button.
     ui_Viewer:                         string = "Viewer"                                      // Tooltip of the viewer selector.
-    ui_CloseFiles:                     string = "Close Files Panel"                           // Tooltip of the file-panel close button.
-    ui_Files:                          string = "Files Beside This One"                       // Tooltip of the file-panel button.
     ui_SameKind:                       string = "Only Files of the Same Kind"                 // Tooltip of the folder-navigation filter toggle.
     ui_Options:                        string = "Options"                                     // Tooltip of the button opening the options of a viewer.
     ui_PlayMode:                       string = "Play Mode"                                   // Tooltip of the play-mode button, and its row among the options.
@@ -151,11 +149,10 @@ struct AppStrings
     ui_PlayShuffle:                    string = "Play the Folder Shuffled"                    // Play-mode entry continuing with a random file of the same kind.
     ui_PlaySlide:                      string = "Time per Picture"                            // Option choosing how long a still picture stays.
     ui_Recent:                         string = "Recent"                                      // Panel section listing what was read before.
-    ui_ClearHistory:                   string = "Clear History"                               // Tooltip of the clear-history button.
     ui_ConfirmClearHistory:            string = "The whole file history will be cleared."     // Consequence stated before confirming that the recent list is emptied.
-    ui_Folder:                         string = "Folder"                                      // Panel section listing the current folder, before one is open.
+    ui_Folder:                         string = "Folder"                                      // Kind shown for a directory in the explorer.
     ui_FilterFiles:                    string = "Filter files by name"                        // Placeholder of the current-folder file filter.
-    ui_FolderHistory:                  string = "Recent Folders"                              // Tooltip of the folder-history menu button.
+    ui_FolderHistory:                  string = "Recent Folders"                              // Lens section listing previously opened folders.
     ui_MenuLocate:                     string = "Show This File in Its Folder"                // Panel menu entry selecting the file in the system file explorer.
     ui_MenuOpenDefault:                string = "Open with Default Application"               // File menu entry launching the registered system handler.
     ui_MenuOpenWith:                   string = "Open with Another Application…"              // Panel menu entry offering the system application chooser.

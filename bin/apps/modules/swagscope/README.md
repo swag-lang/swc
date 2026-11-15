@@ -39,9 +39,9 @@ The item chosen is ringed in Arc and described in the information sheet (`I`). A
 Extract All… on its title line and Extract… in the sheet: the files go into a folder the reader
 chooses, a file already there is kept, and a toast says how it went. Double-click or press Enter to open an item; closing its viewer returns to the
 explorer with the selection, display mode and filename filter preserved. Opening an ordinary file directly still
-opens its viewer without requiring exploration. The optional left panel retains recent files and
-shows the current location's subfolders. Alt+Left/Right navigate history, Alt+Up or Backspace goes
-up, and F5 refreshes the location.
+opens its viewer without requiring exploration. The lens lists recent files, neighboring files
+and recently viewed folders. Alt+Left/Right navigate history, Alt+Up or Backspace goes up, and
+F5 refreshes the location.
 
 Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
 Lists and thumbnail grids render only their visible rows. Two background tasks at most produce
@@ -269,9 +269,9 @@ open file are in the information sheet (`I`) and, faint, on the line at the foot
 the viewer's controls share a persistent, centered panel in a reserved area above that line.
 Search (`Ctrl+F`) opens a row above the content with the query, result count, previous/next,
 options and Close (`Esc`). At narrow widths it uses two rows to preserve a usable query field.
-The files beside the open one and the viewer's side panel stand as cards beside the work when
-asked for. To show the recent-files and current-folder panel, open the lens (`Ctrl+Space`) and
-choose **Files Beside This One**; its visibility is remembered.
+The viewer's outline or inspector can stand beside the document when requested. Recent files,
+neighboring files and folder history are available in the lens (`Ctrl+Space`, then `/`);
+the home keeps recent files and explored folders at hand.
 
 The explorer keeps Back, Forward, Parent Folder and Refresh in the window chrome, with the path
 beside Filter Files, sort, kind and view in one compact row. The view menu and the lens
@@ -293,15 +293,15 @@ history after asking. Under them, recently explored directories are chips that o
 again. ZIP, CBZ and EPUB archives remain files in the recent list. A first launch shows the Scope
 mark, an invitation to drop a file or a folder, the Open… and Explore Folder actions, and the
 system's own Pictures, Videos, Music, Documents and
-Downloads folders. Older files are in the lens under `/`.
+Downloads folders. Folder availability is checked in the background so an offline drive never
+delays the home. Older files are in the lens under `/`.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder
 history, and remembered viewer choices in the user's application-data folder. It toggles full
 screen with F11 — full screen hides every panel, and the viewer's controls still come with the
 pointer — navigates the current folder with Left/Right, reloads with F5, opens with Ctrl+O,
-and accepts one file dropped anywhere on the surface. The recent and current-folder lists show the
-glyph of each file's default viewer; the current-folder heading opens the recent-folder menu and
-returns to the last file viewed in the selected folder. Audio and video claim bare Left/Right for
+and accepts one file dropped anywhere on the surface. The lens shows each file's viewer glyph
+and returns to the last file viewed in a selected recent folder. Audio and video claim bare Left/Right for
 ten-second seeks while active, and use Space for play/pause, M for mute, Up/Down for volume, and
 Home for the start. Paged viewers share Previous, `page / total`, and Next in the bottom command
 panel, with `Ctrl+PageUp` / `Ctrl+PageDown`; endpoints are disabled. EPUB chapters and comic pages
@@ -317,16 +317,16 @@ with a random one that has not had its turn in that folder yet, every file once 
 again. Video and sound hand over when their stream ends, an animated picture when its animation
 has run one cycle, and a still picture after the time per picture the image viewer's options set, which turns
 a folder of pictures into a slideshow. The mode holds across files and sessions, the folder is
-walked whatever the panel filter shows, and a file the mode brings up stays out of the history.
+walked independently of the same-kind navigation filter, and a file the mode brings up stays out
+of the history.
 
 A lens entry, and the primary action of the information sheet, open the current file with the
 operating system's registered default application. A right click names the same action and the
 rest of what a file offers. On the line of readings at the foot of the document it answers for the
-open file, and on a panel row for the file that row names: show it in the system file explorer, open it with the default application, hand it
-to the system chooser of applications, or copy its full path or file name. A row of the history
-offers two more, because the history is the one list the reader owns: drop that file from it, or
-clear it entirely. Nothing here writes to the file, and external applications run in their own
-processes.
+open file: show it in the system file explorer, open it with the default application, hand it
+to the system chooser of applications, or copy its full path or file name. The home and lens can
+remove history entries or clear the history. Nothing here writes to the file, and external
+applications run in their own processes.
 
 ## The viewer plugin API
 

@@ -27,6 +27,54 @@ struct ViewerHomePlace
     glyph:  Icon
 }
 
+// Probes an immutable history snapshot away from the GUI thread, including when the shared
+// worker pool is busy. An unavailable network location must not delay the first frame.
+struct ViewerHomeFolders
+{
+    using operation: Viewer.BackgroundOperation
+    executor:        Swag.Executor
+    recent:          Array'String
+    system:          Array'String
+    folders:         Array'String
+    generation:      u64
+    explored:        bool
+}
+
+impl ViewerHomeFolders
+{
+    mtd start(home: *ViewerHome)
+    {
+        .recent = home.window.exploredFolders
+        .system = home.window.systemPlaces
+        .folders.clear()
+        .generation = home.placesGeneration
+        .explored   = false
+        if not .executor.isStarted() do
+            .executor.start(.Background)
+        let load = me
+        .submit(func|load|() { load.probe() }, home, executor: &.executor)
+    }
+
+    private mtd probe()
+    {
+        .collect(.recent.toSlice())
+        .explored = not .folders.isEmpty()
+        if not .explored do
+            .collect(.system.toSlice())
+    }
+
+    private mtd collect(paths: const [..] String)
+    {
+        for path in paths
+        {
+            if Swag.isCancelled() or .folders.count == ViewerHome.MaxPlaces do
+                return
+            if Directory.exists(path[]) do
+                .folders.add(path[])
+        }
+    }
+}
+
 // Where the parts of the home stand, from the size of the window.
 struct ViewerHomeLayout
 {
@@ -43,8 +91,8 @@ struct ViewerHomeLayout
     columns:     u64 = 1
     placesLabel: Math.Rectangle     // Section label of the folders.
     placesTop:   f32
-    placesLeft:  f32                // Left of the ground of the first chip.
-    showPlaces:  bool               // Whether the folders have room above the hint line.
+    placesLeft:  f32      // Left of the ground of the first chip.
+    showPlaces:  bool     // Whether the folders have room above the hint line.
 }
 
 // The window without a file.
@@ -70,17 +118,19 @@ struct ViewerHome
     late openButton:    *PushButton
     late exploreButton: *PushButton
 
-    message:      String     // Sentence standing in for the invitation, such as why a file did not open.
-    rows:         Array'ViewerHomeRow
-    places:       Array'ViewerHomePlace
-    explored:     bool       // Whether `places` are folders the reader explored, rather than the system's.
-    hovered:      u64 = Swag.U64.Max
-    hoveredPlace: u64 = Swag.U64.Max
-    chosen:       u64 = Swag.U64.Max
-    pointerIn:    bool
-    now:          u64        // Local ticks the times are written against; zero for the clock.
-    preview:      ExplorerPreview
-    previewRow:   u64 = Swag.U64.Max
+    message:          String     // Sentence standing in for the invitation, such as why a file did not open.
+    rows:             Array'ViewerHomeRow
+    places:           Array'ViewerHomePlace
+    explored:         bool     // Whether `places` are folders the reader explored, rather than the system's.
+    hovered:          u64 = Swag.U64.Max
+    hoveredPlace:     u64 = Swag.U64.Max
+    chosen:           u64 = Swag.U64.Max
+    pointerIn:        bool
+    now:              u64     // Local ticks the times are written against; zero for the clock.
+    preview:          ExplorerPreview
+    previewRow:       u64 = Swag.U64.Max
+    folders:          ViewerHomeFolders
+    placesGeneration: u64
 }
 
 impl ViewerHome
@@ -103,7 +153,7 @@ impl ViewerHome
     const PlaceGap      = 6.0
     const PlaceGlyph    = 16.0
     const MaxPlaces     = 6'u64
-    const BottomReserve = 64.0      // The foot of the window, where the hint line stands.
+    const BottomReserve = 64.0     // The foot of the window, where the hint line stands.
     const MarkSize      = 64.0
     const MarkToLine    = 34.0
     const LineToActions = 28.0
@@ -138,7 +188,7 @@ impl ViewerHome
                                                                     result.themeMetrics().control_InspectorHeight},
                                                      "scope.home.remove")
         {
-            .toolTip = texts.home_RemoveRecent
+            .toolTip    = texts.home_RemoveRecent
             .sigPressed += func|home = result|(_) { home.confirmRemoveHovered() }
             .hide()
         }
@@ -196,9 +246,9 @@ impl ViewerHome
             var plugin: u64
             if window.index.namePlugin(file, &plugin)
             {
-                let descriptor  = &window.index.plugins[plugin]
+                let descriptor = &window.index.plugins[plugin]
                 row.previewable = descriptor.thumbnail != null or descriptor.textual
-                row.fit = descriptor.thumbnail != null and (descriptor.key == "image" or descriptor.key == "video") ? .Cover : .Contain
+                row.fit         = descriptor.thumbnail != null and (descriptor.key == "image" or descriptor.key == "video") ? .Cover : .Contain
             }
 
             for &old in .rows where old.file == file
@@ -227,26 +277,36 @@ impl ViewerHome
         .invalidate()
     }
 
-    // The folders explored lately, or the system's places when there are none.
+    // Refreshing the home never waits for a saved path to answer. A newer history supersedes
+    // a pending probe; its result cannot put forgotten folders back on the home.
     private mtd refreshPlaces()
     {
-        .places.clear()
-        for folder in .window.exploredFolders where Directory.exists(folder[])
+        .placesGeneration += 1
+        if .folders.started
         {
-            if .places.count == MaxPlaces do
-                break
-            .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
-        }
-        .explored = not .places.isEmpty()
-        if .explored do
+            .folders.task.cancel()
             return
-
-        for folder in .window.systemPlaces where Directory.exists(folder[])
-        {
-            if .places.count == MaxPlaces do
-                break
-            .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
         }
+
+        .folders.start(me)
+    }
+
+    private mtd finishPlaces()
+    {
+        .folders.wait()
+        if .folders.generation != .placesGeneration
+        {
+            .folders.start(me)
+            return
+        }
+
+        .places.clear()
+        for folder in .folders.folders do
+            .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
+        .explored     = .folders.explored
+        .hoveredPlace = Swag.U64.Max
+        .layoutChildren()
+        .invalidate()
     }
 
     // Names the card's action by what it does: where it takes the file up again, or only Open.
@@ -312,8 +372,8 @@ impl ViewerHome
         }
 
         result.columns = Math.clamp(cast(u64, (width + TileGap) / (TileMinWidth + TileGap)), 1, MaxTiles)
-        let tileWidth  = Math.floor((width - cast(f32, result.columns - 1) * TileGap) / cast(f32, result.columns))
-        result.tile    = {tileWidth, Math.round(tileWidth * 0.75)}
+        let tileWidth = Math.floor((width - cast(f32, result.columns - 1) * TileGap) / cast(f32, result.columns))
+        result.tile = {tileWidth, Math.round(tileWidth * 0.75)}
         let tiles      = .rows.count - 1
         let tileRows   = (tiles + result.columns - 1) / result.columns
         let tilesSpan  = tiles ? cast(f32, tileRows) * (result.tile.y + FileTile.captionHeight(me)) + cast(f32, tileRows - 1) * TileGap : 0
@@ -329,12 +389,12 @@ impl ViewerHome
         result.heroText  = {result.hero.right() + HeroGap, result.hero.y, Math.max(width - HeroWidth - HeroGap, 0), HeroHeight}
         result.actions   = result.hero.bottom() + ActionInset
         result.line      = result.actions + metrics.btnPush_Height * 0.5
-        var bottom       = result.hero.bottom() + actionSpan
+        var bottom = result.hero.bottom() + actionSpan
         if tiles
         {
             result.recentLabel = {left, bottom, width, LabelHeight}
             result.tilesTop    = result.recentLabel.bottom() + LabelGap
-            bottom             = result.tilesTop + tilesSpan
+            bottom = result.tilesTop + tilesSpan
         }
 
         result.placesLeft  = left - PlaceInset
@@ -415,7 +475,9 @@ impl ViewerHome
     mtd placeShown(index: u64)->bool
     {
         let place = .layout()
-        return place.showPlaces and index < .places.count and .placeRect(index).right() <= place.column.right() + PlaceInset
+        return place.showPlaces and
+               index < .places.count and
+               .placeRect(index).right() <= place.column.right() + PlaceInset
     }
 
     // Names folder `index` as the reader recognises it: its own name, or a drive by itself.
@@ -693,11 +755,11 @@ impl ViewerHome
         let detail = point ? point.shortText() : String.from("")
 
         var content: FileTile.Content
-        content.texture     = row.texture
-        content.icon        = row.glyph
-        content.name        = Path.fileName(file) orelse file
-        content.facts       = when
-        content.detail      = detail
+        content.texture = row.texture
+        content.icon    = row.glyph
+        content.name    = Path.fileName(file) orelse file
+        content.facts   = when
+        content.detail  = detail
         if not row.texture.isValid() do
             content.placeholder = Path.extension(file) orelse ""
         var options: FileTile.Options
@@ -773,6 +835,12 @@ impl IWnd for ViewerHome
 
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .folders.claim(evt)
+        {
+            .finishPlaces()
+            return
+        }
+
         if not .preview.claim(evt)
         {
             evt.accepted = false
@@ -800,6 +868,9 @@ impl IWnd for ViewerHome
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .folders.task.cancel()
+        .folders.wait()
+        .folders.executor.close()
         .preview.task.cancel()
         .preview.wait()
         for &row in .rows where row.texture.isValid() do

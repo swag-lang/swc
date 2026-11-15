@@ -68,15 +68,18 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)
     window.exploredFolders.add(cbz)
     window.exploredFolders.add(epub)
     window.home.refresh()
+    completeHomeFolders(&host, window.home)
     Swag.require(not window.home.explored and window.home.places.isEmpty())
 
     window.systemPlaces.add(datas)
     window.home.refresh()
+    completeHomeFolders(&host, window.home)
     Swag.require(not window.home.explored and window.home.places.count == 1)
 
     window.rememberExplored(datas)
     window.rememberRecent(cbz)
     window.home.refresh()
+    completeHomeFolders(&host, window.home)
     Swag.require(window.home.explored and window.home.places.count == 1)
     Swag.require(window.home.placeName(0) == "datas" and window.home.rows[0].file == cbz)
 }
@@ -84,6 +87,7 @@ internal func homeWindow(host: *Testing.HeadlessHost, light: bool, height = 640)
 // Lets every picture the home asked for arrive, so a capture does not depend on worker speed.
 internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHome)
 {
+    completeHomeFolders(host, home)
     for 64 where not home.previewsSettled()
     {
         home.preview.task.wait()
@@ -91,6 +95,46 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
     }
 
     Swag.require(home.previewsSettled())
+}
+
+// A slow folder probe cannot hold up the home or a subsequent history change. Its stale result
+// must not restore a folder the reader removed while it was running.
+#test
+{
+    var release: Sync.Event
+    release.init(manual: true)
+    var held: Swag.Task
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let home   = window.home
+    completeHomeFolders(&host, home)
+    if not home.folders.executor.isStarted() do
+        home.folders.executor.start()
+    held.submit(func|gate = &release|() { gate.wait() }, executor: &home.folders.executor)
+    defer release.signal()
+
+    let datas = scopeTestDataDirectory()
+    window.systemPlaces.clear()
+    window.exploredFolders.clear()
+    window.exploredFolders.add(datas)
+    home.refresh()
+    Swag.require(home.folders.started and not home.folders.isDone())
+    Swag.require(home.openButton.isLocallyVisible() and home.exploreButton.isLocallyVisible())
+
+    window.exploredFolders.clear()
+    window.systemPlaces.add(Path.combine(datas, "unavailable"))
+    window.systemPlaces.add(datas)
+    home.refresh()
+    Swag.require(home.folders.started and home.folders.task.isCancelled())
+    host.pump()
+    Swag.require(not home.folders.isDone())
+
+    release.signal()
+    completeHomeFolders(&host, home)
+    held.wait()
+    Swag.require(not home.explored and home.places.count == 1)
+    Swag.require(home.places[0].folder == datas and window.exploredFolders.isEmpty())
 }
 
 // Clear opens after a completed click, supports cancelling the gesture, and keeps its trigger
@@ -151,11 +195,11 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
 
     let button = window.home.removeButton
     Swag.require(not button.isLocallyVisible())
-    let picture = window.home.pictureRect(1)
-    let size = host.theme.metrics.control_InspectorHeight
+    let picture    = window.home.pictureRect(1)
+    let size       = host.theme.metrics.control_InspectorHeight
     let buttonRect = Math.Rectangle{picture.right() - size - 4, picture.y + 4, size, size}
     Swag.require(window.home.removeRect(1) == buttonRect and window.home.rowRect(1).contains(buttonRect.center()))
-    let point = buttonRect.center()
+    let point       = buttonRect.center()
     let screenPoint = window.home.localToSurface(point)
     host.moveMouse(screenPoint)
     Swag.require(window.home.hovered == 1 and button.isLocallyVisible())

@@ -140,6 +140,7 @@ func completeHome(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.systemPlaces.add(datas)
     window.systemPlaces.add(Path.combine(datas, "no such folder"))
     window.showEmpty(appStrings().ui_DropTitle)
+    completeHomeFolders(&host, window.home)
 
     let home = window.home
     Swag.require(home.rows.isEmpty() and not home.explored and home.places.count == 1)
@@ -151,6 +152,7 @@ func completeHome(host: *Testing.HeadlessHost, window: *ViewerWindow)
     window.rememberExplored(datas.toString())
     Swag.require(window.exploredFolders.count == 2 and window.exploredFolders[0] == datas)
     home.refresh()
+    completeHomeFolders(&host, home)
     Swag.require(home.explored and home.places.count == 2 and home.placeShown(1))
     Swag.require(home.placeName(0) == "datas")
 

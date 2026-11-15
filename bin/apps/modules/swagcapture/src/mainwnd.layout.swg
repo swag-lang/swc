@@ -1083,6 +1083,10 @@ impl MainWnd
                 else do
                     main.editorOptions.language = .English
                 main.saveAppState()
+
+                // The inspector title, the hint line and the commands of the strip are written
+                // from the state of the editor: write them again in the new language now.
+                main.updateState()
             }
 
             .sigAboutRequested += func|main = me|(_)

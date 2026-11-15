@@ -1775,3 +1775,23 @@ internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWn
     main.applyLayout()
     Swag.require(not strip.videoButton.flags.has(.IconOnly) and not strip.libraryButton.flags.has(.IconOnly))
 }
+
+// A change of language reaches every text of the editor at once, without waiting for another
+// state change: the inspector title, the capture control of the strip, and the hint line.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false, caption: true)
+    defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    main.editMode = .Shape
+    main.updateState()
+
+    for language in ["fr", Gui.ReferenceLanguage]
+    {
+        expect main.appearanceButton.setAppearanceLanguage(language, notify: true)
+        let capture = assume cast(*IconButton, main.taskStrip.leading.children[0])
+        Swag.require(main.inspector.title == appStrings().act_Shape)
+        Swag.require(main.inspector.detail == appStrings().ui_NextObjects)
+        Swag.require(capture.name.text == appStrings().act_CaptureArea)
+    }
+}

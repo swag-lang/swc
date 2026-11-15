@@ -9,7 +9,10 @@ alias ReportFailure = func(*Wnd, string)
 // Hands format statistics that changed after creation back to the host information band.
 alias ReportDetails = func(*Wnd, string)
 
-// Adds format-specific readings to the application's information sheet.
+// Describes a file in the shared information sheet.
+//
+// The host completes the viewer's format readings with the same file identity, media enrichment
+// and pages in the document and Explorer presentations.
 alias DescribeInformation = func||(*InfoSheet)
 
 // Requests a re-measure after plugin-owned action or information content changes shape.

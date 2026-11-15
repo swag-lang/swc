@@ -115,7 +115,9 @@ impl ViewerWindow
     // empty.
     private mtd createSheetAndHint()
     {
-        .infoSheet = InfoSheet.create(me, "scope.information", closeButton: false)
+        .information = ViewerInformation.create(me, me)
+        .infoSheet   = InfoSheet.create(me, "scope.information", closeButton: false)
+        .infoSheet.setFillHeight(true)
         with .hintLine = HintLine.create(me, "scope.hint")
         {
             .addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintLens)
@@ -185,8 +187,9 @@ impl ViewerWindow
 
         if .viewerBar != null
         {
-            let commands = .currentCommands
-            .documentPanel.margin.w = commands and not .fullScreen ?
+            let commands     = .currentCommands
+            let keepCommands = not .fullScreen or (.infoSheet != null and .infoSheet.isLocallyVisible())
+            .documentPanel.margin.w = commands and keepCommands ?
                                       commands.position.height + .viewerBar.padding.y + .viewerBar.padding.w +
                                       2 * .themeMetrics().miniBar_Distance : 0
         }

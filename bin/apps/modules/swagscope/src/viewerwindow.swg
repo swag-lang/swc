@@ -54,6 +54,7 @@ struct ViewerWindow
         viewerCaptionButton:         *CaptionButton
         lens:                        *Lens.View
         lensLauncher:                *Lens.Launcher
+        information:                 *ViewerInformation
         infoSheet:                   *InfoSheet
         hintLine:                    *HintLine
         readingLine:                 *ViewerReadingLine
@@ -360,9 +361,11 @@ impl IWnd for ViewerWindow
                 .refreshHome()
                 catch .saveState()
             }
+
             .privacy.clearCaches()
             return
         }
+
         if evt.timer == .fileWatchTimer
         {
             if not .pendingFile.isEmpty() or .currentFile.isEmpty() do
@@ -498,8 +501,8 @@ impl IWnd for ViewerWindow
         {
             .explorer?.rememberView()
             .privacy.sanitize()
-            .privacy.dirty = false
         }
+
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
@@ -785,14 +788,17 @@ impl ViewerWindow
             surface.state = presentation
             surface.flags = presentationFlags
         }
+
         if .fullScreen
         {
-            surface.flags = .fullScreenRestoreFlags
-            surface.position = .fullScreenRestorePosition
+            surface.flags            = .fullScreenRestoreFlags
+            surface.position         = .fullScreenRestorePosition
             surface.restoredPosition = .fullScreenRestorePosition
-            surface.isMaximized = .fullScreenWasMaximized
+            surface.isMaximized      = .fullScreenWasMaximized
         }
+
         try .app().saveState()
+        .privacy.dirty = false
     }
 
     // Puts the commands of the active viewer in the floating bar, or empties it.
@@ -909,16 +915,26 @@ impl ViewerWindow
     // Aligns the query and its controls to the document's right edge, above its viewport.
     mtd layoutSearchBar()
     {
+        let sheetMetrics  = .themeMetrics()
+        let sheetArea     = .documentArea()
+        let sheetTop      = Math.max(sheetArea.y, .stripInset()) + sheetMetrics.floating_Inset
+        let sheetBottom   = Math.max(.clientRect().bottom() - sheetArea.bottom(), 0)
+        let sheetBase     = sheetTop - Math.max(sheetMetrics.floating_Inset, .stripInset())
+        let bottomChanged = .infoSheet.margin.w != sheetBottom
+        .infoSheet.margin.w = sheetBottom
         if .isExploring()
         {
             .searchBar.hide()
-            if .infoSheet.margin.y != 0
+            .explorer!.layoutTools()
+            let tools       = .explorer.tools.surfaceRect()
+            let toolsBottom = .surfaceToLocal(Math.Point{tools.x, tools.bottom()}).y
+            let sheetInset  = Math.max(sheetBase, toolsBottom + sheetMetrics.floating_Inset - Math.max(sheetMetrics.floating_Inset, .stripInset()))
+            if .infoSheet.margin.y != sheetInset or bottomChanged
             {
-                .infoSheet.margin.y = 0
+                .infoSheet.margin.y = sheetInset
                 .infoSheet.itf.onLayout()
             }
 
-            .explorer!.layoutTools()
             return
         }
 
@@ -947,8 +963,8 @@ impl ViewerWindow
         let contentHeight = height + rowY
         let totalHeight   = contentHeight + pad.y + pad.w
         let resized       = .searchBar.position.height != totalHeight
-        let sheetInset    = sheetBelowSearch and .searchBar.isLocallyVisible() ? totalHeight + inset : 0
-        if .infoSheet.margin.y != sheetInset
+        let sheetInset    = Math.max(sheetBase, sheetBelowSearch and .searchBar.isLocallyVisible() ? totalHeight + inset : 0)
+        if .infoSheet.margin.y != sheetInset or bottomChanged
         {
             .infoSheet.margin.y = sheetInset
             .infoSheet.itf.onLayout()
@@ -1147,7 +1163,7 @@ impl ViewerWindow
 
         result.privacy.window = result
         result.privacy.createIndicator()
-        result.privacyTimer   = result.addTimer(250'ms)
+        result.privacyTimer = result.addTimer(250'ms)
         result.hookChildEvents()
 
         result.applyLanguage()

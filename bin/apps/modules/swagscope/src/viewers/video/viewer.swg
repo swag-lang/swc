@@ -267,6 +267,7 @@ struct Panel
     elapsed:          f64
     frameIndex:       u64
     playing:          bool
+    thumbnail:        bool
     autoPlayPending:  bool = true
     muted:            bool
     playbackRate:     f64  = 1
@@ -876,7 +877,7 @@ private impl Panel
         }
 
         let audioCount = .video.audioTrackCount()
-        if not .audioReady and audioCount
+        if not .thumbnail and not .audioReady and audioCount
         {
             .audioReady = true
             .muteButton.enable(true)
@@ -1105,6 +1106,8 @@ private impl Panel
             .backgroundStyle = .View
             .focusPolicy     = .Tab
             .services        = services
+            .thumbnail       = host.isThumbnail()
+            .autoPlayPending = not .thumbnail
         }
 
         result.imageView = ImageView.create(result)
@@ -1121,7 +1124,8 @@ private impl Panel
 
         // The sound device comes online while the file opens, so the first picture does not
         // wait for it; see [[Sound.warmEngine]].
-        Sound.warmEngine()
+        if not host.isThumbnail() do
+            Sound.warmEngine()
         result.decodeWake.init()
         if Swag.jit()
         {

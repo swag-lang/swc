@@ -27,6 +27,7 @@ struct ViewerSession
     retire:              Viewer.Retire?
     lensSource:          Viewer.LensSource?
     describeInformation: Viewer.DescribeInformation?
+    localInformation:    Viewer.DescribeInformation?
     details:             String
     failureReason:       String
 }
@@ -293,7 +294,16 @@ impl Viewer.Host for ViewerPluginHost
 
     mtd impl setInformation(source: Viewer.DescribeInformation)
     {
-        .session.describeInformation = source
+        if .window and (not .embedded or .thumbnail)
+        {
+            let information = .window.information
+            .session.localInformation    = source
+            .session.describeInformation = func|information|(sheet) { information.present(sheet) }
+        }
+        else
+        {
+            .session.describeInformation = source
+        }
     }
 
     mtd impl reject(reason: string)

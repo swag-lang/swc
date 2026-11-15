@@ -25,6 +25,7 @@ using Core, Gui, Pixel
     explorer.selected = 0
     explorer.fill()
     explorer.showInformation()
+    completeInformation(&host, window)
     Swag.require(not explorer.title.isLocallyVisible())
     let sheet = window.infoSheet.text()
     Swag.require(Utf8.contains(sheet, appStrings().cmd_OpenChosen) and Utf8.contains(sheet, appStrings().cmd_Extract))

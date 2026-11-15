@@ -4,7 +4,7 @@
 using Swag, Core, Pixel
 
 var InfoSheetTestLinkId: String
-var ToolDockDynamicId:  String
+var ToolDockDynamicId:   String
 
 // The dock stands at the leading edge, vertically centred, and keeps exactly one tool active.
 #test
@@ -271,6 +271,7 @@ var ToolDockDynamicId:  String
         Swag.require(rect.width >= Painter.measureStringSnapped(sheet.pages[index], tabFont, deviceScale: sheet.deviceScale()))
     Swag.require(sheet.closeButton.position.y < host.theme.metrics.infoSheet_Padding)
     Swag.require(Utf8.contains(sheet.text(), "8.1 IMDb") and not Utf8.contains(sheet.text(), "24 fps"))
+
     func clickTab(host: *Testing.HeadlessHost, sheet: *InfoSheet, index: u64)
     {
         let origin = sheet.surfaceRect()
@@ -302,6 +303,7 @@ var ToolDockDynamicId:  String
         Swag.require(rect.width >= Painter.measureStringSnapped(sheet.pages[index], font, deviceScale: sheet.deviceScale()))
         Swag.require(Painter.elideString(sheet.pages[index], font, rect.width + 1, sheet.deviceScale()) == sheet.pages[index])
     }
+
     Swag.require(sheet.tabRects[1].right() < sheet.closeButton.position.x)
 }
 
@@ -311,7 +313,7 @@ var ToolDockDynamicId:  String
 {
     var host: Testing.HeadlessHost
     floatingHost(&host, 640, 480, false)
-    let metrics = host.theme.metrics
+    let metrics    = host.theme.metrics
     with let sheet = InfoSheet.create(&host.root)
     {
         .setTitle("ffmpeg-h264-two-aac-with-a-very-long-descriptive-name-for-the-test.mkv")
@@ -449,7 +451,7 @@ var ToolDockDynamicId:  String
     host.root.applyLayout()
 
     let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
-    let pad = Math.max(metrics.inspector_Padding, gutter)
+    let pad    = Math.max(metrics.inspector_Padding, gutter)
     Swag.require(content.parent == &inspector.wnd)
     Swag.require(inspector.position.bottom() == 480 - metrics.floating_Inset)
     Swag.require(content.position.x == pad and content.position.width == inspector.position.width - 2 * pad + gutter)
@@ -586,4 +588,30 @@ var ToolDockDynamicId:  String
     Swag.require(host.lastCommand == "dock.ellipse")
     Swag.require(dock.selectTool("dock.rectangle") and shape.id == "dock.rectangle")
     Swag.require(not dock.selectTool("dock.unknown"))
+}
+
+// A sheet can keep the viewport height as its pages grow, while respecting both host reservations.
+#test
+{
+    var host: Testing.HeadlessHost
+    floatingHost(&host, 640, 480, false)
+    let sheet = InfoSheet.create(&host.root)
+    sheet.setFillHeight(true)
+    sheet.margin.y = 16
+    sheet.margin.w = 32
+    sheet.beginPage("Media")
+    sheet.setTitle("Film")
+    sheet.beginPage("Technical")
+    for 40 do
+        sheet.addReading("Track", "A reading")
+    sheet.open()
+    let bounds = sheet.position
+    let inset  = host.theme.metrics.floating_Inset
+    Swag.require(bounds.y == inset + 16 and bounds.bottom() == 480 - inset - 32)
+    sheet.selectPage(1)
+    Swag.require(sheet.position == bounds and sheet.contentHeight > bounds.height)
+    host.mouseWheel({400, 200}, -4)
+    Swag.require(sheet.scrollOffset > 0)
+    sheet.selectPage(0)
+    Swag.require(sheet.position == bounds and sheet.scrollOffset == 0)
 }

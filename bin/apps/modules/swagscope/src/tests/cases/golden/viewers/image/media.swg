@@ -34,6 +34,9 @@ using Core, Pixel, Gui, Viewers
     let view = assume cast(*Picture.Panel, window.currentView)
     completeViewerBackgroundLoad(&host, &view.load)
     window.toggleInformation()
+    completeInformation(&host, window)
+    window.information.entry.modified = "2026-01-01 12:00"
+    window.refreshInformation()
     window.infoSheet.setTitle("scope-metadata.png")
     window.infoSheet.setIdentity("fixtures / images")
     window.applyLayout()

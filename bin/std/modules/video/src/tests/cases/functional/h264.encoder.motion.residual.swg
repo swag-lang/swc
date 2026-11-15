@@ -142,7 +142,8 @@ private func residualMotionEdgeFixture()->Nv12Frame fail
     return result
 }
 
-// Cropped edge macroblocks stay PCM while interior blocks can use shifted residuals.
+// A picture whose sides are not multiples of sixteen codes its last column and row like any other
+// macroblock: no raw block is left at the edges, and the picture still decodes at its own size.
 #test
 {
     let path = videoTempPath("h264-motion-residual-edge", "mp4")
@@ -155,7 +156,11 @@ private func residualMotionEdgeFixture()->Nv12Frame fail
     var writer = expect Mp4.FragmentedWriter.create(path, 130, 74, 90_000,
                                                     encoder.decoderConfig())
     expect writer.addPacket(expect encoder.encode(&first, 0, 3_000))
-    expect writer.addPacket(expect encoder.encode(&moved, 3_000, 3_000))
+    let shifted = expect encoder.encode(&moved, 3_000, 3_000)
+
+    // Nine macroblocks hold the right edge or the bottom one; raw, they alone took 384 bytes each.
+    Swag.require(shifted.bytes.count < 13 * 384)
+    expect writer.addPacket(shifted)
     expect writer.flush()
     var repeated: Nv12Frame
     scope
@@ -164,19 +169,6 @@ private func residualMotionEdgeFixture()->Nv12Frame fail
         var picture: PlanarFrame
         expect prefix.decodeFramePlanesInto(&picture, 1)
         Swag.require(picture.width == 130 and picture.height == 74)
-        let sourceY = moved.luma()
-        for row in 74'u64
-        {
-            let at = row * 130 + 128
-            Swag.require(Memory.compare(picture.luma.storage() + at,
-                                        sourceY.buffer + at, 2) == 0)
-        }
-        for row in 64'u64 until 74
-        {
-            let at = row * 130
-            Swag.require(Memory.compare(picture.luma.storage() + at,
-                                        sourceY.buffer + at, 130) == 0)
-        }
         repeated.setResidualMotionDecoded(&picture)
     }
     let held = expect encoder.encode(&repeated, 6_000, 3_000)

@@ -818,14 +818,14 @@ impl ViewerWindow
         case ViewerCommands.OnlineMovies:
             name    = texts.explore_OnlineMovies
             icon    = .commandGlyph(.FileVideo)
-            hidden  = not exploring
+            hidden  = not exploring and .currentFile.isEmpty()
             toggle  = true
             checked = .onlineMovies
 
         case ViewerCommands.OnlineMusic:
             name    = texts.explore_OnlineMusic
             icon    = .commandGlyph(.FileAudio)
-            hidden  = not exploring
+            hidden  = not exploring and .currentFile.isEmpty()
             toggle  = true
             checked = .onlineMusic
 
@@ -1039,6 +1039,17 @@ impl ViewerWindow
         case ViewerCommands.FindNext:
             .findNext()
 
+        case ViewerCommands.OnlineMovies, ViewerCommands.OnlineMusic:
+            if id == ViewerCommands.OnlineMovies do
+                .onlineMovies = not .onlineMovies
+            else do
+                .onlineMusic = not .onlineMusic
+            if .explorer do
+                .explorer.setOnlineMedia(.onlineMovies, .onlineMusic)
+            catch .saveState()
+            .information.request()
+            .refreshInformation()
+
         case ViewerCommands.FindPrevious:
             .findPrevious()
 
@@ -1135,12 +1146,6 @@ impl ViewerWindow
         case ViewerCommands.SortAscending, ViewerCommands.SortDescending:
             explorer.sortBy(explorer.sortColumn, id == ViewerCommands.SortDescending)
 
-        case ViewerCommands.OnlineMovies:
-            explorer.setOnlineMedia(not .onlineMovies, .onlineMusic)
-
-        case ViewerCommands.OnlineMusic:
-            explorer.setOnlineMedia(.onlineMovies, not .onlineMusic)
-
         case ViewerCommands.ChooseMusic:
             explorer.chooseMusic()
 
@@ -1213,8 +1218,18 @@ impl ViewerWindow
     mtd sheetToggled(open: bool)
     {
         .refreshExplorerCaption()
+        if open do
+            .information.request()
+        else do
+            .information.stop()
         if .explorer do
             .explorer.fitToSheet(open)
+        if .fullScreen
+        {
+            .updateDocumentInsets()
+            .documentHost.applyLayout()
+            .layoutViewerBar()
+        }
         .layoutSearchBar()
     }
 
@@ -1222,77 +1237,25 @@ impl ViewerWindow
     // in the explored folder.
     mtd refreshInformation()
     {
-        let page = .infoSheet.pageIndex
-        .infoSheet.clear()
+        if .information.refreshing do
+            return
         if .isExploring() or (.currentFile.isEmpty() and .explorerActive and .explorer)
         {
-            let explorer = unwrap .explorer
-            if explorer.hasMediaSelection() do
-                .infoSheet.beginPage(MediaInfoRow{field: .Media}.label())
-            explorer.describeSelection(.infoSheet, includeTechnical: not explorer.hasMediaSelection())
-            if explorer.hasMediaSelection()
-            {
-                .infoSheet.beginPage(MediaInfoRow{field: .Technical}.label())
-                explorer.describeSelectedTechnical(.infoSheet, labelled: false)
-                .infoSheet.selectPage(page)
-            }
-
-            return
+            .information.selectExplorer(unwrap .explorer)
+            .information.describe(.infoSheet, includeAction: true)
         }
-
-        if .currentFile.isEmpty()
+        elif not .currentFile.isEmpty()
         {
-            .infoSheet.close()
-            return
-        }
-
-        // The viewer says what the file is about, its figures first; the window adds the size
-        // after them, then the file section with the viewer showing it.
-        let texts     = appStrings()
-        let described = .explorer and .explorer.describesFile(.currentFile)
-        let media     = described and .explorer!.hasMediaSelection()
-        if media do
-            .infoSheet.beginPage(MediaInfoRow{field: .Media}.label())
-        if described
-        {
-            .explorer!.describeSelection(.infoSheet, includeAction: false, includeTechnical: false, includeFile: false)
+            if .explorer and (.explorer.describesFile(.currentFile) or .isArchivePreview()) do
+                .information.selectExplorer(.explorer)
+            else do
+                .information.selectFile(.currentFile)
+            .information.describe(.infoSheet)
         }
         else
         {
-            // A direct open has no explored selection to describe it.
-            let path = .explorer ? .explorer.logicalPath(.currentFile) : .currentFile.toString()
-            .infoSheet.setSubjectFile(path)
-            .infoSheet.setTitle(Path.fileName(path) orelse path)
-            .infoSheet.setIdentity(ViewerHome.folderText(path))
+            .infoSheet.close()
         }
-
-        let decodedMedia = .activeChoiceIndex < .choices.count and
-                           (.choices[.activeChoiceIndex].key == "video" or .choices[.activeChoiceIndex].key == "image")
-        if media
-        {
-            .infoSheet.beginPage(MediaInfoRow{field: .Technical}.label())
-            if not decodedMedia do
-                .explorer!.describeSelectedTechnical(.infoSheet, includeFile: false, labelled: false)
-        }
-
-        let instance = .activeChoiceIndex < .instances.count ? &.instances[.activeChoiceIndex] : null
-        if instance and instance.describeInformation do
-            instance.describeInformation(.infoSheet)
-        elif instance and instance.details.count do
-            .infoSheet.addText(instance.details)
-
-        addFigure(.infoSheet, .currentFileSize)
-        .infoSheet.addSection(texts.explore_FileProperties)
-        if described do
-            .explorer!.describeSelectedFile(.infoSheet)
-        if .activeChoiceIndex < .choices.count
-        {
-            let plugin = &.index.plugins[.choices[.activeChoiceIndex].pluginIndex]
-            .infoSheet.addReading(texts.ui_Viewer, plugin.displayName(), mono: false)
-        }
-
-        if media do
-            .infoSheet.selectPage(page)
     }
 
     // Applies one choice of the search options and runs the search again under it.

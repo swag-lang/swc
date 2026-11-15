@@ -106,6 +106,8 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
         Swag.require(window.choices[window.activeChoiceIndex].key == plugin.key)
         window.toggleInformation()
+        if window.information.hasMediaSelection() do
+            window.infoSheet.selectPage(1)
         let information = window.infoSheet.text()
         Swag.require(window.infoSheet.isLocallyVisible())
         Swag.require(Utf8.contains(information, plugin.displayName()))

@@ -11,6 +11,7 @@ private const EmbeddedHeaderHeight = ViewerReadingLine.Height
 struct EmbeddedViewer
 {
     using wnd:        Wnd
+    informationOnly:  bool
     externalReadings: bool
 
     late
@@ -59,6 +60,12 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
             embedded.titleLabel.toolTip = details
         }
 
+        if embedded.informationOnly
+        {
+            let information = embedded.owner.information
+            information.postRefresh()
+        }
+
         return
     }
 }
@@ -72,7 +79,15 @@ private func reportEmbeddedChromeChanged(view: *Wnd)
     }
 }
 
-private func reportEmbeddedLoadingChanged(_: *Wnd) {}
+private func reportEmbeddedLoadingChanged(view: *Wnd)
+{
+    let embedded = embeddedViewerFor(view)
+    if embedded.informationOnly
+    {
+        let information = embedded.owner.information
+        information.postRefresh()
+    }
+}
 
 // Returns the services a viewer embedded in a document reaches its host through.
 private func embeddedHostServices()->Viewer.HostServices
@@ -254,7 +269,7 @@ private impl EmbeddedViewer
     // Shows the viewer of `choices[index]`, creating its instance on first use and keeping it for
     // later switches. A viewer that fails becomes the failure surface; returns false when the index
     // is out of range or no view could be made.
-    mtd activate(index: u32)->bool
+    internal mtd activate(index: u32)->bool
     {
         if index >= .choices.count do
             return false
@@ -270,7 +285,7 @@ private impl EmbeddedViewer
         var next:      ViewerSession
         with var host: ViewerPluginHost
         {
-            .thumbnail       = me.owner.thumbnailMode
+            .thumbnail       = me.informationOnly or me.owner.thumbnailMode
             .embedded        = true
             .session         = &next
             .documentParent  = me.document

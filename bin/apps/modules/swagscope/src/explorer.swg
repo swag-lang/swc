@@ -823,238 +823,6 @@ impl Explorer
         .layoutTools()
     }
 
-    // Describes the chosen item in `sheet`: its picture, its title, the figures and the readings
-    // known of it, then the file itself; with nothing chosen, the location and how much it holds.
-    //
-    // A viewer showing the item describes its content itself and the window its file, so it asks
-    // for neither the technical readings nor the file section.
-    mtd describeSelection(sheet: *InfoSheet, includeAction = true, includeTechnical = true, includeFile = true)
-    {
-        let strings = appStrings()
-        if .selected >= .entries.count
-        {
-            sheet.setSubjectFile(.listing.path, directory: not .listing.isArchive)
-            sheet.setTitle(.locationName())
-            sheet.setIdentity(.locationText())
-            sheet.addText(.status.text())
-            return
-        }
-
-        let entry = &.entries[.selected]
-        sheet.setSubjectFile(entry.name, directory: entry.directory)
-        if entry.texture.isValid() and entry.texture.width > 1 do
-            sheet.setPicture(entry.texture)
-
-        sheet.setTitle(safeMediaText(.selectionTitle(entry)))
-        sheet.setIdentity(.selectionIdentity(entry))
-
-        // A film is headed by its poster, its title, its year and length, and its rating, the
-        // figure a reader of a film comes for, with its source as its unit; then the action, what
-        // it tells, who made it and played in it, and at its foot who said so.
-        if not entry.movie.title.isEmpty()
-        {
-            sheet.setPictureBeside(true)
-            if not entry.movie.imdbRating.isEmpty()
-            {
-                var rating = safeMediaText(entry.movie.imdbRating)
-                let slash  = Utf8.indexOf(rating, "/")
-                if slash != Swag.U64.Max do
-                    rating = String.from(rating.toString()[0 until slash])
-                sheet.addFact(rating, entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
-            }
-
-            if includeAction do
-                sheet.setAction(.openActionName(), ViewerCommands.OpenChosen)
-            if entry.movie.overview.length do
-                sheet.addText(safeMediaText(entry.movie.overview))
-            addSheetReading(sheet, strings.explore_MovieGenre, entry.movie.genre)
-            addSheetReading(sheet, strings.explore_Director, entry.movie.director)
-            addSheetReading(sheet, strings.explore_Cast, entry.movie.actors)
-            if includeTechnical do
-                .describeSelectedTechnical(sheet, includeFile: includeFile)
-            if not entry.movie.sources.isEmpty() do
-                sheet.addFootnote(Format.toString("% %", strings.explore_Sources, safeMediaText(entry.movie.sources)))
-            return
-        }
-
-        // A recording, or an album, is headed by its cover and its length; then what it is part
-        // of, and at its foot where these readings came from.
-        if not entry.music.track.isEmpty() or not entry.music.title.isEmpty()
-        {
-            if entry.texture.isValid() and entry.texture.width > 1 do
-                sheet.setPictureBeside(true)
-            if entry.duration do
-                sheet.addFact(formatDuration(entry.duration))
-
-            // The album page already offers Play in Voltage: its sheet keeps the quiet form.
-            if includeAction do
-                sheet.setAction(.openActionName(), ViewerCommands.OpenChosen, quiet: .grid.board == .Album)
-            if not entry.directory and not entry.music.track.isEmpty() do
-                addSheetReading(sheet, strings.explore_Album, entry.music.title)
-            addSheetReading(sheet, strings.explore_Artist, entry.music.artist)
-            if entry.music.albumArtist != entry.music.artist do
-                addSheetReading(sheet, strings.explore_AlbumArtist, entry.music.albumArtist)
-            addSheetReading(sheet, strings.explore_FirstRelease, entry.music.date, mono: true)
-            if includeTechnical do
-                .describeSelectedTechnical(sheet, includeFile: includeFile)
-            if entry.music.source == "tags" do
-                sheet.addFootnote(Format.toString("% %", strings.explore_Source, strings.explore_FileTags))
-            elif not entry.music.source.isEmpty() do
-                sheet.addFootnote(Format.toString("% %", strings.explore_Source, "MusicBrainz"))
-            return
-        }
-
-        // A rating is the figure a reader of a film comes for, with its source as its unit.
-        if not entry.movie.imdbRating.isEmpty() do
-            sheet.addFact(safeMediaText(entry.movie.imdbRating), entry.movie.ratingSource == "TMDB" ? "TMDB" : "IMDb")
-        if entry.duration do
-            addFigure(sheet, sheetDuration(entry.duration))
-
-        if .listing.isArchive and entry.archiveIndex < .listing.archive.entries.count
-        {
-            // A member of an archive, its kind and its place on the identity line: what it weighs
-            // extracted as its figure, then what it weighs packed and how, when, and the checksum
-            // it is verified against.
-            let member = &.listing.archive.entries[entry.archiveIndex]
-            addFigure(sheet, StrConv.toDisplaySize(member.uncompressedSize))
-            if includeAction
-            {
-                sheet.setAction(strings.cmd_OpenChosen, ViewerCommands.OpenChosen)
-                sheet.setSecondaryAction(strings.cmd_Extract, ViewerCommands.ExtractChosen)
-            }
-
-            sheet.addSection(strings.explore_Archive)
-            sheet.addReading(strings.explore_Compressed, StrConv.toDisplaySize(member.compressedSize))
-            sheet.addReading(strings.explore_Compression, member.method == 0 ? strings.explore_Stored : strings.explore_Deflated, mono: false)
-            if entry.modified.length do
-                sheet.addReading(strings.explore_Modified, entry.modified)
-            let crc = Format.toString("%{X08}", member.crc32)
-            sheet.addReading("CRC-32", Format.toString("% %", crc.toString()[0 until 4], crc.toString()[4 to]))
-            return
-        }
-
-        if includeAction
-        {
-            sheet.setAction(.openActionName(), ViewerCommands.OpenChosen)
-            if .listing.isArchive do
-                sheet.setSecondaryAction(strings.cmd_Extract, ViewerCommands.ExtractChosen)
-        }
-
-        if includeTechnical
-        {
-            .describeSelectedTechnical(sheet, includeFile: includeFile)
-        }
-        elif includeFile
-        {
-            sheet.addSection(strings.explore_FileProperties)
-            .describeSelectedFile(sheet)
-        }
-
-        // A film without online details says how to get them.
-        if isFilmFile(entry) and not .window.onlineMovies do
-            sheet.addFootnote(strings.explore_OnlineOff, strings.explore_TurnOn, ViewerCommands.OnlineMovies)
-    }
-
-    // Returns the title the sheet gives `entry`: what a film or a recording is called, the title
-    // a film's own file name gives, or its name.
-    private mtd selectionTitle(entry: const *ExplorerEntry)->String
-    {
-        if not entry.movie.title.isEmpty() do
-            return String.from(entry.movie.title)
-        if not entry.directory and not entry.music.track.isEmpty() do
-            return String.from(entry.music.track)
-        if not entry.music.title.isEmpty() do
-            return String.from(entry.music.title)
-        if isFilmFile(entry)
-        {
-            let query = MovieQuery.fromFile(entry.name)
-            if not query.title.isEmpty() do
-                return query.title
-        }
-
-        return String.from(entry.name)
-    }
-
-    // Returns the identity line of `entry`: a film's year and length, a recording's artist and
-    // album, or the kind of a file and where it stands, after the year a film's file name gives.
-    private mtd selectionIdentity(entry: const *ExplorerEntry)->String
-    {
-        let strings = appStrings()
-        if not entry.movie.title.isEmpty()
-        {
-            var parts: Array'String
-            if entry.movie.date.length >= 4 do
-                parts.add(String.from(entry.movie.date.toString()[0 until 4]))
-            if entry.duration >= 60
-            {
-                let minutes = Format.toString("%{02}", (entry.duration / 60) % 60)
-                parts.add(Format.toString(strings.explore_Length, entry.duration / 3600, minutes))
-            }
-
-            return parts.isEmpty() ? String.from(entry.name) : joinMeasures(parts.toSlice())
-        }
-
-        if not entry.music.track.isEmpty() or not entry.music.title.isEmpty()
-        {
-            var parts: Array'String
-            parts.add(safeMediaText(entry.music.artist))
-            if not entry.directory and not entry.music.track.isEmpty() do
-                parts.add(safeMediaText(entry.music.title))
-            elif entry.music.date.length do
-                parts.add(safeMediaText(entry.music.date))
-            let identity = joinMeasures(parts.toSlice())
-            return identity.isEmpty() ? String.from(entry.name) : identity
-        }
-
-        // A file is placed by its kind and by the folder, or the archive folder, it stands in.
-        var place = .folder.isEmpty() ? .locationName() : String.from(.folder)
-        if place.length and place.back() == '/' do
-            place.removeBack()
-        let kind = String.toUpper(Path.extension(entry.name) orelse "", .Unicode)
-        if entry.directory or kind.length <= 1 do
-            return place
-        let identity = Format.toString("% · %", kind.toString()[1 to], place)
-        let year     = isFilmFile(entry) ? MovieQuery.fromFile(entry.name).year : String.from("")
-        return year.isEmpty() ? identity : Format.toString("% · %", year, identity)
-    }
-
-    // Adds the measurements already read for a thumbnail or a listing cell; the size of a picture
-    // is one of the figures heading the sheet.
-    private mtd describeTechnical(sheet: *InfoSheet, entry: const *ExplorerEntry, labelled = true)
-    {
-        var data = MediaInfoData{}
-        if labelled do
-            data.add(.Technical, group: true)
-        for row in entry.technical.rows do
-            data.rows.add(row)
-        if entry.width and entry.height do
-            data.add(.Dimensions, Format.toString("% × % px", entry.width, entry.height))
-        if entry.pages do
-            data.add(.Pages, Format.toString("%", entry.pages))
-        if entry.lines do
-            data.add(.Lines, Format.toString("%", entry.lines))
-        if entry.sections do
-            data.add(.Sections, Format.toString("%", entry.sections))
-        if entry.members do
-            data.add(.Members, Format.toString("%", entry.members))
-        if not entry.face.isEmpty() do
-            data.add(.Typeface, entry.face)
-        data.describe(sheet)
-    }
-
-    // Adds the readings of the file of the chosen item: its name when the sheet is titled by
-    // what it holds, and when it changed.
-    mtd describeSelectedFile(sheet: *InfoSheet)
-    {
-        if .selected >= .entries.count do
-            return
-        let entry   = &.entries[.selected]
-        let strings = appStrings()
-        if .selectionTitle(entry) != entry.name do
-            sheet.addReading(strings.explore_Name, entry.name)
-        addSheetReading(sheet, strings.explore_Modified, entry.modified, mono: true)
-    }
-
     // Returns whether the selected filesystem item is the file now shown by the window.
     mtd describesFile(path: string)->bool
     {
@@ -1063,32 +831,6 @@ impl Explorer
         var selectedPath = String.from(.entries[.selected].path)
         Path.normalize(&selectedPath)
         return Path.equals(selectedPath, path)
-    }
-
-    // A media selection has a second page for its file and decoded measurements.
-    mtd hasMediaSelection()->bool => .selected < .entries.count and
-                                     (not .entries[.selected].movie.title.isEmpty() or
-                                      not .entries[.selected].music.title.isEmpty() or
-                                      not .entries[.selected].music.track.isEmpty())
-
-    // Adds the technical page of the chosen item: what its thumbnail measured, then its file.
-    //
-    // On its own page the readings need no section label: the page is named for them.
-    mtd describeSelectedTechnical(sheet: *InfoSheet, includePreview = true, includeFile = true, labelled = true)
-    {
-        if .selected >= .entries.count do
-            return
-        let entry = &.entries[.selected]
-        if includePreview do
-            .describeTechnical(sheet, entry, labelled)
-        if not includeFile do
-            return
-        if entry.directory and entry.children != Swag.U64.Max do
-            addFigure(sheet, entry.children == 1 ? appStrings().explore_OneItem : Format.toString(appStrings().explore_Count, entry.children))
-        elif not entry.directory do
-            addFigure(sheet, StrConv.toDisplaySize(entry.size))
-        sheet.addSection(appStrings().explore_FileProperties)
-        .describeSelectedFile(sheet)
     }
 
     // Plays what is chosen: an album from its first track, a piece of music with the folder
@@ -1547,6 +1289,7 @@ impl Explorer
             .restoredView.restorePosition(me)
             .restoringView = false
         }
+
         .window.privacy.refreshIndicator()
     }
 
@@ -2133,7 +1876,7 @@ impl Explorer
         preview.opening     = opening
         preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local, previewEpoch: .previewEpoch)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
-        preview.privacy = .listing.isArchive ? .window.privacy.policy(.listing.path) : {}
+        preview.privacy     = .listing.isArchive ? .window.privacy.policy(.listing.path) : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
         if not opening and
@@ -2399,13 +2142,6 @@ private func soundCoverFillsTile(glyph: Icon, texture: Texture, tile: Math.Recta
 // Reports whether `entry` is a film file: what the video reader opens, apart from album audio.
 private func isFilmFile(entry: const *ExplorerEntry)->bool => not entry.directory and not albumAudio(entry.name) and Reader.canOpen(entry.name)
 
-// Adds a reading of `value` under `label` to the sheet, unless nothing is known of it.
-private func addSheetReading(sheet: *InfoSheet, label, value: string, mono = false)
-{
-    if value.count do
-        sheet.addReading(label, safeMediaText(value), mono: mono)
-}
-
 // A virtual tile viewport: one painted cell per visible file, independent of directory size.
 struct ExplorerGrid
 {
@@ -2667,6 +2403,7 @@ impl ExplorerGrid
                 entry.framing.paint(grid, painter, entry.texture, tile)
                 return true
             }
+
             if grid.board == .Grid and grid.paintCard(painter, tile, entry) do
                 return true
             if grid.board == .Covers and entry.texture.isValid() and entry.texture.width <= 1

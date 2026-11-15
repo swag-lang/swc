@@ -55,6 +55,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     waitForVideoFrame(view)
     waitForVideoAudio(view, 2)
     window.toggleInformation()
+    window.infoSheet.selectPage(1)
     let information = window.infoSheet.text()
     Swag.require(Utf8.contains(information, "H.264 / AVC"))
     Swag.require(Utf8.contains(information, "Aspect ratio"))

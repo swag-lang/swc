@@ -3,6 +3,35 @@
 
 using Core, Gui, Pixel
 
+// A failed settings write keeps the cleanup pending, so the next save retries the redaction.
+#test
+{
+    let root = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-private-retry-%", Guid64.random()))
+    expect Directory.create(root)
+    defer catch Directory.delete(root, recurse: true)
+    let file = Path.combine(root, "retry-document.txt")
+    discard expect File.writeAllText(file, "document")
+    let occupied = Testing.tempFilePath("scope-settings-directory-", "")
+    expect Directory.create(occupied)
+    defer catch Directory.delete(occupied)
+    let settings = Testing.tempFilePath("scope-retried-settings-", ".scc")
+    defer catch File.delete(settings)
+    var publisher: File.MountPrivacyPublisher
+    expect publisher.open(root, false)
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.rememberRecent(file)
+    host.app.setStatePath(occupied)
+    publisher.setPrivateMode(true)
+    var error: Swag.Error
+    discard catch window.saveState() as error
+    Swag.require(error.value() != null and window.privacy.dirty and window.recent.isEmpty())
+    host.app.setStatePath(settings)
+    expect window.saveState()
+    Swag.require(not window.privacy.dirty and File.exists(settings))
+}
+
 // Unmounting while privacy is off keeps the explicitly public history.
 #test
 {

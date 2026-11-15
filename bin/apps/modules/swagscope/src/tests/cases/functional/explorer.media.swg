@@ -104,7 +104,9 @@ using Core, Gui, Pixel, Audio
     explorer.grid.select(0)
     let text = window.infoSheet.text()
     Swag.require(Utf8.startsWith(text, "Blade Runner\n1982 · MKV"))
-    Swag.require(Utf8.contains(text, "Name\nBlade.Runner.1982.Final.Cut.1080p.mkv"))
+    window.infoSheet.selectPage(1)
+    Swag.require(Utf8.contains(window.infoSheet.text(), "Name\nBlade.Runner.1982.Final.Cut.1080p.mkv"))
+    window.infoSheet.selectPage(0)
     let foot = Format.toString("% %", appStrings().explore_OnlineOff, appStrings().explore_TurnOn)
     Swag.require(Utf8.contains(text, foot.toString()))
 }

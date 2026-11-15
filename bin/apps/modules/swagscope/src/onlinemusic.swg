@@ -57,11 +57,13 @@ struct CoverTarget
     port: u16
 }
 
-const MusicTitleTag    = "ScopeMBTitle"
-const MusicArtistTag   = "ScopeMBArtist"
-const MusicDateTag     = "ScopeMBDate"
-const MusicSourceTag   = "ScopeMusicSource"
-const MusicCachedAtTag = "ScopeMBCachedAt"
+const MusicTrackTag       = "ScopeMusicTrack"
+const MusicAlbumArtistTag = "ScopeMusicAlbumArtist"
+const MusicTitleTag       = "ScopeMBTitle"
+const MusicArtistTag      = "ScopeMBArtist"
+const MusicDateTag        = "ScopeMBDate"
+const MusicSourceTag      = "ScopeMusicSource"
+const MusicCachedAtTag    = "ScopeMBCachedAt"
 
 private var g_MusicLookupLock:  Swag.Mutex
 private var g_LastMusicRequest: u64
@@ -205,6 +207,8 @@ func localMusicSummary(tags: const *SoundTags)->MusicSummary =>
 func labelLocalMusic(image: *Image, tags: const *SoundTags)
 {
     let summary = localMusicSummary(tags)
+    musicTag(image, MusicTrackTag, summary.track)
+    musicTag(image, MusicAlbumArtistTag, summary.albumArtist)
     musicTag(image, MusicTitleTag, summary.title)
     musicTag(image, MusicArtistTag, summary.artist)
     musicTag(image, MusicDateTag, summary.date)
@@ -244,7 +248,11 @@ impl MusicSummary
         for &record in image.metadata
         {
             let value = cast(string, record.toSlice())
-            if record.isTag(cast(const [..] u8, MusicTitleTag)) do
+            if record.isTag(cast(const [..] u8, MusicTrackTag)) do
+                result.track = value
+            elif record.isTag(cast(const [..] u8, MusicAlbumArtistTag)) do
+                result.albumArtist = value
+            elif record.isTag(cast(const [..] u8, MusicTitleTag)) do
                 result.title = value
             elif record.isTag(cast(const [..] u8, MusicArtistTag)) do
                 result.artist = value
@@ -391,9 +399,12 @@ impl OnlineMusic
 
     mtd label(image: *Image, tags: const *SoundTags)
     {
+        musicTag(image, MusicTrackTag, tags.title)
         musicTag(image, MusicTitleTag, .title)
-        let artist = .artistText()
-        musicTag(image, MusicArtistTag, artist.isEmpty() ? musicSearchArtist(tags) : artist.toString())
+        let artist   = .artistText()
+        let credited = artist.isEmpty() ? String.from(musicSearchArtist(tags)) : artist
+        musicTag(image, MusicAlbumArtistTag, tags.albumArtist.isEmpty() ? credited.toString() : tags.albumArtist.toString())
+        musicTag(image, MusicArtistTag, tags.artist.isEmpty() ? credited.toString() : tags.artist.toString())
         musicTag(image, MusicDateTag, .firstReleaseDate)
         musicTag(image, MusicSourceTag, "musicbrainz")
         stampMusicCache(image)

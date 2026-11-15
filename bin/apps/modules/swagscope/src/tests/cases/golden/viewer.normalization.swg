@@ -11,6 +11,9 @@ using Core, Gui, Pixel
     let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.txt"), true, width: ViewerWindow.MinWidth)
 
     window.toggleInformation()
+    completeInformation(&host, window)
+    window.information.entry.modified = "2026-01-01 12:00"
+    window.refreshInformation()
     window.showSearch()
     window.applyLayout()
     Swag.require(window.searchBox.position.width >= 120)

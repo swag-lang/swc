@@ -67,10 +67,11 @@ struct InfoSheet
     actionPage:       u32
     hotLink:          u64 = Swag.U64.Max
     hotTab:           u64 = Swag.U64.Max
-    headTop:          f32     // Top of the picture or the title, from the latest layout.
-    actionTop:        f32     // Top of the action, from the latest layout.
-    contentHeight:    f32     // Body height before the window clips it to the available room.
-    scrollOffset:     f32     // Portion of a long body already passed by the reader.
+    headTop:          f32      // Top of the picture or the title, from the latest layout.
+    actionTop:        f32      // Top of the action, from the latest layout.
+    fillHeight:       bool     // The host requests stable viewport height instead of fitting the content.
+    contentHeight:    f32      // Body height before the window clips it to the available room.
+    scrollOffset:     f32      // Portion of a long body already passed by the reader.
     late closeButton: *IconButton
 }
 
@@ -113,14 +114,16 @@ impl IWnd for InfoSheet
         if not parent do
             return
 
-        let metrics   = .themeMetrics()
-        let bounds    = parent.clientRect()
-        let inset     = metrics.floating_Inset
-        let width     = Math.min(metrics.infoSheet_Width, bounds.width - 2 * inset)
+        let metrics = .themeMetrics()
+        let bounds  = parent.clientRect()
+        let inset   = metrics.floating_Inset
+        let width   = Math.min(metrics.infoSheet_Width, bounds.width - 2 * inset)
+
         // The host can reserve a top row while document search is open.
-        let top       = bounds.y + Math.max(inset, parent.stripInset()) + .margin.y
+        let top = bounds.y + Math.max(inset, parent.stripInset()) + .margin.y
         .contentHeight = .measureBody(width)
-        let height    = Math.min(.contentHeight, bounds.bottom() - inset - top)
+        let available = Math.max(bounds.bottom() - inset - .margin.w - top, 0)
+        let height    = .fillHeight ? available : Math.min(.contentHeight, available)
         .scrollOffset = Math.clamp(.scrollOffset, 0, Math.max(.contentHeight - height, 0))
         let left      = bounds.right() - inset - width
         let closeSize = metrics.embInfo_CloseSize
@@ -244,6 +247,7 @@ impl IWnd for InfoSheet
                 discard paintTextLine(painter, unit, centerY, block.label, monoFont, colors.faintText, right - unit, scale)
 
             case .Reading:
+
                 // A label longer than its column pushes its value along rather than running into it.
                 let lineCenter = top + metrics.infoSheet_LineHeight * 0.5
                 discard paintTextLine(painter, x, lineCenter, block.label, bodyFont, colors.softText, block.valueLeft, scale)
@@ -283,6 +287,7 @@ impl IWnd for InfoSheet
                 }
 
             case .Note:
+
                 // A caution dot leads what the sheet could not read.
                 let lineCenter = top + metrics.infoSheet_LineHeight * 0.5 - metrics.infoSheet_LineGap * 0.5
                 painter.setAntialiased(true)
@@ -308,13 +313,16 @@ impl IWnd for InfoSheet
         if .contentHeight > body.height
         {
             let trackHeight = Math.max(body.height - 2 * pad, 0)
-            let thumbHeight = Math.min(trackHeight, Math.max(metrics.scrollBar_BoxMinSize,
-                                                             trackHeight * body.height / .contentHeight))
-            let thumbTop = body.y + pad + (trackHeight - thumbHeight) * .scrollOffset / (.contentHeight - body.height)
+            let thumbHeight = Math.min(trackHeight,
+                                       Math.max(metrics.scrollBar_BoxMinSize,
+                                                trackHeight * body.height / .contentHeight))
+            let thumbTop   = body.y + pad + (trackHeight - thumbHeight) * .scrollOffset / (.contentHeight - body.height)
             let thumbWidth = metrics.scrollBar_Size - 2 * metrics.scrollBar_BoxPadding
             painter.fillRoundRect(Math.Rectangle{body.right() - metrics.scrollBar_Size, thumbTop,
                                                  thumbWidth, thumbHeight},
-                                  thumbWidth * 0.5, thumbWidth * 0.5, colors.scrollBar_Box)
+                                  thumbWidth * 0.5,
+                                  thumbWidth * 0.5,
+                                  colors.scrollBar_Box)
         }
     }
 
@@ -393,9 +401,9 @@ impl InfoSheet
                                                     theme.icon(.WndClose, theme.metrics.embInfo_CloseGlyph),
                                                     Math.Rectangle{0, 0, theme.metrics.embInfo_CloseSize, theme.metrics.embInfo_CloseSize})
         {
-            .toolTip    = Gui.strings().dlg_Close
+            .toolTip     = Gui.strings().dlg_Close
             .focusPolicy = .None
-            .sigPressed += func|sheet = result|(_)
+            .sigPressed  += func|sheet = result|(_)
             {
                 sheet.close()
                 sheet.sigCloseRequested.call(sheet)
@@ -406,6 +414,16 @@ impl InfoSheet
             result.closeButton.hide()
 
         return result
+    }
+
+    // Uses all available height when `fill` is true, keeping the panel stable across pages and asynchronous updates.
+    //
+    // The default fits the content. Both modes keep the floating insets and the host's top and
+    // bottom margins; content that exceeds the available height scrolls inside the same panel.
+    mtd setFillHeight(fill: bool)
+    {
+        .fillHeight = fill
+        .relayout()
     }
 
     // Shows the sheet at the trailing edge of its parent.
@@ -447,7 +465,7 @@ impl InfoSheet
     // An empty file name removes the glyph.
     mtd setSubjectFile(fileName: string, directory = false)
     {
-        .subjectFile = fileName
+        .subjectFile      = fileName
         .subjectDirectory = directory
         .invalidate()
     }
@@ -465,7 +483,7 @@ impl InfoSheet
     // another or clears the sheet before releasing it.
     mtd setPicture(picture: Texture)
     {
-        .picture = picture
+        .picture     = picture
         .picturePage = .writingPage
         .relayout()
     }
@@ -484,7 +502,7 @@ impl InfoSheet
     {
         if index >= .pages.count or index == .pageIndex do
             return
-        .pageIndex = index
+        .pageIndex    = index
         .scrollOffset = 0
         .relayout()
     }
@@ -565,6 +583,7 @@ impl InfoSheet
             .blocks[.blocks.count - 1].commandId = id
             .blocks[.blocks.count - 1].id        = .blocks[.blocks.count - 1].commandId.toString()
         }
+
         .relayout()
     }
 
@@ -578,7 +597,7 @@ impl InfoSheet
     {
         if .action do
             .action.destroy()
-        .action = PushButton.create(me, caption, {}, id, quiet ? .Normal : .Strong)
+        .action     = PushButton.create(me, caption, {}, id, quiet ? .Normal : .Strong)
         .actionPage = .writingPage
         .relayout()
         return .action
@@ -609,8 +628,8 @@ impl InfoSheet
         .tabRects.clear()
         .subjectFile.clear()
         .subjectDirectory = false
-        .pageIndex = 0
-        .writingPage = 0
+        .pageIndex        = 0
+        .writingPage      = 0
         if .action
         {
             .action.destroy()
@@ -623,8 +642,8 @@ impl InfoSheet
             .secondary = null
         }
 
-        .hotLink = Swag.U64.Max
-        .hotTab  = Swag.U64.Max
+        .hotLink      = Swag.U64.Max
+        .hotTab       = Swag.U64.Max
         .scrollOffset = 0
         .relayout()
     }
@@ -785,14 +804,14 @@ impl InfoSheet
         var trailingGap = 0'f32
         if .titleLines.count or not .identity.isEmpty() or hasFacts or beside
         {
-            y           += metrics.infoSheet_BlockGap
+            y += metrics.infoSheet_BlockGap
             trailingGap = metrics.infoSheet_BlockGap
         }
 
         if .action and .actionPage == .pageIndex
         {
             .actionTop  = y
-            y           += metrics.btnPush_Height + metrics.infoSheet_BlockGap
+            y += metrics.btnPush_Height + metrics.infoSheet_BlockGap
             trailingGap = metrics.infoSheet_BlockGap
         }
 
@@ -864,7 +883,7 @@ impl InfoSheet
                 if not block.value.isEmpty()
                 {
                     // The link follows its words on their line, or takes the next one.
-                    let textWidth = Painter.measureString(block.label, footFont).width
+                    let textWidth  = Painter.measureString(block.label, footFont).width
                     let spaceWidth = Painter.measureString(" ", footFont).width
                     block.width = Math.ceil(Painter.measureString(block.value, footFont).width)
                     if block.label.isEmpty()
@@ -906,12 +925,12 @@ impl InfoSheet
     // Returns the air between the close button and the trailing edge.
     private mtd controlInset()->f32 => .themeMetrics().infoSheet_Padding - .themeMetrics().embInfo_CloseMargin
 
-    private mtd titleFont()->*Font => .theme().createDefaultFont(.themeMetrics().infoSheet_TitleFontSize, .Bold)
-    private mtd factFont()->*Font => .theme().createDefaultFont(.themeMetrics().infoSheet_FactFontSize, .Light)
-    private mtd tabFont()->*Font => .theme().createDefaultFont(.themeMetrics().defaultFontSize, .SemiBold)
-    private mtd footFont()->*Font => .theme().createDefaultFont(.themeMetrics().defaultFontSize - 1)
+    private mtd titleFont()->*Font       => .theme().createDefaultFont(.themeMetrics().infoSheet_TitleFontSize, .Bold)
+    private mtd factFont()->*Font        => .theme().createDefaultFont(.themeMetrics().infoSheet_FactFontSize, .Light)
+    private mtd tabFont()->*Font         => .theme().createDefaultFont(.themeMetrics().defaultFontSize, .SemiBold)
+    private mtd footFont()->*Font        => .theme().createDefaultFont(.themeMetrics().defaultFontSize - 1)
     private mtd identityGlyphSize()->f32 => .themeMetrics().defaultFontSize + 1
-    private mtd noteIndent()->f32 => .themeMetrics().iconText_Margin + 6
+    private mtd noteIndent()->f32        => .themeMetrics().iconText_Margin + 6
 
     // Reports whether the picture stands at the left of the title.
     private mtd besidePicture()->bool => .beside and .picture.isValid() and .picturePage == .pageIndex

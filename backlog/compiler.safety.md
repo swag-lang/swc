@@ -193,9 +193,10 @@ is the current scorecard.
   `writesFieldsComplete` marker lets the backend preserve alias provenance through bodyless calls
   for fields outside that complete list. An incomplete or unavailable summary remains
   conservative. Consumer regressions verify a no-write API preserves release diagnostics and a
-  writer of `data` does not suppress a release through `other`. Replacement and
-  refill-before-release cases keep aliases to the old allocation valid. Globals and automatic reset
-  inference remain unsolved. Aggregate `into` effects deliberately omit the complete-write marker
+  writer of `data` does not suppress a release through `other`; a wrapper API exports both effects
+  together and the consumer keeps `data` usable while diagnosing the released `other`. Replacement
+  and refill-before-release cases keep aliases to the old allocation valid. Globals and automatic
+  reset inference remain unsolved. Aggregate `into` effects deliberately omit the complete-write marker
   when their field set cannot be proven. Linux `release-safe` validation passes the complete
   `workspace` suite (56/56 stages), the complete `sanity` suite, the focused `use_after_free.swg`
   corpus from the preceding validation pass, and 1,699 C++ unit tests.

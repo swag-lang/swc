@@ -226,6 +226,13 @@ func depUafInferredReleaseOther(node: *DepUafNode)
     depUafInferredReleasePointer(node.other)
 }
 
+#[Swag.NoInline]
+func depUafWriteDataThenReleaseOther(node: *DepUafNode)
+{
+    depUafWriteDataCarrier(node)
+    depUafInferredReleaseOther(node)
+}
+
 func depUafInferredReleaseField(node: *DepUafNode)
 {
     var req: Swag.AllocatorRequest

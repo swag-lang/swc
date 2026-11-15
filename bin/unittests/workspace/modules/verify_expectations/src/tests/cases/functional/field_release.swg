@@ -18,6 +18,30 @@ func depUafConsumerWriteDataThenReleaseOther(node: *DepUafNode)
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
+func depUafConsumerWrappedWriteDataThenReleaseOther(node: *DepUafNode)
+{
+    depUafWriteDataThenReleaseOther(node)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))
+    node.padding = 0
+    node.data = cast(*s32, Memory.alloc(#sizeof(s32)))
+    node.other = cast(*s32, Memory.alloc(#sizeof(s32)))
+    let oldData = node.data
+    let oldOther = node.other
+    depUafConsumerWrappedWriteDataThenReleaseOther(node)
+    let dataValue = oldData[]
+    discard dataValue
+    let otherValue = node.other[]    // swc-expected-error {{sanity_err_use_after_free}}
+    discard otherValue
+    let oldOtherValue = oldOther[]   // swc-expected-error {{sanity_err_use_after_free}}
+    discard oldOtherValue
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     let node = cast(*DepUafNode, Memory.alloc(#sizeof(DepUafNode)))

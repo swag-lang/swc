@@ -160,3 +160,12 @@ licence; this derived package exercises genuine ODF saved strings, styles and ge
   headless `--convert-to ods:calc8`.
 - SHA-256: `b1c87161311b219b1e1e18d514e78d87e7a0b0612813095b13839a0b7819831e`
 - License: Apache License 2.0, as for the source workbook above.
+
+`viewer.poi-sample.odp` is a LibreOffice Impress conversion of `viewer.poi-sample.pptx` listed
+above (Apache POI test corpus, Apache License 2.0). It retains that presentation's slide and note
+content under the source licence and exercises real Impress master/presentation styles.
+
+- Producer: LibreOfficeDev 26.8.0.0.alpha0, build 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5;
+  headless `--convert-to odp:impress8`.
+- SHA-256: `0ff4fc9ee286c9a642666de4ac3a30d30e40ea43ab4436e470c0e357fd09d49a`
+- License: Apache License 2.0, as for the source presentation above.

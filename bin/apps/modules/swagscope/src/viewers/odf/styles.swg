@@ -3,18 +3,19 @@
 
 using Core
 
-enum StyleFamily { Other, Paragraph, Text, Table, Cell, Graphic }
+enum StyleFamily { Other, Paragraph, Text, Table, Cell, Graphic, Presentation }
 
 private func familyOf(value: string)->StyleFamily
 {
     switch value
     {
-    case "paragraph":  return .Paragraph
-    case "text":       return .Text
-    case "table":      return .Table
-    case "table-cell": return .Cell
-    case "graphic":    return .Graphic
-    default:           return .Other
+    case "paragraph":    return .Paragraph
+    case "text":         return .Text
+    case "table":        return .Table
+    case "table-cell":   return .Cell
+    case "presentation": return .Presentation
+    case "graphic":      return .Graphic
+    default:             return .Other
     }
 }
 
@@ -35,7 +36,7 @@ struct StyleCatalog
     fonts:     HashTable'(String, String)
     styles:    Array'NamedStyle
     index:     HashTable'(String, u64)
-    defaults:  [6] Properties
+    defaults:  [7] Properties
     lists:     HashTable'(String, bool)
     pageColor: String
 }

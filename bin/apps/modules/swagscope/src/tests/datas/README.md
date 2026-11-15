@@ -9,7 +9,7 @@ directory may retain older names when those files serve a particular screenshot 
 The executable fixture matrix includes every `viewer.*` file in this directory and is
 [`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg). It checks that every listed
 file exists and selects the expected reader. The image cases also decode their payloads;
-format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF, XLSX and ODS content and negative cases. The
+format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF, XLSX, ODS, PPTX and ODP content and negative cases. The
 registry smoke opens one file for each viewer. A selector check alone does not prove that every
 legal variation of a format can be read.
 
@@ -18,7 +18,7 @@ selection correctly offers Text first for those bytes.
 
 | Family | Canonical fixtures | Variants exercised here |
 | --- | --- | --- |
-| Documents | `viewer.pdf`, `.epub`, `.docx`, `.odt`, `.rtf`, `.xlsx`, `.ods`, `.pptx`, `.cbz` | PDF object streams, rotation, JPEG and CCITT images; nested EPUB/CBZ paths; licensed 3-page and 15-page comics; split and formatted DOCX runs and an embedded photo with a blocked external reference; RTF Unicode, tables, ignorable destinations and damage; inline XLSX strings; relative and package-absolute slide/sheet relationships; slide order; damaged packages |
+| Documents | `viewer.pdf`, `.epub`, `.docx`, `.odt`, `.rtf`, `.xlsx`, `.ods`, `.pptx`, `.odp`, `.cbz` | PDF object streams, rotation, JPEG and CCITT images; nested EPUB/CBZ paths; licensed 3-page and 15-page comics; split and formatted DOCX runs and an embedded photo with a blocked external reference; RTF Unicode, tables, ignorable destinations and damage; inline XLSX strings; relative and package-absolute slide/sheet relationships; slide order; damaged packages |
 | Images | `viewer.svg`, `.bmp`, `.cur`, `.dds`, `.exr`, `.gif`, `.ico`, `.jpg`, `.jpeg`, `.ktx2`, `.png`, `.apng`, `.psd`, `.qoi`, `.tga`, `.tif`, `.tiff`, `.webp` | CMYK and progressive JPEG; GIF, APNG and WebP animation |
 | Sound | `viewer.wav`, `.flac`, `.mp3`, `.aac`, `.ac3`, `.eac3`, `.ec3`, `.dts`, `.ogg`, `.oga`, `.opus` | Surround FLAC/E-AC-3 and hybrid Opus |
 | Video | `viewer.mp4`, `.m4v`, `.mov`, `.mkv`, `.avi`, `.y4m` | H.264 and HEVC in MP4, raw AVI and RV40 MKV |
@@ -26,9 +26,8 @@ selection correctly offers Text first for those bytes.
 | Code and plain text | `viewer.cpp`, `.json`, `.xml`, `.py`, `.swg`, `.txt`, `.rst` | Syntax families and common prose; many spelling aliases share these parsers |
 | Font and archive | `viewer.ttf`, `.ttc`, `.zip` | Collection wrapper; existing archive navigation fixture |
 
-`viewer.odp` and `.jar` exercise the Archive fallback and do **not**
-mean that Swag Scope reads their document content. ODP remains in the backlog for a dedicated
-reader. Other ZIP package suffixes currently share the same Archive implementation; they
+`viewer.jar` exercises the Archive fallback and does **not** mean that Swag Scope reads
+its executable content. Other ZIP package suffixes currently share the same Archive implementation; they
 need genuine representative packages before entering this matrix. The many Code and Basic Text
 extension aliases need selector coverage, but do not each need a duplicate payload unless
 their parser or display behavior differs.
@@ -103,3 +102,13 @@ licensed `viewer.monthly-budget.xlsx` corpus file. They were generated with Libr
 formula caches, row/column geometry, repeated unused cells, merges and sheet visibility. The
 source XLSX files remain the reproducible inputs; controlled ODS packages supplement them for
 saved active-sheet settings, sparse million-row addresses, repeated column defaults and damage.
+
+`viewer.odp` is a repository-authored 10-by-5.625-inch presentation exported from a flat ODF
+input by LibreOfficeDev 26.8.0.0.alpha0 (build 2c87e51eeaa2b413ff4ae097b2705eea1995d8e5),
+using headless `--convert-to odp:impress8`. Its two slides contain green 28-point titles,
+18-point prose with bold emphasis, a green rectangle with white text, the existing `viewer.jpg`
+photo in a 4-by-3-inch frame, and speaker-only notes. Photo provenance is unchanged.
+`viewer.poi-sample.odp` is an Impress conversion of the licensed `viewer.poi-sample.pptx` corpus
+file using the same producer/filter; it exercises presentation style parents, mixed character
+sizes, lists, master placeholders and notes. Controlled packages supplement these producer files
+for master visibility, style resets, hidden slides, omissions, malformed XML and expansion limits.

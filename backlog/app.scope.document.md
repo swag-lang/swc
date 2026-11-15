@@ -388,16 +388,16 @@ integration around those engines.
   assets can be saved without silent conversion, filenames are sanitized, and unsupported or
   lossy extraction is explained.
 
-### app.scope.document.030 — OpenDocument needs Impress reading and fuller Writer/Calc fidelity
+### app.scope.document.032 — OpenDocument reading needs fuller Writer/Calc/Impress fidelity
 
-- Evidence: ODT projects styled prose, headings, lists, simple tables and raster pictures, but
-  omits physical pages, headers/footers, notes, comments and complex drawings. ODS uses the native
-  workbook grid with saved formatted strings, inherited cell paint, common geometry and explicit
-  hidden-range reveal; raw typed values lack full ODF number-style reconstruction. Charts,
-  annotations, advanced geometry and exact font metrics are simplified. ODP still opens as archive
-  structure without slide content.
-- Next: reuse the presentation reading model for ODP, then cover ODS number styles when display
-  strings are absent and expose the unsupported Writer/Calc components.
-- Done when: genuine LibreOffice files open as text, sheets or slides first; saved values,
-  reading order, navigation, common styling and pictures survive; unsupported components remain
-  explicit; cancellation and package-expansion budgets hold on large and damaged files.
+- Evidence: ODT omits physical pages, headers/footers, notes, comments and complex drawings.
+  ODS uses saved formatted strings; raw typed values lack full ODF number-style reconstruction.
+  Its charts, annotations, advanced geometry and exact font metrics are simplified. ODP fits
+  common positioned text, rectangles and raster pictures with basic style/master inheritance,
+  but group transforms and unsupported drawings fall back to text; notes, media, gradients,
+  full master placeholder geometry and complex shapes are not reproduced. Slides are loaded eagerly.
+- Next: cover ODS number styles when saved display strings are absent, expose unsupported
+  components explicitly, deepen Impress master/shape fidelity and defer off-screen slide work.
+- Done when: genuine LibreOffice files retain common authored layout and components; notes
+  can be inspected separately; unsupported content remains explicit; navigation stays responsive
+  and cancellation/package budgets hold on large and damaged documents.

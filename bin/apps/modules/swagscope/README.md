@@ -194,6 +194,15 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   512 columns and one million row addresses. The grid shares its selection, copy, navigation and
   explicit hidden-range reveal with XLSX. Formulas and external links never run. Charts, drawings,
   annotations, exact font metrics and advanced ODF number-style reconstruction are not reproduced.
+- `OpenDocument Presentation` reads ODP through the same fitted canvas, title outline, slide
+  navigation and text mode. Authored page dimensions, common graphic/presentation/text style
+  inheritance, basic master backgrounds/static shapes, positioned text boxes, rectangles and
+  bounded raster pictures survive. Master placeholder samples and speaker notes stay out of the
+  slide; hidden slides are labelled. The slide can hide master objects or its background.
+  Unsupported transforms and drawings use an explicit simplified reading layout; unavailable
+  images and embedded objects are named. Animations, media, charts, gradients, advanced shapes,
+  full master placeholder geometry and exact font reproduction are not supported. Macros,
+  actions and external links never execute or fetch resources.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
@@ -249,7 +258,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer, as quiet rows: glyph, name, a thin Arc bar of how well the member
-  packed, its size and date in mono. EPUB, CBZ, DOCX, ODT, XLSX, ODS and PPTX offer their reading viewers first;
+  packed, its size and date in mono. EPUB, CBZ, DOCX, ODT, XLSX, ODS, PPTX and ODP offer their reading viewers first;
   Archive remains available to inspect their package members. The count in the bottom line adds the packed and extracted
   weights; the information sheet gives a member's sizes, compression and CRC-32, and opens it.
   Opening an entry asynchronously prepares a bounded temporary

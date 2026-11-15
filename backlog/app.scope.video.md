@@ -181,3 +181,13 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 - Done when: Swag Scope offers a sound-only view for every decodable track when no picture
   track can be decoded, states that the picture is unavailable, and keeps ordinary video
   playback unchanged when both sides are supported.
+
+### app.scope.video.017 — First-frame waits can stall during a full viewer session
+
+- Evidence: the H.264 replacement scenario in `viewers/video/video.swg` can remain open with
+  `awaitingFrame` true, playback stopped and no failure message during a full headless application
+  selection. The same video file's focused tests can complete successfully in a fresh process.
+- Next: reproduce the preceding viewer/decoder lifecycle and inspect first-frame publication,
+  cancellation and scheduler ownership; retain the full-session ordering in the regression.
+- Done when: repeated opens always publish a frame or a bounded failure, no first-frame wait
+  leaves unfinished decoder work behind, and both isolated and mixed-viewer sessions finish.

@@ -29,3 +29,37 @@ func openPackage(fileName, mediaType, invalid, tooLarge, encrypted: string)->Arc
 
     return archive
 }
+
+// Safe embedded raster resolution shared by document readers; decoded URLs remain ZIP-local.
+func imageHtml(fileName: string, archive: const *Archive.Zip, path: string, width, height: u32, description: string, encodedBytes: *u64)->String
+{
+    // ODF image URLs may be escaped, but every decoded component still stays inside the ZIP.
+    let bytesPath = catch Net.Url.decodeComponent(path) { return {}; }
+    let decoded   = cast(string, bytesPath.toSlice())
+    if Utf8.contains(decoded, ":") do
+        return {}
+    let resolved = Package.resolvePath("", decoded)
+    if resolved.isEmpty() do
+        return {}
+    let extension     = Path.lowercaseExtension(resolved)
+    var media: string = ""
+    switch extension.toString()
+    {
+    case ".jpg", ".jpeg": media = "image/jpeg"
+    case ".png":          media = "image/png"
+    case ".gif":          media = "image/gif"
+    case ".webp":         media = "image/webp"
+    default:              return {}
+    }
+
+    let entry = archive.tryFindEntry(resolved)
+    if not entry or
+       entry.uncompressedSize > 2 * 1024 * 1024 or
+       encodedBytes[] + entry.uncompressedSize > 8 * 1024 * 1024 do
+        return {}
+    let bytes = catch Archive.Zip.loadEntry(fileName, entry) { return {}; }
+    let html  = Package.embeddedImageHtml(bytes.toSlice(), media, width, height, description)
+    if not html.isEmpty() do
+        encodedBytes[] += bytes.count
+    return html
+}

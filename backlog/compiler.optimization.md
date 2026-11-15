@@ -167,10 +167,6 @@ new language syntax.
   invalidate its earlier private-frame proof. MemToReg now reconciles direct SP
   accesses with the captured frame using shared CFG displacement facts when SP moves.
   PostRALoopHoist still owns a separate frame-object reachability model.
-- Evidence: nbody's five invariant mass-field loads remain blocked by unplaced
-  pointer writes into the escaped body array. An unused-GP floating-load cache
-  alone leaves all twelve native benchmark kernels unchanged; see the
-  [rejected experiment](../bench/disassembly/generated-code/20261022-three/README.md#rejected-floating-frame-cache-and-campaign-closure).
 - Next: reconcile the post-allocation object model with the shared proof without
   losing byte-range precision, including stable frame-derived pointer offsets
   and moving-SP paths, then use disjoint spaces in forwarding and value

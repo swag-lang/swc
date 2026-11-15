@@ -318,6 +318,42 @@ func refillNode(n: *UafNode)
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
+#[Swag.BorrowSummary(0, freesFields: "0:64617461")]
+func releaseNodeData(n: *UafNode)
+{
+    myFree(unwrap n.data, 4)
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#[Swag.BorrowSummary(0, freesFields: "0:64617461", resetsFields: "0:64617461")]
+func replaceNodeData(n: *UafNode)
+{
+    myFree(unwrap n.data, 4)
+    n.data = cast(*s32, myAlloc(4))
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
+    node.data = cast(*s32, myAlloc(4))
+    releaseNodeData(node)
+    let value = node.data[]     // swc-expected-error {{sanity_err_use_after_free}}
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
+    node.data = cast(*s32, myAlloc(4))
+    replaceNodeData(node)
+    let live = node.data
+    let value = live[]
+    discard value
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     let node = cast(*UafNode, myAlloc(16))

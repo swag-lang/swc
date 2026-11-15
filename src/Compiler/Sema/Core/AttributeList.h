@@ -104,6 +104,8 @@ struct AttributeList
     uint64_t storesIndirectIntoParamPairs = 0;
     uint64_t freesIndirectParamsMask      = 0;
     std::vector<BorrowFieldOrigin> returnFieldBorrows;
+    std::vector<BorrowFieldOrigin> freesParamFields;
+    std::vector<BorrowFieldOrigin> resetsParamFields;
 
     // Debug print options are rare, but every scope copies its attribute list.
     // Keep their string storage in vectors instead of inflating each copied list.
@@ -139,6 +141,8 @@ struct AttributeList
                returnsPayloadParamsMask == 0 &&
                returnsStorageParamsMask == 0 &&
                returnFieldBorrows.empty() &&
+               freesParamFields.empty() &&
+               resetsParamFields.empty() &&
                !observesExternalBorrows.has_value() &&
                returnsIndirectParamsMask == 0 &&
                storesIndirectParamsMask == 0 &&

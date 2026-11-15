@@ -1968,6 +1968,84 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             }
         }
 
+        // Field effects keep the carrier itself live while recording the fate of
+        // the pointer value it held. A write summary means the post-call field may
+        // contain a replacement, but copies made before the call are still stale.
+        if (calleeFn && ops)
+        {
+            const auto applyFieldEffects = [&](std::span<const SymbolFunction::ReturnFieldBorrow> effects) {
+                for (const auto& effect : effects)
+                {
+                    MicroReg argReg;
+                    if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, effect.paramIndex))
+                        continue;
+                    const SanitizerRegInfo* argInfo = findReg(state, argReg);
+                    if (!argInfo)
+                        continue;
+
+                    SanitizerLocation fieldLocation;
+                    bool haveLocation = false;
+                    const TypeInfo& paramType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), calleeFn->parameters()[effect.paramIndex]->typeRef());
+                    if (!paramType.isPointerOrReference())
+                        continue;
+                    const TypeInfo& payloadType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), paramType.payloadTypeRef());
+                    if (!payloadType.isStruct())
+                        continue;
+                    const SymbolStruct& payloadStruct = payloadType.payloadSymStruct();
+                    const SymbolVariable* field = nullptr;
+                    for (const SymbolVariable* candidate : payloadStruct.fields())
+                    {
+                        if (candidate && candidate->name(ctx()) == effect.fieldName)
+                        {
+                            field = candidate;
+                            break;
+                        }
+                    }
+                    if (!field)
+                        continue;
+
+                    if (argInfo->value.isStackAddr())
+                    {
+                        fieldLocation.fromSlot = true;
+                        fieldLocation.slot = argInfo->value.stackOffset;
+                        fieldLocation.offset = field->offset();
+                        haveLocation = true;
+                    }
+                    else if (argInfo->hasOriginSlot)
+                    {
+                        fieldLocation.fromSlot = true;
+                        fieldLocation.slot = argInfo->originSlot;
+                        fieldLocation.offset = field->offset();
+                        haveLocation = true;
+                    }
+                    else if (argInfo->hasAddressLocation)
+                    {
+                        fieldLocation = argInfo->addressLocation;
+                        fieldLocation.offset += field->offset();
+                        haveLocation = true;
+                    }
+                    if (!haveLocation)
+                        continue;
+
+                    state.regs.forEach([&](uint32_t packed, const SanitizerRegInfo& info) {
+                        if (info.hasOriginLocation && info.originLocation == fieldLocation)
+                        {
+                            newlyFreedRegs.push_back(MicroReg::fromPacked(packed));
+                        }
+                    });
+                    for (const auto& [slot, location] : state.aliasPtrLocations)
+                        if (location == fieldLocation)
+                            appendAliasClass(newlyFreed, state, slot);
+                    if (!calleeFn->hasResetParamField(effect.paramIndex, effect.fieldName))
+                    {
+                        newlyFreedLocations.push_back(fieldLocation);
+                    }
+                }
+            };
+            applyFieldEffects(calleeFn->freedParamFields());
+            applyFieldEffects(calleeFn->importedFreedParamFields());
+        }
+
         // A callee releasing the pointer STORED in the box it is handed leaves the box to
         // the callee, which may refill it: what is proven released is every other copy
         // of the pointer the box held - the frame slots and the virtual register proven

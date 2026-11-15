@@ -948,6 +948,58 @@ std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedRetur
     return attrs ? std::span<const ReturnFieldBorrow>(attrs->returnFieldBorrows) : std::span<const ReturnFieldBorrow>{};
 }
 
+namespace
+{
+    bool hasBorrowSummaryField(std::span<const SymbolFunction::ReturnFieldBorrow> fields, size_t paramIndex, std::string_view fieldName)
+    {
+        return std::ranges::any_of(fields, [paramIndex, fieldName](const auto& entry) {
+            return entry.paramIndex == paramIndex && entry.fieldName == fieldName;
+        });
+    }
+}
+
+bool SymbolFunction::hasFreedParamField(size_t paramIndex, std::string_view fieldName) const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return hasBorrowSummaryField(freedParamFields_, paramIndex, fieldName) || (attrs && hasBorrowSummaryField(attrs->freesParamFields, paramIndex, fieldName));
+}
+
+bool SymbolFunction::hasResetParamField(size_t paramIndex, std::string_view fieldName) const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return hasBorrowSummaryField(resetParamFields_, paramIndex, fieldName) || (attrs && hasBorrowSummaryField(attrs->resetsParamFields, paramIndex, fieldName));
+}
+
+void SymbolFunction::addFreedParamField(size_t paramIndex, std::string_view fieldName)
+{
+    if (paramIndex >= 64 || fieldName.empty())
+        return;
+    ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+    if (std::ranges::find(freedParamFields_, entry) == freedParamFields_.end())
+        freedParamFields_.push_back(std::move(entry));
+}
+
+void SymbolFunction::addResetParamField(size_t paramIndex, std::string_view fieldName)
+{
+    if (paramIndex >= 64 || fieldName.empty())
+        return;
+    ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+    if (std::ranges::find(resetParamFields_, entry) == resetParamFields_.end())
+        resetParamFields_.push_back(std::move(entry));
+}
+
+std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedFreedParamFields() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return attrs ? std::span<const ReturnFieldBorrow>(attrs->freesParamFields) : std::span<const ReturnFieldBorrow>{};
+}
+
+std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedResetParamFields() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return attrs ? std::span<const ReturnFieldBorrow>(attrs->resetsParamFields) : std::span<const ReturnFieldBorrow>{};
+}
+
 bool SymbolFunction::observesExternalBorrows() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();

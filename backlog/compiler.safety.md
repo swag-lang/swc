@@ -173,10 +173,17 @@ is the current scorecard.
   effects. A sound field summary has to mark aliases of the old pointer as released while leaving a
   field that the callee reset usable. A global needs the same before/after distinction. The summary
   also has to survive module API publication and unknown call targets.
-- Next: prototype a must-free and post-call-write summary keyed by parameter plus field path, and a
-  corresponding global summary. Check the alias relation against old local copies, sibling fields,
-  receiver resets, global resets, wrapper calls, and callees with unavailable bodies before
-  integrating it with `SanitizerState`.
+- Prototype: `BorrowSummary` now has `freesFields` and `resetsFields` entries for first-level
+  pointer fields, and caller-side sanitizer transfer distinguishes a released field from a reset
+  field. Same-module positive and reset-safe probes pass in Release-safe. A static-provider API
+  exports and imports both entries, but the consumer-side positive probe still misses the UAF;
+  remove that regression only after the imported location and pointer provenance are joined
+  correctly. Old local copies across a reset and global effects are not solved by this prototype.
+- Next: repair imported-call tracking, then infer these summaries from ordinary function bodies
+  instead of relying on a manually supplied summary. Extend the must-free/post-call-write proof
+  to field paths only when aliases and control flow remain sound, and handle globals, wrapper calls
+  and unavailable bodies. Check old local copies, sibling fields, receiver resets and global resets
+  before integrating the complete result with `SanitizerState`.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

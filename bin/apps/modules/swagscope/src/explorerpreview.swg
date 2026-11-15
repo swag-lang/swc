@@ -180,9 +180,9 @@ impl ExplorerPreview
                 if albumAudio(file)
                 {
                     if not localArtwork.isEmpty() do
-                        .image = catch .service.render(localArtwork, .settings)
+                        .image = catch .service.render(localArtwork)
                     if not .image.isValid() do
-                        .image = catch .service.render(file, .settings)
+                        .image = catch .service.render(file)
                     if not .image.isValid() do
                         .image = Image.create(1, 1, .RGBA8)
                     let tags = SoundTags.read(file)
@@ -193,7 +193,7 @@ impl ExplorerPreview
                 {
                     // Online artwork does not depend on the local codec succeeding.
                     var failure: Swag.Error
-                    .image = catch .service.render(file, .settings) as failure
+                    .image = catch .service.render(file) as failure
                     .error = Viewer.failureText(failure.value())
                 }
 
@@ -207,7 +207,7 @@ impl ExplorerPreview
             var music:     OnlineMusic
             var musicTags: SoundTags
             var localDuration = thumbnailDuration(&.image)
-            var posterLoaded = false
+            var posterLoaded  = false
             if not localDuration and albumAudio(file) do
                 localDuration = localSoundDuration(file)
             var providerFailed    = false
@@ -227,7 +227,7 @@ impl ExplorerPreview
                         let poster = try movie.posterBytes()
                         if not poster.isEmpty()
                         {
-                            .image = try .renderOnlineImage(poster.toSlice())
+                            .image       = try .renderOnlineImage(poster.toSlice())
                             posterLoaded = .image.isValid()
                         }
                     }
@@ -271,13 +271,13 @@ impl ExplorerPreview
                 if albumAudio(file)
                 {
                     if not localArtwork.isEmpty() do
-                        .image = catch .service.render(localArtwork, .settings)
+                        .image = catch .service.render(localArtwork)
                     if not .image.isValid() do
                         .image = Image.create(1, 1, .RGBA8)
                 }
                 else
                 {
-                    .image = try .service.render(file, .settings)
+                    .image = try .service.render(file)
                 }
             }
 
@@ -291,6 +291,7 @@ impl ExplorerPreview
                     Viewers.Film.labelVideoInformation(&.image, &reader)
                 }
             }
+
             if movie.found() and .image.isValid() do
                 movie.label(&.image)
             elif not music.id.isEmpty() and .image.isValid() do

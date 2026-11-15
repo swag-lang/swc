@@ -72,7 +72,8 @@ sound that was playing pauses when another viewer takes its place, and is still 
 reader comes back to it.
 
 The title button beside Information opens every viewer offered for the current file. Its first
-entry is marked Default, set apart from the alternatives, and clears a remembered alternative.
+entry is marked Default, set apart from the alternatives, and clears the current file's temporary
+alternative.
 The button's icon turns orange while an alternative is in use. The button remains available when
 the Archive alternative is exploring an EPUB, CBZ or other packaged file, so the original reader
 can be restored from that folder page.
@@ -84,11 +85,10 @@ container or HTML page all reach the viewer that can open them. A probe sees whe
 viewer already claimed the file, which is how a signature states a fact while a last-resort reader
 declines what a format viewer took.
 
-The first choice is the default, and choosing another one is remembered for that kind of file: the
-choice is kept against the viewer the file would have opened in, so turning one video into bytes
-opens the next video in bytes whatever container it arrives in. Choosing the ordinary viewer back
-removes the decision rather than recording one more. The stable key, not the display name, is what
-the persisted state carries.
+The first choice is the default. An alternative is remembered only for that exact file in the
+current window session, including when returning to it or reloading it. Other files use their
+default viewer. Choosing Default removes the temporary exception. Viewer overrides are never
+saved, and old type-wide associations are ignored when reading application state.
 
 Basic text is available for a readable text file no other viewer answers for, for the text formats
 it owns by name, and for every format whose descriptor declares that its bytes are text: Markdown,
@@ -298,7 +298,8 @@ Downloads folders. Folder availability is checked in the background so an offlin
 delays the home. Older files are in the lens under `/`.
 
 The application stores its palette, language, window state, recent files, bounded recent-folder
-history, and remembered viewer choices in the user's application-data folder. It toggles full
+history in the user's application-data folder. Viewer overrides stay with one file during the
+current window session; another file or a new launch uses its default viewer. It toggles full
 screen with F11 — full screen hides every panel, and the viewer's controls still come with the
 pointer — navigates the current folder with Left/Right, reloads with F5, opens with Ctrl+O,
 and accepts one file dropped anywhere on the surface. The lens shows each file's viewer glyph
@@ -388,8 +389,8 @@ subtitles. The host stores the shared policy and handles file continuation; it c
 playback button or options.
 
 The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
-plugin can open. The key is never translated or reused because remembered viewer choices persist
-it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
+plugin can open. The key is never translated or reused because reading-state records refer to it.
+A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `ViewerIcons`
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
 Keep every viewer's tests under `src/tests/cases/`, separated by type; preserve viewer-specific

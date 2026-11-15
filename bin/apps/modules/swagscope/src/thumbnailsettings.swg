@@ -2,10 +2,9 @@
 
 using Core, Gui
 
-// The preview cache distinguishes viewer selection and the source of media artwork.
+// The preview cache distinguishes the source of media artwork.
 struct ThumbnailSettings
 {
-    preferences:         Array'ViewerPreference
     onlineMovies:        bool
     localArtworkOnly:    bool
     onlineMusic:         bool
@@ -26,7 +25,6 @@ impl ThumbnailSettings
                  previewEpoch: u64 = 0)->String
     {
         var settings: ThumbnailSettings
-        settings.preferences      = window.preferences
         settings.onlineMovies     = window.onlineMovies
         settings.localArtworkOnly = localArtworkOnly
         settings.onlineMusic      = window.onlineMusic
@@ -68,13 +66,6 @@ impl ThumbnailSettings
         let settings = try decoder.readAll'ThumbnailSettings(cast(const [..] u8, bytes))
         defer Memory.delete(settings)
         return settings[]
-    }
-
-    mtd usesDefaultViewer(key: string)->bool
-    {
-        for &preference in .preferences where preference.kind == key do
-            return preference.viewer == key
-        return true
     }
 
     // A file can be replaced after the listing was populated and before its job starts.

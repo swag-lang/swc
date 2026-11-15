@@ -207,6 +207,15 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         Swag.require(window.isExploring() and explorer.listing.isArchive)
         Swag.require(window.viewerCaptionButton.isLocallyVisible())
         Swag.require(window.viewerCaptionButton.iconColor == window.themeColors().caution)
+        window.openFile(file)
+        completeQueuedViewerFile(&host, window)
+        completeExplorer(&host, explorer)
+        Swag.require(window.isExploring() and window.fileViewer(file) == "archive",
+                     Format.toString("exploring %, choice %, file %, stored %",
+                                     window.isExploring(),
+                                     window.fileViewer(file),
+                                     file,
+                                     window.fileViewerChoices.isEmpty() ? "" : window.fileViewerChoices[0].file.toString()))
         window.lens.open(appStrings().lens_ViewAs)
         Swag.require(lensHasEntry(window, window.index.plugins[window.index.choices(file)[0].pluginIndex].displayName()))
         window.lens.close()
@@ -225,8 +234,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         completeQueuedViewerFile(&host, window)
         Swag.require(not window.isExploring() and window.choices[window.activeChoiceIndex].key == native)
         Swag.require(window.viewerCaptionButton.iconColor == Color{})
-        for preference in window.preferences do
-            Swag.require(preference.kind != native)
+        Swag.require(window.fileViewer(file) == "")
         window.closeFile()
         host.pump()
     }

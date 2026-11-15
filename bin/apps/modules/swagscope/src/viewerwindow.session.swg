@@ -138,9 +138,10 @@ impl ViewerWindow
                 return
             }
 
-            var archive = not classified.choices.isEmpty() and classified.choices[0].key == "archive"
-            for preference in .preferences where preference.kind == "archive" and preference.viewer != "archive" do
-                archive = false
+            var archive      = not classified.choices.isEmpty() and classified.choices[0].key == "archive"
+            let chosenViewer = .fileViewer(classified.absoluteFileName)
+            for choice in classified.choices where choice.key == chosenViewer do
+                archive = chosenViewer == "archive"
             if not .thumbnailMode and (classified.isDirectory or archive)
             {
                 .home.hide()
@@ -730,72 +731,62 @@ impl ViewerWindow
         .readingState.restoring = false
         if not .thumbnailMode and index < .choices.count and .choices[index].key == "archive"
         {
-            .rememberPreferredViewer(index)
+            .rememberFileViewer(index)
             .openExplorer(.currentFile)
             return
         }
 
         if index == .activeChoiceIndex
         {
-            .rememberPreferredViewer(index)
+            .rememberFileViewer(index)
             return
         }
 
         if not .activateChoice(index) do
             return
-        .rememberPreferredViewer(index)
+        .rememberFileViewer(index)
     }
 
-    // Records which viewer the reader picked for the kind of file that is open.
-    //
-    // Only a choice made at the selector reaches this: a viewer the application fell back to
-    // because the preferred one refused the file is an accident of that file, and remembering it
-    // would answer for every file of the kind.
-    private mtd rememberPreferredViewer(index: u32)
+    // Only explicit selector choices belong to this file's session; automatic fallbacks do not.
+    private mtd rememberFileViewer(index: u32)
     {
-        if index >= .choices.count do
-            return
-        .setPreferredViewer(.choices[0].key, .choices[index].key)
+        if index < .choices.count do
+            .setFileViewer(.currentFile, .choices[0].key, .choices[index].key)
     }
 
-    // A kind opening in its own viewer is what the application does anyway. Picking it again
-    // removes the remembered alternative, including one chosen from an archive explorer.
-    mtd setPreferredViewer(kind, viewer: string)
+    // Choosing the default removes the exception. No viewer association reaches saved state.
+    mtd setFileViewer(file, defaultViewer, viewer: string)
     {
-        let isDefault = kind == viewer
-
-        for &one, entry in .preferences where one.kind == kind
+        var path = String.from(file)
+        Path.normalize(&path)
+        for &one, entry in .fileViewerChoices where Path.equals(one.file, path)
         {
-            if one.viewer == viewer do
-                return
-            if isDefault do
-                .preferences.removeAtOrdered(entry)
+            if viewer == defaultViewer do
+                .fileViewerChoices.removeAtOrdered(entry)
             else do
                 one.viewer = viewer
-            catch .saveState()
             return
         }
 
-        if isDefault do
-            return
-        .preferences.add(ViewerPreference{kind, viewer})
-        catch .saveState()
+        if viewer != defaultViewer do
+            .fileViewerChoices.add(ViewerFileChoice{#move path, viewer})
     }
 
-    // Returns the viewer the reader last chose for the kind of the open file, or the first one.
+    mtd const fileViewer(file: string)->string
+    {
+        var path = String.from(file)
+        Path.normalize(&path)
+        for &one in .fileViewerChoices where Path.equals(one.file, path) do
+            return one.viewer.toString()
+        return ""
+    }
+
+    // A missing or no-longer-applicable session choice leaves the classified default in charge.
     private mtd preferredChoiceIndex()->u32
     {
-        if .choices.isEmpty() do
-            return 0
-
-        let kind = .choices[0].key.toString()
-        for one in .preferences where one.kind == kind
-        {
-            for choice, index in .choices where choice.key == one.viewer do
-                return cast(u32, index)
-            break
-        }
-
+        let viewer = .fileViewer(.currentFile)
+        for choice, index in .choices where choice.key == viewer do
+            return cast(u32, index)
         return 0
     }
 
@@ -805,8 +796,8 @@ impl ViewerWindow
     }
 
     // Opens a file whose classification has finished: watches it for changes, fills the viewer
-    // selector, and activates the preferred viewer, or the one of the reloaded reading state, with
-    // plain text as the fallback. `remember` records it in the recent files and folders.
+    // selector, and activates this file's session choice or its default, with plain text as the
+    // fallback. `remember` records it in the recent files and folders.
     private mtd openClassifiedFile(classified: #move ViewerClassifiedFile, remember: bool)
     {
         .home.hide()
@@ -829,11 +820,6 @@ impl ViewerWindow
         .instances.resize(.choices.count)
 
         var selected = .preferredChoiceIndex()
-        if .reloading
-        {
-            for choice, index in .choices where choice.key == .readingState.viewer do
-                selected = cast(u32, index)
-        }
 
         if not .activateChoice(selected)
         {

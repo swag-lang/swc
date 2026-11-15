@@ -163,7 +163,8 @@ impl Undo
     //
     // Pure translations, reorderings, and grouping keep their pixels. Everything that
     // changes what a form paints re-renders it — and the image forms bake the capture
-    // pixels under them, so a move or a background change re-renders those too.
+    // pixels under them, so a move re-renders those it moved, and a background change
+    // re-renders them all.
     mtd invalidateFormCaches()
     {
         let capture = unwrap .capture
@@ -178,7 +179,10 @@ impl Undo
 
         case .OffsetSelection, .AlignLeft, .AlignCenter,
              .AlignRight, .AlignTop, .AlignMiddle, .AlignBottom:
-            capture.invalidateImageFormCaches()
+            foreachSelected'FormImage(capture, .selection)
+            {
+                capture.invalidateFormCache(itf)
+            }
 
         case .SetTypedValue, .SetFormFromModel, .SetText, .SetFont,
              .SetFontStyle, .SetImageInside, .ResetRotation:

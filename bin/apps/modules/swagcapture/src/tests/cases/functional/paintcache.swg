@@ -257,3 +257,33 @@ func testPopulate(capture: *Capture)
     let inside = exported.pixelColor(120, 80)
     Swag.require(inside.b > 90 and inside.r > 90 and inside.g < 40)
 }
+
+// Moving a selection re-renders the image forms that moved, whose pixels come from the
+// background under them, and keeps the retained rendering of an effect left in place: the
+// background it shows did not change.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+    let still = testAddImage(f.capture, 200, 150, 80, 60)
+    still.kind = .Blur
+    let moved = testAddImage(f.capture, 20, 20, 60, 40)
+    moved.kind = .Pixelate
+    discard testAddShape(f.capture, 120, 20, 50, 30)
+    discard f.gui.render(f.main)
+
+    let stillCache = unwrap f.capture.findFormCache(still)
+    let movedCache = unwrap f.capture.findFormCache(moved)
+    Swag.require(not stillCache.dirty and not movedCache.dirty)
+
+    f.capture.selection.add(1)
+    f.capture.selection.add(2)
+    with let undo = f.capture.newUndo(.OffsetSelection)
+    {
+        .newPosX = 10
+        .newPosY = 5
+    }
+    f.capture.pushUndo(undo)
+    Swag.require(movedCache.dirty and not stillCache.dirty)
+}

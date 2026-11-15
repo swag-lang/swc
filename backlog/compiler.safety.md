@@ -165,8 +165,18 @@ is the current scorecard.
   remains empty on return. The missing proof is negative: the callee did not restore storage
   reachable from the caller. Establishing it requires excluding writes through aliases, so a
   release-only summary is insufficient.
-- Next: assess whether the required alias proof is affordable and identify the smallest sound summary
-  for callees whose bodies are unavailable.
+- Release-safe probes confirm the boundary: a helper freeing `n.data` or a global pointer is not
+  reported by the caller; counterparts that free and replace the field or global remain silent.
+  At a call, the sanitizer drops facts about heap locations when their owner is passed, because the
+  callee may change them. `freesParamsMask` summarizes a pointer parameter, and its indirect form
+  summarizes a pointer held in a pointer parameter; neither carries struct-field offsets or global
+  effects. A sound field summary has to mark aliases of the old pointer as released while leaving a
+  field that the callee reset usable. A global needs the same before/after distinction. The summary
+  also has to survive module API publication and unknown call targets.
+- Next: prototype a must-free and post-call-write summary keyed by parameter plus field path, and a
+  corresponding global summary. Check the alias relation against old local copies, sibling fields,
+  receiver resets, global resets, wrapper calls, and callees with unavailable bodies before
+  integrating it with `SanitizerState`.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

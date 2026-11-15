@@ -228,6 +228,12 @@ func depUafInferredReleaseWrapper2(node: *DepUafNode)
     depUafInferredReleaseWrapper(node)
 }
 
+func depUafInferredReleaseSecond(left: *DepUafNode, right: *DepUafNode)
+{
+    discard left
+    depUafInferredReleaseField(right)
+}
+
 #[Swag.BorrowSummary(0, freesIndirect: 1)]
 func depUafReleaseIndirect(pointer: **s32)
 {

@@ -198,6 +198,8 @@ namespace PostRaPeephole
     bool tryLoadIntoFirstFloatConsumer(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldAddMultiplyResultCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryRetargetLoadedValueBeforeOffset(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
+    bool tryRetargetOffsetSelectResult(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldMaskedIndexIncrement(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSignedFloorAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);
     bool tryFoldSignedCeilAverage(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

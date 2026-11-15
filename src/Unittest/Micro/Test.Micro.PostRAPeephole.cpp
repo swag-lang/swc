@@ -1360,6 +1360,146 @@ SWC_TEST_BEGIN(PostRAPeephole_ConstantBooleanSet_LiveFlagsKept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_LoadedValueOffsetKeepsBothResults)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value = MicroReg::intReg(8);
+    constexpr MicroReg saved = MicroReg::intReg(9);
+    constexpr MicroReg index = MicroReg::intReg(10);
+    constexpr MicroReg flags = MicroReg::intReg(11);
+    for (const bool indexed : {false, true})
+    {
+        for (const bool liveFlags : {false, true})
+        {
+            for (const uint64_t input : {0ull, 1ull, 0x7FFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull})
+            {
+                for (const int64_t offset : {-1ll, 1ll, 0x7FFFFFFFll, -0x80000000ll})
+                {
+                    for (const bool optimize : {false, true})
+                    {
+                        MicroBuilder builder(ctx);
+                        if (indexed)
+                        {
+                            builder.emitClearReg(index, MicroOpBits::B64);
+                            builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, index, 8, 0, MicroOpBits::B64);
+                        }
+                        else
+                            builder.emitLoadRegMem(value, base, 0, MicroOpBits::B64);
+                        builder.emitLoadRegReg(saved, value, MicroOpBits::B64);
+                        builder.emitOpBinaryRegImm(value, ApInt(static_cast<uint64_t>(offset), 64), MicroOp::Add, MicroOpBits::B64);
+                        if (!liveFlags)
+                            builder.emitCmpRegReg(value, saved, MicroOpBits::B64);
+                        builder.emitSetCondReg(flags, MicroCond::Below);
+                        builder.emitLoadMemReg(base, 8, saved, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+                        builder.emitLoadMemReg(base, 24, flags, MicroOpBits::B8);
+                        builder.emitRet();
+
+                        uint64_t values[] = {input, 0, 0, 0};
+                        SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+                        const uint64_t result   = input + static_cast<uint64_t>(offset);
+                        const bool     expected = result < input;
+                        if (values[1] != input || values[2] != result || values[3] != expected)
+                            return Result::Error;
+                        if (optimize && !liveFlags && hasLoadRegReg(builder, saved, value))
+                            return Result::Error;
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_OffsetSelectionUpdatesItsBaseDirectly)
+{
+    const MicroReg     base      = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg result    = MicroReg::intReg(8);
+    constexpr MicroReg other     = MicroReg::intReg(9);
+    constexpr MicroReg temporary = MicroReg::intReg(10);
+    constexpr MicroReg flags     = MicroReg::intReg(11);
+    constexpr MicroReg index     = MicroReg::intReg(0);
+    for (const MicroCond condition : {MicroCond::Below, MicroCond::Above, MicroCond::Less, MicroCond::Greater})
+    {
+        for (const bool swapCompare : {false, true})
+        {
+            for (uint32_t storeKind = 0; storeKind < 3; ++storeKind)
+            {
+                for (uint32_t liveValues = 0; liveValues < 4; ++liveValues)
+                {
+                    for (const uint64_t input : {0ull, 1ull, 0x7FFFFFFFFFFFFFFFull, 0xFFFFFFFFFFFFFFFFull})
+                    {
+                        std::array<uint64_t, 7> reference;
+                        for (const bool optimize : {false, true})
+                        {
+                            MicroBuilder builder(ctx);
+                            builder.emitLoadRegMem(result, base, 0, MicroOpBits::B64);
+                            builder.emitLoadRegMem(other, base, 8, MicroOpBits::B64);
+                            if (storeKind == 2)
+                                builder.emitClearReg(index, MicroOpBits::B64);
+                            builder.emitLoadAddressRegMem(temporary, result, 1, MicroOpBits::B64);
+                            builder.emitCmpRegReg(swapCompare ? other : temporary, swapCompare ? temporary : other, MicroOpBits::B64);
+                            builder.emitLoadCondRegReg(other, temporary, condition, MicroOpBits::B64);
+                            if (storeKind == 1)
+                                builder.emitLoadMemReg(base, 16, other, MicroOpBits::B64);
+                            else if (storeKind == 2)
+                                builder.emitLoadAmcMemReg(base, index, 8, 16, MicroOpBits::B64, other, MicroOpBits::B64);
+                            builder.emitLoadRegReg(result, other, MicroOpBits::B64);
+                            builder.emitSetCondReg(flags, MicroCond::Below);
+                            builder.emitLoadMemReg(base, 24, result, MicroOpBits::B64);
+                            if (liveValues & 1)
+                                builder.emitLoadMemReg(base, 32, other, MicroOpBits::B64);
+                            if (liveValues & 2)
+                                builder.emitLoadMemReg(base, 40, temporary, MicroOpBits::B64);
+                            builder.emitLoadMemReg(base, 48, flags, MicroOpBits::B8);
+                            builder.emitRet();
+
+                            std::array<uint64_t, 7> values = {input, 2};
+                            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                            if (!optimize)
+                                reference = values;
+                            else if (values != reference || (!liveValues && hasLoadRegReg(builder, result, other)))
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_LoadedValueOffsetPreservesPartialLoads)
+{
+    const MicroReg     base  = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg value = MicroReg::intReg(8);
+    constexpr MicroReg saved = MicroReg::intReg(9);
+    for (const MicroOpBits bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
+    {
+        for (const bool optimize : {false, true})
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegImm(value, ApInt(0x123456789ABCDEF0ull, 64), MicroOpBits::B64);
+            builder.emitLoadRegMem(value, base, 0, bits);
+            builder.emitLoadRegReg(saved, value, MicroOpBits::B64);
+            builder.emitOpBinaryRegImm(value, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 8, saved, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 16, value, MicroOpBits::B64);
+            builder.emitRet();
+
+            uint64_t values[] = {0xFFFFFFFFFFFFFFFFull, 0, 0};
+            SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
+            const uint64_t expected = bits == MicroOpBits::B32 ? 0xFFFFFFFFull : 0x123456789ABCDEF0ull | getBitsMask(bits);
+            if (values[1] != expected || values[2] != expected + 1)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_CommutesCopiedSumWithLaterCompare)
 {
     constexpr MicroReg sum     = MicroReg::intReg(0);

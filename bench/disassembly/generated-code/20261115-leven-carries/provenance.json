@@ -1,0 +1,62 @@
+{
+  "baseline_source_revision": "7e3f5b7d6c",
+  "candidate_source": "baseline production code plus the code and tests in this commit",
+  "baseline_compiler_sha256": "78ac7c602c88ebf84af0e9ae92867676c5ef09866d30f3e2d1fafbb2a7160475",
+  "candidate_compiler_sha256": "c4fe759e79ec834efa8fa341ecebdeedde7ba146f3603a9e66250a51982619ed",
+  "compiler_configuration": "devmode",
+  "program_configuration": "release",
+  "compiler_workers": 3,
+  "host": "Linux x86-64, GCC 14.2.0; internal Swag ABI and SysV foreign calls",
+  "timing_claim": false,
+  "checks": {
+    "wordfreq": {
+      "base": "7b770f1ec6d76eaac7d65de357b4714fd9d4cb1a5341d1ea48eade9a57f89adf",
+      "new": "633980dc83e3ff2c377f6755906912f2b0b4a770ac872b2293730b708d46815c"
+    },
+    "csvagg": {
+      "base": "a171b52853390c96c4f7943d5a6c333be9c5b40f8bd0b341512eaa6bb22cc22a",
+      "new": "83575612a7e20783a98e975235192ca6d60b5fd17f4a37ff349bd9241015fbcf"
+    },
+    "sha256": {
+      "base": "2891ed2def6a8914ef35162ee6016b4e725941e1a824698051858ad69c5159d2",
+      "new": "e4f3610d54175e65fc223996db6e833cd69c06c629dae8ab892ba0648b067136"
+    },
+    "dijkstra": {
+      "base": "7702aed84c44aff71c043e4ca4f83c0965503cfe89e8ef2d9983e4166616085a",
+      "new": "d0039372dc64bdc2732fa23d64f9f827407daa5fc9c503a055e938a5a4cb7e85"
+    },
+    "raytrace": {
+      "base": "40cdbc5d97e89e5a26a17c0e84f4e7d3e7d160ddad19a6c596641693ebd6c98c",
+      "new": "86e113da67ccbdda65a525478d6410622824eb8cd104147527dafc30ab934990"
+    },
+    "leven": {
+      "base": "506658c597018db2fd0377603d6cb77221e3e745b2140bb23de32b3a0253ef6e",
+      "new": "0e1eac188c18ef26841cf1705ac051aa788e5eea201e28daad7fb11482084c26"
+    },
+    "chacha": {
+      "base": "949cba9f5f17a4b50ce8ff733e44bb794063bcd266339df6c55f92ebe1af4534",
+      "new": "7bbb879a155a7e3b6e6f80aaa0cf49f0520ceaaafcded709808feefcd7d9ccee"
+    },
+    "nbody": {
+      "base": "523e7b446a849bf69b49f8a5f1c22386c85c0c1f7f9724f783555ea88564c570",
+      "new": "4077c5e6c3c0d56542fa88cdb8c3d82342b20dc7292af851075650de0d1b3fcd"
+    },
+    "fannkuch": {
+      "base": "f4e9aeefc693008ed3a0a478af122f9dbd5dd36357a68d1dc23481bbb220c55e",
+      "new": "247b0e2f02f2894aaed8964a1da187c4e26baae4b44090fd4c3efbb38ce82f57"
+    },
+    "binarytrees": {
+      "base": "a78e414accb469cddca9e327cf809b57c82c79852272a7f498221b13243e6f4e",
+      "new": "253812679baa3a1b3d169f6410663dd36de43992a07c95086f32aabcf10a8c53"
+    },
+    "lz77": {
+      "base": "2d63e46beb31d1a109aa3798e2c4a73e708647005fc8b4ced2605921982814cc",
+      "new": "b97facb7d7ab46844da101fd9856f878677ec28da89befc2b0c119bf3b7e5715"
+    },
+    "sort": {
+      "base": "09e3b86c18b27e02f866abd2b0c88d2dbf4e027f5cfec1c70a2e89d5d98ced5a",
+      "new": "e9a5d17a4b9adc3c600ca04f9eee2092ecf1b53805f6706f1199c49094c66720"
+    }
+  },
+  "baseline_note": "The baseline production objects precede these rewrites; its test object already contains the loaded-value offset checks, whose optimization assertion fails before the change."
+}

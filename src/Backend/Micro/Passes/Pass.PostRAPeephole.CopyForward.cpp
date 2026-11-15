@@ -1752,6 +1752,157 @@ namespace PostRaPeephole
         return true;
     }
 
+    // Keep the loaded value in its saved register, then form the offset value
+    // with LEA. This removes the carry copy without joining their live ranges.
+    bool tryRetargetLoadedValueBeforeOffset(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
+            return false;
+
+        const MicroInstrRef loadRef = ctx.previousRef(copyRef);
+        const MicroInstr*   load    = ctx.instruction(loadRef);
+        const auto*         loaded  = load ? load->ops(*ctx.operands) : nullptr;
+        if (!loaded || loaded[0].reg != copy[1].reg)
+            return false;
+        if (load->op == MicroInstrOpcode::LoadRegMem)
+        {
+            if (loaded[2].opBits != MicroOpBits::B64)
+                return false;
+        }
+        else if (load->op == MicroInstrOpcode::LoadAmcRegMem)
+        {
+            if (loaded[3].opBits != MicroOpBits::B64 || loaded[4].opBits != MicroOpBits::B64)
+                return false;
+        }
+        else
+            return false;
+
+        const MicroInstrRef addRef = ctx.nextRef(copyRef);
+        const MicroInstr*   add    = ctx.instruction(addRef);
+        const auto*         added  = add ? add->ops(*ctx.operands) : nullptr;
+        if (!add || add->op != MicroInstrOpcode::OpBinaryRegImm || !added || added[0].reg != copy[1].reg ||
+            added[1].opBits != MicroOpBits::B64 || added[2].microOp != MicroOp::Add || added[3].hasWideImmediateValue() ||
+            !ctx.areCpuFlagsDeadAfter(addRef))
+            return false;
+
+        MicroInstrOperand savedLoad[Action::K_MAX_OPS];
+        std::copy_n(loaded, load->numOperands, savedLoad);
+        savedLoad[0].reg = copy[0].reg;
+        MicroInstrOperand address[4] = {};
+        address[0].reg               = copy[1].reg;
+        address[1].reg               = copy[0].reg;
+        address[2].opBits            = MicroOpBits::B64;
+        address[3].valueU64          = added[3].valueU64;
+        MicroInstr probe;
+        probe.op          = MicroInstrOpcode::LoadAddrRegMem;
+        probe.numOperands = 4;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *load, savedLoad) ||
+            ctx.encoder->queryConformanceIssue(issue, probe, address) || !ctx.claimAll({loadRef, copyRef, addRef}))
+            return false;
+        ctx.emitRewrite(loadRef, load->op, std::span{savedLoad, load->numOperands});
+        ctx.emitRewrite(addRef, probe.op, address, true);
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
+    // Select directly into an offset's base when the copied result replaces
+    // that base. A store of the selected value may precede the final copy.
+    bool tryRetargetOffsetSelectResult(Context& ctx, const MicroInstrRef copyRef, const MicroInstr& copyInst)
+    {
+        if (ctx.isClaimed(copyRef) || !ctx.encoder)
+            return false;
+        const auto* copy = copyInst.ops(*ctx.operands);
+        if (!copy || copy[2].opBits != MicroOpBits::B64 || !copy[0].reg.isInt() || !copy[1].reg.isInt() ||
+            copy[0].reg == copy[1].reg || ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
+            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+            return false;
+        const MicroReg result = copy[0].reg;
+        const MicroReg other  = copy[1].reg;
+
+        MicroInstrRef       selectRef = ctx.previousRef(copyRef);
+        const MicroInstr*   select    = ctx.instruction(selectRef);
+        const MicroInstr*   store     = nullptr;
+        MicroInstrRef       storeRef;
+        MicroInstrOperand   stored[Action::K_MAX_OPS];
+        uint32_t            storeSource = 0;
+        if (select && (select->op == MicroInstrOpcode::LoadMemReg || select->op == MicroInstrOpcode::LoadAmcMemReg))
+        {
+            store       = select;
+            storeRef    = selectRef;
+            storeSource = store->op == MicroInstrOpcode::LoadMemReg ? 1 : 2;
+            const auto* ops = store->ops(*ctx.operands);
+            const auto bits = store->op == MicroInstrOpcode::LoadMemReg ? ops[2].opBits : ops[4].opBits;
+            if (ops[storeSource].reg != other || bits != MicroOpBits::B64)
+                return false;
+            for (uint32_t i = 0; i < storeSource; ++i)
+                if (ops[i].reg == result || ops[i].reg == other)
+                    return false;
+            std::copy_n(ops, store->numOperands, stored);
+            stored[storeSource].reg = result;
+            selectRef = ctx.previousRef(storeRef);
+            select    = ctx.instruction(selectRef);
+        }
+        const auto* selected = select ? select->ops(*ctx.operands) : nullptr;
+        if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
+            selected[0].reg != other || selected[3].opBits != MicroOpBits::B64)
+            return false;
+        const MicroReg temporary = selected[1].reg;
+        if (!temporary.isInt() || temporary == result || temporary == other || ctx.isPrivateFrameBase(temporary) ||
+            !ctx.isRegDeadAfterCurrent(temporary))
+            return false;
+        if (store)
+            for (uint32_t i = 0; i < storeSource; ++i)
+                if (stored[i].reg == temporary)
+                    return false;
+
+        const MicroInstrRef compareRef = ctx.previousRef(selectRef);
+        const MicroInstr*   compare    = ctx.instruction(compareRef);
+        const auto*         compared   = compare ? compare->ops(*ctx.operands) : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegReg || !compared || compared[2].opBits != MicroOpBits::B64 ||
+            !((compared[0].reg == temporary && compared[1].reg == other) || (compared[0].reg == other && compared[1].reg == temporary)))
+            return false;
+        const MicroInstrRef addressRef = ctx.previousRef(compareRef);
+        const MicroInstr*   address    = ctx.instruction(addressRef);
+        const auto*         offset     = address ? address->ops(*ctx.operands) : nullptr;
+        if (!address || address->op != MicroInstrOpcode::LoadAddrRegMem || !offset ||
+            offset[0].reg != temporary || offset[1].reg != result || offset[2].opBits != MicroOpBits::B64)
+            return false;
+
+        MicroInstrOperand rewrittenAddress[4] = {offset[0], offset[1], offset[2], offset[3]};
+        rewrittenAddress[0].reg               = result;
+        MicroInstrOperand rewrittenCompare[3] = {compared[0], compared[1], compared[2]};
+        rewrittenCompare[compared[0].reg == temporary ? 0 : 1].reg = result;
+        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[0].reg               = result;
+        rewrittenSelect[1].reg               = other;
+        if (!MicroPassHelpers::invertCondition(rewrittenSelect[2].cpuCond, selected[2].cpuCond))
+            return false;
+        MicroConformanceIssue issue;
+        if (ctx.encoder->queryConformanceIssue(issue, *address, rewrittenAddress) ||
+            ctx.encoder->queryConformanceIssue(issue, *compare, rewrittenCompare) ||
+            ctx.encoder->queryConformanceIssue(issue, *select, rewrittenSelect) ||
+            (store && ctx.encoder->queryConformanceIssue(issue, *store, stored)))
+            return false;
+        const std::array refs = {addressRef, compareRef, selectRef, copyRef};
+        if ((store && ctx.isClaimed(storeRef)) || !ctx.claimAll(refs))
+            return false;
+        ctx.emitRewrite(addressRef, address->op, rewrittenAddress);
+        ctx.emitRewrite(compareRef, compare->op, rewrittenCompare);
+        ctx.emitRewrite(selectRef, select->op, rewrittenSelect);
+        if (store)
+        {
+            ctx.claimAll({storeRef});
+            ctx.emitRewrite(storeRef, store->op, std::span{stored, store->numOperands});
+        }
+        ctx.emitErase(copyRef);
+        return true;
+    }
+
     // ADD followed by a result copy can compute directly in the copy's
     // destination when ABI-aware liveness proves its old result is dead.
     bool tryFoldIntegerAddResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)

@@ -632,3 +632,31 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
             Swag.require(entry.id != LensOpen and entry.id != LensSave)
     }
 }
+
+// A row of more choices than the lens is wide stays inside it, as a list that opens, in a window
+// wider than the lens and in a narrower one.
+#test
+{
+    for width in [800.0, 420.0]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(width, 600)
+        defer host.shutdown()
+
+        let lens = lensSetup(&host)
+        lens.addRestSource(func(results)
+        {
+            let section = results.addSection("Filter")
+            section.inline = true
+            for title in ["All Items", "Captures", "Recordings", "Screen Captures", "Imported Captures", "External Images", "Favorites"] do
+                discard section.addEntry(title)
+        })
+
+        lens.open()
+        let combo = lens.inlineChoices[0].combo
+        let body  = lens.body()
+        let inset = lens.themeMetrics().lens_TextInset
+        Swag.require(combo.isVisible())
+        Swag.require(combo.position.x >= body.x and combo.position.right() <= body.right() - inset + 1)
+    }
+}

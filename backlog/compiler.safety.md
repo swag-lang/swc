@@ -182,8 +182,10 @@ is the current scorecard.
   the existing reset-safe sanity case failed. A consumer probe with an explicit summary confirms
   the generated API imports the field effect and caller-side transfer resolves the receiver field,
   but the UAF still goes unreported: the pointer loaded from that field after the call has lost its
-  link to the field location. A non-zero field offset did not change the result. Old local copies
-  across a reset and global effects are not solved by this prototype.
+  link to the field location. A separate probe that copies the pointer before the call also misses,
+  so the summary transfer cannot yet relate either an existing alias or a reload to the field. A
+  non-zero field offset did not change the result. Old local copies across a reset and global effects
+  are not solved by this prototype.
 - Next: preserve the field location in pointer provenance across caller-side field loads, while
   keeping aliases and sibling fields distinct. Then infer must-free and post-call-write facts
   together so reset-safe methods remain silent, and handle globals, wrapper calls and unavailable

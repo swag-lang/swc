@@ -54,7 +54,7 @@ using Core, Gui, Pixel
     explorer.fillBreadcrumbMenu(count - 2, menu)
     Swag.require(menu.items.count == 2)
     let item = unwrap menu.items[1]
-    Swag.require(item.name.raw == "docs")
+    Swag.require(item.name.text == "docs")
     Swag.require(item.icon.isValid() and item.icon.color == host.theme.colors.arc)
     let folderTarget = String.from(unwrap item.id)
     Swag.require(folderTarget == Format.toString("%\n%", explorer.listing.path, "docs/"))

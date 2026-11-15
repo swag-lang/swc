@@ -23,9 +23,9 @@ private struct RunStyle
 
 private impl RunStyle
 {
-    mtd append(paragraph, run: *String, pageWidth: f32)
+    mtd append(paragraph, run: *String, pageWidth: f32, readerStyle: bool)
     {
-        if .size or not .color.isEmpty()
+        if not readerStyle and (.size or not .color.isEmpty())
         {
             paragraph[] += "<span style=\""
             if .size
@@ -56,7 +56,7 @@ private impl RunStyle
             paragraph[] += "</i>"
         if .bold do
             paragraph[] += "</b>"
-        if .size or not .color.isEmpty() do
+        if not readerStyle and (.size or not .color.isEmpty()) do
             paragraph[] += "</span>"
         run[].clear()
     }
@@ -64,7 +64,7 @@ private impl RunStyle
 
 impl SlideText
 {
-    func parse(source: string, images: *Package.ImageCatalog, theme: const *SlideTheme, pageWidth: f32)->SlideText fail
+    func parse(source: string, images: *Package.ImageCatalog, theme: const *SlideTheme, pageWidth: f32, readerStyle = false)->SlideText fail
     {
         func readPictureExtent(token: const *Package.Token, width, height: *u32)
         {
@@ -139,7 +139,7 @@ impl SlideText
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
-                    if isRgbHex(color) do
+                    if Package.isRgbHex(color) do
                         runStyle.color = color
                 }
                 elif token.isElement("t")
@@ -194,7 +194,7 @@ impl SlideText
 
                 if token.empty and token.isElement("r")
                 {
-                    runStyle.append(&paragraph, &run, pageWidth)
+                    runStyle.append(&paragraph, &run, pageWidth, readerStyle)
                     inRun = false
                 }
             }
@@ -204,7 +204,7 @@ impl SlideText
                 {
                     result.plainText += '\n'u8
                     if inRun do
-                        runStyle.append(&paragraph, &run, pageWidth)
+                        runStyle.append(&paragraph, &run, pageWidth, readerStyle)
                     result.html += "<p"
                     if alignment.count
                     {
@@ -221,7 +221,7 @@ impl SlideText
                 }
                 elif token.isElement("r")
                 {
-                    runStyle.append(&paragraph, &run, pageWidth)
+                    runStyle.append(&paragraph, &run, pageWidth, readerStyle)
                     inRun = false
                 }
                 elif token.isElement("rPr")

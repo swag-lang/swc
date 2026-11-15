@@ -130,6 +130,7 @@ impl ViewerWindow
             let requested          = String.from(.pendingFile)
             var classified         = .choiceLoad.finish()
             .pendingFile.clear()
+            .privacy.track(classified.absoluteFileName, classified.privacy)
             if not classified.exists
             {
                 .showEmpty(appStrings().ui_DropTitle)

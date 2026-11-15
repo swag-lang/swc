@@ -68,7 +68,7 @@ internal func assertScopeAnchoredMenuWith(host: *Testing.HeadlessHost, window: *
                 Swag.require(item.icon.isValid(), item.id)
         if sheet do
             for &row in sheet.page.rows where row.kind == .Action or row.kind == .Link or row.kind == .Toggle do
-                Swag.require(row.icon.isValid(), row.label.raw)
+                Swag.require(row.icon.isValid(), row.label.text)
         host.finishAnimations()
         var image = host.render(&host.surfaceWnd)
         assertScopeImageGolden(&image, golden)
@@ -111,8 +111,13 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
 #[Swag.TestTag("golden")]
 #test
 {
+    // The picture is alone in its folder, so its position among its siblings is not part of
+    // what is recorded.
+    let file = isolatedScopeFixture("title.png")
+    defer discardIsolatedScopeFixture(file)
+
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("title.png"), false)
+    let window = framedViewerWindow(&host, file, false)
     let view   = assume cast(*Picture.Panel, window.currentView)
     assertScopeAnchoredMenu(&host, window, view.transformButton, "menus.image.transform")
     assertScopeAnchoredMenu(&host, window, view.zoomLabel, "menus.image.zoom")

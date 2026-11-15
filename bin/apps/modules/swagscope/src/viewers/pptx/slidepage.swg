@@ -7,6 +7,7 @@ using Core
 struct SlidePage
 {
     shapes:           Array'SlideShape
+    notesHtml:        String
     title:            String
     background:       String
     simplified:       bool
@@ -52,7 +53,7 @@ impl SlidePage
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
-                    if isRgbHex(color) do
+                    if Package.isRgbHex(color) do
                         result.background = color
                 }
             }
@@ -132,8 +133,11 @@ impl SlidePage
         let source = try parts.text(path)
         theme.read(layoutSource)
         theme.read(source)
-        var images = try imageCatalog(parts, path)
-        var result = try SlidePage.parse(source, &theme, &images, pageWidth)
+        var images    = try imageCatalog(parts, path)
+        var result    = try SlidePage.parse(source, &theme, &images, pageWidth)
+        let notesPath = Package.relationshipPath(relations.toSlice(), "/notesSlide")
+        if not notesPath.isEmpty() do
+            result.notesHtml = try readSpeakerNotes(try parts.text(notesPath), &theme)
         if result.background.isEmpty() do
             result.background = layout.background.isEmpty() ? master.background : layout.background
         if result.background.isEmpty() do

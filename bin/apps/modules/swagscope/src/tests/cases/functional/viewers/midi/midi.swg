@@ -74,7 +74,7 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(options.rows[0].value == Midi.texts().ui_AllTracks and tracks.rows.count == 2)
 
     host.activateOptionRowWhenShown(Midi.texts().ui_Track)
-    host.thenActivateOptionRow(tracks.rows[1].label.raw)
+    host.thenActivateOptionRow(tracks.rows[1].label.text)
     viewer.showOptions()
     Swag.require(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
     viewer.roll.setTrack(Swag.U32.Max)

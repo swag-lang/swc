@@ -41,6 +41,7 @@ func statusForError(kind: ErrorKind)->s32
     Swag.require(statusForError(.NotFound) == WinFsp.StatusObjectNameNotFound)
     Swag.require(statusForError(.AlreadyExists) == WinFsp.StatusObjectNameCollision)
     Swag.require(statusForError(.AccessDenied) == WinFsp.StatusAccessDenied)
+    Swag.require(statusForError(.Busy) == WinFsp.StatusDeviceBusy)
     Swag.require(statusForError(.NotDirectory) == WinFsp.StatusNotADirectory)
     Swag.require(statusForError(.IsDirectory) == WinFsp.StatusFileIsDirectory)
     Swag.require(statusForError(.DirectoryNotEmpty) == WinFsp.StatusDirectoryNotEmpty)

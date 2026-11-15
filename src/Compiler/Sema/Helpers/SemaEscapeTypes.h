@@ -194,6 +194,16 @@ struct SemaEscapeFreesForwarding
     bool                  calleeIndirect   = false;
 };
 
+struct SemaEscapeFieldSummaryForwarding
+{
+    SymbolFunction*       caller           = nullptr;
+    const SymbolFunction* callee           = nullptr;
+    uint32_t              callerParamIndex = 0;
+    uint32_t              calleeParamIndex = 0;
+    const SymbolVariable* field            = nullptr;
+    bool                  calleeFreesProjectedPointer = false;
+};
+
 // Only release-forwarding edges propagate frees: either directly through the
 // passed parameter or indirectly through the contents of its box.
 inline bool isFreeForwardingEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)

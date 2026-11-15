@@ -811,19 +811,20 @@ private impl Panel
                 {
                     let markedStart = Math.max(.searchOffset, range.start)
                     let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
-                    var marked: String
                     if markedStart < markedEnd
                     {
-                        if range.start do
-                            marked += "\u2026"
-                        marked += value[range.start until markedStart]
-                        marked += "<b>"
-                        marked += value[markedStart until markedEnd]
-                        marked += "</b>"
-                        marked += value[markedEnd until range.end]
-                        if range.end < value.count do
-                            marked += "\u2026"
-                        item.name = marked.toString()
+                        // The cell is data, set literally; the match is its bold run.
+                        with item.name
+                        {
+                            .clear()
+                            if range.start do
+                                .append("\u2026")
+                            .append(value[range.start until markedStart])
+                            .append(value[markedStart until markedEnd], {bold: true})
+                            .append(value[markedEnd until range.end])
+                            if range.end < value.count do
+                                .append("\u2026")
+                        }
                     }
                 }
             }

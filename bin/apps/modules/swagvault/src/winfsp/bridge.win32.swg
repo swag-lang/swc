@@ -10,6 +10,7 @@ namespace WinFsp
     {
         late volume:     *Volume
         defaultSecurity: *void?
+        activity:        MountActivity
     }
 
     // The directory buffer `emitFspDir` appends entries to.
@@ -117,25 +118,43 @@ namespace WinFsp
     #[Swag.CallingConvention(.C)]
     func fspCreate(fileSystem: *FspFileSystem, path: [*] u16?, createOptions, _, attributes: u32, security: *void?, allocationSize: u64, fileContext: *(*void?), info: *FileInfo)->s32
     {
+        let activity = &mountContext(fileSystem).activity
+        activity.mutex.lock()
+        defer activity.mutex.unlock()
+        if activity.stopping do
+            return StatusAccessDenied
         let value        = stringFromWide(path)
         let mounted      = mountedVolume(fileSystem)
         let directory    = cast(u8, ((createOptions & 1) != 0 ? 1 : 0))
         let securitySize = security ? GetSecurityDescriptorLength(security) : 0
         var nodeId: u64
         let status       = callbackCreate(mounted, value.buffer, directory, attributes, allocationSize, security, securitySize, &nodeId, info)
-        if status == StatusSuccess do
-            fileContext[] = contextFromId(nodeId)
+        if status == StatusSuccess
+        {
+            fileContext[]    = contextFromId(nodeId)
+            activity.handles += 1
+        }
+
         return status
     }
 
     #[Swag.CallingConvention(.C)]
     func fspOpen(fileSystem: *FspFileSystem, path: [*] u16?, _, _: u32, fileContext: *(*void?), info: *FileInfo)->s32
     {
+        let activity = &mountContext(fileSystem).activity
+        activity.mutex.lock()
+        defer activity.mutex.unlock()
+        if activity.stopping do
+            return StatusAccessDenied
         let value  = stringFromWide(path)
         var nodeId: u64
         let status = callbackLookup(mountedVolume(fileSystem), value.buffer, &nodeId, info)
-        if status == StatusSuccess do
-            fileContext[] = contextFromId(nodeId)
+        if status == StatusSuccess
+        {
+            fileContext[]    = contextFromId(nodeId)
+            activity.handles += 1
+        }
+
         return status
     }
 
@@ -149,9 +168,12 @@ namespace WinFsp
         callbackCleanup(mountedVolume(fileSystem), idFromContext(fileContext), flags)
     }
 
-    // Nothing to release: a file context is only a node id.
+    // Keep cached and mapped files busy until the driver's final close, after cleanup.
     #[Swag.CallingConvention(.C)]
-    func fspClose(_: *FspFileSystem, _: *void?) {}
+    func fspClose(fileSystem: *FspFileSystem, _: *void?)
+    {
+        mountContext(fileSystem).activity.release()
+    }
 
     #[Swag.CallingConvention(.C)]
     func fspRead(fileSystem: *FspFileSystem, fileContext: *void?, buffer: *void?, offset: u64, length: u32, transferred: *u32)->s32

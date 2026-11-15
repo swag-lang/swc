@@ -7,7 +7,13 @@ func createDockLabel(parent: *Wnd,
                      size: Math.Point,
                      margin: Math.Vector4 = {})->*Label
 {
-    let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), Math.Rectangle{0, 0, size.x, size.y}, null, .WordWrap)
+    var content: Pixel.RichString
+    content.append(title, {bold: true})
+    content.append("\n")
+    content.append(text)
+
+    let label = Label.create(parent, null, Math.Rectangle{0, 0, size.x, size.y}, null, .WordWrap)
+    label.setRichText(content)
     label.backgroundStyle = .Window
     label.dockStyle       = dock
     label.margin          = margin

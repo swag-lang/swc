@@ -17,8 +17,9 @@ using Swag, Core, Gui
     recorder.main      = f.main
     recorder.state     = .Preparing
     recorder.videoMode = true
+    recorder.area      = {0, 0, 1280, 720}
 
-    let width   = RecordHud.widthFor(0, captureTargetLabel(), preparing: true)
+    let width   = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true)
     let height  = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
     let surface = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
     with let hud = RecordHud.create(surface.wnd, recorder)
@@ -33,7 +34,15 @@ using Swag, Core, Gui
 
     var preview = f.gui.renderSurface(surface)
     Swag.require(preview.isValid())
-    Swag.require(hud.pauseButton.isEnabled() and not hud.stopButton.isLocallyVisible())
+    // The one action of a waiting pill is Record, in words, standing against the cross.
+    let record = unwrap hud.recordButton
+    Swag.require(record.isEnabled() and record.isLocallyVisible() and record.name == appStrings().ui_AimRecord)
+    Swag.require(not hud.stopButton.isLocallyVisible() and not hud.pauseButton.isLocallyVisible())
+    Swag.require(Math.abs(hud.cancelButton.position.x - record.position.right() - RecordHudButtonGap) < 0.01)
+
+    // The pill says how large the video will be.
+    Swag.require(Utf8.contains(hud.targetLabel.text(), recorder.pictureSizeText().toString()))
+    Swag.require(hud.targetLabel.isLocallyVisible() and hud.targetLabel.position.right() <= record.position.x)
     #static if #os == Swag.TargetOs.Windows do
         Swag.require(hud.prepOptions.count == 4)
     else do
@@ -58,7 +67,7 @@ using Swag, Core, Gui
     Swag.require(options.captureCursor != before[0] and options.recordCountdown != before[1])
     #static if #os == Swag.TargetOs.Windows do
         Swag.require(options.recordMicrophone != before[2] and options.recordSystemSound != before[3])
-    hud.pauseButton.sigPressed.call(hud.pauseButton)
+    record.sigPressed.call(record)
     Swag.require(recorder.recordRequested)
 
     recorder.state = .Recording

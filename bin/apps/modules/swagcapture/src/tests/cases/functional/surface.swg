@@ -551,12 +551,12 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
         font = item
     Swag.require(font != null and font.comboBox.items.count > 2)
-    let first: String = font.comboBox.items[2]!.name.raw
+    let first: String = font.comboBox.items[2]!.name.text
     font.comboBox.setSelectedIndex(2)
     Swag.require(text.fontName == first)
     Swag.require(face.text() == first.toString())
 
-    let last: String = font.comboBox.items.back()!.name.raw
+    let last: String = font.comboBox.items.back()!.name.text
     font.comboBox.setSelectedIndex(cast(u32, font.comboBox.items.count - 1))
     Swag.require(text.fontName == last and face.text() == last.toString())
     main.editWnd.editView.setFocus()
@@ -644,17 +644,17 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     let capture = unwrap main.getCapture()
     capture.title = "Password"
     main.updateState()
-    Swag.require(host.surfaceWnd.name.raw == "Password")
+    Swag.require(host.surfaceWnd.name.text == "Password")
 
     capture.title.clear()
     capture.sourceApplication = "Notepad"
     main.updateState()
-    Swag.require(host.surfaceWnd.name.raw == "Notepad")
+    Swag.require(host.surfaceWnd.name.text == "Notepad")
 
     testEmptyTrash()
     g_Library.loaded = true
     main.swapLibraryMode()
-    Swag.require(host.surfaceWnd.name.raw == ProductName)
+    Swag.require(host.surfaceWnd.name.text == ProductName)
 }
 
 // Builds the in-place editor over a quiet desktop of the size of the host, with the zone grabbed
@@ -1532,7 +1532,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         host.clickWnd(unwrap rateChip)
         host.pump()
         Swag.require(editor.source.captureOptions.recordRate == expected)
-        Swag.require(rateChip.name.raw.toString() == Format.toString(appStrings().ui_AimRate, expected.framesPerSecond()))
+        Swag.require(rateChip.name.text.toString() == Format.toString(appStrings().ui_AimRate, expected.framesPerSecond()))
     }
     Swag.require(editor.source.captureOptions.recordRate == rate)
 

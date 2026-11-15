@@ -29,12 +29,18 @@ namespace VaultCommands
     const UnmountOnLock    = "vault.unmountOnLock"
     const UnmountOnSuspend = "vault.unmountOnSuspend"
     const UnmountOnIdle    = "vault.unmountOnIdle"
+    const ShowWindow       = "vault.showWindow"
+    const UnmountAll       = "vault.unmountAll"
+    const Quit             = "vault.quit"
+    const ForceUnmount     = "vault.forceUnmount"
+    const Resident         = "vault.resident"
+    const SessionStartup   = "vault.sessionStartup"
 }
 
 impl MainWindow
 {
     // The commands of the chosen vault, in the order the lens and the context menu of a row list them.
-    const VaultCommandIds = [VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.OpenDrive, VaultCommands.ReadOnly,
+    const VaultCommandIds = [VaultCommands.Mount, VaultCommands.Unmount, VaultCommands.ForceUnmount, VaultCommands.OpenDrive, VaultCommands.ReadOnly,
                              VaultCommands.ProtectHidden, VaultCommands.AtStartup, VaultCommands.ChangePassword,
                              VaultCommands.ChangeKeyFiles, VaultCommands.Resize, VaultCommands.CreateHidden,
                              VaultCommands.Forget, VaultCommands.Stop]
@@ -52,14 +58,14 @@ impl MainWindow
             .addRestSource(func|window = me|(results)
             {
                 let section = results.addSection(appStrings().lens_File)
-                window.lens.addCommandRows(section, [VaultCommands.NewVault, VaultCommands.OpenFile], enabledOnly: true)
+                window.lens.addCommandRows(section, [VaultCommands.NewVault, VaultCommands.OpenFile, VaultCommands.Options], enabledOnly: true)
             })
             .addRestSource(func|window = me|(results) { window.describeChosenVault(results) })
             .addSource(.File, func|window = me|(results) { window.describeVaults(results) })
             .addCommand(func()->string => appStrings().lens_File, VaultCommands.NewVault, func()->string => appStrings().search_Create)
             .addCommand(func()->string => appStrings().lens_File, VaultCommands.OpenFile, func()->string => appStrings().search_Open)
-            .addCommands(func()->string => appStrings().lens_File,
-                         [VaultCommands.Vaults, VaultCommands.Options])
+            .addCommands(func()->string => appStrings().lens_File, [VaultCommands.Vaults, VaultCommands.Options, VaultCommands.ShowWindow,
+                                                                    VaultCommands.UnmountAll, VaultCommands.Quit, VaultCommands.Resident, VaultCommands.SessionStartup])
             .addCommands(func()->string => appStrings().lens_Vault, VaultCommandIds)
             .addCommands(func()->string => appStrings().lens_Privacy, [VaultCommands.PrivacyMode, VaultCommands.UnmountOnLock, VaultCommands.UnmountOnSuspend,
                                                                        VaultCommands.UnmountOnIdle])
@@ -126,7 +132,7 @@ impl MainWindow
     mtd computeCommandState(evt: *CommandStateEvent)->bool
     {
         let texts    = appStrings()
-        let ready    = .operation.kind == .None
+        let ready    = .operation.kind == .None and not .resident.batch
         let chosen   = not .chosenPath.isEmpty()
         let drive    = .mountedDrives.find(.chosenPath)
         let locked   = chosen and drive == null
@@ -140,6 +146,33 @@ impl MainWindow
         var icon:     ThemeIcons
         switch evt.id
         {
+        case VaultCommands.ShowWindow:
+            name = texts.cmd_ShowWindow
+            icon = .OpenExternal
+
+        case VaultCommands.UnmountAll:
+            name     = texts.cmd_UnmountAll
+            icon     = .Remove
+            disabled = not ready or .mountedDrives.drives.count == 0
+
+        case VaultCommands.Quit:
+            name     = texts.cmd_Quit
+            icon     = .WndClose
+            disabled = not ready
+
+        case VaultCommands.Resident:
+            name    = texts.ui_Resident
+            icon    = .Options
+            toggle  = true
+            checked = .resident.settings.enabled
+
+        case VaultCommands.SessionStartup:
+            name     = texts.ui_SessionStartup
+            icon     = .Update
+            toggle   = true
+            checked  = .resident.settings.startWithSession
+            disabled = not .resident.settings.enabled
+
         case VaultCommands.Lens:
             return false
 
@@ -160,7 +193,7 @@ impl MainWindow
 
         case VaultCommands.Options:
             name   = texts.cmd_Options
-            icon   = .Options
+            icon   = .Settings
             hidden = .page == .Options
 
         case VaultCommands.Mount:
@@ -171,6 +204,12 @@ impl MainWindow
 
         case VaultCommands.Unmount:
             name     = texts.ui_Unmount
+            icon     = .Remove
+            hidden   = drive == null
+            disabled = not ready
+
+        case VaultCommands.ForceUnmount:
+            name     = texts.cmd_ForceUnmount
             icon     = .Remove
             hidden   = drive == null
             disabled = not ready
@@ -301,6 +340,12 @@ impl MainWindow
         let path = String.from(.chosenPath)
         switch id
         {
+        case VaultCommands.ShowWindow:       .resident.showWindow()
+        case VaultCommands.UnmountAll:       .resident.unmountAll(quit: false)
+        case VaultCommands.Quit:             .resident.unmountAll(quit: true)
+        case VaultCommands.ForceUnmount:     .forceUnmountVault(path)
+        case VaultCommands.Resident:         .resident.setEnabled(not .resident.settings.enabled)
+        case VaultCommands.SessionStartup:   .resident.setSessionStartup(not .resident.settings.startWithSession)
         case VaultCommands.Lens:             .lens.open()
         case VaultCommands.NewVault:         .showPage(.Create)
         case VaultCommands.OpenFile:         .openVaultFile()

@@ -45,6 +45,35 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     explorer.entries.add(#move entry)
 }
 
+// Wide and portrait media fill every grid cell with a centered crop, without inset frames.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let window   = boardWindow(&host, false, films: false, width: 880, height: 560)
+    let explorer = unwrap window.explorer
+    const Widths:  [3] s32 = [192, 252, 108]
+    const Heights: [3] s32 = [108, 108, 192]
+    for name, index in ["Landscape.mp4", "Cinema.mkv", "Portrait.webm", "Landscape.jpg", "Panorama.png", "Portrait.jpg"]
+    {
+        addPictured(&host, explorer, name, boardPicture(Widths[index % 3], Heights[index % 3], 0x24456E, 0x7FA36A), 1024, index < 3 ? 120 : 0)
+    }
+
+    explorer.forceBoard(true, .Grid)
+    showBoard(&host, window, "Pictures", "Framing")
+    let grid   = explorer.grid
+    let origin = grid.localToSurface(Math.Point{})
+    let image  = host.renderSettled(&host.surfaceWnd)
+    for row in explorer.shown.count
+    {
+        let tile   = grid.tileRect(row)
+        let sample = Math.Point{origin.x + tile.horzCenter(), origin.y + tile.y + 8}
+        Swag.require(image.pixelColor(cast(s32, sample.x), cast(s32, sample.y)) != host.theme.colors.raised)
+    }
+
+    Pixel.Testing.assertImageGolden(&image, "explorer.grid.framing.encre")
+}
+
 // A narrow explorer keeps its title, actions and filter apart in both languages and at 150%.
 #[Swag.TestTag("golden")]
 #test

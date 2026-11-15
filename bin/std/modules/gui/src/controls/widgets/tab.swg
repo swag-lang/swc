@@ -474,7 +474,7 @@ private impl Tab
         let popup = PopupListCtrl.create(me)
         .popup = popup
         for item in .items do
-            popup.addItem(item!.name.raw, item.id, item.icon, item.userData0)
+            popup.addItem(item!.name.text, item.id, item.icon, item.userData0)
         if .selectedIndex < .items.count do
             popup.setSelectedIndex(.selectedIndex)
 
@@ -545,7 +545,7 @@ private impl Tab
     mtd itemLabelWidth(v: *TabItem)->f32
     {
         let font   = nnFont(.font().regular)
-        var result = Painter.measureString(v.item.name.raw, font).width
+        var result = Painter.measureString(v.item.name.text, font).width
         if v.item.icon.isValid() do
             result += v.item.icon.sizeX + .themeMetrics().iconText_Margin
         return result

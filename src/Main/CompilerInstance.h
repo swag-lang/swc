@@ -297,6 +297,8 @@ public:
     std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
     void                                 addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
     std::vector<SemaEscapeSummaryEdge>   copyEscapeSummaryEdges() const;
+    void                                 addEscapeFieldSummaryForwarding(const SemaEscapeFieldSummaryForwarding& forwarding);
+    std::vector<SemaEscapeFieldSummaryForwarding> takeEscapeFieldSummaryForwardings();
 
     // Runs `visit` over the edges the frees propagation reads, in place and under a shared lock:
     // the pass only grows release masks, so it never needs a private copy of a list that a module
@@ -710,6 +712,7 @@ private:
     mutable std::shared_mutex            deferredEscapeChecksMutex_;
     std::vector<SemaEscapeDeferredCheck> deferredEscapeChecks_;
     std::vector<SemaEscapeSummaryEdge>   escapeSummaryEdges_;
+    std::vector<SemaEscapeFieldSummaryForwarding> fieldSummaryForwardings_;
     // Positions in `escapeSummaryEdges_` of the only two kinds the frees propagation reads, kept
     // as the edges arrive: that pass runs once per compile-time call and must not rescan the
     // module's whole edge list to find the handful it cares about.

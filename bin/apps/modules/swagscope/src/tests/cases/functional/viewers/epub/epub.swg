@@ -22,7 +22,7 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.book.chapters.count == 2 and view.chapter == 0)
     Swag.require(view.view != null and view.contents.count == 2)
     view.turn(1)
-    Swag.require(view.chapter == 1 and view.chapterLabel.name.raw == "2 / 2")
+    Swag.require(view.chapter == 1 and view.chapterLabel.name.text == "2 / 2")
 }
 
 // A nested package root and chapter path remain inside the extracted book.

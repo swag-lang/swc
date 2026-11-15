@@ -147,6 +147,9 @@ struct Explorer
     forcedBoard:     ExplorerBoard     // The board the view menu forces, when `forced`.
     forced:          bool
     holdsMedia:      bool     // Whether the page shows films or albums, whose pictures may come from online.
+    restoredView:    ExplorerFolderState
+    restoringView:   bool
+    privateView:     bool     // A private visit stays transient until the location is entered again.
 }
 
 // Returns the glyph of the kinds of file `filter` keeps.
@@ -766,7 +769,7 @@ impl Explorer
             return
         let selected   = .selected
         let generation = .generation
-        let previous   = musicChoiceId(.window.musicChoices.toSlice(), &.entries[selected])
+        let previous   = .window.privacy.selectedMusicId(&.entries[selected])
         let dialog     = .createMusicChoiceDialog(previous)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -780,7 +783,7 @@ impl Explorer
             return
         }
 
-        setMusicChoice(&.window.musicChoices, &.entries[selected], String.toLower(text))
+        .window.privacy.rememberMusicChoice(&.entries[selected], String.toLower(text), .listing.isArchive ? .listing.path.toString() : .entries[selected].path.toString())
         .retirePreviews()
         .requestPreview()
     }
@@ -1240,6 +1243,27 @@ impl Explorer
 
     mtd navigate(path: string, folder: string = "", remember = true)
     {
+        .rememberView()
+        if not Path.equals(.requested, path) or .requestedFolder != folder
+        {
+            let wasPrivate = .privateView
+            .privateView = not .window.privacy.mayRemember(path)
+            if wasPrivate and not .privateView
+            {
+                .filter.setText("", notify: false)
+                if .window.isExploring() do
+                    .window.searchBox.setText("", notify: false)
+            }
+
+            .restoringView = false
+            if let state = .window.privacy.folderView(path, folder)
+            {
+                .restoredView  = state[]
+                .restoringView = true
+                state.apply(me)
+            }
+        }
+
         .failure.hide()
         .generation += 1
         .suspend()
@@ -1252,6 +1276,15 @@ impl Explorer
         .setStatus(appStrings().explore_Loading)
         if not .load.started do
             .startListing()
+    }
+
+    mtd rememberView()
+    {
+        if .listing.path.isEmpty() or .load.started or .failure.isLocallyVisible() do
+            return
+        if not .window.privacy.mayRemember(.listing.path) do
+            .privateView = true
+        .window.privacy.rememberFolderView(ExplorerFolderState.capture(me), transient: .privateView)
     }
 
     // Lists the folder again and gives its previews a fresh cache identity. This also refreshes
@@ -1502,13 +1535,19 @@ impl Explorer
         .updateBreadcrumb()
 
         .list.header.setSortIndicator(.sortColumn, .descending ? .Descending : .Ascending)
-        if entering do
+        if entering and not .restoringView do
             .setMode(.Details)
         else do
             .setMode(.mode)
         .window.teachHints(.isLocallyVisible())
         .fill()
         .scroll.setScrollPos(0, 0)
+        if .restoringView
+        {
+            .restoredView.restorePosition(me)
+            .restoringView = false
+        }
+        .window.privacy.refreshIndicator()
     }
 
     // Chooses the preview shape from the files listed, before any image arrives. A folder of films
@@ -2094,6 +2133,7 @@ impl Explorer
         preview.opening     = opening
         preview.settings    = ThumbnailSettings.capture(.window, entry, localArtworkOnly: .artworkSource == .Local, previewEpoch: .previewEpoch)
         preview.archivePath = .listing.isArchive ? .listing.path : {}
+        preview.privacy = .listing.isArchive ? .window.privacy.policy(.listing.path) : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
         if not opening and
@@ -2103,7 +2143,7 @@ impl Explorer
            Reader.canOpen(entry.path)
         {
             let settings = catch ThumbnailSettings.decode(preview.settings)
-            if settings.onlineMovies and not settings.localArtworkOnly do
+            if onlinePreviewWanted(entry.path, &settings, entry.duration) do
                 online = true
         }
 
@@ -2111,7 +2151,7 @@ impl Explorer
         entry.attempted = true
         if online do
             entry.onlinePending = false
-        preview.start(me)
+        preview.start(me, durationHint: entry.duration)
         .grid.invalidate()
         return true
     }
@@ -2194,11 +2234,14 @@ impl IWnd for Explorer
                 {
                     let title = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
                     let path  = Format.toString("%/%", .logicalPath(preview.archivePath), preview.path)
+                    .window.privacy.inherit(preview.temporary, preview.archivePath)
                     .temporaryFiles.add(ExplorerTemporary{#move preview.temporary, title, path})
                 }
 
                 if preview.generation == .generation
                 {
+                    if not preview.opening and preview.durationHint do
+                        .entries[preview.index].duration = preview.durationHint
                     if not preview.opening and not preview.online do
                         .entries[preview.index].onlinePending = preview.needsOnline
                     if preview.index == .selected and not preview.error.isEmpty() do
@@ -2235,6 +2278,7 @@ impl IWnd for Explorer
                         if replacing do
                             .app().renderer.removeTexture(&.entries[preview.index].texture)
                         .entries[preview.index].texture = uploaded
+                        .entries[preview.index].framing = ThumbnailFraming.fromImage(&preview.image)
                         let duration = thumbnailDuration(&preview.image)
                         if duration or not preview.online do
                             .entries[preview.index].duration = duration
@@ -2335,13 +2379,11 @@ impl IWnd for Explorer
     }
 }
 
-// Reports whether the picture of a film or a sound fills its tile edge to edge rather than standing
-// inside it. A frame or a cover close to the shape of the tile loses little to the crop and gains
-// the whole tile; a poster in a wide tile keeps its whole shape.
-private func fillsTile(glyph: Icon, texture: Texture, tile: Math.Rectangle)->bool
+// A sound cover close to the tile's shape fills it; a mismatched shape stays whole inside it.
+private func soundCoverFillsTile(glyph: Icon, texture: Texture, tile: Math.Rectangle)->bool
 {
     const MaxStretch = 1.4'f32
-    if glyph.index != cast(s32, ThemeIcons.FileVideo) and glyph.index != cast(s32, ThemeIcons.FileAudio) do
+    if glyph.index != cast(s32, ThemeIcons.FileAudio) do
         return false
     if not texture.isValid() or
        texture.width <= 1 or
@@ -2609,7 +2651,8 @@ impl ExplorerGrid
         options.fit = .posters ? .Poster :
                       (.board == .Covers or
                        glyph.index == cast(s32, ThemeIcons.FileImage) or
-                       fillsTile(glyph, entry.texture, tile) ? .Cover : .Contain)
+                       glyph.index == cast(s32, ThemeIcons.FileVideo) or
+                       soundCoverFillsTile(glyph, entry.texture, tile) ? .Cover : .Contain)
         options.hovered        = .hovered == row
         options.selected       = .explorer.selected == index
         options.showCaption    = true
@@ -2617,6 +2660,13 @@ impl ExplorerGrid
         options.previewPainter = func|grid = me, index|(_, painter, tile)->bool
         {
             let entry = &grid.explorer.entries[index]
+            let glyph = grid.theme().fileGlyph(entry.name, entry.directory, 16)
+            if entry.texture.isValid() and
+               (glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
+            {
+                entry.framing.paint(grid, painter, entry.texture, tile)
+                return true
+            }
             if grid.board == .Grid and grid.paintCard(painter, tile, entry) do
                 return true
             if grid.board == .Covers and entry.texture.isValid() and entry.texture.width <= 1

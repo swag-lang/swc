@@ -970,13 +970,50 @@ bool SymbolFunction::hasResetParamField(size_t paramIndex, std::string_view fiel
     return hasBorrowSummaryField(resetParamFields_, paramIndex, fieldName) || (attrs && hasBorrowSummaryField(attrs->resetsParamFields, paramIndex, fieldName));
 }
 
+bool SymbolFunction::hasPossiblyWrittenParamField(size_t paramIndex, std::string_view fieldName) const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return hasBorrowSummaryField(writtenParamFields_, paramIndex, fieldName) || (attrs && hasBorrowSummaryField(attrs->writesParamFields, paramIndex, fieldName));
+}
+
+bool SymbolFunction::hasCompleteParamFieldWriteSummary() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    if (attrs && attrs->writesParamFieldsComplete)
+        return true;
+    if (mayWriteUnknownParamFields() || isForeignOrEmptyOrAttribute())
+        return false;
+    const auto* decl = declAs<AstFunctionDecl>();
+    return decl && decl->nodeBodyRef.isValid();
+}
+
 void SymbolFunction::addFreedParamField(size_t paramIndex, std::string_view fieldName)
 {
     if (paramIndex >= 64 || fieldName.empty())
         return;
     ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+    if (unknownCallMayWriteParamFields_ || std::ranges::find(writtenParamFields_, entry) != writtenParamFields_.end())
+        return;
     if (std::ranges::find(freedParamFields_, entry) == freedParamFields_.end())
         freedParamFields_.push_back(std::move(entry));
+}
+
+void SymbolFunction::markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName)
+{
+    if (paramIndex >= 64 || fieldName.empty())
+        return;
+
+    ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+    if (std::ranges::find(writtenParamFields_, entry) == writtenParamFields_.end())
+        writtenParamFields_.push_back(entry);
+
+    std::erase(freedParamFields_, entry);
+}
+
+void SymbolFunction::suppressInferredFreedParamFields()
+{
+    unknownCallMayWriteParamFields_ = true;
+    freedParamFields_.clear();
 }
 
 void SymbolFunction::addResetParamField(size_t paramIndex, std::string_view fieldName)
@@ -998,6 +1035,12 @@ std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedReset
 {
     const AttributeList* attrs = attributesIfAny();
     return attrs ? std::span<const ReturnFieldBorrow>(attrs->resetsParamFields) : std::span<const ReturnFieldBorrow>{};
+}
+
+std::span<const SymbolFunction::ReturnFieldBorrow> SymbolFunction::importedWrittenParamFields() const noexcept
+{
+    const AttributeList* attrs = attributesIfAny();
+    return attrs ? std::span<const ReturnFieldBorrow>(attrs->writesParamFields) : std::span<const ReturnFieldBorrow>{};
 }
 
 bool SymbolFunction::observesExternalBorrows() const noexcept

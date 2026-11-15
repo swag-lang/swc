@@ -90,8 +90,8 @@ func archiveViewerFixturePath()->String => scopeTestDataPath("viewer.archive.zip
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(viewer.list.header.itemAt(0).name.raw == Archive.texts().ui_ColName)
-    Swag.require(viewer.list.header.itemAt(1).name.raw == Archive.texts().ui_ColSize)
+    Swag.require(viewer.list.header.itemAt(0).name.text == Archive.texts().ui_ColName)
+    Swag.require(viewer.list.header.itemAt(1).name.text == Archive.texts().ui_ColSize)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
 

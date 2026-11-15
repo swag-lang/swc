@@ -43,8 +43,8 @@ using Swag, Core
     Swag.require(header.items.count == 2)
     Swag.require(header.flags.has(.Clickable) and header.flags.has(.Separators))
 
-    Swag.require(header.itemAt(0).name.raw == "Name")
-    Swag.require(header.itemAt(1).name.raw == "Size")
+    Swag.require(header.itemAt(0).name.text == "Name")
+    Swag.require(header.itemAt(1).name.text == "Size")
     Swag.require(Math.abs(header.itemWidthAt(0) - 120) < 0.01)
     Swag.require(header.itemForColumn(1) == header.itemAt(1))
 

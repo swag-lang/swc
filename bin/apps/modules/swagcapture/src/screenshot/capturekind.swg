@@ -65,6 +65,32 @@ func createRecordOption(parent: *Wnd, icon: Icon, label: string, checked: bool, 
     return result
 }
 
+// Side of the dot of a recording on Record.
+const RecordDotSize = 8.0
+
+// Returns the width of the Record button: the dot of a recording, small beside the word.
+func recordButtonWidth(theme: *Theme)->f32
+{
+    let metrics = &theme.metrics
+    let font    = theme.createDefaultFont(metrics.defaultFontSize)
+    return Math.ceil(Painter.measureString(appStrings().ui_AimRecord, font).width +
+                     2 * metrics.btnPush_TextMargin + RecordDotSize + metrics.btnIcon_SpacingTextH)
+}
+
+// Creates the one primary action of a recording about to start: Record, in words, after its dot.
+func createRecordButton(parent: *Wnd)->*PushButton
+{
+    let metrics = parent.themeMetrics()
+    let size    = Math.Rectangle{0, 0, recordButtonWidth(parent.theme()), metrics.miniBar_ButtonSize}
+    with let result = PushButton.create(parent, appStrings().ui_AimRecord, size, form: .Strong)
+    {
+        .setIcon(parent.theme().icon(.Dot, RecordDotSize))
+        .setIconSize(RecordDotSize, RecordDotSize)
+    }
+
+    return result
+}
+
 // Reserve the same content width before the preparation window creates its buttons.
 func recordOptionWidth(theme: *Theme, label: string)->f32
 {

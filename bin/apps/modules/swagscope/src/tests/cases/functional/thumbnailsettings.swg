@@ -3,6 +3,55 @@
 
 using Core, Gui, Pixel, Viewers
 
+// Both configurable rules apply independently of the thumbnail's arrangement.
+#test
+{
+    var settings = ThumbnailSettings{onlineMovies: true, movieDetection: Film.MovieDetectionSettings.defaults()}
+    Swag.require(not onlinePreviewWanted("VID_20261115_102030.mp4", &settings, 120))
+    Swag.require(not onlinePreviewWanted("screen-recording.webm", &settings, 300))
+    Swag.require(not onlinePreviewWanted("tutorial.mkv", &settings, 900))
+    Swag.require(onlinePreviewWanted("Blade.Runner.1982.1080p.mkv", &settings, 7000))
+    Swag.require(not onlinePreviewWanted("Blade.Runner.1982.mkv", &settings, 600))
+    Swag.require(not onlinePreviewWanted("Blade Runner.mkv", &settings, 7000))
+    Swag.require(not onlinePreviewWanted("cover.jpg", &settings, 7000))
+    settings.movieDetection.namePattern    = ""
+    settings.movieDetection.minimumMinutes = 0
+    Swag.require(onlinePreviewWanted("Short film.mkv", &settings, 600))
+    settings.localArtworkOnly = true
+    Swag.require(not onlinePreviewWanted("Short film.mkv", &settings, 600))
+}
+
+#test
+{
+    let previous = Film.g_MovieDetectionSettings
+    defer Film.g_MovieDetectionSettings = previous
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer                              = explorer
+    window.onlineMovies                          = true
+    Film.g_MovieDetectionSettings.namePattern    = #raw "^Movie_"
+    Film.g_MovieDetectionSettings.minimumMinutes = 12
+    let original = ThumbnailSettings.capture(window)
+    for board in [ExplorerBoard.Grid, .Posters, .Covers]
+    {
+        explorer.forced      = true
+        explorer.forcedBoard = board
+        Swag.require(ThumbnailSettings.capture(window) == original)
+    }
+
+    let saved = saveViewerState(window)
+    Film.g_MovieDetectionSettings = {}
+    loadViewerState(window, cast(const [..] u8, saved))
+    Swag.require(Film.g_MovieDetectionSettings.namePattern == #raw "^Movie_")
+    Swag.require(Film.g_MovieDetectionSettings.minimumMinutes == 12)
+    Film.g_MovieDetectionSettings.namePattern = "["
+    var error: Swag.Error
+    catch Film.g_MovieDetectionSettings.validate() as error
+    Swag.require(error.value() != null)
+}
+
 // Refresh retries unchanged files instead of reusing a failed or stale preview identity.
 #test
 {

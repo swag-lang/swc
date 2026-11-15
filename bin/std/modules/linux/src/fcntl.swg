@@ -20,6 +20,7 @@ const O_TRUNC     = 0x200's32
 const O_RDWR      = 2's32
 const O_NONBLOCK  = 0x800's32
 const O_DIRECTORY = 0x10000's32
+const O_NOFOLLOW  = 0x20000's32
 const O_CLOEXEC   = 0x80000's32
 const O_PATH      = 0x200000's32
 

@@ -51,6 +51,13 @@ func showTip(owner: *Wnd, text: string)->*Label
     return assume cast (*Label, owner.app().toolTip.current!.view)
 }
 
+// Shows the markup sentence `markup` for `owner` at once and returns the label holding it.
+func showMarkupTip(owner: *Wnd, markup: string)->*Label
+{
+    ToolTip.showMarkup(owner, {40, 40}, markup, 0's)
+    return assume cast (*Label, owner.app().toolTip.current!.view)
+}
+
 // Returns an annotation far taller than any tip may grow.
 func longAnnotation()->String
 {

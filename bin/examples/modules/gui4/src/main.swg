@@ -581,11 +581,9 @@ func updateStatus(item: *PropertiesItem?)
     if item == null do
         return
 
-    // Owned: 'RichString.plainText' returns a 'String' whose view would dangle once
-    // the temporary is dropped at the end of the statement.
     var name: String = item.typeValue.name
     if name == "" and (item.label != null) do
-        name = RichString.plainText(item.label.text())
+        name = item.label.text()
     if name == "" do
         name = "section"
 

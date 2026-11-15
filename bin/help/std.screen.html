@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en" style="--swag-code-default: #222222">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<a class="skip-link" href="#content">Skip to content</a>
+<header class="site-header">
+<nav class="site-nav" aria-label="Main navigation">
+<a class="site-brand" href="index.html">SWAG</a>
+<div class="site-links">
+<a href="index.html">Home</a>
+<a href="language.html">Documentation</a>
+<a href="swag.runtime.html">Runtime</a>
+<a href="std.html">Std</a>
+<a href="https://www.youtube.com/channel/UC9dkBu1nNfJDxUML7r7QH1Q">YouTube</a>
+<a href="https://github.com/swag-lang/swc">GitHub</a>
+</div>
+</nav>
+</header>
+<main class="container">
+<aside class="left"><nav class="left-page" aria-label="Contents">
+<h2>Screen documentation</h2>
+<h3>Start here</h3>
+<ul>
+<li><a href="#overview">Overview</a></li>
+</ul>
+<h3>API reference</h3>
+<ul>
+<li><a href="#api-reference">At a glance</a></li>
+<li><a href="#detailed-reference">Detailed reference</a></li>
+</ul>
+<details class="toc-group" open>
+<summary><span class="toc-label">Namespaces</span><span class="toc-count">1</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-namespaces">All Namespaces</a></li>
+<li><a href="#namespace_Screen">Screen</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Types</span><span class="toc-count">3</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-types">All Types</a></li>
+<li><a href="#Screen_Source">Screen.Source</a></li>
+<li><a href="#Screen_SourceMetrics">Screen.SourceMetrics</a></li>
+<li><a href="#Screen_SourceOptions">Screen.SourceOptions</a></li>
+</ul>
+</details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Functions</span><span class="toc-count">5</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-functions">All Functions</a></li>
+<li><a href="#Screen_Source_grabInto">Source.grabInto</a></li>
+<li><a href="#Screen_Source_metrics">Source.metrics</a></li>
+<li><a href="#Screen_Source_opDrop">Source.opDrop</a></li>
+<li><a href="#Screen_Source_open">Source.open</a></li>
+<li><a href="#Screen_Source_reopen">Source.reopen</a></li>
+</ul>
+</details>
+</nav></aside>
+<section class="right"><article class="right-page" id="content">
+<section class="module-overview"><h1 id="overview">Screen</h1>
+<p>Screen acquires live desktop pixels independently of GUI event handling. A <a href="#Screen_Source">Screen.Source</a> captures one area in physical desktop pixels and writes bottom-up BGRA8 into a reusable <a href="std.pixel.html#Pixel_Image">Pixel.Image</a>. The source owns its native handles; callers own the returned image.</p>
+<div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"screen"</span>)
+<span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Screen">Screen</a></span>
+
+<span class="SKwd">var</span> source = <span class="SKwd">try</span> <span class="SCst"><a href="#Screen_Source">Source</a></span>.<span class="SFct">open</span>(<span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span>{<span class="SNum">0</span>, <span class="SNum">0</span>, <span class="SNum">1920</span>, <span class="SNum">1080</span>})
+<span class="SKwd">var</span> frame: <span class="SCst">Pixel</span>.<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>
+<span class="SKwd">discard</span> <span class="SKwd">try</span> source.<span class="SFct">grabInto</span>(&amp;frame)</span></div>
+<p>A source can report a temporary absence of a newer desktop frame. Its last frame remains available for a constant-rate recording. Native source loss is reported through <span class="code-inline">fail</span> and the caller may reopen it after a display change.</p>
+</section>
+<section class="api-overview">
+<h2 id="api-reference">API reference</h2>
+<p>Use these summaries to find the right entry point. Every linked symbol also has one standalone, fully qualified reference entry below.</p>
+<h3 id="summary-namespaces">Namespaces</h3>
+<table class="api-summary">
+<thead><tr><th>Namespace</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#namespace_Screen">Screen</a></td></tr>
+</tbody>
+</table>
+<h3 id="summary-types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Screen_Source">Screen.Source</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a live desktop source and its most recent image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_SourceMetrics">Screen.SourceMetrics</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Cumulative acquisition costs for one <a href="#Screen_Source">Screen.Source</a>, in microseconds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_SourceOptions">Screen.SourceOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One physical desktop area to capture; dimensions must be positive.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-functions">Functions</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Screen_Source_grabInto">Source.grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_metrics">Source.metrics</a></td><td><p>Returns cumulative native and composition timing since this source was opened.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_opDrop">Source.opDrop</a></td><td><p>Releases the native capture handles and cached frames on the opening thread.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_open">Source.open</a></td><td><p>Opens a native source for one physical desktop area.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_reopen">Source.reopen</a></td><td><p>Reopens a source after a display change or native access loss.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h2 id="detailed-reference">Detailed reference</h2>
+<h3 id="namespaces">Namespaces</h3>
+<section class="api-symbol">
+<div class="api-item api-item-namespace"><span id="namespace_Screen" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Screen</span> <a class="api-item-permalink" href="#namespace_Screen" aria-label="Permalink">#</a></span></div>
+<p>Public API declared directly in <span class="code-inline">Screen</span>.</p>
+<h3 id="namespace_Screen_types">Types</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Kind</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Screen_Source">Screen.Source</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Owns a live desktop source and its most recent image.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_SourceMetrics">Screen.SourceMetrics</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Cumulative acquisition costs for one <a href="#Screen_Source">Screen.Source</a>, in microseconds.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_SourceOptions">Screen.SourceOptions</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>One physical desktop area to capture; dimensions must be positive.</p>
+</td></tr>
+</tbody>
+</table>
+</section>
+<h3 id="types">Types</h3>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Screen_Source" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.Source</span> <a class="api-item-permalink" href="#Screen_Source" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L60">src</a></div>
+<p>Owns a live desktop source and its most recent image.</p>
+<p>The source must be used and destroyed on the thread that opened it. <span class="code-inline">grabInto</span> retains bounded storage at the selected dimensions and may reuse the previous image when the desktop has not presented a new frame.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque, </span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Screen_Source">Source</a></span></span></div>
+</section>
+<h3 id="Screen_Source_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Screen_Source_grabInto">grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_metrics">metrics</a></td><td><p>Returns cumulative native and composition timing since this source was opened.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_opDrop">opDrop</a></td><td><p>Releases the native capture handles and cached frames on the opening thread.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_open">open</a></td><td><p>Opens a native source for one physical desktop area.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Screen_Source_reopen">reopen</a></td><td><p>Reopens a source after a display change or native access loss.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Screen_SourceMetrics" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.SourceMetrics</span> <a class="api-item-permalink" href="#Screen_SourceMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L35">src</a></div>
+<p>Cumulative acquisition costs for one <a href="#Screen_Source">Screen.Source</a>, in microseconds.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Screen_SourceMetrics_acquiredFrames" class="code-type">acquiredFrames</td><td class="code-type">u64</td><td><p>Desktop frames returned by the native source.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_acquireMicroseconds" class="code-type">acquireMicroseconds</td><td class="code-type">u64</td><td><p>Time waiting for a native frame.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_coalescedUpdates" class="code-type">coalescedUpdates</td><td class="code-type">u64</td><td><p>Desktop updates combined before acquisition, when reported by the source.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_composeMicroseconds" class="code-type">composeMicroseconds</td><td class="code-type">u64</td><td><p>Time joining outputs and copying pixels into the caller's image.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_copiedPixels" class="code-type">copiedPixels</td><td class="code-type">u64</td><td><p>Pixels copied from mapped native storage, including full frames.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_copyMicroseconds" class="code-type">copyMicroseconds</td><td class="code-type">u64</td><td><p>Time copying native pixels into owned storage.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_deferredReadbacks" class="code-type">deferredReadbacks</td><td class="code-type">u64</td><td><p>Readback polls deferred while the GPU still owned the pixels.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_maxAcquireMicroseconds" class="code-type">maxAcquireMicroseconds</td><td class="code-type">u64</td><td><p>Longest single native acquisition wait.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_maxReadbackMicroseconds" class="code-type">maxReadbackMicroseconds</td><td class="code-type">u64</td><td><p>Longest single readback, including deferred CPU waits.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_mirroredPixels" class="code-type">mirroredPixels</td><td class="code-type">u64</td><td><p>Pixels incrementally copied from the native cache into a stable caller image.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_multiRectFrames" class="code-type">multiRectFrames</td><td class="code-type">u64</td><td><p>Frames read through several bounded desktop update regions.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_outputMicroseconds" class="code-type">outputMicroseconds</td><td class="code-type">u64</td><td><p>Native cache-output time, zero for current backends.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_partialFrames" class="code-type">partialFrames</td><td class="code-type">u64</td><td><p>Frames read through a region smaller than the selected output.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_readbackMicroseconds" class="code-type">readbackMicroseconds</td><td class="code-type">u64</td><td><p>CPU time submitting and waiting for native pixel readbacks.</p>
+</td></tr>
+<tr><td id="Screen_SourceMetrics_unchangedFrames" class="code-type">unchangedFrames</td><td class="code-type">u64</td><td><p>Polls with no newer desktop pixels.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Screen_SourceOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.SourceOptions</span> <a class="api-item-permalink" href="#Screen_SourceOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L25">src</a></div>
+<p>One physical desktop area to capture; dimensions must be positive.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="Screen_SourceOptions_height" class="code-type">height</td><td class="code-type">s32</td><td><p>Height in physical pixels.</p>
+</td></tr>
+<tr><td id="Screen_SourceOptions_includeCursor" class="code-type">includeCursor</td><td class="code-type">bool</td><td><p>Includes the pointer when the native source supports it.</p>
+</td></tr>
+<tr><td id="Screen_SourceOptions_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Width in physical pixels.</p>
+</td></tr>
+<tr><td id="Screen_SourceOptions_x" class="code-type">x</td><td class="code-type">s32</td><td><p>Left edge in physical desktop pixels.</p>
+</td></tr>
+<tr><td id="Screen_SourceOptions_y" class="code-type">y</td><td class="code-type">s32</td><td><p>Top edge in physical desktop pixels.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="functions">Functions</h3>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L148">src</a></div>
+<p>Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.</p>
+<p>False means no new pixels are available yet, either because the desktop did not change or because a video readback is still pending. It is not a source failure. By default the previous picture is copied to <span class="code-inline">target</span>. Set <span class="code-inline">copyUnchanged</span> to false when the caller will reuse its previous encoded picture instead; on a false return, <span class="code-inline">target</span> is then left untouched. With <span class="code-inline">updateChangedOnly</span> and <span class="code-inline">copyUnchanged</span> false, successive grabs into the same unmodified target may update only changed regions after the first complete frame. Replacing or resizing the target causes a complete copy. The target remains owned by the caller.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grabInto</span>(target: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, copyUnchanged: <span class="STpe">bool</span> = <span class="SKwd">true</span>,
+             updateChangedOnly: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L233">src</a></div>
+<p>Returns cumulative native and composition timing since this source was opened.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metrics</span>()-&gt;<span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L275">src</a></div>
+<p>Releases the native capture handles and cached frames on the opening thread.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.open</span> <a class="api-item-permalink" href="#Screen_Source_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L81">src</a></div>
+<p>Opens a native source for one physical desktop area.</p>
+<p>Rejects invalid dimensions, unavailable displays and capture permission failures.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(options: <span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L260">src</a></div>
+<p>Reopens a source after a display change or native access loss.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reopen</span>() <span class="SKwd">fail</span></span></div>
+</section>
+</article>
+<footer class="site-footer">
+<div class="swag-watermark">Generated with <a href="https://github.com/swag-lang/swc">swc</a> 0.1.1175</div>
+</footer>
+</section>
+</main>
+<script>
+(function (rows) {
+    "use strict";
+
+    var nav = document.querySelector(".site-nav");
+    if (!nav || !rows.length)
+        return;
+
+    var KINDS = {
+        n: "namespace", s: "struct", i: "interface", e: "enum",
+        c: "const", a: "alias", t: "attr", f: "func", h: "section",
+        v: "field", k: "case"
+    };
+    var LIMIT = 30;
+
+    // A row is "kind|name|anchor|summary". The summary is the remainder of the row, so it
+    // is the only field allowed to hold the separator.
+    var items = [];
+    for (var r = 0; r < rows.length; r++) {
+        var row = rows[r];
+        var kindEnd = row.indexOf("|");
+        var nameEnd = row.indexOf("|", kindEnd + 1);
+        var anchorEnd = row.indexOf("|", nameEnd + 1);
+        var name = row.slice(kindEnd + 1, nameEnd);
+        items.push({
+            kind: KINDS[row.slice(0, kindEnd)] || "func",
+            name: name,
+            lower: name.toLowerCase(),
+            anchor: row.slice(nameEnd + 1, anchorEnd),
+            detail: row.slice(anchorEnd + 1)
+        });
+    }
+
+    // Where a name really starts: after a qualifier, and at every word boundary inside it.
+    function isBoundary(name, at) {
+        if (!at)
+            return true;
+        var previous = name.charAt(at - 1);
+        if (previous === "." || previous === "_")
+            return true;
+        return previous === previous.toLowerCase() && name.charAt(at) !== name.charAt(at).toLowerCase();
+    }
+
+    // An exact name wins, then one starting on a boundary, then any substring, then the
+    // characters merely in order. A shorter name breaks a tie, so "add" stays above
+    // "addRange" for the same query.
+    function rank(item, query) {
+        var lower = item.lower;
+        var positions = [];
+        var value;
+        var at = lower.indexOf(query);
+        if (at >= 0) {
+            value = lower.length === query.length ? 1000 : (isBoundary(item.name, at) ? 800 : 600);
+            value -= at * 0.5;
+            for (var c = 0; c < query.length; c++)
+                positions.push(at + c);
+        } else {
+            var typed = 0;
+            var run = 0;
+            value = 300;
+            for (var i = 0; i < lower.length && typed < query.length; i++) {
+                if (lower.charAt(i) !== query.charAt(typed)) {
+                    run = 0;
+                    continue;
+                }
+                run++;
+                value += run + (isBoundary(item.name, i) ? 6 : 0);
+                positions.push(i);
+                typed++;
+            }
+            if (typed < query.length)
+                return null;
+            value -= (positions[positions.length - 1] - positions[0]) * 0.4;
+        }
+        return { value: value - lower.length * 0.2, positions: positions, item: item };
+    }
+
+    function search(query) {
+        var found = [];
+        for (var i = 0; i < items.length; i++) {
+            var hit = rank(items[i], query);
+            if (hit)
+                found.push(hit);
+        }
+        found.sort(function (left, right) {
+            if (left.value !== right.value)
+                return right.value - left.value;
+            if (left.item.name === right.item.name)
+                return 0;
+            return left.item.name < right.item.name ? -1 : 1;
+        });
+        return found;
+    }
+
+    function escape(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function highlight(name, positions) {
+        var html = "";
+        var done = 0;
+        var at = 0;
+        while (at < positions.length) {
+            var start = positions[at];
+            var end = start + 1;
+            while (at + 1 < positions.length && positions[at + 1] === end) {
+                end++;
+                at++;
+            }
+            html += escape(name.slice(done, start)) + "<mark>" + escape(name.slice(start, end)) + "</mark>";
+            done = end;
+            at++;
+        }
+        return html + escape(name.slice(done));
+    }
+
+    var form = document.createElement("form");
+    form.className = "site-search";
+    form.setAttribute("role", "search");
+
+    var input = document.createElement("input");
+    input.type = "search";
+    input.className = "site-search-input";
+    input.placeholder = "Search this page";
+    input.setAttribute("aria-label", "Search this page");
+    input.setAttribute("aria-controls", "search-panel");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("spellcheck", "false");
+
+    var shortcut = document.createElement("kbd");
+    shortcut.className = "site-search-shortcut";
+    shortcut.textContent = "/";
+
+    var panel = document.createElement("div");
+    panel.id = "search-panel";
+    panel.className = "search-panel";
+    panel.setAttribute("role", "listbox");
+    panel.hidden = true;
+
+    form.appendChild(input);
+    form.appendChild(shortcut);
+    form.appendChild(panel);
+    nav.insertBefore(form, nav.querySelector(".site-links"));
+
+    var hits = [];
+    var current = -1;
+
+    function close() {
+        panel.hidden = true;
+        input.setAttribute("aria-expanded", "false");
+    }
+
+    function select(at) {
+        var rendered = panel.querySelectorAll(".search-hit");
+        for (var i = 0; i < rendered.length; i++) {
+            var isCurrent = i === at;
+            rendered[i].classList.toggle("is-current", isCurrent);
+            rendered[i].setAttribute("aria-selected", isCurrent ? "true" : "false");
+            if (isCurrent)
+                rendered[i].scrollIntoView({ block: "nearest" });
+        }
+        current = at;
+    }
+
+    function render() {
+        var query = input.value.trim().toLowerCase();
+        if (!query) {
+            hits = [];
+            close();
+            return;
+        }
+
+        var found = search(query);
+        hits = found.slice(0, LIMIT);
+
+        var html = "";
+        for (var i = 0; i < hits.length; i++) {
+            var item = hits[i].item;
+            html += '<a class="search-hit search-hit-' + item.kind + '" role="option" href="#' + item.anchor + '">' +
+                '<span class="kind-chip kind-' + item.kind + '">' + item.kind + "</span>" +
+                '<span class="search-hit-name">' + highlight(item.name, hits[i].positions) + "</span>" +
+                (item.detail ? '<span class="search-hit-detail">' + escape(item.detail) + "</span>" : "");
+            html += "</a>";
+        }
+        if (!hits.length)
+            html = '<p class="search-none">No match on this page.</p>';
+        else if (found.length > hits.length)
+            html += '<p class="search-more">' + hits.length + " of " + found.length + " matches</p>";
+
+        panel.innerHTML = html;
+        panel.hidden = false;
+        input.setAttribute("aria-expanded", "true");
+        select(hits.length ? 0 : -1);
+    }
+
+    function open(at) {
+        if (at < 0 || at >= hits.length)
+            return;
+        window.location.hash = "#" + hits[at].item.anchor;
+        close();
+    }
+
+    input.addEventListener("input", render);
+    input.addEventListener("focus", render);
+
+    input.addEventListener("keydown", function (event) {
+        if (event.key === "ArrowDown")
+            select(Math.min(current + 1, hits.length - 1));
+        else if (event.key === "ArrowUp")
+            select(Math.max(current - 1, 0));
+        else if (event.key === "Enter")
+            open(current);
+        else if (event.key === "Escape") {
+            input.value = "";
+            close();
+            input.blur();
+        } else
+            return;
+        event.preventDefault();
+    });
+
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        open(current);
+    });
+
+    panel.addEventListener("click", function () {
+        close();
+    });
+
+    document.addEventListener("click", function (event) {
+        if (!form.contains(event.target))
+            close();
+    });
+
+    // The box is reachable without the mouse from anywhere on the page, and the browser's
+    // own find stays available: "/" is only taken when nothing else is being typed into.
+    document.addEventListener("keydown", function (event) {
+        if (event.defaultPrevented || event.altKey)
+            return;
+        var active = document.activeElement;
+        var typing = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+        var takes = (event.key === "/" && !typing) || ((event.ctrlKey || event.metaKey) && event.key === "k");
+        if (!takes)
+            return;
+        event.preventDefault();
+        input.focus();
+        input.select();
+    });
+})
+([
+"n|Screen|namespace_Screen|",
+"s|Screen.Source|Screen_Source|Owns a live desktop source and its most recent image.",
+"s|Screen.SourceMetrics|Screen_SourceMetrics|Cumulative acquisition costs for one Screen.Source, in microseconds.",
+"v|Screen.SourceMetrics.acquiredFrames|Screen_SourceMetrics_acquiredFrames|Desktop frames returned by the native source.",
+"v|Screen.SourceMetrics.acquireMicroseconds|Screen_SourceMetrics_acquireMicroseconds|Time waiting for a native frame.",
+"v|Screen.SourceMetrics.coalescedUpdates|Screen_SourceMetrics_coalescedUpdates|Desktop updates combined before acquisition, when reported by the source.",
+"v|Screen.SourceMetrics.composeMicroseconds|Screen_SourceMetrics_composeMicroseconds|Time joining outputs and copying pixels into the caller's image.",
+"v|Screen.SourceMetrics.copiedPixels|Screen_SourceMetrics_copiedPixels|Pixels copied from mapped native storage, including full frames.",
+"v|Screen.SourceMetrics.copyMicroseconds|Screen_SourceMetrics_copyMicroseconds|Time copying native pixels into owned storage.",
+"v|Screen.SourceMetrics.deferredReadbacks|Screen_SourceMetrics_deferredReadbacks|Readback polls deferred while the GPU still owned the pixels.",
+"v|Screen.SourceMetrics.maxAcquireMicroseconds|Screen_SourceMetrics_maxAcquireMicroseconds|Longest single native acquisition wait.",
+"v|Screen.SourceMetrics.maxReadbackMicroseconds|Screen_SourceMetrics_maxReadbackMicroseconds|Longest single readback, including deferred CPU waits.",
+"v|Screen.SourceMetrics.mirroredPixels|Screen_SourceMetrics_mirroredPixels|Pixels incrementally copied from the native cache into a stable caller image.",
+"v|Screen.SourceMetrics.multiRectFrames|Screen_SourceMetrics_multiRectFrames|Frames read through several bounded desktop update regions.",
+"v|Screen.SourceMetrics.outputMicroseconds|Screen_SourceMetrics_outputMicroseconds|Native cache-output time, zero for current backends.",
+"v|Screen.SourceMetrics.partialFrames|Screen_SourceMetrics_partialFrames|Frames read through a region smaller than the selected output.",
+"v|Screen.SourceMetrics.readbackMicroseconds|Screen_SourceMetrics_readbackMicroseconds|CPU time submitting and waiting for native pixel readbacks.",
+"v|Screen.SourceMetrics.unchangedFrames|Screen_SourceMetrics_unchangedFrames|Polls with no newer desktop pixels.",
+"s|Screen.SourceOptions|Screen_SourceOptions|One physical desktop area to capture; dimensions must be positive.",
+"v|Screen.SourceOptions.height|Screen_SourceOptions_height|Height in physical pixels.",
+"v|Screen.SourceOptions.includeCursor|Screen_SourceOptions_includeCursor|Includes the pointer when the native source supports it.",
+"v|Screen.SourceOptions.width|Screen_SourceOptions_width|Width in physical pixels.",
+"v|Screen.SourceOptions.x|Screen_SourceOptions_x|Left edge in physical desktop pixels.",
+"v|Screen.SourceOptions.y|Screen_SourceOptions_y|Top edge in physical desktop pixels.",
+"f|Screen.Source.grabInto|Screen_Source_grabInto|Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.",
+"f|Screen.Source.metrics|Screen_Source_metrics|Returns cumulative native and composition timing since this source was opened.",
+"f|Screen.Source.opDrop|Screen_Source_opDrop|Releases the native capture handles and cached frames on the opening thread.",
+"f|Screen.Source.open|Screen_Source_open|Opens a native source for one physical desktop area.",
+"f|Screen.Source.reopen|Screen_Source_reopen|Reopens a source after a display change or native access loss.",
+]);
+</script>
+</body>
+</html>

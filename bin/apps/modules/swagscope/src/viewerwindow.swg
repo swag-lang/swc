@@ -122,6 +122,8 @@ struct ViewerWindow
     pendingRemember:         bool = true
     pendingForgetMissing:    bool
     fileWatch:               ViewerFileWatch
+    privacy:                 ViewerPrivacy
+    privacyTimer:            *Timer?
     fileWatchTimer:          *Timer?
     readingState:            ViewerReadingState
     reloading:               bool
@@ -157,6 +159,7 @@ struct ViewerWindow
     folderHistory:       Array'ViewerFolderHistory
     resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
     exploredFolders:     Array'String     // Directories explored lately, most recent first.
+    folderViews:         Array'ExplorerFolderState
     systemPlaces:        Array'String     // The system's own folders a first launch offers to explore.
     fileViewerChoices:   Array'ViewerFileChoice
     musicChoices:        Array'MusicChoice
@@ -348,6 +351,18 @@ impl IWnd for ViewerWindow
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
+        if evt.timer == .privacyTimer
+        {
+            discard .privacy.refresh()
+            .privacy.refreshIndicator()
+            if .privacy.dirty
+            {
+                .refreshHome()
+                catch .saveState()
+            }
+            .privacy.clearCaches()
+            return
+        }
         if evt.timer == .fileWatchTimer
         {
             if not .pendingFile.isEmpty() or .currentFile.isEmpty() do
@@ -437,6 +452,9 @@ impl IWnd for ViewerWindow
         .stopSearch()
         .stopLoadingIndicator()
         .stopSlide()
+        .stopTimer(&.privacyTimer)
+        .privacy.flush()
+        .privacy.destroyIndicator()
         .stopTimer(&.fileWatchTimer)
         .stopTimer(&.viewerBarTimer)
 
@@ -476,6 +494,12 @@ impl IWnd for ViewerWindow
             }
         }
 
+        if not evt.serializer.isReading()
+        {
+            .explorer?.rememberView()
+            .privacy.sanitize()
+            .privacy.dirty = false
+        }
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
@@ -486,6 +510,7 @@ impl IWnd for ViewerWindow
             .captureResume()
         catch evt.serializer.serialize("ViewerWindow.resumePoints", &me.resumePoints)
         catch evt.serializer.serialize("ViewerWindow.exploredFolders", &me.exploredFolders)
+        catch evt.serializer.serialize("ViewerWindow.folderViews", &me.folderViews)
         catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
         catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)
@@ -497,10 +522,12 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &Viewers.Film.g_SubtitleSettings)
+        catch evt.serializer.serialize("ViewerWindow.movieDetection", &Viewers.Film.g_MovieDetectionSettings)
         catch evt.serializer.serialize("ViewerWindow.markdown", &Viewers.MarkdownText.g_ViewerSettings)
         catch evt.serializer.serialize("ViewerWindow.midi", &Viewers.Midi.g_ViewerSettings)
         if evt.serializer.isReading()
         {
+            Viewers.Film.g_MovieDetectionSettings.sanitize()
             .themeIndex = Math.min(.themeIndex, cast(u32, AppearanceTheme.System))
             if .rightPanelWidth > 0 do
                 .rightPanelWidth = Math.clamp(.rightPanelWidth, RightPanelMinWidth, RightPanelMaxWidth)
@@ -522,6 +549,7 @@ impl IWnd for ViewerWindow
             while .recent.count > RecentCount do
                 .recent.removeAtOrdered(.recent.count - 1)
             .recentOpened.resize(.recent.count)
+            .privacy.sanitize()
             .pruneResume()
             while .exploredFolders.count > FolderHistoryCount do
                 .exploredFolders.removeBack()
@@ -693,6 +721,7 @@ impl ViewerWindow
 
     mtd refreshExplorerCaption()
     {
+        .privacy.refreshIndicator()
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
@@ -742,13 +771,28 @@ impl ViewerWindow
             .home.refresh()
     }
 
-    // A monitor-sized full-screen placement is transient and must never replace the saved
-    // window placement. Closing first restores the regular placement, then persists it.
+    // Saves the regular placement even during full screen. Privacy changes must reach disk
+    // immediately without changing the presentation the reader currently sees.
     mtd saveState() fail
     {
-        if .fullScreen or .thumbnailMode do
+        if .thumbnailMode do
             return
-        try g_App.saveState()
+        let surface           = unwrap .surface
+        let presentation      = surface.state
+        let presentationFlags = surface.flags
+        defer if .fullScreen
+        {
+            surface.state = presentation
+            surface.flags = presentationFlags
+        }
+        if .fullScreen
+        {
+            surface.flags = .fullScreenRestoreFlags
+            surface.position = .fullScreenRestorePosition
+            surface.restoredPosition = .fullScreenRestorePosition
+            surface.isMaximized = .fullScreenWasMaximized
+        }
+        try .app().saveState()
     }
 
     // Puts the commands of the active viewer in the floating bar, or empties it.
@@ -1101,6 +1145,9 @@ impl ViewerWindow
             .hide()
         }
 
+        result.privacy.window = result
+        result.privacy.createIndicator()
+        result.privacyTimer   = result.addTimer(250'ms)
         result.hookChildEvents()
 
         result.applyLanguage()
@@ -1149,6 +1196,7 @@ impl ViewerWindow
     // Returns every registered viewer name in selection order, as one compact capability line.
     //
     // The names carry the content families without repeating the registry's extension inventory.
+    // The line is an inline markup sentence, as an about section expects.
     mtd const aboutViewerList()->String
     {
         var result: #returntype
@@ -1158,9 +1206,7 @@ impl ViewerWindow
             // opens on one.
             if not result.isEmpty() do
                 result += "\u00A0\u00A0·  "
-            result += "<b>"
-            result += plugin.displayName()
-            result += "</b>"
+            result += Format.toString("<b>%</b>", RichString.escape(plugin.displayName()))
         }
 
         return result
@@ -1405,6 +1451,7 @@ impl ViewerWindow
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
         .explorerActive = true
+        .privacy.track(source, File.MountPrivacy.query(source))
         .rememberExplored(source)
         .closeFile(forExplorer: true)
         .home.hide()

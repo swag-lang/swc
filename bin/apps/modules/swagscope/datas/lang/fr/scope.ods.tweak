@@ -1,0 +1,4 @@
+ui_Name "Classeur OpenDocument"
+err_Invalid "La structure de ce classeur OpenDocument est endommagée."
+err_TooLarge "Ce classeur est trop volumineux pour être ouvert sans risque."
+err_Encrypted "Ce classeur est protégé par un mot de passe."

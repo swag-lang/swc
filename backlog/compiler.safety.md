@@ -161,10 +161,9 @@ is the current scorecard.
 - Evidence: caller-side use after a call can escape detection for receiver fields and globals.
   The body-local release/use check is already covered; this entry is only about what the caller can
   prove after a callee returns.
-- A per-field summary was prototyped and reverted because a release does not prove the storage
-  remains empty on return. The missing proof is negative: the callee did not restore storage
-  reachable from the caller. Establishing it requires excluding writes through aliases, so a
-  release-only summary is insufficient.
+- A release summary alone cannot prove the storage remains empty on return. An earlier prototype
+  omitted that post-call write proof and failed the reset-safe sanity case. Establishing the proof
+  requires excluding writes through aliases, so a release-only summary is insufficient.
 - Release-safe probes confirm the boundary: a helper freeing `n.data` or a global pointer is not
   reported by the caller; counterparts that free and replace the field or global remain silent.
   At a call, the sanitizer drops facts about heap locations when their owner is passed, because the
@@ -175,15 +174,39 @@ is the current scorecard.
   also has to survive module API publication and unknown call targets.
 - Prototype: `BorrowSummary` now has `freesFields` and `resetsFields` entries for first-level
   pointer fields, and caller-side sanitizer transfer distinguishes a released field from a reset
-  field. Same-module positive and reset-safe probes pass in Release-safe. A static-provider API
-  exports and imports both entries, but the consumer-side positive probe still misses the UAF;
-  remove that regression only after the imported location and pointer provenance are joined
-  correctly. Old local copies across a reset and global effects are not solved by this prototype.
-- Next: repair imported-call tracking, then infer these summaries from ordinary function bodies
-  instead of relying on a manually supplied summary. Extend the must-free/post-call-write proof
-  to field paths only when aliases and control flow remain sound, and handle globals, wrapper calls
-  and unavailable bodies. Check old local copies, sibling fields, receiver resets and global resets
-  before integrating the complete result with `SanitizerState`.
+  field. Same-module positive and reset-safe probes pass in Release-safe with summaries supplied.
+  Consumer probes with explicit summaries confirm that the generated API imports the field effect,
+  diagnoses a reload and a copy of the old pointer, keeps a replacement field usable, and leaves a
+  sibling field alone. An imported `freesIndirect` summary also catches a copy of the old pointer
+  held in the passed box; the box itself stays unclassified because the callee may reassign it.
+  Inferred summaries now retain a first-level field identity through `AllocatorRequest.address`:
+  the static-provider API emits `freesFields` for a release-only method, and the consumer diagnoses
+  its field reload. If the method writes that field or passes its carrier to another call, inference
+  suppresses the field release because no must-reset proof exists. The field remains usable after
+  an unannotated release-and-replace method, but aliases copied before that call are not yet
+  diagnosed. Known direct wrappers now forward explicit and inferred field effects after module
+  analysis; release-and-replace wrappers preserve both the old-alias diagnostic and safe field
+  reload. A pointer value projected from a field also carries a callee's direct `frees` effect back
+  to that field through wrappers. For body-visible carrier calls, possible field writes now
+  propagate separately from releases: a known read-only call no longer suppresses a later
+  field-release summary. Generated APIs publish possible writes in `writesFields`; the
+  `writesFieldsComplete` marker lets the backend preserve alias provenance through bodyless calls
+  for fields outside that complete list. An incomplete or unavailable summary remains
+  conservative. Consumer regressions verify a no-write API preserves release diagnostics and a
+  writer of `data` does not suppress a release through `other`; a wrapper API exports both effects
+  together and the consumer keeps `data` usable while diagnosing the released `other`. Replacement
+  and refill-before-release cases keep aliases to the old allocation valid. Globals and automatic
+  reset inference remain unsolved. Aggregate `into` effects deliberately omit the complete-write marker
+  when their field set cannot be proven. Linux `release-safe` validation passes the complete
+  `workspace` suite (56/56 stages), the complete `sanity` suite, the focused `use_after_free.swg`
+  corpus from the preceding validation pass, and 1,699 C++ unit tests.
+- One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
+  projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
+  single run; repeat it before treating the small timing difference as a regression.
+- Next: extend the same before/after distinction to globals and unavailable bodies. Infer
+  guaranteed resets where control flow proves every return leaves valid storage; retain
+  conservative behavior whenever an incomplete write summary or unknown target prevents that
+  proof.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

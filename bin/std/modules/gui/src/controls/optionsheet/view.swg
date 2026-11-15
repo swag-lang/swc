@@ -398,7 +398,7 @@ impl View
     // Returns the index of the row worded `label` on the page on screen, or `Swag.U32.Max`.
     mtd const findRow(label: string)->u32
     {
-        for row, index in .page.rows where row.label.raw == label do
+        for row, index in .page.rows where row.label.text == label do
             return cast(u32, index)
         return Swag.U32.Max
     }
@@ -720,7 +720,7 @@ private impl View
         {
         case .Link:
             .levels.backPtr().focus = index
-            .levels.add(Level{build: unwrap row.open, title: row.label.raw})
+            .levels.add(Level{build: unwrap row.open, title: row.label.text})
             .leaving = #move .page
             .rebuild()
             .focusRow = .initialFocus()
@@ -1150,7 +1150,7 @@ private impl View
         if row.kind == .Heading
         {
             var label: RichString
-            label.set(row.label.raw.toUpper(.Unicode))
+            label.set(row.label.text.toUpper(.Unicode))
             var text = rect
             text.x      += metrics.optionSheet_RowPadding
             text.y      += metrics.optionSheet_Inset

@@ -79,11 +79,11 @@ using Swag, Core, Pixel
 
     let menu = lens.createCommandMenu()
     menu.updateState()
-    Swag.require(menu.items.count == 1 and menu.items[0]!.name.raw == strings().lens_Application)
+    Swag.require(menu.items.count == 1 and menu.items[0]!.name.text == strings().lens_Application)
     let application = menu.items[0]!.popup
     Swag.require(application.items.count == 2)
-    Swag.require(application.items[0]!.name.raw == strings().appearance_Theme)
-    Swag.require(application.items[1]!.name.raw == strings().appearance_Language)
+    Swag.require(application.items[0]!.name.text == strings().appearance_Theme)
+    Swag.require(application.items[1]!.name.text == strings().appearance_Language)
     let themes = application.items[0]!.popup
     themes.updateState()
     Swag.require(themes.items.count == 3 and themes.items[0]!.checked)

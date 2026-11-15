@@ -28,12 +28,13 @@ enum ErrorKind
     Elevated              // The application runs as administrator, so Windows Explorer cannot see its drives.
     DriverUnavailable     // The virtual drive component could not be loaded, started, or reached.
     Canceled              // The caller stopped the operation.
+    Busy                  // An ordinary unmount left an in-use drive mounted.
 }
-const ErrorKindValues: [20] ErrorKind = [
+
+const ErrorKindValues: [21] ErrorKind = [
     .HiddenProtected, .General, .InvalidInput, .PasswordRequired, .SizeTooSmall, .PasswordOrDamaged,
     .NotFound, .AlreadyExists, .AccessDenied, .WriteProtected, .SparseContainer, .NotDirectory,
-    .IsDirectory, .DirectoryNotEmpty, .DiskFull, .Corrupted, .Io, .Elevated, .DriverUnavailable, .Canceled,
-]
+    .IsDirectory, .DirectoryNotEmpty, .DiskFull, .Corrupted, .Io, .Elevated, .DriverUnavailable, .Canceled, .Busy]
 
 // One failure raised by the volume layer: what kind of failure it is, the native status that came
 // with it, and where it was raised.

@@ -386,8 +386,8 @@ private func buildText(flow: *Flow)
     let offLabel = Label.create(flow.view, "Disabled label", flow.next(150, 24))
     offLabel.disable()
 
-    Label.create(flow.view, "A <url>link</url> in a sentence.", flow.next(240, 24))
-    Label.create(flow.view, "<p1>one <p2>two <p3>three", flow.next(180, 24))
+    Label.createMarkup(flow.view, "A <a>link</a> in a sentence.", flow.next(240, 24))
+    Label.createMarkup(flow.view, "<span class=\"p1\">one <span class=\"p2\">two <span class=\"p3\">three", flow.next(180, 24))
 
     flow.caption("rules")
     Separator.create(flow.host(200, 30), .Top)

@@ -17,6 +17,10 @@ const MS_SYNC      = 4's32
 
 #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {
+    // Opens a POSIX shared-memory object, returning a descriptor or -1 with errno set.
+    func shm_open(name: const [*] u8, flags: s32, mode: u32)->s32
+    // Removes a POSIX shared-memory name; existing mappings remain valid until released.
+    func shm_unlink(name: const [*] u8)->s32
     func memfd_create(name: const [*] u8, flags: u32)->s32
     func mmap(addr: *void?, length: u64, prot: s32, flags: s32, fd: s32, offset: s64)->*void?
     func munmap(addr: *void?, length: u64)->s32

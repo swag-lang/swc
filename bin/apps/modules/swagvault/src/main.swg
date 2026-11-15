@@ -4,8 +4,10 @@ const AppIcon = #include("../datas/appicon.png")
 
 var g_App: Application
 
-const ProductName = "Swag Vault"
-const SurfaceId   = "swag.vault"
+const ProductName       = "Swag Vault"
+const SurfaceId         = "swag.vault"
+const ShowWindowMessage = 1'u32
+const ApplicationId     = "swagvault"
 
 #main
 {
@@ -29,6 +31,23 @@ const SurfaceId   = "swag.vault"
         Env.exit(copyError == null ? 0 : 1)
     }
 
+    var instance: Env.SessionInstance
+
+    // A sandboxed smoke has its own state and must never wake the user's running window.
+    let surfaceId = Format.toString("%.%", SurfaceId, Hash.hash64(Env.getSpecialDirectory(.UserAppData)))
+    if not try instance.acquire(ApplicationId)
+    {
+        // The first instance may still be constructing its surface after acquiring presence.
+        for 250
+        {
+            if Surface.sendCustomMessage(surfaceId, ShowWindowMessage, 0) do
+                return
+            Threading.Thread.sleep(20'ms)
+        }
+
+        fail Swag.SystemError{"the running Swag Vault instance did not respond"}
+    }
+
     // Only non-sensitive preferences are persisted: no path is written while privacy mode is on.
     g_App.setAppIcon(expect Image.decode(".png", AppIcon))
     g_App.setStatePath(Path.combine(Env.getSpecialDirectory(.UserAppData), "Swag", "vault", "settings.scc"))
@@ -36,7 +55,7 @@ const SurfaceId   = "swag.vault"
 
     // A standard window: the list of vaults grows downwards and the pages are measured columns,
     // so a taller or wider window only gives them air.
-    let surface = try g_App.createSurface(80, 50, MainWindow.DefaultWidth, MainWindow.DefaultHeight, SurfaceFlags.StandardWindow, surfaceId: SurfaceId)
+    let surface = try g_App.createSurface(80, 50, MainWindow.DefaultWidth, MainWindow.DefaultHeight, SurfaceFlags.StandardWindow, surfaceId: surfaceId)
     g_App.theme.setDark()
     g_App.notifyThemeChanged()
 
@@ -45,7 +64,8 @@ const SurfaceId   = "swag.vault"
     surface.setTitle(appStrings().ui_WindowTitle)
     let mainWindow = MainWindow.create(surface.wnd)
 
-    surface.show()
+    mainWindow.initialize()
+    mainWindow.resident.start()
     discard g_App.run()
     mainWindow.shutdown()
 }

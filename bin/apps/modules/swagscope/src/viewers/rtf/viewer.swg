@@ -20,6 +20,7 @@ func viewerPlugin()->Viewer.Plugin
         .smokeFixture = "viewer.rtf"
         .addSelectors(".rtf")
     }
+
     return result
 }
 
@@ -28,10 +29,10 @@ struct Panel
 {
     using wnd: Wnd
 
-    document: Document
-    load:     Viewer.BackgroundLoad'Document
-    services: Viewer.HostServices
-    view:     *HtmlView?
+    document:    Document
+    load:        Viewer.BackgroundLoad'Document
+    services:    Viewer.HostServices
+    view:        *HtmlView?
     late status: *Label
 }
 
@@ -54,10 +55,13 @@ private impl IWnd for Panel
 
         var style = HtmlStyle.theme()
         style.maxContentWidth = 680
+        style.followTheme     = not .document.paper
         with .view = HtmlView.createText(me, .document.html, style)
         {
             .dockStyle = .Center
+            .margin    = {.themeMetrics().floating_Inset, 0, .themeMetrics().floating_Inset, 0}
         }
+
         .status.hide()
         .applyLayout()
         .showDetails()
@@ -78,7 +82,7 @@ private impl Panel
 
     mtd showDetails()
     {
-        .services.showDetails(me, Format.toString(texts().ui_Details, .document.paragraphs, .document.omittedObjects))
+        .services.showDetails(me, .document.details())
     }
 
     func create(host: Viewer.Host)->*Panel
@@ -88,12 +92,14 @@ private impl Panel
             .backgroundStyle = .View
             .services        = host.services()
         }
+
         with result.status = Label.create(result, texts().ui_Preparing, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
             .backgroundStyle = .View
             .setTextAlignment(.Center, .Center)
         }
+
         result.load.start(host.fileName(), &Document.load, result)
         result.applyLayout()
         return result

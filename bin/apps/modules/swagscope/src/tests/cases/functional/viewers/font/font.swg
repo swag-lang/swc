@@ -47,10 +47,10 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     view.document.goToCharacterPage(0x370)
     Swag.require(view.document.pageStart <= 0x370 and view.document.pageEnd >= 0x370)
 
-    let oldPlaceholder = String.from(view.sampleEdit.name.raw)
+    let oldPlaceholder = String.from(view.sampleEdit.name.text)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(view.sampleEdit.name.raw == Typeface.texts().ui_SamplePlaceholder and view.sampleEdit.name.raw != oldPlaceholder)
+    Swag.require(view.sampleEdit.name.text == Typeface.texts().ui_SamplePlaceholder and view.sampleEdit.name.text != oldPlaceholder)
     Swag.require(view.previousButton.toolTip == appStrings().ui_PreviousPage)
     Swag.require(view.nextButton.toolTip == appStrings().ui_NextPage)
 }

@@ -7,8 +7,13 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
+    // The picture is alone in its folder, so its position among its siblings is not part of
+    // what is recorded.
+    let file = isolatedScopeFixture("sample.svg")
+    defer discardIsolatedScopeFixture(file)
+
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("sample.svg"), true, 900, 600)
+    let window = framedViewerWindow(&host, file, true, 900, 600)
     Swag.require(window.choices[window.activeChoiceIndex].key == "image")
     let view = assume cast(*Picture.Panel, window.currentView)
     view.imageView.setZoom(3)

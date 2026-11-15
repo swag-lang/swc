@@ -5,6 +5,18 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
 private func thumbnailFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
 
+// Image and video decoders do not initialize the text-card canvas or system fonts.
+#test
+{
+    var service: ThumbnailService
+    let video = expect service.render(thumbnailFixture("glint-aac-mjpeg.mp4"))
+    Swag.require(video.isValid() and service.renderer.bodyFont == null)
+    let image = expect service.render(thumbnailFixture("sample.svg"))
+    Swag.require(image.isValid() and service.renderer.bodyFont == null)
+    let text = expect service.render(thumbnailFixture("comprehensive.txt"))
+    Swag.require(text.isValid() and service.renderer.bodyFont != null)
+}
+
 // One background renderer handles subtitle content and can reuse its state for a video frame.
 #test
 {

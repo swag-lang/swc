@@ -65,8 +65,10 @@ internal struct NativeSurface
     }
 
     // Whether the desktop loop timer is armed for this window.
-    inDesktopLoop: bool
+    inDesktopLoop:    bool
     trayIconVersion4: bool     // The Shell callback layout selected for this icon.
+    trayImage:        Pixel.Image
+    trayTip:          String
 
     // First-show setup can restore several placements before its content is ready to paint.
     initializing: bool
@@ -89,9 +91,10 @@ internal struct NativeSurface
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
-private const TrayIconID = 1
+private const TrayIconID       = 1
 private const TrayIconVersion4 = 4
-private const NIN_KEYSELECT = WM_USER + 1
+private const NIN_KEYSELECT    = WM_USER + 1
+private var g_TaskbarCreated: u32
 
 // Decodes the callback layout chosen with NIM_SETVERSION. The modern Shell reports the icon id
 // in the high word of lParam and uses WM_CONTEXTMENU for keyboard context-menu requests.
@@ -107,7 +110,7 @@ internal impl Surface
             message &= 0xFFFF
             switch message
             {
-            case WM_CONTEXTMENU:   return .ContextMenu
+            case WM_CONTEXTMENU: return .ContextMenu
             case WM_LBUTTONDBLCLK, NIN_KEYSELECT: return .Activate
             }
         }
@@ -119,6 +122,7 @@ internal impl Surface
             case WM_LBUTTONDBLCLK: return .Activate
             }
         }
+
         return .None
     }
 }
@@ -176,18 +180,34 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
     let surface = cast(*Surface?, cast #bit (u64, GetWindowLongPtrW(hWnd, GWLP_USERDATA)))
     if surface
     {
+        if g_TaskbarCreated != 0 and msg == g_TaskbarCreated
+        {
+            if surface.trayIcon
+            {
+                // Replacement writes these fields; own snapshots before borrowing them
+                // as call arguments during a Shell restart.
+                let icon = surface.native.trayImage
+                let tip  = surface.native.trayTip
+                surface.setTrayIcon(icon, tip)
+            }
+
+            return TRUE
+        }
+
         if msg == WM_USER
         {
             let action = surface.trayActionForNotification(wParam, lParam)
             if action != .None
             {
                 let evt = Event.create'SysUserEvent()
-                evt.kind = .TrayIcon
+                evt.kind       = .TrayIcon
                 evt.trayAction = action
+
                 // The Shell must finish its input and foreground transitions before the
                 // application shows a panel or editor window in response.
                 surface.wnd.view.postEvent(evt)
             }
+
             return TRUE
         }
 
@@ -920,12 +940,20 @@ impl Surface
             return
 
         var img     = icon
+        let tipText = String.from(tip orelse "")
         let newIcon = catch img.toHicon()
         if not newIcon do
             return
 
         .removeTrayIcon()
-        .trayIcon = newIcon
+        .trayIcon         = newIcon
+        .native.trayImage = img
+        .native.trayTip   = tipText
+        if g_TaskbarCreated == 0
+        {
+            let message = Utf16.toZeroTerminated("TaskbarCreated")
+            g_TaskbarCreated = RegisterWindowMessageW(message.buffer)
+        }
 
         var tnid: NOTIFYICONDATAA
         tnid.cbSize = #sizeof(NOTIFYICONDATAA)
@@ -935,11 +963,11 @@ impl Surface
         tnid.uCallbackMessage = WM_USER
         tnid.hIcon  = .trayIcon
 
-        if tip
+        if tipText.count
         {
             tnid.uFlags |= NIF_TIP
-            let count = Math.min(tip.count, #sizeof(tnid.szTip) - 1)
-            Memory.copy(&tnid.szTip[0], tip.buffer, count)
+            let count = Math.min(tipText.count, #sizeof(tnid.szTip) - 1)
+            Memory.copy(&tnid.szTip[0], unwrap tipText.buffer, count)
         }
 
         catch Shell_NotifyIconA(NIM_ADD, &tnid)
@@ -996,6 +1024,11 @@ impl Surface
         var identifier = NOTIFYICONIDENTIFIER{cbSize: #sizeof(NOTIFYICONIDENTIFIER), hWnd: .hWnd, uID: TrayIconID}
         return Shell_NotifyIconGetRect(&identifier, rect) == S_OK
     }
+
+    // Reports whether the native notification-area registration succeeded.
+    //
+    // The icon can still be placed in the system's overflow area.
+    mtd hasTrayIcon()->bool => .trayIcon != null
 
     // Removes the notification-area icon owned by this surface, if any.
     mtd removeTrayIcon()
@@ -1122,7 +1155,7 @@ impl Surface
     {
         if not .hWnd do
             return
-        let title = .wnd.name.raw.isEmpty() ? Utf16.toZeroTerminated(.surfaceId) : Utf16.toZeroTerminated(.wnd.name.raw)
+        let title = .wnd.name.text.isEmpty() ? Utf16.toZeroTerminated(.surfaceId) : Utf16.toZeroTerminated(.wnd.name.text)
         discard SetWindowTextW(.hWnd, title.buffer)
     }
 

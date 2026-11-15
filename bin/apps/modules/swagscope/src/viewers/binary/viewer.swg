@@ -142,11 +142,8 @@ impl Panel
         line.itemAt(cast(u32, Column.Offset)).colorFg = colors.label_TextFaint
         line.itemAt(cast(u32, Column.Detail)).colorFg = colors.label_TextLight
 
-        if row.kind == .Group
-        {
-            let marked = Format.toString("<b>%</b>", row.label)
-            line.itemAt(cast(u32, Column.Field)).name = marked.toString()
-        }
+        if row.kind == .Group do
+            line.itemAt(cast(u32, Column.Field)).name.set(row.label, {bold: true})
     }
 
     // Empties the tree so that [[Panel.fillListStep]] rebuilds it from the first report row.
@@ -573,11 +570,11 @@ impl Panel
         for column in 4
         {
             let item = line.itemAt(cast(u32, column))
-            if item.name.raw.isEmpty() do
+            if item.name.text.isEmpty() do
                 continue
             if not text.isEmpty() do
                 text += "  "
-            text += RichString.plainText(item.name.raw)
+            text += item.name.text
         }
 
         Clipboard.addString(text)

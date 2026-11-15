@@ -249,7 +249,7 @@ public impl IWnd for MenuCtrl
             {
                 labelPos.x += metrics.menuPopup_IconMargin
                 labelPos.width -= metrics.menuPopup_IconMargin
-                SectionLabel.paint(me, painter, labelPos, it.name.raw)
+                SectionLabel.paint(me, painter, labelPos, it.name.text)
                 continue
             }
 
@@ -1126,7 +1126,7 @@ impl MenuCtrl
             if it.label
             {
                 let labelFont = .theme().createDefaultFont(metrics.sectionLabel_FontSize, .SemiBold)
-                let labelText = it.name.raw.toUpper(.Unicode)
+                let labelText = it.name.text.toUpper(.Unicode)
                 w = Painter.shapeRun(labelText, labelFont, letterSpacing: metrics.sectionLabel_LetterSpacing).metrics.width
             }
 
@@ -1335,7 +1335,7 @@ public impl MenuCtrl
         for offset in count
         {
             let index = (current + offset + 1) % count
-            if .canSelectKeyboard(index) and Utf8.startsWith(.items[index]!.name.raw, letter, .UnicodeNoCase)
+            if .canSelectKeyboard(index) and Utf8.startsWith(.items[index]!.name.text, letter, .UnicodeNoCase)
             {
                 .setKeyboardSelection(index)
                 return
@@ -1678,9 +1678,15 @@ public impl MenuCtrl
             elif .popupButtonOpensUp do
                 y = anchor.y - (.position.height - anchor.height - sdw)
 
+            // A menu centred under its button lands on whole pixels, which can only split an even
+            // difference of widths: one more pixel keeps the body centred instead of half a pixel off.
+            let alignsText = not button.name.isEmpty() and not button.flags.has(.IconOnly)
+            if not alignsText and cast(s64, Math.abs(.position.width - 2 * sdw - anchor.width)) & 1 do
+                .position.width += 1
+
             let bodyWidth = .position.width - 2 * sdw
             var left      = anchor.horzCenter() - bodyWidth * 0.5
-            if not button.name.isEmpty() and not button.flags.has(.IconOnly)
+            if alignsText
             {
                 let lead = .popupHasGlyphs ? .themeMetrics().menuPopup_IconMargin + .themeMetrics().menuPopup_IconSize + .themeMetrics().menuPopup_IconTextMargin : .themeMetrics().menuPopup_IconMargin
                 left = button.menuAnchorTextLeft(anchor) - .padding.x - lead

@@ -106,6 +106,12 @@ struct AppStrings
     options_SubtitlePosition:  string = "Subtitle Position"
     options_SubtitleColor:     string = "Subtitle Color"
     options_SubtitleDelay:     string = "Subtitle Delay"
+    options_MoviePattern:      string = "Movie Filename Pattern"
+    options_MoviePatternHelp:  string = "Both movie rules must match. Empty accepts any filename."
+    options_MovieDuration:     string = "Minimum Movie Duration"
+    options_MovieDurationHelp: string = "Shorter videos use local frames without catalog requests. Zero accepts any duration."
+    ui_InvalidMoviePattern:    string = "Enter a valid regular expression for movie filenames."
+    ui_PrivateVault:           string = "Private Swag Vault content"
     ui_TMDBCredentials:        string = "Configured TMDB Credentials"
     ui_ReplaceTMDBToken:       string = "Replace TMDB Read Access Token"
     ui_ReplaceTMDBKey:         string = "Replace TMDB API Key"
@@ -293,29 +299,33 @@ private func resolveScopePropertyText(key: string)->string?
     let texts = appStrings()
     switch key
     {
-    case "Online Movie Posters and Details":                      return texts.explore_OnlineMovies
-    case "Online Music Covers and Details":                       return texts.explore_OnlineMusic
-    case "TMDB first, then Apple and Wikipedia.":                 return texts.options_OnlineMovieHelp
-    case "MusicBrainz and Cover Art Archive need no API key.":    return texts.ui_OnlineMusicHelp
-    case "Configured TMDB Credentials":                           return texts.ui_TMDBCredentials
-    case "Replace TMDB Read Access Token":                        return texts.ui_ReplaceTMDBToken
-    case "Replace TMDB API Key":                                  return texts.ui_ReplaceTMDBKey
+    case "Online Movie Posters and Details":                         return texts.explore_OnlineMovies
+    case "Online Music Covers and Details":                          return texts.explore_OnlineMusic
+    case "TMDB first, then Apple and Wikipedia.":                    return texts.options_OnlineMovieHelp
+    case "MusicBrainz and Cover Art Archive need no API key.":       return texts.ui_OnlineMusicHelp
+    case "Configured TMDB Credentials":                              return texts.ui_TMDBCredentials
+    case "Replace TMDB Read Access Token":                           return texts.ui_ReplaceTMDBToken
+    case "Replace TMDB API Key":                                     return texts.ui_ReplaceTMDBKey
     case "Credential values are never shown. Enter a replacement below, or leave the fields empty to keep the current credentials.": return texts.ui_TMDBCredentialsHelp
     case "Saved credentials are not shown. Enter a replacement, or leave empty to keep the current value.": return texts.ui_TMDBCredentialHelp
-    case "Remove Saved TMDB Credentials":                         return texts.ui_TMDBClear
-    case "Remove the local token and key when this page closes.": return texts.ui_TMDBClearHelp
-    case "Document Theme":                                        return texts.options_DocumentTheme
-    case "Reading Width":                                         return texts.options_ReadingWidth
-    case "Zoom":                                                  return texts.options_Zoom
-    case "Pitch Labels":                                          return texts.options_PitchLabels
-    case "Keyboard Width":                                        return texts.options_KeyboardWidth
-    case "Subtitle Font":                                         return texts.options_SubtitleFont
-    case "Subtitle Size":                                         return texts.options_SubtitleSize
-    case "Subtitle Effect":                                       return texts.options_SubtitleEffect
-    case "Subtitle Position":                                     return texts.options_SubtitlePosition
-    case "Subtitle Color":                                        return texts.options_SubtitleColor
-    case "Subtitle Delay":                                        return texts.options_SubtitleDelay
-    default:                                                      return null
+    case "Remove Saved TMDB Credentials":                            return texts.ui_TMDBClear
+    case "Remove the local token and key when this page closes.":    return texts.ui_TMDBClearHelp
+    case "Document Theme":                                           return texts.options_DocumentTheme
+    case "Reading Width":                                            return texts.options_ReadingWidth
+    case "Zoom":                                                     return texts.options_Zoom
+    case "Pitch Labels":                                             return texts.options_PitchLabels
+    case "Keyboard Width":                                           return texts.options_KeyboardWidth
+    case "Subtitle Font":                                            return texts.options_SubtitleFont
+    case "Subtitle Size":                                            return texts.options_SubtitleSize
+    case "Subtitle Effect":                                          return texts.options_SubtitleEffect
+    case "Subtitle Position":                                        return texts.options_SubtitlePosition
+    case "Subtitle Color":                                           return texts.options_SubtitleColor
+    case "Subtitle Delay":                                           return texts.options_SubtitleDelay
+    case "Movie Filename Pattern":                                   return texts.options_MoviePattern
+    case "Both movie rules must match. Empty accepts any filename.": return texts.options_MoviePatternHelp
+    case "Minimum Movie Duration":                                   return texts.options_MovieDuration
+    case "Shorter videos use local frames without catalog requests. Zero accepts any duration.": return texts.options_MovieDurationHelp
+    default:                                                         return null
     }
 }
 

@@ -169,7 +169,7 @@ impl SlideShape
                 {
                     let value = token.attribute("val") orelse ""
                     let color = token.isElement("schemeClr") ? theme.color(value) : String.from(value)
-                    if isRgbHex(color)
+                    if Package.isRgbHex(color)
                     {
                         if inLine do
                             result.line = color

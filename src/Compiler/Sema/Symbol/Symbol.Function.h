@@ -119,12 +119,20 @@ public:
 
     bool hasFreedParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
     bool hasResetParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
+    bool hasPossiblyWrittenParamField(size_t paramIndex, std::string_view fieldName) const noexcept;
+    bool hasCompleteParamFieldWriteSummary() const noexcept;
+    bool mayWriteUnknownParamFields() const noexcept { return unknownCallMayWriteParamFields_; }
     void addFreedParamField(size_t paramIndex, std::string_view fieldName);
+    // Possible writes suppress inferred freesFields when no must-reset proof exists.
+    void markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName);
+    void suppressInferredFreedParamFields();
     void addResetParamField(size_t paramIndex, std::string_view fieldName);
     std::span<const ReturnFieldBorrow> freedParamFields() const noexcept { return freedParamFields_; }
     std::span<const ReturnFieldBorrow> resetParamFields() const noexcept { return resetParamFields_; }
+    std::span<const ReturnFieldBorrow> writtenParamFields() const noexcept { return writtenParamFields_; }
     std::span<const ReturnFieldBorrow> importedFreedParamFields() const noexcept;
     std::span<const ReturnFieldBorrow> importedResetParamFields() const noexcept;
+    std::span<const ReturnFieldBorrow> importedWrittenParamFields() const noexcept;
 
     // The result aliases the parameter's storage, rather than carrying a reference
     // to it in a separate allocation. Only this route can make freeing a returned
@@ -648,6 +656,8 @@ private:
     std::vector<ReturnFieldBorrow> returnFieldBorrows_;
     std::vector<ReturnFieldBorrow> freedParamFields_;
     std::vector<ReturnFieldBorrow> resetParamFields_;
+    std::vector<ReturnFieldBorrow> writtenParamFields_;
+    bool                            unknownCallMayWriteParamFields_ = false;
     uint64_t returnsStorageParamsMask_ = 0;
     bool     observesExternalBorrows_  = false;
     bool     borrowEffectsComputed_    = false;

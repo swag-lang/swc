@@ -27,8 +27,8 @@ struct Dialog
             parentSurface:  *Surface?               // Surface that owns the modal dialog.
             title:          RichString              // Title set as the first line of the body, or empty for none.
             failure:        bool                    // Whether the title reports a failure.
-            titleMark:      ThemeIcons            // Status glyph before the title, when present.
-            hasTitleMark:   bool                  // Whether the title has a status glyph.
+            titleMark:      ThemeIcons              // Status glyph before the title, when present.
+            hasTitleMark:   bool                    // Whether the title has a status glyph.
             leadingControl: *Wnd?                   // Quiet control holding the bottom-left slot of the actions.
         }
     }
@@ -54,7 +54,7 @@ impl IWnd for Dialog
 
         // The title is the first line of the body. The status glyph's visible mark is centered
         // in its icon cell, so placing that cell on the capitals' optical center levels the two.
-        if not .title.raw.isEmpty()
+        if not .title.text.isEmpty()
         {
             let font    = .titleFont()
             let centerY = pad + Math.ceil(font.height) * 0.5
@@ -68,6 +68,7 @@ impl IWnd for Dialog
                 case .Warning:  icon.color = colors.caution
                 default:        icon.color = colors.arc
                 }
+
                 icon.paint(painter, x, centerY - icon.sizeY * 0.5)
                 x += icon.sizeX + metrics.dialog_BtnPadding
             }
@@ -189,20 +190,35 @@ impl Dialog
     // Returns the window the body of the dialog is laid out in, which is the dialog itself.
     mtd view()->*Wnd => .surface!.wnd.view
 
-    // Names the box: `title` is set as the first line of its body and on its surface.
+    // Names the box: the literal `title` is set as the first line of its body and on its surface.
     //
     // A title that reports a situation is a sentence; one that names the command the box carries
     // out repeats that command's label. `failure` leads the title with a critical glyph.
-    // `<p1>...</p>` gives a referenced name the theme's
-    // soft text ink; formatting is omitted from the native window title.
     mtd setTitle(title: string, failure = false)
     {
         .title.set(title)
-        .failure = failure
+        .titleChanged(failure)
+    }
+
+    // Names the box with a sentence written in inline markup, as [[Gui.Dialog.setTitle]] does
+    // with literal text.
+    //
+    // `<span class="p1">` gives a referenced name the theme's soft text ink. The native window
+    // title takes the text without its styling. See [[Pixel.RichString.setMarkup]] for the
+    // markup, and pass a referenced name through [[Pixel.RichString.escape]].
+    mtd setTitleMarkup(markup: string, failure = false)
+    {
+        .title.setMarkup(markup)
+        .titleChanged(failure)
+    }
+
+    private mtd titleChanged(failure: bool)
+    {
+        .failure      = failure
         .hasTitleMark = false
         if failure do
             .setTitleMark(.Critical)
-        .surface?.setTitle(RichString.plainText(title))
+        .surface?.setTitle(.title.text)
         .updateInset()
         .invalidate()
     }
@@ -402,7 +418,7 @@ private impl Dialog
         let metrics = .themeMetrics()
         let pad     = metrics.dialog_Padding
         var top     = pad
-        if not .title.raw.isEmpty() do
+        if not .title.text.isEmpty() do
             top += Math.ceil(.titleFont().height) + .bodyGap()
         .padding = Math.Vector4{pad, top, pad, pad}
 

@@ -10,36 +10,42 @@ struct ThumbnailCandidate
     histogram: [48] f32
     usable:    bool
     lively:    bool     // Contrasted and mostly lit, which a viewer reads as a scene rather than a transition.
+    quality:   f32      // Exposure and visible detail distinguish a dark scene from a blank sample.
 }
 
 impl ThumbnailCandidate
 {
-    mtd prepare(maxSide: u32)
+    mtd prepare(maxSide: u32, pixelAspect: f32 = 1)
     {
         trimLetterbox(&.image)
         .analyze()
-        let largest = Math.max(.image.width, .image.height)
-        if largest > maxSide
+        let width        = cast(f32, .image.width) * pixelAspect
+        let height       = cast(f32, .image.height)
+        let scale        = Math.min(1.0'f32, cast(f32, maxSide) / Math.max(width, height))
+        let targetWidth  = Math.max(1, cast(s32, Math.round(width * scale)))
+        let targetHeight = Math.max(1, cast(s32, Math.round(height * scale)))
+        if targetWidth != .image.width or targetHeight != .image.height
         {
-            let scale = cast(f32, maxSide) / cast(f32, largest)
-            .image.resize(Math.max(1, cast(s32, cast(f32, .image.width) * scale)),
-                          Math.max(1, cast(s32, cast(f32, .image.height) * scale)),
-                          .Bilinear)
+            .image.resize(targetWidth, targetHeight, .Bilinear)
         }
     }
 
     mtd analyze()
     {
-        var black, white, samples: u32
-        var lumaSum, lumaSquares:  f32
+        for index in .histogram.count do
+            .histogram[index] = 0
+        var black, shadows, white, samples: u32
+        var lumaSum, lumaSquares: f32
         for y in 24
         {
             for x in 32
             {
                 let color = .image.pixelColor(x * .image.width / 32, y * .image.height / 24)
                 let luma  = (77 * cast(u32, color.r) + 150 * cast(u32, color.g) + 29 * cast(u32, color.b)) / 256
-                if luma < 32 do
+                if luma < 12 do
                     black += 1
+                if luma < 32 do
+                    shadows += 1
                 if luma > 240 do
                     white += 1
                 lumaSum                       += cast(f32, luma)
@@ -55,16 +61,21 @@ impl ThumbnailCandidate
 
         let mean     = lumaSum / cast(f32, samples)
         let variance = lumaSquares / cast(f32, samples) - mean * mean
-        .lively = .usable and black * 100 < samples * 60 and variance >= 24 * 24
+        .lively  = .usable and shadows * 100 < samples * 60 and variance >= 24 * 24
+        .quality = .usable ? (0.2 + Math.min(variance / 576, 1)) *
+                   (1 - cast(f32, black) / cast(f32, samples)) * Math.min(mean / 64, 1) : 0
     }
 }
 
 // Pick the histogram nearest the usable sample mean, excluding fades to black or white.
 func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
 {
+    var quality: f32
+    for &candidate in candidates do
+        quality = Math.max(quality, candidate.quality)
     var average: [48] f32
     var count:   f32
-    for &candidate in candidates where candidate.usable
+    for &candidate in candidates where candidate.usable and candidate.quality >= quality * 0.5
     {
         for bin in average.count do
             average[bin] += candidate.histogram[bin]
@@ -78,7 +89,7 @@ func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
 
     var best     = 0'u64
     var distance = Swag.F32.Max
-    for &candidate, index in candidates where candidate.usable
+    for &candidate, index in candidates where candidate.usable and candidate.quality >= quality * 0.5
     {
         var score: f32
         for bin in average.count
@@ -107,10 +118,12 @@ const ThumbnailPositions: [5] f64 = [0.3, 0.5, 0.15, 0.7, 0.9]
 
 func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 {
-    var reader   = try Reader.open(fileName, pictureOnly: true)
+    var reader      = try Reader.open(fileName, pictureOnly: true)
     var candidates: Array'ThumbnailCandidate
-    var previous = -1.0'f64
-    let duration = reader.durationInSeconds()
+    var previous    = -1.0'f64
+    let duration    = reader.durationInSeconds()
+    let pixelAspect = cast(f32, reader.displayWidth()) * cast(f32, reader.height()) /
+                      (cast(f32, reader.displayHeight()) * cast(f32, reader.width()))
     for fraction in ThumbnailPositions
     {
         if Swag.isCancelled() do
@@ -124,7 +137,7 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 
         var candidate: ThumbnailCandidate
         candidate.image = catch reader.decodeKeyPicture(seconds) { continue }
-        candidate.prepare(maxSide)
+        candidate.prepare(maxSide, pixelAspect)
 
         if candidate.lively
         {
@@ -136,8 +149,40 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
         candidates.add(#move candidate)
     }
 
-    if candidates.isEmpty() do
-        fail Errors.InvalidFormatError{}
+    var usable = false
+    var bestQuality: f32
+    for &candidate in candidates
+    {
+        usable      = usable or candidate.usable
+        bestQuality = Math.max(bestQuality, candidate.quality)
+    }
+
+    // A long GOP can return the same black or barely lit key picture at every seek. Only then
+    // pay for an exact decode inside the scene. Keep genuinely dim footage if nothing is clearer.
+    if not usable or bestQuality < 0.1
+    {
+        const FallbackPositions = [0.3'f64, 0.7, 0.95, 1.0]
+        const OpeningFrames     = [1'u64, 8, 24, 72]
+        for fraction, attempt in FallbackPositions
+        {
+            if Swag.isCancelled() do
+                break
+            let count = reader.frameCount()
+            let frame = count ? Math.min(reader.frameAtTime(duration * fraction), count - 1) : OpeningFrames[attempt]
+            var candidate: ThumbnailCandidate
+            candidate.image = catch reader.decodeFrame(frame) { continue }
+            candidate.prepare(maxSide, pixelAspect)
+            if not candidate.usable or candidate.quality < 0.1 do
+                continue
+            labelDuration(&candidate.image, duration)
+            labelVideoInformation(&candidate.image, &reader)
+            return #move candidate.image
+        }
+
+        if not usable do
+            fail Errors.InvalidFormatError{}
+    }
+
     let selected = representativeThumbnail(candidates.toSlice())
     labelDuration(&candidates[selected].image, duration)
     labelVideoInformation(&candidates[selected].image, &reader)
@@ -176,16 +221,28 @@ private func addVideoInformation(image: *Image, tag, value: string)
 // Trims the black bands a film was encoded with, so the thumbnail shows the picture rather than the
 // letterbox or pillarbox around it.
 //
-// A band is a run of near-black rows or columns at an edge. A frame dark across more than a quarter
-// from an edge is a dark scene rather than a band, and is left whole.
+// Paired near-black bands can occupy almost half an axis, as portrait recordings often do.
+// A small amount of compression noise is tolerated; uniformly dark scenes stay whole.
 func trimLetterbox(image: *Image)
 {
     let width  = image.width
     let height = image.height
-    let top    = bandDepth(image, height / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(sample * image.width / 32, depth))
-    let bottom = bandDepth(image, height / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(sample * image.width / 32, image.height - 1 - depth))
-    let left   = bandDepth(image, width / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(depth, sample * image.height / 32))
-    let right  = bandDepth(image, width / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(image.width - 1 - depth, sample * image.height / 32))
+    var top    = bandDepth(image, height * 45 / 100, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(sample * image.width / 32, depth))
+    var bottom = bandDepth(image, height * 45 / 100, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(sample * image.width / 32, image.height - 1 - depth))
+    var left   = bandDepth(image, width * 45 / 100, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(depth, sample * image.height / 32))
+    var right  = bandDepth(image, width * 45 / 100, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(image.width - 1 - depth, sample * image.height / 32))
+    if not top or not bottom
+    {
+        top    = 0
+        bottom = 0
+    }
+
+    if not left or not right
+    {
+        left  = 0
+        right = 0
+    }
+
     if top + bottom + left + right == 0 do
         return
     image.crop(left, top, width - left - right, height - top - bottom)
@@ -197,12 +254,18 @@ private func bandDepth(image: const *Image, limit: s32, sampleAt: func(const *Im
     var depth = 0
     while depth < limit
     {
+        var dark, sum: u32
         for sample in 32
         {
             let color = sampleAt(image, depth, sample)
-            if color.r > 24 or color.g > 24 or color.b > 24 do
-                return depth
+            let level = Math.max(color.r, Math.max(color.g, color.b))
+            if level <= 48 do
+                dark += 1
+            sum += level
         }
+
+        if dark < 31 or sum > 32 * 24 do
+            return depth
 
         depth += 1
     }

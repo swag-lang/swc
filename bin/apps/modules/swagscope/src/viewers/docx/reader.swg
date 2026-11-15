@@ -10,12 +10,15 @@ private struct Reader
     images:                Package.ImageCatalog
     paragraph:             String
     run:                   String
-    alignment:             string = ""
-    heading:               u32
-    bold:                  bool
-    italic:                bool
-    underline:             bool
-    strike:                bool
+    styles:                StyleCatalog
+    theme:                 Package.OfficeTheme
+    paragraphId:           String
+    characterId:           String
+    directParagraph:       ParagraphFormat
+    paragraphFormat:       ParagraphFormat
+    baseRun:               RunFormat
+    directRun:             RunFormat
+    paragraphReady:        bool
     inBody:                bool
     inParagraph:           bool
     inParagraphProperties: bool
@@ -54,40 +57,94 @@ private impl Reader
                 notice += ": "
                 Package.appendHtmlEscaped(&notice, .imageDescription)
             }
+
             .appendInline(notice)
         }
-        else do
+        else
+        {
             .appendInline(image)
+        }
+
         .inImage = false
         .imageId.clear()
         .imageDescription.clear()
-        .imageWidth = 0
+        .imageWidth  = 0
         .imageHeight = 0
+    }
+
+    mtd prepareParagraph()
+    {
+        if .paragraphReady do
+            return
+        .paragraphFormat = .styles.defaultParagraph
+        .baseRun         = .styles.defaultRun
+        if .styles.loaded
+        {
+            if .baseRun.bold == .Inherit do
+                .baseRun.bold = .Off
+            if .baseRun.italic == .Inherit do
+                .baseRun.italic = .Off
+        }
+
+        let id = .paragraphId.isEmpty() ? .styles.defaultParagraphId : .paragraphId
+        if not id.isEmpty()
+        {
+            if let style = .styles.lookup(id, .Paragraph)
+            {
+                .paragraphFormat.overlay(&style.paragraph)
+                .baseRun.applyStyle(&style.run)
+                if style.limited do
+                    .document.stylesSimplified = true
+            }
+            else
+            {
+                if .styles.loaded do
+                    .document.stylesSimplified = true
+
+                // Minimal producers sometimes omit the style part but retain built-in heading IDs.
+                let value = id.toString()
+                if Utf8.startsWith(value, "Heading") and
+                   value.count == 8 and
+                   value[7] >= '1'u8 and
+                   value[7] <= '6'u8 do
+                    .paragraphFormat.outline = cast(s32, value[7] - '1'u8)
+            }
+        }
+
+        .paragraphFormat.overlay(&.directParagraph)
+        if .paragraphFormat.limited or .baseRun.limited do
+            .document.stylesSimplified = true
+        .paragraphReady = true
     }
 
     mtd finishRun()
     {
         if not .inRun do
             return
-        if .bold do
-            .paragraph += "<b>"
-        if .italic do
-            .paragraph += "<i>"
-        if .underline do
-            .paragraph += "<u>"
-        if .strike do
-            .paragraph += "<s>"
-        .paragraph += .run
-        if .strike do
-            .paragraph += "</s>"
-        if .underline do
-            .paragraph += "</u>"
-        if .italic do
-            .paragraph += "</i>"
-        if .bold do
-            .paragraph += "</b>"
+        .prepareParagraph()
+        var format = .baseRun
+        if not .characterId.isEmpty()
+        {
+            if let style = .styles.lookup(.characterId, .Character)
+            {
+                format.applyStyle(&style.run)
+                if style.limited do
+                    .document.stylesSimplified = true
+            }
+            else
+            {
+                .document.stylesSimplified = true
+            }
+        }
+
+        format.overlay(&.directRun)
+        if format.limited do
+            .document.stylesSimplified = true
+        if not format.color.isEmpty() or not format.highlight.isEmpty() do
+            .document.usePaperColors = true
+        format.appendHtml(&.paragraph, .run)
         .run.clear()
-        .inRun = false
+        .inRun  = false
         .inRunProperties = false
         .inText = false
     }
@@ -97,8 +154,11 @@ private impl Reader
         if not .inParagraph do
             return
         .finishRun()
+        .prepareParagraph()
+        if .paragraphFormat.pageBefore == .On do
+            .document.html += "<hr>"
         var tag: string = "p"
-        switch .heading
+        switch .paragraphFormat.heading()
         {
         case 1: tag = "h1"
         case 2: tag = "h2"
@@ -107,67 +167,63 @@ private impl Reader
         case 5: tag = "h5"
         case 6: tag = "h6"
         }
+
         .document.html += "<"
         .document.html += tag
-        if .alignment.count
+        let css = .paragraphFormat.css()
+        if not css.isEmpty()
         {
-            .document.html += " style=\"text-align:"
-            .document.html += .alignment
+            .document.html += " style=\""
+            Package.appendHtmlEscaped(&.document.html, css)
             .document.html += "\""
         }
+
         .document.html += ">"
         .document.html += .paragraph
         .document.html += "</"
         .document.html += tag
         .document.html += ">"
         .paragraph.clear()
-        .document.paragraphs += 1
-        .inParagraph = false
+        .document.paragraphs   += 1
+        .inParagraph           = false
         .inParagraphProperties = false
     }
 
     mtd setParagraphProperty(token: const *Package.Token)
     {
-        let value = token.attribute("val") orelse ""
-        if token.isElement("jc")
-        {
-            switch value
-            {
-            case "center": .alignment = "center"
-            case "right", "end": .alignment = "right"
-            case "both", "distribute": .alignment = "justify"
-            case "left", "start": .alignment = "left"
-            }
-        }
-        elif token.isElement("outlineLvl")
-        {
-            if value.count == 1 and value[0] >= '0'u8 and value[0] <= '5'u8 do
-                .heading = cast(u32, value[0] - '0'u8) + 1
-        }
-        elif token.isElement("pStyle")
-        {
-            if Utf8.startsWith(value, "Heading") and value.count == 8 and
-               value[7] >= '1'u8 and value[7] <= '6'u8 do
-                .heading = cast(u32, value[7] - '0'u8)
-        }
+        if token.isElement("pStyle") do
+            .paragraphId = token.attribute("val") orelse ""
+        else do
+            .directParagraph.read(token)
     }
 
     mtd setRunProperty(token: const *Package.Token)
     {
-        let value = token.attribute("val") orelse ""
-        let enabled = value != "0" and value != "false" and value != "off"
-        if token.isElement("b") do
-            .bold = enabled
-        elif token.isElement("i") do
-            .italic = enabled
-        elif token.isElement("u") do
-            .underline = enabled and value != "none"
-        elif token.isElement("strike") do
-            .strike = enabled
+        if token.isElement("rStyle") do
+            .characterId = token.attribute("val") orelse ""
+        else do
+            .directRun.read(token, &.theme)
     }
 
     internal mtd start(token: const *Package.Token)
     {
+        if not .inBody and token.isElement("background")
+        {
+            let color = token.attribute("color") orelse "auto"
+            if Package.isRgbHex(color)
+            {
+                .document.paperColor     = color
+                .document.usePaperColors = true
+            }
+            elif color != "auto"
+            {
+                .document.stylesSimplified = true
+            }
+
+            if not token.empty do
+                .document.stylesSimplified = true
+        }
+
         if token.isElement("body") do
             .inBody = true
         if not .inBody do
@@ -181,7 +237,7 @@ private impl Reader
                 let cy = catch StrConv.toU64(token.attribute("cy") orelse "") { return; }
                 if cx >= 9525 and cy >= 9525 and cx <= 39_014_400 and cy <= 39_014_400
                 {
-                    .imageWidth = cast(u32, (cx + 4762) / 9525)
+                    .imageWidth  = cast(u32, (cx + 4762) / 9525)
                     .imageHeight = cast(u32, (cy + 4762) / 9525)
                 }
             }
@@ -202,8 +258,10 @@ private impl Reader
                 let description = token.attribute("descr") orelse token.attribute("title") orelse ""
                 .imageDescription = description
             }
+
             return
         }
+
         if token.isElement("drawing") or token.isElement("pict")
         {
             .inImage = true
@@ -215,40 +273,54 @@ private impl Reader
         if token.isElement("tbl")
         {
             .document.tables += 1
-            .document.html += "<table>"
+            .document.html   += "<table>"
         }
-        elif token.isElement("tr") do
+        elif token.isElement("tr")
+        {
             .document.html += "<tr>"
-        elif token.isElement("tc") do
+        }
+        elif token.isElement("tc")
+        {
             .document.html += "<td>"
+        }
         elif token.isElement("p")
         {
             .inParagraph = true
-            .alignment = ""
-            .heading = 0
+            .paragraphId.clear()
+            .directParagraph = {}
+            .paragraphReady  = false
             if token.empty do
                 .finishParagraph()
         }
-        elif .inParagraph and token.isElement("pPr") do
+        elif .inParagraph and token.isElement("pPr")
+        {
             .inParagraphProperties = not token.empty
-        elif .inParagraphProperties do
+        }
+        elif .inParagraphProperties
+        {
             .setParagraphProperty(token)
+        }
         elif .inParagraph and token.isElement("r")
         {
             .inRun = true
-            .bold = false
-            .italic = false
-            .underline = false
-            .strike = false
+            .prepareParagraph()
+            .directRun = {}
+            .characterId.clear()
             if token.empty do
                 .finishRun()
         }
-        elif .inRun and token.isElement("rPr") do
+        elif .inRun and token.isElement("rPr")
+        {
             .inRunProperties = not token.empty
-        elif .inRunProperties do
+        }
+        elif .inRunProperties
+        {
             .setRunProperty(token)
-        elif token.isElement("t") do
+        }
+        elif token.isElement("t")
+        {
             .inText = not token.empty
+        }
         elif token.isElement("br")
         {
             if token.attribute("type") == "page" do
@@ -256,8 +328,10 @@ private impl Reader
             else do
                 .appendInline("<br>")
         }
-        elif token.isElement("tab") do
+        elif token.isElement("tab")
+        {
             .appendInline("&emsp;")
+        }
     }
 
     internal mtd end(token: const *Package.Token)
@@ -267,6 +341,7 @@ private impl Reader
             .inBody = false
             return
         }
+
         if not .inBody do
             return
         if .inImage
@@ -275,6 +350,7 @@ private impl Reader
                 .finishImage()
             return
         }
+
         if token.isElement("t") do
             .inText = false
         elif token.isElement("rPr") do

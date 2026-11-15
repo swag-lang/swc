@@ -327,6 +327,7 @@ struct ThemeMetrics
         colorPicker_RoundPick:  f32 = 6     // Side of the round marker of the picked color.
         colorPicker_SquarePick: f32 = 6     // Side of the square marker of the picked color.
 
+        label_LinkUnderlineOpacity: f32 = 0.35     // Discreet inline action rule, including the disabled state.
         label_Height: f32 = 24     // Height of a label created without one.
 
         // A notice: a dot in its tone before the words, and a faint dismiss cross after them.

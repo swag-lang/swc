@@ -147,7 +147,7 @@ impl PropertiesCtrl
             if item.flags.has(.Category) do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
             elif item.label != null do
-                naked = RichString.plainText(item.label.text())
+                naked = item.label.text()
             else do
                 naked = Properties.resolveText(item.typeValue.name orelse "")
 
@@ -301,7 +301,7 @@ impl PropertiesCtrl
         for &entry in .sectionIcons where entry.name == section
         {
             entry.icon = icon
-            for line in .sectionLines where RichString.plainText(line.items[0]!.name.raw) == section do
+            for line in .sectionLines where line.items[0]!.name == section do
                 line.setItem(0, section, icon)
             if .tab != null
             {
@@ -320,7 +320,7 @@ impl PropertiesCtrl
         }
 
         .sectionIcons.add({name: section, icon: icon})
-        for line in .sectionLines where RichString.plainText(line.items[0]!.name.raw) == section do
+        for line in .sectionLines where line.items[0]!.name == section do
             line.setItem(0, section, icon)
         if .tab != null
         {

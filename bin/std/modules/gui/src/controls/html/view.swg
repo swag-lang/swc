@@ -240,10 +240,10 @@ struct HtmlView
         // The bar of a region rests invisible like every scroll bar: it shows for the region under
         // the pointer or being scrolled, and fades once that has been still for `motion_ScrollRest`.
         barRegion = HtmlNoNode
-        barPresence: f32
-        barExpansion: f32
+        barPresence:   f32
+        barExpansion:  f32
         isBarExpanded: bool
-        barTimer:    *Timer?
+        barTimer:      *Timer?
     }
 }
 
@@ -253,7 +253,7 @@ internal func scrollDocumentWithKey(scroll: *ScrollWnd, evt: *KeyEvent)->bool
         return false
 
     let position = scroll.scrollPosition()
-    let viewport = scroll.paddedClientRect()
+    let viewport = scroll.view.paddedClientRect()
     let page     = Math.max(viewport.height - scroll.verticalScrollStep, scroll.verticalScrollStep)
     var target   = position.y
     switch evt.key
@@ -306,7 +306,7 @@ internal impl HtmlView
 
     mtd viewportSize()->Math.Point
     {
-        let rect = .scroll.paddedClientRect()
+        let rect = .scroll.view.paddedClientRect()
         return Math.Point{Math.max(rect.width, 1), Math.max(rect.height, 1)}
     }
 
@@ -1267,7 +1267,7 @@ internal impl HtmlView
         result.images      = &.images
         result.renderer    = .app().renderer
         result.scrollY     = .scroll.scrollPosition().y - (.virtualSource ? .virtualOrigin : 0)
-        result.visible     = .scroll.paddedClientRect()
+        result.visible     = .scroll.view.paddedClientRect()
         result.hotLink     = .themeColors().url_HotText
         result.hoverLink   = .linkElementAt(.hovered)
         result.searchNode  = .searchNode
@@ -1283,15 +1283,15 @@ internal impl HtmlView
             result.selEndOffset   = range.endOffset
         }
 
-        result.scrollTrack    = .themeColors().scrollBar_Bk
-        result.scrollThumb    = .themeColors().scrollBar_Box
-        result.scrollBarSize       = .themeMetrics().scrollBar_Size
-        result.scrollBarHitSize    = .themeMetrics().scrollBar_HitSize
+        result.scrollTrack        = .themeColors().scrollBar_Bk
+        result.scrollThumb        = .themeColors().scrollBar_Box
+        result.scrollBarSize      = .themeMetrics().scrollBar_Size
+        result.scrollBarHitSize   = .themeMetrics().scrollBar_HitSize
         result.scrollBarHoverSize = .themeMetrics().scrollBar_HoverSize
-        result.scrollBarExpansion  = .barExpansion
-        result.scrollThumbMin      = .themeMetrics().scrollBar_BoxMinSize
-        result.barRegion           = .barRegion
-        result.barPresence         = .barPresence
+        result.scrollBarExpansion = .barExpansion
+        result.scrollThumbMin     = .themeMetrics().scrollBar_BoxMinSize
+        result.barRegion          = .barRegion
+        result.barPresence        = .barPresence
         return result
     }
 
@@ -1405,11 +1405,17 @@ internal impl HtmlView
         result.canvas.owner    = result
         result.canvas.wndFlags |= .NoScroll
 
-        result.scroll.hookOnEvent = func|target = result|(_, evt)
+        // Scrollbars own edge gutters. Reflow whenever their actual child viewport changes,
+        // including when a bar appears without a resize of the outer frame.
+        view.hookOnEvent = func|target = result|(_, evt)->bool
         {
             if evt is ResizeEvent do
                 target.placeDocument()
+            return false
+        }
 
+        result.scroll.hookOnEvent = func|target = result|(_, evt)
+        {
             // An embedded document contributes its complete height to its parent and therefore
             // has no outer scroll surface of its own. Let an unclaimed wheel continue to that
             // parent; independently scrollable CSS regions already consume it in HtmlCanvas.
@@ -1433,7 +1439,7 @@ internal impl HtmlView
                 let contentBytes = target.fileSize - target.virtualContentStart
                 let ratio        = Math.clamp(newPosition.y / target.virtualHeight, 0, 1)
                 let offset       = target.virtualContentStart + cast(u64, (ratio * cast(f32, contentBytes)))
-                let viewport     = target.scroll.paddedClientRect()
+                let viewport     = target.scroll.view.paddedClientRect()
 
                 // Prefetch in rendered screens. Byte margins cannot cover a tall viewport or
                 // account for CSS that gives neighboring source ranges very different heights.

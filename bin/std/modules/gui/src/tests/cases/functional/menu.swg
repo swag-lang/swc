@@ -165,7 +165,7 @@ using Swag, Core
     menu.addItem("Capture Area", "capture.area")
 
     Swag.require(note.disabled and not note.label)
-    Swag.require(note.name.raw == "PrintScreen is unavailable" and note.id == "")
+    Swag.require(note.name.text == "PrintScreen is unavailable" and note.id == "")
     menu.computeLayoutPopup()
     Swag.require(note.size > 0)
 }
@@ -223,7 +223,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addItem("New", Menu_New)
     Swag.require(bar.items.count == 1)
-    Swag.require(bar.items[0]!.name.raw == "New")
+    Swag.require(bar.items[0]!.name.text == "New")
     Swag.require(bar.items[0]!.id == Menu_New)
 
     let sub = MenuCtrl.createPopup(&host.root)
@@ -239,7 +239,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     Swag.require(not sub.items[0]!.separator)
     Swag.require(sub.items[1]!.separator)
     Swag.require(sub.items[2]!.disabled)
-    Swag.require(sub.items[2]!.name.raw == "Quit")
+    Swag.require(sub.items[2]!.name.text == "Quit")
     Swag.require(sub.itemAt(2).id == Menu_Quit)
 
     sub.removeItemAt(1)
@@ -261,12 +261,12 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     bar.addItem(&menuResolvedLabel, Menu_Open)
 
     // The resolver already answers once, so the item is usable before any layout.
-    Swag.require(bar.items[1]!.name.raw == "Open")
+    Swag.require(bar.items[1]!.name.text == "Open")
 
     MenuResolvedLabel = "Ouvrir"
     bar.computeLayoutBar()
-    Swag.require(bar.items[1]!.name.raw == "Ouvrir")
-    Swag.require(bar.items[0]!.name.raw == "New")
+    Swag.require(bar.items[1]!.name.text == "Ouvrir")
+    Swag.require(bar.items[0]!.name.text == "New")
 
     // A longer label widens its own entry and pushes the next one along.
     let widened = bar.items[1]!.size
@@ -288,7 +288,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
 
     let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
     bar.addPopup(&menuResolvedLabel, sub)
-    Swag.require(bar.items[0]!.name.raw == "File")
+    Swag.require(bar.items[0]!.name.text == "File")
     Swag.require(bar.items[0]!.popup == sub)
 
     bar.computeLayoutBar()
@@ -301,7 +301,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     Swag.require(bar.dirtyLayout)
 
     bar.computeLayoutBar()
-    Swag.require(bar.items[0]!.name.raw == "Fichier")
+    Swag.require(bar.items[0]!.name.text == "Fichier")
 }
 
 // A bar entry reserves what its label really occupies at the density it is drawn at.
@@ -745,7 +745,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     bar.addPopup("File", sub)
 
     Swag.require(bar.items.count == 2)
-    Swag.require(bar.items[1]!.name.raw == "File")
+    Swag.require(bar.items[1]!.name.text == "File")
     Swag.require(bar.items[1]!.popup == sub)
     Swag.require(sub.ownerMenu == bar)
 }

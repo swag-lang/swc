@@ -4,6 +4,9 @@ using Core, Core.Errors, Pixel, Win32
 
 private const MaxSplitRects = 8'u32
 
+// Longest wait for the first presented frame of a new duplication, in microseconds.
+private const FirstFrameWaitMicroseconds = 1_000_000'u64
+
 #[Swag.Inline]
 internal func copyMappedBgraRows(destinationBottomRow: [*] u8, destinationStride: u64,
                                  sourceTopRow: const [*] u8, sourceStride: u64,
@@ -285,8 +288,33 @@ impl NativeSource
         var info: DXGI_OUTDUPL_FRAME_INFO
         var resource: *IDXGIResource?
         let acquireStart = Time.monotonicMicroseconds()
-        let status = duplication.lpVtbl.AcquireNextFrame(duplication, .hasLast ? 0 : 1000,
-                                                          &info, &resource)
+        var status = duplication.lpVtbl.AcquireNextFrame(duplication, .hasLast ? 0 : 1000,
+                                                         &info, &resource)
+
+        // A new duplication can first hand over a surface the desktop was never presented to: its
+        // present time is zero and its pixels are empty. That is not the first picture, and taking
+        // it would open every capture on black; wait for a presented frame instead.
+        while not .hasLast and
+              (status == DXGI_ERROR_WAIT_TIMEOUT or (status >= 0 and info.LastPresentTime == 0)) and
+              Time.monotonicMicroseconds() - acquireStart < FirstFrameWaitMicroseconds
+        {
+            if status >= 0
+            {
+                release(resource)
+                resource = null
+                discard duplication.lpVtbl.ReleaseFrame(duplication)
+            }
+
+            status = duplication.lpVtbl.AcquireNextFrame(duplication, 100, &info, &resource)
+        }
+
+        if status >= 0 and not .hasLast and info.LastPresentTime == 0
+        {
+            release(resource)
+            discard duplication.lpVtbl.ReleaseFrame(duplication)
+            fail SystemError{"screen capture did not provide an initial frame"}
+        }
+
         let acquireDuration = Time.monotonicMicroseconds() - acquireStart
         .metrics.acquireMicroseconds += acquireDuration
         .metrics.maxAcquireMicroseconds = Math.max(.metrics.maxAcquireMicroseconds, acquireDuration)

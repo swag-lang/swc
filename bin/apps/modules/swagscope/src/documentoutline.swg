@@ -238,15 +238,10 @@ impl DocumentOutline
             }
         }
 
-        // Keep document text literal: RichString's inline markers belong to presentation, not
-        // heading content. A word joiner preserves the visible spelling of marker-like text.
-        var literal = String.from(label.toString())
-        literal.replace("<", "<\u2060")
-        var display = literal
+        // The heading is document text, set literally; a first-level one is a bold run.
+        let line = .list.createLine(label)
         if level == 1 do
-            display = Format.toString("<b>%</b>", literal)
-
-        let line = .list.createLine(display)
+            line.items[0]!.name.set(label, {bold: true})
         line.level     = Math.min(level ? level - 1 : 0, 5)
         line.userData0 = cast(*void, target + 1)
         .rows.add(line)

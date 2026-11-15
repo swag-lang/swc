@@ -51,7 +51,7 @@ using Swag, Core, Pixel
     let options = EditDlgOptions{title: "Description", editorHeight: 150}
     let dlg     = EditDlg.createMultiLine(&host.surface, options)
 
-    Swag.require(dlg.label.name.raw == strings().dlg_MultiLineHint)
+    Swag.require(dlg.label.name.text == strings().dlg_MultiLineHint)
     Swag.require(dlg.label.position.y >= dlg.richEdit!.position.bottom())
     let contentHeight = dlg.richEdit.position.height + dlg.label.position.height + dlg.label.margin.y
     let outerHeight   = contentHeight + dlg.chromeHeight()
@@ -83,7 +83,7 @@ using Swag, Core, Pixel
 
     // No band frames the identity, and the box has no title line: the name names it.
     Swag.require(dlg.identityView.backgroundStyle == .Transparent)
-    Swag.require(dlg.title.raw.isEmpty())
+    Swag.require(dlg.title.text.isEmpty())
     Swag.require(dlg.identityView.isAncestorOf(dlg.labelMessageTitle))
     Swag.require(dlg.identityView.isAncestorOf(dlg.labelIdentity))
     Swag.require(dlg.labelIdentity.position.y >= dlg.labelMessageTitle.position.bottom())
@@ -105,7 +105,7 @@ using Swag, Core, Pixel
         sourceUrl: "https://example.com/source",
         copyrightHolder: "Test Holder"})
 
-    Swag.require(dlg.surface!.wnd.name.raw == "sTestBench")
+    Swag.require(dlg.surface!.wnd.name.text == "sTestBench")
     Swag.require(dlg.labelMessageTitle.text() == "sTestBench")
     Swag.require(Utf8.startsWith(dlg.labelIdentity.text(), "1.2.3"))
     Swag.require(Utf8.contains(dlg.labelMessage.text(), "Test Holder"))

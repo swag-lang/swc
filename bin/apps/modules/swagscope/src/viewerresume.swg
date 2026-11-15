@@ -114,6 +114,8 @@ impl ViewerWindow
     {
         if .thumbnailMode or .currentFile.isEmpty() or .activeChoiceIndex >= .instances.count do
             return
+        if not .privacy.mayRemember(.currentFile) do
+            return
         let session = &.instances[.activeChoiceIndex]
         if not session.view or not .recent.contains(.currentFile) do
             return

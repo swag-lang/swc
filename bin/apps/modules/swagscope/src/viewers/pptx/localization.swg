@@ -5,6 +5,9 @@ using Core, Gui
 
 struct Texts
 {
+    ui_ReadNotes:    string = "Read Speaker Notes"
+    ui_NotesMode:    string = "speaker notes"
+    ui_NoNotes:      string = "This slide has no speaker notes."
     ui_Previous:     string = "Previous Slide"
     ui_Next:         string = "Next Slide"
     ui_ShowSlides:   string = "Show Slides"

@@ -6,7 +6,8 @@ using Swag, Core, Pixel
 // Renders the pill of a recording that stopped after `recorded` microseconds of `limit` (zero for
 // none), on its own floating sheet, on a host in Encre or Papier.
 func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
-                         state = RecorderState.Stopped, screenMode = false)->Image
+                         state = RecorderState.Stopped, screenMode = false,
+                         language: string? = null)->Image
 {
     g_CaptureWindow   = {}
     g_CaptureAnchored = false
@@ -18,6 +19,10 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
     else do
         f.gui.theme.setLight()
 
+    defer discard catch f.gui.app.setLanguage(Gui.ReferenceLanguage)
+    if language do
+        expect f.gui.app.setLanguage(language)
+
     let recorder = Memory.new'Recorder()
     defer Memory.delete(recorder)
     recorder.main = f.main
@@ -26,6 +31,7 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
     recorder.clock.recorded = recorded
     recorder.limit    = limit
     recorder.dropped  = dropped
+    recorder.area     = {0, 0, 1280, 720}
     if screenMode
     {
         f.main.monitors.clear()
@@ -37,7 +43,7 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
     }
 
     // The same sheet the recorder opens, on the host's own application.
-    let width    = RecordHud.widthFor(limit, recorder.captureLabel(), state == .Preparing,
+    let width    = RecordHud.widthFor(limit, recorder.readoutLabel(), state == .Preparing,
                                       screenWidth: screenMode ? RecordHud.screenChoiceWidth(f.main) : 0)
     let height   = cast(s32, RecordHudHeight + (state == .Preparing ? f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding : 0))
     let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
@@ -74,7 +80,7 @@ func testRenderScreenChoices()->Image
     recorder.screenSelection = true
     recorder.area = f.main.monitors[0].physicalBounds
 
-    let width = RecordHud.widthFor(0, recorder.captureLabel(), preparing: true,
+    let width = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true,
                                    screenWidth: RecordHud.screenChoiceWidth(f.main))
     let height = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
     let surface = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
@@ -141,4 +147,13 @@ func testRenderScreenChoices()->Image
 {
     var image = testRenderRecordHud(dark: true, recorded: 7_000_000, limit: 30_000_000, dropped: 12)
     Pixel.Testing.assertImageGolden(&image, "recordhud.dropped")
+}
+
+// The waiting pill in French: longer words for the state, the options and Record still stand in
+// one pill, with the size before the action.
+#[Swag.TestTag("golden")]
+#test
+{
+    var image = testRenderRecordHud(dark: true, recorded: 0, limit: 0, state: .Preparing, language: "fr")
+    Pixel.Testing.assertImageGolden(&image, "recordhud.ready.fr")
 }

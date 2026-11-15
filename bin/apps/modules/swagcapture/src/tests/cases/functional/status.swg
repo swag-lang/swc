@@ -59,8 +59,8 @@ using Swag, Core
             return
         let menu = unwrap host.capturedPopupMenu()
         Swag.require(menu.items.count == 4)
-        Swag.require(menu.items[1]!.name.raw == "PrintScreen" and menu.items[1]!.disabled)
-        Swag.require(menu.items[3]!.name.raw == appStrings().msg_ShortcutsUnavailableHelp and menu.items[3]!.disabled)
+        Swag.require(menu.items[1]!.name.text == "PrintScreen" and menu.items[1]!.disabled)
+        Swag.require(menu.items[3]!.name.text == appStrings().msg_ShortcutsUnavailableHelp and menu.items[3]!.disabled)
         inspected[] = true
         Swag.require(host.dismissPopupMenu())
     }

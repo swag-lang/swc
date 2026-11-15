@@ -28,6 +28,8 @@ struct RecordHud
     late targetLabel:  *Label
     late progress:     *ProgressBar
     late separator:    *Separator
+    recordButton:      *PushButton?     // Record, the one action of a pill waiting for its video.
+    commandsLeft:      f32              // Left edge of the commands, where the readout ends.
     screenButton:      *IconButton?     // Screen source chooser during video preparation.
     screenChoices:     *RecordScreenChoices?
     shownState:        RecorderState = .Stopped
@@ -72,17 +74,31 @@ impl IWnd for RecordHud
         if not .hasCommands do
             return
 
-        let client = .clientRect()
+        let client    = .clientRect()
         let preparing = .recorder.state == .Preparing
-        let top    = (preparing ? RecordHudHeight * 0.5 : client.vertCenter()) - RecordHudButton * 0.5
-        var right  = client.right() - RecordHudRight
-        for button in [.cancelButton, .stopButton, .pauseButton]
+        let cy        = preparing ? RecordHudHeight * 0.5 : client.vertCenter()
+        let top       = cy - RecordHudButton * 0.5
+        var right     = client.right() - RecordHudRight
+
+        // Only the commands the state offers take room: a pill waiting for its video holds Record
+        // beside the cross, with no place kept for the commands of a running recording.
+        right -= RecordHudButton
+        .cancelButton.setPosition(Math.Rectangle{right, top, RecordHudButton, RecordHudButton})
+        if let record = .recordButton
         {
-            right -= RecordHudButton
-            button.setPosition(Math.Rectangle{right, top, RecordHudButton, RecordHudButton})
-            right -= RecordHudButtonGap
+            right -= RecordHudButtonGap + record.position.width
+            record.setPosition(Math.Rectangle{right, cy - record.position.height * 0.5, record.position.width, record.position.height})
+        }
+        else
+        {
+            for button in [.stopButton, .pauseButton]
+            {
+                right -= RecordHudButtonGap + RecordHudButton
+                button.setPosition(Math.Rectangle{right, top, RecordHudButton, RecordHudButton})
+            }
         }
 
+        .commandsLeft = right
         .layoutReadout()
 
         if preparing
@@ -111,7 +127,7 @@ impl RecordHud
     func open(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->*RecordHud?
     {
         let preparing = recorder.state == .Preparing
-        let logicalWidth = widthFor(recorder.limit, recorder.captureLabel(), preparing,
+        let logicalWidth = widthFor(recorder.limit, recorder.readoutLabel(), preparing,
                                     recorder.screenSelection ? screenChoiceWidth(recorder.main) : 0)
         let logicalHeight = preparing ? RecordHudHeight + recorder.main.themeMetrics().miniBar_ButtonSize + recorder.main.themeMetrics().miniBar_Padding : RecordHudHeight
         let outer        = placement(recorder, frame, scale)
@@ -148,7 +164,7 @@ impl RecordHud
     private func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
     {
         let preparing    = recorder.state == .Preparing
-        let logicalWidth = widthFor(recorder.limit, recorder.captureLabel(), preparing,
+        let logicalWidth = widthFor(recorder.limit, recorder.readoutLabel(), preparing,
                                     recorder.screenSelection ? screenChoiceWidth(recorder.main) : 0)
         let logicalHeight = preparing ? RecordHudHeight + g_App.theme.metrics.miniBar_ButtonSize + g_App.theme.metrics.miniBar_Padding : RecordHudHeight
         var monitor      = Env.monitorForPoint({frame.horzCenter(), frame.vertCenter()})
@@ -268,8 +284,10 @@ impl RecordHud
         widest += Format.toString(appStrings().ui_DroppedCount, 1200)
 
         let font     = g_App.theme.createDefaultFontFs(g_App.theme.metrics.defaultFontSize - 1)
-        let commands = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
-        let targetWidth = Math.max(Painter.measureString(targetLabel, font).width, screenWidth)
+        let running  = 3 * RecordHudButton + 3 * RecordHudButtonGap + 1
+        let waiting  = recordButtonWidth(g_App.theme) + RecordHudButton + 2 * RecordHudButtonGap + 1
+        let commands = preparing ? waiting : running
+        let targetWidth = Math.max(Painter.measureString(targetLabel, font).width, preparing ? 0 : screenWidth)
         let readyWidth = Painter.measureString(appStrings().ui_AimReady, font).width
         let contentWidth = preparing ? Math.max(Painter.measureString(widest, font).width, readyWidth) :
                            Painter.measureString(widest, font).width
@@ -348,14 +366,19 @@ impl RecordHud
         .stopButton = command(me, .theme().icon(.Stop), appStrings().tip_StopRecording)
         .stopButton.sigPressed += func|hud = me|(_) { hud.recorder.stop() }
 
+        // A pill waiting for its video offers one action, in words, as the bar of an animation
+        // does; the commands of a running recording come with the pill that replaces it.
+        if .recorder.state == .Preparing
+        {
+            with .recordButton = createRecordButton(me)
+            {
+                .sigPressed += func|hud = me|(_) { hud.recorder.recordRequested = true }
+            }
+        }
+
         .pauseButton = command(me, .theme().icon(.Pause), appStrings().tip_PauseRecording)
         .pauseButton.sigPressed += func|hud = me|(_)
         {
-            if hud.recorder.state == .Preparing
-            {
-                hud.recorder.recordRequested = true
-                return
-            }
             if hud.recorder.pausedForTarget do
                 return
             if hud.recorder.state == .Paused do
@@ -390,7 +413,7 @@ impl RecordHud
             .setTextAlignment(.Left, .Center)
             .setTextColor(.themeColors().critical)
         }
-        with .targetLabel = Label.create(me, .recorder.captureLabel(), flags: .SecondaryText)
+        with .targetLabel = Label.create(me, .recorder.readoutLabel(), flags: .SecondaryText)
         {
             .style.setFont(font, .Regular)
             .setTextAlignment(.Left, .Center)
@@ -411,7 +434,7 @@ impl RecordHud
         let timeWidth = Painter.measureString(.timeLabel.text(), font).width
         let limitWidth = Painter.measureString(.limitLabel.text(), font).width
         let targetWidth = Painter.measureString(.targetLabel.text(), font).width
-        let ruleX     = .pauseButton.position.x - RecordHudButtonGap - .themeMetrics().separator_HairlineSize
+        let ruleX     = .commandsLeft - RecordHudButtonGap - .themeMetrics().separator_HairlineSize
 
         .recordMark.setPosition({RecordHudLeft, cy - RecordHudMark * 0.5, RecordHudMark, RecordHudMark})
         .timeLabel.setPosition({textX, rowTop, timeWidth, RecordHudHeight})
@@ -450,14 +473,13 @@ impl RecordHud
         var droppedText: String
         if .recorder.dropped and not counting do
             droppedText = Format.toString(appStrings().ui_DroppedCount, .recorder.dropped)
-        let targetText = .recorder.captureLabel()
+        let targetText = .recorder.readoutLabel()
         let needsLayout = .timeLabel.text() != shown or .limitLabel.text() != limitText or
                           .droppedLabel.text() != droppedText or .targetLabel.text() != targetText
         .timeLabel.setText(shown)
         .limitLabel.setText(limitText)
         .droppedLabel.setText(droppedText)
         .targetLabel.setText(targetText)
-        .targetLabel.show(not preparing or not .recorder.screenSelection)
 
         .progress.show((limit != 0 or counting) and not preparing)
         .progress.setValue(counting ? cast(f32, left) / cast(f32, RecordCountdown) :
@@ -469,11 +491,11 @@ impl RecordHud
             .hasShownState    = true
             .recordMark.setIconColor(preparing or counting or .recorder.state == .Paused ?
                                       .themeColors().faintText : .themeColors().critical)
-            .pauseButton.setIcon(.theme().icon(preparing or .recorder.state == .Paused ? .Play : .Pause))
-            .pauseButton.toolTip = preparing ? appStrings().ui_AimRecord :
-                                   .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
+            .pauseButton.setIcon(.theme().icon(.recorder.state == .Paused ? .Play : .Pause))
+            .pauseButton.toolTip = .recorder.pausedForTarget ? appStrings().tip_WaitingForWindow :
                                    .recorder.state == .Paused ? appStrings().tip_ResumeRecording : appStrings().tip_PauseRecording
-            .pauseButton.enable(preparing or (not .recorder.pausedForTarget and not .recorder.videoMode))
+            .pauseButton.enable(not .recorder.pausedForTarget and not .recorder.videoMode)
+            .pauseButton.show(not preparing)
             .stopButton.show(not preparing)
             if .recorder.videoMode and not preparing do
                 .pauseButton.toolTip = appStrings().tip_VideoPauseUnavailable

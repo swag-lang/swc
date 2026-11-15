@@ -95,7 +95,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
                ActionCapture.CaptureCursor, ActionOptions.Options, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     for item in panel.menu.items where item and item.id == ActionCapture.RecordVideo do
-        Swag.require(item.rightName.raw == Input.formatKeyShortcut(.CtrlShift, .F10))
+        Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
     Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
     Swag.require(not testPanelOffers(panel, ActionCapture.screenId(0)))
     Swag.require(not testPanelOffers(panel, ActionCapture.recordScreenId(0)))
@@ -139,9 +139,9 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
                ActionOptions.Options, ActionGlobal.Minimize, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     for item in panel.menu.items where item and item.id == ActionCapture.RecordVideo do
-        Swag.require(item.rightName.raw == Input.formatKeyShortcut(.CtrlShift, .F10))
+        Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
     for item in panel.menu.items where item and item.id == ActionGlobal.Minimize do
-        Swag.require(item.rightName.raw == Input.formatKeyShortcut(.None, .Escape))
+        Swag.require(item.rightName.text == Input.formatKeyShortcut(.None, .Escape))
     Swag.require(not testPanelOffers(panel, ActionGlobal.ShowHub))
     Swag.require(panel.recents == null)
 

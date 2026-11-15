@@ -75,7 +75,7 @@ struct PropHeadlessFontData
     Swag.require(combo != null and combo.items.count > 2)
     for index in [2'u32, cast(u32, combo.items.count - 1)]
     {
-        let name: String = combo.items[index]!.name.raw
+        let name: String = combo.items[index]!.name.text
         combo.setSelectedIndex(index)
         Swag.require(data.face == name)
         prop.refresh()
@@ -2142,7 +2142,7 @@ struct PropAlignData
             sawLabel = true
         if it.comboBox != null and
            it.comboBox.items.count == 2 and
-           it.comboBox.items[0]!.name.raw == "Droite" do
+           it.comboBox.items[0]!.name.text == "Droite" do
             sawCombo = true
     }
 
@@ -2235,7 +2235,7 @@ struct PropAlignData
 }
 
 // Returns the count the section list writes after the section `index`.
-func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.sectionLines[index].items[1]!.name.raw
+func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.sectionLines[index].items[1]!.name.text
 
 // The editor changes presentation at run time: the rows are built again from the same
 // structure, with its values and the search in force, and the section list counts the fields
@@ -2253,7 +2253,7 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
     host.pump()
 
     Swag.require(ctrl.sectionLines.count == 6)
-    let firstSection = String.from(ctrl.sectionLines[0].items[0]!.name.raw)
+    let firstSection = String.from(ctrl.sectionLines[0].items[0]!.name.text)
     ctrl.setSectionIcon(firstSection, host.theme.icon(.Options, 16))
     Swag.require(ctrl.sectionLines[0].items[0]!.icon.isValid() and ctrl.list.isLineSelected(0))
     for expected, index in ["2", "2", "1", "2", "1", "1"] do

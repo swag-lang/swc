@@ -135,6 +135,15 @@ namespace WinFsp
             traceWinFspStage("WinFspMount initialized in place")
         }
 
+        // Windows posts Close asynchronously after CloseHandle returns. Briefly drain these
+        // already-closing descriptors while denying new opens; live handles still report busy.
+        mtd prepareStop(force: bool) fail
+        {
+            const CloseDrainMilliseconds = 100'u32
+            if .context do
+                try .context.activity.beginStop(force, CloseDrainMilliseconds)
+        }
+
         // Stops serving, removes the mount point, and releases the runtime reference; safe to call on
         // a partly started mount.
         mtd stop()

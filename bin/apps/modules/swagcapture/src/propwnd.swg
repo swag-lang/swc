@@ -337,7 +337,7 @@ impl PropWnd
         {
             let label = fieldLabel(item)
             if label do
-                width = Math.max(width, Painter.measureString(label.name.raw, unwrap label.font().regular).width)
+                width = Math.max(width, Painter.measureString(label.name.text, unwrap label.font().regular).width)
         }
 
         width = Math.ceil(width)

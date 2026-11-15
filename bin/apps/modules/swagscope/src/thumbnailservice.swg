@@ -19,7 +19,6 @@ impl ThumbnailService
         if not .ready
         {
             .registry = createViewerPluginRegistry()
-            .renderer = try ThumbnailRenderer.create()
             .ready    = true
         }
 
@@ -31,6 +30,14 @@ impl ThumbnailService
             image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
                          Math.max(1, cast(s32, cast(f32, image.height) * scale)),
                          .Bilinear)
+        }
+
+        var pluginIndex: u64
+        if .registry.namePlugin(path, &pluginIndex) and
+           (.registry.plugins[pluginIndex].key == "image" or .registry.plugins[pluginIndex].key == "video")
+        {
+            let framing = ThumbnailFraming.analyze(&image)
+            framing.label(&image)
         }
 
         return image
@@ -51,5 +58,7 @@ func renderThumbnail(registry: const *ViewerPluginRegistry,
 
     let viewerName = knownPlugin ? registry.plugins[pluginIndex].staticName : "File"
     let textual    = knownPlugin and registry.plugins[pluginIndex].textual
+    if not renderer.bodyFont do
+        renderer[] = try ThumbnailRenderer.create()
     return try renderer.render(path, viewerName, textual)
 }

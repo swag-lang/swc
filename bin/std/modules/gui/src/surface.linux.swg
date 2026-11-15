@@ -24,6 +24,7 @@ internal struct NativeSurface
     dropTargetActive:   bool
     trayWindow:         u32
     trayImage:          Image
+    trayManager:        u32
 }
 
 internal func postLinuxSurfaceCommand(surface: *Surface, kind: SysCommandEvent.Kind)
@@ -302,7 +303,7 @@ impl Surface
         if .windowId == 0 do
             return
         let context = expect LinuxDesktop.ensure()
-        let title   = .wnd.name.raw.isEmpty() ? .surfaceId.toString() : .wnd.name.raw.toString()
+        let title   = .wnd.name.text.isEmpty() ? .surfaceId.toString() : .wnd.name.text.toString()
         expect LinuxDesktop.property(context,
                                      .windowId,
                                      expect LinuxDesktop.atom(context, "_NET_WM_NAME"),
@@ -375,7 +376,7 @@ impl Surface
     // Sets physical screen bounds, clamped to the surface size limits.
     mtd setPosition(pos: Math.Rectangle)
     {
-        let next = .clampToSizeLimits(pos)
+        let next        = .clampToSizeLimits(pos)
         let sizeChanged = .position.width != next.width or .position.height != next.height
         if .rc.width != cast(s32, next.width) or .rc.height != cast(s32, next.height) do
             .presentedFrame = false
@@ -384,6 +385,7 @@ impl Surface
         {
             let context    = expect LinuxDesktop.ensure()
             let connection = unwrap context.connection
+
             // A fixed-size surface may change its size programmatically. Tell the window
             // manager the new allowed size before sending the configure request.
             if sizeChanged and not .flags.has(.Resizable) do
@@ -781,8 +783,9 @@ impl Surface
                                                                     (1 << 11) |
                                                                     (1 << 13),
                                                                     values))
-        .trayWindow = id
-        .trayImage  = icon
+        .trayWindow  = id
+        .trayManager = manager
+        .trayImage   = icon
         let info: [2]u32 = [0, 1]
         let embed        = expect LinuxDesktop.atom(context, "_XEMBED_INFO")
         expect LinuxDesktop.property(context, id, embed, embed, 32, 2, info)
@@ -803,9 +806,32 @@ impl Surface
         expect LinuxDesktop.check(context, context.xcb_send_event_checked(connection, 0, manager, 0, cast(const [*]u8, &event)))
     }
 
+    // Reports whether this surface has an icon registered with the current XEmbed manager.
+    //
+    // Returns false when the desktop has no tray manager or its previous manager exited.
+    mtd hasTrayIcon()->bool
+    {
+        if not .trayWindow do
+            return false
+        let context   = catch LinuxDesktop.ensure() { return false }
+        let selection = catch LinuxDesktop.atom(context, Format.toString("_NET_SYSTEM_TRAY_S%", context.screenIndex))
+        {
+            return false
+        }
+
+        let connection = unwrap context.connection
+        let owner      = context.xcb_get_selection_owner_reply(connection,
+                                                               context.xcb_get_selection_owner(connection, selection),
+                                                               null)
+        if not owner do
+            return false
+        defer Linux.free(owner)
+        return owner.owner != 0 and owner.owner == .trayManager
+    }
+
     internal mtd paintTrayIcon()
     {
-        if .trayWindow == 0 or not .trayImage.isValid() do
+        if .trayWindow == 0 or not .trayImage.isValid() or not .hasTrayIcon() do
             return
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
@@ -865,9 +891,12 @@ impl Surface
         if .trayWindow == 0 do
             return
         let context = expect LinuxDesktop.ensure()
-        expect LinuxDesktop.check(context, context.xcb_destroy_window_checked(unwrap context.connection, .trayWindow))
-        .trayWindow = 0
-        .trayImage  = {}
+
+        // A departed tray manager can already have destroyed its embedded client window.
+        discard catch LinuxDesktop.check(context, context.xcb_destroy_window_checked(unwrap context.connection, .trayWindow))
+        .trayWindow  = 0
+        .trayManager = 0
+        .trayImage   = {}
     }
 }
 

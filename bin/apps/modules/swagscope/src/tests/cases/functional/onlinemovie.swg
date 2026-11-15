@@ -168,9 +168,8 @@ func serveMovies(thread: const *Threading.Thread)
 
 #test
 {
-    let text = safeMediaText("Title <url>https://example.com</url>\r\nNext")
-    Swag.require(not Utf8.contains(text.toString(), "<url>"))
-    Swag.require(not Utf8.contains(text.toString(), "\n"))
+    let text = safeMediaText("Title <a>https://example.com</a>\r\nNext")
+    Swag.require(text == "Title <a>https://example.com</a>  Next")
     Swag.require(validWikiId("Q184843") and not validWikiId("Q1/../other"))
     let query = MovieQuery.fromFile("D:/Films/Blade.Runner (1982).mkv")
     Swag.require(query.title == "Blade Runner" and query.year == "1982")

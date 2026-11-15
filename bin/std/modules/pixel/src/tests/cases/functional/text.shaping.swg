@@ -76,8 +76,8 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(reshapedTab.glyphs[0].isTab)
 
     let largeFont = font.owner.createFont(font.cache.typeFace, 48, .Bitmap)
-    var richText: RichString = "<b>A</b>\nA"
-    var format:   RichStringFormat
+    var richText  = RichString.fromMarkup("<b>A</b>\nA")
+    var format: RichStringFormat
     format.font.regular = font
     format.font.bold    = largeFont
     format.lineGap      = 3
@@ -109,7 +109,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(visibleChunks == 2)
     Swag.require(not paragraphText.chunks[paragraphText.chunks.count - 1].visible)
 
-    var forced: RichString = "<b>A</b>"
+    var forced = RichString.fromMarkup("<b>A</b>")
     forced.compute()
     forced.chunks.clear()
     forced.compute(true)
@@ -131,7 +131,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     Swag.require(eolCount == 3)
     Swag.require(spaceCount == 0)
 
-    var styledUrl: RichString = "<url>A<b>B</b><p1>C</p></url>D"
+    var styledUrl = RichString.fromMarkup("<a>A<b>B</b><span class=\"p1\">C</span></a>D")
     styledUrl.compute()
     Swag.require(styledUrl.hasUrl)
     Swag.require(styledUrl.chunks.count == 4)
@@ -290,7 +290,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
 // A style boundary is not a place to break a line.
 //
-// Markup splits one word into several chunks — '<url>here</url>.' is three of them — and a wrap
+// Markup splits one word into several chunks — '<a>here</a>.' is three of them — and a wrap
 // that fell between two of them put the closing period alone on the next line. The whole word
 // moves down together instead.
 #test
@@ -303,7 +303,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     format.horzAlignment = .Left
     format.flags         |= .WordWrap
 
-    var text: RichString = "alpha <url>beta</url>."
+    var text = RichString.fromMarkup("alpha <a>beta</a>.")
     text.compute()
 
     // Room for 'alpha beta' and not for the period after it, which is where the break used to go.

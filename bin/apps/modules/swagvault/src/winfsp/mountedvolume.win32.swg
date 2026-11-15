@@ -26,7 +26,7 @@ namespace WinFsp
             traceWinFspStage("calling WinFspMount.start from MountedVolume.open")
             discard catch .mount.start(&.volume, mountPoint)
             {
-                discard catch .close()
+                discard catch .close(force: true)
                 fail Swag.err
             }
 
@@ -35,8 +35,9 @@ namespace WinFsp
         }
 
         // Unmounts, then commits and closes the volume; the volume closes even when the commit fails.
-        mtd close() fail
+        mtd close(force = false) fail
         {
+            try .mount.prepareStop(force)
             .mount.stop()
             if .volumeOpen
             {
@@ -51,7 +52,7 @@ namespace WinFsp
             }
         }
 
-        mtd opDrop() { discard catch .close() }
+        mtd opDrop() { discard catch .close(force: true) }
     }
 }
 
@@ -69,11 +70,13 @@ func mountVaultNative(path: string, password: const [..] u8, destination: string
 }
 
 // Stops and releases the Windows mount even when flushing it reports a failure.
-func unmountVaultNative(handle: *void) fail
+func unmountVaultNative(handle: *(*void?), force: bool) fail
 {
-    let mounted = cast(*WinFsp.MountedVolume, handle)
+    let mounted = cast(*WinFsp.MountedVolume, unwrap handle[])
+    try mounted.mount.prepareStop(force)
+    handle[] = null
     var unmountErrorOutcome: Swag.Error
-    discard catch mounted.close() as unmountErrorOutcome
+    discard catch mounted.close(force: true) as unmountErrorOutcome
     Memory.delete(mounted)
     try unmountErrorOutcome.raise()
 }

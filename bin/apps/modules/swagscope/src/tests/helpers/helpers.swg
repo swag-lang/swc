@@ -23,6 +23,29 @@ func scopeTestDataDirectory(loc: Swag.SourceCodeLocation = #callerlocation)->Str
 // Resolves one fixture from the shared Scope test corpus.
 func scopeTestDataPath(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String => Path.combine(scopeTestDataDirectory(loc), name)
 
+// Copies one fixture of the shared corpus into a folder of its own and returns the copy.
+//
+// A viewer that walks the folder of the file it opens shows how many siblings it found. Opened
+// from the shared corpus, that count moves with every fixture the corpus gains, so a picture
+// recorded there goes stale without any change in what it shows. The caller deletes the folder
+// with [[discardIsolatedScopeFixture]].
+func isolatedScopeFixture(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String
+{
+    let folder = Testing.tempFilePath("scope-fixture-", "")
+    expect Directory.create(folder)
+
+    let bytes  = expect File.readAllBytes(scopeTestDataPath(name, loc))
+    let result = Path.combine(folder, name)
+    discard expect File.writeAllBytes(result, bytes.toSlice())
+    return result
+}
+
+// Deletes the folder [[isolatedScopeFixture]] created for `file`.
+func discardIsolatedScopeFixture(file: string)
+{
+    discard catch Directory.delete(Path.directoryName(file) orelse "", recurse: true)
+}
+
 // Keeps viewer snapshots in the shared corpus for the calling test.
 func assertScopeImageGolden(image: const *Pixel.Image, name: string)
 {

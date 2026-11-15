@@ -264,3 +264,10 @@ explore_Files % fichiers
 search_Open ouvrir film;ouvrir vidéo;ouvrir image
 search_Browse parcourir bibliothèque;parcourir dossier;médiathèque
 search_FullScreen cinéma;plein écran
+
+options_MoviePattern Expression régulière du nom des films
+options_MoviePatternHelp Les deux règles doivent correspondre. Vide accepte tout nom de fichier.
+options_MovieDuration Durée minimale d’un film
+options_MovieDurationHelp Les vidéos plus courtes utilisent une image locale sans recherche en ligne. Zéro accepte toute durée.
+ui_InvalidMoviePattern Saisissez une expression régulière valide pour les noms des films.
+ui_PrivateVault Contenu privé de Swag Vault

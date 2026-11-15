@@ -2,6 +2,36 @@
 
 ui_WindowTitle         Swag Vault — Disques virtuels privés
 
+# Resident mode and ordinary/forced unmounting.
+cmd_ShowWindow         Ouvrir Swag Vault
+cmd_UnmountAll         Démonter tous les coffres
+cmd_Quit               Démonter et quitter
+cmd_ForceUnmount       Forcer le démontage…
+cmd_OpenDrive          Ouvrir dans l'explorateur de fichiers
+ui_Resident            Mode résident
+ui_ResidentHelp        Fermer la fenêtre laisse Swag Vault actif dans la zone de notification. Les lecteurs montés restent accessibles.
+ui_SessionStartup      Démarrer avec la session
+ui_SessionStartupHelp  Démarrer derrière l'icône de la zone de notification. Nécessite le mode résident.
+ui_ResidentReminder    Ne plus afficher ce rappel
+ui_ResidentDrive       Lecteur %
+msg_ResidentTitle      Swag Vault reste actif.
+msg_ResidentText       Les lecteurs montés restent accessibles. Double-cliquez sur l'icône de la zone de notification pour ouvrir Swag Vault, ou faites un clic droit pour accéder aux commandes.
+msg_ResidentTip        Swag Vault — % lecteurs montés
+msg_ResidentTipOne     Swag Vault — 1 lecteur monté
+msg_TrayUnavailable    L'icône de la zone de notification est indisponible. La fenêtre reste accessible.
+msg_StartupFailed      Impossible de modifier le démarrage avec la session. Le réglage précédent est conservé.
+msg_DriveBusy          Le lecteur est encore utilisé. Fermez ses fichiers et dossiers, puis réessayez.
+msg_UnmountStopped     Le démontage s'est arrêté. % lecteurs restent montés.
+msg_UnmountStoppedOne  Le démontage s'est arrêté. Un lecteur reste monté.
+msg_UnmountFailed      Impossible de démonter le lecteur. Il reste accessible.
+msg_AutoUnmountBusy    Le démontage automatique s'est arrêté. % lecteurs protégés restent montés.
+msg_AutoUnmountBusyOne Le démontage automatique s'est arrêté. Un lecteur protégé reste monté.
+msg_ForceUnmountTitle  Forcer le démontage
+msg_ForceUnmountText   Les fichiers et dossiers ouverts cesseront de fonctionner. Les applications peuvent perdre les modifications non enregistrées et les écritures en attente.
+dlg_BtnForceUnmount    Forcer le démontage
+msg_FinishOperation    Attendez la fin de l'opération en cours, ou arrêtez-la avant de quitter.
+msg_ResidentOperation  Une opération est en cours. Ouvrez Swag Vault pour la suivre ou l'arrêter.
+
 # The list of vaults.
 ui_VaultsTitle         Coffres
 ui_NewVault            Nouveau coffre
@@ -50,7 +80,7 @@ lens_File              Fichier
 lens_Vault             Coffre
 lens_Vaults            Coffres
 lens_Privacy           Vie privée
-cmd_Options            Vie privée et démontage
+cmd_Options            Options
 
 # The page that creates a vault.
 ui_CreateHelp          Choisissez une capacité fixe. Le conteneur complet est randomisé avant d'être prêt.
@@ -77,16 +107,16 @@ ui_MinutesLeft         encore % min
 ui_RandomizeHelp       Chaque octet est rempli de bruit avant que le coffre soit prêt : de l'extérieur, rien ne distingue les données du vide.
 
 # The privacy and automatic-unmount page.
-ui_PrivacyTitle        Vie privée
-ui_OptionsHelp         Protégez l'emplacement des coffres et choisissez quand fermer automatiquement les lecteurs protégés.
+ui_PrivacyTitle        Options
+ui_OptionsHelp         Choisissez comment Swag Vault reste accessible et quand démonter les lecteurs protégés.
 ui_PrivacyMode         Mode vie privée
 ui_PrivacyModeHelp     Ne pas enregistrer les chemins des conteneurs, l'historique de navigation ni les montages au démarrage.
 ui_UnmountOnLock       Démonter au verrouillage de session
-ui_UnmountOnLockHelp   Les lecteurs protégés se ferment lorsque la session actuelle est verrouillée.
+ui_UnmountOnLockHelp   Démonter les lecteurs protégés au verrouillage de la session. Les lecteurs utilisés restent montés.
 ui_UnmountOnSuspend    Démonter avant la mise en veille
-ui_UnmountOnSuspendHelp Les lecteurs protégés se ferment avant la mise en veille de l'ordinateur.
+ui_UnmountOnSuspendHelp Démonter les lecteurs protégés avant la veille. Les lecteurs utilisés restent montés.
 ui_UnmountOnIdle       Démonter après une période d'inactivité
-ui_UnmountOnIdleHelp   Les lecteurs protégés se ferment après une absence d'entrée clavier ou souris pendant %.
+ui_UnmountOnIdleHelp   Démonter les lecteurs protégés inutilisés après une absence d'entrée clavier ou souris pendant %.
 ui_Minutes             % minutes
 
 # The boxes that change a vault.

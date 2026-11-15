@@ -1480,7 +1480,7 @@ impl Wnd
 
         Console.println(Swag.kindOf(.itf).name,
                         " name=",
-                        .name.raw,
+                        .name.text,
                         " rect=",
                         .position.x,
                         ",",

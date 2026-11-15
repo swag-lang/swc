@@ -41,7 +41,7 @@ enum ThemeIcons
     Cut                // Clipboard cut action.
     RemoveAll          // Remove-all action glyph.
     Remove             // Remove action glyph.
-    Options            // Options or settings action.
+    Options            // Sliders for local adjustments; application options use Settings.
     About              // About or information action.
     ZoomIn             // Zoom-in action glyph.
     ZoomOut            // Zoom-out action glyph.
@@ -91,7 +91,7 @@ enum ThemeIcons
     PlaybackSpeed     // Adjust the rate of media playback.
     ExploreFolder     // Browse the files of a folder as a gallery of previews.
     LineNumbers       // Show the number of each line beside a text.
-    Settings          // Open a page of adjustable settings.
+    Settings          // Gear for application options or preferences.
     Folder            // A folder in a file listing.
     Dot               // A filled disc that fills its box: the tone dot of a notice or a status.
     Minus             // Subtract or step-down action glyph, the counterpart of `Plus`.

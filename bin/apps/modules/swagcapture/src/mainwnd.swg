@@ -1185,7 +1185,7 @@ impl MainWnd
                 title = name
         }
 
-        if surface.wnd.name.raw != title do
+        if surface.wnd.name.text != title do
             surface.setTitle(title)
     }
 

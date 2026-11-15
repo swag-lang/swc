@@ -19,9 +19,9 @@ func localAlbumArtwork(file: string)->String
     return {}
 }
 
-func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings)->bool =>
+func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings, duration: u64 = 0)->bool =>
     not settings.localArtworkOnly and
-    ((settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
+    ((settings.onlineMovies and settings.movieDetection.matches(file, duration)) or
      (settings.onlineMusic and albumAudio(file)))
 
 // Reads a sound file's duration without decoding its samples.
@@ -65,17 +65,20 @@ struct ExplorerPreview
     index:           u64
     generation:      u64
     opening:         bool
-    online:          bool     // Movie artwork is looked up before a local frame is decoded.
+    online:          bool     // Resolves final artwork before an eligible film is published.
     needsOnline:     bool
+    durationHint:    u64     // Metadata-only movie classification, before any frame is decoded.
     settings:        String
+    privacy:         File.MountPrivacy
 }
 
 impl ExplorerPreview
 {
-    mtd start(owner: *Wnd)
+    mtd start(owner: *Wnd, durationHint: u64 = 0)
     {
-        .image       = {}
-        .needsOnline = false
+        .durationHint = durationHint
+        .image        = {}
+        .needsOnline  = false
         .error.clear()
         .temporary.clear()
         let operation = me
@@ -123,7 +126,7 @@ impl ExplorerPreview
         if not .opening
         {
             ThumbnailCache.pruneOnce()
-            cache  = catch ThumbnailCache.key(source, member, settings: .settings)
+            cache  = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
             .image = ThumbnailCache.read(cache)
             if .image.isValid() and (.online and onlinePreviewStamped(&.image)) do
                 return
@@ -131,7 +134,7 @@ impl ExplorerPreview
             {
                 let settings = try ThumbnailSettings.decode(.settings)
                 .needsOnline = .archivePath.isEmpty() and
-                               onlinePreviewWanted(media, &settings) and
+                               onlinePreviewWanted(media, &settings, thumbnailDuration(&.image)) and
                                not onlinePreviewStamped(&.image)
                 return
             }
@@ -165,6 +168,8 @@ impl ExplorerPreview
         if not .opening
         {
             var settings = try ThumbnailSettings.decode(.settings)
+            if .online do
+                discard try File.info(file)
             if not settings.musicId.isEmpty()
             {
                 let info = try File.info(.mediaFile.isEmpty() ? file.toString() : source)
@@ -174,9 +179,27 @@ impl ExplorerPreview
                 }
             }
 
+            .durationHint = Math.max(.durationHint, thumbnailDuration(&.image))
+            if .archivePath.isEmpty() and
+               settings.onlineMovies and
+               not settings.localArtworkOnly and
+               settings.movieDetection.nameMatches(file) and
+               not .durationHint
+            {
+                catch
+                {
+                    var reader = try Reader.open(file, pictureOnly: true)
+                    .durationHint = cast(u64, Math.ceil(reader.durationInSeconds()))
+                }
+            }
+
             if not .online
             {
-                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings)
+                // A named release goes straight to its final artwork. Decode a local frame
+                // only if the catalog has no poster, so a successful lookup never pays for it.
+                .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings, .durationHint)
+                if .needsOnline and not albumAudio(file) do
+                    return
                 if albumAudio(file)
                 {
                     if not localArtwork.isEmpty() do
@@ -193,20 +216,22 @@ impl ExplorerPreview
                 {
                     // Online artwork does not depend on the local codec succeeding.
                     var failure: Swag.Error
-                    .image = catch .service.render(file) as failure
-                    .error = Viewer.failureText(failure.value())
+                    .image       = catch .service.render(file) as failure
+                    .error       = Viewer.failureText(failure.value())
+                    .needsOnline = .archivePath.isEmpty() and
+                                   onlinePreviewWanted(file, &settings, thumbnailDuration(&.image))
                 }
 
-                let current = catch ThumbnailCache.key(source, member, settings: .settings)
+                let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
                 if .image.isValid() and not Swag.isCancelled() and cache == current do
-                    catch ThumbnailCache.write(cache, &.image)
+                    catch ThumbnailCache.write(cache, &.image, source, .privacy)
                 return
             }
 
             var movie:     OnlineMovie
             var music:     OnlineMusic
             var musicTags: SoundTags
-            var localDuration = thumbnailDuration(&.image)
+            var localDuration = Math.max(.durationHint, thumbnailDuration(&.image))
             var posterLoaded  = false
             if not localDuration and albumAudio(file) do
                 localDuration = localSoundDuration(file)
@@ -215,8 +240,7 @@ impl ExplorerPreview
             if settings.onlineMovies and
                not settings.localArtworkOnly and
                .archivePath.isEmpty() and
-               not albumAudio(file) and
-               Reader.canOpen(file)
+               settings.movieDetection.matches(file, localDuration)
             {
                 providerAttempted = true
                 catch
@@ -306,9 +330,9 @@ impl ExplorerPreview
                 stampMovieCache(&.image)
 
             // A file replaced during rendering must not publish an image under its old identity.
-            let current = catch ThumbnailCache.key(source, member, settings: .settings)
+            let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
             if not .needsOnline and not providerFailed and not Swag.isCancelled() and cache == current do
-                catch ThumbnailCache.write(cache, &.image)
+                catch ThumbnailCache.write(cache, &.image, source, .privacy)
         }
     }
 

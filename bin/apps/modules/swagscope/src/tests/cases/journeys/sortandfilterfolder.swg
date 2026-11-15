@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-// Sort a mixed folder, narrow it to images, and open the chosen picture.
+// Sort and filter a folder, open a picture, then recover that presentation after another folder.
 #[Swag.TestTag("integration.application.journey")]
 #test
 {
@@ -19,26 +19,48 @@ using Core, Gui, Pixel
 
     window.openExplorer(folder)
     journey.waitFor("mixed folder", func|window|()->bool => window.isExploring() and
-                                                         not window.explorer!.load.started and
-                                                         window.explorer!.entries.count == 3)
+                                                            not window.explorer!.load.started and
+                                                            window.explorer!.entries.count == 3)
     let explorer = unwrap window.explorer
     window.sendCommandEvent(ViewerCommands.SortName)
     journey.waitFor("name sort", func|explorer|()->bool => not explorer.load.started and
-                                                        explorer.sortColumn == 0 and explorer.shown.count == 3)
+                                                           explorer.sortColumn == 0 and
+                                                           explorer.shown.count == 3)
     window.sendCommandEvent(ViewerCommands.SortDescending)
     journey.waitFor("reverse name sort", func|explorer|()->bool => not explorer.load.started and
-                                                                explorer.descending and
-                                                                explorer.entries[explorer.shown[0]].name == "C-notes.txt")
+                                                                   explorer.descending and
+                                                                   explorer.entries[explorer.shown[0]].name == "C-notes.txt")
 
     window.sendCommandEvent(ViewerCommands.FilterImages)
     journey.waitFor("pictures only", func|explorer|()->bool => explorer.kindFilter == .Images and
-                                                            explorer.shown.count == 2)
+                                                               explorer.shown.count == 2)
     explorer.grid.select(0)
     window.sendCommandEvent(ViewerCommands.OpenChosen)
     journey.waitFor("picture opened", func|window|()->bool => window.currentView != null and
-                                                           window.choices[window.activeChoiceIndex].key == "image")
+                                                              window.choices[window.activeChoiceIndex].key == "image")
     window.sendCommandEvent(ViewerCommands.Close)
     journey.waitFor("folder restored", func|window, explorer|()->bool => window.isExploring() and
-                                                                  explorer.isLocallyVisible() and
-                                                                  explorer.kindFilter == .Images)
+                                                                         explorer.isLocallyVisible() and
+                                                                         explorer.kindFilter == .Images)
+
+    explorer.forceBoard(true, .Grid)
+    explorer.setMode(.Large)
+    explorer.setArtworkSource(.Local)
+    let other = Path.combine(journey.root, "Other")
+    expect Directory.create(other)
+    window.openExplorer(other)
+    journey.waitFor("other folder", func|explorer|()->bool => not explorer.load.started and explorer.entries.isEmpty())
+    window.sendCommandEvent(ViewerCommands.FilterAll)
+    window.sendCommandEvent(ViewerCommands.SortAscending)
+    journey.waitFor("other sort", func|explorer|()->bool => not explorer.load.started and not explorer.descending)
+    explorer.setMode(.Names)
+    window.openExplorer(folder)
+    journey.waitFor("remembered folder", func|explorer|()->bool => not explorer.load.started and
+                                                                   explorer.shown.count == 2 and
+                                                                   explorer.kindFilter == .Images and
+                                                                   explorer.mode == .Large and
+                                                                   explorer.descending and
+                                                                   explorer.forced and
+                                                                   explorer.forcedBoard == .Grid and
+                                                                   explorer.artworkSource == .Local)
 }

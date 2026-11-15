@@ -4,6 +4,45 @@
 
 using Core
 
+// A live kernel descriptor survives a refused unmount, then is invalidated by explicit force.
+#[Swag.TestTag("integration.filesystem.fuse")]
+#test
+{
+    let base = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("vault-fuse-force-%", Guid64.random()))
+    expect Directory.create(base)
+    defer expect Directory.delete(base)
+    let container = Path.combine(base, "container.bin")
+    defer discard catch File.delete(container)
+    let destination = Path.combine(base, "mounted")
+    scope
+    {
+        var volume = expect Volume.create(container, "", MinimumSize)
+        volume.close()
+    }
+
+    var mount: MountedVault
+    expect mount.open(container, "", destination)
+    let path = Path.combine(destination, "data")
+    discard expect File.writeAllText(path, "mounted data")
+    var opened = expect File.open(path, .Open, .ReadWrite, .ReadWrite)
+    expect opened.flush()
+    var error: Swag.Error
+    catch mount.close() as error
+    Swag.require(isBusyError(error.value()) and mount.handle != null)
+    var bytes: [12] u8
+    Swag.require(expect opened.readExact(bytes))
+    Swag.require(Slice.equals(bytes, cast(const [..] u8, "mounted data")))
+    expect mount.close(force: true)
+    Swag.require(mount.handle == null and not Directory.exists(destination))
+    var flushError: Swag.Error
+    catch opened.flush() as flushError
+    Swag.require(flushError.value() != null)
+    opened.close()
+    expect mount.open(container, "", destination, true)
+    Swag.require(expect File.readAllText(path) == "mounted data")
+    expect mount.close()
+}
+
 // Requires libfuse3, fusermount3 and access to /dev/fuse. Owns only generated scratch paths.
 #[Swag.TestTag("integration.filesystem.fuse")]
 #test
@@ -65,23 +104,24 @@ using Core
     let base = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("vault-fuse-mount-%", Guid64.random()))
     expect Directory.create(base)
     defer expect Directory.delete(base)
-    let firstPath = Path.combine(base, "first.bin")
+    let firstPath  = Path.combine(base, "first.bin")
     let secondPath = Path.combine(base, "second.bin")
     defer discard catch File.delete(firstPath)
     defer discard catch File.delete(secondPath)
     for path, index in [firstPath, secondPath]
     {
         var volume = expect Volume.create(path[], "shared runtime password", MinimumSize)
-        let node = expect volume.createNode("/value", false, 0, "")
-        let text = index == 0 ? "first" : "second"
+        let node   = expect volume.createNode("/value", false, 0, "")
+        let text   = index == 0 ? "first" : "second"
         discard expect volume.writeNode(node, 0, cast(const [..]u8, text), false, false)
         expect volume.commit()
         volume.close()
     }
-    let firstDestination = Path.combine(base, "first")
+
+    let firstDestination  = Path.combine(base, "first")
     let secondDestination = Path.combine(base, "second")
     var first, second: MountedVault
-    var error: Swag.Error
+    var error:         Swag.Error
     catch first.open(firstPath, "wrong password", firstDestination) as error
     Swag.require(error.value() != null and not Directory.exists(firstDestination))
     expect Directory.create(firstDestination)

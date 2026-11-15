@@ -24,7 +24,7 @@ using Swag, Core
                     appStrings().ui_MenuImage, appStrings().ui_MenuView, Gui.strings().lens_Application]
     Swag.require(menu.items.count == expected.count)
     for name, index in expected do
-        Swag.require(menu.items[index]!.name.raw == name and menu.items[index]!.popup != null)
+        Swag.require(menu.items[index]!.name.text == name and menu.items[index]!.popup != null)
 
     let capture = menu.items[0]!.popup
     let captureDirect = 10 + 2 * main.monitors.count
@@ -37,7 +37,7 @@ using Swag, Core
     Swag.require(capture.items[captureDirect - 1]!.id == ActionCapture.Record)
     Swag.require(capture.items[captureDirect]!.separator)
     var delay: *MenuCtrl?
-    for item in capture.items where item and item.name.raw == appStrings().act_DelayBefore do
+    for item in capture.items where item and item.name.text == appStrings().act_DelayBefore do
         delay = item.popup
     Swag.require(delay and delay.items.count == CaptureDelayIds.count)
 
@@ -48,7 +48,7 @@ using Swag, Core
     Swag.require(edit.items[0]!.id == ActionUndo.DoUndo and edit.items[2]!.separator)
     Swag.require(edit.items[3]!.id == ActionCopyPaste.Copy and edit.items[7]!.separator)
     var selection: *MenuCtrl?
-    for item in edit.items where item and item.name.raw == appStrings().lens_Selection do
+    for item in edit.items where item and item.name.text == appStrings().lens_Selection do
         selection = item.popup
     Swag.require(selection and selection.items.count == EditorSelectionIds.count)
 
@@ -71,8 +71,8 @@ using Swag, Core
     let application = menu.items[5]!.popup
     Swag.require(application.items.count == 8)
     Swag.require(application.items[1]!.separator and application.items[4]!.separator and application.items[6]!.separator)
-    Swag.require(application.items[2]!.name.raw == Gui.strings().appearance_Theme)
-    Swag.require(application.items[3]!.name.raw == Gui.strings().appearance_Language)
+    Swag.require(application.items[2]!.name.text == Gui.strings().appearance_Theme)
+    Swag.require(application.items[3]!.name.text == Gui.strings().appearance_Language)
     Swag.require(application.items[2]!.popup.items.count == 3)
     Swag.require(application.items[3]!.popup.items.count == Gui.languages().count + 1)
 
@@ -133,7 +133,7 @@ using Swag, Core
         Swag.require(host.openPopupSubMenu(Gui.strings().appearance_Language))
         let languages = unwrap host.capturedPopupMenu()
         var french: WndId?
-        for item in languages.items where item and item.name.raw == "Français" do
+        for item in languages.items where item and item.name.text == "Français" do
             french = item.id
         Swag.require(french != null)
         Swag.require(host.clickPopupMenuItem(french))

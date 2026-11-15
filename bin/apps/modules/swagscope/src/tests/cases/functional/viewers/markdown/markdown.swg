@@ -83,7 +83,7 @@ internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.m
     host.notify(.LanguageChanged)
     var translated: OptionSheet.Page
     MarkdownText.describeOptions(&translated, firstMarkdown, firstZoom)
-    Swag.require(translated.rows[0].value == MarkdownText.texts().ui_Narrow and translated.rows[0].value.raw != oldWidth)
+    Swag.require(translated.rows[0].value == MarkdownText.texts().ui_Narrow and translated.rows[0].value.text != oldWidth)
     Swag.require(firstOptions.toolTip == "Options")
     Swag.require(firstZoom.toolTip == MarkdownText.texts().ui_ZoomMenu)
     Swag.require(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)

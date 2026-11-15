@@ -8,10 +8,15 @@ integration around those engines.
 ### app.scope.document.024 — RTF reading omits advanced layout and encoded text variants
 
 - Evidence: the Swag RTF reader now displays paragraphs, common inline styles, alignment, simple
-  tables, Unicode escapes and Windows-1252 text. It names omitted images and embedded objects.
-  It does not reproduce fonts, colors, page geometry, complex tables, fields or other code pages.
-- Next: add a bounded font/color and paragraph model, supported code-page decoders, image extraction
-  and a richer table layout without executing fields or loading linked resources.
+  tables, Unicode escapes and Windows-1252 text. Bounded embedded PNG and JPEG pictures retain
+  their place in the prose; binary payloads and modern/compatibility picture pairs are handled
+  without duplicate images. Bounded font/color tables now preserve character faces, half-point
+  sizes, colors, highlights, paragraph spacing/indents and line spacing; group scopes and plain
+  resets retain their meaning. Colored prose uses a paper background with reading margins.
+  Unsupported style references, pictures and embedded objects remain explicit. Named RTF styles,
+  page geometry, complex tables, fields and other code pages are still absent.
+- Next: resolve named paragraph/character styles, add supported code-page decoders and richer
+  table layout without executing fields or loading linked resources.
 - Done when: representative freely licensed RTF documents retain their reading order and common
   visual structure, unsupported content remains explicit, and all decoding remains native Swag.
 
@@ -52,12 +57,6 @@ integration around those engines.
 - Done when: title, language, metadata, headings, landmarks, and warnings are inspectable;
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
-
-### app.scope.document.023 — Keep an HTML reading inset beside its outline
-
-- Evidence: `viewer.html.filtered-outline.paper` shows the article starting at the window's left edge when the outline takes the right side. The headings and body text have no breathing room at that edge.
-- Next: define a reading inset for the hosted HTML page while the side panel is visible, without changing the document's own CSS layout or clipping its content.
-- Done when the full-window HTML golden keeps a readable gap beside the window edge at a narrow width and still preserves authored page margins.
 
 ### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
 
@@ -156,14 +155,17 @@ integration around those engines.
 
 ### app.scope.document.020 — DOCX lacks faithful page reading
 
-- Evidence: the DOCX reader shows ordered body paragraphs, simple tables, direct run formatting,
-  headings, page-break separators and bounded raster images. It loses page size and margins,
-  section columns, styles and themes, headers and footers, footnotes, comments, floating objects,
-  and complex table geometry. [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
+- Evidence: the DOCX reader retains ordered paragraphs, simple tables, bounded raster images,
+  page-break separators and common inherited paragraph/character styles. Document defaults,
+  parent styles, basic theme fonts/colors, sizes, emphasis, spacing and indents are resolved;
+  styled headings populate the filterable outline. Broken optional styles retain readable prose
+  and a visible simplification notice. Authored page size/margins, section columns, headers,
+  footers, footnotes, comments, floating objects and complex table geometry remain absent.
+  [Word Read Mode](https://support.microsoft.com/en-gb/word/read-documents-in-word)
   preserves navigable pages and adapts them to the reading surface.
-- Next: resolve styles and relationships before laying out page and section geometry; compare
-  representative real producer documents page by page, then add document-wide search, selection,
-  and position restore without materializing every page at open.
+- Next: lay out page and section geometry, then headers, footers and footnotes; extend numbering,
+  tabs, table styles and complex-script font/theme fidelity with real producer fixtures. Add
+  document-wide search, selection and position restore without materializing every page at open.
 - Done when: authored pages, text flow, images and table structure remain recognizable across a
   freely licensed DOCX corpus, unsupported constructs are named at their location, and the first
   page appears without decoding the full package.
@@ -172,11 +174,27 @@ integration around those engines.
 ### app.scope.document.025 — XLSX lacks a true workbook reading surface
 
 - Evidence: the XLSX reader orders sheets and shows values or uncached formula expressions in a
-  512-column grid, but drops widths, heights, number formats, styles, merged cells, hidden ranges,
-  frozen panes, filters, comments and charts. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
+  512-column grid. One sheet is shown at a time, starting with the saved active sheet; the
+  filterable outline, arrows and Ctrl+Page Up/Down switch sheets. Hidden and very-hidden sheets
+  stay hidden until explicitly revealed. The native grid preserves declared column widths, row
+  heights, sparse addresses, disjoint merged cells and hidden rows/columns; a separate command
+  reveals hidden ranges. Cell selection, keyboard moves, copy and a theme-aware text view support
+  reading. Only visible rows are painted, including million-row address spans. Direct and base
+  XFs now retain font size/emphasis, colors, solid fills, common borders, alignment, wrapping and
+  Normal-font indents. Spreadsheet theme/indexed colors and luminance tints are resolved; numeric
+  overflow stays explicit. Common built-in and custom currency, grouped decimal, percentage,
+  date and elapsed-time formats retain both Excel date systems and the fictitious 1900 leap day.
+  Unsupported formats keep the stored value and a notice; unsupported visual effects are labelled
+  simplified. Saved cells now inherit custom row XFs and then column XFs when their own style
+  is absent; explicit cell XF zero remains an override. Producer output and a LibreOffice re-save
+  confirm this precedence. Unsaved blank regions still have no inherited paint. Exact named
+  font matching, frozen panes, filters, comments
+  and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: preserve workbook view state and resolve styles, dimensions, merges and number formats;
-  add virtual cell addressing, sheet-wide search and selection before read-only chart previews.
+- Next: paint inherited styles in unsaved blank regions and resolve named font families, then preserve frozen panes and add
+  rectangular selection, direct cell addressing and sheet-wide search before read-only chart
+  previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
+  date profiles with producer fixtures; keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
   behave as declared, formulas never execute, large sheets stay bounded, and every omitted construct
   is explicitly reported.
@@ -190,10 +208,12 @@ integration around those engines.
   outline; arrows, Page Up/Down and a theme-aware text mode support reading. Unsupported geometry
   falls back to a labelled simplified layout. The real Apache POI sample and a widescreen deck
   cover inherited title placement, authored colors, pictures and navigation. Charts, complex
-  drawings, complete text inheritance, speaker notes and a thumbnail overview remain absent.
+  drawings, complete text inheritance and a thumbnail overview remain absent. A dedicated
+  theme-aware notes reader now exposes bounded speaker prose and emphasis through the lens,
+  follows slide navigation and omits notes-page thumbnails, footers and counters.
   [PowerPoint Reading and Slide Show views](https://support.microsoft.com/en-us/powerpoint/how-certain-features-behave-in-web-based-powerpoint)
   retain slide navigation and notes.
-- Next: add speaker notes and a thumbnail overview, then lazy slide decoding so the first canvas
+- Next: add a thumbnail overview, then lazy slide decoding so the first canvas
   can appear before the rest of the deck is projected. Extend shapes, paragraph styles, color
   transforms and font/theme inheritance with producer fixtures. Keep animation, embedded media
   and external actions inert and make omitted content explicit.
@@ -206,11 +226,12 @@ integration around those engines.
 
 - Evidence: EPUB 2 NCX and EPUB 3 contents now expose authored titles, hierarchy and chapter
   fragments in the shared filterable outline. Internal spine links keep the chapter counter in
-  sync, and chapter reading has its own zoom. Book-wide search, landmarks, non-spine footnotes,
-  reading-position restore, bookmarks and link history remain absent. Extraction still prepares
-  every package member before the first chapter is shown.
+  sync. Zoom and column choices preserve the visible text passage; bounded Back/Forward history
+  returns to that passage across chapter and fragment visits, through the lens or Alt+arrows.
+  Book-wide search, landmarks, non-spine footnotes, persistent position restore and bookmarks
+  remain absent. Extraction still prepares every package member before the first chapter is shown.
 - Next: add book-wide search with chapter/all-book scope and stable chapter positions, then
-  bookmarks, link back/forward and lazy extraction of the visible chapter's resources.
+  bookmarks, persistent reading positions and lazy extraction of the visible chapter's resources.
 - Done when: TOC, previous/next, links, footnotes, search, bookmarks, history and position restore work across a
   representative EPUB 2/3 corpus without delaying first content for the whole package.
 - Related: app.scope.binary.010
@@ -231,14 +252,14 @@ integration around those engines.
   extracting all images first, and unsupported image pages are named in place.
 - Related: app.scope.image.005, app.scope.viewers.003
 
-### app.scope.document.028 — EPUB has no adjustable book-reading layout
+### app.scope.document.028 — EPUB needs paged layout and persistent logical reading positions
 
-- Evidence: each spine document is currently shown as one HTML chapter, with no book-level paged
-  layout, continuous flow choice, reading width, type scale, line spacing or margin policy.
-  [calibre's viewer](https://manual.calibre-ebook.com/viewer.html) supports paged and flow modes.
-- Next: add book-owned paged and continuous modes over the existing HTML layout, preserve a logical
-  location while typography or viewport size changes, and keep navigation and search mapped to
-  that location.
+- Evidence: the chapter reader offers compact, comfortable and wide default reading measures,
+  plus zoom. A logical text location preserves the visible passage through those changes, while
+  authored CSS keeps priority. There is no book-level paged/continuous-flow choice, line-spacing
+  control or persistent position restore, and ordinary viewport reflow still keeps pixel scroll.
+- Next: build book-owned paged and continuous modes over the HTML layout, retain a logical
+  location across viewport changes, and connect it to navigation, search and safe position restore.
 - Done when: readers can choose fit-to-width flow or pages, adjust typography without corrupting
   authored content, and reopen at the same logical passage across window and theme changes.
 - Related: app.scope.document.021, app.scope.viewers.003
@@ -366,3 +387,18 @@ integration around those engines.
 - Done when: current or selected pages can be copied/rendered at chosen DPI, supported embedded
   assets can be saved without silent conversion, filenames are sanitized, and unsupported or
   lossy extraction is explained.
+
+### app.scope.document.032 — OpenDocument reading needs fuller Writer/Calc/Impress fidelity
+
+- Evidence: ODT omits physical pages, headers/footers, notes, comments and complex drawings.
+  ODS uses saved formatted strings; raw typed values lack full ODF number-style reconstruction.
+  Its charts, annotations, advanced geometry and exact font metrics are simplified. ODP fits
+  common positioned text, rectangles and raster pictures with basic style/master inheritance,
+  with speaker notes available in a separate theme-aware prose reader. Group transforms and
+  unsupported drawings fall back to text; media, gradients,
+  full master placeholder geometry and complex shapes are not reproduced. Slides are loaded eagerly.
+- Next: cover ODS number styles when saved display strings are absent, expose unsupported
+  components explicitly, deepen Impress master/shape fidelity and defer off-screen slide work.
+- Done when: genuine LibreOffice files retain common authored layout and components; notes
+  can be inspected separately; unsupported content remains explicit; navigation stays responsive
+  and cancellation/package budgets hold on large and damaged documents.

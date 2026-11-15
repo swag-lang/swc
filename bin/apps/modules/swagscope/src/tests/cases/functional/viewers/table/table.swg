@@ -76,7 +76,7 @@ using Core, Pixel, Gui, Viewers
     Swag.require(view.list.isVirtual and view.list.lineCount() == 3 and view.list.header.items.count == 3)
     var line: ListLine
     view.fillLine(&line, 1)
-    Swag.require(line.itemAt(0).name.raw == "Reykjavik" and line.itemAt(2).name.raw == "rain")
+    Swag.require(line.itemAt(0).name.text == "Reykjavik" and line.itemAt(2).name.text == "rain")
     var matches: Array'Viewer.SearchMatch
     collectViewerMatches(result.collectMatches, "humid", &matches)
     let revealed = matches.count == 1 and result.revealMatch(matches[0], "humid")
@@ -114,7 +114,7 @@ using Core, Pixel, Gui, Viewers
     Swag.require(view.order[0] == 3 and view.order[1] == 2 and view.order[2] == 0 and view.order[3] == 1)
     var line: ListLine
     view.fillLine(&line, 0)
-    Swag.require(line.itemAt(0).name.raw == "File1")
+    Swag.require(line.itemAt(0).name.text == "File1")
 
     view.sortBy(1)
     Swag.require(view.descending and view.order[0] == 0 and view.order[2] == 3 and view.order[3] == 1)
@@ -171,7 +171,7 @@ using Core, Pixel, Gui, Viewers
 
     var line: ListLine
     view.fillLine(&line, 0)
-    let displayed = line.itemAt(0).name.raw.toString()
+    let displayed = line.itemAt(0).name.text.toString()
     Swag.require(displayed.count <= Table.CellPreviewBytes)
 }
 
@@ -190,13 +190,13 @@ using Core, Pixel, Gui, Viewers
     view.services.reportDetails = func(wnd, value) { cast(*String, unwrap wnd.userData)[] = value }
     view.list.selectLine(0)
     let list       = view.list
-    let oldHeading = String.from(view.list.header.items[0]!.name.raw)
+    let oldHeading = String.from(view.list.header.items[0]!.name.text)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.require(view.list.header.items[0]!.name.raw == Format.toString(Table.texts().ui_Column, 1))
-    Swag.require(view.list.header.items[0]!.name.raw != oldHeading)
-    Swag.require(view.list.header.items[1]!.name.raw == "Column 2")
-    Swag.require(view.list.header.items[2]!.name.raw == Format.toString(Table.texts().ui_Column, 3))
+    Swag.require(view.list.header.items[0]!.name.text == Format.toString(Table.texts().ui_Column, 1))
+    Swag.require(view.list.header.items[0]!.name.text != oldHeading)
+    Swag.require(view.list.header.items[1]!.name.text == "Column 2")
+    Swag.require(view.list.header.items[2]!.name.text == Format.toString(Table.texts().ui_Column, 3))
 
     // Structure and selection facts share the bottom reading line in the active language.
     Swag.require(Utf8.contains(view.facts.text(), Table.texts().ui_Row))
@@ -205,5 +205,5 @@ using Core, Pixel, Gui, Viewers
     Swag.require(view.list == list and view.list.isLineSelected(0) and view.document.rows[0].cells[1] == "second")
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.require(view.list.header.items[0]!.name.raw == oldHeading and view.list.isLineSelected(0))
+    Swag.require(view.list.header.items[0]!.name.text == oldHeading and view.list.isLineSelected(0))
 }

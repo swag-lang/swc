@@ -41,7 +41,7 @@ lens_Application Application
 inspector_Tab Propriétés
 
 about_Build     Compilé le %{f}
-about_Source    % est un logiciel libre écrit en <url>Swag</url>. Son code est <url>ici</url>.
+about_Source    % est un logiciel libre écrit en <a>Swag</a>. Son code est <a>ici</a>.
 about_Copyright Copyright © % %
 
 fileDlg_TitleSaveFile     Enregistrer un fichier
@@ -55,7 +55,7 @@ fileDlg_NewFolderHint     Nom du dossier
 fileDlg_ErrFolderName     Le nom du dossier n'est pas valide.
 fileDlg_ErrFolderExists   Un dossier portant ce nom existe déjà.
 fileDlg_ErrFolderCreate   Le dossier n'a pas pu être créé.
-fileDlg_ReplaceTitle      <p1>%</p> existe déjà.
+fileDlg_ReplaceTitle      <span class="p1">%</span> existe déjà.
 fileDlg_ReplaceText       Le remplacer ? L'ancien fichier est perdu.
 fileDlg_ReplaceDetail     % · modifié le %
 fileDlg_BtnReplace        Remplacer

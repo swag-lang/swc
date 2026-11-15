@@ -173,6 +173,6 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
         Swag.require(host.dismissPopupMenu())
     }
 
-    window.idleTimeout.sigPressed.call(cast(*Button, window.idleTimeout))
+    window.idleTimeout.sigLinkActivated.call(window.idleTimeout, "")
     Swag.require(captured)
 }

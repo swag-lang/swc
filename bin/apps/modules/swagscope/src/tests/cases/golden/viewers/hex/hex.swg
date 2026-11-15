@@ -109,7 +109,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
                  window.searchMatches[1].offset == second)
     Swag.require(window.searchMatches[0].length == 4 and view.grid.searchHits and view.grid.searchHits.count == 2)
     Swag.require(view.grid.matchStart == first and view.grid.matchLength == 4)
-    Swag.require(window.searchBox.name.raw == Hex.texts().ui_SearchPlaceholder)
+    Swag.require(window.searchBox.name.text == Hex.texts().ui_SearchPlaceholder)
     Swag.require(not window.searchOptionsButton.isLocallyVisible())
 
     view.setValueWidth(2)

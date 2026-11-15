@@ -6,6 +6,7 @@ using Core, Gui
 struct ThumbnailSettings
 {
     onlineMovies:        bool
+    movieDetection:      Viewers.Film.MovieDetectionSettings
     localArtworkOnly:    bool
     onlineMusic:         bool
     movieLanguage:       String
@@ -26,6 +27,7 @@ impl ThumbnailSettings
     {
         var settings: ThumbnailSettings
         settings.onlineMovies     = window.onlineMovies
+        settings.movieDetection   = Viewers.Film.g_MovieDetectionSettings
         settings.localArtworkOnly = localArtworkOnly
         settings.onlineMusic      = window.onlineMusic
         settings.previewEpoch     = previewEpoch
@@ -43,7 +45,7 @@ impl ThumbnailSettings
 
         if entry
         {
-            settings.musicId = musicChoiceId(window.musicChoices.toSlice(), entry)
+            settings.musicId = window.privacy.selectedMusicId(entry)
             if not settings.musicId.isEmpty()
             {
                 settings.choiceSize = entry.size

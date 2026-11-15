@@ -86,7 +86,7 @@ var TabHeadlessSelChangedCount: u32
     tab.setSelectedIndex(2)
     Swag.require(tab.selectedIndex == 2)
     Swag.require(TabHeadlessSelChangedCount == 1)
-    Swag.require(tab.selectedItem()!.name.raw == "C")
+    Swag.require(tab.selectedItem()!.name.text == "C")
 
     // Selecting the current tab is a no-op.
     tab.setSelectedIndex(2)
@@ -186,11 +186,11 @@ var TabHeadlessSelChangedCount: u32
 
     tab.setSelectedIndex(2)
     tab.removeItemAt(0)
-    Swag.require(tab.selectedIndex == 1 and tab.selectedItem()!.name.raw == "C")
+    Swag.require(tab.selectedIndex == 1 and tab.selectedItem()!.name.text == "C")
     Swag.require(TabHeadlessSelChangedCount == 1)
 
     tab.removeItemAt(1)
-    Swag.require(tab.selectedIndex == 0 and tab.selectedItem()!.name.raw == "B")
+    Swag.require(tab.selectedIndex == 0 and tab.selectedItem()!.name.text == "B")
     Swag.require(TabHeadlessSelChangedCount == 2)
 
     tab.clear()

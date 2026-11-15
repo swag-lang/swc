@@ -320,15 +320,13 @@ struct MovieSummary
     sources:      String
 }
 
-// Provider text is data, not Pixel rich-text markup or additional layout controls.
+// Provider text is data: it is shown literally, and brings no layout control of its own.
 func safeMediaText(value: string)->String
 {
     var result: #returntype
     for byte in value
     {
-        if byte == '<' do
-            result += "‹"
-        elif byte < ' ' or byte == 0x7F do
+        if byte < ' ' or byte == 0x7F do
             result.append(' 'u8)
         else do
             result.append(byte)

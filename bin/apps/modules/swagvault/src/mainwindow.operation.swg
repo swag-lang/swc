@@ -10,6 +10,7 @@ impl MainWindow
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
         .operation.error.reset()
+        .statusDetail.clear()
         .operation.timer = .addTimer(50'ms)
 
         // Arming the tracker before the task starts is what clears the cancellation a previous
@@ -257,8 +258,8 @@ impl MainWindow
         .beginOperation(.Mount)
     }
 
-    // Detaches the drive of the vault at `path` and unmounts it in the background.
-    mtd unmountVault(path: string)
+    // The worker borrows the row's mount. A refusal keeps that row and its ownership intact.
+    mtd unmountVault(path: string, force = false)
     {
         if .operation.kind != .None do
             return
@@ -266,10 +267,11 @@ impl MainWindow
         if index == Swag.U64.Max do
             return
 
-        .operation.path       = .mountedDrives.drives[index].path
-        .operation.mount      = .mountedDrives.drives[index].drive
-        .operation.mountLabel = .mountedDrives.drives[index].mountLabel
-        .operation.volume     = .mountedDrives.detach(index)
+        .operation.path         = .mountedDrives.drives[index].path
+        .operation.mount        = .mountedDrives.drives[index].drive
+        .operation.mountLabel   = .mountedDrives.drives[index].mountLabel
+        .operation.volume       = .mountedDrives.drives[index].volume
+        .operation.forceUnmount = force
 
         // The row goes back to rest rather than unfolding: unmounting is not asking to open it again.
         if .chosenPath == path do
@@ -278,6 +280,19 @@ impl MainWindow
         .refreshVaults()
         .setStatus(.Unmounting)
         .beginOperation(.Unmount)
+    }
+
+    mtd forceUnmountVault(path: string)
+    {
+        if .operation.kind != .None or not .isMounted(path) do
+            return
+        .resident.showWindow()
+        let texts  = appStrings()
+        let dialog = MessageDlg.create(unwrap .surface, texts.msg_ForceUnmountText, {title: texts.msg_ForceUnmountTitle, mark: .Warning})
+        dialog.addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel, true)
+        dialog.addButton(texts.dlg_BtnForceUnmount, Dialog.BtnOk).setForm(.Destructive)
+        if dialog.doModal() == Dialog.BtnOk do
+            .unmountVault(path, force: true)
     }
 
     // Whether the unfolded vault names a container that can be changed now, saying why when it cannot.
@@ -489,9 +504,7 @@ impl MainWindow
             let mounted = .operation.volume
             if mounted
             {
-                discard catch mounted.close() as .operation.error
-                Memory.delete(mounted)
-                .operation.volume = null
+                discard catch mounted.close(.operation.forceUnmount) as .operation.error
             }
 
         case .Resize:
@@ -585,6 +598,14 @@ impl MainWindow
         .operation.forgetRequest()
         .showOperation()
         .refreshActions()
+        .resident.refreshTray()
+        if operationError == null and .resident.isHidden() and not .resident.batch do
+            .resident.notify(.statusText())
+        if .resident.batch
+        {
+            .resident.continueUnmount()
+            return
+        }
 
         // A protected startup vault still unfolded for its access holds the queue: a mount of it
         // that failed leaves it there for another try.
@@ -641,11 +662,22 @@ impl MainWindow
             if mounted
             {
                 discard catch mounted.close() { .setStatus(.AutoUnmountStopped) }
-                Memory.delete(mounted)
-                .operation.volume = null
+                if mounted.handle
+                {
+                    // A drive opened by the OS between mount publication and the security
+                    // event remains visible when ordinary unmount refuses it.
+                    .rememberMountedDrive()
+                    .statusDrive = "1"
+                    .setStatus(.AutoUnmountBusy)
+                }
+                else
+                {
+                    Memory.delete(mounted)
+                    .operation.volume = null
+                }
             }
 
-            if .statusMessage != .AutoUnmountStopped do
+            if .statusMessage != .AutoUnmountStopped and .statusMessage != .AutoUnmountBusy do
                 .setStatus(.AutoUnmounted)
         }
         else
@@ -664,12 +696,40 @@ impl MainWindow
         .refreshVaults()
     }
 
-    // Reports an unmount; a drive that could not flush is still gone.
+    // A rejected ordinary unmount retains the row; a detached drive can still report a commit failure.
     mtd finishUnmount(operationError: any?)
     {
-        if operationError != null do
-            .showError(appStrings().msg_UnmountSyncStopped, operationError)
-        .setStatus(.Unmounted)
+        let mounted  = .operation.volume
+        let retained = mounted and mounted.handle != null
+        if retained do
+            mounted!.setPrivateMode(.privacyMode)
+        if not retained
+        {
+            let index = .mountedDrives.indexOf(.operation.path)
+            if index != Swag.U64.Max do
+                .mountedDrives.drives.removeAtOrdered(index)
+            if mounted do
+                Memory.delete(mounted)
+        }
+
+        .operation.volume = null
+        .pruneVaults()
+        if operationError != null
+        {
+            .resident.failed = true
+            .statusDetail    = caughtMessage(operationError)
+            if .resident.failureDetail.isEmpty() do
+                .resident.failureDetail = .statusDetail
+            .statusDrive = Format.toString("%", .mountedDrives.drives.count)
+            .setStatus(retained ? .UnmountStopped : .UnmountSyncStopped)
+            if not .resident.batch do
+                .showError(retained ? appStrings().msg_UnmountFailed : appStrings().msg_UnmountSyncStopped, operationError)
+        }
+        else
+        {
+            .setStatus(.Unmounted)
+        }
+
         .fillDriveChoice()
         .refreshVaults()
     }
@@ -751,6 +811,9 @@ impl MainWindow
 
         if .operation.volume
         {
+            // A mount stays private during unlock. Use the current mode, including switches
+            // made while the worker was still opening the container.
+            .operation.volume.setPrivateMode(.privacyMode)
             let space = .operation.volume.space()
             entry.totalBytes     = space.total
             entry.availableBytes = space.available

@@ -25,11 +25,11 @@ struct Texts
     ui_OptionSubtitles:        string = "Subtitles"                                               // Option choosing and styling the subtitles.
     ui_PlayerSpeedNormal:      string = "Normal"                                                  // The source playback rate.
     ui_AudioTrackNumber:       string = "Audio %"                                                 // Fallback name for an unnamed sound track.
-    ui_AudioTrackLang:         string = "<p2> (%)</p>"                                            // A sound-track language suffix.
+    ui_AudioTrackLang:         string = "(%)"                                                     // A sound-track language, written after its name.
     ui_AudioDetails:           string = "% · % ch · %{f1} kHz"                                    // Encoding, channel count, and sample rate in the host summary.
     ui_SubtitleOff:            string = "Off"                                                     // Disables subtitle presentation.
     ui_SubtitleTrackNumber:    string = "Subtitle %"                                              // Fallback name for an unnamed subtitle track.
-    ui_SubtitleTrackLang:      string = "<p2> (%)</p>"                                            // A subtitle-track language suffix.
+    ui_SubtitleTrackLang:      string = "(%)"                                                     // A subtitle-track language, written after its name.
     ui_SubtitleEmbedded:       string = "Embedded"                                                // Where a subtitle track comes from: the film itself.
     ui_SubtitleSidecar:        string = "External File"                                           // Where a subtitle track comes from: a file beside the film.
     ui_SubtitleTrack:          string = "Track"                                                   // Heading of the subtitle tracks.
@@ -79,10 +79,29 @@ func frameCountText(count: u64)->String => Format.toString("% %", count, count =
 // Names one sound track, with its language when the file declares one.
 func audioTrackName(index: u32, sound: const *Audio.SoundFile)->String
 {
-    let strings = texts()
-    var result: #returntype = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
-    if sound.language().count and sound.language() != "und" do
-        result += Format.toString(strings.ui_AudioTrackLang, sound.language())
+    var result = audioTrackTitle(index, sound)
+    result += audioTrackLanguage(sound)
+    return result
+}
+
+// Returns the name of a sound track without its language: the one it carries, or its number.
+func audioTrackTitle(index: u32, sound: const *Audio.SoundFile)->String
+{
+    if sound.displayName().count do
+        return String.from(sound.displayName())
+    return Format.toString(texts().ui_AudioTrackNumber, index + 1)
+}
+
+// Returns the language of a sound track as it is written after its name, or empty for none.
+func audioTrackLanguage(sound: const *Audio.SoundFile)->String
+{
+    var result: #returntype
+    if sound.language().count and sound.language() != "und"
+    {
+        result += " "
+        result += Format.toString(texts().ui_AudioTrackLang, sound.language())
+    }
+
     return result
 }
 
@@ -130,11 +149,30 @@ func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(
 // Names one embedded or sidecar subtitle track, with its language when it declares one.
 func subtitleTrackName(index: u32, track: const *Video.Subtitle.Track)->String
 {
-    let strings  = texts()
+    var result = subtitleTrackTitle(index, track)
+    result += subtitleTrackLanguage(track)
+    return result
+}
+
+// Returns the name of a subtitle track without its language: the one it carries, or its number.
+func subtitleTrackTitle(index: u32, track: const *Video.Subtitle.Track)->String
+{
+    if track.displayName().count do
+        return String.from(track.displayName())
+    return Format.toString(texts().ui_SubtitleTrackNumber, index + 1)
+}
+
+// Returns the language of a subtitle track as it is written after its name, or empty for none.
+func subtitleTrackLanguage(track: const *Video.Subtitle.Track)->String
+{
+    var result: #returntype
     let language = track.languageTag()
-    var result: #returntype = track.displayName().count ? String.from(track.displayName()) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
-    if language.count and language != "und" do
-        result += Format.toString(strings.ui_SubtitleTrackLang, language)
+    if language.count and language != "und"
+    {
+        result += " "
+        result += Format.toString(texts().ui_SubtitleTrackLang, language)
+    }
+
     return result
 }
 

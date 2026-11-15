@@ -406,7 +406,7 @@ impl IWnd for IconButton
             if showsLabel
             {
                 let fontR = nnFont(.font().regular)
-                let sm    = Painter.measureString(.name.raw.toString(), fontR)
+                let sm    = Painter.measureString(.name.text.toString(), fontR)
                 switch #complete .textPosition
                 {
                 case .Left, .Right:
@@ -446,7 +446,9 @@ impl IWnd for IconButton
             let fontR    = nnFont(.font().regular)
             let baseline = pos.vertCenter() - fontR.height * 0.5 + fontR.ascent
             let size     = bc.painter.hairline(Math.max(1, Math.floor(fontR.underlineSize)))
-            bc.painter.fillRect(Math.Rectangle{pos.x, Math.round(baseline - fontR.underlinePos), pos.width, size}, colors.faintText)
+            var underline = bc.isDisabled ? colorText : colors.link
+            underline.a = cast(u8, Math.round(underline.a * Math.clamp(metrics.label_LinkUnderlineOpacity, 0, 1)))
+            bc.painter.fillRect(Math.Rectangle{pos.x, Math.round(baseline - fontR.underlinePos), pos.width, size}, underline)
         }
 
         // Arrow. It is a chevron of the theme icon set — the same glyph a combo box, a submenu and
@@ -528,7 +530,7 @@ impl IWnd for IconButton
                 // A painter that declares no size keeps taking what the label leaves it.
                 if not icon.isValid() and not .iconWidth
                 {
-                    let textWidth = Painter.measureString(.name.raw.toString(), nnFont(sf.font.regular)).width
+                    let textWidth = Painter.measureString(.name.text.toString(), nnFont(sf.font.regular)).width
                     icon.sizeX = Math.max(pos.width - textWidth - metrics.btnIcon_SpacingTextH, 0)
                 }
 
@@ -749,7 +751,7 @@ impl IconButton
         let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
         var textWidth = 0'f32
         if showsText do
-            textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
+            textWidth = Painter.measureString(.name.text.toString(), nnFont(.font().regular)).width
 
         var width = hasIcon ? icon.sizeX : 0
         if showsText
@@ -790,7 +792,7 @@ impl IconButton
         let showsText = not .name.isEmpty() and not .flags.has(.IconOnly)
         var textWidth = 0'f32
         if showsText do
-            textWidth = Painter.measureString(.name.raw.toString(), nnFont(.font().regular)).width
+            textWidth = Painter.measureString(.name.text.toString(), nnFont(.font().regular)).width
 
         var x = .menuAnchorContentLeft(rect)
         if hasIcon

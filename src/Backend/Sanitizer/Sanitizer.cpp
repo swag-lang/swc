@@ -389,7 +389,11 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks, SmallVector<MicroIn
         {
             if (rel.targetSymbol &&
                 (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
+            {
                 callTargets_.set(rel.instructionRef, rel.targetSymbol);
+                if (const auto* callee = rel.targetSymbol->safeCast<SymbolFunction>())
+                    needsReleaseProvenance_ |= callee->freesParamsMask() || callee->freesIndirectParamsMask() || !callee->freedParamFields().empty() || !callee->importedFreedParamFields().empty();
+            }
         }
     }
 
@@ -1238,16 +1242,14 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
 {
     // Only a whole pointer proves the two slots hold the same address; a narrower store
     // keeps part of the value and answers nothing about what it points at.
-    if (opBits != MicroOpBits::B64 || frameObjectReachable(state, slot))
+    if (opBits != MicroOpBits::B64)
         return;
 
     const SanitizerRegInfo* source = findReg(state, valueReg);
     if (needsReleaseProvenance_)
     {
-        if (source && source->hasOriginReg)
-            state.aliasPtrRegs.insertOrAssign(slot, source->originReg);
-        else if (valueReg.isVirtual() && hasSingleDefinition(valueReg))
-            state.aliasPtrRegs.insertOrAssign(slot, valueReg);
+        // Escaping storage is no longer a stable name for the object it used to hold,
+        // but a whole-pointer copy still carries the fact that its current value is dead.
         if (source && source->releasedPointer)
         {
             state.freedPtrSlots.insertOrAssign(slot, source->releasedOrigin);
@@ -1255,7 +1257,17 @@ void Sanitizer::recordSlotCopy(SanitizerState& state, const int64_t slot, const 
         }
         if (source && source->hasOriginLocation)
             state.aliasPtrLocations.insertOrAssign(slot, source->originLocation);
-        else if (source && source->hasOriginSlot)
+    }
+    if (frameObjectReachable(state, slot))
+        return;
+
+    if (needsReleaseProvenance_)
+    {
+        if (source && source->hasOriginReg)
+            state.aliasPtrRegs.insertOrAssign(slot, source->originReg);
+        else if (valueReg.isVirtual() && hasSingleDefinition(valueReg))
+            state.aliasPtrRegs.insertOrAssign(slot, valueReg);
+        if (source && !source->hasOriginLocation && source->hasOriginSlot)
         {
             const auto origin = state.aliasPtrLocations.find(source->originSlot);
             if (origin != state.aliasPtrLocations.end())
@@ -1661,6 +1673,16 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 info.originSlotBits       = loadBits;
                 info.hasPointerOriginSlot = true;
                 info.pointerOriginSlot    = slot;
+                if (const auto alias = state.aliasPtrLocations.find(slot); alias != state.aliasPtrLocations.end())
+                {
+                    info.hasOriginLocation = true;
+                    info.originLocation = alias->second;
+                    if (const auto* released = state.findFreedPtrLocation(alias->second))
+                    {
+                        info.releasedPointer = true;
+                        info.releasedOrigin = *released;
+                    }
+                }
 
                 // A full load of a non-null pointer keeps its declared contract through
                 // an inline binding whose parameter type is nullable. Keep concrete
@@ -1925,7 +1947,6 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         state.pendingReleaseOrigin    = {};
         const auto callConvKind       = ops ? ops[def.callConvIndex].callConv : CallConvKind::Swag;
         const bool keepPendingRelease = pendingRelease && !locationOwnerPassed(state, *pendingRelease, callConvKind);
-        state.aliasPtrLocations.eraseIf([&](const auto& entry) { return locationOwnerPassed(state, entry.second, callConvKind); });
         // A callee with a FREES summary invalidates what its marked arguments point
         // to: remember the slots those pointers were loaded from, BEFORE the clobber
         // wipe erases the argument registers.
@@ -2045,6 +2066,64 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             applyFieldEffects(calleeFn->freedParamFields());
             applyFieldEffects(calleeFn->importedFreedParamFields());
         }
+        const auto callMayWriteLocation = [&](const SanitizerLocation& location) {
+            if (!calleeFn || !calleeFn->hasCompleteParamFieldWriteSummary() || !ops)
+                return true;
+
+            const auto& parameters = calleeFn->parameters();
+            for (size_t i = 0; i < parameters.size(); ++i)
+            {
+                if (!parameters[i] || !parameters[i]->typeRef().isValid())
+                    continue;
+                const TypeInfo& paramType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), parameters[i]->typeRef());
+                if (!paramType.isPointerOrReference())
+                    continue;
+                const TypeInfo& payloadType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), paramType.payloadTypeRef());
+                if (!payloadType.isStruct())
+                    continue;
+
+                MicroReg argReg;
+                if (!callParameterRegister(argReg, *calleeFn, ops[0].callConv, i))
+                    continue;
+                const SanitizerRegInfo* argInfo = findReg(state, argReg);
+                if (!argInfo)
+                    continue;
+
+                for (const SymbolVariable* field : payloadType.payloadSymStruct().fields())
+                {
+                    if (!field)
+                        continue;
+                    SanitizerLocation fieldLocation;
+                    bool haveLocation = false;
+                    if (argInfo->value.isStackAddr())
+                    {
+                        fieldLocation.fromSlot = true;
+                        fieldLocation.slot = argInfo->value.stackOffset;
+                        fieldLocation.offset = field->offset();
+                        haveLocation = true;
+                    }
+                    else if (argInfo->hasOriginSlot)
+                    {
+                        fieldLocation.fromSlot = true;
+                        fieldLocation.slot = argInfo->originSlot;
+                        fieldLocation.offset = field->offset();
+                        haveLocation = true;
+                    }
+                    else if (argInfo->hasAddressLocation)
+                    {
+                        fieldLocation = argInfo->addressLocation;
+                        fieldLocation.offset += field->offset();
+                        haveLocation = true;
+                    }
+                    if (haveLocation && fieldLocation == location)
+                        return calleeFn->hasPossiblyWrittenParamField(i, field->name(ctx()));
+                }
+            }
+            return true;
+        };
+        state.aliasPtrLocations.eraseIf([&](const auto& entry) {
+            return locationOwnerPassed(state, entry.second, callConvKind) && callMayWriteLocation(entry.second);
+        });
 
         // A callee releasing the pointer STORED in the box it is handed leaves the box to
         // the callee, which may refill it: what is proven released is every other copy

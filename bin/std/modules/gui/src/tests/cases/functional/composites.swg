@@ -183,7 +183,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     ctrl.combo.setSelectedIndex(1)
     host.pump()
     Swag.require(ctrl.combo.selectedIndex == 1)
-    Swag.require(ctrl.combo.selectedItem()!.name.raw == "Two")
+    Swag.require(ctrl.combo.selectedItem()!.name.text == "Two")
 
     ctrl.setLayoutMetrics(45, 0, 5)
     Swag.require(ctrl.labelWidth == 45 and ctrl.comboWidth == 0)

@@ -94,6 +94,7 @@ namespace Fuse
         ready:              u32
         uid:                u32
         gid:                u32
+        activity:           MountActivity
     }
 
     impl MountedVolume
@@ -196,8 +197,28 @@ namespace Fuse
             }
         }
 
-        mtd close() fail
+        // A regular kernel unmount also detects references such as a process's working
+        // directory. libfuse's unmount helper detaches lazily, so reserve it for force.
+        mtd prepareStop(force: bool) fail
         {
+            if not .mounted do
+                return
+
+            // The kernel may post release after close(2) returns. Drain those callbacks
+            // briefly before treating a still-live descriptor as occupied.
+            try .activity.beginStop(force, 100)
+            if force do
+                return
+            defer #fail .activity.cancelStop()
+            let result = try Env.runProcess("fusermount3", ["-u", .destination.toString()])
+            if result.exitCode() != 0 do
+                fail volumeError(.Io)
+            .mounted = false
+        }
+
+        mtd close(force = false) fail
+        {
+            try .prepareStop(force)
             .stop()
             if not .volumeOpen do
                 return
@@ -211,7 +232,7 @@ namespace Fuse
                 try .volume.commit()
         }
 
-        mtd opDrop() { discard catch .close() }
+        mtd opDrop() { discard catch .close(force: true) }
     }
 
     private func serve(thread: const *Threading.Thread)
@@ -230,11 +251,13 @@ func mountVaultNative(path: string, password: const [..]u8, destination: string,
     return owner
 }
 
-func unmountVaultNative(handle: *void) fail
+func unmountVaultNative(handle: *(*void?), force: bool) fail
 {
-    let owner = cast(*Fuse.MountedVolume, handle)
+    let owner = cast(*Fuse.MountedVolume, unwrap handle[])
+    try owner.prepareStop(force)
+    handle[] = null
     defer Memory.delete(owner)
-    try owner.close()
+    try owner.close(force: true)
 }
 
 func mountedVaultSpaceNative(handle: *void)->MountedVaultSpace

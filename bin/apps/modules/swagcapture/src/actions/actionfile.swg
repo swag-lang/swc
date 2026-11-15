@@ -169,8 +169,8 @@ impl IActionUI for ActionFile
 
         case .LinkedFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = appStrings().act_LocateLinkedImage
-            evt.disabled      = not capture or capture.linkedImage.isEmpty()
+            evt.name          = capture and capture.media == .Video ? appStrings().act_LocateLinkedVideo : appStrings().act_LocateLinkedImage
+            evt.disabled      = not capture or capture.linkedFile().isEmpty()
             evt.icon          = main.theme().icon(.Link)
 
         case .FileDetails:
@@ -268,8 +268,8 @@ impl IActionUI for ActionFile
                 MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateCapture)
 
         case .LinkedFileLocation:
-            if not Env.showInFileExplorer(capture.linkedImage) do
-                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateLinked)
+            if not Env.showInFileExplorer(capture.linkedFile()) do
+                MessageDlg.error(unwrap main.surface, capture.media == .Video ? appStrings().msg_FailedLocateLinkedVideo : appStrings().msg_FailedLocateLinked)
 
         case .FileDetails:
             showFileDetails(main, capture)
@@ -303,10 +303,12 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 
     if main.editorOptions.confirmLinkedOverwrite
     {
-        let message = Format.toString("%\n<i>%</i>", appStrings().msg_OverwriteLinked, capture.linkedImage)
+        // The path is outside text, escaped into the sentence that sets it in italic.
+        let message = Format.toString("%\n<i>%</i>", RichString.escape(appStrings().msg_OverwriteLinked), RichString.escape(capture.linkedImage))
 
         var options: MessageDlgOptions
-        options.onCreated = func|main|(dialog)
+        options.markupMessage = true
+        options.onCreated     = func|main|(dialog)
         {
             let askAgain = CheckButton.create(dialog.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
             askAgain.sigChanged += func|main|(button)
@@ -350,8 +352,9 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
     }
 
     addDetail(rows, texts.ui_DetailFile, capture.file)
-    if not capture.linkedImage.isEmpty() do
-        addDetail(rows, texts.ui_DetailLinkedImage, capture.linkedImage)
+    let linked = capture.linkedFile()
+    if not linked.isEmpty() do
+        addDetail(rows, capture.media == .Video ? texts.ui_DetailLinkedVideo : texts.ui_DetailLinkedImage, linked)
     addDetail(rows, texts.ui_DetailImageSize, Format.toString("% × %", capture.width, capture.height))
     if capture.capturedAt.isValid() do
         addDetail(rows, texts.ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))
@@ -390,7 +393,11 @@ private func addDetail(rows: *FormLayoutCtrl, title, value: string)
 {
     let label = Label.create(rows, value, flags: .Ellipsis)
     label.setTextHorizontalAlignment(.Left)
-    discard rows.addField(title, label)
+
+    // The name of a detail is a bold run; its wording carries no styling of its own.
+    var name: RichString
+    name.set(title, {bold: true})
+    rows.rows[rows.addField(title, label)].label.setRichText(name)
 }
 
 // Offers exactly the image formats the pixel codec registry supports, so a codec added

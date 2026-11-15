@@ -33,7 +33,7 @@ struct AppStrings
     ui_DriveFree:      string = "% free of %"     // Under a mounted vault's thread: the room left, then its capacity.
     ui_SectionMounted: string = "Mounted"
     ui_SectionLocked:  string = "Locked"
-    ui_Mount:         string = "Mount"
+    ui_Mount:          string = "Mount"
     ui_Unmount:        string = "Unmount"
     ui_Drive:          string = "Drive"
     ui_KeyFilesLink:   string = "Key Files…"
@@ -65,11 +65,39 @@ struct AppStrings
     ui_DropTitle:        string = "Drop a vault to open it"
 
     // The families the lens groups the commands under.
-    lens_File:    string = "File"
-    lens_Vault:   string = "Vault"
-    lens_Vaults:  string = "Vaults"
-    lens_Privacy: string = "Privacy"
-    cmd_Options:  string = "Privacy and Unmounting"
+    lens_File:              string = "File"
+    lens_Vault:             string = "Vault"
+    lens_Vaults:            string = "Vaults"
+    lens_Privacy:           string = "Privacy"
+    cmd_Options:            string = "Options"
+    cmd_ShowWindow:         string = "Open Swag Vault"
+    cmd_UnmountAll:         string = "Unmount All Vaults"
+    cmd_Quit:               string = "Unmount and Quit"
+    cmd_ForceUnmount:       string = "Force Unmount…"
+    cmd_OpenDrive:          string = "Open in File Explorer"
+    ui_Resident:            string = "Resident Mode"
+    ui_ResidentHelp:        string = "Closing the window keeps Swag Vault running in the notification area. Mounted drives remain accessible."
+    ui_SessionStartup:      string = "Start With the Session"
+    ui_SessionStartupHelp:  string = "Start behind the notification-area icon. Requires resident mode."
+    ui_ResidentReminder:    string = "Do not show this reminder again"
+    ui_ResidentDrive:       string = "Drive %"
+    msg_ResidentTitle:      string = "Swag Vault is still running."
+    msg_ResidentText:       string = "Mounted drives remain accessible. Double-click the notification-area icon to open Swag Vault, or right-click for its commands."
+    msg_ResidentTip:        string = "Swag Vault — % mounted drives"
+    msg_ResidentTipOne:     string = "Swag Vault — 1 mounted drive"
+    msg_TrayUnavailable:    string = "The notification-area icon is unavailable. The window remains accessible."
+    msg_StartupFailed:      string = "Could not change session startup. The previous setting is unchanged."
+    msg_DriveBusy:          string = "The drive is still in use. Close its files and folders, then try again."
+    msg_UnmountStopped:     string = "Unmounting stopped. % drives remain mounted."
+    msg_UnmountStoppedOne:  string = "Unmounting stopped. One drive remains mounted."
+    msg_UnmountFailed:      string = "Could not unmount the drive. It remains accessible."
+    msg_AutoUnmountBusy:    string = "Automatic unmounting stopped. % protected drives remain mounted."
+    msg_AutoUnmountBusyOne: string = "Automatic unmounting stopped. One protected drive remains mounted."
+    msg_ForceUnmountTitle:  string = "Force Unmount"
+    msg_ForceUnmountText:   string = "Open files and folders will stop working. Applications may lose unsaved changes and pending writes."
+    dlg_BtnForceUnmount:    string = "Force Unmount"
+    msg_FinishOperation:    string = "Wait for the current operation to finish, or stop it before quitting."
+    msg_ResidentOperation:  string = "An operation is running. Open Swag Vault to follow it or stop it."
 
     // The page that creates a vault. Units are written in the language's own abbreviation.
     ui_CreateHelp:       string = "Choose a fixed capacity. The complete container is randomized before it is ready."
@@ -97,16 +125,16 @@ struct AppStrings
 
     // The privacy and automatic-unmount page. Each option is also a lens command, so its name is
     // set the way a command is.
-    ui_PrivacyTitle:         string = "Privacy"
-    ui_OptionsHelp:          string = "Keep vault locations private and choose when protected drives close automatically."
+    ui_PrivacyTitle:         string = "Options"
+    ui_OptionsHelp:          string = "Choose how Swag Vault stays available and when protected drives unmount."
     ui_PrivacyMode:          string = "Privacy Mode"
     ui_PrivacyModeHelp:      string = "Do not save container paths, browse history, or startup mounts."
     ui_UnmountOnLock:        string = "Unmount on Session Lock"
-    ui_UnmountOnLockHelp:    string = "Protected drives close when the current session is locked."
+    ui_UnmountOnLockHelp:    string = "Unmount protected drives when the session locks. Drives in use remain mounted."
     ui_UnmountOnSuspend:     string = "Unmount Before Sleep"
-    ui_UnmountOnSuspendHelp: string = "Protected drives close before the computer sleeps."
+    ui_UnmountOnSuspendHelp: string = "Unmount protected drives before sleep. Drives in use remain mounted."
     ui_UnmountOnIdle:        string = "Unmount After Inactivity"
-    ui_UnmountOnIdleHelp:    string = "Protected drives close after no keyboard or pointer input for %."     // '%' is the delay, chosen inside the sentence.
+    ui_UnmountOnIdleHelp:    string = "Unmount protected drives that are not in use after no keyboard or pointer input for %."     // '%' is the delay, chosen inside the sentence.
     ui_Minutes:              string = "% minutes"
 
     // The boxes that change a vault. Their labels stand above the fields.

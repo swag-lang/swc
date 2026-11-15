@@ -20,6 +20,7 @@ namespace Fuse
             case .NotFound:          return -Linux.ENOENT
             case .AlreadyExists:     return -Linux.EEXIST
             case .AccessDenied:      return -Linux.EACCES
+            case .Busy:              return -Linux.EBUSY
             case .HiddenProtected, .WriteProtected: return -Linux.EROFS
             case .NotDirectory:      return -Linux.ENOTDIR
             case .IsDirectory:       return -Linux.EISDIR
@@ -168,11 +169,16 @@ namespace Fuse
 
     func callbackCreate(owner: *MountedVolume, path: const [*] u8, permissions: u32, info: *Linux.fuse_file_info)->s32
     {
+        owner.activity.mutex.lock()
+        defer owner.activity.mutex.unlock()
+        if owner.activity.stopping do
+            return -Linux.EBUSY
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let value      = catch pathString(path) { return statusFromError(Swag.err) }
         let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0'u32
         info.fh = catch owner.volume.createNode(value, false, attributes, "") { return statusFromError(Swag.err) }
+        owner.activity.handles += 1
         return 0
     }
 
@@ -182,6 +188,10 @@ namespace Fuse
 
     func callbackOpen(owner: *MountedVolume, path: const [*] u8, info: *Linux.fuse_file_info)->s32
     {
+        owner.activity.mutex.lock()
+        defer owner.activity.mutex.unlock()
+        if owner.activity.stopping do
+            return -Linux.EBUSY
         owner.volume.accessLock.lockShared()
         defer owner.volume.accessLock.unlockShared()
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
@@ -195,6 +205,7 @@ namespace Fuse
         }
 
         info.fh = node.id
+        owner.activity.handles += 1
         return 0
     }
 
@@ -204,6 +215,10 @@ namespace Fuse
 
     func callbackOpendir(owner: *MountedVolume, path: const [*] u8, info: *Linux.fuse_file_info)->s32
     {
+        owner.activity.mutex.lock()
+        defer owner.activity.mutex.unlock()
+        if owner.activity.stopping do
+            return -Linux.EBUSY
         owner.volume.accessLock.lockShared()
         defer owner.volume.accessLock.unlockShared()
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
@@ -217,8 +232,20 @@ namespace Fuse
         }
 
         info.fh = node.id
+        owner.activity.handles += 1
         return 0
     }
+
+    func callbackRelease(owner: *MountedVolume, info: *Linux.fuse_file_info)->s32
+    {
+        owner.activity.release()
+        info.fh = 0
+        return 0
+    }
+
+    #[Swag.CallingConvention(.C)]
+    private func release(_: const [*] u8?, info: *Linux.fuse_file_info)->s32
+        => callbackRelease(current(), info)
 
     #[Swag.CallingConvention(.C)]
     private func opendir(path: const [*] u8, info: *Linux.fuse_file_info)->s32
@@ -314,8 +341,8 @@ namespace Fuse
         defer owner.volume.accessLock.unlock()
         if flags & ~1'u32 do
             return -Linux.EINVAL
-        let node  = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
-        let value = catch pathString(destination) { return statusFromError(Swag.err) }
+        let node     = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
+        let value    = catch pathString(destination) { return statusFromError(Swag.err) }
         let existing = owner.volume.resolve(value)
         if existing
         {
@@ -324,6 +351,7 @@ namespace Fuse
             if node.isDirectory() != existing.isDirectory() do
                 return node.isDirectory() ? -Linux.ENOTDIR : -Linux.EISDIR
         }
+
         catch owner.volume.renameNode(node.id, value, (flags & 1) == 0) { return statusFromError(Swag.err) }
         return 0
     }
@@ -520,27 +548,29 @@ namespace Fuse
     func makeOperations()->Linux.fuse_operations
     {
         var result: #returntype
-        result.getattr  = &getattr
-        result.mkdir    = &mkdir
-        result.create   = &create
-        result.open     = &open
-        result.opendir  = &opendir
-        result.read     = &read
-        result.write    = &write
-        result.truncate = &truncate
-        result.unlink   = &unlink
-        result.rmdir    = &rmdir
-        result.rename   = &rename
-        result.flush    = &flush
-        result.fsync    = &fsync
-        result.statfs   = &statfs
-        result.access   = &access
-        result.chmod    = &chmod
-        result.chown    = &chown
-        result.utimens  = &utimens
-        result.readdir  = &readdir
-        result.fsyncdir = &fsync
-        result.init     = &initialize
+        result.getattr    = &getattr
+        result.mkdir      = &mkdir
+        result.create     = &create
+        result.open       = &open
+        result.opendir    = &opendir
+        result.release    = &release
+        result.releasedir = &release
+        result.read       = &read
+        result.write      = &write
+        result.truncate   = &truncate
+        result.unlink     = &unlink
+        result.rmdir      = &rmdir
+        result.rename     = &rename
+        result.flush      = &flush
+        result.fsync      = &fsync
+        result.statfs     = &statfs
+        result.access     = &access
+        result.chmod      = &chmod
+        result.chown      = &chown
+        result.utimens    = &utimens
+        result.readdir    = &readdir
+        result.fsyncdir   = &fsync
+        result.init       = &initialize
         return result
     }
 }

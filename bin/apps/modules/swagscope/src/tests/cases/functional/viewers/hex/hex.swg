@@ -541,7 +541,7 @@ internal func writeSampleFile()->String
     Swag.require(view.details == "0x00000000")
     Swag.require(view.analysisButton.toolTip == "Analyser la sélection, ou le fichier entier lorsqu’un seul octet est sélectionné")
     Swag.require(view.analysisView.analyzeButton.toolTip == "Analyser la sélection actuelle, ou le fichier entier lorsqu’un seul octet est sélectionné")
-    Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.raw == "Encodage")
+    Swag.require(view.analysisView.titleLabel.text() == "Analyse" and view.analysisView.stringsList.header.itemAt(1).name.text == "Encodage")
     discard host.render(view)
     Testing.assertContentFits(unwrap view.optionsButton.parent)
 }

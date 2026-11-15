@@ -325,8 +325,8 @@ impl HeadlessHost
         .modalWaitedOn = null
         let dialog = assume cast(*Dialog, view)
         result = "a dialog opened with nothing to answer it; arm clickModalButtonWhenShown or a sibling first"
-        if not dialog.title.raw.isEmpty() do
-            result += Format.toString(". Title: '%'", dialog.title.raw)
+        if not dialog.title.text.isEmpty() do
+            result += Format.toString(". Title: '%'", dialog.title.text)
 
         // The words of the box are its labels: the message, and the detail under it.
         func addWords(wnd: *Wnd, result: *String)
@@ -938,13 +938,13 @@ impl HeadlessHost
     {
         if wnd is EditCtrl as ctrl
         {
-            if ctrl.label != null and ctrl.label.name.raw == label do
+            if ctrl.label != null and ctrl.label.name.text == label do
                 return ctrl.edit
         }
 
         if wnd is FormLayoutCtrl as form
         {
-            for row in form.rows where row.label.name.raw == label
+            for row in form.rows where row.label.name.text == label
             {
                 if row.field is EditBox as edit do
                     return edit
@@ -1095,7 +1095,7 @@ impl HeadlessHost
         for itemIt in menu.items
         {
             let item = unwrap itemIt
-            if item.name.raw != label do
+            if item.name.text != label do
                 continue
             if item.hidden or item.separator or item.disabled do
                 return false

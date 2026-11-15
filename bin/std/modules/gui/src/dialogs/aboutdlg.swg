@@ -42,7 +42,7 @@ public struct AboutDlgParams
     {
         surfaceTitle: string          // Native surface title.
         contentTitle: string          // Product name beside the tile.
-        message:      string          // Rich descriptive text.
+        message:      string          // Descriptive sentence, written in inline markup.
         surfaceIcon:  Icon            // Optional glyph of the native surface, drawn in the chrome's ink.
         contentIcon:  Icon            // Optional application tile.
         identity:     string = ""     // Optional mono line under the name: a version, a date.
@@ -76,9 +76,9 @@ public impl AboutDlg
         let texts = strings()
 
         var message: String
-        message += Format.toString(texts.about_Source, params.productName)
+        message += Format.toString(texts.about_Source, RichString.escape(params.productName))
         message += "\n"
-        message += Format.toString(texts.about_Copyright, params.buildDate.year, params.copyrightHolder)
+        message += RichString.escape(Format.toString(texts.about_Copyright, params.buildDate.year, params.copyrightHolder))
 
         let app      = from.app
         let metrics  = app.theme.metrics
@@ -194,8 +194,9 @@ public impl AboutDlg
         names.padding.y = Math.max(0, Math.round((headerTotal - namesHeight) * 0.5))
         dlg.identityView.position.height = headerTotal
 
-        with dlg.labelMessage = Label.create(stackLayout, params.message, flags: .AutoHeight | .WordWrap | .SecondaryText)
+        with dlg.labelMessage = Label.create(stackLayout, null, flags: .AutoHeight | .WordWrap | .SecondaryText)
         {
+            .setMarkup(params.message)
             .setTextAlignment(.Left, .Top)
         }
 
@@ -249,8 +250,9 @@ public impl AboutDlg
     // Adds a titled block of application-specific detail under the standard provenance text.
     //
     // This is where an application says what the reader cannot read off its name: the formats it
-    // opens, the plugins it carries, what it was built against. `title` names the block and
-    // `content` is the rich text under it, wrapped like the rest of the box; either may be empty.
+    // opens, the plugins it carries, what it was built against. The literal `title` names the
+    // block, in bold. `content` is the sentence under it, written in inline markup
+    // ([[Pixel.RichString.setMarkup]]) and wrapped like the rest of the box; either may be empty.
     // The blocks stack in one column and that column scrolls once it reaches
     // [[Gui.AboutDlg.MaxSectionsHeight]], so a long list never makes the box taller than the
     // display it opens on.
@@ -261,16 +263,20 @@ public impl AboutDlg
         let stack = .sectionStack()
         if title.count
         {
-            // The heading is set through the rich-text marker rather than through a face of its
-            // own, so it stays the family the theme gives the box and moves with it.
-            let heading = Format.toString("<b>%</b>", title)
-            let label   = Label.create(stack, heading.toString(), flags: .AutoHeight | .WordWrap)
+            // The heading is a bold run rather than a face of its own, so it stays the family the
+            // theme gives the box and moves with it.
+            var heading: RichString
+            heading.set(title, {bold: true})
+
+            let label = Label.create(stack, null, flags: .AutoHeight | .WordWrap)
+            label.setRichText(heading)
             label.setTextAlignment(.Left, .Top)
         }
 
         if content.count
         {
-            let label = Label.create(stack, content, flags: .AutoHeight | .WordWrap | .SecondaryText)
+            let label = Label.create(stack, null, flags: .AutoHeight | .WordWrap | .SecondaryText)
+            label.setMarkup(content)
             label.setTextAlignment(.Left, .Top)
         }
 

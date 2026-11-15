@@ -21,8 +21,8 @@ func compareTreeLines(a, b: *ListLine?, column: u32, descending: bool)->s32
     let sortColumn = column < a.items.count and column < b.items.count ? column : 0
     let aItem      = a.itemAt(sortColumn)
     let bItem      = b.itemAt(sortColumn)
-    let aText      = aItem.sortKey.isEmpty() ? &aItem.name.raw : &aItem.sortKey
-    let bText      = bItem.sortKey.isEmpty() ? &bItem.name.raw : &bItem.sortKey
+    let aText      = aItem.sortKey.isEmpty() ? &aItem.name.text : &aItem.sortKey
+    let bText      = bItem.sortKey.isEmpty() ? &bItem.name.text : &bItem.sortKey
     var result     = Latin1.compareNatural(aText[], bText[])
     if descending do
         result *= -1
@@ -489,8 +489,8 @@ private impl Panel
         let line = .list.lineAt(.list.focusIndex)
         if not line or line.items.isEmpty() do
             return false
-        let name = Pixel.RichString.plainText(line.items[0]!.name.raw)
-        return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.length, result)
+        let name = line.items[0]!.name.text.toString()
+        return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.count, result)
     }
 
     internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)

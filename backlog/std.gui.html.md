@@ -280,5 +280,3 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   Unicode rather than `Latin1NoCase`.
 - Note: the Markdown view solved the same problem with a position model of its own — a text view
   plus a byte offset into its text — which is the shape this entry needs here.
-
----

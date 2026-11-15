@@ -123,3 +123,229 @@ func depBorrowAnnotatedObserve()
 // An older annotation that omits the external-observation promise stays conservative.
 #[Swag.NoInline, Swag.BorrowSummary(0)]
 func depBorrowLegacyObserver() {}
+
+struct DepUafNode
+{
+    public padding: u64
+    public data: *s32
+    public other: *s32
+}
+
+#[Swag.NoInline]
+func depUafNoWriteCarrier(node: *DepUafNode)
+{
+    discard node
+}
+
+#[Swag.NoInline]
+func depUafWriteDataCarrier(node: *DepUafNode)
+{
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+#[Swag.NoInline]
+func depUafWriteWholeCarrier(node: *DepUafNode, replacement: DepUafNode)
+{
+    node[] = replacement
+}
+
+#[Swag.BorrowSummary(0, freesFields: "0:64617461")]
+func depUafReleaseField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReleasePointer(pointer: *s32)
+{
+    var req: Swag.AllocatorRequest
+    req.address = pointer
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReleaseProjected(node: *DepUafNode)
+{
+    depUafInferredReleasePointer(node.data)
+}
+
+func depUafReadProjected(node: *DepUafNode)
+{
+    let pointer: *s32 = node.data
+    discard pointer
+}
+
+func depUafInferredReadThenReleaseProjected(node: *DepUafNode)
+{
+    depUafReadProjected(node)
+    depUafInferredReleaseProjected(node)
+}
+
+func depUafInferredReadThenReleaseProjectedWrapper(node: *DepUafNode)
+{
+    depUafInferredReadThenReleaseProjected(node)
+}
+
+func depUafInferredReadFirstThenReleaseSecond(left: *DepUafNode, right: *DepUafNode)
+{
+    depUafReadProjected(left)
+    depUafInferredReleaseProjected(right)
+}
+
+func depUafInferredReleaseProjectedAlias(node: *DepUafNode)
+{
+    let pointer: *s32 = node.data
+    depUafInferredReleasePointer(pointer)
+}
+
+func depUafInferredReleaseProjectedAliasChain(node: *DepUafNode)
+{
+    let pointer: *s32 = node.data
+    let secondPointer: *s32 = pointer
+    depUafInferredReleasePointer(secondPointer)
+}
+
+func depUafInferredReleaseProjectedWrapper(node: *DepUafNode)
+{
+    depUafInferredReleaseProjected(node)
+}
+
+func depUafInferredReleaseProjectedSecond(left: *DepUafNode, right: *DepUafNode)
+{
+    discard left
+    depUafInferredReleasePointer(right.data)
+}
+
+func depUafInferredReleaseOther(node: *DepUafNode)
+{
+    depUafInferredReleasePointer(node.other)
+}
+
+#[Swag.NoInline]
+func depUafWriteDataThenReleaseOther(node: *DepUafNode)
+{
+    depUafWriteDataCarrier(node)
+    depUafInferredReleaseOther(node)
+}
+
+func depUafInferredReleaseField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredAliasReleaseField(node: *DepUafNode)
+{
+    let data: *s32 = node.data
+    var req: Swag.AllocatorRequest
+    req.address = data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReleaseWrapper(node: *DepUafNode)
+{
+    depUafInferredReleaseField(node)
+}
+
+func depUafInferredReplaceWrapper(node: *DepUafNode)
+{
+    depUafReplaceField(node)
+}
+
+func depUafInferredReplaceField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafRefillField(node: *DepUafNode)
+{
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafInferredReleaseThenRefill(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    depUafRefillField(node)
+}
+
+func depUafInferredRefillThenRelease(node: *DepUafNode)
+{
+    depUafRefillField(node)
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredRefillThenReleaseWrapper(node: *DepUafNode)
+{
+    depUafInferredRefillThenRelease(node)
+}
+
+func depUafInferredReleaseThenCallback(node: *DepUafNode, refill: func(*DepUafNode))
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    refill(node)
+}
+
+#[Swag.BorrowSummary(0, freesFields: "0:64617461", resetsFields: "0:64617461")]
+func depUafReplaceField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafInferredReplaceWrapper2(node: *DepUafNode)
+{
+    depUafInferredReplaceWrapper(node)
+}
+
+func depUafInferredReleaseWrapper2(node: *DepUafNode)
+{
+    depUafInferredReleaseWrapper(node)
+}
+
+func depUafInferredReleaseSecond(left: *DepUafNode, right: *DepUafNode)
+{
+    discard left
+    depUafInferredReleaseField(right)
+}
+
+#[Swag.BorrowSummary(0, freesIndirect: 1)]
+func depUafReleaseIndirect(pointer: **s32)
+{
+    var req: Swag.AllocatorRequest
+    req.address = pointer[]
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}

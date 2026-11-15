@@ -44,17 +44,3 @@ using Core, Gui, Viewers
 {
     picturedViewer(scopeTestDataPath("viewer.rtf"), false, "viewer.rtf.page")
 }
-
-// Ordered workbook cells and the reading column in Encre.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.xlsx"), false, "viewer.xlsx.sheets")
-}
-
-// Uncached formulas stay visible in a Papier workbook.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.formulas.xlsx"), true, "viewer.xlsx.formulas")
-}

@@ -56,3 +56,7 @@ labels, and same-chapter and cross-chapter fragment targets. They contain no ext
 inherited title bounds, static master decoration, theme colors, text boxes and aligned cards.
 Its embedded photograph is reused unchanged from `viewer.pictures.pptx` and retains that
 fixture's recorded provenance and licence. No external resources are included.
+
+`viewer.formats.xlsx` is a repository-authored workbook with two sheets and no external assets.
+Its style part uses a relationship-resolved path and exercises currencies, percentages, negative
+and zero sections, grouping, optional decimals, dates, elapsed time and cached formula values.

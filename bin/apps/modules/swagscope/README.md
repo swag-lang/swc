@@ -158,8 +158,10 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
   booleans and cached formula values at their row and column coordinates, with visible headings.
   Formulas without cached values show their expression or an explicit unavailable-result label.
-  The reading grid is capped at 512 columns. It does not calculate formulas or reproduce formatting,
-  charts, merged cells or images.
+  Common number formats preserve currency, grouping, percentages, decimal precision, dates and
+  elapsed time, including the 1900 and 1904 date systems. Unsupported formats retain the stored
+  value with a visible limitation notice. The reading grid is capped at 512 columns. It does not
+  calculate formulas or reproduce cell styling, charts, merged cells or images.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The

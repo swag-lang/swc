@@ -172,11 +172,16 @@ integration around those engines.
 ### app.scope.document.025 — XLSX lacks a true workbook reading surface
 
 - Evidence: the XLSX reader orders sheets and shows values or uncached formula expressions in a
-  512-column grid, but drops widths, heights, number formats, styles, merged cells, hidden ranges,
-  frozen panes, filters, comments and charts. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
+  512-column grid. Style XFs now resolve common built-in and custom currency, grouped decimal,
+  percentage, date and elapsed-time formats; both Excel date systems and the fictitious 1900 leap
+  day are retained. Unsupported formats keep the stored value and an explicit notice. Widths,
+  heights, cell colors/fonts, merged cells, hidden ranges, frozen panes, filters, comments and
+  charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
-- Next: preserve workbook view state and resolve styles, dimensions, merges and number formats;
-  add virtual cell addressing, sheet-wide search and selection before read-only chart previews.
+- Next: preserve workbook view state, cell styling, dimensions and merges, then add virtual cell
+  addressing, sheet-wide search and selection before read-only chart previews. Extend numeric
+  formatting to conditions, fractions, scientific notation and localized date profiles with
+  producer fixtures; keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions
   behave as declared, formulas never execute, large sheets stay bounded, and every omitted construct
   is explicitly reported.

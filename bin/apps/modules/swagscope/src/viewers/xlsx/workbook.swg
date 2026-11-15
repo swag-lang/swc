@@ -9,83 +9,42 @@ private struct Sheet
     path: String
 }
 
-private struct Relationship
-{
-    id:     String
-    target: String
-}
-
 // The readable cells of a spreadsheet, in workbook sheet order.
 struct Workbook
 {
-    html:   String
-    sheets: u64
-    cells:  u64
+    html:           String
+    sheets:         u64
+    cells:          u64
+    omittedFormats: u64
 }
 
-private func readPart(fileName: string, archive: const *Archive.Zip, path: string)->String fail
-{
-    let entry = archive.tryFindEntry(path)
-    if not entry do
-        fail Errors.InvalidFormatError{texts().err_Invalid}
-    if entry.uncompressedSize > 16 * 1024 * 1024 do
-        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-    let data = try Archive.Zip.loadEntry(fileName, entry)
-    return String.from(cast(string, data.toSlice()))
-}
-
-private func readRelationships(source: string)->Array'Relationship fail
+private func readSheets(source: string, relations: const [..] Package.Relationship)->Array'Sheet fail
 {
     var scan = Package.Scanner.create(source)
-    var token: Package.Token
-    var result: #returntype
-    while scan.next(&token)
-    {
-        if token.kind != .Start or not token.isElement("Relationship") do
-            continue
-        let id = token.attribute("Id")
-        let target = token.attribute("Target")
-        let kind = token.attribute("Type")
-        if not id or not target or not kind do
-            fail Errors.InvalidFormatError{texts().err_Invalid}
-        if Utf8.contains(kind, "/worksheet")
-        {
-            let path = Package.resolveRelationshipTarget("xl", target)
-            if path.isEmpty() do
-                fail Errors.InvalidFormatError{texts().err_Invalid}
-            result.add(Relationship{id, path})
-        }
-    }
-    if scan.damaged do
-        fail Errors.InvalidFormatError{texts().err_Invalid}
-    return result
-}
-
-private func readSheets(source: string, relations: const *Array'Relationship)->Array'Sheet fail
-{
-    var scan = Package.Scanner.create(source)
-    var token: Package.Token
+    var token:  Package.Token
     var result: #returntype
     while scan.next(&token)
     {
         if token.kind != .Start or not token.isElement("sheet") do
             continue
         let name = token.attribute("name")
-        let id = token.attribute("id")
+        let id   = token.attribute("id")
         if not name or not id do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         var found = false
-        for &relation in relations[] where relation.id == id
+        for relation in relations where relation.id == id and Utf8.endsWith(relation.kind, "/worksheet")
         {
-            result.add(Sheet{name, relation.target})
+            result.add(Sheet{name, relation.path})
             found = true
             break
         }
+
         if not found do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         if result.count > 200 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
     }
+
     if scan.damaged or result.isEmpty() do
         fail Errors.InvalidFormatError{texts().err_Invalid}
     return result
@@ -189,27 +148,42 @@ private func appendColumnName(result: *String, column: u64)
     result[] += cast(u8, 'A'u8 + cast(u8, column % 26))
 }
 
-private func appendCell(result: *Workbook, value, kind: string, shared: const *Array'String) fail
+private func appendCell(result: *Workbook, value, kind: string, shared: const *Array'String, formats: const *CellFormats, style: u32, numeric = true) fail
 {
-    result.html += "<td>"
+    var display: String
+    let numericCell = numeric and (kind == "" or kind == "n") and value.count
     if kind == "s"
     {
         let index = catch StrConv.toU64(value) { fail Errors.InvalidFormatError{texts().err_Invalid} }
         if index >= shared.count do
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        Package.appendHtmlEscaped(&result.html, shared[index])
+        display = shared[index]
     }
-    elif kind == "b" do
-        result.html += value == "1" ? texts().ui_True : texts().ui_False
-    else do
-        Package.appendHtmlEscaped(&result.html, value)
-    result.html += "</td>"
+    elif kind == "b"
+    {
+        display = value == "1" ? texts().ui_True : texts().ui_False
+    }
+    elif numericCell
+    {
+        let formatted = try formats.format(value, style)
+        display = formatted.text
+        if formatted.omitted do
+            result.omittedFormats += 1
+    }
+    else
+    {
+        display = value
+    }
+
+    result.html += numericCell ? "<td style=\"text-align:right;padding-right:8px\">" : "<td>"
+    Package.appendHtmlEscaped(&result.html, display)
+    result.html  += "</td>"
     result.cells += 1
     if result.cells > 100_000 or result.html.count > 32 * 1024 * 1024 do
         fail Errors.UnsupportedFormatError{texts().err_TooLarge}
 }
 
-private func appendSheet(result: *Workbook, source: string, shared: const *Array'String) fail
+private func appendSheet(result: *Workbook, source: string, shared: const *Array'String, formats: const *CellFormats) fail
 {
     let columns = try sheetColumns(source)
     result.html += "<tr><th></th>"
@@ -231,6 +205,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
     var hasCachedValue = false
     var nextColumn = 0'u64
     var nextRow = 1'u64
+    var style = 0'u32
     var kind: String
     var value: String
     var formula: String
@@ -260,6 +235,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
             elif inRow and token.isElement("c")
             {
                 inCell = true
+                style = catch StrConv.toU32(token.attribute("s") orelse "0") { fail Errors.InvalidFormatError{texts().err_Invalid} }
                 value.clear()
                 formula.clear()
                 hasFormula = false
@@ -279,7 +255,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                 }
                 if token.empty
                 {
-                    try appendCell(result, "", "", shared)
+                    try appendCell(result, "", "", shared, formats, style)
                     nextColumn += 1
                     inCell = false
                 }
@@ -318,7 +294,7 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
                         value += formula
                     }
                 }
-                try appendCell(result, value, kind, shared)
+                try appendCell(result, value, kind, shared, formats, style, numeric: not hasFormula or hasCachedValue)
                 nextColumn += 1
                 inCell = false
             }
@@ -339,15 +315,41 @@ private func appendSheet(result: *Workbook, source: string, shared: const *Array
 
 impl Workbook
 {
+    mtd const details()->String
+    {
+        var result = Format.toString(texts().ui_Details, .sheets, .cells)
+        if .omittedFormats do
+            result += Format.toString(texts().ui_FormatsOmitted, .omittedFormats)
+        return result
+    }
+
     // Reads visible cell values without executing workbook macros, formulas, or links.
     func load(fileName: string)->Workbook fail
     {
-        let archive = try Archive.Zip.load(fileName)
-        let relations = try readRelationships(try readPart(fileName, &archive, "xl/_rels/workbook.xml.rels"))
-        let sheets = try readSheets(try readPart(fileName, &archive, "xl/workbook.xml"), &relations)
+        let archive   = try Archive.Zip.load(fileName)
+        let parts     = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
+        let source    = try parts.text("xl/workbook.xml")
+        let relations = try parts.relationships("xl/workbook.xml")
+        let sheets    = try readSheets(source, relations.toSlice())
+        var date1904  = false
+        var scan      = Package.Scanner.create(source)
+        var token: Package.Token
+        while scan.next(&token)
+        {
+            if token.kind == .Start and token.isElement("workbookPr") do
+                date1904 = token.attribute("date1904") == "1" or token.attribute("date1904") == "true"
+        }
+
+        var stylePath = Package.relationshipPath(relations.toSlice(), "/styles")
+        if stylePath.isEmpty() do
+            stylePath = "xl/styles.xml"
+        let formats    = try CellFormats.parse(try parts.text(stylePath, required: false), date1904)
         var shared: Array'String
-        if archive.tryFindEntry("xl/sharedStrings.xml") do
-            shared = try readSharedStrings(try readPart(fileName, &archive, "xl/sharedStrings.xml"))
+        var sharedPath = Package.relationshipPath(relations.toSlice(), "/sharedStrings")
+        if sharedPath.isEmpty() do
+            sharedPath = "xl/sharedStrings.xml"
+        if archive.tryFindEntry(sharedPath) do
+            shared = try readSharedStrings(try parts.text(sharedPath))
 
         var result: #returntype
         result.html = "<html><body>"
@@ -356,12 +358,21 @@ impl Workbook
             result.html += "<h2>"
             Package.appendHtmlEscaped(&result.html, sheet.name)
             result.html += "</h2><table>"
-            let source = try readPart(fileName, &archive, sheet.path)
-            try appendSheet(&result, source, &shared)
-            result.html += "</table>"
+            let source = try parts.text(sheet.path)
+            try appendSheet(&result, source, &shared, &formats)
+            result.html   += "</table>"
             result.sheets += 1
         }
+
         result.html += "</body></html>"
+        if result.omittedFormats
+        {
+            var notice: String = "<p><small>"
+            Package.appendHtmlEscaped(&notice, texts().ui_FormatNotice)
+            notice += "</small></p>"
+            result.html.insert("<html><body>".count, notice)
+        }
+
         return result
     }
 }

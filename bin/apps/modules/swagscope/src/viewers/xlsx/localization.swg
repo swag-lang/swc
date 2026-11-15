@@ -8,6 +8,8 @@ struct Texts
     ui_Name:               string = "Workbook"
     ui_Preparing:          string = "Preparing workbook…"
     ui_Details:            string = "Workbook · % sheets · % cells"
+    ui_FormatsOmitted:     string = " · % number formats not shown"
+    ui_FormatNotice:       string = "Some cells use number formats this viewer cannot show; their stored values are displayed."
     ui_True:               string = "TRUE"
     ui_False:              string = "FALSE"
     ui_FormulaUnavailable: string = "[Formula result unavailable]"

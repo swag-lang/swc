@@ -189,9 +189,12 @@ is the current scorecard.
   reload. A pointer value projected from a field also carries a callee's direct `frees` effect back
   to that field through wrappers. Globals, automatic reset inference and unavailable bodies remain
   unsolved.
-- Next: infer must-free and post-call-write facts together so reset-safe methods remain silent, then
-  extend the same before/after distinction to globals and unavailable bodies. Refine conservative
-  suppression for calls that receive a carrier while retaining soundness.
+- One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
+  projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
+  single run; repeat it before treating the small timing difference as a regression.
+- Next: extend the same before/after distinction to globals and unavailable bodies. Infer
+  guaranteed resets where control flow proves every return leaves valid storage, and refine
+  conservative suppression for calls that receive a carrier while retaining soundness.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

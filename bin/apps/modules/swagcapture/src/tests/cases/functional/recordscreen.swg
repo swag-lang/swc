@@ -29,7 +29,7 @@ impl Recorder
     recorder.area = f.main.monitors[0].physicalBounds
     recorder.target = CaptureTarget.create(recorder.area, 0)
 
-    let width = RecordHud.widthFor(0, recorder.captureLabel(), preparing: true,
+    let width = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true,
                                    screenWidth: RecordHud.screenChoiceWidth(f.main))
     let height = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
     let surface = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)

@@ -171,3 +171,30 @@ using Core, Pixel
         }
     }
 }
+
+// The first picture of a new source is the desktop. A duplication can hand over a surface that
+// was never presented to before its first real frame; taken as a picture, it opened most
+// recordings on black.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    let monitors = Env.getMonitors()
+    if not monitors.count do
+        return
+    let bounds = monitors[0].physicalBounds
+    let width  = Math.min(cast(s32, bounds.width), 320)
+    let height = Math.min(cast(s32, bounds.height), 181)
+    for 12
+    {
+        var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y), width, height, false})
+        var image: Image
+        Swag.require(expect source.grabInto(&image, copyUnchanged: false, updateChangedOnly: true))
+        Swag.require(image.width == width and image.height == height)
+
+        // A presented desktop pixel is opaque; the empty surface is zero throughout.
+        var opaque = 0'u64
+        for pixel in cast(u64, width) * cast(u64, height) where image.pixels[pixel * 4 + 3] != 0 do
+            opaque += 1
+        Swag.require(opaque != 0, "the first frame of a screen source is empty")
+    }
+}

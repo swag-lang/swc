@@ -85,11 +85,9 @@ impl VideoCaptureSession
     {
         let width           = cast(s32, area.width)
         let height          = cast(s32, area.height)
-        let maxSide         = Math.max(width, height)
-        let outputWidth     = maxSide > 4096 ?
-                              Math.max(2, cast(s32, Math.floor(cast(f64, width) * 4096 / maxSide / 2)) * 2) : width
-        let outputHeight    = maxSide > 4096 ?
-                              Math.max(2, cast(s32, Math.floor(cast(f64, height) * 4096 / maxSide / 2)) * 2) : height
+        let picture         = pictureSize(area)
+        let outputWidth     = picture.width
+        let outputHeight    = picture.height
         let absolutePath    = try Path.absolute(path)
         let outputDirectory = unwrap Path.directoryName(absolutePath.toString())
         if (try Directory.freeSpace(outputDirectory)) < minimumFreeSpace do
@@ -117,6 +115,19 @@ impl VideoCaptureSession
         }
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)
         return result
+    }
+
+    // Returns the size of the pictures recorded for `area`: its own size, or that size reduced
+    // proportionally to even sides when one of them exceeds 4096 pixels.
+    func pictureSize(area: Math.Rectangle)->{ width, height: s32 }
+    {
+        let width   = cast(s32, area.width)
+        let height  = cast(s32, area.height)
+        let maxSide = Math.max(width, height)
+        if maxSide <= 4096 do
+            return {width, height}
+        return {Math.max(2, cast(s32, Math.floor(cast(f64, width) * 4096 / maxSide / 2)) * 2),
+                Math.max(2, cast(s32, Math.floor(cast(f64, height) * 4096 / maxSide / 2)) * 2)}
     }
 
     private mtd reducePicture()

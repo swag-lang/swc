@@ -52,6 +52,7 @@ struct AppStrings
     ui_SectionApplication:        string = "Application"
     ui_DetailFile:                string = "File"
     ui_DetailLinkedImage:         string = "Linked Image"
+    ui_DetailLinkedVideo:         string = "Linked Video"
     ui_DetailImageSize:           string = "Image Size"
     ui_DetailCapturedAt:          string = "Captured"
     ui_DetailApplication:         string = "Application"
@@ -105,6 +106,7 @@ struct AppStrings
     msg_FailedDuplicate:          string = "Failed to duplicate capture"
     msg_FailedLocateCapture:      string = "Failed to locate capture file"
     msg_FailedLocateLinked:       string = "Failed to locate linked image"
+    msg_FailedLocateLinkedVideo:  string = "Failed to locate linked video"
     msg_MissingFrames:            string = "The recording media is missing or was replaced"
     msg_RecordingPlaybackFailed:  string = "The recording could not be played."
     msg_FailedSaveFile:           string = "Failed to save file"
@@ -386,6 +388,7 @@ struct AppStrings
     act_Line:                     string = "Line"
     act_LocateCaptureFile:        string = "Locate Capture File"
     act_LocateLinkedImage:        string = "Locate Linked Image"
+    act_LocateLinkedVideo:        string = "Locate Linked Video"     // Shows the MP4 of a video capture in the file explorer.
     act_MediumView:               string = "Medium View"
     act_Minimize:                 string = "Minimize to Notification Area"     // Hides the window and the hub; the icon stays.
     act_MoveBackward:             string = "Move Backward"

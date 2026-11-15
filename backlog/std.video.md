@@ -317,6 +317,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   a 30-second full-desktop Swag Capture file decoded 901 pictures without missed slots.
   The earlier scratch attempt exchanged local arrays; this version accesses encoder-owned
   arrays directly, and the measured gain is confined to this workload.
+  Film content is the worst case measured so far: a 245-second Swag Capture recording of a film
+  playing in a 2664×1078 area at QP 18 came to 1.47 GB, about 48 Mbit/s. One second of those
+  frames re-encoded with eight slices gives 29 Mbit/s at QP 18, 21 at QP 24, 17 at QP 28 and 13
+  at QP 32, and the key interval makes no difference: fourteen steps of quantization only halve
+  the stream, so the cost is in prediction, not in the residual precision.
 - Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
   quantized luma/chroma residuals and avoid unused result copies on changing screens,
   then remeasure the complete 1080p60 and 4K60 paths.

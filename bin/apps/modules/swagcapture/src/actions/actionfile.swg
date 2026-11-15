@@ -169,8 +169,8 @@ impl IActionUI for ActionFile
 
         case .LinkedFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
-            evt.name          = appStrings().act_LocateLinkedImage
-            evt.disabled      = not capture or capture.linkedImage.isEmpty()
+            evt.name          = capture and capture.media == .Video ? appStrings().act_LocateLinkedVideo : appStrings().act_LocateLinkedImage
+            evt.disabled      = not capture or capture.linkedFile().isEmpty()
             evt.icon          = main.theme().icon(.Link)
 
         case .FileDetails:
@@ -268,8 +268,8 @@ impl IActionUI for ActionFile
                 MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateCapture)
 
         case .LinkedFileLocation:
-            if not Env.showInFileExplorer(capture.linkedImage) do
-                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateLinked)
+            if not Env.showInFileExplorer(capture.linkedFile()) do
+                MessageDlg.error(unwrap main.surface, capture.media == .Video ? appStrings().msg_FailedLocateLinkedVideo : appStrings().msg_FailedLocateLinked)
 
         case .FileDetails:
             showFileDetails(main, capture)
@@ -352,8 +352,9 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
     }
 
     addDetail(rows, texts.ui_DetailFile, capture.file)
-    if not capture.linkedImage.isEmpty() do
-        addDetail(rows, texts.ui_DetailLinkedImage, capture.linkedImage)
+    let linked = capture.linkedFile()
+    if not linked.isEmpty() do
+        addDetail(rows, capture.media == .Video ? texts.ui_DetailLinkedVideo : texts.ui_DetailLinkedImage, linked)
     addDetail(rows, texts.ui_DetailImageSize, Format.toString("% × %", capture.width, capture.height))
     if capture.capturedAt.isValid() do
         addDetail(rows, texts.ui_DetailCapturedAt, Format.toString("%", capture.capturedAt))

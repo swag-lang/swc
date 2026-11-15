@@ -41,8 +41,6 @@ func inPlaceEditTools()->[11] InPlaceEditTool
             InPlaceEditTool{.Pixelate, .Pixelate, texts.tip_InpPixelate}]
 }
 
-// Side of the dot of a recording on Record.
-const RecordDotSize = 8.0
 
 // The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
 //
@@ -363,16 +361,8 @@ impl InPlaceEditWnd
                 .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimSoundUnavailable, false, enabled: false))
         }
 
-        let font        = .theme().createDefaultFont(metrics.defaultFontSize)
-        let width       = Math.ceil(Painter.measureString(texts.ui_AimRecord, font).width + 2 * metrics.btnPush_TextMargin + RecordDotSize + metrics.btnIcon_SpacingTextH)
-        with let record = PushButton.create(.bar, texts.ui_AimRecord, {0, 0, width, metrics.miniBar_ButtonSize}, form: .Strong)
-        {
-            // The dot of a recording, small beside the word.
-            .setIcon(.theme().icon(.Dot, RecordDotSize))
-            .setIconSize(RecordDotSize, RecordDotSize)
-            .sigPressed += func|editor = me|(_) { editor.record() }
-        }
-
+        let record = createRecordButton(.bar)
+        record.sigPressed += func|editor = me|(_) { editor.record() }
         .bar.addItem(record)
         .bar.addButton(.theme().icon(.WndClose, metrics.menuPopup_IconSize), toolTip: texts.tip_InpClose).sigPressed += func(_) { exitWithResult(false) }
     }

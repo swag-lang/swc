@@ -33,6 +33,19 @@ impl Capture
     // Returns whether the capture has a duration, rather than one picture.
     mtd const isTimed()->bool => .media != .Picture
 
+    // Returns the file a capture is linked to, or empty for none.
+    //
+    // A picture is linked to the image it was saved as. A video is linked to the MP4 that stands
+    // beside its document, as long as that file is there.
+    mtd const linkedFile()->String
+    {
+        if .media != .Video do
+            return .linkedImage
+        if .mediaMissing do
+            return {}
+        return mediaPathOf(.file, .Video)
+    }
+
     // Returns the timed media path, accepting legacy videos with the document's exact stem.
     // New video names differ from SCC documents so players do not load them as SCC captions.
     func mediaPathOf(file: string, media: CaptureMedia = .Animation)->String

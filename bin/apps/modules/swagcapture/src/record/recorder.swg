@@ -22,6 +22,30 @@ enum RecorderState
 // The recording in progress, ended by the command that started it.
 var g_Recorder: *Recorder?
 
+// Returns the area a video records for the selection `area`: the same origin, with even sides.
+//
+// H.264 codes whole pairs of pixels. An odd side takes one pixel more, so the last column or
+// row of the selection is recorded rather than dropped; against the far edge of `desktop`
+// there is none to take, and the side gives one up instead.
+func evenVideoArea(area, desktop: Math.Rectangle)->Math.Rectangle
+{
+    func evenSide(origin, side, limit: f32)->f32
+    {
+        let whole = Math.floor(side)
+        if cast(s64, whole) & 1 == 0 do
+            return whole
+        return origin + whole + 1 <= limit ? whole + 1 : whole - 1
+    }
+
+    return {area.x, area.y, evenSide(area.x, area.width, desktop.right()), evenSide(area.y, area.height, desktop.bottom())}
+}
+
+// Returns the physical bounding rectangle of the whole virtual desktop.
+func desktopBounds()->Math.Rectangle
+{
+    return {Env.getSystemMetric(.DesktopX), Env.getSystemMetric(.DesktopY), Env.getSystemMetric(.DesktopWidth), Env.getSystemMetric(.DesktopHeight)}
+}
+
 // One recording of a screen area into the frame file of a new capture.
 //
 // Video reads the screen on its own thread and hands pictures to a bounded encoder queue;
@@ -179,8 +203,7 @@ impl Recorder
         recorder.limit = 0
 
         // H.264 needs even dimensions. The selection stays anchored at its chosen origin.
-        recorder.area.width  = Math.floor(recorder.area.width / 2) * 2
-        recorder.area.height = Math.floor(recorder.area.height / 2) * 2
+        recorder.area = evenVideoArea(recorder.area, desktopBounds())
         if recorder.area.width < 2 or recorder.area.height < 2 do
             fail Errors.InvalidFormatError{}
 
@@ -373,14 +396,12 @@ impl Recorder
            (index != Swag.U64.Max and index >= .main.monitors.count) do
             return
 
-        let bounds = screenBounds(.main, index)
-        let width  = Math.floor(bounds.width / 2) * 2
-        let height = Math.floor(bounds.height / 2) * 2
-        if width < 2 or height < 2 do
+        let area = evenVideoArea(screenBounds(.main, index), desktopBounds())
+        if area.width < 2 or area.height < 2 do
             return
 
         .screenIndex = index
-        .area = {bounds.x, bounds.y, width, height}
+        .area = area
         .target = CaptureTarget.create(.area, 0)
         .moveChrome()
         .hud?.refreshScreenChoice()
@@ -419,6 +440,24 @@ impl Recorder
             return Format.toString(appStrings().ui_AimScreen, index + 1)
         }
         return String.from(captureTargetLabel())
+    }
+
+    // Returns the size of the pictures a video of the current area holds, as "width × height".
+    mtd pictureSizeText()->String
+    {
+        let size = VideoCaptureSession.pictureSize(.area)
+        return Format.toString("% × %", size.width, size.height)
+    }
+
+    // Returns what the pill reads beside its commands: the target, and before a video starts the
+    // size it will record. A chosen screen is already named by its own button.
+    mtd readoutLabel()->String
+    {
+        if .state != .Preparing or not .videoMode do
+            return .captureLabel()
+        if .screenSelection do
+            return .pictureSizeText()
+        return Format.toString("% · %", .captureLabel(), .pictureSizeText())
     }
 
     // Grabs the next frame when its time has come, and ends the recording at its limit.

@@ -208,7 +208,7 @@ private func webCaptureQuality()->VideoQuality
                              "the live preparation must follow the chosen browser window")
                 let hud = unwrap recorder.hud
                 stage[] = 2
-                hud.pauseButton.sigPressed.call(hud.pauseButton)
+                hud.recordButton!.sigPressed.call(hud.recordButton)
                 Swag.require(recorder.recordRequested)
                 return
             }
@@ -539,7 +539,7 @@ private func webCaptureQuality()->VideoQuality
             Swag.require(recorder.area.x == expected.x and recorder.area.y == expected.y and
                          recorder.area.width == videoWidth and recorder.area.height == videoHeight)
             stage[] = 1
-            hud.pauseButton.sigPressed.call(hud.pauseButton)
+            hud.recordButton!.sigPressed.call(hud.recordButton)
         }
         elif stage[] == 1 and recorder.elapsed() >= cast(u64, durationSeconds) * 1_000_000
         {

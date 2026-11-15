@@ -169,6 +169,18 @@ internal func testEndRecording()
     state = Gui.Testing.commandState(ActionFile.SaveAsLinkedImage)
     Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.SaveAsLinkedImage, &state))
     Swag.require(state.disabled)
+
+    // A video is linked to the MP4 beside its document, and the location command goes there.
+    Swag.require(f.capture.linkedImage.isEmpty())
+    Swag.require(f.capture.linkedFile() == Capture.mediaPathOf(document, .Video))
+    state = Gui.Testing.commandState(ActionFile.LinkedFileLocation)
+    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &state))
+    Swag.require(not state.disabled and state.name == appStrings().act_LocateLinkedVideo)
+    f.capture.mediaMissing = true
+    state = Gui.Testing.commandState(ActionFile.LinkedFileLocation)
+    Swag.require(Gui.Testing.actionUpdate'ActionFile(f.main, ActionFile.LinkedFileLocation, &state))
+    Swag.require(state.disabled and f.capture.linkedFile().isEmpty())
+    f.capture.mediaMissing = false
     let exported = Gui.Testing.tempFilePath("capture-video-", ".mp4")
     defer discard catch File.delete(exported)
     f.main.doSaveAsImage(exported)
@@ -309,4 +321,23 @@ internal func testEndRecording()
     Swag.require(Capture.clockText(3_727_000_000) == "1:02:07")
     Swag.require(Capture.clockText(3_450_000, tenths: true) == "0:03.4")
     Swag.require(Capture.clockText(12_000_000) == "0:12")
+}
+
+// A video records even sides without dropping the last column or row of the selection: an odd
+// side takes one pixel more, and gives one up only against the far edge of the desktop.
+#test
+{
+    let desktop = Math.Rectangle{0, 0, 1920, 1080}
+    var area = evenVideoArea({100, 50, 2664 - 2001, 1079 - 600}, desktop)
+    Swag.require(area.x == 100 and area.y == 50 and area.width == 664 and area.height == 480)
+
+    area = evenVideoArea({100, 50, 640, 360}, desktop)
+    Swag.require(area.width == 640 and area.height == 360)
+
+    // Against the right and bottom edges there is no pixel left to take.
+    area = evenVideoArea({1257, 579, 663, 501}, desktop)
+    Swag.require(area.x == 1257 and area.y == 579 and area.width == 662 and area.height == 500)
+
+    let recorded = VideoCaptureSession.pictureSize({0, 0, 7680, 2160})
+    Swag.require(recorded.width == 4096 and recorded.height == 1152)
 }

@@ -1678,9 +1678,15 @@ public impl MenuCtrl
             elif .popupButtonOpensUp do
                 y = anchor.y - (.position.height - anchor.height - sdw)
 
+            // A menu centred under its button lands on whole pixels, which can only split an even
+            // difference of widths: one more pixel keeps the body centred instead of half a pixel off.
+            let alignsText = not button.name.isEmpty() and not button.flags.has(.IconOnly)
+            if not alignsText and cast(s64, Math.abs(.position.width - 2 * sdw - anchor.width)) & 1 do
+                .position.width += 1
+
             let bodyWidth = .position.width - 2 * sdw
             var left      = anchor.horzCenter() - bodyWidth * 0.5
-            if not button.name.isEmpty() and not button.flags.has(.IconOnly)
+            if alignsText
             {
                 let lead = .popupHasGlyphs ? .themeMetrics().menuPopup_IconMargin + .themeMetrics().menuPopup_IconSize + .themeMetrics().menuPopup_IconTextMargin : .themeMetrics().menuPopup_IconMargin
                 left = button.menuAnchorTextLeft(anchor) - .padding.x - lead

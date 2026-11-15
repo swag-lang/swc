@@ -18,7 +18,7 @@ using Swag, Core, Pixel
     var reference = Image.create(cast(s32, OutputWidth), cast(s32, OutputHeight), .BGRA8)
     let pixels = cast([*] u32, source.pixels.storage())
     for index in SourceWidth * SourceHeight do
-        pixels[index] = cast(u32, (index * 2_654_435_761'u64) >> 16)
+        pixels[index] = cast #wrap (u32, (index * 2_654_435_761'u64) >> 16)
 
     var columns: Array'u32
     columns.resize(OutputWidth)

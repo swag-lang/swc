@@ -1259,7 +1259,9 @@ impl ListCtrl
                 header.margin = -wnd.themeMetrics().frameWnd_FlatPadding
             }
 
-            header.setMargin(bottom: 0)
+            // Written in place: this runs inside the resize it answers, and `setMargin` would ask
+            // for another layout from the middle of this one.
+            header.margin.w = 0
             return false
         }
 

@@ -264,6 +264,11 @@ func depUafInferredRefillThenRelease(node: *DepUafNode)
     Swag.getContext().allocator!.free(&req)
 }
 
+func depUafInferredRefillThenReleaseWrapper(node: *DepUafNode)
+{
+    depUafInferredRefillThenRelease(node)
+}
+
 func depUafInferredReleaseThenCallback(node: *DepUafNode, refill: func(*DepUafNode))
 {
     var req: Swag.AllocatorRequest

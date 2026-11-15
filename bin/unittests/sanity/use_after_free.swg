@@ -227,12 +227,13 @@ struct UafNode
 {
     data:  *s32?
     count: s32
+    other: *s32?
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
 func releaseObjectField()->s32
 {
-    let node = cast(*UafNode, myAlloc(16))
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
     node.data = cast(*s32, myAlloc(4))
     myFree(node.data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
     return node.data[]       // swc-expected-error {{sanity_err_use_after_free}}
@@ -250,7 +251,7 @@ func releaseFieldOfParameterObject(n: *UafNode)->s32
 {
     discard releaseObjectField()
 
-    let node = cast(*UafNode, myAlloc(16))
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
     node.data = cast(*s32, myAlloc(4))
     discard releaseFieldOfParameterObject(node)
 }
@@ -337,6 +338,38 @@ func replaceNodeData(n: *UafNode)
 {
     let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
     node.data = cast(*s32, myAlloc(4))
+    let oldData = node.data
+    releaseNodeData(node)
+    oldData[] = 1     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
+    node.data = cast(*s32, myAlloc(4))
+    let oldData = node.data
+    replaceNodeData(node)
+    node.data[] = 2
+    oldData[] = 1     // swc-expected-error {{sanity_err_use_after_free}}
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
+    node.data = cast(*s32, myAlloc(4))
+    node.other = cast(*s32, myAlloc(4))
+    releaseNodeData(node)
+    let other = node.other
+    other[] = 2
+}
+
+#[Swag.Sanity(.Lifecycle, true)]
+#test
+{
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
+    node.data = cast(*s32, myAlloc(4))
     releaseNodeData(node)
     let value = node.data[]     // swc-expected-error {{sanity_err_use_after_free}}
     discard value
@@ -356,7 +389,7 @@ func replaceNodeData(n: *UafNode)
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
-    let node = cast(*UafNode, myAlloc(16))
+    let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
     node.data  = cast(*s32, myAlloc(4))
     node.count = 4
 

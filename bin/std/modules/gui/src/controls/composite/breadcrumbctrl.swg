@@ -28,9 +28,10 @@ struct BreadcrumbCtrl
     {
         using wnd: Wnd     // Embedded window behavior and presentation.
 
-        iconSize:   f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
-        quiet:      bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
-        fitToWidth: bool         // Keeps complete trailing levels in view and gathers hidden ancestors in an overflow menu.
+        iconSize:        f32 = 16     // Square size used for every level icon; zero uses each descriptor's own size.
+        quiet:           bool         // Whether the path reads as a page names its place: faint words parted by slashes, a slash still opening its menu.
+        maxVisibleItems: u32          // Maximum trailing levels with [[Gui.BreadcrumbCtrl.fitToWidth]]; zero leaves the count unlimited.
+        fitToWidth:      bool         // Keeps complete trailing levels in view and gathers hidden ancestors in an overflow menu.
 
         readonly
         {
@@ -171,7 +172,8 @@ impl BreadcrumbCtrl
 
         .overflowRect = {}
         .firstVisible = 0
-        if not .fitToWidth or .items.isEmpty() or x <= client.right() do
+        let limited = .maxVisibleItems != 0 and .items.count > .maxVisibleItems
+        if not .fitToWidth or .items.isEmpty() or (x <= client.right() and not limited) do
             return
 
         // Keep whole ancestors, never the trailing letters of one. The leaf always stays.
@@ -179,7 +181,7 @@ impl BreadcrumbCtrl
         let available     = Math.max(client.width - overflowWidth, 0)
         .firstVisible = .items.count - 1
         var used = .items.back().bodyRect.width + .items.back().arrowRect.width
-        while .firstVisible > 0
+        while .firstVisible > 0 and (.maxVisibleItems == 0 or .items.count - .firstVisible < .maxVisibleItems)
         {
             let previous = .items[.firstVisible - 1]
             let width    = previous.bodyRect.width + previous.arrowRect.width

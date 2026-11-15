@@ -68,6 +68,8 @@ const OpenImageMessage = 1'u32
     // are delivered to MainWnd.onSysUserEvent; the icon is removed automatically when
     // the surface is destroyed.
     surface.setTrayIcon(appIcon, ProductName)
+    if startup == .Tray do
+        mainWnd.noticeResident()
 
     Env.registerApplication(ApplicationId, ProductName)
     Env.associateFileExtension(".png", ApplicationId, Env.executablePath())

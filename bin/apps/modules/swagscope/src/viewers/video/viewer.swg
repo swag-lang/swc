@@ -164,17 +164,16 @@ struct Panel
     // bottom command panel; its controls are named here for playback and option handling.
     late
     {
-        imageView:        *ImageView
-        subtitleOverlay:  *SubtitleOverlay
-        commands:         *Wnd
-        bottomVeil:       *BottomVeil
-        timeline:         *VideoTimeline
-        playButton:       *IconButton
-        optionsButton:    *IconButton
-        tracksButton:     *IconButton
-        muteButton:       *IconButton
-        volumeSlider:     *Slider
-        fullScreenButton: *IconButton
+        imageView:       *ImageView
+        subtitleOverlay: *SubtitleOverlay
+        commands:        *Wnd
+        bottomVeil:      *BottomVeil
+        timeline:        *VideoTimeline
+        playButton:      *IconButton
+        optionsButton:   *IconButton
+        tracksButton:    *IconButton
+        muteButton:      *IconButton
+        volumeSlider:    *Slider
     }
 
     seekOverlay: *SeekOverlay?
@@ -375,13 +374,12 @@ private impl Panel
     mtd retranslate()
     {
         let strings = texts()
-        .playButton.toolTip       = .playing ? strings.ui_TipPause : strings.ui_TipPlay
-        .timeline.toolTip         = strings.ui_TipSeek
-        .muteButton.toolTip       = strings.ui_TipMute
-        .volumeSlider.toolTip     = strings.ui_TipVolume
-        .fullScreenButton.toolTip = strings.ui_TipFullScreen
-        .tracksButton.toolTip     = strings.ui_TipTracks
-        .optionsButton.toolTip    = strings.ui_TipOptions
+        .playButton.toolTip    = .playing ? strings.ui_TipPause : strings.ui_TipPlay
+        .timeline.toolTip      = strings.ui_TipSeek
+        .muteButton.toolTip    = strings.ui_TipMute
+        .volumeSlider.toolTip  = strings.ui_TipVolume
+        .tracksButton.toolTip  = strings.ui_TipTracks
+        .optionsButton.toolTip = strings.ui_TipOptions
 
         .refreshDetails()
         .refreshControls()
@@ -696,7 +694,6 @@ private impl IWnd for Panel
         case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
         case .Home:                   .seekSeconds(0)
         case .MediaStop:              .stopPlayback()
-        case .F:                      .toggleFullScreen()
         default:                      evt.accepted = false
         }
     }
@@ -944,7 +941,6 @@ private impl Panel
                 entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() })
             entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) })
             entries.add(texts.cmd_Options, .Settings, func|view = me|() { view.showOptions() })
-            entries.add(texts.cmd_FullScreen, .FullScreen, func|view = me|() { view.toggleFullScreen() }, shortcut: Input.formatKeyShortcut(.None, .F))
             return
         }
 
@@ -969,13 +965,12 @@ private impl Panel
         .bottomVeil = BottomVeil.create(.commands)
         .bottomVeil.dockStyle = .Center
 
-        .timeline         = .bottomVeil.timeline
-        .playButton       = .bottomVeil.playButton
-        .optionsButton    = .bottomVeil.optionsButton
-        .tracksButton     = .bottomVeil.tracksButton
-        .muteButton       = .bottomVeil.muteButton
-        .volumeSlider     = .bottomVeil.volumeSlider
-        .fullScreenButton = .bottomVeil.fullScreenButton
+        .timeline      = .bottomVeil.timeline
+        .playButton    = .bottomVeil.playButton
+        .optionsButton = .bottomVeil.optionsButton
+        .tracksButton  = .bottomVeil.tracksButton
+        .muteButton    = .bottomVeil.muteButton
+        .volumeSlider  = .bottomVeil.volumeSlider
 
         let strings = texts()
         .playButton.toolTip = strings.ui_TipPlay
@@ -988,9 +983,6 @@ private impl Panel
 
         .volumeSlider.toolTip    = strings.ui_TipVolume
         .volumeSlider.sigChanged += func|view = me|(slider) { view.setVolume(slider.value()) }
-
-        .fullScreenButton.toolTip    = strings.ui_TipFullScreen
-        .fullScreenButton.sigPressed += func|view = me|(_) { view.toggleFullScreen() }
 
         .tracksButton.toolTip = strings.ui_TipTracks
         .tracksButton.enable(false)
@@ -1088,12 +1080,6 @@ private impl Panel
     }
 
     mtd showPointer() { .setPointerHidden(false) }
-
-    // Asks the window to take the whole screen for the film, or to give it back.
-    mtd toggleFullScreen()
-    {
-        .postCommandEvent(ViewerCommands.FullScreen)
-    }
 
     // Opens one page of choices above the button that owns them.
     mtd showChoices(anchor: *IconButton, build: OptionSheet.Builder)

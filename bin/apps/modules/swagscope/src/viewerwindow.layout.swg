@@ -41,9 +41,24 @@ impl ViewerWindow
             .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_Search)
             .setValidator(func|window = me|(edit)->EditBoxCheckResult => window.validateSearchEdit(edit))
-            .sigTextChanged += func|window = me|(_) { window.restartSearch() }
-            .sigSubmitted   += func|window = me|(_) { window.findNext() }
-            .sigCancelled   += func|window = me|(_) { window.hideSearch() }
+            .sigTextChanged += func|window = me|(_)
+            {
+                window.restartSearch()
+            }
+
+            .sigSubmitted += func|window = me|(_)
+            {
+                if window.isExploring() do
+                    window.explorer!.focusContent()
+                else do
+                    window.findNext()
+            }
+
+            .sigCancelled += func|window = me|(_)
+            {
+                window.hideSearch()
+            }
+
             .enable(false)
         }
 

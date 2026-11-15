@@ -426,8 +426,15 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     // A grab that fails gives the editor back instead of leaving it hidden for good.
     defer #fail
     {
-        if not wasHidden do
+        if wasHidden
+        {
+            if surface.isHidden do
+                main.noticeResident()
+        }
+        else
+        {
             surface.show()
+        }
     }
 
     // Let the configured capture delay elapse before reading the desktop.

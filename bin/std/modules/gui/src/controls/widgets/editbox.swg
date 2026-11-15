@@ -134,11 +134,18 @@ impl IWnd for EditBox
             .invalidate()
 
         case .Lost:
+
+            // A Lost callback can redirect focus before the incoming editor receives Gained.
+            // Retire this caret before callbacks can start another focus transition.
+            if .timerCaret
+            {
+                .surface!.app.removeTimer(.timerCaret)
+                .timerCaret = null
+            }
+
+            .visibleCaret = false
             .sigCommitted.call(me)
             .sigFocusLost.call(me)
-            .surface!.app.removeTimer(unwrap .timerCaret)
-            .timerCaret   = null
-            .visibleCaret = false
             .invalidate()
         }
     }

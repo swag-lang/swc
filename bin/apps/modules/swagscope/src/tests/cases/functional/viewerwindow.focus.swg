@@ -13,6 +13,7 @@ using Swag, Gui, Viewers
     Swag.require(window.focusedWindow() == null)
     Swag.require(window.outlineCaptionButton.focusPolicy == .None)
     Swag.require(window.informationCaptionButton.focusPolicy == .None)
+    Swag.require(window.fullScreenCaptionButton.focusPolicy == .None)
     for child in window.infoSheet.children where child is IconButton do
         Swag.require(child.focusPolicy == .None)
     var launchers: u32
@@ -25,5 +26,6 @@ using Swag, Gui, Viewers
             Swag.require(not launcher.hasFocus())
         }
     }
+
     Swag.require(launchers == 1)
 }

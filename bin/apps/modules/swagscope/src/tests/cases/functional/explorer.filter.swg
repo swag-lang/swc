@@ -3,8 +3,8 @@
 
 using Core, Gui
 
-// Explorer and file viewers share a docked search strip. Escape closes it while retaining the
-// folder filter; clearing the field explicitly restores every item.
+// The permanent folder filter keeps its place through focus changes, resizing and the sheet.
+// Escape returns to the listing while the field and its query stay visible.
 #test
 {
     var host: Testing.HeadlessHost
@@ -14,21 +14,19 @@ using Core, Gui
         explorer.entries.add({name: name, attempted: true})
     showBoard(&host, window, "Documents", "Notes")
 
-    host.clickWnd(explorer.queryButton)
-    Swag.require(window.searchShown and window.searchBox.hasFocus())
-    Swag.require(window.searchBar.isLocallyVisible())
-    Swag.require(not explorer.queryButton.isLocallyVisible())
-    let area = window.documentArea()
-    let bar  = window.searchBar.position
-    Swag.require(Math.abs(bar.right() - (area.right() - window.themeMetrics().floating_Inset)) < 1)
+    host.keyPress(.F, .Control)
+    Swag.require(window.searchBox.hasFocus())
+    Swag.require(not window.searchBar.isLocallyVisible() and window.searchGroup.isVisible())
+    let bar = window.searchGroup.surfaceRect()
+    Swag.require(bar.right() < explorer.tools.surfaceRect().x)
     window.searchBox.setText("Alpha")
     Swag.require(explorer.shown.count == 1)
     window.toggleInformation()
-    Swag.require(window.searchBar.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
-    Swag.require(window.searchBar.surfaceRect().horzCenter() < bar.horzCenter())
+    Swag.require(window.searchGroup.surfaceRect().right() <= window.infoSheet.surfaceRect().x)
+    Swag.require(window.searchGroup.surfaceRect().horzCenter() < bar.horzCenter())
     host.keyPress(.Escape)
     Swag.require(window.isExploring() and not window.searchShown)
-    Swag.require(explorer.queryButton.isLocallyVisible())
+    Swag.require(window.searchGroup.isVisible())
     Swag.require(window.infoSheet.isLocallyVisible())
     Swag.require(explorer.filter.text() == "Alpha" and explorer.shown.count == 1)
     Swag.require(explorer.grid.hasFocus())
@@ -86,7 +84,7 @@ using Core, Gui
     Swag.require(not window.searchBox.isValid() and explorer.shown.isEmpty())
 }
 
-// Resizing keeps the search strip with the document.
+// Resizing keeps the permanent filter and listing tools on one line.
 #test
 {
     var host: Testing.HeadlessHost
@@ -98,10 +96,9 @@ using Core, Gui
 
     window.applyLayout()
 
-    let area = window.documentArea()
-    let bar  = window.searchBar.position
-    Swag.require(Math.abs(bar.right() - (area.right() - window.themeMetrics().floating_Inset)) < 1,
-                 Format.toString("search right %, document right %, inset %", bar.right(), area.right(), window.themeMetrics().floating_Inset))
-    Swag.require(bar.x >= area.x and bar.right() <= area.right())
+    let bar   = window.searchGroup.surfaceRect()
+    let tools = explorer.tools.surfaceRect()
+    Swag.require(bar.right() < tools.x)
+    Swag.require(Math.abs(bar.vertCenter() - tools.vertCenter()) < 1)
     Swag.require(window.searchBox.hasFocus())
 }

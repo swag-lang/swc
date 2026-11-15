@@ -49,6 +49,7 @@ struct ViewerWindow
         upCaptionButton:             *CaptionButton
         refreshCaptionButton:        *CaptionButton
         findCaptionButton:           *CaptionButton
+        fullScreenCaptionButton:     *CaptionButton
         informationCaptionButton:    *CaptionButton
         viewerCaptionButton:         *CaptionButton
         lens:                        *Lens.View
@@ -696,12 +697,15 @@ impl ViewerWindow
         .returnExplorerCaptionButton.toolTip = appStrings().cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
 
+        .explorer?.address.show(.isExploring())
+        .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge())
         let exploring = .isExploring() and not .fullScreen
         .backCaptionButton.show(exploring)
         .forwardCaptionButton.show(exploring)
         .upCaptionButton.show(exploring)
         .refreshCaptionButton.show(exploring)
         .findCaptionButton.hide()
+        .fullScreenCaptionButton.show(not .fullScreen)
         .informationCaptionButton.show(not .home.isLocallyVisible() and not .fullScreen)
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
         let openFile    = not .isExploring() and not .currentFile.isEmpty()
@@ -719,6 +723,7 @@ impl ViewerWindow
         .upCaptionButton.toolTip          = text.explore_Up
         .refreshCaptionButton.toolTip     = text.explore_Refresh
         .findCaptionButton.toolTip        = text.ui_FilterFiles
+        .fullScreenCaptionButton.toolTip  = Format.toString("% (%)", text.cmd_FullScreen, Input.formatKeyShortcut(.None, .F11))
         .informationCaptionButton.toolTip = text.cmd_Information
         .viewerCaptionButton.toolTip      = text.lens_ViewAs
         .informationCaptionButton.setChecked(.infoSheet.isLocallyVisible())
@@ -854,12 +859,28 @@ impl ViewerWindow
     {
         .layoutViewerBar()
         .layoutSearchBar()
-        .explorer?.layoutFilter()
+        .explorer?.layoutTools()
     }
 
     // Aligns the query and its controls to the document's right edge, above its viewport.
     mtd layoutSearchBar()
     {
+        if .isExploring()
+        {
+            .searchBar.hide()
+            if .infoSheet.margin.y != 0
+            {
+                .infoSheet.margin.y = 0
+                .infoSheet.itf.onLayout()
+            }
+
+            .explorer!.layoutTools()
+            return
+        }
+
+        .searchGroup.setParent(.searchBar)
+        .searchCloseButton.show()
+
         let metrics = .themeMetrics()
         let inset   = metrics.floating_Inset
         let height  = themeActionButtonSize(metrics)
@@ -1037,6 +1058,11 @@ impl ViewerWindow
             .toolTip    = appStrings().ui_FilterFiles
             .sigPressed += func|window = result|(_) { discard window.runCommand(ViewerCommands.Find) }
             .hide()
+        }
+
+        with result.fullScreenCaptionButton = CaptionButton.create(result.surface, .FullScreen, ViewerCommands.FullScreen)
+        {
+            .sigPressed += func|window = result|(_) { window.sendCommandEvent(ViewerCommands.FullScreen) }
         }
 
         with result.informationCaptionButton = CaptionButton.create(result.surface, .Information, ViewerCommands.Information)

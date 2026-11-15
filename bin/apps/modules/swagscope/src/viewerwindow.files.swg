@@ -67,7 +67,7 @@ impl ViewerWindow
         .refreshReadingAppearance()
 
         // A document that takes the whole window writes its title itself, over its picture.
-        .surface?.wnd.showTitle(not .isEdgeToEdge())
+        .surface?.wnd.showTitle(not .isExploring() and not .isEdgeToEdge())
         .updateDocumentInsets()
         .readingLine.show(.readingLine.hasContent() and
                           .canShowReadingLine() and

@@ -648,11 +648,10 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Video", host.theme)
     view.describeLens(&entries)
-    Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 4)
+    Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 3)
     Swag.require(results.sections[0]!.entries[0].title == appStrings().cmd_Play)
     Swag.require(results.sections[0]!.entries[1].title == Film.texts().cmd_Speed)
     Swag.require(results.sections[0]!.entries[2].title == appStrings().cmd_Options)
-    Swag.require(results.sections[0]!.entries[3].title == appStrings().cmd_FullScreen)
     for &entry in results.sections[0]!.entries do
         Swag.require(entry.glyph.isValid(), entry.title)
 
@@ -966,10 +965,16 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 
     let voice = unwrap view.voice
 
-    window.setFullScreen(true)
+    // The global F11 shortcut owns full screen; the film does not assign F to it.
+    view.setFocus()
+    host.keyPress(.F)
+    Swag.require(not window.fullScreen)
+    host.keyPress(.F11)
+    Swag.require(window.fullScreen)
     window.notePointer({10, 1})
     window.notePointer(Math.Point{10, window.clientRect().height - 1})
-    window.setFullScreen(false)
+    host.keyPress(.Escape)
+    Swag.require(not window.fullScreen)
 
     Swag.require(view.playing and view.voice == voice and voice.isPlaying())
 }

@@ -39,6 +39,7 @@ using Core, Gui, Pixel
         explorer.list.setFocusedIndex(0, ensureVisible: false)
         explorer.list.selectLine(0)
         explorer.show()
+        window.updateSearchAvailability()
         window.applyLayout()
 
         Swag.require(explorer.list.header.items.count == 5)

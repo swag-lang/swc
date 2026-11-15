@@ -14,7 +14,6 @@ struct Texts
     ui_TipSeek:                string = "Seek"                                                    // Tooltip of the playback timeline.
     ui_TipMute:                string = "Mute or Unmute (M)"                                      // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                                  // Tooltip of the volume slider.
-    ui_TipFullScreen:          string = "Full Screen (F)"                                         // Tooltip of the full-screen button.
     ui_TipTracks:              string = "Audio and Subtitles"                                     // Tooltip of the track settings button.
     ui_TipOptions:             string = "Playback Options"                                        // Tooltip of the playback options button.
     cmd_Subtitles:             string = "Subtitles…"                                              // Lens command opening the subtitle choices.

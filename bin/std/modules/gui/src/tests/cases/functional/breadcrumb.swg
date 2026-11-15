@@ -208,3 +208,21 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     host.click(Math.Point{r.horzCenter(), r.vertCenter()})
     Swag.require(emptyPresses == 1 and BreadcrumbPressedCount == 1)
 }
+
+// A compact caption keeps its recent levels even when the complete path would fit.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 160)
+    let path = BreadcrumbCtrl.create(&host.root, {20, 20, 760, 32})
+    path.fitToWidth      = true
+    path.maxVisibleItems = 3
+    for name in ["C:/", "work", "project", "src", "tests", "datas"] do
+        path.addItem(name, tag: name)
+    path.layout()
+    Swag.require(path.items.count == 6 and path.firstVisible == 3)
+    Swag.require(path.overflowRect.width > 0 and path.items.back().bodyRect.width > 0)
+    path.maxVisibleItems = 0
+    path.layout()
+    Swag.require(path.firstVisible == 0 and path.overflowRect.width == 0)
+}

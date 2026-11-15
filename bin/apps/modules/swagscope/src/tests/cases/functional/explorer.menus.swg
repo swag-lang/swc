@@ -7,6 +7,7 @@ using Core, Gui, Pixel
 func openMenuExplorer(host: *Testing.HeadlessHost, width = 1280'f32)->*ViewerWindow
 {
     host.setup(width, 720)
+    host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openExplorer(scopeTestDataDirectory())
     waitMenuExplorer(host, window)
@@ -78,7 +79,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
 // kind in force.
 #test
 {
-    var host: Testing.HeadlessHost
+    var host:    Testing.HeadlessHost
     let window   = openMenuExplorer(&host)
     let explorer = unwrap window.explorer
     var checked: bool
@@ -145,7 +146,7 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
         Swag.require(window.sendComputeCommandStateEvent(command).hidden)
 }
 
-// The header is one line: the path at the left and the tools at its right, both above the page.
+// The path has air after the navigation; the permanent query and tools share the line below.
 #test
 {
     for width in [ViewerWindow.MinWidth, 1280'f32]
@@ -156,10 +157,18 @@ func requireSortLabel(explorer: *Explorer, column, direction: string)
         let address  = explorer.address.surfaceRect()
         let tools    = explorer.tools.surfaceRect()
         let header   = explorer.header.surfaceRect()
-        Swag.require(Math.abs(address.vertCenter() - tools.vertCenter()) < 0.5)
-        Swag.require(address.right() <= tools.x)
+        Swag.require(address.bottom() <= tools.y)
+        let frame = window.surface!.wnd
+        Swag.require(frame.titleHidden)
+        let navigation = window.refreshCaptionButton.surfaceRect()
+        Swag.require(address.x - navigation.right() >= window.themeMetrics().wnd_CaptionPathGap - 0.5)
+        Swag.require(address.width <= window.themeMetrics().wnd_CaptionPathWidth)
+        Swag.require(address.right() + window.themeMetrics().wnd_CaptionPathGap < frame.captionRoomRect().right())
+        Swag.require(window.searchGroup.surfaceRect().right() < tools.x)
         Swag.require(header.height <= Explorer.ToolHeight + Explorer.HeaderGap + 0.5)
         Swag.require(explorer.scroll.surfaceRect().y >= header.bottom())
-        Swag.require(explorer.sortMenu.isVisible() and explorer.kindMenu.isVisible() and explorer.modeMenu.isVisible())
+        Swag.require(explorer.sortMenu.isVisible() and
+                     explorer.kindMenu.isVisible() and
+                     explorer.modeMenu.isVisible())
     }
 }

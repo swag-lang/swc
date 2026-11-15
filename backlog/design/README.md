@@ -313,7 +313,7 @@ from observed user sessions. They set the acceptance tasks for lens and applicat
 | Annotate three successive captures | Selecting an annotation must not replace the route to the next capture | Capture Area and Last Area keep their positions; expose delay/cursor/output choices in one capture settings group |
 | Correct an annotation and undo | Reopening the lens for each correction hides the effect behind a dimmed canvas | Direct selection tools and Undo/Redo; keep settings open while adjusting, with visible feedback |
 | Find yesterday's capture in an empty or populated library | A Library link attached only to recent thumbnails is not a reliable route | Library is an independent command; visible filter, sort and return to editor on its page |
-| Open a film, pause, seek, change volume | Modal search interrupts watching and hides the timeline | A transport with play/pause, seek, volume and full screen; subtitles, audio and speed in its adjacent controls |
+| Open a film, pause, seek, change volume | Modal search interrupts watching and hides the timeline | A transport with play/pause, seek and volume; subtitles, audio and speed beside it; full screen in the shared window strip |
 | Browse films, open one, return to the folder | Repeated lens calls for Back or Up make ordinary exploration expensive | Stable Back/Forward/Up and current location in the page header; sorting and view choices remain nearby |
 | Resume a film later | A beautifully empty player cannot replace a missing resume feature | Store playback position and offer Resume / Start from Beginning; this is product behavior, not a cosmetic lens fix |
 | Create or unlock a Vault | An unfamiliar command entrance must not be required before the first task | Visible New Vault and Open File, an explicit return from the creation form, and Mount in the unlocked row; keep file actions first in the lens |
@@ -600,10 +600,12 @@ the screen to its work.
   and reading details. A quiet outline glyph in the top strip, `Ctrl Shift O` and the lens open
   the full outline on demand. It remains a scrollable list beside the page, without an
   information card.
-- Explorer: a page title (folder name, 44–56/800) under the faint path, a mono count, quiet sort
-  and view menus on the title line, right-aligned with the grid; the chosen item ringed in Arc
-  at a 2 px gap; the sheet for the chosen item. No side panel and no filter field until asked
-  for (`/`). Every edge of the page — path, title, grid, menus — is one edge.
+- Explorer: the path occupies at most 420 px of the window strip, with 32 px of air after the
+  leading navigation actions. Only the last three levels are shown; earlier ancestors remain accessible in the overflow;
+  the full location stays editable. The folder name appears only in the path. A permanent
+  filename filter shares one line with the quiet sort, kind and view menus above the grid.
+  `Ctrl F` or `/` focuses the filter; Escape returns to the listing without hiding the field.
+  The chosen item is ringed in Arc at a 2 px gap; its details belong to the sheet.
 - The cell takes the shape of what the folder holds, as a media player would show it:
   - **A mixed folder**: one even grid of 4:3 cells on the raised ground. Each cell shows what its
     file is: a picture its picture, a PDF its first page on a paper card, code a few lines in
@@ -675,7 +677,7 @@ the screen to its work.
 ![Archive](imgs/scope.archive.png) ![Archive on Papier](imgs/scope.archive.paper.png)
 
 - Archive: the explorer's page grammar inside the archive — the path in the archive as a mono
-  breadcrumb, the folder as title, a mono line of counts and sizes (compressed, extracted,
+  breadcrumb in the window strip, a permanent filename filter, a mono line of counts and sizes (compressed, extracted,
   method), quiet "Extract All…" and sort; rows with a glyph, the name, a thin Arc bar for the
   compression ratio, mono size and date. The chosen entry is described on a floating card: a
   preview, the name, its identity line, sizes before and after, ratio, date, checksum, and

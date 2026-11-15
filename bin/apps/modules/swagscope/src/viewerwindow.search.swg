@@ -447,6 +447,14 @@ impl ViewerWindow
     {
         if not .searchBox.isEnabled() do
             return
+        if .isExploring()
+        {
+            .layoutSearchBar()
+            .searchBox.setFocus()
+            .searchBox.selectAll()
+            return
+        }
+
         .searchShown = true
         .searchBar.show()
         .updateDocumentInsets()
@@ -461,18 +469,17 @@ impl ViewerWindow
     // next and previous matches still answer their keys, and the bar comes back holding it.
     mtd hideSearch()
     {
+        if .isExploring()
+        {
+            .explorer!.focusContent()
+            return
+        }
+
         .searchShown = false
         .searchBar.hide()
         .updateDocumentInsets()
         .documentHost.applyLayout()
         .layoutFloatingParts()
-        if .isExploring()
-        {
-            .explorer!.layoutTools()
-            .explorer.focusContent()
-            return
-        }
-
         .viewerFocusTarget()?.setFocus()
     }
 
@@ -484,7 +491,7 @@ impl ViewerWindow
         if .forwardingViewerKey or evt.kind != .Pressed do
             return false
         let focus     = .focusedWindow()
-        let searching = .searchBar.isLocallyVisible() and focus and .searchBar.isOwnerOf(focus)
+        let searching = .searchGroup.isVisible() and focus and .searchGroup.isOwnerOf(focus)
         if searching and evt.key == .Escape
         {
             .hideSearch()
@@ -526,7 +533,7 @@ impl ViewerWindow
         .refreshSearchPresentation()
         .searchBox.enable(available)
         .searchOptionsButton.enable(available)
-        .searchBar.show(available and .searchShown)
+        .searchBar.show(available and .searchShown and not .isExploring())
         .updateDocumentInsets()
         .documentHost.applyLayout()
         .currentActions?.show()

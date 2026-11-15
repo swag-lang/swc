@@ -177,7 +177,7 @@ impl IWnd for VideoTimeline
 
 /*
 The veil at the bottom of the picture: the timeline, then a row of the play button, the time in
-mono and the chapter on the left, and on the right the options, tracks, sound and full screen.
+mono and the chapter on the left, and on the right the options, tracks and sound.
 */
 struct BottomVeil
 {
@@ -185,13 +185,12 @@ struct BottomVeil
 
     late
     {
-        timeline:         *VideoTimeline
-        playButton:       *IconButton
-        optionsButton:    *IconButton
-        tracksButton:     *IconButton
-        muteButton:       *IconButton
-        volumeSlider:     *Slider
-        fullScreenButton: *IconButton
+        timeline:      *VideoTimeline
+        playButton:    *IconButton
+        optionsButton: *IconButton
+        tracksButton:  *IconButton
+        muteButton:    *IconButton
+        volumeSlider:  *Slider
     }
 
     elapsed: String     // Time played, written first and strong.
@@ -229,7 +228,6 @@ impl BottomVeil
             .enable(false)
         }
 
-        result.fullScreenButton = createGlyph(result, .FullScreen, "scope.video.fullScreen")
         result.muteButton.setCheckIndicator(.Ink)
         return result
     }
@@ -253,7 +251,6 @@ impl BottomVeil
         let room  = .clientRect()
         let width = Math.max(room.width - 2 * VeilInset, 1)
         .volumeSlider.show(width >= 580)
-        .fullScreenButton.show(width >= 360)
         let lineY = room.bottom() - RowBottom
         let glyph = .playButton.position.width
         .timeline.setPosition(Math.Rectangle{room.x + VeilInset - KnobInset,
@@ -262,14 +259,8 @@ impl BottomVeil
                                              TimelineHeight})
         .playButton.setPosition(Math.Rectangle{room.x + VeilInset - glyph * 0.25, lineY - glyph * 0.5, glyph, glyph})
 
-        // The right end of the row reads from the edge inwards: full screen, volume, mute, tracks and options.
+        // The right end of the row reads from the edge inwards: volume, mute, tracks and options.
         var right = room.right() - VeilInset + glyph * 0.25
-        if .fullScreenButton.isLocallyVisible()
-        {
-            right -= glyph
-            .fullScreenButton.setPosition(Math.Rectangle{right, lineY - glyph * 0.5, glyph, glyph})
-        }
-
         if .volumeSlider.isLocallyVisible()
         {
             right -= RowGap + VolumeWidth
@@ -289,7 +280,7 @@ impl IWnd for BottomVeil
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .fullScreenButton != null do
+        if .volumeSlider != null do
             .arrange()
     }
 

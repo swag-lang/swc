@@ -631,3 +631,19 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
     let selection = edit.selection()
     Swag.require(selection.start == 1 and selection.end == 3)
 }
+
+// Redirecting focus from a Lost callback can skip the incoming editor's Gained event.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(400, 200)
+    let first       = EditBox.create(&host.root, "", {20, 20, 100, 32})
+    let skipped     = EditBox.create(&host.root, "", {20, 60, 100, 32})
+    let destination = EditBox.create(&host.root, "", {20, 100, 100, 32})
+    first.setFocus()
+    first.sigFocusLost += func|destination|(_) { destination.setFocus() }
+    skipped.setFocus()
+    Swag.require(destination.hasFocus() and not skipped.hasFocus())
+    host.sendRune(.A, 'a')
+    Swag.require(destination.text() == "a" and skipped.text() == "")
+}

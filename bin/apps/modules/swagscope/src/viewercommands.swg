@@ -995,7 +995,7 @@ impl ViewerWindow
             .closeFile()
 
         case ViewerCommands.Dismiss:
-            if .searchShown do
+            if .searchShown and not .isExploring() do
                 .hideSearch()
             elif .fullScreen do
                 .setFullScreen(false)

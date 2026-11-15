@@ -88,8 +88,8 @@ struct ExplorerTemporary
 
 // Owns exploration independently of the file currently being viewed.
 //
-// The folder is a page: its path as a faint breadcrumb, its name as the title, how much it holds
-// in mono, and quiet menus choosing the order and the way of showing it, above a contact sheet of
+// The folder keeps its path in the window strip, a permanent filename filter and quiet menus
+// choosing the order and the way of showing it, above a contact sheet of
 // what it holds. Moving through the history, refreshing, the online media choices — everything
 // else is an entry of the window's lens, and the item chosen is described in the window's sheet.
 struct Explorer
@@ -98,23 +98,21 @@ struct Explorer
 
     late
     {
-        window:      *ViewerWindow
-        header:      *Wnd
-        tools:       *StackLayoutCtrl
-        filterPanel: *FloatingPanel
-        address:     *PathBar
-        title:       *Label
-        status:      *Label
-        failure:     *ViewerErrorView
-        extractAll:  *IconButton
-        queryButton: *IconButton
-        kindMenu:    *IconButton
-        sortMenu:    *IconButton
-        modeMenu:    *IconButton
-        filter:      *EditBox
-        list:        *ListCtrl
-        scroll:      *ScrollWnd
-        grid:        *ExplorerGrid
+        window:     *ViewerWindow
+        header:     *Wnd
+        tools:      *StackLayoutCtrl
+        address:    *PathBar
+        title:      *Label
+        status:     *Label
+        failure:    *ViewerErrorView
+        extractAll: *IconButton
+        kindMenu:   *IconButton
+        sortMenu:   *IconButton
+        modeMenu:   *IconButton
+        filter:     *EditBox
+        list:       *ListCtrl
+        scroll:     *ScrollWnd
+        grid:       *ExplorerGrid
     }
 
     layingHeader:    bool
@@ -297,7 +295,7 @@ impl Explorer
         return result
     }
 
-    // Gives the location its own line above the listing controls.
+    // Builds the permanent query and listing controls; the location belongs to the caption.
     private mtd createHeader()
     {
         with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 2 * ToolHeight + HeaderGap}, "scope.explorer.header")
@@ -320,14 +318,6 @@ impl Explorer
             .spacing         = 8
         }
 
-        // Keep the current filename filter visible even after the search strip closes.
-        with .queryButton = IconButton.createQuiet(line)
-        {
-            .setIcon(me.theme().icon(.Search, themeRowIconSize(me.themeMetrics())))
-            .toolTip    = appStrings().ui_FilterFiles
-            .sigPressed += func|view = me|(_) { view.revealFilter() }
-        }
-
         with .status = Label.create(.tools, "", {0, 0, 0, ToolHeight}, null, .SecondaryText)
         {
             .layoutSpec.alignY = .End
@@ -337,13 +327,8 @@ impl Explorer
             .setTextAlignment(.Right, .OpticalCenter)
         }
 
-        // The filter opens under its caption button, independently of the title's tools.
-        with .filterPanel = FloatingPanel.create(me, id: "scope.explorer.filter")
-        {
-            .hide()
-        }
-
-        with .filter = EditBox.create(.filterPanel,
+        // Retain the folder query while the shared editor is used by an open document.
+        with .filter = EditBox.create(line,
                                       "",
                                       {0, 0, ViewerWindow.SearchNoOptionsFieldWidth, ToolHeight},
                                       flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
@@ -368,15 +353,6 @@ impl Explorer
             {
                 view.filter.setText("")
                 view.focusContent()
-            }
-
-            .sigFocusLost += func|view = me|(edit)
-            {
-                if not edit.text().count
-                {
-                    edit.hide()
-                    discard view.app().animator.leave(view.filterPanel)
-                }
             }
         }
 
@@ -409,13 +385,14 @@ impl Explorer
             .sigPressed        += func|view = me|(_) { view.showModeMenu() }
         }
 
-        with .address = PathBar.create(line, "scope.explorer.address")
+        with .address = PathBar.create(.window, "scope.explorer.address")
         {
-            .position.height        = ToolHeight
-            .sigNavigate            += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
-            .sigSubmitted           += func|explorer = me|(_, path) { explorer.navigateTyped(path) }
-            .sigEditFinished        += func|explorer = me|(_) { explorer.focusContent() }
-            .breadcrumb.sigFillMenu += func|explorer = me|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
+            .breadcrumb.maxVisibleItems = 3
+            .position.height            = ToolHeight
+            .sigNavigate                += func|explorer = me|(_, path) { explorer.navigateBreadcrumb(path) }
+            .sigSubmitted               += func|explorer = me|(_, path) { explorer.navigateTyped(path) }
+            .sigEditFinished            += func|explorer = me|(_) { explorer.focusContent() }
+            .breadcrumb.sigFillMenu     += func|explorer = me|(_, index, menu) { explorer.fillBreadcrumbMenu(index, menu) }
         }
 
         // The breadcrumb names the folder: the title stays hidden and only holds the location's
@@ -434,24 +411,7 @@ impl Explorer
         .window.showSearch()
     }
 
-    // Keep the edit beside the gesture that revealed it, including after a resize or pane change.
-    mtd layoutFilter()
-    {
-        if .filterPanel == null do
-            return
-        let area   = .clientRect()
-        let inset  = .themeMetrics().floating_Inset * 0.5
-        let pad    = .filterPanel.padding
-        let anchor = .window.findCaptionButton.surfaceRect()
-        let origin = .surfaceToLocal(Math.Point{anchor.x, anchor.bottom()})
-        let width  = Math.min(ViewerWindow.SearchNoOptionsFieldWidth + pad.x + pad.z,
-                              Math.max(area.width - 2 * inset, 0))
-        let x = Math.clamp(origin.x, inset, Math.max(inset, area.right() - width - inset))
-        .filterPanel.setPosition({x, Math.max(origin.y + inset, area.y), width, ToolHeight + pad.y + pad.w})
-        .filterPanel.applyLayout()
-    }
-
-    // The path and quiet listing controls share one row above the page.
+    // Keeps the path in the strip and the permanent filter beside the listing controls.
     mtd fitHeader() => .layoutTools()
 
     mtd layoutTools()
@@ -469,27 +429,22 @@ impl Explorer
         .list.margin.z    = inset - ExplorerGrid.CellInset
         .scroll.margin.x  = .list.margin.x
         .scroll.margin.z  = .list.margin.z
-
         .title.hide()
         .tools.show()
-        .queryButton.show(not .window.searchShown)
         .extractAll.show(.listing.isArchive)
         .status.hide()
-        .header.position.height = ToolHeight + HeaderGap
+        let rowY = .window.stripInset() == 0 ? ToolHeight + HeaderGap : 0
+        .header.position.height = rowY + ToolHeight + HeaderGap
         .applyLayout()
 
-        // Keep the words of the controls while they have their own line.
         let line  = unwrap .tools.parent
         let space = line.clientRect().width
-        let room  = space * 0.55
         .tools.spacing = 8
-        .queryButton.setQuietText(.filter.text())
-        .queryButton.setIconColor(.filter.text().count ? .themeColors().arc : Color{})
         .sortMenu.setQuietText(.sortName())
         .kindMenu.setQuietText(.filterKindName())
         .modeMenu.setQuietText(.viewName())
         var width = Math.ceil(.tools.itf.measureContent({}).x)
-        if width > room
+        if width > space * 0.55
         {
             .sortMenu.setQuietText("")
             .kindMenu.setQuietText("")
@@ -498,26 +453,39 @@ impl Explorer
             width = Math.ceil(.tools.itf.measureContent({}).x)
         }
 
-        // The words of the path stand on the edge of the grid; the ground of a level reaches out
-        // of it by its own padding, as a hovered row does.
-        let padX       = .address.breadcrumb.padX
-        let right      = Math.max(space - width, 0)
-        let queryRoom  = Math.max(right - 144, 0)
-        var queryWidth = Math.ceil(.queryButton.itf.measureContent({}).x)
-        if queryWidth > queryRoom
+        let right = Math.max(space - width, 0)
+        .tools.setPosition({right, rowY, width, ToolHeight})
+        .tools.computeLayout()
+        if .window.isExploring()
         {
-            .queryButton.setQuietText("")
-            queryWidth = Math.ceil(.queryButton.itf.measureContent({}).x)
+            let group = .window.searchGroup
+            group.setParent(line)
+            group.setPosition({0, rowY, Math.max(right - metrics.floating_Inset, 0), ToolHeight})
+            .window.searchCloseButton.hide()
+            .window.searchNavigation.hide()
+            let options = themeDropDownButtonWidth(metrics)
+            .window.searchOptionsButton.setPosition({group.position.width - options, 0, options, ToolHeight})
+            .window.searchBox.setPosition({0, 0, Math.max(group.position.width - options - ViewerWindow.SearchGroupSpacing, 0), ToolHeight})
         }
 
-        let query  = .queryButton.isLocallyVisible() ? Math.min(queryWidth, queryRoom) : 0
-        let queryX = Math.max(right - query - 8, 0)
-        .queryButton.setPosition({queryX, 0, query, ToolHeight})
-        .tools.setPosition({right, 0, width, ToolHeight})
-        .tools.computeLayout()
-        .address.setPosition({-padX, 0, Math.max(queryX - 8 + padX, 0), ToolHeight})
+        let frame = .window.surface!.wnd
+        frame.applyLayout()
+        var room = frame.captionRoomRect()
+        room.x     += metrics.wnd_CaptionPathGap
+        room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
+        if room.height == 0
+        {
+            room        = .window.documentArea()
+            room.x      += inset
+            room.width  = Math.max(room.width - 2 * inset, 0)
+            room.height = ToolHeight
+        }
+
+        let height = Math.min(ToolHeight, room.height)
+        let origin = .window.surfaceToLocal(frame.localToSurface(Math.Point{room.x, room.vertCenter() - height * 0.5}))
+        .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width * 0.7), height})
         .address.refreshPath()
-        .layoutFilter()
+        .address.show(.isVisible())
     }
 
     // Shows the listing presentation, for thumbnails their organization, and for media where their
@@ -662,8 +630,6 @@ impl Explorer
     {
         let text = appStrings()
         let size = themeRowIconSize(.themeMetrics())
-        .queryButton.setIcon(.theme().icon(.Search, size))
-        .queryButton.toolTip = text.ui_FilterFiles
         .sortMenu.setIcon(.theme().icon(.Sort, size))
         .kindMenu.setIcon(.theme().icon(.Filter, size))
         .modeMenu.setIcon(.theme().icon(.viewIcon(), size))
@@ -2312,6 +2278,8 @@ impl IWnd for Explorer
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
+        .address.destroy()
+
         // A listing or an extraction still running would report its end to a window and an
         // application that are going away: both are waited for here, the listing told to stop.
         .load.task.cancel()

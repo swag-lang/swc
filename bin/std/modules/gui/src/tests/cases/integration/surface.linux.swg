@@ -28,6 +28,13 @@ using Core, Pixel
     let title = expect LinuxDesktop.readProperty(context, drawable.window, expect LinuxDesktop.atom(context, "_NET_WM_NAME"))
     Swag.require(Utf8.compare(title.toSlice(), "Native GUI — é") == 0)
 
+    // WM_NORMAL_HINTS says the position was asked for, so a window manager places the surface
+    // there rather than by its own policy.
+    let hints  = expect LinuxDesktop.readProperty(context, drawable.window, 40)
+    let fields = assume cast(const [*]u32, hints.buffer)
+    Swag.require(hints.count == 18 * 4)
+    Swag.require((fields[0] & 5) == 5)
+
     app.renderer.setCurrentContext(surface.rc)
     let expected = app.renderer.readRenderTarget(&surface.rt, 160, 140, 1, 1).pixelColor(0, 0)
     let image    = context.xcb_get_image_reply(connection, context.xcb_get_image(connection, 2, drawable.window, 160, 140, 1, 1, 0xFFFFFFFF), null)

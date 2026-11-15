@@ -6335,7 +6335,8 @@ namespace SemaEscape
                 const size_t beforeFreed = forwarding.caller->freedParamFields().size();
                 const size_t beforeReset = forwarding.caller->resetParamFields().size();
                 forwarding.caller->addFreedParamField(forwarding.callerParamIndex, fieldName);
-                if (forwarding.callee->hasResetParamField(forwarding.calleeParamIndex, fieldName))
+                if (forwarding.callee->hasResetParamField(forwarding.calleeParamIndex, fieldName) &&
+                    forwarding.caller->hasFreedParamField(forwarding.callerParamIndex, fieldName))
                     forwarding.caller->addResetParamField(forwarding.callerParamIndex, fieldName);
                 changed |= beforeFreed != forwarding.caller->freedParamFields().size() || beforeReset != forwarding.caller->resetParamFields().size();
             }

@@ -519,3 +519,32 @@ using Swag, Core
     moveTo(&f, Math.Point{picture.horzCenter(), picture.vertCenter()})
     Swag.require(not f.editView.showsCaptureHandles())
 }
+
+// A body drag repaints the region the selection leaves and enters, not the whole editor: a
+// form far from the moved one is not drawn again on each move of the pointer.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.editView.setZoom(1)
+    f.main.editMode = .Shape
+    discard testAddShape(f.capture, 20, 20, 40, 30)
+    discard testAddShape(f.capture, 330, 240, 50, 40)
+    f.capture.hasChanged()
+
+    let surface = unwrap f.editView.surface
+    f.gui.mouseDown(f.imagePoint({40, 35}))
+    f.gui.moveMouse(f.imagePoint({50, 40}))
+    Swag.require(f.capture.mouseMode == .Moving)
+
+    Gui.Testing.clearPendingRepaint(surface)
+    f.gui.moveMouse(f.imagePoint({60, 45}))
+    let far = f.imagePoint({330, 240})
+    let repaint = Gui.Testing.pendingRepaint(surface)
+    Swag.require(repaint.dirty)
+    Swag.require(repaint.rect.right() < far.x or repaint.rect.bottom() < far.y)
+
+    f.gui.mouseUp(f.imagePoint({60, 45}))
+    Gui.Testing.assertRect(f.capture.forms[0].boundRect(), 40, 30, 40, 30)
+}

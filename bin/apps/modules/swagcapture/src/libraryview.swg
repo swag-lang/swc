@@ -936,6 +936,9 @@ impl LibraryView
                 .postInvalidateEvent()
         }
 
+        // The last refresh rebuilds the list even when a refresh during the load already took
+        // the last preview: a sort deferred until the end of the load runs there.
+        g_DirtyList   = true
         g_UpdatingLib = false
         .postInvalidateEvent()
     }
@@ -947,6 +950,8 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
+        // The items keep their order in `remaining`, so a capture with nothing to compare
+        // stays where the previous order put it.
         var remaining = .items
         var nitems: Array'*LibraryItem
 
@@ -958,7 +963,7 @@ impl LibraryView
             if not toCompare or toCompare.filtered or toCompare.haar.size == 0
             {
                 toCompare = remaining.front()
-                remaining.removeAt(0)
+                remaining.removeAtOrdered(0)
                 nitems.add(toCompare)
                 continue
             }
@@ -981,12 +986,12 @@ impl LibraryView
             {
                 toCompare = remaining[bestI]
                 nitems.add(toCompare)
-                remaining.removeAt(bestI)
+                remaining.removeAtOrdered(bestI)
             }
             else
             {
                 toCompare = remaining.front()
-                remaining.removeAt(0)
+                remaining.removeAtOrdered(0)
                 nitems.add(toCompare)
             }
         }
@@ -1049,9 +1054,16 @@ impl LibraryView
     }
 
     // Sorts the shown items by the selected criterion, keeping the selection.
+    //
+    // Similarity compares every remaining item with the last one placed, and needs the previews
+    // the loader is still decoding: while it runs, that quadratic pass would be repeated at each
+    // refresh of the list, holding the lock the loader needs, for an order the next preview
+    // changes. The refresh that follows the last preview sorts once.
     mtd sort()
     {
         if .items.isEmpty() do
+            return
+        if .libWnd.sortMethod == .Similar and g_UpdatingLib do
             return
 
         let selection = .rememberSelection()

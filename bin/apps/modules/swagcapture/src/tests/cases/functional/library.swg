@@ -974,3 +974,44 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(Directory.exists(folder))
     Swag.require(Directory.exists(Path.combine(folder, ".trash")))
 }
+
+// Ordering by similarity waits for the loader: while previews still stream in, a refresh of the
+// list keeps the order it has, and the refresh after the last preview places each capture
+// after the one it looks most like.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer
+    {
+        g_UpdatingLib = false
+        f.shutdown()
+    }
+
+    let lib  = f.setupLibraryWnd()
+    let view = lib.view
+    func features(topLeft, topRight, bottomLeft, bottomRight: Color)->ImageStatistics.HaarFeatures
+    {
+        var image = Image.create(32, 32, .BGRA8)
+        image.fillGradient(topLeft, topRight, bottomLeft, bottomRight)
+        return ImageStatistics.quickExtractHaarFeatures(image, 32)
+    }
+
+    // Two left-to-right ramps, nearly equal, and one top-to-bottom ramp.
+    let across = testAddLibraryItem(view, "across.scc", 10, 1)
+    let down   = testAddLibraryItem(view, "down.scc", 10, 1)
+    let nearly = testAddLibraryItem(view, "nearly.scc", 10, 1)
+    let gray   = Color.fromRgb(24, 24, 24)
+    across.haar = features(Argb.Black, Argb.White, Argb.Black, Argb.White)
+    down.haar   = features(Argb.Black, Argb.Black, Argb.White, Argb.White)
+    nearly.haar = features(gray, Argb.White, gray, Argb.White)
+    lib.sortMethod = .Similar
+
+    g_UpdatingLib = true
+    view.sort()
+    Swag.require(view.items[0] == across and view.items[1] == down and view.items[2] == nearly)
+
+    g_UpdatingLib = false
+    view.sort()
+    Swag.require(view.items[0] == across and view.items[1] == nearly and view.items[2] == down)
+}

@@ -322,6 +322,44 @@ func lossyForward4x4(source: const [*] u8, sourceStride: u64, prediction: const 
     }
 }
 
+// Four-point Hadamard in wide lanes: 8-bit residuals may put 65280 in the first
+// forward DC coefficient, which the decoder's signed-16-bit inverse helper would clamp.
+func forwardIntraDc4x4(input: const [*] s32, output: [*] s32)
+{
+    var rows: [16] s32
+    for row in 4'u64
+    {
+        let at = row * 4
+        let c0 = input[at]
+        let c1 = input[at + 1]
+        let c2 = input[at + 2]
+        let c3 = input[at + 3]
+        let e0 = c0 + c2
+        let e1 = c0 - c2
+        let e2 = c1 - c3
+        let e3 = c1 + c3
+        rows[at] = e0 + e3
+        rows[at + 1] = e1 + e2
+        rows[at + 2] = e1 - e2
+        rows[at + 3] = e0 - e3
+    }
+    for column in 4'u64
+    {
+        let c0 = rows[column]
+        let c1 = rows[4 + column]
+        let c2 = rows[8 + column]
+        let c3 = rows[12 + column]
+        let e0 = c0 + c2
+        let e1 = c0 - c2
+        let e2 = c1 - c3
+        let e3 = c1 + c3
+        output[column] = e0 + e3
+        output[4 + column] = e1 + e2
+        output[8 + column] = e1 - e2
+        output[12 + column] = e0 - e3
+    }
+}
+
 // Quantizes raster `coefficients` from position `first` into zigzag `levels`, and writes what a
 // decoder scales them back to into `scaled`, in the column-major order of the inverse transform.
 // `rounding` is the dead zone as a fraction of one step, out of 65536. Returns the level count.

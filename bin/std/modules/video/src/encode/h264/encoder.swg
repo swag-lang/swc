@@ -1,6 +1,6 @@
 //! Format: H.264/AVC constrained-baseline encoder.
-//! Supported: Progressive NV12, quantized intra and inter residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures.
-//! Not supported: Rate control, B pictures, and real-time full-motion high-resolution capture.
+//! Supported: Progressive NV12, an exact mode at QP 0, and quantized pictures with Intra_16x16 and Intra_4x4 prediction, quarter-sample motion, P-skip, in-loop deblocking, and periodic IDR pictures.
+//! Not supported: Rate control, B pictures, CABAC, and macroblock partitions.
 //! Role: This file supplies encoded packets without an external codec or platform encoder.
 //
 #global namespace H264
@@ -29,19 +29,6 @@ private struct EncoderSliceScratch
     chromaNonZero: Array'u8
 }
 
-private struct EncoderQuantizedMb
-{
-    lumaDc:         [16] s16
-    lumaLevels:     [256] s16
-    chromaDc:       [8] s16
-    chromaAc:       [128] s16
-    reconstructedY: [256] u8
-    reconstructedUv:[128] u8
-    cbpLuma:       u32
-    cbpChroma:     u32
-    simpleLumaMask:u32
-}
-
 private const MotionOffsets: [16, 2] s32 = [
     [0, -2], [0, 2], [0, -4], [0, 4], [0, -8], [0, 8],
     [0, -16], [0, 16], [0, -32], [0, 32],
@@ -61,13 +48,14 @@ private const EncoderZigzagInverse: [16] u8 = [0, 1, 5, 6, 2, 4, 7, 12,
 
 // Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.
 //
-// This portable first stage codes flat intra blocks and exact quantized luma/chroma residuals at QP 0,
-// integer-pixel motion copies, and P-skip. A residual is used only when local inverse
-// reconstruction matches all input samples and its code is smaller than I_PCM. Other changes
-// use I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks
-// are not suitable for arbitrary high-motion 1080p60 recording. The result borrows the encoder's
-// packet storage until the next call to encode. The AVC configuration remains valid for the
-// encoder's lifetime and uses four-byte NAL lengths.
+// QP 0 keeps every sample: flat intra blocks, exact residuals, integer-pixel copies and P-skip,
+// with I_PCM for whatever these cannot hold. A positive QP trades precision for size: each
+// macroblock is predicted from its neighbours or from the preceding picture at quarter-sample
+// precision, only the quantized difference is written, and block edges are smoothed in the loop,
+// so a decoder rebuilds the exact picture the encoder predicts from. The quantizer is fixed for
+// the encoder's lifetime; the size of a picture follows its content. The result borrows the
+// encoder's packet storage until the next call to encode. The AVC configuration remains valid
+// for the encoder's lifetime and uses four-byte NAL lengths.
 //
 // ```swag
 // #import("video")
@@ -91,7 +79,6 @@ struct Encoder
         packet:         Array'u8
         previous:       Array'u8
         previousInput:  Array'u8
-        reconstructed:  Array'u8
         width:          s32
         height:         s32
         mbWidth:        u32
@@ -315,7 +302,7 @@ private impl Encoder
             for &value in motions[] do
                 value[] = {}
         }
-        if not key or .quantizationQp
+        if not key
         {
             nonZero.resize(cast(u64, .mbWidth) * cast(u64, .mbHeight) * 16)
             for &value in nonZero[] do
@@ -330,25 +317,6 @@ private impl Encoder
             {
                 let motionIndex = cast(u64, mbY) * .mbWidth + mbX
                 let prediction = key ? EncoderMotion{} : .predictMotion(motions.toSlice(), mbX, mbY, sliceStartY)
-                if not key and .quantizationQp and .unchangedInput(frame, mbX, mbY)
-                {
-                    // Repeating an input after a lossy picture must hold the decoded reference,
-                    // not spend another quantization pass or copy the raw source into it.
-                    if .skipMotionIsZero(motions.toSlice(), mbX, mbY, sliceStartY) do
-                        skipped += 1
-                    else
-                    {
-                        bits.unsigned(skipped)
-                        bits.unsigned(0) // P_L0_16x16, explicit zero motion.
-                        bits.signed(-prediction.x)
-                        bits.signed(-prediction.y)
-                        bits.unsigned(0) // No residual, hence no mb_qp_delta.
-                        skipped = 0
-                    }
-                    .storePreviousMb(mbX, mbY)
-                    motions[][motionIndex] = {0, 0, true}
-                    continue
-                }
                 var firstDifferent = 256'u32
                 let same = not key and .unchanged(frame, mbX, mbY, &firstDifferent)
                 if same and .skipMotionIsZero(motions.toSlice(), mbX, mbY, sliceStartY)
@@ -359,18 +327,14 @@ private impl Encoder
                 }
                 if not key do
                     bits.unsigned(skipped)
-                let flatSource = .flatIntra(frame, mbX, mbY, sliceStartY)
-                let flatDecoded = flatSource and
-                                  (not .quantizationQp or
-                                   .flatIntraBordersMatchReconstructed(frame, mbX, mbY, sliceStartY))
-                if flatDecoded
+                if .flatIntra(frame, mbX, mbY, sliceStartY)
                 {
                     bits.unsigned(key ? 3 : 8) // Intra_16x16 DC, no coded AC/chroma.
                     bits.unsigned(0)           // Chroma DC prediction.
                     bits.signed(0)             // No QP change.
-                    // P pictures can have inter residuals beside a flat intra block even
-                    // in exact mode. Their coefficient counts select its DC token table.
-                    if .quantizationQp or not key
+                    // P pictures can have inter residuals beside a flat intra block.
+                    // Their coefficient counts select its DC token table.
+                    if not key
                     {
                         var empty: [16] s16
                         discard bits.residual4(empty.buffer,
@@ -381,76 +345,6 @@ private impl Encoder
                         .writeEmptyIntraDc(&bits, pcm.toSlice(), mbX, mbY, sliceStartY)
                     skipped = 0
                     continue
-                }
-                // The first MB of each IDR slice anchors a flat source to exact
-                // pixels. Otherwise one rounded DC value can make every following
-                // flat block miss the cheap empty-residual path.
-                if key and .quantizationQp and (mbX != 0 or mbY != sliceStartY)
-                {
-                    var quantized: EncoderQuantizedMb
-                    if .quantizeIntraMb(frame, mbX, mbY, sliceStartY, &quantized)
-                    {
-                        let oldBytes = bits.bytes.count
-                        let oldCurrent = bits.current
-                        let oldUsed = bits.used
-                        let oldQp = currentQp
-                        let coded = .writeQuantizedIntra(&bits, nonZero.toSlice(),
-                                                          chromaNonZero.toSlice(), mbX, mbY,
-                                                          &quantized, &currentQp, sliceStartY, 3)
-                        let written = bits.bytes.count * 8 + bits.used -
-                                      (oldBytes * 8 + oldUsed)
-                        if coded and written < 3_072
-                        {
-                            .storeQuantizedMb(&quantized, mbX, mbY)
-                            continue
-                        }
-                        bits.bytes.resize(oldBytes)
-                        bits.current = oldCurrent
-                        bits.used = oldUsed
-                        currentQp = oldQp
-                        for block in 16'u64 do
-                            nonZero[][motionIndex * 16 + block] = 0
-                        for block in 8'u64 do
-                            chromaNonZero[][motionIndex * 8 + block] = 0
-                    }
-                }
-                // The flat-source intra shortcut is validated at QP 28 and 36.
-                // Keep other QPs on the inter path until their reconstruction is tested.
-                if not key and (.quantizationQp == 28 or .quantizationQp == 36) and
-                   flatSource and not flatDecoded
-                {
-                    // Source-flat blocks following lossy neighbours cannot use the empty
-                    // intra form. Try the existing quantized DC predictor only when its
-                    // syntax remains small, retaining the inter fallback otherwise.
-                    var quantized: EncoderQuantizedMb
-                    if .quantizeIntraMb(frame, mbX, mbY, sliceStartY, &quantized)
-                    {
-                        let oldBytes = bits.bytes.count
-                        let oldCurrent = bits.current
-                        let oldUsed = bits.used
-                        let oldQp = currentQp
-                        let coded = .writeQuantizedIntra(&bits, nonZero.toSlice(),
-                                                          chromaNonZero.toSlice(), mbX, mbY,
-                                                          &quantized, &currentQp, sliceStartY, 8,
-                                                          true)
-                        let written = bits.bytes.count * 8 + bits.used -
-                                      (oldBytes * 8 + oldUsed)
-                        if coded and written <= 128
-                        {
-                            .storeQuantizedMb(&quantized, mbX, mbY)
-                            motions[][motionIndex] = {}
-                            skipped = 0
-                            continue
-                        }
-                        bits.bytes.resize(oldBytes)
-                        bits.current = oldCurrent
-                        bits.used = oldUsed
-                        currentQp = oldQp
-                        for block in 16'u64 do
-                            nonZero[][motionIndex * 16 + block] = 0
-                        for block in 8'u64 do
-                            chromaNonZero[][motionIndex * 8 + block] = 0
-                    }
                 }
                 if not key
                 {
@@ -466,55 +360,7 @@ private impl Encoder
                         continue
                     }
 
-                    if .quantizationQp
-                    {
-                        var residualMotion = EncoderMotion{0, 0, true}
-                        if preferShiftedInterPrediction(frame.luma().buffer,
-                                                        .previous.storage(), .width, .height,
-                                                        mbX, mbY, -16, -8) do
-                            residualMotion = {-64, -32, true}
-                        var quantized: EncoderQuantizedMb
-                        if .quantizeInterMb(frame, mbX, mbY,
-                                            residualMotion.x / 4, residualMotion.y / 4,
-                                            &quantized)
-                        {
-                            let oldBytes = bits.bytes.count
-                            let oldCurrent = bits.current
-                            let oldUsed = bits.used
-                            let oldQp = currentQp
-                            bits.unsigned(0) // P_L0_16x16 with the chosen integer motion.
-                            bits.signed(residualMotion.x - prediction.x)
-                            bits.signed(residualMotion.y - prediction.y)
-                            let coded = .writeAcResidual(&bits, nonZero.toSlice(),
-                                                         chromaNonZero.toSlice(), mbX, mbY,
-                                                         quantized.lumaLevels.buffer,
-                                                         quantized.cbpLuma,
-                                                         quantized.chromaDc.buffer,
-                                                         quantized.chromaAc.buffer,
-                                                         quantized.cbpChroma,
-                                                         &currentQp,
-                                                         cast(s32, .quantizationQp), sliceStartY,
-                                                         quantized.simpleLumaMask)
-                            let written = bits.bytes.count * 8 + bits.used -
-                                          (oldBytes * 8 + oldUsed)
-                            if coded and written < 3_072
-                            {
-                                .storeQuantizedMb(&quantized, mbX, mbY)
-                                motions[][motionIndex] = residualMotion
-                                skipped = 0
-                                continue
-                            }
-                            bits.bytes.resize(oldBytes)
-                            bits.current = oldCurrent
-                            bits.used = oldUsed
-                            currentQp = oldQp
-                            for block in 16'u64 do
-                                nonZero[][motionIndex * 16 + block] = 0
-                            for block in 8'u64 do
-                                chromaNonZero[][motionIndex * 8 + block] = 0
-                        }
-                    }
-                    elif not .denseResidualLikelyOversized(frame, mbX, mbY, firstDifferent)
+                    if not .denseResidualLikelyOversized(frame, mbX, mbY, firstDifferent)
                     {
                         var chromaLevels: [8] s16
                         var chromaAcLevels: [128] s16
@@ -605,7 +451,7 @@ private impl Encoder
                 bits.alignZero()
                 .writePcm(&bits, frame, mbX, mbY)
                 pcm[][motionIndex] = true
-                if not key or .quantizationQp
+                if not key
                 {
                     for block in 16'u64 do
                         nonZero[][motionIndex * 16 + block] = 16
@@ -619,211 +465,6 @@ private impl Encoder
             bits.unsigned(skipped)
         bits.trailing()
         appendEncoderNal(packet, key ? 0x65 : 0x41, bits.bytes.toSlice())
-    }
-
-    // Tests the visible input samples, including a cropped edge macroblock. A previously
-    // quantized reference can differ from this input even when the screen has not changed.
-    mtd const unchangedInput(frame: const *Nv12Frame, mbX, mbY: u32)->bool
-    {
-        if .previousInput.count != frame.bytes.count do
-            return false
-        let width = cast(u64, .width)
-        let height = cast(u64, .height)
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
-        let columns = Math.min(width - x, 16'u64)
-        let rows = Math.min(height - y, 16'u64)
-        let source = frame.bytes.storage()
-        let prior = .previousInput.storage()
-        for row in rows
-        {
-            let at = (y + row) * width + x
-            if Memory.compare(source + at, prior + at, columns) != 0 do
-                return false
-        }
-        let uvStart = width * height
-        for row in rows / 2
-        {
-            let at = uvStart + (y / 2 + row) * width + x
-            if Memory.compare(source + at, prior + at, columns) != 0 do
-                return false
-        }
-        return true
-    }
-
-    // A repeated source holds the prior decoded macroblock, never the raw input from
-    // which that lossy picture was made. Both buffers store tightly packed visible NV12.
-    mtd storePreviousMb(mbX, mbY: u32)
-    {
-        let width = cast(u64, .width)
-        let height = cast(u64, .height)
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
-        let columns = Math.min(width - x, 16'u64)
-        let rows = Math.min(height - y, 16'u64)
-        let source = .previous.storage()
-        let target = .reconstructed.storage()
-        for row in rows
-        {
-            let at = (y + row) * width + x
-            Memory.copy(target + at, source + at, columns)
-        }
-        let uvStart = width * height
-        for row in rows / 2
-        {
-            let at = uvStart + (y / 2 + row) * width + x
-            Memory.copy(target + at, source + at, columns)
-        }
-    }
-
-    // Builds one complete intra candidate against already accepted reconstructed neighbours.
-    // A cropped edge macroblock stays PCM because H.264 still requires a full transform grid.
-    mtd const quantizeIntraMb(frame: const *Nv12Frame, mbX, mbY, sliceStartY: u32,
-                              result: *EncoderQuantizedMb)->bool
-    {
-        let width = cast(u64, .width)
-        let height = cast(u64, .height)
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
-        if x + 16 > width or y + 16 > height do
-            return false
-        let source = frame.bytes.storage()
-        let reconstructed = .reconstructed.storage()
-        var luma: IntraLuma16x16Result
-        quantizeIntraLuma16x16(source + y * width + x, width,
-                              reconstructed, width, x, y, mbX > 0,
-                              mbY > sliceStartY, .quantizationQp, &luma)
-        result.lumaDc = luma.dc
-        result.lumaLevels = luma.ac
-        result.reconstructedY = luma.reconstructed
-        result.cbpLuma = luma.cbpLuma
-        result.cbpChroma = 0
-
-        let uvStart = width * height
-        let sourceUv = source + uvStart + y / 2 * width + x
-        let reconstructedUv = reconstructed + uvStart
-        for plane in 2'u64
-        {
-            var chroma: InterChroma8x8Result
-            quantizeIntraChroma8x8(sourceUv, width, reconstructedUv, width,
-                                   x, y, cast(u32, plane), mbX > 0,
-                                   mbY > sliceStartY, .quantizationQp, 0, &chroma)
-            for index in 4'u64 do
-                result.chromaDc[plane * 4 + index] = chroma.dc[index]
-            for block in 4'u64
-            {
-                for scan in 16'u64 do
-                    result.chromaAc[(plane * 4 + block) * 16 + scan] =
-                        chroma.ac[block * 16 + scan]
-            }
-            result.cbpChroma = Math.max(result.cbpChroma, cast(u32, chroma.cbp))
-            for row in 8'u64
-            {
-                for column in 8'u64 do
-                    result.reconstructedUv[row * 16 + column * 2 + plane] =
-                        chroma.reconstructed[row * 8 + column]
-            }
-        }
-        return true
-    }
-
-    // Builds all sixteen luma and eight chroma coefficient blocks against the shifted
-    // decoded picture. Edge macroblocks retain the exact PCM path, which handles padding.
-    mtd const quantizeInterMb(frame: const *Nv12Frame, mbX, mbY: u32, dx, dy: s32,
-                              result: *EncoderQuantizedMb)->bool
-    {
-        let width = cast(u64, .width)
-        let height = cast(u64, .height)
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
-        let shiftedX = cast(s64, x) + cast(s64, dx)
-        let shiftedY = cast(s64, y) + cast(s64, dy)
-        if x + 16 > width or y + 16 > height or dx % 2 or dy % 2 or
-           shiftedX < 0 or shiftedY < 0 or shiftedX + 16 > cast(s64, width) or
-           shiftedY + 16 > cast(s64, height) do
-            return false
-        let priorX = cast(u64, shiftedX)
-        let priorY = cast(u64, shiftedY)
-
-        let currentY = frame.luma()
-        let currentUv = frame.chroma()
-        let previousY = .previous.storage()
-        let previousUv = previousY + width * height
-        result.cbpLuma = 0
-        result.cbpChroma = 0
-        result.simpleLumaMask = 0
-        for by in 4'u64
-        {
-            for bx in 4'u64
-            {
-                let block = by * 4 + bx
-                let offset = (y + by * 4) * width + x + bx * 4
-                let priorOffset = (priorY + by * 4) * width + priorX + bx * 4
-                var quantized: InterLuma4x4Result
-                quantizeInterLuma4x4(currentY.buffer + offset, previousY + priorOffset,
-                                     width, width, .quantizationQp, &quantized)
-                for scan in 16'u64 do
-                    result.lumaLevels[block * 16 + scan] = quantized.levels[scan]
-                if not quantized.nonZero or
-                   (quantized.nonZero == 1 and quantized.levels[0] != 0 and
-                    Math.abs(cast(s32, quantized.levels[0])) <= 2_048) do
-                    result.simpleLumaMask |= 1'u32 << cast(u32, block)
-                if quantized.nonZero do
-                    result.cbpLuma |= 1'u32 << cast(u32, by / 2 * 2 + bx / 2)
-                for row in 4'u64
-                {
-                    Memory.copy(result.reconstructedY.buffer + (by * 4 + row) * 16 + bx * 4,
-                                quantized.reconstructed.buffer + row * 4, 4)
-                }
-            }
-        }
-
-        let chromaOffset = y / 2 * width + x
-        let priorChromaOffset = priorY / 2 * width + priorX
-        for plane in 2'u64
-        {
-            var quantized: InterChroma8x8Result
-            quantizeInterChroma8x8(currentUv.buffer + chromaOffset + plane,
-                                   previousUv + priorChromaOffset + plane,
-                                   width, width, .quantizationQp, 0, &quantized)
-            for index in 4'u64 do
-                result.chromaDc[plane * 4 + index] = quantized.dc[index]
-            for block in 4'u64
-            {
-                for scan in 16'u64 do
-                    result.chromaAc[(plane * 4 + block) * 16 + scan] =
-                        quantized.ac[block * 16 + scan]
-            }
-            result.cbpChroma = Math.max(result.cbpChroma, cast(u32, quantized.cbp))
-            for row in 8'u64
-            {
-                for column in 8'u64 do
-                    result.reconstructedUv[row * 16 + column * 2 + plane] =
-                        quantized.reconstructed[row * 8 + column]
-            }
-        }
-        return true
-    }
-
-    // The candidate becomes the next reference only after its CAVLC syntax and size pass.
-    mtd storeQuantizedMb(result: *EncoderQuantizedMb, mbX, mbY: u32)
-    {
-        let width = cast(u64, .width)
-        let height = cast(u64, .height)
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
-        let destination = .reconstructed.storage()
-        for row in 16'u64
-        {
-            Memory.copy(destination + (y + row) * width + x,
-                        result.reconstructedY.buffer + row * 16, 16)
-        }
-        let uvStart = width * height + y / 2 * width + x
-        for row in 8'u64
-        {
-            Memory.copy(destination + uvStart + row * width,
-                        result.reconstructedUv.buffer + row * 16, 16)
-        }
     }
 
     // Dense, strongly varying deltas tend to cost more CAVLC bits than one
@@ -1347,54 +988,6 @@ private impl Encoder
         return left + top
     }
 
-    // Intra_16x16 codes one luma DC block regardless of its coded block pattern.
-    // AC counts, rather than DC counts, form the neighbour contexts for later blocks.
-    mtd const writeQuantizedIntra(bits: *EncoderBits, nonZero, chromaNonZero: [..] u8,
-                                  mbX, mbY: u32, result: *EncoderQuantizedMb,
-                                  currentQp: *s32, sliceStartY, typeBase: u32,
-                                  singleDcGuaranteed: bool = false)->bool
-    {
-        bits.unsigned(typeBase + result.cbpChroma * 4 + (result.cbpLuma == 0 ? 0'u32 : 12'u32))
-        bits.unsigned(0) // Intra chroma DC prediction.
-        bits.signed(cast(s32, .quantizationQp) - currentQp[])
-        currentQp[] = cast(s32, .quantizationQp)
-        let dcContext = .lumaNc(nonZero, mbX, mbY, 0, 0, sliceStartY)
-        if singleDcGuaranteed
-        {
-            // The caller has checked that every source Y sample is equal. Its
-            // sixteen 4x4 DC inputs are equal, so Hadamard leaves only scan 0.
-            // The flat-luma helper tests prove that for all supported QPs.
-            bits.singleDc(cast(s32, result.lumaDc[0]), dcContext)
-        }
-        elif not bits.residual4(result.lumaDc.buffer, dcContext) do
-            return false
-        if result.cbpLuma
-        {
-            for quad in 4'u32
-            {
-                for cell in 4'u32
-                {
-                    let bx = (quad & 1) * 2 + (cell & 1)
-                    let by = (quad >> 1) * 2 + (cell >> 1)
-                    let block = by * 4 + bx
-                    let levels = result.lumaLevels.buffer + block * 16
-                    if not bits.residual15(levels + 1,
-                                           .lumaNc(nonZero, mbX, mbY, bx, by,
-                                                   sliceStartY)) do
-                        return false
-                    let at = (cast(u64, mbY) * .mbWidth + mbX) * 16 + block
-                    var total = 0'u8
-                    for scan in 1'u64 until 16 where levels[scan] != 0 do
-                        total += 1
-                    nonZero[at] = total
-                }
-            }
-        }
-        return .writeChromaResidual(bits, chromaNonZero, mbX, mbY,
-                                    result.chromaDc.buffer, result.chromaAc.buffer,
-                                    result.cbpChroma, sliceStartY)
-    }
-
     mtd const writeChromaResidual(bits: *EncoderBits, nonZero: [..] u8,
                                   mbX, mbY: u32, dc: const [*] s16,
                                   ac: const [*] s16, cbp: u32, sliceStartY: u32)->bool
@@ -1552,48 +1145,6 @@ private impl Encoder
         return true
     }
 
-    // A source-flat block may follow a lossy neighbour. The empty DC syntax is exact
-    // only if the actual decoded boundary has the source's constant Y/Cb/Cr values.
-    mtd const flatIntraBordersMatchReconstructed(frame: const *Nv12Frame,
-                                                  mbX, mbY, sliceStartY: u32)->bool
-    {
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
-        let width = cast(u64, .width)
-        let height = cast(u64, .height)
-        let source = frame.bytes.storage()
-        let reconstructed = .reconstructed.storage()
-        let valueY = source[y * width + x]
-        let uvStart = width * height
-        let valueU = source[uvStart + y / 2 * width + x]
-        let valueV = source[uvStart + y / 2 * width + x + 1]
-        if mbY > sliceStartY
-        {
-            for column in 16'u64 where
-                reconstructed[(y - 1) * width + Math.min(x + column, width - 1)] != valueY do
-                return false
-            for column in 8'u64
-            {
-                let at = uvStart + (y / 2 - 1) * width + Math.min(x + column * 2, width - 2)
-                if reconstructed[at] != valueU or reconstructed[at + 1] != valueV do
-                    return false
-            }
-        }
-        if mbX
-        {
-            for row in 16'u64 where
-                reconstructed[Math.min(y + row, height - 1) * width + x - 1] != valueY do
-                return false
-            for row in 8'u64
-            {
-                let at = uvStart + Math.min(y / 2 + row, height / 2 - 1) * width + x - 2
-                if reconstructed[at] != valueU or reconstructed[at + 1] != valueV do
-                    return false
-            }
-        }
-        return true
-    }
-
     mtd const writeEmptyIntraDc(bits: *EncoderBits, pcm: const [..] bool,
                                 mbX, mbY, sliceStartY: u32)
     {
@@ -1708,10 +1259,8 @@ private impl Encoder
             result[] = {0, 0, true}
             return true
         }
-        // Common diagonal desktop scroll: the exact mode can copy a tile from
-        // its previous position. Lossy input needs motion-compensated residuals,
-        // so this exact-match probe does not help positive QP pictures.
-        if not .quantizationQp and .matchesMotion(frame, mbX, mbY, -16, -8)
+        // Common diagonal desktop scroll: a tile is copied from its previous position.
+        if .matchesMotion(frame, mbX, mbY, -16, -8)
         {
             result[] = {-64, -32, true}
             return true

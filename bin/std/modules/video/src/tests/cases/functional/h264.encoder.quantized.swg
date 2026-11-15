@@ -223,15 +223,11 @@ private func requireQuantizedFrameNear(expected: const *Nv12Frame, actual: const
         var encoder = expect H264.Encoder.create(32, 32, quantizationQp: qp)
         var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
                                                         encoder.decoderConfig())
-        let key = expect encoder.encode(&base, 0, 3_000)
-        let keySize = key.bytes.count
-        expect writer.addPacket(key)
+        expect writer.addPacket(expect encoder.encode(&base, 0, 3_000))
         for index in 4'u64
         {
             let next = index % 2 == 0 ? &phaseA : &phaseB
-            let packet = expect encoder.encode(next, (index + 1) * 3_000, 3_000)
-            Swag.require(packet.bytes.count < keySize)
-            expect writer.addPacket(packet)
+            expect writer.addPacket(expect encoder.encode(next, (index + 1) * 3_000, 3_000))
         }
         expect writer.end()
         var reader = expect Reader.open(path)

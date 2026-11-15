@@ -317,14 +317,26 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   a 30-second full-desktop Swag Capture file decoded 901 pictures without missed slots.
   The earlier scratch attempt exchanged local arrays; this version accesses encoder-owned
   arrays directly, and the measured gain is confined to this workload.
-  Film content is the worst case measured so far: a 245-second Swag Capture recording of a film
-  playing in a 2664×1078 area at QP 18 came to 1.47 GB, about 48 Mbit/s. One second of those
-  frames re-encoded with eight slices gives 29 Mbit/s at QP 18, 21 at QP 24, 17 at QP 28 and 13
-  at QP 32, and the key interval makes no difference: fourteen steps of quantization only halve
-  the stream, so the cost is in prediction, not in the residual precision.
-- Next: broaden motion search beyond the one measured diagonal displacement, cut the cost of
-  quantized luma/chroma residuals and avoid unused result copies on changing screens,
-  then remeasure the complete 1080p60 and 4K60 paths.
+  Film content was the worst case of that quantized path: a 245-second Swag Capture recording of
+  a film playing in a 2664×1078 area at QP 18 came to 1.47 GB, about 48 Mbit/s, and fourteen
+  steps of quantization only halved the stream: the cost was in prediction, not in residual
+  precision. Positive QP now runs a separate coder (`encode/h264/lossy.swg`) that replaces every
+  quantized-path figure above: Intra_16x16 and Intra_4x4 prediction, one quarter-sample vector
+  per macroblock found from neighbours, a per-region translation estimate, long jumps and a
+  hexagon search, P-skip, dead-zone quantization with coefficient elimination, in-loop
+  deblocking, and edge macroblocks coded like the rest instead of raw. It predicts from the
+  decoder's own `Frame`, and FFmpeg rebuilds its reference bit for bit. On three one-second
+  clips of that film (dark, bright, mixed) with eight slices in Release, QP 26 gives 3.5, 4.3
+  and 3.0 Mbit/s at 46.3, 43.7 and 46.0 dB luma PSNR in 16–25 ms per picture, against 18.9,
+  48.1 and 30.0 Mbit/s at 47.4, 44.5 and 46.4 dB before; at the earlier PSNR the stream is four
+  to nine times smaller. QP 18 gives 10.0, 16.1 and 9.2 Mbit/s (49.5, 46.6, 49.1 dB), QP 28
+  2.8, 3.4 and 2.5 Mbit/s (45.4, 42.9, 45.2 dB). x264 at baseline, veryfast and QP 26 reaches
+  3.0, 4.1 and 2.5 Mbit/s at 47.6, 43.9 and 46.4 dB on the same clips: about one decibel and
+  fifteen percent remain.
+- Next: remeasure the complete 1080p60 and 4K60 capture paths with the new coder, which spends
+  16–28 ms on a 2664×1078 film picture. Close the gap to x264 with rate-distortion mode
+  decisions, 8×8 and 16×8 partitions, and a trellis or adaptive dead zone; CABAC needs the Main
+  profile. Give the exact QP 0 path the same motion search.
   Measure slice-count changes with concurrent screen readback: eight slices improved isolated
   4K P-picture throughput, but a scaled two-screen recording lost 363 slots in one 60-second
   run, while four slices lost none in a subsequent run with varying desktop load.

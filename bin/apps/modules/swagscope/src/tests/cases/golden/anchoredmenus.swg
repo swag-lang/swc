@@ -111,8 +111,13 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
 #[Swag.TestTag("golden")]
 #test
 {
+    // The picture is alone in its folder, so its position among its siblings is not part of
+    // what is recorded.
+    let file = isolatedScopeFixture("title.png")
+    defer discardIsolatedScopeFixture(file)
+
     var host: Testing.HeadlessHost
-    let window = framedViewerWindow(&host, scopeTestDataPath("title.png"), false)
+    let window = framedViewerWindow(&host, file, false)
     let view   = assume cast(*Picture.Panel, window.currentView)
     assertScopeAnchoredMenu(&host, window, view.transformButton, "menus.image.transform")
     assertScopeAnchoredMenu(&host, window, view.zoomLabel, "menus.image.zoom")

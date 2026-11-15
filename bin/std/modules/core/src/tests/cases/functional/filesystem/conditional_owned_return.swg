@@ -16,18 +16,32 @@ func resolveOwnedPath(currentName, legacyName: string)->String
 
 #test
 {
-    let existing = unwrap #curlocation.fileName
-    let missing  = Path.combine(existing, ".missing")
+    var allocator: Swag.Allocator
+    allocator.setup()
+    allocator.configure(false, false, false, false, false)
+    let backing: Swag.IAllocator = &allocator
+    let context = Swag.getContext()
+    let originalAllocator = context.allocator
+    context.allocator = backing
+    defer context.allocator = originalAllocator
 
-    let current = resolveOwnedPath(missing, missing)
-    discard Format.toString("allocation after return: %", 1)
-    Swag.require(Path.equals(current, missing))
+    scope
+    {
+        let existing = unwrap #curlocation.fileName
+        let missing  = Path.combine(existing, ".missing")
 
-    let legacy = resolveOwnedPath(missing, existing)
-    discard Format.toString("allocation after return: %", 2)
-    Swag.require(Path.equals(legacy, existing))
+        let current = resolveOwnedPath(missing, missing)
+        discard Format.toString("allocation after return: %", 1)
+        Swag.require(Path.equals(current, missing))
 
-    let early = resolveOwnedPath(existing, missing)
-    discard Format.toString("allocation after return: %", 3)
-    Swag.require(Path.equals(early, existing))
+        let legacy = resolveOwnedPath(missing, existing)
+        discard Format.toString("allocation after return: %", 2)
+        Swag.require(Path.equals(legacy, existing))
+
+        let early = resolveOwnedPath(existing, missing)
+        discard Format.toString("allocation after return: %", 3)
+        Swag.require(Path.equals(early, existing))
+    }
+
+    Swag.require(allocator.stats().countAlloc == 0)
 }

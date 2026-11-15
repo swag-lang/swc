@@ -35,9 +35,18 @@ using Core, Gui
     Swag.require(panel.menu.items[1]!.id == VaultCommands.OpenFile)
     for item in panel.menu.items
     {
-        let text = item!.name.raw.toString()
+        Swag.require(item!.popup == null)
+        let text = item.name.raw.toString()
         Swag.require(not Utf8.contains(text, "papiers"))
         Swag.require(not Utf8.contains(text, "Users"))
+    }
+
+    for action in ["open", "unmount", "force"]
+    {
+        var found = false
+        for item in panel.menu.items where item!.id == Format.toString("vault.resident.%.0", action) do
+            found = true
+        Swag.require(found)
     }
 
     panel.destroy()

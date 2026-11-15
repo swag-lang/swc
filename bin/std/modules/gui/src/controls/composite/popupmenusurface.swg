@@ -5,8 +5,8 @@ using Core, Pixel
 // Selects where a detached popup menu stands relative to its physical screen anchor.
 enum PopupMenuSurfacePlacement
 {
-    AtPoint        // Opens at the anchor point and stays within its monitor's work area.
-    BelowAnchor    // Opens below the anchor rectangle, or above it when it does not fit.
+    AtPoint         // Opens at the anchor point and stays within its monitor's work area.
+    BelowAnchor     // Opens below the anchor rectangle, or above it when it does not fit.
 }
 
 // Opens a [[Gui.MenuCtrl]] on its own native surface, outside the bounds of its caller.
@@ -22,11 +22,11 @@ impl PopupMenuSurface
     #[Swag.Discardable]
     func create(app: *Application, anchor: Math.Point)->*Surface?
     {
-        let surface = catch app.createSurface(cast(s32, anchor.x), cast(s32, anchor.y),
-                                              300, 300, .ToolWindow | .TopMost)
+        let surface = catch app.createSurface(cast(s32, anchor.x), cast(s32, anchor.y), 300, 300, .ToolWindow | .TopMost)
         {
             return null
         }
+
         surface.minSize = {}
         return surface
     }
@@ -35,8 +35,9 @@ impl PopupMenuSurface
     //
     // `monitorPoint` selects the work area used for clamping. `anchor` and `monitorPoint` are
     // physical screen coordinates; the menu and its shadow are measured in logical units.
-    func show(view: *Wnd, menu: *MenuCtrl, anchor: Math.Rectangle,
-             placement: PopupMenuSurfacePlacement, monitorPoint: Math.Point)
+    // The visible menu body meets the anchor, excluding its shadow. A point menu flips left
+    // or above the pointer when the corresponding screen edge leaves too little room.
+    func show(view: *Wnd, menu: *MenuCtrl, anchor: Math.Rectangle, placement: PopupMenuSurfacePlacement, monitorPoint: Math.Point)
     {
         let surface = unwrap view.surface
         menu.updateState()
@@ -47,10 +48,17 @@ impl PopupMenuSurface
         let width  = Math.ceil((menu.position.width + 2 * shadow) * scale)
         let height = Math.ceil((menu.position.height + 2 * shadow) * scale)
         let work   = Env.monitorForPoint(monitorPoint).physicalWorkArea
-        let x      = Math.clamp(anchor.x, work.x, Math.max(work.x, work.right() - width))
-        var y      = placement == .BelowAnchor ? anchor.bottom() : anchor.y
-        if placement == .BelowAnchor and y + height > work.bottom() do
-            y = anchor.y - height
+
+        // Anchor the menu body, excluding its transparent shadow. A point menu flips beside
+        // the pointer at an edge instead of sliding the pointer into the middle of its rows.
+        let margin = shadow * scale
+        var x      = anchor.x - margin
+        var y      = (placement == .BelowAnchor ? anchor.bottom() : anchor.y) - margin
+        if placement == .AtPoint and x + width > work.right() do
+            x = anchor.x - width + margin
+        if y + height > work.bottom() do
+            y = anchor.y - height + margin
+        x = Math.clamp(x, work.x, Math.max(work.x, work.right() - width))
         y = Math.clamp(y, work.y, Math.max(work.y, work.bottom() - height))
 
         surface.setView(view)
@@ -63,6 +71,7 @@ impl PopupMenuSurface
             if surface.win32Handle() do
                 discard Win32.SetForegroundWindow(surface.win32Handle())
         }
+
         view.setFocus()
     }
 
@@ -79,11 +88,13 @@ impl PopupMenuSurface
             menu.captureMouse()
             armed[] = true
         }
+
         if view.app().isActivated
         {
             wasActive[] = true
             return false
         }
+
         return wasActive[]
     }
 }

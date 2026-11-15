@@ -19,7 +19,6 @@ impl ThumbnailService
         if not .ready
         {
             .registry = createViewerPluginRegistry()
-            .renderer = try ThumbnailRenderer.create()
             .ready    = true
         }
 
@@ -51,5 +50,7 @@ func renderThumbnail(registry: const *ViewerPluginRegistry,
 
     let viewerName = knownPlugin ? registry.plugins[pluginIndex].staticName : "File"
     let textual    = knownPlugin and registry.plugins[pluginIndex].textual
+    if not renderer.bodyFont do
+        renderer[] = try ThumbnailRenderer.create()
     return try renderer.render(path, viewerName, textual)
 }

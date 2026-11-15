@@ -150,7 +150,7 @@ internal func showBoard(host: *Testing.HeadlessHost, window: *ViewerWindow, pare
         let folder = unwrap Path.directoryName(#curlocation.fileName)
         let audio  = Path.combine(folder, "song.flac")
         let video  = Path.combine(folder, "datas", "rv40-legacy-clock.mkv")
-        Swag.require(onlinePreviewWanted(audio, &onlineSettings) and onlinePreviewWanted(video, &onlineSettings))
+        Swag.require(onlinePreviewWanted(audio, &onlineSettings) and onlinePreviewWanted(video, &onlineSettings, 5400))
         onlineSettings.localArtworkOnly = true
         Swag.require(not onlinePreviewWanted(audio, &onlineSettings) and not onlinePreviewWanted(video, &onlineSettings))
     }

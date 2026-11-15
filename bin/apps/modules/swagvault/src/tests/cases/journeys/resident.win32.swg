@@ -50,6 +50,31 @@ using Core, Gui, Pixel, Win32
     var identifier = NOTIFYICONIDENTIFIER{cbSize: #sizeof(NOTIFYICONIDENTIFIER), hWnd: surface.win32Handle(), uID: 1}
     Swag.require(Shell_NotifyIconGetRect(&identifier, &rectangle) == S_OK)
 
+    // The tray menu owns its complete surface and returns directly to the resident window.
+    var contextMenu = SysUserEvent{kind: .TrayIcon, trayAction: .ContextMenu}
+    window.sendEvent(&contextMenu)
+    let panel       = unwrap window.resident.menu
+    let menuSurface = unwrap panel.surface
+    var menuWatch: Time.Stopwatch
+    menuWatch.start()
+    while not (expect Testing.verifyNativePresentation(menuSurface))
+    {
+        Swag.require(menuWatch.elapsedMilliseconds() < 5000, "resident menu presentation exceeded its deadline")
+        g_App.runFrame()
+    }
+
+    var nativeBounds: RECT
+    let gotBounds = GetWindowRect(menuSurface.win32Handle(), &nativeBounds)
+    Swag.require(gotBounds != 0)
+    Swag.require(Math.abs(cast(f32, nativeBounds.left) - menuSurface.position.x) < 1)
+    Swag.require(Math.abs(cast(f32, nativeBounds.top) - menuSurface.position.y) < 1)
+    for item in panel.menu.items do
+        Swag.require(item!.popup == null)
+    panel.choose(VaultCommands.ShowWindow)
+    g_App.runFrame()
+    Swag.require(window.resident.menu == null and not surface.isHidden)
+    window.resident.hideWindow()
+
     Swag.require(Surface.sendCustomMessage("vault-resident-journey", ShowWindowMessage, 0))
     Swag.require(not surface.isHidden)
     window.resident.hideWindow()

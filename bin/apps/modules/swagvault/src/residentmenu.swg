@@ -63,11 +63,7 @@ impl ResidentMenu
         for &drive, index in window.mountedDrives.drives
         {
             result.paths.add(drive.path)
-            let child = MenuCtrl.createPopup(menu, owner: result)
             let ready = window.operation.kind == .None and not window.resident.batch
-            child.addItem(texts.cmd_OpenDrive, Format.toString("vault.resident.open.%", index))
-            child.addItem(texts.ui_Unmount, Format.toString("vault.resident.unmount.%", index), disabled: not ready)
-            child.addItem(texts.cmd_ForceUnmount, Format.toString("vault.resident.force.%", index), disabled: not ready)
             var label = String.from(drive.mountLabel)
             #static if #os != Swag.TargetOs.Windows
             {
@@ -75,7 +71,10 @@ impl ResidentMenu
                     label = Format.toString(texts.ui_ResidentDrive, index + 1)
             }
 
-            menu.addPopup(label, child)
+            menu.addLabel(label)
+            menu.addItem(texts.cmd_OpenDrive, Format.toString("vault.resident.open.%", index))
+            menu.addItem(texts.ui_Unmount, Format.toString("vault.resident.unmount.%", index), disabled: not ready)
+            menu.addItem(texts.cmd_ForceUnmount, Format.toString("vault.resident.force.%", index), disabled: not ready)
         }
 
         menu.addItem(VaultCommands.UnmountAll)

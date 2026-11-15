@@ -159,6 +159,7 @@ struct ViewerWindow
     folderHistory:       Array'ViewerFolderHistory
     resumePoints:        Array'ViewerResumePoint     // Where the files of the history were left, most recent first.
     exploredFolders:     Array'String     // Directories explored lately, most recent first.
+    folderViews:         Array'ExplorerFolderState
     systemPlaces:        Array'String     // The system's own folders a first launch offers to explore.
     fileViewerChoices:   Array'ViewerFileChoice
     musicChoices:        Array'MusicChoice
@@ -493,6 +494,7 @@ impl IWnd for ViewerWindow
 
         if not evt.serializer.isReading()
         {
+            .explorer?.rememberView()
             .privacy.sanitize()
             .privacy.dirty = false
         }
@@ -506,6 +508,7 @@ impl IWnd for ViewerWindow
             .captureResume()
         catch evt.serializer.serialize("ViewerWindow.resumePoints", &me.resumePoints)
         catch evt.serializer.serialize("ViewerWindow.exploredFolders", &me.exploredFolders)
+        catch evt.serializer.serialize("ViewerWindow.folderViews", &me.folderViews)
         catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
         catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)

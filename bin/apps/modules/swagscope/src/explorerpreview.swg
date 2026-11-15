@@ -19,10 +19,19 @@ func localAlbumArtwork(file: string)->String
     return {}
 }
 
-func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings)->bool =>
+func onlinePreviewWanted(file: string, settings: const *ThumbnailSettings, duration: u64 = 0)->bool =>
     not settings.localArtworkOnly and
-    ((settings.onlineMovies and not albumAudio(file) and Reader.canOpen(file)) or
+    ((settings.onlineMovies and automaticMoviePreview(file, duration, settings.allMovieNames)) or
      (settings.onlineMusic and albumAudio(file)))
+
+// A release name or feature-length video merits a catalog search; ordinary clips stay local.
+func automaticMoviePreview(file: string, duration: u64 = 0, allNames = false)->bool
+{
+    if albumAudio(file) or not Reader.canOpen(file) do
+        return false
+    let query = MovieQuery.fromFile(file)
+    return not query.title.isEmpty() and (allNames or not query.year.isEmpty() or duration >= 40 * 60)
+}
 
 // Reads a sound file's duration without decoding its samples.
 func localSoundDuration(file: string)->u64
@@ -65,7 +74,7 @@ struct ExplorerPreview
     index:           u64
     generation:      u64
     opening:         bool
-    online:          bool     // Movie artwork is looked up before a local frame is decoded.
+    online:          bool     // Resolves final artwork before an eligible film is published.
     needsOnline:     bool
     settings:        String
     privacy:         File.MountPrivacy
@@ -132,7 +141,7 @@ impl ExplorerPreview
             {
                 let settings = try ThumbnailSettings.decode(.settings)
                 .needsOnline = .archivePath.isEmpty() and
-                               onlinePreviewWanted(media, &settings) and
+                               onlinePreviewWanted(media, &settings, thumbnailDuration(&.image)) and
                                not onlinePreviewStamped(&.image)
                 return
             }
@@ -166,6 +175,8 @@ impl ExplorerPreview
         if not .opening
         {
             var settings = try ThumbnailSettings.decode(.settings)
+            if .online do
+                discard try File.info(file)
             if not settings.musicId.isEmpty()
             {
                 let info = try File.info(.mediaFile.isEmpty() ? file.toString() : source)
@@ -177,7 +188,11 @@ impl ExplorerPreview
 
             if not .online
             {
+                // A named release goes straight to its final artwork. Decode a local frame
+                // only if the catalog has no poster, so a successful lookup never pays for it.
                 .needsOnline = .archivePath.isEmpty() and onlinePreviewWanted(file, &settings)
+                if .needsOnline and not albumAudio(file) do
+                    return
                 if albumAudio(file)
                 {
                     if not localArtwork.isEmpty() do
@@ -194,8 +209,10 @@ impl ExplorerPreview
                 {
                     // Online artwork does not depend on the local codec succeeding.
                     var failure: Swag.Error
-                    .image = catch .service.render(file) as failure
-                    .error = Viewer.failureText(failure.value())
+                    .image       = catch .service.render(file) as failure
+                    .error       = Viewer.failureText(failure.value())
+                    .needsOnline = .archivePath.isEmpty() and
+                                   onlinePreviewWanted(file, &settings, thumbnailDuration(&.image))
                 }
 
                 let current = catch ThumbnailCache.key(source, member, settings: .settings, privacy: .privacy)
@@ -216,8 +233,7 @@ impl ExplorerPreview
             if settings.onlineMovies and
                not settings.localArtworkOnly and
                .archivePath.isEmpty() and
-               not albumAudio(file) and
-               Reader.canOpen(file)
+               automaticMoviePreview(file, localDuration, settings.allMovieNames)
             {
                 providerAttempted = true
                 catch

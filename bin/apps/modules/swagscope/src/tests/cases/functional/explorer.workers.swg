@@ -3,6 +3,67 @@
 
 using Core, Gui, Pixel
 
+// Scheduling sends identified releases straight to artwork and ordinary clips to local frames.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.onlineMovies = true
+    let explorer = Explorer.create(window.documentPanel, window)
+    window.explorer = explorer
+    explorer.entries.add({name: "Release (1982).mkv", path: Testing.tempFilePath("scope-release-", " (1982).mkv")})
+    explorer.entries.add({name: "Clip.mp4", path: Testing.tempFilePath("scope-clip-", ".mp4")})
+    explorer.setMode(.Medium)
+    explorer.requestPreview()
+    var checked: u64
+    for preview in explorer.previews where preview.started
+    {
+        Swag.require(preview.online == (preview.index == 0))
+        checked += 1
+    }
+
+    Swag.require(checked == 2)
+    explorer.hide()
+    explorer.leave()
+}
+
+// An eligible film publishes only its final artwork; an ordinary clip needs no online pass.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 480)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.hide()
+    explorer.refreshPreviewSettings()
+    explorer.entries.add({name: "Blade Runner (1982).mkv", attempted: true})
+    explorer.entries.add({name: "clip.mp4", attempted: true})
+    let preview = explorer.previews[0]
+    preview.generation  = explorer.generation
+    preview.index       = 0
+    preview.needsOnline = true
+    preview.image       = Image.create(24, 18, .RGB8)
+    preview.submit(func() {}, explorer)
+    preview.task.wait()
+    host.pump()
+    Swag.require(explorer.entries[0].onlinePending and not explorer.entries[0].texture.isValid())
+
+    preview.online      = true
+    preview.needsOnline = false
+    preview.submit(func() {}, explorer)
+    preview.task.wait()
+    host.pump()
+    Swag.require(explorer.entries[0].texture.isValid())
+
+    preview.index  = 1
+    preview.online = false
+    preview.submit(func() {}, explorer)
+    preview.task.wait()
+    host.pump()
+    Swag.require(explorer.entries[1].texture.isValid() and not explorer.entries[1].onlinePending)
+}
+
 // The explorer submits previews independently of the runtime's worker count.
 #test
 {
@@ -198,6 +259,7 @@ using Core, Gui, Pixel
         worker.generation = explorer.generation
         worker.submit(func() {})
     }
+
     explorer.grid.invalidate()
     discard host.render(window)
     Swag.require(explorer.grid.spinners[0].isLocallyVisible())
@@ -249,6 +311,7 @@ using Core, Gui, Pixel
         worker.generation = explorer.generation
         worker.submit(func() {})
     }
+
     explorer.grid.invalidate()
     discard host.render(window)
     Swag.require(explorer.grid.spinners[0].isLocallyVisible())
@@ -257,14 +320,14 @@ using Core, Gui, Pixel
 
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
-    explorer.entries[0].texture = host.app.renderer.addImage(&image)
+    explorer.entries[0].texture       = host.app.renderer.addImage(&image)
     explorer.entries[0].onlinePending = false
     explorer.grid.invalidate()
     discard host.render(window)
     Swag.require(not explorer.grid.spinners[0].isLocallyVisible())
 }
 
-// Visible films keep their waiting marks while their background tasks are pending.
+// Visible films keep their waiting marks until their background results are collected.
 #test
 {
     var host: Testing.HeadlessHost
@@ -280,17 +343,23 @@ using Core, Gui, Pixel
         host.shutdown()
     }
 
-    for worker in explorer.previews
-    {
-        worker.index      = Swag.U64.Max
-        worker.generation = explorer.generation
-        worker.submit(func() {})
-    }
     for index in 8
     {
         let name = Format.toString("Film-%.mkv", index)
         explorer.entries.add({name: name, path: name})
     }
+
+    // Hold a publication for every entry, without relying on real decoding or network delays.
+    explorer.refreshPreviewSettings()
+    while explorer.previews.count < explorer.entries.count do
+        explorer.previews.add(Memory.new'ExplorerPreview())
+    for worker, index in explorer.previews
+    {
+        worker.index      = index
+        worker.generation = explorer.generation
+        worker.submit(func() {})
+    }
+
     explorer.fill()
     discard host.render(window)
 

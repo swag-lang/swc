@@ -18,6 +18,7 @@ struct ViewerPrivacy
     queue:        Array'String
     batch:        Array'String
     musicChoices: Array'MusicChoice
+    folderViews:  Array'ExplorerFolderState
 }
 
 impl ViewerPrivacy
@@ -127,6 +128,12 @@ impl ViewerPrivacy
             .window.folderHistory.removeAtOrdered(index)
         for index in reversed(.window.exploredFolders.count) where .forgetPrivatePath(.window.exploredFolders[index]) do
             .window.exploredFolders.removeAtOrdered(index)
+        for index in reversed(.window.folderViews.count) where .forgetPrivatePath(.window.folderViews[index].path)
+        {
+            .keepFolderView(&.folderViews, .window.folderViews[index])
+            .window.folderViews.removeAtOrdered(index)
+        }
+
         for index in reversed(.window.resumePoints.count) where .forgetPrivatePath(.window.resumePoints[index].file) do
             .window.resumePoints.removeAtOrdered(index)
         for index in reversed(.window.musicChoices.count) where .forgetPrivatePath(.window.musicChoices[index].path)
@@ -141,6 +148,8 @@ impl ViewerPrivacy
             .window.fileDlgState.recentFolders.removeAtOrdered(index)
         for &source in .sources where source.forget
         {
+            if .window.explorer and Path.equals(.window.explorer.listing.path, source.path) do
+                .window.explorer.privateView = true
             changed       = true
             source.forget = false
         }
@@ -187,6 +196,41 @@ impl ViewerPrivacy
             setMusicChoice(&.musicChoices, entry, id)
     }
 
+    // Private locations remain navigable in this window without entering serialized state.
+    mtd rememberFolderView(state: ExplorerFolderState, transient = false)
+    {
+        let retain = .mayRemember(state.path) and not transient
+        let views  = retain ? &.window.folderViews : &.folderViews
+        let other  = retain ? &.folderViews : &.window.folderViews
+        for index in reversed(other.count) where other[index].matches(state.path, state.folder) do
+            other.removeAtOrdered(index)
+        .keepFolderView(views, state)
+    }
+
+    private mtd keepFolderView(views: *Array'ExplorerFolderState, state: ExplorerFolderState)
+    {
+        for &existing in views[] where existing.matches(state.path, state.folder)
+        {
+            existing[] = state
+            return
+        }
+
+        if views.count >= 256 do
+            views.removeAtOrdered(0)
+        views.add(state)
+    }
+
+    mtd folderView(path, folder: string)->const *ExplorerFolderState?
+    {
+        .track(path)
+        discard .refresh()
+        for &state in .folderViews where state.matches(path, folder) do
+            return state
+        for &state in .window.folderViews where state.matches(path, folder) do
+            return state
+        return null
+    }
+
     private mtd keepMusicChoice(choice: MusicChoice)
     {
         for &existing in .musicChoices where existing.path == choice.path do
@@ -205,6 +249,8 @@ impl ViewerPrivacy
             .track(entry.file)
         for &path in .window.exploredFolders do
             .track(path[])
+        for &state in .window.folderViews do
+            .track(state.path)
         for &entry in .window.musicChoices do
             .track(entry.path)
         .track(.window.fileDlgState.currentFolder)

@@ -68,12 +68,12 @@ using Core, Pixel, Gui
     Swag.require(changed != (expect ThumbnailCache.key(source, executable: app)))
 }
 
-// A local codec failure still leaves the online artwork pass eligible.
+// A dated release goes straight to online artwork, even when no local codec can decode it.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-no-codec-%.mkv", Guid64.random()))
+    let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-no-codec-% (1982).mkv", Guid64.random()))
     discard expect File.writeAllText(source, "not a decodable film")
     defer catch File.delete(source)
     var buffer:  ConcatBuffer
@@ -85,7 +85,7 @@ using Core, Pixel, Gui
     preview.start(&host.surfaceWnd)
     preview.wait()
     host.pump()
-    Swag.require(not preview.image.isValid() and not preview.error.isEmpty())
+    Swag.require(not preview.image.isValid() and not preview.service.ready)
     Swag.require(preview.needsOnline)
 }
 
@@ -114,13 +114,13 @@ using Core, Pixel, Gui
     }
 }
 
-// A local film frame is published from cache while its online details are still due. Once the
-// provider result is stamped, revisiting the folder has no network work to schedule.
+// A cached frame stays a worker fallback while final artwork is due. Once a provider result
+// is stamped, including a miss, revisiting the folder has no network work to schedule.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-staged-%.mkv", Guid64.random()))
+    let source = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("scope-staged-% (1982).mkv", Guid64.random()))
     discard expect File.writeAllText(source, "fixture")
     defer catch File.delete(source)
     var buffer:  ConcatBuffer

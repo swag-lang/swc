@@ -3,6 +3,22 @@
 
 using Core, Gui, Pixel, Viewers
 
+// Ordinary clips do no catalog work; dated releases and long films retain online artwork.
+#test
+{
+    var settings = ThumbnailSettings{onlineMovies: true}
+    Swag.require(not onlinePreviewWanted("VID_20261115_102030.mp4", &settings, 120))
+    Swag.require(not onlinePreviewWanted("screen-recording.webm", &settings, 300))
+    Swag.require(not onlinePreviewWanted("tutorial.mkv", &settings, 900))
+    Swag.require(onlinePreviewWanted("Blade.Runner.1982.1080p.mkv", &settings))
+    Swag.require(onlinePreviewWanted("Blade Runner.mkv", &settings, 7000))
+    Swag.require(not onlinePreviewWanted("cover.jpg", &settings, 7000))
+    settings.allMovieNames = true
+    Swag.require(onlinePreviewWanted("Short film.mkv", &settings, 600))
+    settings.localArtworkOnly = true
+    Swag.require(not onlinePreviewWanted("Short film.mkv", &settings, 600))
+}
+
 // Refresh retries unchanged files instead of reusing a failed or stale preview identity.
 #test
 {

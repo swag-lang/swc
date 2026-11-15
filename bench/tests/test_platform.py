@@ -53,10 +53,11 @@ class DiscoveryTests(unittest.TestCase):
                 self.assertFalse((root / 'cache/go-corrupt').exists())
 
     def test_preserves_driver_symlink_name(self):
+        driver = os.path.abspath('/tools/clang++')
         with mock.patch.object(compiler_setup, 'configured', return_value={'clang': '/tools/clang++'}), \
              mock.patch.object(compiler_setup, 'probe', side_effect=lambda k, p: 'version' if p == '/tools/clang++' else None), \
              mock.patch.dict(os.environ, {}, clear=True):
-            self.assertEqual(compiler_setup.discover_linux()['clang'], '/tools/clang++')
+            self.assertEqual(compiler_setup.discover_linux()['clang'], driver)
 
     def test_existing_install_does_not_download(self):
         with mock.patch.object(toolchains, 'discover', return_value=dict.fromkeys(compiler_setup.COMMANDS, '/tools/go')), \

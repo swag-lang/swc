@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "compiler": "php-opcodes",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/php/binarytrees.php": "331f02e92081fa2d35136dcc84d995df5180313017d000f13a373ae0b689afdb",
+    "bench/src/php/common.php": "f661773ea4cfc1a145fb32589eb9f52be5763dec157b6b0ba42f2f24420512b9"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\PHP\\php.exe",
+      "-n",
+      "-d",
+      "memory_limit=-1",
+      "-d",
+      "auto_prepend_file=C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\php\\common.php",
+      "-d",
+      "zend_extension=C:\\Users\\chris\\AppData\\Local\\Programs\\PHP\\ext\\php_opcache.dll",
+      "-d",
+      "opcache.enable_cli=1",
+      "-d",
+      "opcache.opt_debug_level=0x20000",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\php\\binarytrees.php"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "compiler_executable_sha256": "9c9c7cdb2ec112cf39498dd1a77b56eacac482487182066920f1bcd209091898",
+    "compiler_version": "PHP 8.4.26 (cli) (built: Sep 22 2026 15:11:32) (NTS Visual C++ 2022 x64)\nCopyright (c) The PHP Group\nBuilt by The PHP Group\nZend Engine v4.4.26, Copyright (c) Zend Technologies",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/php/binarytrees.php": "331f02e92081fa2d35136dcc84d995df5180313017d000f13a373ae0b689afdb",
+      "bench/src/php/common.php": "f661773ea4cfc1a145fb32589eb9f52be5763dec157b6b0ba42f2f24420512b9"
+    },
+    "input_artifact_sha256": "331f02e92081fa2d35136dcc84d995df5180313017d000f13a373ae0b689afdb",
+    "input_artifact_bytes": 1181,
+    "runtime_executable_sha256": "9c9c7cdb2ec112cf39498dd1a77b56eacac482487182066920f1bcd209091898"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "fcd3707b0cde40c0fe840efde8d7524041a04550e1585c6293b6ff59f7be969e",
+      "content_sha256": "b3852caa6e4159efa4268b9727c026d4226197ebe95e80d016688d9d7c2439fe",
+      "bytes": 1603,
+      "content_bytes": 5180
+    }
+  }
+}

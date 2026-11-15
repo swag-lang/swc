@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "ruby-bytecode",
+  "task": "nbody",
+  "sources": {
+    "bench/src/ruby/nbody.rb": "8f536e8b43a897ea8ba453e8ca108b20e18e71fdd7a9732c1559664c2b969902"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Ruby\\bin\\ruby.exe",
+      "--disable-gems",
+      "-e",
+      "puts RubyVM::InstructionSequence.compile_file(ARGV[0]).disasm",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\ruby\\nbody.rb"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "compiler_executable_sha256": "85d43028c45e8ffb78d56563d666f9e23956a8454f50a62c3a115aa66406afa6",
+    "compiler_version": "ruby 4.0.7 (2026-09-15 revision 229531a6cf) +PRISM [x64-mingw-ucrt]",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/ruby/nbody.rb": "8f536e8b43a897ea8ba453e8ca108b20e18e71fdd7a9732c1559664c2b969902"
+    },
+    "input_artifact_sha256": "8f536e8b43a897ea8ba453e8ca108b20e18e71fdd7a9732c1559664c2b969902",
+    "input_artifact_bytes": 3226,
+    "runtime_executable_sha256": "85d43028c45e8ffb78d56563d666f9e23956a8454f50a62c3a115aa66406afa6"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "53fef8415b4b4ee0ee2c7c28d3bc697b0196fbcaeb07247998a87f938e9948f3",
+      "content_sha256": "efc8e014615f95e10eded17fd11b5932bc6170191600f95b3ce8a68ac4cdb877",
+      "bytes": 4566,
+      "content_bytes": 39791
+    }
+  }
+}

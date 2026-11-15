@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/py/wordfreq.py": "6240b58cc095409c1fa9ce036fa1f3a394d628f1642801ada8a70077c3265bf7"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Python\\Launcher\\py.exe",
+      "-3",
+      "-c",
+      "import dis,sys; p=sys.argv[1]; dis.dis(compile(open(p, encoding='utf-8').read(),p,'exec'))",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\py\\wordfreq.py"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "compiler_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7",
+    "compiler_version": "Python 3.12.4",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/py/wordfreq.py": "6240b58cc095409c1fa9ce036fa1f3a394d628f1642801ada8a70077c3265bf7"
+    },
+    "input_artifact_sha256": "6240b58cc095409c1fa9ce036fa1f3a394d628f1642801ada8a70077c3265bf7",
+    "input_artifact_bytes": 1315,
+    "runtime_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "aa7a3da84292720ee6210aed6e8d49b8f9dbe3817120508eb6d983d10917ddf6",
+      "content_sha256": "e2589cf811f465cc4fabdb861c27c354070d51df01c9a284460506a109c060ab",
+      "bytes": 2911,
+      "content_bytes": 16790
+    }
+  }
+}

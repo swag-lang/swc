@@ -146,7 +146,7 @@ def guarded(take, waits, baseline, quiet_limit_s=machine.QUIET_WAIT_S, attempts=
     return record, set_aside
 
 
-def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None):
+def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None, *, retry_interference=True):
     """Sample every unit until each of its series has the evidence its plan asks for.
 
     units: list of tuples of runtime names. take(name, round) returns a record carrying
@@ -162,7 +162,15 @@ def run_rounds(units, take, plan_for, key, rng, waits, baseline, log=None):
             if s.error:
                 continue
             try:
-                record, set_aside = guarded(lambda: take(name, rnd), waits, baseline, log=log, name=name)
+                if retry_interference:
+                    record, set_aside = guarded(lambda: take(name, rnd), waits, baseline, log=log, name=name)
+                else:
+                    record, set_aside = take(name, rnd), []
+                    record["attempts"] = 1
+                    if baseline.judge(record):
+                        record["contended"] = True
+                    else:
+                        baseline.accept(record)
             except SampleError as error:
                 s.error = str(error)
                 if log:

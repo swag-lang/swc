@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "nbody",
+  "sources": {
+    "bench/src/odin/nbody.odin": "ad3212816bdb7353901e44c2c322ad0ce492946f0b9589c4afe17dae3ed7452d",
+    "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Odin\\odin.exe",
+      "build",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\odin\\nbody.odin",
+      "-file",
+      "-o:speed",
+      "-out:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_nbody_odin\\capture_nbody_odin.exe",
+      "-extra-linker-flags:/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_nbody_odin\\capture_nbody_odin.map"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_nbody_odin",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "binary_sha256": "7df533591ed7c9e79f4aaf3cc817a1828098a1a90b00dbf9f92a24697e5ff6fd",
+    "binary_bytes": 153600,
+    "compiler_executable_sha256": "e612295f52600cfd640001b991e8b5cbd141f8dd00cb8b96c61e3e0e3c9cdcaf",
+    "compiler_version": "C:\\Users\\chris\\AppData\\Local\\Programs\\Odin\\odin.exe version dev-2026-09-nightly:a2fb372",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/odin/nbody.odin": "ad3212816bdb7353901e44c2c322ad0ce492946f0b9589c4afe17dae3ed7452d",
+      "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5",
+      "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "25518e0a22ec5dc8df1961e026058de37215e303519f2db77b38151ee4dd5b2c",
+      "content_sha256": "b22787c258835df51f67c19ac901523d10d4afcd3167090ceb8edd960ff7b8aa",
+      "bytes": 265214,
+      "content_bytes": 1650177
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "333577410c9f5fc69ca8b9f6b088cd6919d7b3f291172d9f31187a3e95b03315",
+      "content_sha256": "55819a783a09d2ec554849785a9758c0d7117fd19715584b72fb1e1223a810fe",
+      "bytes": 44020,
+      "content_bytes": 261671
+    }
+  }
+}

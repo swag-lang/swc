@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/py/fannkuch.py": "7d1e27e99d6dd3ab564af54ae7d797527cdc111d78aaa9fc59d6d32313c82807"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Python\\Launcher\\py.exe",
+      "-3",
+      "-c",
+      "import dis,sys; p=sys.argv[1]; dis.dis(compile(open(p, encoding='utf-8').read(),p,'exec'))",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\py\\fannkuch.py"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "compiler_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7",
+    "compiler_version": "Python 3.12.4",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/py/fannkuch.py": "7d1e27e99d6dd3ab564af54ae7d797527cdc111d78aaa9fc59d6d32313c82807"
+    },
+    "input_artifact_sha256": "7d1e27e99d6dd3ab564af54ae7d797527cdc111d78aaa9fc59d6d32313c82807",
+    "input_artifact_bytes": 1238,
+    "runtime_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "cefc8278ae48ae60d9a6978c09c79b66edbd667d8bef89b5060808c5b8f95d1f",
+      "content_sha256": "7251a02b7a71c2312b09f33f60a94097ee0c2bfc2259bd5bba14e4583d979973",
+      "bytes": 1882,
+      "content_bytes": 11994
+    }
+  }
+}

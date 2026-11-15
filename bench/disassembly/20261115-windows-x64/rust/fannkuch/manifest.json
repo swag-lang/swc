@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "rust",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/rust/fannkuch.rs": "09138ea5b9234a7b6168c999334309f5babcbb92131ed6dd2bcec402628cc17a"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\.cargo\\bin\\rustc.exe",
+      "--edition",
+      "2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "panic=abort",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\rust\\fannkuch.rs",
+      "-o",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_fannkuch_rust.exe",
+      "-C",
+      "link-arg=/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_fannkuch_rust.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "51f5366fab24dcb30060c3ca8b569a7e951f68744ab6e1e5afe7af381699fed9",
+    "binary_bytes": 154624,
+    "compiler_executable_sha256": "86478e53f769379d7f0ebfa7c9aa97cb76ca92233f79aa2cc0dbee2efaac73c7",
+    "compiler_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/rust/fannkuch.rs": "09138ea5b9234a7b6168c999334309f5babcbb92131ed6dd2bcec402628cc17a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "43202272bb9e1bf2cac6e9db4260748b34afc6bcfeaa22813fa719341096290c",
+      "content_sha256": "9ae899d7cfa0a561b01b069c36aec4e02e38657b9da71d0a59698bcd437495a8",
+      "bytes": 294503,
+      "content_bytes": 1877948
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "a64ff692b8972c4a74f4682f005d2a410112f505107e977bd33731b3c20acddb",
+      "content_sha256": "76d585efb6f64145a2323eb99e01ebd282912928fb0299fcce92d28c700017e8",
+      "bytes": 27469,
+      "content_bytes": 291054
+    }
+  }
+}

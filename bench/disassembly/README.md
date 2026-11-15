@@ -6,6 +6,7 @@ campaigns and never contribute a `run_index` or an accepted result to `bench/his
 | Snapshot | Coverage |
 | --- | --- |
 | [20261114-linux-x64](20261114-linux-x64/README.md) | Twelve tasks: native Swag, GCC, Clang, Rust, Zig, LDC, Odin, Go and Swift; explicit ISA variants; Java C2, V8 and CoreCLR native JIT listings; separately labelled CPython bytecode |
+| [20261115-windows-x64](20261115-windows-x64/README.md) | Twelve tasks: Swag release/devmode, clang-cl, MSVC, Rust, Zig, LDC, Odin, Go, Swift and NativeAOT; CoreCLR, HotSpot C2 and V8 native JIT diagnostics; separately labelled Python, Ruby, Lua, LuaJIT and PHP bytecodes |
 
 ## Reuse a reference
 
@@ -16,6 +17,7 @@ python bench/scripts/codegen.py verify bench/disassembly/20261114-linux-x64 --ch
 python bench/scripts/codegen.py show bench/disassembly/20261114-linux-x64 --task sha256
 python bench/scripts/codegen.py show bench/disassembly/20261114-linux-x64 --task sha256 --compiler swag-release --micro
 python bench/scripts/codegen.py show bench/disassembly/20261114-linux-x64 --task sha256 --compiler cpp-gcc-v3
+python bench/bench.py codegen show bench/disassembly/20261115-windows-x64 --task sort --compiler swag-release --listing symbols.txt.gz
 ```
 
 Verification checks compressed listings, their decompressed content, provenance manifests,
@@ -24,6 +26,9 @@ that an installed compiler has the archived version or that different target/FP/
 contracts are equivalent. Read the entry's exact version, options and target before using it.
 For Swag, also match the compiler binary hash and source revision; its build number alone is not
 a cache identity for an optimization campaign.
+
+Source checks accept LF and CRLF checkout line endings, including fingerprints from older
+snapshots. Listings, manifests and supporting files still need their exact archived bytes.
 
 Each `compiler/task/manifest.json` identifies the checked input and command, compiler and binary
 hashes, original and compiled source hashes, checksum, target, listing kind and compressed
@@ -64,19 +69,29 @@ Compress complete listings reproducibly rather than committing executables. Smal
 kernel excerpts may supplement the complete listings. Bytecode and native instructions must
 remain distinct kinds; a bytecode opcode is not an x86 instruction.
 
-## Windows collection still required
+## Collect on Windows
 
-The existing Windows timing campaign stores measurements and toolchain metadata, not complete
-assembly or every compiler's intermediate code. Its `bench/out` files are disposable and can
-be overwritten by later builds. A remaining executable can still be disassembled without
-repeating the timing samples.
+The Windows timing campaign stores measurements and toolchain metadata. Run the static collector
+outside measurement intervals to retain code independently of disposable `bench/out` builds:
 
-The Windows collector must archive the same evidence for all twelve tasks and each available
-compiler after its validated build, outside measured intervals. Preserve Swag Micro and final
-disassembly, private-function names through PDB/linker-map/object-listing evidence, versions,
-options, sources, target features, checksums and binary hashes. A compiler assembly listing can
-help symbolization, but retain the linked executable's disassembly as well. MSVC and Windows
-NativeAOT require their own captures; a Linux LLVM or CoreCLR listing is not a substitute.
+```text
+python bench/bench.py capture --output bench/disassembly/<new-windows-snapshot> --swc C:/absolute/path/to/swc.exe
+python bench/bench.py codegen verify bench/disassembly/<new-windows-snapshot> --check-sources
+```
+
+Set `BENCH_OUTPUT_ROOT` to an absolute external directory. Visual Studio's LLVM tools provide
+`llvm-objdump` and `llvm-pdbutil`. The collector uses the campaign's build recipes, adding only
+listing or symbol-map options to native builds. Swag symbols come from the actual non-debug
+executable's `.swagdbg` table; no debug build replaces its code. Go retains its own complete
+symbolized disassembly, Zig its compiler assembly, and NativeAOT its PDB symbol dump. The final
+linked PE disassembly is always retained too.
+
+Each entry preserves the exact build or diagnostic command, compiler version and executable hash,
+source fingerprints, validated checksum and compiled artifact hash. HotSpot's raw native bytes
+are decoded by LLVM and retained beside its named method dump. CoreCLR FullOpts, HotSpot C2
+and V8 diagnostics are labelled separately from stock timing recipes. Interpreter bytecode is
+explicitly labelled `bytecode`. Memory-only Swag JIT and PHP JIT native code remain uncaptured;
+the installed Windows PHP prints no assembly with `opcache.jit_debug=1`.
 
 Compare hot executed paths, weighting nested loops and calls by their work. Account for spills,
 dependency chains, vector width, checks and allocation/reclamation. Whole-function instruction

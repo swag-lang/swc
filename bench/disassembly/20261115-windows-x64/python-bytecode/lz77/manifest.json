@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "lz77",
+  "sources": {
+    "bench/src/py/lz77.py": "f7fc715f50f354e0b865615cfc2158a6341a7ee027fb4ac823d409af3f6ec12f"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Python\\Launcher\\py.exe",
+      "-3",
+      "-c",
+      "import dis,sys; p=sys.argv[1]; dis.dis(compile(open(p, encoding='utf-8').read(),p,'exec'))",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\py\\lz77.py"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "622942003053",
+    "expected_checksum": "622942003053",
+    "compiler_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7",
+    "compiler_version": "Python 3.12.4",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/py/lz77.py": "f7fc715f50f354e0b865615cfc2158a6341a7ee027fb4ac823d409af3f6ec12f"
+    },
+    "input_artifact_sha256": "f7fc715f50f354e0b865615cfc2158a6341a7ee027fb4ac823d409af3f6ec12f",
+    "input_artifact_bytes": 2651,
+    "runtime_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "3af41d0b894200127edccf28a3bf71383a31bd4ee6bd5b7fb742959097e043fc",
+      "content_sha256": "6b51dcc1fab8992abb25fd7938fae9efec19d09f15f6c7adc556430f2477048b",
+      "bytes": 4674,
+      "content_bytes": 32184
+    }
+  }
+}

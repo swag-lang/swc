@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "compiler": "csharp-aot",
+  "task": "leven",
+  "sources": {
+    "bench/src/cs/aot/leven/leven.csproj": "be8b566a2ab344330d38359ffb74951a330b62a73e7d09de882a9543caad9b06",
+    "bench/src/cs/jit/leven/leven.csproj": "2f2a5ee53f337a04ec4615c24e36904e6df6fdda7df8f92287a831f11678c98a",
+    "bench/src/cs/src/leven.cs": "6ae00535bf1127138ebfe890c2551f699805cc52cff15f52690930243d4f1a96"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "publish",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\aot\\leven",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "67441",
+    "expected_checksum": "67441",
+    "binary_sha256": "b54af7a8bf8f82a501544ee380528885f83341c7856b6c2deefaad261c08217d",
+    "binary_bytes": 1125888,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/leven/leven.csproj": "be8b566a2ab344330d38359ffb74951a330b62a73e7d09de882a9543caad9b06",
+      "bench/src/cs/jit/leven/leven.csproj": "2f2a5ee53f337a04ec4615c24e36904e6df6fdda7df8f92287a831f11678c98a",
+      "bench/src/cs/src/leven.cs": "6ae00535bf1127138ebfe890c2551f699805cc52cff15f52690930243d4f1a96"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e5c474175ad6bab6b8803f3755bf441436efd9ebd79c20903dbcf984f01a6923",
+      "content_sha256": "040531c87c67f6854af9d7fabed819fa1e313cf6fd22836fbc28e4098958351a",
+      "bytes": 1980831,
+      "content_bytes": 13737821
+    },
+    "build.txt.gz": {
+      "sha256": "b7a1b23a8d9d8851aedc462a7721f6e338d31d80a90d81fb2f366fffb80951ab",
+      "content_sha256": "959788e0f6188ac6d66b9ad39e9b79b10a3c1049f4bef6e9b19603ce5c78b7cd",
+      "bytes": 390,
+      "content_bytes": 1097
+    },
+    "symbols.txt.gz": {
+      "sha256": "0df1efc8e766fd2721eb921d5ea8959e3cfce926d7c3a6768f3d6b6a69f54f1c",
+      "content_sha256": "b0f8f6320d6c345678997d25bef8faeb5d264c57ca6685cfd0becf99a316061c",
+      "bytes": 1614413,
+      "content_bytes": 13396114
+    }
+  }
+}

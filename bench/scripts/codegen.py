@@ -35,7 +35,14 @@ def source_fingerprints(root, paths):
     return result
 
 
-def export_entry(output, compiler, task, metadata, assembly, sources, micro=None):
+def source_matches(path, expected):
+    """Accept either checkout line ending while retaining historical byte fingerprints."""
+    data = path.read_bytes()
+    lf = data.replace(b"\r\n", b"\n")
+    return expected in {digest(data), digest(lf), digest(lf.replace(b"\n", b"\r\n"))}
+
+
+def export_entry(output, compiler, task, metadata, assembly, sources, micro=None, listings=None):
     """Export one validated capture. An existing reference is never overwritten."""
     if not COMPONENT.fullmatch(compiler) or not COMPONENT.fullmatch(task):
         raise ValueError("compiler and task must be single path components")
@@ -47,10 +54,15 @@ def export_entry(output, compiler, task, metadata, assembly, sources, micro=None
         raise ValueError("a listing and source fingerprints are required")
     if (Path(output) / "snapshot.json").exists():
         raise FileExistsError("snapshot is sealed; collect into a new folder")
+    texts = {"assembly.txt.gz": assembly, "micro.txt.gz": micro}
+    for name, text in (listings or {}).items():
+        if not COMPONENT.fullmatch(name) or not name.endswith(".txt.gz") or name in texts:
+            raise ValueError("additional listings need distinct .txt.gz names")
+        texts[name] = text
     folder = Path(output) / compiler / task
     folder.mkdir(parents=True, exist_ok=False)
     artifacts = {}
-    for name, text in (("assembly.txt.gz", assembly), ("micro.txt.gz", micro)):
+    for name, text in texts.items():
         if text is None:
             continue
         raw = text.encode("utf-8")
@@ -70,7 +82,7 @@ def export_entry(output, compiler, task, metadata, assembly, sources, micro=None
         "metadata": metadata,
         "artifacts": artifacts,
     }
-    (folder / "manifest.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
+    (folder / "manifest.json").write_bytes((json.dumps(record, indent=2) + "\n").encode("utf-8"))
     return record
 
 
@@ -93,7 +105,7 @@ def finish_snapshot(output, metadata, supporting_files=()):
         "manifest_sha256": {name: digest((output / name).read_bytes()) for name in entries},
         "supporting_files": extra,
     }
-    index.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+    index.write_bytes((json.dumps(snapshot, indent=2) + "\n").encode("utf-8"))
     _, errors = verify(output)
     if errors:
         raise ValueError("; ".join(errors))
@@ -154,7 +166,7 @@ def verify(output, source_root=None):
                 root = Path(source_root).resolve()
                 for name, expected in record["sources"].items():
                     path = (root / name).resolve()
-                    if not path.is_relative_to(root) or digest(path.read_bytes()) != expected:
+                    if not path.is_relative_to(root) or not source_matches(path, expected):
                         raise ValueError(f"source no longer matches: {name}")
         except (KeyError, OSError, ValueError, gzip.BadGzipFile, zlib.error) as error:
             errors.append(f"{entry}: {error}")
@@ -167,7 +179,9 @@ def main():
     parser.add_argument("snapshot", type=Path)
     parser.add_argument("--task")
     parser.add_argument("--compiler")
-    parser.add_argument("--micro", action="store_true", help="show Swag Micro instead of assembly")
+    listing = parser.add_mutually_exclusive_group()
+    listing.add_argument("--micro", action="store_true", help="show Swag Micro instead of assembly")
+    listing.add_argument("--listing", help="show another archived listing, such as symbols.txt.gz")
     parser.add_argument("--check-sources", action="store_true", help="also reject stale source fingerprints")
     parser.add_argument("--source-root", type=Path, default=Path(__file__).resolve().parents[2])
     args = parser.parse_args()
@@ -193,7 +207,7 @@ def main():
             print(record["compiler"], record["task"], record["metadata"].get("compiler_version", ""))
         return 0 if matches else 1
     path, record = matches[0]
-    name = "micro.txt.gz" if args.micro else "assembly.txt.gz"
+    name = args.listing or ("micro.txt.gz" if args.micro else "assembly.txt.gz")
     if name not in record["artifacts"]:
         parser.error(f"{name} is not available for this reference")
     print(gzip.decompress((path.parent / name).read_bytes()).decode("utf-8"), end="")

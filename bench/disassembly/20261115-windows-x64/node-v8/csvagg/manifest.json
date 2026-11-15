@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "node-v8",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/js/csvagg.js": "2fb0cfec387eaa4f8dccf5bbf8407a66f6189dd5e4ec87bd02f260333aa18b17"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "--print-code",
+      "--print-opt-code",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\js\\csvagg.js"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "compiler_executable_sha256": "229fb64aeb10d3cc18eaaa2f5a4c3f1c81792dd3647c5c4350e142db528d0f89",
+    "compiler_version": "v20.15.1",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native-jit",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/js/csvagg.js": "2fb0cfec387eaa4f8dccf5bbf8407a66f6189dd5e4ec87bd02f260333aa18b17"
+    },
+    "input_artifact_sha256": "2fb0cfec387eaa4f8dccf5bbf8407a66f6189dd5e4ec87bd02f260333aa18b17",
+    "input_artifact_bytes": 2531,
+    "runtime_executable_sha256": "229fb64aeb10d3cc18eaaa2f5a4c3f1c81792dd3647c5c4350e142db528d0f89"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "5402e695ea0d638004fc42a307fe8c365d60c3bf4827c12ed78df0e1429d535c",
+      "content_sha256": "3cfa7af8bb59056bcd813db48fdedee173733ba4080f58be002a124674894195",
+      "bytes": 131475,
+      "content_bytes": 879080
+    }
+  }
+}

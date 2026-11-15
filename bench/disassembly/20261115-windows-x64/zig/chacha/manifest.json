@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "compiler": "zig",
+  "task": "chacha",
+  "sources": {
+    "bench/src/zig/bytemap.zig": "dc82120e76a144179ae54a98a0a8781e0ea82ce50794c7082d618d9abe2c5341",
+    "bench/src/zig/chacha.zig": "702abe9e8a7f88034b031dcac73ca9995e62a83d25764bdca4ab054f6594ab71",
+    "bench/src/zig/common.zig": "952338ba1055f6de31f3ab9ed27cf05e747af3fadb470665a193fa18c6bb51d3"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Zig\\zig.exe",
+      "build-exe",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\zig\\chacha.zig",
+      "-O",
+      "ReleaseFast",
+      "-target",
+      "x86_64-windows-msvc",
+      "-lc",
+      "-femit-bin=C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_chacha_zig\\capture_chacha_zig.exe",
+      "--cache-dir",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_chacha_zig\\cache",
+      "--global-cache-dir",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\cache\\zig-global\\live",
+      "-femit-asm=C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_chacha_zig\\compiler.s"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_chacha_zig",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "binary_sha256": "f2ff6ab6447a608b8e048f7ef1ca0c1e73d291bebf11a6021116c78bcc29e422",
+    "binary_bytes": 499712,
+    "compiler_executable_sha256": "d408dd38eed3e5204af841bcebf70502a4dbbb8399a3a3262be55059370bc018",
+    "compiler_version": "0.15.2",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/zig/bytemap.zig": "dc82120e76a144179ae54a98a0a8781e0ea82ce50794c7082d618d9abe2c5341",
+      "bench/src/zig/chacha.zig": "702abe9e8a7f88034b031dcac73ca9995e62a83d25764bdca4ab054f6594ab71",
+      "bench/src/zig/common.zig": "952338ba1055f6de31f3ab9ed27cf05e747af3fadb470665a193fa18c6bb51d3"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e88a90b1cf55a185e1cb4ae821632d548f9e494ffe0f740e3b9af4315ce9329b",
+      "content_sha256": "fe7e37307821feca0740cfb261758d4446a8e79c2054970d88398c30c363fb47",
+      "bytes": 1014953,
+      "content_bytes": 7132694
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "compiler-assembly.txt.gz": {
+      "sha256": "d2d9c31533bd3f4fae51d08d86e26d3c7322342db34154a4cdee8ac1972097b5",
+      "content_sha256": "8786b104ba211182ab6891bf4a1517be94d3130bf62feb718d17f57eb3fba7af",
+      "bytes": 10869,
+      "content_bytes": 71423
+    }
+  }
+}

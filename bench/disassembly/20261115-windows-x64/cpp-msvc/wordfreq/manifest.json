@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "cpp-msvc",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "bench/src/cpp/wordfreq.cpp": "2b935b3891cf0b5db1bfe857c8f383e32c4d151376cc66cb44b4c410a40595a1"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe",
+      "/nologo",
+      "/O2",
+      "/EHsc",
+      "/std:c++20",
+      "/Fo:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\obj_capture_wordfreq_cpp_msvc\\",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cpp\\wordfreq.cpp",
+      "/Fe:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_wordfreq_cpp_msvc.exe",
+      "/link",
+      "/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_wordfreq_cpp_msvc.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "53306b74790e8f3bd0a6335b34baba91c1d7b6a422e99c6cd2efaf1c7afa968b",
+    "binary_bytes": 141824,
+    "compiler_executable_sha256": "9905e3c72217fd4f3c35e550d5ce88f457990a64add22d1777693c84e77f8bbd",
+    "compiler_version": "usage: cl [ option... ] filename... [ /link linkoption... ]\nMicrosoft (R) C/C++ Optimizing Compiler Version 19.50.35726 for x64\nCopyright (C) Microsoft Corporation.  All rights reserved.",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+      "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+      "bench/src/cpp/wordfreq.cpp": "2b935b3891cf0b5db1bfe857c8f383e32c4d151376cc66cb44b4c410a40595a1"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "f54b004012f19389914c94045e1ff664701ef723212193901419aeb237e51b0a",
+      "content_sha256": "908bcfa1779b359363cd1f17d39cb4ca69f0e791b72ca97cfb1cd8352a380f16",
+      "bytes": 247119,
+      "content_bytes": 1544616
+    },
+    "build.txt.gz": {
+      "sha256": "f56b868215c0683d8c1d634b3ec1cb5d25856d4fc54b6c6be6981f82c9e1ef39",
+      "content_sha256": "faee91b940f6ca9a65307c05e9a2f05b9ca4fde2d9bfa7c2c7956d069c7fa162",
+      "bytes": 34,
+      "content_bytes": 14
+    },
+    "symbols.txt.gz": {
+      "sha256": "edaccfb6859ab8ce24d6d68827c8b7e76629758368528d2de14f86529a6fa96b",
+      "content_sha256": "c4a0f0a5e7e542ec058b6ef2069839405b74d95d25cf6dc920dd1cbc4783a438",
+      "bytes": 42761,
+      "content_bytes": 257269
+    }
+  }
+}

@@ -352,10 +352,13 @@ references separate from timing campaigns and never write an inferred `run_index
 Windows campaigns need the same persistent capture for every available compiler and all twelve
 tasks: Swag Micro, final disassembly and private-function names or a symbol map, exact versions,
 options, inputs, target features, checksums and binary hashes. Collect these outside measured
-intervals from the actual validated outputs. The current timing JSON files do not contain these
-listings, and `bench/out` is a disposable build directory, not a per-campaign archive. Until the
-Windows collector exists, record its absence explicitly; Linux SysV or JIT captures are not
-substitutes for Windows ABI, MSVC, NativeAOT or interpreter references that were not captured.
+intervals with `python bench/bench.py capture --output bench/disassembly/<new-windows-snapshot>`,
+selecting the compiler with `--swc <compiler>` and an external `BENCH_OUTPUT_ROOT`. Reuse the
+Windows catalogue when its inputs still match. The timing JSON files do not contain these listings, and `bench/out` is a
+disposable build directory, not a per-campaign archive. Record the collector's remaining limits
+explicitly: bytecodes are not native instructions, and memory-only Swag JIT and Windows PHP JIT
+native code are not captured. Linux SysV or JIT captures are not substitutes for Windows ABI,
+MSVC, NativeAOT or interpreter references that were not captured.
 
 THE LOOP
 

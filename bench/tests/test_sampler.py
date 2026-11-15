@@ -16,6 +16,25 @@ def quiet_record(value, foreign=1.0):
 
 
 class RoundTests(unittest.TestCase):
+    def test_quick_sweep_keeps_one_busy_sample_without_waiting_and_preserves_failures(self):
+        calls, waits = [], []
+        def take(name, rnd):
+            calls.append(name)
+            if name == "bad":
+                raise sampler.SampleError("exit=3")
+            return quiet_record(10.0, 99.0)
+        with mock.patch.object(machine, "wait_for_quiet", side_effect=AssertionError("quick sweeps cannot wait")):
+            series = sampler.run_rounds([("a", "ref"), ("bad",)], take, sampler.quick_plan,
+                                        "ms", random.Random(1), waits, machine.Baseline(), retry_interference=False)
+        self.assertCountEqual(calls, ["a", "ref", "bad"])
+        self.assertEqual(waits, [])
+        self.assertEqual(series["bad"].error, "exit=3")
+        for name in ("a", "ref"):
+            self.assertEqual(len(series[name].samples), 1)
+            self.assertTrue(series[name].samples[0]["contended"])
+            self.assertEqual(series[name].samples[0]["attempts"], 1)
+            self.assertEqual(series[name].set_aside, [])
+
     def setUp(self):
         patcher = mock.patch.object(machine, "wait_for_quiet", return_value=(True, 0.0, 0.5))
         patcher.start()

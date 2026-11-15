@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "lua-bytecode",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/lua/dijkstra.lua": "5ef38052b7f9547ef3ec36c0f71181fc0f0f63c0c043134b4e2ae5148acce146"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Lua\\bin\\luac.exe",
+      "-l",
+      "-l",
+      "-p",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\lua\\dijkstra.lua"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "compiler_executable_sha256": "57e7ed79d667b3ad0cd3eb0273d45ee0411a3a26eed0f7501a5df5da908ccc4a",
+    "compiler_version": "Lua 5.4.6  Copyright (C) 1994-2023 Lua.org, PUC-Rio",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/lua/dijkstra.lua": "5ef38052b7f9547ef3ec36c0f71181fc0f0f63c0c043134b4e2ae5148acce146"
+    },
+    "input_artifact_sha256": "5ef38052b7f9547ef3ec36c0f71181fc0f0f63c0c043134b4e2ae5148acce146",
+    "input_artifact_bytes": 2273,
+    "runtime_executable_sha256": "57e7ed79d667b3ad0cd3eb0273d45ee0411a3a26eed0f7501a5df5da908ccc4a"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "2863cfd853fcd68a40471d46e617b976cf0b103445b08f9285ec815b24ef9574",
+      "content_sha256": "b63b4e698851419117c58adb761609430528caf8a8563089f69c54325637bd0d",
+      "bytes": 3278,
+      "content_bytes": 10728
+    }
+  }
+}

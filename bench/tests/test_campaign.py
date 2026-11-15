@@ -17,6 +17,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(
 import campaign
 
 
+class CampaignOptionsTests(unittest.TestCase):
+    def test_explicit_automatic_worker_count_reaches_the_driver(self):
+        with mock.patch.object(campaign, "build", return_value="compiler"), \
+             mock.patch.object(campaign, "run") as run, \
+             mock.patch.object(sys, "argv", ["campaign", "--quick", "--swc-cores", "0"]), \
+             contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(campaign.main(), 0)
+        script, args = run.call_args.args
+        self.assertEqual(script, "driver.py")
+        self.assertEqual(args[args.index("--swc-cores") + 1], "0")
+
+
 @unittest.skipUnless(sys.platform == "win32", "running executable locks are a Windows contract")
 class CampaignProcessTests(unittest.TestCase):
     def test_campaign_uses_the_live_launcher_without_building_a_temporary_binary(self):
@@ -31,8 +43,9 @@ class CampaignProcessTests(unittest.TestCase):
             original = binary.read_bytes()
 
             bench = root / "bench"
-            bench.mkdir()
-            (bench / "driver.py").write_text(textwrap.dedent("""
+            scripts = bench / "scripts"
+            scripts.mkdir(parents=True)
+            (scripts / "driver.py").write_text(textwrap.dedent("""
                 import json, os, subprocess, sys
                 from pathlib import Path
                 swc = Path(sys.argv[sys.argv.index("--swc") + 1])
@@ -52,6 +65,7 @@ class CampaignProcessTests(unittest.TestCase):
                 mock.patch.dict(os.environ, env),
                 mock.patch.object(campaign, "ROOT", str(root)),
                 mock.patch.object(campaign.tc, "BENCH", str(bench)),
+                mock.patch.object(campaign.tc, "SCRIPTS", str(scripts)),
                 mock.patch.object(campaign, "build", return_value=str(binary)) as build,
                 mock.patch.object(sys, "argv", ["campaign.py", "--quick", "--swc-cores", "6"]),
             ):

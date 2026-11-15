@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "python-bytecode",
+  "task": "chacha",
+  "sources": {
+    "bench/src/py/chacha.py": "47de04d42ef4ac8bd1ee193abe5b678f9578991760521aeef8069cfba09f03fe"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Python\\Launcher\\py.exe",
+      "-3",
+      "-c",
+      "import dis,sys; p=sys.argv[1]; dis.dis(compile(open(p, encoding='utf-8').read(),p,'exec'))",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\py\\chacha.py"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "633277775",
+    "expected_checksum": "633277775",
+    "compiler_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7",
+    "compiler_version": "Python 3.12.4",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/py/chacha.py": "47de04d42ef4ac8bd1ee193abe5b678f9578991760521aeef8069cfba09f03fe"
+    },
+    "input_artifact_sha256": "47de04d42ef4ac8bd1ee193abe5b678f9578991760521aeef8069cfba09f03fe",
+    "input_artifact_bytes": 1795,
+    "runtime_executable_sha256": "6adfaf57bec54dfdb4966abbb20e2490564123ffe39d800eb4d340a2ae5784e7"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "df38cd8b8189be93181841aaacf81e0400880ccce668bd0dbb15a10ead9bab4a",
+      "content_sha256": "d3a3b0a68d8782cdb24f3cadd18d391c535f1265617d933db9ecf3422bfb02d5",
+      "bytes": 3432,
+      "content_bytes": 23611
+    }
+  }
+}

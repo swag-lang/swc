@@ -6,7 +6,8 @@ import sys
 SCRIPTS = Path(__file__).resolve().parent / 'scripts'
 COMMANDS = {'setup': 'compiler_setup', 'smoke': 'smoke', 'campaign': 'campaign',
             'measure': 'driver', 'report': 'mkpage', 'codegen': 'codegen',
-            'reference': 'reference', 'compile': 'compile', 'microdiff': 'microdiff'}
+            'reference': 'reference', 'compile': 'compile', 'microdiff': 'microdiff',
+            'capture': 'capture'}
 if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
     print('Usage: python bench/bench.py <%s> [options]' % '|'.join(COMMANDS))
     raise SystemExit(0 if len(sys.argv) < 2 or sys.argv[1] in ('-h', '--help') else 2)

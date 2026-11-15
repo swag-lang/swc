@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "cpp-msvc",
+  "task": "dijkstra",
+  "sources": {
+    "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "bench/src/cpp/dijkstra.cpp": "a2a081530693c7b9352d331b8b4a9726f2ddf922b1b67e35665e46802ed4fee2"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe",
+      "/nologo",
+      "/O2",
+      "/EHsc",
+      "/std:c++20",
+      "/Fo:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\obj_capture_dijkstra_cpp_msvc\\",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cpp\\dijkstra.cpp",
+      "/Fe:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_dijkstra_cpp_msvc.exe",
+      "/link",
+      "/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_dijkstra_cpp_msvc.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "4431000",
+    "expected_checksum": "4431000",
+    "binary_sha256": "57c586f7c2b27c8018ed64af1ebf07c64b6d2b4709ba84a9e427ecf45a550cad",
+    "binary_bytes": 139776,
+    "compiler_executable_sha256": "9905e3c72217fd4f3c35e550d5ce88f457990a64add22d1777693c84e77f8bbd",
+    "compiler_version": "usage: cl [ option... ] filename... [ /link linkoption... ]\nMicrosoft (R) C/C++ Optimizing Compiler Version 19.50.35726 for x64\nCopyright (C) Microsoft Corporation.  All rights reserved.",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+      "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+      "bench/src/cpp/dijkstra.cpp": "a2a081530693c7b9352d331b8b4a9726f2ddf922b1b67e35665e46802ed4fee2"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "be78d17f2fed6ac402705cd4ee116a4be40cee934bb30e38468a6f59e510f47f",
+      "content_sha256": "1b39806e14346e51ef56d89b916869f645e47399c9305deb7413a3f7cb0755dc",
+      "bytes": 242391,
+      "content_bytes": 1518647
+    },
+    "build.txt.gz": {
+      "sha256": "f6bdce277cf2487c9d0dd9ca54d93627f08256907659744a10c155d60883741b",
+      "content_sha256": "50115e224d4c4954231d9245fb69ad51f0512474e4ef33646771b36adc73ff41",
+      "bytes": 34,
+      "content_bytes": 14
+    },
+    "symbols.txt.gz": {
+      "sha256": "23d1a0b987650382523b0909a96ba2d669370864753f522f6928331521157ec9",
+      "content_sha256": "27ef6a9c6810d98e42a06c9cd03fdbb68cff0daa38fbd0f87410a6e77759e67f",
+      "bytes": 42314,
+      "content_bytes": 254687
+    }
+  }
+}

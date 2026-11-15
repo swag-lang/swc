@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "compiler": "go",
+  "task": "nbody",
+  "sources": {
+    "bench/src/go/bytemap.go": "f75ce05577fd950b6e4e43ff50642863088c6d6e70e4feeb7cc9cfd0313a1508",
+    "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7",
+    "bench/src/go/nbody.go": "fe82893eaff6635820d067defeccea90b74b7117ab5c34e83c7edb8941fa9445"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Go\\bin\\go.exe",
+      "build",
+      "-o",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_nbody_go\\capture_nbody_go.exe",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\go\\nbody.go",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\go\\common.go"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_nbody_go",
+    "environment": {
+      "GOCACHE": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\cache\\go\\live",
+      "GOTOOLCHAIN": "local",
+      "GOFLAGS": ""
+    },
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "binary_sha256": "51066e1cf6d33e91237307f1bac03a0932f54e67ec45f4fe508cf70741026666",
+    "binary_bytes": 2519552,
+    "compiler_executable_sha256": "d3ccdb604eafa6031133aefe1a3db24f0bb7362b857bc2125ac4e4c178b4b490",
+    "compiler_version": "go version go1.27.1 windows/amd64",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/go/bytemap.go": "f75ce05577fd950b6e4e43ff50642863088c6d6e70e4feeb7cc9cfd0313a1508",
+      "bench/src/go/common.go": "e7c155af13afccc3053bb0e35ad896be8068fbadd4dfc8e10fb2031ddff8d4b7",
+      "bench/src/go/nbody.go": "fe82893eaff6635820d067defeccea90b74b7117ab5c34e83c7edb8941fa9445"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "fdfc1e04e05d5b3c89c670a40d312f207ae2fa9929ae4d67effcac1309a02b41",
+      "content_sha256": "62e75d3c5f3d83bf38761a5b6be5b8a642775525f12f10e33cdd0f002cfb5ed1",
+      "bytes": 1711712,
+      "content_bytes": 12164539
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "07121cd9d450f9a440171d48f2f7be4112b79291b8f0179fa7c1273c974b8945",
+      "content_sha256": "23ed36330eccde6e2294d5741b39de10fcfc25a2b12dcfafd08527babaf1f8f9",
+      "bytes": 24652,
+      "content_bytes": 104493
+    },
+    "go-assembly.txt.gz": {
+      "sha256": "f79bd5c3c490f1cf7b6600089f5fe0c2c5de755b7d8dbc17440bd7f6bf2efd32",
+      "content_sha256": "d4fd6b7c6edea0ebb7f11f27a114bb98d78215b8f41517a4f70e360ed493c344",
+      "bytes": 1727940,
+      "content_bytes": 11308610
+    }
+  }
+}

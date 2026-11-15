@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "compiler": "csharp-aot",
+  "task": "csvagg",
+  "sources": {
+    "bench/src/cs/aot/csvagg/csvagg.csproj": "f5fec68a266cdfcf0f0fd6f1998db844d3beeb9fefd107d0fcfe55e174c6b04d",
+    "bench/src/cs/jit/csvagg/csvagg.csproj": "76b22bc38dd3f8ce7a06620f28b9e891fc6b82d1f891f2daf18f6d3a69530abb",
+    "bench/src/cs/src/csvagg.cs": "bb26483eb52db4b2346f88c45ec41566178e0d7e55ac946d3c12a6d5369a5704"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "publish",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\aot\\csvagg",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "24828641",
+    "expected_checksum": "24828641",
+    "binary_sha256": "ef67ac0a2894b6359b694a116e86cbc3f0f4e3c21554c0b4c65f767fa1a4605b",
+    "binary_bytes": 1127936,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/csvagg/csvagg.csproj": "f5fec68a266cdfcf0f0fd6f1998db844d3beeb9fefd107d0fcfe55e174c6b04d",
+      "bench/src/cs/jit/csvagg/csvagg.csproj": "76b22bc38dd3f8ce7a06620f28b9e891fc6b82d1f891f2daf18f6d3a69530abb",
+      "bench/src/cs/src/csvagg.cs": "bb26483eb52db4b2346f88c45ec41566178e0d7e55ac946d3c12a6d5369a5704"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "c29a06c11dfa756c826e6a7d793260c3ad904c1562e06205e56430210b8477a2",
+      "content_sha256": "64a554262a563efbff62ef1a3dff31201f994f385b8f8dbe3b87cb1e971ee021",
+      "bytes": 1986137,
+      "content_bytes": 13771427
+    },
+    "build.txt.gz": {
+      "sha256": "02a55d84170e029e9c1d5827e7c8597d11622fdb8d814022c2a9ee509be70efb",
+      "content_sha256": "d324d164b8bdd962bd1d3eb8ab86353dbd351a3625977bbd72c6785bdbe9a430",
+      "bytes": 388,
+      "content_bytes": 1106
+    },
+    "symbols.txt.gz": {
+      "sha256": "bc86b7a8581304993d68b07221b8c3ac6adc3668954da6b794bf593da014b085",
+      "content_sha256": "d95fe3a291f24cb348051c69e9f48ac372d24e5af51666c9bd8d5436d95c72af",
+      "bytes": 1616858,
+      "content_bytes": 13416495
+    }
+  }
+}

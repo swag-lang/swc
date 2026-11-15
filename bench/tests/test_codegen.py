@@ -11,6 +11,36 @@ SPEC.loader.exec_module(codegen)
 
 
 class CodegenArchiveTests(unittest.TestCase):
+    def test_extra_listings_are_hashed_and_cannot_escape_the_entry(self):
+        with tempfile.TemporaryDirectory() as temp:
+            metadata = {"checksum": "42", "expected_checksum": "42"}
+            with self.assertRaisesRegex(ValueError, "distinct"):
+                codegen.export_entry(temp, "gcc", "task", metadata, "ret", {"task.cpp": "hash"},
+                                     listings={"../symbols.txt.gz": "outside"})
+            self.assertEqual(list(Path(temp).iterdir()), [])
+            codegen.export_entry(temp, "gcc", "task", metadata, "ret", {"task.cpp": "hash"},
+                                 listings={"symbols.txt.gz": "0000 main"})
+            codegen.finish_snapshot(temp, {})
+            self.assertEqual(codegen.verify(temp)[1], [])
+            (Path(temp) / "gcc/task/symbols.txt.gz").write_bytes(b"changed")
+            self.assertIn("artifact changed", codegen.verify(temp)[1][0])
+
+    def test_source_verification_accepts_checkout_line_endings(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            source = root / "task.cpp"
+            for original, checkout in ((b"\n", b"\r\n"), (b"\r\n", b"\n")):
+                with self.subTest(original=original):
+                    source.write_bytes(b"int main() { return 0; }" + original)
+                    out = root / ("crlf" if original == b"\r\n" else "lf")
+                    codegen.export_entry(out, "gcc", "task", {"checksum": "42", "expected_checksum": "42"},
+                                         "ret", codegen.source_fingerprints(root, [source]))
+                    codegen.finish_snapshot(out, {})
+                    source.write_bytes(b"int main() { return 0; }" + checkout)
+                    self.assertEqual(codegen.verify(out, root)[1], [])
+                    source.write_bytes(b"int main() { return 1; }" + checkout)
+                    self.assertIn("source no longer matches", codegen.verify(out, root)[1][0])
+
     def test_reuse_rejects_changed_sources_and_corrupted_artifacts(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -54,6 +84,8 @@ class CodegenArchiveTests(unittest.TestCase):
             patch = root / "clock.patch"
             patch.write_text("clock only\n")
             codegen.finish_snapshot(root, {"purpose": "test"}, ["clock.patch"])
+            self.assertNotIn(b"\r", (root / "gcc/task/manifest.json").read_bytes())
+            self.assertNotIn(b"\r", (root / "snapshot.json").read_bytes())
             self.assertEqual(codegen.verify(root)[1], [])
             with self.assertRaises(FileExistsError):
                 codegen.finish_snapshot(root, {})

@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "cpp-msvc",
+  "task": "lz77",
+  "sources": {
+    "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "bench/src/cpp/lz77.cpp": "84af191423d5265910c1aa3bbade756349a38ed198bc915f9e999d7bd1d97c61"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe",
+      "/nologo",
+      "/O2",
+      "/EHsc",
+      "/std:c++20",
+      "/Fo:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\obj_capture_lz77_cpp_msvc\\",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cpp\\lz77.cpp",
+      "/Fe:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_lz77_cpp_msvc.exe",
+      "/link",
+      "/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_lz77_cpp_msvc.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "622942003053",
+    "expected_checksum": "622942003053",
+    "binary_sha256": "0355c2d5999d722d0a4ec0d7fb76a06dbb289d946922912015df79f90b074e85",
+    "binary_bytes": 140800,
+    "compiler_executable_sha256": "9905e3c72217fd4f3c35e550d5ce88f457990a64add22d1777693c84e77f8bbd",
+    "compiler_version": "usage: cl [ option... ] filename... [ /link linkoption... ]\nMicrosoft (R) C/C++ Optimizing Compiler Version 19.50.35726 for x64\nCopyright (C) Microsoft Corporation.  All rights reserved.",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+      "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+      "bench/src/cpp/lz77.cpp": "84af191423d5265910c1aa3bbade756349a38ed198bc915f9e999d7bd1d97c61"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "dd24213770f3f51714b3f9ed661b6fb872480c6b41ff097324dd26eb7eb2a2e7",
+      "content_sha256": "b82f27dd7d52f1002e07b0ab43e21ce437184c31ca63f43a43a6203f12ca8cb0",
+      "bytes": 244349,
+      "content_bytes": 1527200
+    },
+    "build.txt.gz": {
+      "sha256": "f487cda3a4d3ade0fdc476a8046029a0d134e0ee64671b41209059dfd9593db7",
+      "content_sha256": "e365b7c45dc34a87bc86f35a4b329d836d0c85ee9d88d4ec48ce5aaf4f0e999d",
+      "bytes": 30,
+      "content_bytes": 10
+    },
+    "symbols.txt.gz": {
+      "sha256": "c5df24263e1a21c14144ac4bcf0a635d21caaa11b15fdd2b6018c12710d92afa",
+      "content_sha256": "61b1c9b76eb96b7a45bd5e9fd8b8ab95bae5e4d6bce1503e1d4e66ba3fcd755a",
+      "bytes": 42269,
+      "content_bytes": 254521
+    }
+  }
+}

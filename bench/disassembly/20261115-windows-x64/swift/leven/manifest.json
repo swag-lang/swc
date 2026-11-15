@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "compiler": "swift",
+  "task": "leven",
+  "sources": {
+    "bench/src/swift/leven/main.swift": "83dc786367f0dfdceb1a8aef10ac0d5de75e8dc9ddd352431be3ac57d9e5875a"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Swift\\Toolchains\\6.3.3+Asserts\\usr\\bin\\swiftc.exe",
+      "-O",
+      "-wmo",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\swift\\leven\\main.swift",
+      "-o",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_leven_swift.exe",
+      "-Xlinker",
+      "/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_leven_swift.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "67441",
+    "expected_checksum": "67441",
+    "binary_sha256": "2ed071ab884c41cb4330114a43514b6028973283c606cbd64d002845e62db223",
+    "binary_bytes": 25600,
+    "compiler_executable_sha256": "e1d0a0b20d95a92b22f4906e7ca331a7c8b89be86b2d9a2d215ac24f753e945a",
+    "compiler_version": "Swift version 6.3.3 (swift-6.3.3-RELEASE)\nTarget: x86_64-unknown-windows-msvc\nBuild config: +assertions",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/swift/leven/main.swift": "83dc786367f0dfdceb1a8aef10ac0d5de75e8dc9ddd352431be3ac57d9e5875a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "42dce95646eec4318d6f6a5fbf43bf205fe6f30525292a91b110866b5c775d14",
+      "content_sha256": "78417145b1f27771cb0b5123cec9ddd72f5d19223b383eab4dffa6ba98d3d8b0",
+      "bytes": 21085,
+      "content_bytes": 120126
+    },
+    "build.txt.gz": {
+      "sha256": "4e4781f1ef9b09d5f4d954db0beb8561b439501a6dfdbecbf1275a5dfd9bf10e",
+      "content_sha256": "9a30c9bb9c6b80da21aa0470931c2bc8cf3ffc5472838953254bb2e601884cc6",
+      "bytes": 143,
+      "content_bytes": 231
+    },
+    "symbols.txt.gz": {
+      "sha256": "aeb05115b5874d7705fcf026ba0c653ab872901f7af874880086264653c5e0f5",
+      "content_sha256": "5f312e968a03e9601a4cab5fd39eac59866fc9163366b80b4be142a4ddbdcce0",
+      "bytes": 5948,
+      "content_bytes": 37416
+    }
+  }
+}

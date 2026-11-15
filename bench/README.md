@@ -37,12 +37,22 @@ python bench/bench.py setup doctor
 python bench/bench.py setup install rustc zig ldc2 odin go
 python bench/bench.py smoke --swc /absolute/path/to/swc --toolchains cpp-gcc,cpp-clang,rust,zig,d-ldc,odin,go,swift,java-hotspot,node20,python3.12,swag-release,swc-jit-release
 python bench/bench.py codegen verify bench/disassembly/20261114-linux-x64 --check-sources
+python bench/bench.py capture --output bench/disassembly/<new-windows-snapshot> --swc C:/absolute/path/to/swc.exe
 python -m unittest discover -s bench/tests
 ```
 
 `smoke` compiles and checks one task per selected toolchain, without statistical sampling,
 recording a campaign or regenerating reports. Omit `--toolchains` to check every available tool.
 The checks and build diagnostics go to `out/<host>/smoke.json`. A failed build/check exits nonzero.
+
+`capture` builds and checks all twelve Windows tasks, then archives complete compressed
+disassembly, Swag Micro, symbol evidence and provenance. It takes no timing samples and never
+updates history or reports. Set `BENCH_OUTPUT_ROOT` to an absolute external directory for its
+builds and caches. `--tasks sort` and `--toolchains cpp-msvc,swag-release` focus a new snapshot.
+Native JIT diagnostics and interpreter bytecodes use separate identifiers; read the snapshot's
+limitations before comparing them with native code. Every snapshot directory is created once.
+If interrupted or failed, `--resume` verifies completed entries before reusing them; only a
+complete successful collection is sealed. A sealed snapshot cannot be resumed or overwritten.
 
 For a quick Linux runtime campaign across all twelve tasks, without a frozen reference:
 
@@ -54,6 +64,8 @@ This takes one sample per available runtime and writes no official history. `--r
 programs outside the measurement, but avoids the hello-build and full standard-library edit-loop
 sections (documentation generation can be lengthy even with `--quick`). Missing tools are skipped;
 build/check failures are retained in the raw result and make the command exit nonzero.
+Quick sweeps flag contention but never wait for quiet or retry an interfering sample; they
+validate the plumbing rather than estimate performance. Normal campaigns keep interference retries.
 
 For Linux campaigns, first build Swag with `tools/linux-build.py` into an external directory,
 then use `python bench/bench.py campaign --no-build --swc /absolute/path/to/swc`. Freeze a **Linux**
@@ -381,17 +393,18 @@ collection policy. These are short-lived program measurements, not warmed server
 | | |
 |---|---|
 | `../tools/bench.bat` | the entry point |
-| `campaign.py` | builds the compiler, measures, reports |
-| `driver.py` | one campaign |
-| `sampler.py` | rounds, pairs, stopping rules, interference retries |
-| `machine.py` | interference estimate, quiet waits, machine and power description |
-| `installs.py` | the private installation of the compiler under test and the frozen reference |
+| `scripts/campaign.py` | builds the compiler, measures, reports |
+| `scripts/driver.py` | one campaign |
+| `scripts/sampler.py` | rounds, pairs, stopping rules, interference retries |
+| `scripts/machine.py` | interference estimate, quiet waits, machine and power description |
+| `scripts/installs.py` | the private installation of the compiler under test and the frozen reference |
 | `scripts/reference.py`, `compilers/reference-<os>.json` | managing the reference, and the committed manifest of the current one |
-| `toolchains.py` | where each toolchain lives, how it builds and runs, its warm state |
-| `stats.py` | medians, intervals, ratios, geometric means, verdicts |
+| `scripts/toolchains.py` | where each toolchain lives, how it builds and runs, its warm state |
+| `scripts/stats.py` | medians, intervals, ratios, geometric means, verdicts |
 | `scripts/history.py` | conclusions; per-OS history is rebuilt from that OS's raw campaigns |
-| `mkpage.py`, `page_template.html` | the report; every figure comes from the raw campaigns |
-| `winproc.py` | process timing in a job object, peak memory, CPU accounting, pinning |
+| `scripts/mkpage.py`, `reports/page_template.html` | the report; every figure comes from the raw campaigns |
+| `scripts/capture.py`, `scripts/codegen.py` | immutable static captures and integrity/source verification |
+| `scripts/winproc.py` | process timing in a job object, peak memory, CPU accounting, pinning |
 | `results/` | one raw campaign per file, every sample kept; `rejected/` and earlier protocols beside |
 | `src/` | the tasks in every language |
 

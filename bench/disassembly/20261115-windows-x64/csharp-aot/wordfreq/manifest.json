@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "compiler": "csharp-aot",
+  "task": "wordfreq",
+  "sources": {
+    "bench/src/cs/aot/wordfreq/wordfreq.csproj": "54f1e72b5193dc4830534b7bd53e84b1e936a78ae6081c4142ad7e35a30382c8",
+    "bench/src/cs/jit/wordfreq/wordfreq.csproj": "80171beabd66a5b189c8d1b9ae30770a092fef885de0226f76017f84fcc2e015",
+    "bench/src/cs/src/wordfreq.cs": "821730a149b4ef9581195165d2039a14324ec2a9eb0edf3bca9d9b31efea368d"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "publish",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\aot\\wordfreq",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "130489",
+    "expected_checksum": "130489",
+    "binary_sha256": "9e8a72da04c818f60fb0ecaf932f05968ea4f28526f2d93f1fd76deff2141703",
+    "binary_bytes": 1126400,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/wordfreq/wordfreq.csproj": "54f1e72b5193dc4830534b7bd53e84b1e936a78ae6081c4142ad7e35a30382c8",
+      "bench/src/cs/jit/wordfreq/wordfreq.csproj": "80171beabd66a5b189c8d1b9ae30770a092fef885de0226f76017f84fcc2e015",
+      "bench/src/cs/src/wordfreq.cs": "821730a149b4ef9581195165d2039a14324ec2a9eb0edf3bca9d9b31efea368d"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "b581ed868bd49356ad4f44ec5e46965d5ebd105f774702adcca13ddf5c90e62e",
+      "content_sha256": "598468ce6f39fc40054622fd2edc017177a59de15448d658a3933ebb36f84a3f",
+      "bytes": 1982229,
+      "content_bytes": 13753575
+    },
+    "build.txt.gz": {
+      "sha256": "b0a8ba4e1667cb7950248ab6853b55d11ea4b5870c24abefcc15dd31ee58fe25",
+      "content_sha256": "e3f8a511bc577863c47206b7c2f6752dcf6e455817f21775f7d89ef1cdddfa7d",
+      "bytes": 391,
+      "content_bytes": 1128
+    },
+    "symbols.txt.gz": {
+      "sha256": "51f153540848e480eb1ce3b61fcd3791a600f7ba2584852e872981c7d6d14d9d",
+      "content_sha256": "2db61a1e5945db07a1800545fc327a8cd23a7d04e8a0b4c5cb631b47066ad6f2",
+      "bytes": 1615952,
+      "content_bytes": 13398594
+    }
+  }
+}

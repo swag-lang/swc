@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "compiler": "node-v8",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/js/binarytrees.js": "24537c7d45fa3adc98410ed1a65e277076b9a1a6519d87d89c6e17007db57cea"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "--print-code",
+      "--print-opt-code",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\js\\binarytrees.js"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "compiler_executable_sha256": "229fb64aeb10d3cc18eaaa2f5a4c3f1c81792dd3647c5c4350e142db528d0f89",
+    "compiler_version": "v20.15.1",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native-jit",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/js/binarytrees.js": "24537c7d45fa3adc98410ed1a65e277076b9a1a6519d87d89c6e17007db57cea"
+    },
+    "input_artifact_sha256": "24537c7d45fa3adc98410ed1a65e277076b9a1a6519d87d89c6e17007db57cea",
+    "input_artifact_bytes": 996,
+    "runtime_executable_sha256": "229fb64aeb10d3cc18eaaa2f5a4c3f1c81792dd3647c5c4350e142db528d0f89"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "3f9d19fb0cb4fa5507b30b5374d2f5d692202710e7f4d539ddd421e4200f4987",
+      "content_sha256": "d45c3c62a8f56cc9d620bb4ea64bbe0839ed414e0f954c4b5d89a18f3850bd28",
+      "bytes": 81100,
+      "content_bytes": 557275
+    }
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "rust",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/rust/raytrace.rs": "fee1b6455ec343f5efc5f32a41fdfb566797e42210f960642b929cd0d991de28"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\.cargo\\bin\\rustc.exe",
+      "--edition",
+      "2021",
+      "-C",
+      "opt-level=3",
+      "-C",
+      "codegen-units=1",
+      "-C",
+      "panic=abort",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\rust\\raytrace.rs",
+      "-o",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_raytrace_rust.exe",
+      "-C",
+      "link-arg=/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_raytrace_rust.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "7e07177f9a5334b02451980494d06cc01bf64501d0d433fe9440d09058accc86",
+    "binary_bytes": 157184,
+    "compiler_executable_sha256": "86478e53f769379d7f0ebfa7c9aa97cb76ca92233f79aa2cc0dbee2efaac73c7",
+    "compiler_version": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/rust/raytrace.rs": "fee1b6455ec343f5efc5f32a41fdfb566797e42210f960642b929cd0d991de28"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "57cc8309069384695f1fdbbc60caa4d9e3033ba15e6093406818f079532a8660",
+      "content_sha256": "9ca4cc0a56184e1be494c63dc81bf9838238d3780b9215eb891a54f8c9952a3a",
+      "bytes": 299406,
+      "content_bytes": 1904241
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "1bed2529f3933d8276a914377f5e42db76b702915f822cebd37fdfd04092d5c0",
+      "content_sha256": "3c28ee8c3331060e8963b7f6bb9870f468ed16b986a74be75053d5625c1fdbc3",
+      "bytes": 27788,
+      "content_bytes": 294120
+    }
+  }
+}

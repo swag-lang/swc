@@ -112,11 +112,9 @@ def main():
     step(n, total, "Measure")
     if not args.quick:
         warn_if_dirty()
-    extra = ["--swc", swc]
+    extra = ["--swc", swc, "--swc-cores", str(args.swc_cores)]
     if args.label:
         extra += ["--label", args.label]
-    if args.swc_cores:
-        extra += ["--swc-cores", str(args.swc_cores)]
     if args.out:
         extra += ["--out", os.path.abspath(args.out)]
     if args.quick:

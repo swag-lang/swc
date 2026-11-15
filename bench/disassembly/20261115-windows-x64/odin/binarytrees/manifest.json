@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/odin/binarytrees.odin": "e63a8abd55da0131e114944313ec9510c5af22e7d3da9591f4809e4367741904",
+    "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Odin\\odin.exe",
+      "build",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\odin\\binarytrees.odin",
+      "-file",
+      "-o:speed",
+      "-out:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_binarytrees_odin\\capture_binarytrees_odin.exe",
+      "-extra-linker-flags:/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_binarytrees_odin\\capture_binarytrees_odin.map"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_binarytrees_odin",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "binary_sha256": "487f228f0a1fcb5a88878ea4864605a121bb03d9fc9b565b56e7039bf88b3490",
+    "binary_bytes": 152576,
+    "compiler_executable_sha256": "e612295f52600cfd640001b991e8b5cbd141f8dd00cb8b96c61e3e0e3c9cdcaf",
+    "compiler_version": "C:\\Users\\chris\\AppData\\Local\\Programs\\Odin\\odin.exe version dev-2026-09-nightly:a2fb372",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/odin/binarytrees.odin": "e63a8abd55da0131e114944313ec9510c5af22e7d3da9591f4809e4367741904",
+      "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5",
+      "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "bd5e2d41c68ff101153c9a16ff5118d7344ce4a4d8809d11e3ac00c1eadccb36",
+      "content_sha256": "d5bb5d72dbf1e0307dc69b75bbf78b51dc66a870d99d7bcf910d0132762af456",
+      "bytes": 263302,
+      "content_bytes": 1643790
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "092393112d36965063306fd96a3372e8afcfc90d0b2c0e6aa9208f8029227c80",
+      "content_sha256": "12fc28e6fd29a81ceded133b043822609840ebcfe6a9a8d2e5d106dbcf16752d",
+      "bytes": 44066,
+      "content_bytes": 261487
+    }
+  }
+}

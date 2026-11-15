@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "compiler": "lua-bytecode",
+  "task": "sort",
+  "sources": {
+    "bench/src/lua/sort.lua": "e49506c4ccf2b4421f566d2295bd40d87e27f977fb4f2b314000a4fc7d8fd913"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Lua\\bin\\luac.exe",
+      "-l",
+      "-l",
+      "-p",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\lua\\sort.lua"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "599499929",
+    "expected_checksum": "599499929",
+    "compiler_executable_sha256": "57e7ed79d667b3ad0cd3eb0273d45ee0411a3a26eed0f7501a5df5da908ccc4a",
+    "compiler_version": "Lua 5.4.6  Copyright (C) 1994-2023 Lua.org, PUC-Rio",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "bytecode",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/lua/sort.lua": "e49506c4ccf2b4421f566d2295bd40d87e27f977fb4f2b314000a4fc7d8fd913"
+    },
+    "input_artifact_sha256": "e49506c4ccf2b4421f566d2295bd40d87e27f977fb4f2b314000a4fc7d8fd913",
+    "input_artifact_bytes": 1676,
+    "runtime_executable_sha256": "57e7ed79d667b3ad0cd3eb0273d45ee0411a3a26eed0f7501a5df5da908ccc4a"
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "d6356878970996b58f1ef96bf253ebfcd17b64f9a06226f4c55be324975e34ae",
+      "content_sha256": "973257311701c29bb80f3d6d326771e9d1ad0e150439219aab1f08716dcae7e0",
+      "bytes": 2470,
+      "content_bytes": 7649
+    }
+  }
+}

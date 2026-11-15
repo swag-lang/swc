@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "d-ldc",
+  "task": "sort",
+  "sources": {
+    "bench/src/d/bytemap.d": "47a16855d33c87ff7c44b5e4527dd6eb666a090b310adc62500ee37f0e0a79cf",
+    "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b",
+    "bench/src/d/sort.d": "afcd0d530d436064b46594809cf88866e5ae4339c9020fe89d0e51044ec74aed"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\LDC\\bin\\ldc2.exe",
+      "-O3",
+      "-release",
+      "-boundscheck=off",
+      "-I=C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\d",
+      "-of=C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sort_d_ldc\\capture_sort_d_ldc.exe",
+      "-od=C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sort_d_ldc",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\d\\sort.d",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\d\\common.d",
+      "-L=/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sort_d_ldc\\capture_sort_d_ldc.map"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sort_d_ldc",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "599499929",
+    "expected_checksum": "599499929",
+    "binary_sha256": "5a9c974af7ca2a188c3ee59838b7109f7a19596d9654e00d22cc1a18f777ce5b",
+    "binary_bytes": 456192,
+    "compiler_executable_sha256": "dc21284355d5cef825024f093f75166e15847cfc9ba78de9dce9c7a972cf640e",
+    "compiler_version": "LDC - the LLVM D compiler (1.43.0):\n  based on DMD v2.113.0 and LLVM 22.1.8\n  built with LDC - the LLVM D compiler (1.43.0)\n  Default target: x86_64-pc-windows-msvc\n  Host CPU: meteorlake\n  https://dlang.org - https://wiki.dlang.org/LDC\n\n\n  Registered Targets:\n    aarch64     - AArch64 (little endian)\n    aarch64_32  - AArch64 (little endian ILP32)\n    aarch64_be  - AArch64 (big endian)\n    amdgcn      - AMD GCN GPUs\n    arm         - ARM\n    arm64       - ARM64 (little endian)\n    arm64_32    - ARM64 (little endian ILP32)\n    armeb       - ARM (big endian)\n    avr         - Atmel AVR Microcontroller\n    bpf         - BPF (host endian)\n    bpfeb       - BPF (big endian)\n    bpfel       - BPF (little endian)\n    hexagon     - Hexagon\n    lanai       - Lanai\n    loongarch32 - 32-bit LoongArch\n    loongarch64 - 64-bit LoongArch\n    mips        - MIPS (32-bit big endian)\n    mips64      - MIPS (64-bit big endian)\n    mips64el    - MIPS (64-bit little endian)\n    mipsel      - MIPS (32-bit little endian)\n    msp430      - MSP430 [experimental]\n    nvptx       - NVIDIA PTX 32-bit\n    nvptx64     - NVIDIA PTX 64-bit\n    ppc32       - PowerPC 32\n    ppc32le     - PowerPC 32 LE\n    ppc64       - PowerPC 64\n    ppc64le     - PowerPC 64 LE\n    r600        - AMD GPUs HD2XXX-HD6XXX\n    riscv32     - 32-bit RISC-V\n    riscv32be   - 32-bit big endian RISC-V\n    riscv64     - 64-bit RISC-V\n    riscv64be   - 64-bit big endian RISC-V\n    sparc       - Sparc\n    sparcel     - Sparc LE\n    sparcv9     - Sparc V9\n    spirv       - SPIR-V Logical\n    spirv32     - SPIR-V 32-bit\n    spirv64     - SPIR-V 64-bit\n    systemz     - SystemZ\n    thumb       - Thumb\n    thumbeb     - Thumb (big endian)\n    ve          - VE\n    wasm32      - WebAssembly 32-bit\n    wasm64      - WebAssembly 64-bit\n    x86         - 32-bit X86: Pentium-Pro and above\n    x86-64      - 64-bit X86: EM64T and AMD64\n    xcore       - XCore\n    xtensa      - Xtensa 32",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/d/bytemap.d": "47a16855d33c87ff7c44b5e4527dd6eb666a090b310adc62500ee37f0e0a79cf",
+      "bench/src/d/common.d": "4a4a0e55ed5efd5b72b9909d25b370a1df80ee5dd9b7df404634f889af8c312b",
+      "bench/src/d/sort.d": "afcd0d530d436064b46594809cf88866e5ae4339c9020fe89d0e51044ec74aed"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "9c7bc01ff8222a6aae40bfcc025c219894a28d7992178e46db14453c8fc47a94",
+      "content_sha256": "484f08957ce408f8343bd68dbcc7428ed65f17fc348529b4f180e982b89cd50a",
+      "bytes": 750627,
+      "content_bytes": 5012429
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "488fe885f3219dda7c5ee08ee3be32803022ff24c94f27e3d7e39c309628cea3",
+      "content_sha256": "428a0985c0123e0e9da04942f75d847f56592e0188f03b3e7c2d58b849dc16dd",
+      "bytes": 109077,
+      "content_bytes": 748008
+    }
+  }
+}

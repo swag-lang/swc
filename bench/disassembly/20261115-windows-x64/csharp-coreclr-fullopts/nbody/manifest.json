@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "csharp-coreclr-fullopts",
+  "task": "nbody",
+  "sources": {
+    "bench/src/cs/aot/nbody/nbody.csproj": "72e5468dd8499e354639ba8bbefd1cc676cbf0d14cbe58ff659e1ca44f3167d3",
+    "bench/src/cs/jit/nbody/nbody.csproj": "4b145101ee80b246bf2cbc6ac1565d0123499c486c55ea4d93ba89aff4a69c6a",
+    "bench/src/cs/src/nbody.cs": "6b47a8377594b91bd4e7350cbd0b68517258881da70eb1292cd03ba25ce9760a"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "build",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\jit\\nbody",
+    "environment": {
+      "COMPlus_JitDisasm": "*",
+      "COMPlus_JitDisasmAssemblies": "nbody_csjit",
+      "COMPlus_TieredCompilation": "0",
+      "COMPlus_ReadyToRun": "0"
+    },
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "169096566666",
+    "expected_checksum": "169096566666",
+    "binary_sha256": "42be9ec46a088aa9dff85480de94ab268f53a895b6bd78fccc3afa97a45cd725",
+    "binary_bytes": 6656,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native-jit",
+    "timing_claim": false,
+    "diagnostic_variant": {
+      "COMPlus_JitDisasm": "*",
+      "COMPlus_JitDisasmAssemblies": "nbody_csjit",
+      "COMPlus_TieredCompilation": "0",
+      "COMPlus_ReadyToRun": "0"
+    },
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/nbody/nbody.csproj": "72e5468dd8499e354639ba8bbefd1cc676cbf0d14cbe58ff659e1ca44f3167d3",
+      "bench/src/cs/jit/nbody/nbody.csproj": "4b145101ee80b246bf2cbc6ac1565d0123499c486c55ea4d93ba89aff4a69c6a",
+      "bench/src/cs/src/nbody.cs": "6b47a8377594b91bd4e7350cbd0b68517258881da70eb1292cd03ba25ce9760a"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "1b7075e0deab1fe769f0c537c706650e7837b1131bd5f6b67db48ca325c6c3c8",
+      "content_sha256": "4cab5c7b01f6972464b90a6486b07b6910ea0f922ef0c4d520a3d11c394e8cb2",
+      "bytes": 271271,
+      "content_bytes": 2707542
+    },
+    "build.txt.gz": {
+      "sha256": "6aec34de11077ca6d64279abaa2057106508a4aef22c7df438b2ed3972e13a92",
+      "content_sha256": "9213123d6c0502ae9f0072155894d5e814fc118668cbab7c16dd484e446bc479",
+      "bytes": 282,
+      "content_bytes": 442
+    }
+  }
+}

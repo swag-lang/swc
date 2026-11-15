@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "cpp-clang-cl",
+  "task": "fannkuch",
+  "sources": {
+    "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "bench/src/cpp/fannkuch.cpp": "046257484c3d072f6f4f89931fae43468a637c464fa73817712c0c44b5c2524d"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\Llvm\\x64\\bin\\clang-cl.exe",
+      "/nologo",
+      "/O2",
+      "/EHsc",
+      "/std:c++20",
+      "/Fo:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\obj_capture_fannkuch_cpp_clang_cl\\",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cpp\\fannkuch.cpp",
+      "/Fe:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_fannkuch_cpp_clang_cl.exe",
+      "/link",
+      "/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_fannkuch_cpp_clang_cl.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "8629030",
+    "expected_checksum": "8629030",
+    "binary_sha256": "c1f083ca8cb5cfa4487b7c9e2c32188baf6cd0f70674c22c2fa81feb7a03abb3",
+    "binary_bytes": 140800,
+    "compiler_executable_sha256": "a19514d0fdfd3ed41ae6fbfe903be03e4bd436c285fa1fa649aa52f02e642d94",
+    "compiler_version": "clang version 20.1.8\nTarget: x86_64-pc-windows-msvc\nThread model: posix\nInstalledDir: C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\Llvm\\x64\\bin",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+      "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+      "bench/src/cpp/fannkuch.cpp": "046257484c3d072f6f4f89931fae43468a637c464fa73817712c0c44b5c2524d"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "0afa88b36f7ad5a6673fa87cc0a81831df2bf2deef238d8c1f6f37962050cbd2",
+      "content_sha256": "4f06a00d47fc5692b85a2bc92759a65a64987dafd339637a2b6fedadb842757c",
+      "bytes": 244516,
+      "content_bytes": 1535463
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "319f4308adce82d32b999fbaf05102ea971da2378ef72474128886be178d5639",
+      "content_sha256": "23150bd697107ad534ec48e5684ad8427ec93606355864aada23807f841cac61",
+      "bytes": 42539,
+      "content_bytes": 255889
+    }
+  }
+}

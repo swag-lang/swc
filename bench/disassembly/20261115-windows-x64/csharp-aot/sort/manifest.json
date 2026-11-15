@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "compiler": "csharp-aot",
+  "task": "sort",
+  "sources": {
+    "bench/src/cs/aot/sort/sort.csproj": "989b6d9e5d99ae8a033b42dfde253e08331eebcb310ebafe9781791bce414a08",
+    "bench/src/cs/jit/sort/sort.csproj": "3371ca34b523031afb0f3c37592636b1d2b290cef314e73f9b50d34263622d2f",
+    "bench/src/cs/src/sort.cs": "40a4592d04c00d848aa47c40abdaa9bfe633a4c812377c0dd71d4cbf3e3d6d47"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "publish",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\aot\\sort",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "599499929",
+    "expected_checksum": "599499929",
+    "binary_sha256": "4cbb9d500307af71281d75eaf37fd548dbbcf5d6c4634b1c48b440859a1e9abe",
+    "binary_bytes": 1124352,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/sort/sort.csproj": "989b6d9e5d99ae8a033b42dfde253e08331eebcb310ebafe9781791bce414a08",
+      "bench/src/cs/jit/sort/sort.csproj": "3371ca34b523031afb0f3c37592636b1d2b290cef314e73f9b50d34263622d2f",
+      "bench/src/cs/src/sort.cs": "40a4592d04c00d848aa47c40abdaa9bfe633a4c812377c0dd71d4cbf3e3d6d47"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "76e355324472a4ea92b2d96f03529c355d487ed066f287f09123f93822492a2f",
+      "content_sha256": "a62da68405c2842814b4f39c894ed3ab8c1ef3f3e89d491b4ba147d018b21e3d",
+      "bytes": 1977453,
+      "content_bytes": 13722209
+    },
+    "build.txt.gz": {
+      "sha256": "c2272db1467a00cb1d18c2c41fcb2a2d6e4600447739c5d11e0ae37c28433712",
+      "content_sha256": "9b0262e3868b2983637218b68ea54a7086fa7fa643bd01dd7824f2fb670f6455",
+      "bytes": 387,
+      "content_bytes": 1084
+    },
+    "symbols.txt.gz": {
+      "sha256": "9f2496b3c31a75e4189ce19180ae1149219b9b35ce9b7d81bf182d5f9c12f1d8",
+      "content_sha256": "6d8f7ece0ff9c724cd7d2e766a25bf686d6e7f3545f1ece9dba91a8b6a6b1203",
+      "bytes": 1613367,
+      "content_bytes": 13381808
+    }
+  }
+}

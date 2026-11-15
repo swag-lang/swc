@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "compiler": "java-hotspot-c2",
+  "task": "sha256",
+  "sources": {
+    "bench/src/java/sha256/Bench.java": "994fb743d1a21d03735fe73697a168040ec9922c1423547d8a84a44f6575c841"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Java\\bin\\javac.exe",
+      "-encoding",
+      "UTF-8",
+      "-d",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sha256_java_hotspot",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\java\\sha256\\Bench.java"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sha256_java_hotspot",
+    "environment": {
+      "run_command": [
+        "C:\\Users\\chris\\AppData\\Local\\Programs\\Java\\bin\\java.exe",
+        "-Xbatch",
+        "-XX:-TieredCompilation",
+        "-XX:CompileThreshold=100",
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:CompileCommand=print,Bench::*",
+        "-cp",
+        "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sha256_java_hotspot",
+        "Bench"
+      ]
+    },
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "2503168387",
+    "expected_checksum": "2503168387",
+    "binary_sha256": "13ed53984148bd09e989f49d5031fbc1ecaf0d4bc3cf82027aa13c38accaf985",
+    "binary_bytes": 3659,
+    "compiler_executable_sha256": "1c4b1f0ed250fdf08ac324a4beae89d8405d408fd9880f69a6283eb256ba80f9",
+    "compiler_version": "openjdk version \"25.0.4.1\" 2026-08-18 LTS\r\nOpenJDK Runtime Environment Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS)\r\nOpenJDK 64-Bit Server VM Temurin-25.0.4.1+1 (build 25.0.4.1+1-LTS, mixed mode, sharing)",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native-jit",
+    "timing_claim": false,
+    "diagnostic_variant": {
+      "run_command": [
+        "C:\\Users\\chris\\AppData\\Local\\Programs\\Java\\bin\\java.exe",
+        "-Xbatch",
+        "-XX:-TieredCompilation",
+        "-XX:CompileThreshold=100",
+        "-XX:+UnlockDiagnosticVMOptions",
+        "-XX:CompileCommand=print,Bench::*",
+        "-cp",
+        "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_sha256_java_hotspot",
+        "Bench"
+      ]
+    },
+    "compiled_source_sha256": {
+      "bench/src/java/sha256/Bench.java": "994fb743d1a21d03735fe73697a168040ec9922c1423547d8a84a44f6575c841"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e5cd8355df546b002d14d8cdb1bdc2b64e50c64ae5592de5b9caf34f858737e1",
+      "content_sha256": "ec6b1bdeba76ddb53e8ef7fad8a7ed26248c3db6c19b78e4a5ea19be60847415",
+      "bytes": 15154,
+      "content_bytes": 105492
+    },
+    "hotspot-raw.txt.gz": {
+      "sha256": "0a9d1f744bcee18f80f3179ee9bbcdd45f615d994de2a730d6bdf82229b53af7",
+      "content_sha256": "7e528d4f6b5f36dba2098456046a3e1cd07c860eafb406e0a585dd5f777aa69a",
+      "bytes": 12126,
+      "content_bytes": 56010
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    }
+  }
+}

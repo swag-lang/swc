@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "cpp-msvc",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+    "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+    "bench/src/cpp/raytrace.cpp": "ee81d2a1b4582a725b2cac2da5fe27f69b5e715f61e1e5209985e30a45a01b98"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\VC\\Tools\\MSVC\\14.50.35717\\bin\\HostX64\\x64\\cl.exe",
+      "/nologo",
+      "/O2",
+      "/EHsc",
+      "/std:c++20",
+      "/Fo:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\obj_capture_raytrace_cpp_msvc\\",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cpp\\raytrace.cpp",
+      "/Fe:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_raytrace_cpp_msvc.exe",
+      "/link",
+      "/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_raytrace_cpp_msvc.map"
+    ],
+    "cwd": "C:\\Perso\\swag-lang\\swc\\bench",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "11fc397173860c857c7f3ca35650dccf8309c6ca5d77089b5f6c8fc813fed76c",
+    "binary_bytes": 141824,
+    "compiler_executable_sha256": "9905e3c72217fd4f3c35e550d5ce88f457990a64add22d1777693c84e77f8bbd",
+    "compiler_version": "usage: cl [ option... ] filename... [ /link linkoption... ]\nMicrosoft (R) C/C++ Optimizing Compiler Version 19.50.35726 for x64\nCopyright (C) Microsoft Corporation.  All rights reserved.",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/cpp/bytemap.h": "36f4a53c368997916a2f395e50cf2b89d65a12f69fc3faffd23afa051f3044ff",
+      "bench/src/cpp/common.h": "e45ec95016bce5b42a70cd0190d3b09c5ede09c74cf931f0f2c32b08e5c7a670",
+      "bench/src/cpp/raytrace.cpp": "ee81d2a1b4582a725b2cac2da5fe27f69b5e715f61e1e5209985e30a45a01b98"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "e0cf1dde2211fe363fb75bc4a712289321cfa3fe5ed9ac5ee91481d12ca73c0c",
+      "content_sha256": "80367f2e87c4eadf406e4dd8acc478ed36f22b18341e30ed623264bfe0a1c80a",
+      "bytes": 245820,
+      "content_bytes": 1535930
+    },
+    "build.txt.gz": {
+      "sha256": "d411a78426d680a1c25e305de7658b8815f2db66260af1cc2a08b7c0693b9db9",
+      "content_sha256": "b86b3707468edac43686b4899825e5f5f772a06d545950f63c49322e044ce1a2",
+      "bytes": 34,
+      "content_bytes": 14
+    },
+    "symbols.txt.gz": {
+      "sha256": "1e6f0d2f1faccab15dff9723be675e8d2ae32884e76cf7c52c5d5727f1ad3d62",
+      "content_sha256": "a54526eb42db870f8cd1c855272d6496b9965dc1300262140fdfff8cf264bfde",
+      "bytes": 42749,
+      "content_bytes": 257427
+    }
+  }
+}

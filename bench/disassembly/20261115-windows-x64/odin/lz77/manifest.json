@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "compiler": "odin",
+  "task": "lz77",
+  "sources": {
+    "bench/src/odin/lz77.odin": "efcfd06f5c584609404d177e8dcd5868f3c8a65ae42db286a8c5fce00acebbee",
+    "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5",
+    "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Users\\chris\\AppData\\Local\\Programs\\Odin\\odin.exe",
+      "build",
+      "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\odin\\lz77.odin",
+      "-file",
+      "-o:speed",
+      "-out:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_lz77_odin\\capture_lz77_odin.exe",
+      "-extra-linker-flags:/MAP:C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_lz77_odin\\capture_lz77_odin.map"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\capture_lz77_odin",
+    "environment": {},
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "622942003053",
+    "expected_checksum": "622942003053",
+    "binary_sha256": "d1b7f70b6add4f853ec731bce4dea2e1b4328bde6e449b322c2ff0638bc8b472",
+    "binary_bytes": 154112,
+    "compiler_executable_sha256": "e612295f52600cfd640001b991e8b5cbd141f8dd00cb8b96c61e3e0e3c9cdcaf",
+    "compiler_version": "C:\\Users\\chris\\AppData\\Local\\Programs\\Odin\\odin.exe version dev-2026-09-nightly:a2fb372",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native",
+    "timing_claim": false,
+    "diagnostic_variant": {},
+    "compiled_source_sha256": {
+      "bench/src/odin/lz77.odin": "efcfd06f5c584609404d177e8dcd5868f3c8a65ae42db286a8c5fce00acebbee",
+      "bench/src/odin/bytemap/bytemap.odin": "527297f5deef3417f6abacb6c2bc23aa0145028ee053cffabf5510ab0c14d6e5",
+      "bench/src/odin/common/common.odin": "ec2482c16faa04b3985c85f28793947eade1fa7a35ed099439639900d016a566"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "3408d3109cd827c5fe985828d5224f55613f17d2d9f8fc78438c93f0a4952d0e",
+      "content_sha256": "4a97dde90fb8e82b8aa08f4a9e6e861f2cf7e89e2f602a6f879ef5bd9ad7557b",
+      "bytes": 268316,
+      "content_bytes": 1669773
+    },
+    "build.txt.gz": {
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "content_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 20,
+      "content_bytes": 0
+    },
+    "symbols.txt.gz": {
+      "sha256": "0c5637a0bbf83e2878e6a03f6c25e984c526d4693419633595f70b61e4a2fd3a",
+      "content_sha256": "19177767f6662580d2c7ea751a932f3e6660a6d1e3300d0abeb70c12c27bf321",
+      "bytes": 42946,
+      "content_bytes": 260843
+    }
+  }
+}

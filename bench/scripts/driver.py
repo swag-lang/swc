@@ -150,7 +150,7 @@ class Campaign:
         names = [n for n in recipes if n not in errors]
         series = sampler.run_rounds(self.units(names), lambda n, _: self.build_sample(recipes[n]),
                                     self.plan("build"), "wall_ms", self.rng, self.waits,
-                                    self.baselines["build"], log)
+                                    self.baselines["build"], log, retry_interference=not self.quick)
         out = {}
         for name, recipe in recipes.items():
             if name in errors:
@@ -174,7 +174,7 @@ class Campaign:
         series = sampler.run_rounds(self.units(list(commands)),
                                     lambda n, _: self.run_sample(*commands[n]),
                                     self.plan("run"), "ms", self.rng, self.waits,
-                                    self.baselines["run"], log)
+                                    self.baselines["run"], log, retry_interference=not self.quick)
         out = {}
         for name, s in series.items():
             out[name] = s.as_dict()
@@ -204,7 +204,7 @@ class Campaign:
                 spec["state"].capture()
         series = sampler.run_rounds(self.units(list(specs)), lambda n, _: self.hello_sample(specs[n]),
                                     self.plan("run"), "first_ms", self.rng, self.waits,
-                                    self.baselines["hello"], log)
+                                    self.baselines["hello"], log, retry_interference=not self.quick)
         return {name: s.as_dict() for name, s in series.items()}
 
     # ------------------------------------------------------------- edit loop
@@ -234,7 +234,7 @@ class Campaign:
             units = [tuple(r for r in ("subject", "reference") if r in jobs and r not in errors)]
             series = sampler.run_rounds([u for u in units if u], lambda n, _: self.loop_sample(jobs[n]),
                                         self.plan("loop"), "wall_ms", self.rng, self.waits,
-                                        self.baselines["loop"], log)
+                                        self.baselines["loop"], log, retry_interference=not self.quick)
             out[wid] = {role: ({"error": errors[role]} if role in errors else series[role].as_dict())
                         for role in jobs}
             line = "  %-14s" % wid

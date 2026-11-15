@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "csharp-coreclr-fullopts",
+  "task": "binarytrees",
+  "sources": {
+    "bench/src/cs/aot/binarytrees/binarytrees.csproj": "ecbfc36089332d6e609abd5cb21ca9c2b7af8a78410d56c7ef36bffda6b392d3",
+    "bench/src/cs/jit/binarytrees/binarytrees.csproj": "2252e741fc4b43aefb0407f0349a107da451fa6d88d8fc98d23acec5b91dcedf",
+    "bench/src/cs/src/binarytrees.cs": "f2832e7a24b5677e234301acd5fb4b16c8be7ff32a3e991c10aa2eb249649ef9"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "build",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\jit\\binarytrees",
+    "environment": {
+      "COMPlus_JitDisasm": "*",
+      "COMPlus_JitDisasmAssemblies": "binarytrees_csjit",
+      "COMPlus_TieredCompilation": "0",
+      "COMPlus_ReadyToRun": "0"
+    },
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "674478",
+    "expected_checksum": "674478",
+    "binary_sha256": "19bb443bbaa33b5271fe590733eaa1dd4fbe2ba680f22c9bef40e10ad2eff3d2",
+    "binary_bytes": 5632,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native-jit",
+    "timing_claim": false,
+    "diagnostic_variant": {
+      "COMPlus_JitDisasm": "*",
+      "COMPlus_JitDisasmAssemblies": "binarytrees_csjit",
+      "COMPlus_TieredCompilation": "0",
+      "COMPlus_ReadyToRun": "0"
+    },
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/binarytrees/binarytrees.csproj": "ecbfc36089332d6e609abd5cb21ca9c2b7af8a78410d56c7ef36bffda6b392d3",
+      "bench/src/cs/jit/binarytrees/binarytrees.csproj": "2252e741fc4b43aefb0407f0349a107da451fa6d88d8fc98d23acec5b91dcedf",
+      "bench/src/cs/src/binarytrees.cs": "f2832e7a24b5677e234301acd5fb4b16c8be7ff32a3e991c10aa2eb249649ef9"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "6df2b6b575f6c40fb7127aa790fb3c927da1d620e2162bc5fceb78eb5cdc37a5",
+      "content_sha256": "3f2101b1c107ce7e548d54ee485d9d7f80cc77dee6860b04fa8531922b32b67e",
+      "bytes": 270512,
+      "content_bytes": 2698911
+    },
+    "build.txt.gz": {
+      "sha256": "3a48e51562a0e8df6d6e004716f76b09188515228b8edb18dd3d10645362eced",
+      "content_sha256": "d1aee4d6aeef34dec66bfc65a062e6e7799a322aec17bca24a998d2418448e8f",
+      "bytes": 285,
+      "content_bytes": 472
+    }
+  }
+}

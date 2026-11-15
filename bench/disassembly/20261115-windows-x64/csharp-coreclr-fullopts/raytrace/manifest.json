@@ -1,0 +1,64 @@
+{
+  "schema": 1,
+  "compiler": "csharp-coreclr-fullopts",
+  "task": "raytrace",
+  "sources": {
+    "bench/src/cs/aot/raytrace/raytrace.csproj": "1d5c89e3a35615bf8d4599a770efc9fa74a62dd3215329a8b651c8797a9e407c",
+    "bench/src/cs/jit/raytrace/raytrace.csproj": "57c6827accdf1dfb0aa056c331235d69cdbccb4b61fc827088d05007e58ab2ad",
+    "bench/src/cs/src/raytrace.cs": "60b0d4f95f76932a2307c5240d62389efea7a5b58960c56357f52ddc37b802ba"
+  },
+  "metadata": {
+    "command": [
+      "C:\\Program Files\\dotnet\\dotnet.exe",
+      "build",
+      "-c",
+      "Release",
+      "--nologo",
+      "-nodeReuse:false"
+    ],
+    "cwd": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-bench-check-20261115\\capture-windows\\sources\\cs\\jit\\raytrace",
+    "environment": {
+      "COMPlus_JitDisasm": "*",
+      "COMPlus_JitDisasmAssemblies": "raytrace_csjit",
+      "COMPlus_TieredCompilation": "0",
+      "COMPlus_ReadyToRun": "0"
+    },
+    "build_returncode": 0,
+    "run_returncode": 0,
+    "checksum": "56061776",
+    "expected_checksum": "56061776",
+    "binary_sha256": "11714ca2bcadf5475e2edee561504f48b38ade62d277fd03d82336ce6ac02020",
+    "binary_bytes": 8192,
+    "compiler_executable_sha256": "d6a18b3e4d76143526631026bebcdb2d734df869e2a2723acf77d0781cd611fb",
+    "compiler_version": "9.0.316",
+    "target": "x86_64-pc-windows-msvc",
+    "abi": "Windows x64",
+    "kind": "native-jit",
+    "timing_claim": false,
+    "diagnostic_variant": {
+      "COMPlus_JitDisasm": "*",
+      "COMPlus_JitDisasmAssemblies": "raytrace_csjit",
+      "COMPlus_TieredCompilation": "0",
+      "COMPlus_ReadyToRun": "0"
+    },
+    "compiled_source_sha256": {
+      "bench/src/cs/aot/raytrace/raytrace.csproj": "1d5c89e3a35615bf8d4599a770efc9fa74a62dd3215329a8b651c8797a9e407c",
+      "bench/src/cs/jit/raytrace/raytrace.csproj": "57c6827accdf1dfb0aa056c331235d69cdbccb4b61fc827088d05007e58ab2ad",
+      "bench/src/cs/src/raytrace.cs": "60b0d4f95f76932a2307c5240d62389efea7a5b58960c56357f52ddc37b802ba"
+    }
+  },
+  "artifacts": {
+    "assembly.txt.gz": {
+      "sha256": "5d84c6bccb01be8435a4d9bc2b13e695f87ec39844bb03f99745752aedfa0b6b",
+      "content_sha256": "ea8abd41b2a4d3829f2af41f33230bde1bb0f02a8edae7989553c07816b354ef",
+      "bytes": 272113,
+      "content_bytes": 2715842
+    },
+    "build.txt.gz": {
+      "sha256": "e9fb2b5f38bdabaffe32e594b833216e8199875588333edcf33162a8ee7c9da3",
+      "content_sha256": "96ef9ea85b3e52fd7c6309431c4bc51fc85dc2a549e17bd93298e0656600d404",
+      "bytes": 283,
+      "content_bytes": 457
+    }
+  }
+}

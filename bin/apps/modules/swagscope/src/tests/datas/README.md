@@ -51,3 +51,8 @@ their separate role in isolating individual format variants and failures.
 `viewer.navigation.epub` and `viewer.navigation.ncx.epub` are repository-authored,
 minimal EPUB 3 and EPUB 2 books. Each has two spine chapters, nested contents, inline
 labels, and same-chapter and cross-chapter fragment targets. They contain no external assets.
+
+`viewer.geometry.pptx` is a repository-authored two-slide widescreen presentation. It exercises
+inherited title bounds, static master decoration, theme colors, text boxes and aligned cards.
+Its embedded photograph is reused unchanged from `viewer.pictures.pptx` and retains that
+fixture's recorded provenance and licence. No external resources are included.

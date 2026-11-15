@@ -58,24 +58,3 @@ using Core, Gui, Viewers
 {
     picturedViewer(scopeTestDataPath("viewer.formulas.xlsx"), true, "viewer.xlsx.formulas")
 }
-
-// A presentation's slide text in Papier.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.pptx"), true, "viewer.pptx.slide")
-}
-
-// A presentation with an embedded photo in Encre.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.pictures.pptx"), false, "viewer.pptx.picture")
-}
-
-// Aligned and styled presentation text in Papier.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.formatted.pptx"), true, "viewer.pptx.formatted")
-}

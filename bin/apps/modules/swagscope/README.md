@@ -160,11 +160,13 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   Formulas without cached values show their expression or an explicit unavailable-result label.
   The reading grid is capped at 512 columns. It does not calculate formulas or reproduce formatting,
   charts, merged cells or images.
-- `Presentation` reads PPTX slides in declared order and presents their text and bounded embedded
-  PNG, JPEG, GIF and WebP pictures as a continuous reading page. Direct bold/italic text and
-  paragraph alignment are preserved. Pictures use their declared size and alternative description;
-  unsupported pictures are labelled. Original slide layout, animation, speaker notes and embedded
-  media are not reproduced.
+- `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
+  raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
+  title placeholders inherit layout/master bounds and basic theme colors and text sizes. The
+  filterable outline lists slide titles; arrows and Page Up/Down navigate slides, and the lens
+  offers a theme-aware text reading mode. Unsupported geometry falls back to an explicitly
+  labelled simplified layout. Animation, charts, complex drawings, speaker notes, embedded media
+  and exact font reproduction remain unsupported; actions and external relationships never run.
 - `Table` reads CSV, TSV, and tabular `.tab` files into a virtual multi-column list. It detects
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a

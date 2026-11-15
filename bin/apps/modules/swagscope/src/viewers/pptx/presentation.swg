@@ -3,53 +3,44 @@
 
 using Core
 
-private struct Slide
+private struct SlideReference
 {
     id:   String
     path: String
 }
 
-// The text content of presentation slides in their declared sequence.
+// Bounded slide canvases and their reading text in declared presentation order.
 struct Presentation
 {
-    html:          String
-    slides:        u64
+    slides:        Array'SlidePage
     omittedImages: u64
+    width:         f32 = 960
+    height:        f32 = 720
 }
 
-private func readPart(fileName: string, archive: const *Archive.Zip, path: string)->String fail
-{
-    let entry = archive.tryFindEntry(path)
-    if not entry do
-        fail Errors.InvalidFormatError{texts().err_Invalid}
-    if entry.uncompressedSize > 16 * 1024 * 1024 do
-        fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-    let data = try Archive.Zip.loadEntry(fileName, entry)
-    return String.from(cast(string, data.toSlice()))
-}
-
-private func readSlides(source, relationships: string)->Array'Slide fail
+private func readSlides(source, relationships: string)->Array'SlideReference fail
 {
     var scan = Package.Scanner.create(relationships)
-    var token: Package.Token
-    var linked: Array'Slide
+    var token:  Package.Token
+    var linked: Array'SlideReference
     while scan.next(&token)
     {
         if token.kind != .Start or not token.isElement("Relationship") do
             continue
-        let id = token.attribute("Id")
+        let id     = token.attribute("Id")
         let target = token.attribute("Target")
-        let kind = token.attribute("Type")
+        let kind   = token.attribute("Type")
         if not id or not target or not kind do
             fail Errors.InvalidFormatError{texts().err_Invalid}
-        if Utf8.contains(kind, "/slide")
+        if Utf8.endsWith(kind, "/slide") and token.attribute("TargetMode") != "External"
         {
             let path = Package.resolveRelationshipTarget("ppt", target)
             if path.isEmpty() do
                 fail Errors.InvalidFormatError{texts().err_Invalid}
-            linked.add(Slide{id, path})
+            linked.add(SlideReference{id, path})
         }
     }
+
     if scan.damaged do
         fail Errors.InvalidFormatError{texts().err_Invalid}
 
@@ -69,226 +60,55 @@ private func readSlides(source, relationships: string)->Array'Slide fail
             found = true
             break
         }
+
         if not found do
             fail Errors.InvalidFormatError{texts().err_Invalid}
         if result.count > 200 do
             fail Errors.UnsupportedFormatError{texts().err_TooLarge}
     }
+
     if scan.damaged or result.isEmpty() do
         fail Errors.InvalidFormatError{texts().err_Invalid}
     return result
 }
 
-private func readPictureExtent(token: const *Package.Token, width, height: *u32)
-{
-    let cx = catch StrConv.toU64(token.attribute("cx") orelse "") { return; }
-    let cy = catch StrConv.toU64(token.attribute("cy") orelse "") { return; }
-    if cx >= 9525 and cy >= 9525 and cx <= 39_014_400 and cy <= 39_014_400
-    {
-        width[] = cast(u32, (cx + 4762) / 9525)
-        height[] = cast(u32, (cy + 4762) / 9525)
-    }
-}
-
-private func appendRun(paragraph, run: *String, bold, italic: bool)
-{
-    if bold do
-        paragraph[] += "<b>"
-    if italic do
-        paragraph[] += "<i>"
-    paragraph[] += run[]
-    if italic do
-        paragraph[] += "</i>"
-    if bold do
-        paragraph[] += "</b>"
-    run[].clear()
-}
-
-private func appendSlide(result: *Presentation, source: string, images: *Package.ImageCatalog) fail
-{
-    var scan = Package.Scanner.create(source)
-    var token: Package.Token
-    var inText = false
-    var inParagraph = false
-    var inRun = false
-    var bold = false
-    var italic = false
-    var alignment: string = ""
-    var paragraph: String
-    var run: String
-    var inPicture = false
-    var pictureId: String
-    var pictureDescription: String
-    var pictureWidth: u32
-    var pictureHeight: u32
-    var pictures = 0'u64
-    var paragraphs = 0'u64
-    while scan.next(&token)
-    {
-        if token.kind == .Start
-        {
-            if token.isElement("p")
-            {
-                inParagraph = true
-                paragraph.clear()
-                alignment = ""
-                paragraphs += 1
-            }
-            elif inParagraph and token.isElement("pPr")
-            {
-                let value = token.attribute("algn") orelse ""
-                if value == "ctr" do
-                    alignment = "center"
-                elif value == "r" do
-                    alignment = "right"
-                elif value == "just" or value == "dist" do
-                    alignment = "justify"
-            }
-            elif inParagraph and token.isElement("r")
-            {
-                inRun = true
-                run.clear()
-                bold = false
-                italic = false
-            }
-            elif inRun and token.isElement("rPr")
-            {
-                let b = token.attribute("b") orelse "0"
-                let i = token.attribute("i") orelse "0"
-                bold = b == "1" or b == "true" or b == "on"
-                italic = i == "1" or i == "true" or i == "on"
-            }
-            elif token.isElement("t") do
-                inText = true
-            elif token.isElement("br") do
-                paragraph += "<br>"
-            elif token.isElement("pic")
-            {
-                inPicture = true
-                pictureId.clear()
-                pictureDescription.clear()
-                pictureWidth = 0
-                pictureHeight = 0
-                pictures += 1
-            }
-            elif inPicture and token.isElement("blip")
-            {
-                pictureId = token.attribute("r:embed") orelse ""
-            }
-            elif inPicture and token.isElement("cNvPr")
-            {
-                pictureDescription = token.attribute("descr") orelse token.attribute("title") orelse ""
-            }
-            elif inPicture and token.isElement("ext") and not pictureWidth do
-                readPictureExtent(&token, &pictureWidth, &pictureHeight)
-            if token.empty and token.isElement("pic")
-            {
-                inPicture = false
-                result.omittedImages += 1
-                result.html += "<p>"
-                Package.appendHtmlEscaped(&result.html, texts().ui_ImageOmitted)
-                result.html += "</p>"
-            }
-            if token.empty and token.isElement("t") do
-                inText = false
-            if token.empty and token.isElement("p")
-            {
-                result.html += "<p></p>"
-                inParagraph = false
-            }
-            if token.empty and token.isElement("r")
-            {
-                appendRun(&paragraph, &run, bold, italic)
-                inRun = false
-            }
-        }
-        elif token.kind == .End
-        {
-            if token.isElement("p")
-            {
-                if inRun do
-                    appendRun(&paragraph, &run, bold, italic)
-                result.html += "<p"
-                if alignment.count
-                {
-                    result.html += " style=\"text-align:"
-                    result.html += alignment
-                    result.html += "\""
-                }
-                result.html += ">"
-                result.html += paragraph
-                result.html += "</p>"
-                inParagraph = false
-                inRun = false
-            }
-            elif token.isElement("r")
-            {
-                appendRun(&paragraph, &run, bold, italic)
-                inRun = false
-            }
-            elif token.isElement("t") do
-                inText = false
-            elif token.isElement("pic")
-            {
-                inPicture = false
-                result.html += "<p>"
-                let image = images.html(pictureId, pictureWidth, pictureHeight, pictureDescription)
-                if image.isEmpty()
-                {
-                    result.omittedImages += 1
-                    Package.appendHtmlEscaped(&result.html, texts().ui_ImageOmitted)
-                    if not pictureDescription.isEmpty()
-                    {
-                        result.html += ": "
-                        Package.appendHtmlEscaped(&result.html, pictureDescription)
-                    }
-                }
-                else do
-                    result.html += image
-                result.html += "</p>"
-            }
-        }
-        elif inText
-        {
-            if inRun do
-                Package.appendHtmlEscaped(&run, token.text)
-            else do
-                Package.appendHtmlEscaped(&paragraph, token.text)
-        }
-        if result.html.count + paragraph.count + run.count > 32 * 1024 * 1024 do
-            fail Errors.UnsupportedFormatError{texts().err_TooLarge}
-    }
-    if scan.damaged or not paragraphs and not pictures do
-        fail Errors.InvalidFormatError{texts().err_Invalid}
-}
-
 impl Presentation
 {
-    // Reads slide order and text without evaluating actions, links or embedded objects.
+    // Reads slide canvases without evaluating actions, links or embedded objects.
     func load(fileName: string)->Presentation fail
     {
         let archive = try Archive.Zip.load(fileName)
-        let order = try readSlides(
-            try readPart(fileName, &archive, "ppt/presentation.xml"),
-            try readPart(fileName, &archive, "ppt/_rels/presentation.xml.rels"))
+        let parts   = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
+        let source  = try parts.text("ppt/presentation.xml")
+        let order   = try readSlides(source, try parts.text("ppt/_rels/presentation.xml.rels"))
         var result: #returntype
-        result.html = "<html><body>"
-        for &slide in order
+        var scan    = Package.Scanner.create(source)
+        var token:  Package.Token
+        while scan.next(&token)
         {
-            result.slides += 1
-            result.html += "<h2>"
-            result.html += Format.toString(texts().ui_Slide, result.slides)
-            result.html += "</h2>"
-            let directory = Package.parentPath(slide.path)
-            var relationsPath = String.from(directory.toString())
-            relationsPath += "/_rels/"
-            relationsPath += Path.fileName(slide.path) orelse ""
-            relationsPath += ".rels"
-            var images = try Package.ImageCatalog.load(fileName, &archive, directory, relationsPath,
-                                                       texts().err_Invalid, texts().err_TooLarge)
-            try appendSlide(&result, try readPart(fileName, &archive, slide.path), &images)
+            if token.kind == .Start and token.isElement("sldSz")
+            {
+                let cx = catch StrConv.toU64(token.attribute("cx") orelse "") orelse 0
+                let cy = catch StrConv.toU64(token.attribute("cy") orelse "") orelse 0
+                if cx < 9525 or cy < 9525 or cx > 100_000_000 or cy > 100_000_000 do
+                    fail Errors.InvalidFormatError{texts().err_Invalid}
+                result.width  = cast(f32, cx) / 9525
+                result.height = cast(f32, cy) / 9525
+            }
         }
-        result.html += "</body></html>"
+
+        var textBytes = 0'u64
+        for slide in order
+        {
+            let page = try SlidePage.load(&parts, slide.path, result.width)
+            for shape in page.shapes do
+                textBytes += shape.html.count
+            result.omittedImages += page.omittedImages
+            result.slides.add(page)
+            if textBytes > 32 * 1024 * 1024 do
+                fail Errors.UnsupportedFormatError{texts().err_TooLarge}
+        }
+
         return result
     }
 }

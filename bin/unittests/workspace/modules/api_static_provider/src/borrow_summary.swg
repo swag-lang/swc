@@ -159,6 +159,13 @@ func depUafInferredReleaseProjectedAlias(node: *DepUafNode)
     depUafInferredReleasePointer(pointer)
 }
 
+func depUafInferredReleaseProjectedAliasChain(node: *DepUafNode)
+{
+    let pointer: *s32 = node.data
+    let secondPointer: *s32 = pointer
+    depUafInferredReleasePointer(secondPointer)
+}
+
 func depUafInferredReleaseProjectedWrapper(node: *DepUafNode)
 {
     depUafInferredReleaseProjected(node)

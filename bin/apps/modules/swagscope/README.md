@@ -146,24 +146,33 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
 - `Comic book` reads image members of CBZ archives in natural filename order, including nested
   folders, and offers previous/next page navigation. Other archive members remain available in
   the Archive alternative.
-- `Word document` reads the main DOCX body as paragraphs and tables, preserving text-run order,
-  direct bold, italic, underline and strike formatting, heading levels, alignment, line breaks,
-  visible page-break separators and tabs. Bounded embedded PNG, JPEG, GIF and WebP pictures appear
-  inline at their declared width with any available description as alternative text; other images
-  are labelled with their description, and external image relationships are never loaded. Page
-  layout, inherited styles, headers, footers and comments are not reproduced.
+- `Word document` reads DOCX paragraphs, simple tables, page-break separators and bounded raster
+  pictures. Paragraph and character styles inherit document defaults, named parent styles and
+  basic theme fonts/colors; direct formatting can override them. Font sizes, emphasis, highlights,
+  paragraph spacing and indents are retained, and styled headings populate the filterable outline.
+  Authored colors use paper contrast; unavailable fonts use the GUI's fallback. Broken optional
+  styles keep the prose readable with a simplification notice. Unsupported images are named and
+  external image relationships are never loaded. Page/section geometry, headers, footers,
+  footnotes, comments, floating objects and complex table layout are not reproduced.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
   tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
   and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
-  labelled. Only Windows-1252 encoded text is supported; page geometry, fonts, colors, complex
-  tables and fields are not reproduced.
-- `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
+  labelled. Bounded font/color tables preserve faces, sizes, foreground colors, highlights and
+  paragraph spacing/indents. Unsupported style references are reported. Only Windows-1252 encoded
+  text is supported; named styles, page geometry, complex tables and fields are not reproduced.
+- `Workbook` opens one XLSX sheet at a time, respecting the saved active sheet. Arrows,
+  Ctrl+Page Up/Down and the filterable outline switch sheets in workbook order. Hidden and
+  very-hidden sheets require the explicit Show Hidden Sheets command. It presents shared or inline text, numbers,
   booleans and cached formula values at their row and column coordinates, with visible headings.
   Formulas without cached values show their expression or an explicit unavailable-result label.
   Common number formats preserve currency, grouping, percentages, decimal precision, dates and
   elapsed time, including the 1900 and 1904 date systems. Unsupported formats retain the stored
-  value with a visible limitation notice. The reading grid is capped at 512 columns. It does not
-  calculate formulas or reproduce cell styling, charts, merged cells or images.
+  value with a visible limitation notice. The native grid retains authored widths/heights,
+  sparse addresses and disjoint merged cells, with selection and copy. Hidden rows/columns
+  require an explicit reveal; a text mode reflows the same values. Undefined widths fit ordinary
+  labels, while authored widths take precedence. Only visible rows are painted, including
+  million-row gaps. The reading grid is capped at 512 columns. It does not calculate formulas
+  or reproduce cell styling, frozen panes, charts or images.
 - `Presentation` fits one PPTX slide at a time at its authored aspect ratio. Text boxes, bounded
   raster pictures, solid backgrounds and simple rectangle shapes keep their positions and sizes;
   title placeholders inherit layout/master bounds and basic theme colors and text sizes. The

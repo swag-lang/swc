@@ -65,3 +65,17 @@ and zero sections, grouping, optional decimals, dates, elapsed time and cached f
 `viewer.alternate-picture.rtf` wraps the existing `viewer.png` as a modern shape picture and
 its compatibility fallback. Both documents are repository-authored; the reused image bytes
 retain their original provenance and licences. They contain no external resources.
+
+`viewer.styles.docx` is a repository-authored document with relationship-resolved style and theme
+parts. It exercises custom heading IDs, parent styles, character styles, theme fonts/colors,
+paragraph spacing/indents, direct bold resets and a simple table. It contains no external assets.
+
+`viewer.navigation.xlsx` is a repository-authored three-sheet workbook with a saved active
+sheet, a hidden intermediate sheet and literal sheet labels. It contains no external assets.
+
+`viewer.styles.rtf` is a repository-authored reading note with two fonts, a color table,
+highlights, paragraph indents and spacing, and grouped character formatting. It has no external assets.
+
+`viewer.geometry.xlsx` derives from the repository-authored numeric-format workbook. Its first
+sheet adds declared dimensions, horizontal/vertical merges, hidden ranges and distant totals;
+it contains no external assets.

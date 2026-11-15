@@ -102,10 +102,10 @@ using Core, Viewers
 #test
 {
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.formats.xlsx"))
-    Swag.require(workbook.sheets == 2 and workbook.omittedFormats == 0)
+    Swag.require(workbook.sheets.count == 2 and workbook.omittedFormats == 0)
     for displayed in ["$1,250.50", "12.50%", "(45.70)", "12,345", "00042", "1/1/24", "2026-11-15", "36:00:00", "12:00:00", "75.00%"] do
-        Swag.require(Utf8.contains(workbook.html, displayed))
-    Swag.require(not Utf8.contains(workbook.html, "=3/4"))
+        Swag.require(Utf8.contains(workbook.sheets[0].readingHtml(), displayed) or Utf8.contains(workbook.sheets[1].readingHtml(), displayed))
+    Swag.require(not Utf8.contains(workbook.sheets[0].readingHtml(), "=3/4"))
 }
 
 // Real producer number formats turn budget amounts and calculated percentages into readable values.
@@ -114,35 +114,7 @@ using Core, Viewers
     let workbook = expect Xlsx.Workbook.load(scopeTestDataPath("viewer.monthly-budget.xlsx"))
     Swag.require(workbook.omittedFormats == 0)
     for displayed in ["$2,500.00", "$1,414", "62%"] do
-        Swag.require(Utf8.contains(workbook.html, displayed))
-}
-
-// Repackages a producer-style workbook with one controlled XML change.
-func formattedWorkbookVariant(part: string, before, after: string)->String
-{
-    let source  = scopeTestDataPath("viewer.formats.xlsx")
-    let archive = expect Archive.Zip.load(source)
-    var entries: Array'ZipFixtureEntry
-    for item in archive.entries
-    {
-        var entry: ZipFixtureEntry
-        entry.name  = item.path
-        entry.plain = expect Archive.Zip.loadEntry(source, item)
-        if item.path == part
-        {
-            var text = String.from(cast(string, entry.plain.toSlice()))
-            text.replace(before, after)
-            entry.plain.clear()
-            entry.plain.add(text.toSlice())
-        }
-
-        entry.packed = entry.plain
-        entries.add(entry)
-    }
-
-    let path = Gui.Testing.tempFilePath("scope-xlsx-formats-", ".xlsx")
-    discard expect File.writeAllBytes(path, buildZipEntries(entries.toSlice()).toSlice())
-    return path
+        Swag.require(Utf8.contains(workbook.sheets[0].readingHtml(), displayed))
 }
 
 // Unsupported numeric display codes leave the stored value intact and name the limitation.
@@ -152,8 +124,8 @@ func formattedWorkbookVariant(part: string, before, after: string)->String
     defer discard catch File.delete(path)
     let workbook = expect Xlsx.Workbook.load(path)
     Swag.require(workbook.omittedFormats == 1)
-    Swag.require(Utf8.contains(workbook.html, "1250.5"))
-    Swag.require(Utf8.contains(workbook.html, Xlsx.texts().ui_FormatNotice))
+    Swag.require(Utf8.contains(workbook.sheets[0].readingHtml(), "1250.5"))
+    Swag.require(Utf8.contains(workbook.sheets[0].readingHtml(), Xlsx.texts().ui_FormatNotice))
     Swag.require(Utf8.contains(workbook.details(), "1 number formats not shown"))
 }
 
@@ -164,5 +136,5 @@ func formattedWorkbookVariant(part: string, before, after: string)->String
     defer discard catch File.delete(path)
     let workbook = expect Xlsx.Workbook.load(path)
     Swag.require(workbook.omittedFormats == 0)
-    Swag.require(Utf8.contains(workbook.html, "1/2/28"))
+    Swag.require(Utf8.contains(workbook.sheets[1].readingHtml(), "1/2/28"))
 }

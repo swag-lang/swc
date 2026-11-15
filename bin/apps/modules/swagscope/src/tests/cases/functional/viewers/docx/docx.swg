@@ -47,9 +47,9 @@ using Core, Gui, Gui.Testing, Viewers
 {
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.formatted.docx"))
     Swag.require(document.paragraphs == 3)
-    Swag.require(Utf8.contains(document.html, "<h1 style=\"text-align:center\"><b>Styled title</b></h1>"))
-    Swag.require(Utf8.contains(document.html, "<p>Plain &amp; <i>italic</i> and <u><s>marked</s></u> text.</p>"))
-    Swag.require(Utf8.contains(document.html, "<h2 style=\"text-align:right\">Second heading</h2>"))
+    Swag.require(Utf8.contains(document.html, "<h1 style=\"text-align:center;\"><b>Styled title</b></h1>"))
+    Swag.require(Utf8.contains(document.html, "<p>Plain &amp; <i>italic</i> and <u><s>marked</s></u><span style=\"font-weight:normal;\"> text.</span></p>"))
+    Swag.require(Utf8.contains(document.html, "<h2 style=\"text-align:right;\">Second heading</h2>"))
 }
 
 // An authored page break remains visible between text runs.

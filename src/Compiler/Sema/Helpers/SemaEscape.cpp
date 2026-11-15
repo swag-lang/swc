@@ -1768,6 +1768,64 @@ namespace
         return false;
     }
 
+    void markBorrowedParameterField(Sema& sema, SemaEscapeInfo& info, AstNodeRef memberRef)
+    {
+        if (!info.viaStoredField || !info.parameterIndirectOriginsMask)
+            return;
+
+        SemaEscapeProjection projection;
+        if (!storageProjection(sema, memberRef, projection) || projection.components.size() != 1)
+            return;
+
+        normalizeProjectionRoot(sema, projection);
+        if (!projection.root)
+            return;
+
+        if (projection.root != info.sourceVar)
+        {
+            const SemaEscapeInfo* rootInfo = sema.variableEscapeInfo(*projection.root);
+            if (!rootInfo || rootInfo->kind != SemaEscapeKind::Parameter || rootInfo->sourceVar != info.sourceVar)
+                return;
+        }
+
+        const auto& component = projection.components.front();
+        if (component.kind == SemaEscapeProjectionKind::Field)
+            info.borrowedParameterField = component.field;
+    }
+
+    void markWrittenParameterField(Sema& sema, const SemaEscapeProjection& rawProjection)
+    {
+        if (rawProjection.components.size() != 1 || rawProjection.components.front().kind != SemaEscapeProjectionKind::Field || !rawProjection.components.front().field)
+            return;
+
+        SemaEscapeProjection projection = rawProjection;
+        normalizeProjectionRoot(sema, projection);
+        SymbolFunction* function = sema.currentFunction();
+        if (!function || !projection.root)
+            return;
+
+        const SymbolVariable* parameter = signatureParameterFor(sema, *projection.root);
+        uint64_t              origins   = 0;
+        if (parameter)
+        {
+            size_t index = 0;
+            if (findCallerParameterIndex(*function, *parameter, index) && index < 64)
+                origins = 1ULL << index;
+        }
+        else
+        {
+            const SemaEscapeInfo* rootInfo = sema.variableEscapeInfo(*projection.root);
+            if (rootInfo && rootInfo->kind == SemaEscapeKind::Parameter)
+                origins = rootInfo->parameterOriginsMask | rootInfo->parameterIndirectOriginsMask;
+        }
+
+        for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+        {
+            const size_t i = std::countr_zero(remaining);
+            function->markParamFieldPossiblyWritten(i, projection.components.front().field->name(sema.ctx()));
+        }
+    }
+
     uint64_t parameterOriginsMask(const SymbolFunction& fn, const SemaEscapeInfo& info)
     {
         if (info.parameterOriginsMask || info.parameterIndirectOriginsMask)
@@ -2225,7 +2283,18 @@ namespace
                     {
                         SymbolFunction* callerFn = sema.currentFunction();
                         if (callerFn)
-                            addFreedBorrowOrigins(*callerFn, carried);
+                        {
+                            if (carried.borrowedParameterField && carried.parameterIndirectOriginsMask)
+                            {
+                                for (uint64_t remaining = carried.parameterIndirectOriginsMask; remaining; remaining &= remaining - 1)
+                                {
+                                    const size_t i = std::countr_zero(remaining);
+                                    callerFn->addFreedParamField(i, carried.borrowedParameterField->name(sema.ctx()));
+                                }
+                            }
+                            else
+                                addFreedBorrowOrigins(*callerFn, carried);
+                        }
                     }
                     else if (carried.isLocalBorrow() && !carried.viaStoredField && !hasOwningLifecycle(sema, carried.sourceVar->typeRef()))
                     {
@@ -2855,6 +2924,7 @@ namespace
                                 // A copied pointer does not alias its source slot. Aggregate
                                 // contents retain the borrows carried by their fields.
                                 info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
+                                markBorrowedParameterField(sema, info, resolvedRef);
                             }
                             else if (!structuralBorrowCarrierType(sema, leftTypeRef))
                                 return {};
@@ -3009,6 +3079,7 @@ namespace
                 if (leftType.isPointerOrReference() && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
                 {
                     info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
+                    markBorrowedParameterField(sema, info, resolvedRef);
                 }
                 else if (structuralBorrowCarrierType(sema, leftTypeRef))
                 {
@@ -5190,7 +5261,10 @@ namespace SemaEscape
 
         SemaEscapeProjection replacedProjection;
         if (storageProjection(sema, leftRef, replacedProjection) && replacedProjection.root && !replacedProjection.components.empty())
+        {
+            markWrittenParameterField(sema, replacedProjection);
             detachReplacedOwnedPayloadViews(sema, replacedProjection, targetTypeRef);
+        }
 
         // A store through a destination that provably stays in this frame (a self-reference
         // through a local-derived pointer) never escapes, whatever borrow it carries.
@@ -5716,8 +5790,89 @@ namespace SemaEscape
         return reportBorrowEscape(sema, returnRef, info, "a return value");
     }
 
+    void markPassedParameterFieldsWritten(Sema& sema, AstNodeRef callRef)
+    {
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(callRef);
+        if (resolvedRef.isInvalid() || sema.node(resolvedRef).isNot(AstNodeId::CallExpr))
+            return;
+
+        const auto&           call   = sema.node(resolvedRef).cast<AstCallExpr>();
+        const SymbolFunction* callee = resolvedCallFunction(sema, resolvedRef, call.nodeExprRef);
+        SymbolFunction*       caller = sema.currentFunction();
+        if (!caller)
+            return;
+        if (!callee)
+        {
+            // An unresolved target may write through any caller-owned address it receives.
+            caller->suppressInferredFreedParamFields();
+            return;
+        }
+
+        SmallVector<ResolvedCallArgument> arguments;
+        sema.appendResolvedCallArguments(resolvedRef, arguments);
+        size_t paramIndex = 0;
+        for (const ResolvedCallArgument& argument : arguments)
+        {
+            if (argument.passKind == CallArgumentPassKind::InterfaceObject)
+            {
+                uint32_t budget = K_EXPR_BUDGET;
+                if (expressionEscapeInfoRec(sema, argument.argRef, budget).kind == SemaEscapeKind::Parameter)
+                    caller->suppressInferredFreedParamFields();
+                continue;
+            }
+            if (paramIndex >= callee->parameters().size())
+                break;
+
+            const size_t thisParam = paramIndex++;
+            const SymbolVariable* calleeParam = callee->parameters()[thisParam];
+            if (!calleeParam || argument.argRef.isInvalid() || thisParam >= 64)
+                continue;
+
+            const TypeRef paramTypeRef = unwrapAliasEnum(sema, calleeParam->typeRef());
+            if (paramTypeRef.isInvalid())
+                continue;
+            const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
+            if (!paramType.isPointerOrReference())
+                continue;
+
+            uint32_t budget = K_EXPR_BUDGET;
+            const SemaEscapeInfo info = borrowInfoFromCallArgument(sema, argument, calleeParam->typeRef(), budget);
+            if (info.kind != SemaEscapeKind::Parameter)
+                continue;
+
+            const uint64_t origins = parameterOriginsMask(*caller, info);
+            if (const SymbolVariable* field = callerArgumentProjectionField(sema, resolvedRef, *callee, thisParam, argument.argRef))
+            {
+                const TypeRef fieldTypeRef = unwrapAliasEnum(sema, field->typeRef());
+                const TypeRef payloadTypeRef = unwrapAliasEnum(sema, paramType.payloadTypeRef());
+                if (fieldTypeRef == payloadTypeRef)
+                {
+                    for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+                    {
+                        const size_t origin = std::countr_zero(remaining);
+                        caller->markParamFieldPossiblyWritten(origin, field->name(sema.ctx()));
+                    }
+                }
+            }
+
+            const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramType.payloadTypeRef());
+            if (!payloadType.isStruct())
+                continue;
+
+            const SymbolStruct& payloadStruct = payloadType.payloadSymStruct();
+            for (uint64_t remaining = origins; remaining; remaining &= remaining - 1)
+            {
+                const size_t origin = std::countr_zero(remaining);
+                for (const SymbolVariable* field : payloadStruct.fields())
+                    if (field)
+                        caller->markParamFieldPossiblyWritten(origin, field->name(sema.ctx()));
+            }
+        }
+    }
+
     void noteCallArguments(Sema& sema, AstNodeRef callRef)
     {
+        markPassedParameterFieldsWritten(sema, callRef);
         recordDeferredCallBorrow(sema, callRef, callRef, "a stored call argument", DeferredCallUse::Argument, false);
     }
 

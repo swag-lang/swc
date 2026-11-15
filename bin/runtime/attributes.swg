@@ -373,6 +373,10 @@ namespace Swag
     // 'returnsFields' lists first-level returned fields that borrow a parameter.
     // Each entry is a parameter index, a colon, and the field name in UTF-8 hex;
     // entries are separated by semicolons. Generated module APIs write this form.
+    // 'freesFields' uses the same encoding to list first-level pointer fields on a
+    // parameter whose old value the call invalidates. 'resetsFields' lists the fields
+    // the callee also reassigns before returning: reading the field after the call is
+    // safe, while copies of its old value remain invalid.
     attr BorrowSummary(returns: u64, stores: u64 = 0, into: u64 = 0, frees: u64 = 0, reallocates: u64 = 0, returnsPayload: u64 = 0, returnsStorage: u64 = 0xFFFFFFFFFFFFFFFF, observesExternal: bool = true, returnsIndirect: u64 = 0, storesIndirect: u64 = 0, intoIndirect: u64 = 0, freesIndirect: u64 = 0, returnsFields: string = "", freesFields: string = "", resetsFields: string = "")
 
     // Safety checks, selected by [[Safety]] at runtime and by [[Sanity]] at compile time.

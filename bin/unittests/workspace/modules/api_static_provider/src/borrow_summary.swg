@@ -123,3 +123,96 @@ func depBorrowAnnotatedObserve()
 // An older annotation that omits the external-observation promise stays conservative.
 #[Swag.NoInline, Swag.BorrowSummary(0)]
 func depBorrowLegacyObserver() {}
+
+struct DepUafNode
+{
+    public padding: u64
+    public data: *s32
+    public other: *s32
+}
+
+#[Swag.BorrowSummary(0, freesFields: "0:64617461")]
+func depUafReleaseField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReleaseField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredAliasReleaseField(node: *DepUafNode)
+{
+    let data: *s32 = node.data
+    var req: Swag.AllocatorRequest
+    req.address = data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}
+
+func depUafInferredReplaceField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafRefillField(node: *DepUafNode)
+{
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+func depUafInferredReleaseThenRefill(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    depUafRefillField(node)
+}
+
+func depUafInferredReleaseThenCallback(node: *DepUafNode, refill: func(*DepUafNode))
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    refill(node)
+}
+
+#[Swag.BorrowSummary(0, freesFields: "0:64617461", resetsFields: "0:64617461")]
+func depUafReplaceField(node: *DepUafNode)
+{
+    var req: Swag.AllocatorRequest
+    req.address = node.data
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+    var replacement: Swag.AllocatorRequest
+    replacement.size = #sizeof(s32)
+    Swag.getContext().allocator!.alloc(&replacement)
+    node.data = cast(*s32, unwrap replacement.address)
+}
+
+#[Swag.BorrowSummary(0, freesIndirect: 1)]
+func depUafReleaseIndirect(pointer: **s32)
+{
+    var req: Swag.AllocatorRequest
+    req.address = pointer[]
+    req.size    = #sizeof(s32)
+    Swag.getContext().allocator!.free(&req)
+}

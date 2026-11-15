@@ -21,7 +21,7 @@ private struct Fixture
 // Every canonical format fixture and named variant selects its intended reading surface.
 #test
 {
-    const Cases: [120] Fixture = [
+    const Cases: [123] Fixture = [
         Fixture{"viewer.txt", "text"},
         Fixture{"viewer.cpp", "code"},
         Fixture{"viewer.md", "markdown"},
@@ -36,12 +36,15 @@ private struct Fixture
         Fixture{"viewer.image.docx", "docx"},
         Fixture{"viewer.poi-pictures.docx", "docx"},
         Fixture{"viewer.rtf", "rtf"},
+        Fixture{"viewer.styles.rtf", "rtf"},
         Fixture{"viewer.unicode.rtf", "rtf"},
         Fixture{"viewer.table.rtf", "rtf"},
         Fixture{"viewer.destinations.rtf", "rtf"},
         Fixture{"viewer.damaged.rtf", "rtf"},
         Fixture{"viewer.libreoffice.rtf", "rtf"},
         Fixture{"viewer.xlsx", "xlsx"},
+        Fixture{"viewer.navigation.xlsx", "xlsx"},
+        Fixture{"viewer.geometry.xlsx", "xlsx"},
         Fixture{"viewer.cbz", "comic"},
         Fixture{"viewer.peppercarrot.ep01.cbz", "comic"},
         Fixture{"viewer.peppercarrot.ep36.cbz", "comic"},

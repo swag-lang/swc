@@ -975,8 +975,28 @@ void SymbolFunction::addFreedParamField(size_t paramIndex, std::string_view fiel
     if (paramIndex >= 64 || fieldName.empty())
         return;
     ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+    if (unknownCallMayWriteParamFields_ || std::ranges::find(writtenParamFields_, entry) != writtenParamFields_.end())
+        return;
     if (std::ranges::find(freedParamFields_, entry) == freedParamFields_.end())
         freedParamFields_.push_back(std::move(entry));
+}
+
+void SymbolFunction::markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName)
+{
+    if (paramIndex >= 64 || fieldName.empty())
+        return;
+
+    ReturnFieldBorrow entry{static_cast<uint8_t>(paramIndex), std::string(fieldName)};
+    if (std::ranges::find(writtenParamFields_, entry) == writtenParamFields_.end())
+        writtenParamFields_.push_back(entry);
+
+    std::erase(freedParamFields_, entry);
+}
+
+void SymbolFunction::suppressInferredFreedParamFields()
+{
+    unknownCallMayWriteParamFields_ = true;
+    freedParamFields_.clear();
 }
 
 void SymbolFunction::addResetParamField(size_t paramIndex, std::string_view fieldName)

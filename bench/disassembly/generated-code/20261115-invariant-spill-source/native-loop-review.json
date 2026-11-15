@@ -1,0 +1,38 @@
+{
+  "base": [
+    {
+      "start": "0x4118a0",
+      "end": "0x4118b5",
+      "instructions": 5,
+      "memory": 2,
+      "calls": 0,
+      "nops": 0
+    },
+    {
+      "start": "0x411ac0",
+      "end": "0x412255",
+      "instructions": 316,
+      "memory": 112,
+      "calls": 0,
+      "nops": 0
+    }
+  ],
+  "new": [
+    {
+      "start": "0x40a5e0",
+      "end": "0x40a5f5",
+      "instructions": 5,
+      "memory": 2,
+      "calls": 0,
+      "nops": 0
+    },
+    {
+      "start": "0x40a810",
+      "end": "0x40af8c",
+      "instructions": 315,
+      "memory": 107,
+      "calls": 0,
+      "nops": 0
+    }
+  ]
+}

@@ -1035,6 +1035,44 @@ namespace
         return result;
     }
 
+    // Recover the low 64 bits through a short raw-copy chain. The original
+    // loop's definition mask excludes even partial writes to the integer source.
+    MicroReg invariantSpillSource(const MicroPassContext& context, MicroInstrRef storeRef, const uint64_t invariantInputs)
+    {
+        const auto& storage  = *context.instructions;
+        const auto& operands = *context.operands;
+        const auto* store    = storage.ptr(storeRef);
+        const auto* stored   = store ? store->ops(operands) : nullptr;
+        if (!store || !stored || store->op != MicroInstrOpcode::LoadMemReg || stored[2].opBits != MicroOpBits::B64)
+            return MicroReg::invalid();
+        MicroReg value = stored[1].reg;
+        if (value.isInt() && (invariantInputs & MicroPhysLiveness::maskOf(value)))
+            return value;
+        using MicroOptimizationLimits::PostRALoopHoist::K_MAX_SPILL_SOURCE_LOOKBACK;
+        MicroInstrRef cursor = storage.findPreviousInstructionRef(storeRef);
+        for (uint32_t step = 0; step < K_MAX_SPILL_SOURCE_LOOKBACK && cursor.isValid(); ++step, cursor = storage.findPreviousInstructionRef(cursor))
+        {
+            const MicroInstr* inst = storage.ptr(cursor);
+            if (!inst)
+                break;
+            const auto& info = MicroInstr::info(inst->op);
+            if (inst->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                break;
+            if (!MicroPassHelpers::regTouch(*inst, operands, value, context.encoder).def)
+                continue;
+            const auto* ops = inst->ops(operands);
+            if (!ops || inst->op != MicroInstrOpcode::LoadRegReg || ops[0].reg != value ||
+                (ops[2].opBits != MicroOpBits::B64 && ops[2].opBits != MicroOpBits::B128) ||
+                (ops[2].opBits == MicroOpBits::B128 && (ops[0].reg.isInt() || ops[1].reg.isInt())))
+                break;
+            value = ops[1].reg;
+            if (value.isInt() && (invariantInputs & MicroPhysLiveness::maskOf(value)))
+                return value;
+        }
+        return MicroReg::invalid();
+    }
+
     // Scalar spill homes may borrow the other register bank without arithmetic
     // conversion. Integer homes prefer an idle, already saved integer register, then
     // an unused caller-saved SIMD register, even when the original GP register
@@ -1087,12 +1125,23 @@ namespace
 
         SmallVector<uint32_t, 4> calls;
         SmallVector<FrameRef, 8> localTouches;
-        uint64_t                 unavailable = 0;
+        uint64_t                 unavailable    = 0;
+        uint64_t                 definedRegs    = 0;
+        uint64_t                 rawCopySources = 0;
         for (uint32_t index = loop.bodyBegin; index < loop.bodyEnd && index < refs.size(); ++index)
         {
             if (!loop.inBody[index])
                 continue;
             const auto& useDef = liveness.useDefs[index];
+            definedRegs |= useDef.defs;
+            const MicroInstr* sourceInst = storage.ptr(refs[index]);
+            const auto*       sourceOps  = sourceInst ? sourceInst->ops(operands) : nullptr;
+            if (sourceOps && sourceInst->op == MicroInstrOpcode::LoadRegReg && sourceOps[0].reg.isFloat() &&
+                sourceOps[1].reg.isInt() && sourceOps[2].opBits == MicroOpBits::B64)
+                rawCopySources |= MicroPhysLiveness::maskOf(sourceOps[1].reg);
+            if (sourceOps && sourceInst->op == MicroInstrOpcode::LoadMemReg && sourceOps[0].reg == conv.stackPointer &&
+                sourceOps[1].reg.isInt() && sourceOps[2].opBits == MicroOpBits::B64)
+                rawCopySources |= MicroPhysLiveness::maskOf(sourceOps[1].reg);
             // Any other frame base can alias an SP spill. Record only fixed
             // accesses; indexed or escaped addresses need a wider proof.
             for (const MicroReg frameBase : {reach.localBaseReg, conv.framePointer})
@@ -1148,7 +1197,8 @@ namespace
             if (!(unavailable & (1ull << MicroPhysLiveness::bitOf(reg))) &&
                 std::ranges::none_of(entries, [&](const uint32_t entry) { return liveness.isLiveOut(entry, reg); }))
                 available.push_back(reg);
-        if (available.empty())
+        const uint64_t invariantInputs = rawCopySources & ~definedRegs;
+        if (available.empty() && (invariantInputs == 0 || !calls.empty()))
             return false;
 
         // A clobbered cache needs a call-free route to avoid restoring it on
@@ -1265,7 +1315,7 @@ namespace
         uint32_t selected = 0;
         for (const Slot& slot : slots)
         {
-            if (selected == available.size())
+            if (selected == available.size() && !invariantInputs)
                 break;
             // A write-only home is observable after the loop, so it benefits
             // too: the last bank transfer replaces repeated spill stores.
@@ -1283,6 +1333,53 @@ namespace
                 if (&slot != &other && overlaps(slot.range, other.range))
                     overlap = true;
             if (overlap)
+                continue;
+
+            // Reuse a value already held in an unchanged GP register rather
+            // than allocating another cache. The unique write must execute on
+            // every path to a read or exit, so no entry memory seed is needed.
+            if (invariantInputs && calls.empty() && exclusiveExits && slot.writes == 1)
+            {
+                MicroInstrRef storeRef = MicroInstrRef::invalid();
+                for (const MicroInstrRef access : slot.accesses)
+                    if (storage.ptr(access)->op == MicroInstrOpcode::LoadMemReg)
+                        storeRef = access;
+                const MicroReg source     = invariantSpillSource(context, storeRef, invariantInputs);
+                const uint32_t storeIndex = cfg.indexOf(storeRef);
+                bool           dominates  = source.isValid() && !isFrameBaseRegister(source, conv) && source != reach.localBaseReg;
+                if (dominates)
+                {
+                    for (const MicroInstrRef access : slot.accesses)
+                        dominates &= ranges.dom.dominates(storeIndex, cfg.indexOf(access));
+                    for (const uint32_t exit : exits)
+                        for (const uint32_t predecessor : cfg.predecessors(exit))
+                            dominates &= ranges.dom.dominates(storeIndex, predecessor);
+                }
+                if (dominates)
+                {
+                    MicroInstrOperand write[4] = {};
+                    write[0].reg               = conv.stackPointer;
+                    write[1].reg               = source;
+                    write[2].opBits            = MicroOpBits::B64;
+                    write[3].valueU64          = slot.range.lo;
+                    for (const MicroInstrRef before : writeBacks)
+                        storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, write);
+                    for (const MicroInstrRef access : slot.accesses)
+                    {
+                        if (access == storeRef)
+                            continue;
+                        MicroInstr* load  = storage.ptr(access);
+                        auto*       ops   = load->ops(operands);
+                        ops[1].reg        = source;
+                        load->op          = MicroInstrOpcode::LoadRegReg;
+                        load->numOperands = 3;
+                    }
+                    storage.erase(storeRef);
+                    context.builder->invalidateControlFlowGraph();
+                    return true;
+                }
+            }
+            if (selected == available.size())
                 continue;
 
             // Keep writes coherent when calls or shared exits prevent deferred

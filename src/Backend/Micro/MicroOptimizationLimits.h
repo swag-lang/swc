@@ -395,6 +395,9 @@ namespace MicroOptimizationLimits
 
         // [analysis-budget] Bound the preheader search for an existing invariant memory read.
         inline constexpr uint32_t K_MAX_ENTRY_READ_LOOKBACK = 16;
+
+        // [analysis-budget] Bound raw-bit copy tracing for an invariant spill source.
+        inline constexpr uint32_t K_MAX_SPILL_SOURCE_LOOKBACK = 16;
     }
 
     namespace PostRALoopRotate

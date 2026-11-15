@@ -703,6 +703,13 @@ private impl HtmlLayout
         return result
     }
 
+    // HTML/CSS collapses ASCII whitespace. Latin-1 space bytes can occur inside UTF-8 runes.
+    func isTextSpace(character: u8)->bool => character == ' ' or
+                                             character == '\t' or
+                                             character == '\n' or
+                                             character == '\r' or
+                                             character == 0x0C
+
     // Native byte reads can be widened to one machine word. Keep the final bytes in padded
     // local storage so a text slice ending on a guard-page boundary remains safe to scan.
     #[Swag.Optimize(false)]
@@ -713,7 +720,7 @@ private impl HtmlLayout
         var result    = start
         while result < directEnd
         {
-            if Latin1.isSpace(text[result]) do
+            if HtmlLayout.isTextSpace(text[result]) do
                 return result
             result += 1
         }
@@ -726,7 +733,7 @@ private impl HtmlLayout
         Swag.memcpy(&tail[0], text.buffer + result, tailCount)
         for index in tailCount
         {
-            if Latin1.isSpace(tail[index]) do
+            if HtmlLayout.isTextSpace(tail[index]) do
                 return result + index
         }
 
@@ -750,7 +757,7 @@ private impl HtmlLayout
         while index < text.count
         {
             let character = text[index]
-            if character == '\n' or character == '\r'
+            if character == '\n' or character == '\r' or character == 0x0C
             {
                 var eat = 1'u64
                 if character == '\r' and index + 1 < text.count and text[index + 1] == '\n' do
@@ -774,7 +781,7 @@ private impl HtmlLayout
                 continue
             }
 
-            if Latin1.isSpace(character)
+            if HtmlLayout.isTextSpace(character)
             {
                 if not keepSpaces
                 {

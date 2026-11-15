@@ -280,15 +280,3 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   Unicode rather than `Latin1NoCase`.
 - Note: the Markdown view solved the same problem with a position model of its own — a text view
   plus a byte offset into its text — which is the shape this entry needs here.
-
----
-
-### std.gui.html.024 — Some no-break spaces paint a missing-glyph box in book headings
-
-- Evidence: the Gutenberg Christmas Carol EPUB's `STAVE` headings contain U+00A0. The fitted
-  HTML view can paint a missing-glyph mark for that character instead of a blank advance in
-  the heading's resolved font stack.
-- Next: reduce the producer heading to a font/shaping fixture and trace whitespace glyph
-  resolution and fallback without changing the no-break rule.
-- Done when: no-break spaces remain blank and retain their intended advance and line-breaking
-  behavior across supported heading faces and both palettes.

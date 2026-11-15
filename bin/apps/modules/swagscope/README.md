@@ -153,8 +153,10 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   are labelled with their description, and external image relationships are never loaded. Page
   layout, inherited styles, headers, footers and comments are not reproduced.
 - `Rich text document` reads RTF paragraphs, common character styles, alignment, Unicode escapes,
-  tabs and simple tables. It labels embedded pictures and objects it cannot show. Only Windows-1252
-  encoded text is supported; page geometry, fonts, colors, complex tables and fields are not reproduced.
+  tabs and simple tables. Bounded embedded PNG and JPEG pictures appear inline; modern pictures
+  and their compatibility fallbacks are shown once. Unsupported pictures and embedded objects are
+  labelled. Only Windows-1252 encoded text is supported; page geometry, fonts, colors, complex
+  tables and fields are not reproduced.
 - `Workbook` reads XLSX sheets in workbook order and presents shared or inline text, numbers,
   booleans and cached formula values at their row and column coordinates, with visible headings.
   Formulas without cached values show their expression or an explicit unavailable-result label.

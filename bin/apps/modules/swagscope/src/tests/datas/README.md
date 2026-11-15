@@ -60,3 +60,8 @@ fixture's recorded provenance and licence. No external resources are included.
 `viewer.formats.xlsx` is a repository-authored workbook with two sheets and no external assets.
 Its style part uses a relationship-resolved path and exercises currencies, percentages, negative
 and zero sections, grouping, optional decimals, dates, elapsed time and cached formula values.
+
+`viewer.pictures.rtf` embeds the existing `viewer.jpg` as a hexadecimal JPEG picture.
+`viewer.alternate-picture.rtf` wraps the existing `viewer.png` as a modern shape picture and
+its compatibility fallback. Both documents are repository-authored; the reused image bytes
+retain their original provenance and licences. They contain no external resources.

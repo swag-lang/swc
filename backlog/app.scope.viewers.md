@@ -242,7 +242,7 @@ viewer packages, helper binaries, or network service required to open supported 
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | spine chapters through `HtmlView` | TOC, book search, saved position, paged/flow reading | [app.scope.document.021](app.scope.document.md), [app.scope.document.028](app.scope.document.md) |
 | Comic book | `.cbz` | natural-order single image pages | spreads, manga, continuous scroll and saved position | [app.scope.document.027](app.scope.document.md) |
-| RTF | `.rtf` | bounded formatted reading with text, styles, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
+| RTF | `.rtf` | formatted prose, inline PNG/JPEG pictures, simple tables and named omissions | richer fidelity and encoding coverage | [app.scope.document.024](app.scope.document.md) |
 | Mail | `.eml` `.msg` | printable mail as text; CFB signature for binary MSG | — | — |
 | Notebook | `.ipynb` | raw text, recognized from its content | safe rendered cells and stored outputs | [app.scope.document.022](app.scope.document.md) |
 | reStructuredText, AsciiDoc | `.rst` `.adoc` | text | — | — |

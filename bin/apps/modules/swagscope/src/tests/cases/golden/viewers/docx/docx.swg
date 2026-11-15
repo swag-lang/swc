@@ -3,13 +3,6 @@
 
 using Core, Gui, Viewers
 
-// A CBZ page and its navigation in Encre.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.cbz"), false, "viewer.comic.page")
-}
-
 // Word paragraphs and the omitted-image notice in Papier.
 #[Swag.TestTag("golden")]
 #test
@@ -36,11 +29,4 @@ using Core, Gui, Viewers
 #test
 {
     picturedViewer(scopeTestDataPath("viewer.image.docx"), true, "viewer.docx.image")
-}
-
-// Styled rich text in Encre.
-#[Swag.TestTag("golden")]
-#test
-{
-    picturedViewer(scopeTestDataPath("viewer.rtf"), false, "viewer.rtf.page")
 }

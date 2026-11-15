@@ -15,6 +15,17 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.036 — Scaled comic reference differs across offscreen backends
+
+- Evidence: Scope's unchanged `viewer.comic.page` reference differs on Linux by 41 pixels beyond
+  the OpenGL tolerance and 11,719 pixels in exact CPU comparison. The CPU result is byte-identical
+  with and without the RTF image-loader refactor, isolating this from that reader change.
+- Next: compare the fitted source/destination rectangles and recorded image sampling against the
+  reference, then isolate fitting, sampling and readback with the same comic fixture. Keep the
+  existing reference until the discrepancy is explained.
+- Done when: the comic capture and a reduced sampling case pass on the supported backends under
+  the declared sampler tolerance without retries or unreviewed reference replacement.
+
 ### std.pixel.035 — Diagnose intermittent incomplete OpenGL frames in offscreen tests
 
 - Evidence: a Swag Scope Markdown golden sometimes has zero alpha across its outline and torn RGB text. Reading the same render target again still returns zero alpha; the CPU renderer draws the panel correctly. In the reproduced run, `RenderOgl.recoverLostDevice` returned false with `deviceResets == 0`, unlike the earlier reset described in std.gui.057. A following full repaint can produce the expected image.

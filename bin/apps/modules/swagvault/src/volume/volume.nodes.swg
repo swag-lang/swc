@@ -117,7 +117,9 @@ impl Volume
         node.attributes = attributes
         if directory do
             node.attributes |= FileAttributeDirectory
-        elif not node.attributes do
+        else do
+            node.attributes &= ~FileAttributeDirectory
+        if not node.attributes do
             node.attributes = FileAttributeNormal
         node.creationTime   = now
         node.lastAccessTime = now

@@ -158,6 +158,7 @@ namespace WinFsp
             node.attributes = attributes ? attributes : FileAttributeNormal
         else do
             node.attributes |= attributes
+        node.attributes &= ~FileAttributeDirectory
         node.changeTime    = volumeTimeNow()
         node.lastWriteTime = node.changeTime
         volume.touch(nodeId)
@@ -315,8 +316,9 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if attributes != Swag.U32.Max
         {
+            let isDirectory = node.isDirectory()
             node.attributes = attributes ? attributes : FileAttributeNormal
-            if node.isDirectory() do
+            if isDirectory do
                 node.attributes |= FileAttributeDirectory
             else do
                 node.attributes &= ~FileAttributeDirectory

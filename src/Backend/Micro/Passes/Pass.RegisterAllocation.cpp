@@ -1783,6 +1783,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // registers first, so it does not force a prologue push.
         const SmallVector<MicroReg>& persistentPool = isFloat ? freeFloatPersistent_ : freeIntPersistent_;
         const SmallVector<MicroReg>& transientPool  = isFloat ? freeFloatTransient_ : freeIntTransient_;
+        const uint32_t               minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
 
         MicroReg picked           = MicroReg::invalid();
         bool     pickedPersistent = false;
@@ -1811,8 +1812,41 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
             const SmallVector<MicroReg>& pool             = preferPersistent == (pass == 0) ? persistentPool : transientPool;
             const bool                   poolIsPersistent = &pool == &persistentPool;
+            if (pool.empty())
+                continue;
             if (isFloat && (poolIsPersistent ? !persistentHeadroom : !transientHeadroom))
                 continue;
+
+            // This function-wide floor is independent of the candidate
+            // register. Compute it once per pool instead of rescanning all
+            // prior reservations for every register in that pool.
+            uint32_t distinctClass      = 0;
+            uint32_t distinctPersistent = 0;
+            for (const MicroReg used : context_->globalReservedRegs)
+            {
+                // Only registers offered by these pools count toward the
+                // local allocator's supply floor; the dedicated stack-base
+                // register is intentionally outside that supply.
+                if (used.isFloat() != isFloat || !isPoolRegister(used))
+                    continue;
+                ++distinctClass;
+                if (isPersistentPhysReg(used))
+                    ++distinctPersistent;
+            }
+
+            bool functionFloorAllowsUnreservedReg = true;
+            if (isFloat)
+            {
+                const uint32_t distinctTransient = distinctClass - std::min(distinctClass, distinctPersistent);
+                functionFloorAllowsUnreservedReg = poolIsPersistent ? distinctPersistent < persistentBudget : distinctTransient < transientBudget;
+            }
+            else
+            {
+                functionFloorAllowsUnreservedReg = distinctClass < static_cast<uint32_t>(total - minFreeClass);
+            }
+            if (hasCalls && poolIsPersistent)
+                functionFloorAllowsUnreservedReg = functionFloorAllowsUnreservedReg && totalPersistent > minFreePersistent &&
+                                                   distinctPersistent < static_cast<uint32_t>(totalPersistent - minFreePersistent);
 
             for (const MicroReg reg : pool)
             {
@@ -1885,7 +1919,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     continue;
 
                 const bool     isPersistent      = poolIsPersistent;
-                const uint32_t minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
                 if (hasCalls && isPersistent && totalPersistent <= minFreePersistent)
                     continue;
 
@@ -1912,43 +1945,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 const bool carriesRanges = regDense != MicroDenseRegIndex::K_INVALID_INDEX &&
                                            regDense < globalRangesByPhysDense_.size() &&
                                            !globalRangesByPhysDense_[regDense].empty();
-                if (!carriesRanges)
-                {
-                    uint32_t distinctClass      = 0;
-                    uint32_t distinctPersistent = 0;
-                    for (const MicroReg used : context_->globalReservedRegs)
-                    {
-                        if (used.isFloat() != isFloat)
-                            continue;
-                        // Only registers the pools actually offer count against these floors:
-                        // the floors exist to keep the local allocator supplied, and the local
-                        // allocator draws from the pools. The local-stack-base register is
-                        // reserved outside both of them, so counting it charged the class for a
-                        // carrier it never had - one of the four callee-saved hulls a function
-                        // with calls is allowed, spent on nothing.
-                        if (!isPoolRegister(used))
-                            continue;
-                        ++distinctClass;
-                        if (isPersistentPhysReg(used))
-                            ++distinctPersistent;
-                    }
-
-                    // The function-wide floor mirrors the per-index one: per
-                    // pool for floats, per class for ints.
-                    if (isFloat)
-                    {
-                        const uint32_t distinctTransient = distinctClass - std::min(distinctClass, distinctPersistent);
-                        if (isPersistent ? distinctPersistent >= persistentBudget : distinctTransient >= transientBudget)
-                            continue;
-                    }
-                    else if (distinctClass >= static_cast<uint32_t>(total - minFreeClass))
-                    {
-                        continue;
-                    }
-                    if (hasCalls && isPersistent &&
-                        distinctPersistent >= static_cast<uint32_t>(totalPersistent - minFreePersistent))
-                        continue;
-                }
+                if (!carriesRanges && !functionFloorAllowsUnreservedReg)
+                    continue;
 
                 picked           = reg;
                 pickedPersistent = poolIsPersistent;

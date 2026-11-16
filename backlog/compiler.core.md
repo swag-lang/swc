@@ -4,6 +4,17 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.115 — Diagnose repeated single-use test category attributes
+
+- Evidence: adjacent `#[Swag.TestTag("golden")]` and
+  `#[Swag.TestTag("capture.resident.home")]` on a `#test` compile without a diagnostic, but
+  selecting the second category executes no tests. `Swag.TestTag` declares one category and
+  does not carry `Swag.AttrMulti`.
+- Next: reduce the repeated attributes to a standalone semantic fixture and trace attribute
+  multiplicity validation together with the category passed to `Swag.__runTest`.
+- Done when: repeating a single-use attribute gives a located diagnostic, while attributes
+  marked `Swag.AttrMulti` retain their supported repeated values.
+
 ### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
 
 - Evidence: the Linux Release compiler reports that `state` may refer to released memory at

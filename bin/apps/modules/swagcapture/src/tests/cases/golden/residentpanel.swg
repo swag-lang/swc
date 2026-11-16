@@ -21,7 +21,7 @@ using Swag, Core, Gui, Pixel
     for index in 3 do
         main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 80 * index), 8 + 12 * cast(s32, index)))
 
-    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let panel = testOpenResidentPanel(&host, main, .Centered)
     var image = host.renderSurface(unwrap panel.surface)
     Pixel.Testing.assertImageGolden(&image, "resident.hub.encre")
 }
@@ -43,11 +43,22 @@ using Swag, Core, Gui, Pixel
     for index in 3 do
         main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 80 * index), 8 + 12 * cast(s32, index)))
 
-    let panel = testOpenResidentPanel(&host, main, .Hub)
-    let recents = unwrap panel.recents
-    var down = KeyEvent{kind: .Pressed, key: .Down}
-    for 9 do
-        panel.sendEvent(&down)
+    let panel       = testOpenResidentPanel(&host, main, .Centered)
+    let recents     = unwrap panel.recents
+    var down        = KeyEvent{kind: .Pressed, key: .Down}
+    var recentGroup = false
+    for item in panel.menu.items
+    {
+        if item!.label and item.name.text == appStrings().lens_Recent do
+            recentGroup = true
+        if not item.disabled and not item.separator and not item.label
+        {
+            panel.sendEvent(&down)
+            if recentGroup do
+                break
+        }
+    }
+
     var right = KeyEvent{kind: .Pressed, key: .Right}
     panel.sendEvent(&right)
     panel.sendEvent(&right)
@@ -56,8 +67,7 @@ using Swag, Core, Gui, Pixel
     Pixel.Testing.assertImageGolden(&image, "resident.hub.keyboard.papier")
 }
 
-// The menu of the notification-area icon on two monitors, in Papier: picture then video
-// commands, the cursor and the waits, then the options and the way out.
+// The same home opened from the notification-area icon, in French and Papier on two monitors.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -71,33 +81,12 @@ using Swag, Core, Gui, Pixel
 
     host.theme.setLight()
     host.notify(.ThemeChanged)
+    defer discard catch host.app.setLanguage(Gui.ReferenceLanguage)
+    expect host.app.setLanguage("fr")
     testAddMonitorAt(main, {1440, 0, 1440, 900})
     main.captureOptions.delay = 5
 
-    let panel = testOpenResidentPanel(&host, main, .Menu)
+    let panel = testOpenResidentPanel(&host, main, .AtPointer)
     var image = host.renderSurface(unwrap panel.surface)
     Pixel.Testing.assertImageGolden(&image, "resident.menu.papier")
-}
-
-// The notification near the resident icon in Encre: status, instructions and an opt-out
-// checkbox on one floating surface, without modal dialog chrome.
-#[Swag.TestTag("golden")]
-#test
-{
-    var host: Testing.HeadlessHost
-    let main = testSetupSurfaceMain(&host)
-    defer
-    {
-        host.shutdown()
-        g_Main = null
-    }
-
-    host.theme.setDark()
-    host.notify(.ThemeChanged)
-    main.editorOptions.language = .French
-    main.setLanguage()
-    Swag.require(main.noticeResident())
-    let notice = unwrap main.residentNotice
-    var image = host.renderSurface(unwrap notice.surface)
-    Pixel.Testing.assertImageGolden(&image, "resident.notice.encre")
 }

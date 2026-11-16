@@ -140,7 +140,7 @@ struct MainWnd
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
 
-    // The hub or the menu of the notification-area icon, while one is on screen.
+    // The resident home, centered or opened beside the pointer.
     residentPanel: *ResidentPanel?
     residentNotice: *TrayNotice?
     openHubAfterRecentLoad: bool
@@ -297,11 +297,11 @@ impl IWnd for MainWnd
         // starting on nothing.
         case .TrayIcon:
             if evt.trayAction == .ContextMenu do
-                ResidentPanel.open(me, .Menu)
+                ResidentPanel.open(me, .AtPointer)
             elif evt.trayAction == .Activate and .editorOptions.startup == .Editor do
                 .showWindow()
             elif evt.trayAction == .Activate do
-                ResidentPanel.open(me, .Hub)
+                ResidentPanel.open(me, .Centered)
 
         case .CustomMessage:
             if evt.messageId == OpenImageMessage and Clipboard.hasString() do

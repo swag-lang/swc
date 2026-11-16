@@ -733,14 +733,15 @@ the screen to its work.
 - Swag Capture is resident: it keeps an icon in the notification area and its window may stay
   hidden. It starts on the hub by default, and the options choose between the hub, the icon
   alone and the editor; activating the icon opens the same thing, the hub standing in for the
-  icon alone. The hub is a floating list in the upper middle of the screen, on a surface of its
-  own: what to capture and what to record under their section labels, with assigned keys, the
+  icon alone. One home opens centered on the screen at startup and beside the pointer on a right
+  click on the icon, on a surface of its own: what to capture and what to record under their
+  section labels, with assigned keys, the
   last captures as one row of pictures that open in the editor, then the editor, the library,
-  the options, the way back behind the icon and the way out. It has no accent: nothing in it acts before a choice. The menu
-  of the icon stands at the pointer and carries every capture command, picture then video, a
-  monitor of its own only when there are several, then the cursor choice and the waits as one
-  row of exclusive choices. While a recording runs, both offer to stop or abandon it instead of
-  starting another capture. Either leaves on a choice, on `Esc`, and when another application
+  the options, the way back behind the icon and the way out. It has no accent: nothing in it acts
+  before a choice. Both placements share every command and recent capture: picture then video, a
+  monitor of its own only when there are several, the cursor choice and the waits as one
+  row of exclusive choices. While a recording runs, the home offers to stop or abandon it instead of
+  starting another capture. It leaves on a choice, on `Esc`, and when another application
   takes the desktop; a capture started by its key takes it off the screen first. Leaving the hub
   without a choice, or closing the window, leaves nothing on screen: a small notification above
   the icon says that Swag Capture is still running and how to open it again. It has a close button
@@ -749,7 +750,7 @@ the screen to its work.
 
 ![Resident hub, Encre](imgs/capture.hub.png) ![Hub keyboard selection, Papier](imgs/capture.hub.keyboard.paper.png)
 
-![Resident icon menu, Papier](imgs/capture.resident.menu.paper.png)
+![The same home from the resident icon, French, Papier](imgs/capture.resident.menu.paper.png)
 
 - The capture control starts an image area capture directly, and the adjacent Video action starts
   a video area capture. The chevron groups image targets, video targets and GIF, then offers delay

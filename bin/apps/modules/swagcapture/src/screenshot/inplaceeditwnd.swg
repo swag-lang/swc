@@ -58,6 +58,7 @@ struct InPlaceEditWnd
         editWnd:  *EditWnd
         bar:      *MiniBar
         hintLine: *HintLine
+        hintArea: *CaptureHints
     }
 
     capture:          *Capture?
@@ -339,8 +340,10 @@ impl InPlaceEditWnd
             .bar.addItem(rate)
         }
         .bar.addSeparator()
-        if g_CaptureMedia == .Animation do
+        if g_CaptureMedia == .Animation
+        {
             .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, enabled: false))
+        }
         else
         {
             .bar.addItem(createQualityOption(.bar, options))
@@ -398,12 +401,15 @@ impl InPlaceEditWnd
                 .pictureMode = .editMode
             .editMode = .Select
         }
-        else do
+        else
+        {
             .editMode = .pictureMode
+        }
+
         .fillBar()
         .updateKindButton()
         .configureMainWindowEditMode()
-        .hintLine.destroy()
+        .hintArea.destroy()
         .createHintLine()
         .placeBar()
         .editWnd.editView.invalidate()
@@ -431,7 +437,8 @@ impl InPlaceEditWnd
     mtd createHintLine()
     {
         let texts = appStrings()
-        with .hintLine = HintLine.create(.editWnd.editView)
+        .hintArea = CaptureHints.create(.editWnd.editView, .source)
+        with .hintLine = .hintArea.line
         {
             if g_CaptureMedia != .Picture
             {
@@ -445,7 +452,6 @@ impl InPlaceEditWnd
                 .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
             }
 
-            .addHint(strings().key_Tab, kindName(nextCaptureMedia(g_CaptureMedia)))
             .addHint(strings().key_Escape, texts.hint_Cancel)
         }
     }
@@ -620,6 +626,7 @@ impl InPlaceEditWnd
         let view = .editWnd.editView
         if not view.capture do
             return
+        .hintArea.placeAt(view.capture.zoneScreenRect().center())
         var room = .barRoom
         room.intersect(view.clientRect())
         .placeKindButton()
@@ -720,7 +727,6 @@ impl IWnd for InPlaceEditWnd
         case evt.key == .Return and evt.modifiers == .None and recording:   .record()
         case evt.key == .Return and evt.modifiers == .None:                 .copy()
         case evt.key == .S and evt.modifiers == .Control and not recording: .save()
-        case evt.key == .Tab and evt.modifiers == .None:                    .setMedia(nextCaptureMedia(g_CaptureMedia))
         default: return
         }
 

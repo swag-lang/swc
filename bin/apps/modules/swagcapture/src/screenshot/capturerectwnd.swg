@@ -23,6 +23,7 @@ struct CaptureRectWnd
 
     // Where the pointer is, in logical units, for the loupe.
     pointer: Math.Point
+    hints:   *CaptureHints?
 }
 
 impl IWnd for CaptureRectWnd
@@ -55,10 +56,6 @@ impl IWnd for CaptureRectWnd
         if evt.kind == .Pressed and evt.key == .Escape and evt.modifiers == .None do
             g_Exit = true
 
-        // Tab changes what the capture keeps, before it is taken.
-        if evt.kind == .Pressed and evt.key == .Tab and evt.modifiers == .None do
-            g_CaptureMedia = nextCaptureMedia(g_CaptureMedia)
-
         if evt.kind == .Pressed and evt.key == .W and evt.modifiers == .None and not .startGrab
         {
             .autoGrab = true
@@ -81,8 +78,10 @@ impl IWnd for CaptureRectWnd
                 .detachWindow = not .detachWindow
                 g_CaptureAnchored = g_CaptureWindow.nativeWindow != 0 and not .detachWindow
             }
-            else do
+            else
+            {
                 .attachArea = not .attachArea
+            }
         }
 
         // Enter takes the zone on screen, as a click without a drag does.
@@ -106,6 +105,7 @@ impl IWnd for CaptureRectWnd
         let physPosX = evt.surfacePos.x * k
         let physPosY = evt.surfacePos.y * k
         .pointer = evt.surfacePos
+        .hints?.placeAt({g_DesktopX + physPosX, g_DesktopY + physPosY})
 
         switch evt.kind
         {
@@ -274,20 +274,21 @@ impl CaptureRectWnd
     // The keys stand on floating ground because the frozen desktop can be any picture.
     mtd createHints()
     {
-        with let hint = HintLine.create(me)
+        .hints = CaptureHints.create(me, .main)
+        with .hints.line
         {
             .setGrounded(true)
             .addHint("W", appStrings().hint_AimWindow)
             .addHint("A", appStrings().hint_AimAttach)
-            .addHint(Gui.strings().key_Tab, appStrings().hint_AimFormat)
             .addHint(Gui.strings().key_Escape, appStrings().hint_Cancel)
         }
+
+        .hints.placeAt(Input.mousePosition())
     }
 
     // Writes what the capture keeps and the size of the zone, in physical desktop pixels — the size
     // of the captured image — in a mono chip standing on the top edge of the zone, or inside it
-    // when the screen has no room above. The key that changes what is kept follows, fainter: the
-    // chip is where the eye already is, so the overlay needs no line of keys of its own.
+    // when the screen has no room above.
     mtd paintSizeChip(painter: *Painter, grabRect, dstGrab: Math.Rectangle)
     {
         if grabRect.width <= 0 or grabRect.height <= 0 do
@@ -298,13 +299,12 @@ impl CaptureRectWnd
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
         let media   = kindName(g_CaptureMedia)
         let text    = Format.toString("% · % × %", media, grabRect.width, grabRect.height)
-        let key     = Format.toString("  %", Gui.strings().key_Tab)
         let anchor  = g_CaptureWindow.nativeWindow ?
                       captureTargetLabel() : String{}
         let anchorText = anchor.count ? Format.toString(" · %  A", anchor) : String{}
-        let width   = Painter.measureString(text, font).width + Painter.measureString(key, font).width +
-                      Painter.measureString(anchorText, font).width + 2 * AreaChipPadding
-        let height  = font.height + AreaChipPadding
+        let width      = Painter.measureString(text, font).width +
+                         Painter.measureString(anchorText, font).width + 2 * AreaChipPadding
+        let height = font.height + AreaChipPadding
 
         var chip = Math.Rectangle{dstGrab.x, dstGrab.y - height - AreaChipGap, width, height}
         if chip.y < 0 do
@@ -314,9 +314,11 @@ impl CaptureRectWnd
         let top = font.opticalLineTop(chip.vertCenter())
         let x   = chip.x + AreaChipPadding
         painter.drawString(x, top, text, font, colors.text)
-        painter.drawString(x + Painter.measureString(text, font).width, top, key, font, colors.faintText)
-        painter.drawString(x + Painter.measureString(text, font).width + Painter.measureString(key, font).width,
-                           top, anchorText, font, colors.faintText)
+        painter.drawString(x + Painter.measureString(text, font).width,
+                           top,
+                           anchorText,
+                           font,
+                           colors.faintText)
     }
 
     // Draws the pixels around the pointer enlarged in a round loupe beside it, on their grid, the

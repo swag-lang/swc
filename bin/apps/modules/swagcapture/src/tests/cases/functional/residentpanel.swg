@@ -3,12 +3,76 @@
 
 using Swag, Core, Gui
 
-// Reports whether `panel` lists the command `id`.
-func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
+// Startup and the pointer menu share their complete command list, settings and recent captures.
+#test
 {
-    for item in panel.menu.items where item and not item.separator and not item.label and item.id == id do
-        return true
-    return false
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+    defer discard catch host.app.setLanguage(Gui.ReferenceLanguage)
+
+    testAddMonitorAt(main, {1440, 0, 1440, 900})
+    main.recentWnd.addRecent("recent.scc", testFramePicture(80, 8))
+    for language in Gui.languages()
+    {
+        expect host.app.setLanguage(language.tag)
+        let centered = testOpenResidentPanel(&host, main, .Centered)
+        let pointer = testOpenResidentPanel(&host, main, .AtPointer)
+        Swag.require(centered.listSize == pointer.listSize)
+        Swag.require(centered.menu.items.count == pointer.menu.items.count)
+        Swag.require(centered.recents != null and pointer.recents != null)
+        for item, index in centered.menu.items
+        {
+            let other = unwrap pointer.menu.items[index]
+            Swag.require(item!.id == other.id and item.name.text == other.name.text)
+            Swag.require(item.checked == other.checked and item.disabled == other.disabled)
+        }
+        Testing.assertContentFits(centered)
+        Testing.assertContentFits(pointer)
+
+        let work = Env.monitorForPoint({}).physicalWorkArea
+        let centeredBounds = centered.surface!.position
+        Swag.require(Math.abs(centeredBounds.horzCenter() - work.horzCenter()) <= 1)
+        Swag.require(Math.abs(centeredBounds.vertCenter() - work.vertCenter()) <= 1)
+
+        let anchor = Math.Point{work.right() - 8, work.bottom() - 8}
+        pointer.place(anchor)
+        let pointerBounds = pointer.surface!.position
+        Swag.require(pointer.anchor == anchor)
+        Swag.require(pointerBounds.x >= work.x and pointerBounds.right() <= work.right())
+        Swag.require(pointerBounds.y >= work.y and pointerBounds.bottom() <= work.bottom())
+        Swag.require(pointerBounds.right() >= anchor.x and pointerBounds.bottom() >= anchor.y)
+        centered.close()
+        pointer.close()
+    }
+}
+
+// A late recent capture grows the pointer home at its original anchor without moving monitors.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+    let panel = testOpenResidentPanel(&host, main, .AtPointer)
+    let work = Env.monitorForPoint({}).physicalWorkArea
+    let anchor = Math.Point{work.right() - 8, work.bottom() - 8}
+    panel.place(anchor)
+    Swag.require(panel.recents == null)
+    main.recentWnd.addRecent("recent.scc", testFramePicture(80, 8))
+    var tick: TimerEvent
+    panel.IWnd.onTimerEvent(&tick)
+    Swag.require(panel.recents != null and panel.anchor == anchor)
+    let bounds = panel.surface!.position
+    Swag.require(bounds.right() >= anchor.x and bounds.bottom() >= anchor.y)
+    panel.close()
 }
 
 // Startup waits for the recent-file scan before sizing the hub, so its first visible bounds
@@ -49,7 +113,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     }
 
     main.recentWnd.addRecent("first.scc", testFramePicture(40, 8), front: false)
-    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let panel = testOpenResidentPanel(&host, main, .Centered)
     let surface = unwrap panel.surface
     let recents = unwrap panel.recents
     surface.show()
@@ -75,7 +139,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     panel.close()
 }
 
-// The menu of the notification-area icon carries every capture command, picture and video, with
+// The resident home carries every capture command, picture and video, with
 // the wait before a capture; a single monitor adds no entry of its own.
 #test
 {
@@ -87,16 +151,17 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
         g_Main = null
     }
 
-    var panel = testOpenResidentPanel(&host, main, .Menu)
+    var panel = testOpenResidentPanel(&host, main, .AtPointer)
     Swag.require(main.residentPanel == panel)
-    for id in [ActionGlobal.ShowHub, ActionGlobal.ShowEditor, ActionCapture.Area, ActionCapture.LastArea,
+    for id in [ActionGlobal.ShowLibrary, ActionGlobal.ShowEditor, ActionCapture.Area, ActionCapture.LastArea,
                ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo,
                ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record,
                ActionCapture.CaptureCursor, ActionOptions.Options, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     for item in panel.menu.items where item and item.id == ActionCapture.RecordVideo do
         Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
-    Swag.require(not testPanelOffers(panel, ActionGlobal.Minimize))
+    Swag.require(testPanelOffers(panel, ActionGlobal.Minimize))
+    Swag.require(not testPanelOffers(panel, ActionGlobal.ShowHub))
     Swag.require(not testPanelOffers(panel, ActionCapture.screenId(0)))
     Swag.require(not testPanelOffers(panel, ActionCapture.recordScreenId(0)))
 
@@ -104,17 +169,66 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     Swag.require(panel.menu.children.count == 1)
     let delays = assume cast(*StackLayoutCtrl, panel.menu.children[0])
     Swag.require(delays.children.count == CaptureDelays.count)
+    var delayHeading = false
+    for item in panel.menu.items
+    {
+        if item!.label and item.name.text == appStrings().act_DelayBefore do
+            delayHeading = true
+        if item.id == null and not item.separator and not item.label and not item.disabled do
+            Swag.require(delayHeading)
+    }
 
     // With a second monitor, each one can be captured and recorded. Opening a panel takes the
     // previous one off the screen.
     testAddMonitorAt(main, {1440, 0, 1440, 900})
     let previous = panel
-    panel = testOpenResidentPanel(&host, main, .Menu)
+    panel = testOpenResidentPanel(&host, main, .AtPointer)
     Swag.require(main.residentPanel == panel and panel != previous)
     Swag.require(testPanelOffers(panel, ActionCapture.screenId(1)))
     Swag.require(testPanelOffers(panel, ActionCapture.recordScreenId(1)))
     panel.close()
     Swag.require(main.residentPanel == null)
+}
+
+// The hub keeps capture delay choices available without dismissing the next capture command.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        host.shutdown()
+        g_Main = null
+    }
+
+    defer discard catch host.app.setLanguage(Gui.ReferenceLanguage)
+    for language in Gui.languages()
+    {
+        expect host.app.setLanguage(language.tag)
+        main.captureOptions.delay = 7
+        let panel   = testOpenResidentPanel(&host, main, .Centered)
+        let surface = unwrap panel.surface
+        surface.show()
+        let choices = assume cast(*StackLayoutCtrl, panel.menu.children[0])
+        Swag.require(choices.children.count == CaptureDelays.count)
+        Swag.require(testPanelOffers(panel, ActionCapture.Area))
+        Testing.assertContentFits(panel)
+
+        for choice, index in CaptureDelays
+        {
+            let button = assume cast(*IconButton, choices.children[index])
+            let bounds = button.surfaceRect()
+            Swag.require(bounds.x >= 0 and bounds.right() <= surface.position.width / surface.dpiScale)
+            host.clickWnd(button)
+            host.pump()
+            Swag.require(main.captureOptions.delay == choice.seconds)
+            Swag.require(main.residentPanel == panel and not panel.menu.isModalEnded())
+            for child, other in choices.children do
+                Swag.require((assume cast(*IconButton, child)).isChecked == (other == index))
+        }
+
+        panel.close()
+    }
 }
 
 // The hub lists what to capture and what to record under their labels, then the last captures
@@ -131,7 +245,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 
     Swag.require(main.editorOptions.startup == .Hub)
 
-    var panel = testOpenResidentPanel(&host, main, .Hub)
+    var panel = testOpenResidentPanel(&host, main, .Centered)
     Swag.require(panel.menu.items[0]!.label)
     for id in [ActionCapture.Area, ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.LastArea,
                ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow,
@@ -148,7 +262,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     // The row shows the first captures of the recent strip, inside its own bounds.
     for index in HubRecents.MaxShown + 2 do
         main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 40 * index), 8))
-    panel = testOpenResidentPanel(&host, main, .Hub)
+    panel = testOpenResidentPanel(&host, main, .Centered)
     let recents = unwrap panel.recents
     Swag.require(recents.count() == HubRecents.MaxShown)
     let last = recents.tileRect(HubRecents.MaxShown - 1)
@@ -157,7 +271,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     panel.close()
 }
 
-// The hub and tray menu navigate by keyboard, including the hosted recent row.
+// Both placements of the home navigate by keyboard, including the hosted recent row.
 #test
 {
     var host: Testing.HeadlessHost
@@ -170,19 +284,21 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 
     for index in 3 do
         main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 40 * index), 8))
-    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let panel = testOpenResidentPanel(&host, main, .Centered)
     let recents = unwrap panel.recents
 
-    var down = KeyEvent{kind: .Pressed, key: .Down}
+    var down        = KeyEvent{kind: .Pressed, key: .Down}
+    var recentGroup = false
     for item in panel.menu.items
     {
-        if item!.id == null and not item.disabled and not item.separator and not item.label
+        if item!.label and item.name.text == appStrings().lens_Recent do
+            recentGroup = true
+        if not item.disabled and not item.separator and not item.label
         {
             panel.sendEvent(&down)
-            break
+            if recentGroup do
+                break
         }
-        if not item.disabled and not item.separator and not item.label do
-            panel.sendEvent(&down)
     }
 
     var right = KeyEvent{kind: .Pressed, key: .Right}
@@ -199,11 +315,11 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     Swag.require(recents.keyboardIndex == Swag.U64.Max)
     panel.close()
 
-    let menuPanel = testOpenResidentPanel(&host, main, .Menu)
+    let menuPanel = testOpenResidentPanel(&host, main, .AtPointer)
     menuPanel.sendEvent(&home)
-    var enter = KeyEvent{kind: .Pressed, key: .Return}
-    menuPanel.sendEvent(&enter)
-    Swag.require(enter.accepted and main.residentPanel == null)
+    var escape = KeyEvent{kind: .Pressed, key: .Escape}
+    menuPanel.sendEvent(&escape)
+    Swag.require(escape.accepted and main.residentPanel == null)
 }
 
 // While a recording runs the panel offers to stop or abandon it, not to start another capture.
@@ -222,9 +338,9 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 
     recorder.main = main
     g_Recorder    = recorder
-    for kind in [ResidentPanelKind.Hub, ResidentPanelKind.Menu]
+    for placement in [ResidentPanelPlacement.Centered, ResidentPanelPlacement.AtPointer]
     {
-        let panel = testOpenResidentPanel(&host, main, kind)
+        let panel = testOpenResidentPanel(&host, main, placement)
         Swag.require(testPanelOffers(panel, ActionCapture.RecordVideo))
         Swag.require(testPanelOffers(panel, ActionCapture.CancelRecording))
         Swag.require(testPanelOffers(panel, ActionGlobal.ShowEditor))
@@ -252,7 +368,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     surface.hide()
     Swag.require(surface.isHidden)
 
-    var panel = testOpenResidentPanel(&host, main, .Hub)
+    var panel = testOpenResidentPanel(&host, main, .Centered)
     panel.choose(ActionGlobal.ShowEditor)
     host.pump()
     Swag.require(main.residentPanel == null)
@@ -260,7 +376,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
 
     // Leaving without a choice changes nothing.
     surface.hide()
-    panel = testOpenResidentPanel(&host, main, .Menu)
+    panel = testOpenResidentPanel(&host, main, .AtPointer)
     panel.choose(null)
     host.pump()
     Swag.require(main.residentPanel == null and surface.isHidden)
@@ -282,7 +398,7 @@ func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
     main.editorOptions.residentNotices = 0
     main.editorOptions.showResidentNotice = true
     surface.hide()
-    let panel = testOpenResidentPanel(&host, main, .Hub)
+    let panel = testOpenResidentPanel(&host, main, .Centered)
     var escape = KeyEvent{kind: .Pressed, key: .Escape}
     panel.sendEvent(&escape)
     Swag.require(escape.accepted and main.residentPanel == null)

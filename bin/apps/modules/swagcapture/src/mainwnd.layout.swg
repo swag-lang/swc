@@ -726,6 +726,8 @@ impl MainWnd
             if timeline.isPlaying() do
                 timeline.stop()
             timeline.panel.hide()
+            if .toast != null do
+                .toast.keepAbove(0)
             return
         }
 
@@ -739,6 +741,10 @@ impl MainWnd
         timeline.panel.setPosition({left, bottom - TimelineHeight, width, TimelineHeight})
         timeline.panel.show()
         timeline.invalidate()
+
+        // A confirmation stands above the timeline rather than over its track.
+        if .toast != null do
+            .toast.keepAbove(timeline.panel.surfaceRect().y - .surfaceRect().y)
     }
 
     // Reserves the first part of the hint line for the two readings and puts each menu anchor

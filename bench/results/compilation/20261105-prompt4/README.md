@@ -76,6 +76,7 @@ DevMode and memory evidence above. It makes no timing, CPU or memory claims.
 | Cache loop residency use counts across removals | Recounting each mapped register's in-loop uses every time the residency cap drops another value | When at least two values must be dropped, use counts are computed once. The cached candidate list mirrors the allocator's swap-with-last removal, preserving tie order; one-drop cases retain the original scan. | DevMode build; 1,715 C++ tests and three focused native fixtures passed, including pressure and loop-carried cases. |
 | Skip redundant liveness side-table resizes | Final `resize` checks after dense-index insertion has already grown each nonempty side table to its exact dense count | Dense insertion assigns consecutive indices and grows the parallel vector at each new index; the no-concrete-register case still clears stale touch lists. | DevMode build; 1,715 C++ tests and focused native register-pressure stages passed. |
 | Mark loop-carried registers from live bits | Testing every virtual register against every loop header | Visit only set bits in header liveness rows, mark each qualifying state once, then allocate spill slots in the original dense-register order. | DevMode build; 1,715 C++ tests and full native suite passed. |
+| Fuse loop-header discovery with live-bit marking | A temporary list of loop-header indices and its later readback | Headers are still visited in instruction order and each matching live row is marked once; the no-header path still returns before spill-slot allocation. | DevMode build; 1,715 C++ tests and full native suite (3/3 stages) passed. |
 
 Rejected experiment: storing `upperRegValues` directly in `SanitizerFlatMap`
 passed DevMode C++, safety, sanity and a 69-stage compiler campaign, but grew
@@ -95,6 +96,8 @@ passed all 69 compiler stages, before the latest allocator changes. After the
 loop residency and liveness table changes, DevMode passed 1,715 C++ tests, the
 full native suite (3/3 stages) and the full compiler campaign (69/69 stages).
 After adding live-bit loop-carried marking, the rebuilt compiler again passed
-69/69 stages. The changes reduce repeated scans, size comparisons and table
-growth checks by construction. Their net speed and memory effects remain for
-the dedicated benchmark campaign to measure.
+69/69 stages. The subsequent loop-header fusion passed the C++ suite (1,715
+tests) and all three native stages. The changes reduce repeated scans, size
+comparisons, table growth checks and temporary header storage by construction.
+Their net speed and memory effects remain for the dedicated benchmark campaign
+to measure.

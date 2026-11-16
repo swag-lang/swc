@@ -2005,20 +2005,16 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
 
     const auto& vregs = denseVirtualRegs_.regs();
 
-    SmallVector<uint32_t> loopHeaders;
-    for (uint32_t s = 0; s < instructionCount_; ++s)
-    {
-        const auto& predecessors = predecessors_[s];
-        if (!predecessors.empty() && predecessors.back() >= s)
-            loopHeaders.push_back(s);
-    }
-    if (loopHeaders.empty())
-        return;
-
     // Mark loop-carried values by visiting only live bits in loop-header rows.
     // The old register-by-header probe repeated one bit test for every pair.
-    for (const uint32_t header : loopHeaders)
+    bool hasLoopHeader = false;
+    for (uint32_t header = 0; header < instructionCount_; ++header)
     {
+        const auto& predecessors = predecessors_[header];
+        if (predecessors.empty() || predecessors.back() < header)
+            continue;
+        hasLoopHeader = true;
+
         const auto row = liveInVirtualBits_.row(header);
         for (size_t wordIndex = 0; wordIndex < row.words.size(); ++wordIndex)
         {
@@ -2032,6 +2028,8 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
             }
         }
     }
+    if (!hasLoopHeader)
+        return;
 
     // Keep spill-slot assignment in dense-register order, as before.
     for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)

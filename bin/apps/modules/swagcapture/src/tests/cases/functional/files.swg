@@ -296,7 +296,9 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     let pngPath = Gui.Testing.tempFilePath("capture-", ".png")
     defer discard catch File.delete(pngPath)
     f.main.doSaveAsImage(pngPath)
-    f.gui.pump()
+    Swag.require(f.main.imageWriteJob != null)
+    f.waitImageWrite()
+    Swag.require(f.main.imageWriteJob == null)
 
     Swag.require(File.exists(pngPath))
 
@@ -330,7 +332,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.capture.linkedImage    = linkedPath
     f.capture.linkedUpToDate = false
     f.main.doSaveAsImage(otherPath)
-    f.gui.pump()
+    f.waitImageWrite()
     Swag.require(File.exists(otherPath))
     Swag.require(not f.capture.linkedUpToDate)
 
@@ -359,7 +361,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.acceptModalFileDialog(pngPath)
 
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
-    f.gui.pump()
+    f.waitImageWrite()
 
     Swag.require(f.gui.autoHandled)
     Swag.require(f.gui.openedSurfaceCount() == 0)
@@ -395,7 +397,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.gui.thenClickModalButton(Dialog.BtnYes)
 
     f.main.sendCommandEvent(ActionFile.SaveAsImage)
-    f.gui.pump()
+    f.waitImageWrite()
 
     Swag.require(f.gui.autoHandled)
     Swag.require(f.gui.openedSurfaceCount() == 0)

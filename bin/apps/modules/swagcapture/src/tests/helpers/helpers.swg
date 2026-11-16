@@ -106,6 +106,14 @@ impl HeadlessFixture
         .main.createLens()
     }
 
+    // Waits for the picture Save as Image encodes and writes on a worker, then lands its outcome.
+    mtd waitImageWrite()
+    {
+        if .main.imageWriteJob do
+            .main.imageWriteJob.task.wait()
+        .gui.pump()
+    }
+
     mtd setupLibraryWnd()->*LibraryWnd
     {
         .main.libWnd      = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})

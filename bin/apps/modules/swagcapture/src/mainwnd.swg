@@ -632,13 +632,15 @@ impl MainWnd
         capture.editView = .editWnd.editView
         if not linked and not capture.isTimed()
         {
-            .startLibraryImageWrite(capture, destination)
+            .startImageWrite(capture, destination)
             return
         }
         .saveLoadedAsImage(capture, destination, linked)
     }
 
-    private mtd startLibraryImageWrite(capture: *Capture, destination: String)
+    // Composes `capture` here, where its forms can use the renderer, then encodes and writes
+    // the picture to `destination` on a worker.
+    internal mtd startImageWrite(capture: *Capture, destination: String)
     {
         var image = capture.toImage()
         if not image.isValid()

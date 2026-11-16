@@ -676,6 +676,16 @@ impl MainWnd
             return
         }
 
+        // An export to another file than the linked image changes nothing the capture records:
+        // its picture is encoded and written on a worker. The in-place editor closes once it has
+        // saved, and keeps the write with it.
+        if not linked and not .inPlaceEdit and not Path.equals(fileName, capture.linkedImage)
+        {
+            .saveCapture(capture)
+            .startImageWrite(capture, fileName)
+            return
+        }
+
         var image = capture.toImage()
         if linked do
             capture.linkedImage = fileName

@@ -40,6 +40,9 @@ public:
     template<typename T>
     T* makeArray(size_t count)
     {
+        if (count > std::numeric_limits<size_t>::max() / sizeof(T))
+            throw std::bad_array_new_length();
+
         auto*      values    = static_cast<T*>(allocate(sizeof(T) * count, alignof(T)));
         Finalizer* finalizer = nullptr;
         if constexpr (!std::is_trivially_destructible_v<T>)

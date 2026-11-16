@@ -116,17 +116,6 @@ whole recording loaded at once.
   a background change after an earlier save is still written.
 - Related: app.capture.021, app.capture.025
 
-### app.capture.042 — The tool dock does not fit beside an open recent strip at the minimum size
-
-- Evidence: at the minimum window size with the recent strip open, the eight tools of the dock
-  are taller than the work left above the strip. `ToolDock` centres itself on its parent, so its
-  first tool, Select, goes under the top of the work; keeping the top inside instead puts the
-  last tool over the size buttons of the recent strip.
-- Next: give `ToolDock` a way to fit a short parent, such as a tighter gap and then an overflow
-  cell, and let Swag Capture place it in the work above the recent strip.
-- Done when: at the minimum size with the recent strip open, every tool is reachable and no
-  control of the strip is covered, with a layout test.
-
 ### app.capture.041 — The video playback test is unstable on Linux
 
 - Evidence: under Xvfb with Mesa software rendering, `functional/videoplayback.swg` fails with

@@ -9,23 +9,31 @@ using Core, Gui, Viewers
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
     let panel  = assume cast(*Epub.Panel, window.currentView)
-    Swag.require(panel.backVisits.isEmpty() and panel.forwardVisits.isEmpty())
+    Swag.require(panel.history.backVisits.isEmpty() and panel.history.forwardVisits.isEmpty())
     Swag.require(panel.view != null and panel.view.findText("Paragraph 15."))
     panel.followLink("two.xhtml#arrival")
     completeQueuedViewerFile(&host, window)
-    Swag.require(panel.chapter == 1 and panel.backVisits.count == 1 and panel.forwardVisits.isEmpty())
-    Swag.require(panel.backVisits[0].chapter == 0 and panel.backVisits[0].position.isValid())
+    Swag.require(panel.chapter == 1 and
+                 panel.history.backVisits.count == 1 and
+                 panel.history.forwardVisits.isEmpty())
+    Swag.require(panel.history.backVisits[0].chapter == 0 and panel.history.backVisits[0].position.isValid())
     panel.goBack()
     completeQueuedViewerFile(&host, window)
-    Swag.require(panel.chapter == 0 and panel.backVisits.isEmpty() and panel.forwardVisits.count == 1)
+    Swag.require(panel.chapter == 0 and
+                 panel.history.backVisits.isEmpty() and
+                 panel.history.forwardVisits.count == 1)
     Swag.require(not panel.pendingPosition.isValid())
     panel.goForward()
     completeQueuedViewerFile(&host, window)
-    Swag.require(panel.chapter == 1 and panel.backVisits.count == 1 and panel.forwardVisits.isEmpty())
+    Swag.require(panel.chapter == 1 and
+                 panel.history.backVisits.count == 1 and
+                 panel.history.forwardVisits.isEmpty())
     panel.goBack()
     completeQueuedViewerFile(&host, window)
     panel.followLink("#passage")
-    Swag.require(panel.chapter == 0 and panel.backVisits.count == 1 and panel.forwardVisits.isEmpty())
+    Swag.require(panel.chapter == 0 and
+                 panel.history.backVisits.count == 1 and
+                 panel.history.forwardVisits.isEmpty())
 }
 
 // Alt+arrow belongs to the open book when its text has focus, before the folder shortcuts.
@@ -59,15 +67,15 @@ using Core, Gui, Viewers
     let panel  = assume cast(*Epub.Panel, window.currentView)
     for target in ["https://example.invalid", "../../private.html", "missing.xhtml"] do
         panel.followLink(target)
-    Swag.require(panel.backVisits.isEmpty())
+    Swag.require(panel.history.backVisits.isEmpty())
     panel.showChapter(1)
     completeQueuedViewerFile(&host, window)
     panel.goBack()
     completeQueuedViewerFile(&host, window)
-    Swag.require(panel.forwardVisits.count == 1)
+    Swag.require(panel.history.forwardVisits.count == 1)
     panel.showChapter(1, "arrival")
     completeQueuedViewerFile(&host, window)
-    Swag.require(panel.forwardVisits.isEmpty())
+    Swag.require(panel.history.forwardVisits.isEmpty())
     panel.goForward()
     Swag.require(panel.chapter == 1)
 }

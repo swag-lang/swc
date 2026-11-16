@@ -396,8 +396,9 @@ applications run in their own processes.
 `src/api/` is the whole surface a viewer is written against, published under the `Viewer`
 namespace: `Viewer.Plugin` describes a viewer, `Viewer.Host` is what its creation callback
 receives, `Viewer.Embedded` hosts a file through the same registry inside another viewer, and
-`Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, `Viewer.LineCounter`, and the
-search and clock helpers beside them are the support the host offers. Nothing else is available to a
+`Viewer.SearchApi`, `Viewer.LifecycleApi`, `Viewer.BackgroundLoad`, `Viewer.LineCounter`,
+`Viewer.History`, and the search, page, zoom and clock helpers beside them are the support the
+host offers. Nothing else is available to a
 viewer. No plugin receives `ViewerWindow`, its parts, its session structure, or application-private
 callbacks, and the application never names a format.
 

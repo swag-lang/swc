@@ -68,10 +68,6 @@ private
 
     // The encodings offered in the action bar, in the order the selector lists them.
     const Encodings: [6] Text.Encoding = [.Utf8, .Utf16Le, .Utf16Be, .Utf32Le, .Utf32Be, .Windows1252]
-
-    // Names of those encodings. They are the standard spelling of a format rather than prose, so they
-    // read the same in every language.
-    const EncodingNames: [6] string = ["UTF-8", "UTF-16 LE", "UTF-16 BE", "UTF-32 LE", "UTF-32 BE", "Windows-1252"]
 }
 
 // What the head of a file says about how it spells its characters.
@@ -247,12 +243,7 @@ impl Panel
         return true
     }
 
-    mtd encodingName()->string
-    {
-        for candidate, index in Encodings where candidate == .encoding do
-            return EncodingNames[index]
-        return EncodingNames[0]
-    }
+    mtd encodingName()->string => Viewer.encodingName(.encoding)
 
     // Reads the head of a file once and reports how it spells its characters.
     //
@@ -769,16 +760,15 @@ impl Panel
         .scheduleMore()
     }
 
-
     // Gives the lens the layout of the text, its encodings and its zoom.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
         entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
-        for encoding, index in Encodings
+        for encoding in Encodings
         {
-            let name = Format.toString("% · %", strings.ui_Encoding, EncodingNames[index])
+            let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
             entries.add(name, .FileCode, func|view = me, encoding|() { view.applyEncoding(encoding) }, checked: encoding == .encoding)
         }
 
@@ -807,8 +797,8 @@ impl Panel
                      .encodingName(),
                      func|view = me|(encodings)
                      {
-                         for encoding, index in Encodings do
-                             encodings.addChoice(EncodingNames[index], encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
+                         for encoding in Encodings do
+                             encodings.addChoice(Viewer.encodingName(encoding), encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
                      },
                      icon: .theme().icon(.FileCode, themeRowIconSize(.themeMetrics())))
     }

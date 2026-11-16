@@ -89,6 +89,33 @@ private impl Panel
             .setZoom(percent)
     }
 
+    // Names the encoding the page is read with and what decided it, the way the information
+    // sheet reads it: "Windows-1252 · declared by the page".
+    internal mtd encodingText()->String
+    {
+        let strings = texts()
+        var source: string
+        switch #complete .view.encodingSource
+        {
+        case .Content:       source = strings.ui_EncodingDetected
+        case .ByteOrderMark: source = strings.ui_EncodingMarked
+        case .Declaration:   source = strings.ui_EncodingDeclared
+        }
+
+        return Format.toString("% · %", Viewer.encodingName(.view.encoding), source)
+    }
+
+    // Describes the page in the information sheet: its format, and the encoding in force for the
+    // document on screen, which a followed link may have changed.
+    mtd describeInformation(sheet: *InfoSheet)
+    {
+        var data: MediaInfoData
+        data.add(.Text, group: true)
+        data.add(.Format, "HTML")
+        data.add(.Encoding, .encodingText())
+        data.describe(sheet)
+    }
+
     // Creates the zoom menu button in the host's information group `info`.
     mtd createZoomControl(info: *Wnd)
     {
@@ -121,16 +148,7 @@ private impl Panel
     }
 }
 
-// Describes an HTML page in the information sheet: its format and its encoding.
-private func describeHtml(sheet: *InfoSheet)
-{
-    var data: MediaInfoData
-    data.add(.Text, group: true)
-    data.add(.Format, "HTML")
-    data.add(.Encoding, "UTF-8")
-    data.describe(sheet)
-}
-
+// Creates the integrated reusable HTML view.
 func createViewer(host: Viewer.Host)
 {
     with let result = Wnd.create'Panel(host.contentParent(), "scope.html")
@@ -168,7 +186,7 @@ func createViewer(host: Viewer.Host)
     host.attachView(result)
     DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(texts().ui_Details)
-    host.setInformation(func(sheet) { describeHtml(sheet) })
+    host.setInformation(func|result|(sheet) { result.describeInformation(sheet) })
 
     with var search: Viewer.SearchApi
     {

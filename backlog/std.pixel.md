@@ -419,22 +419,25 @@ ships; history lives in Git, not here.
 
 ---
 
-### std.pixel.038 — The GPU golden campaign fails against its CPU references
+### std.pixel.038 — The CPU renderer diverges from the GPU on fifty-one application goldens
 
-- Evidence: a PNG golden is recorded and moved from a CPU render only, and every golden whose
-  source is committed was re-recorded that way. Against those references the default GPU run
-  fails 24 GUI, 3 Vault, about 60 Capture and 67 Scope goldens: the comparison accepts a channel
-  delta of two and nothing else, while a GPU antialiases thin strokes, blends blurred materials
-  and filters scaled pictures a few levels apart, up to a full contrast on isolated edge pixels.
-  Twenty-eight goldens were left as their GPU recording because their sources are being changed:
-  Capture `area*`, `inplace*`, `resident.*` and `recordhud*`, Scope `viewer.video.*`,
-  `menus.video.*`, `menus.home.clear`, `options.paper`, `pictured.image` and
-  `viewer.information.*`, GUI `scroll.*`, `markdownview.scrollbar` and `htmlview.pixel-api`.
-- Next: compare a GPU image with a tolerance that follows local contrast, so a different
-  antialiasing passes while a moved, missing or recolored shape fails; confirm each remaining
-  GPU difference with a CPU render of the same test, which either moves the reference or names
-  a renderer divergence; re-record the twenty-eight goldens from CPU with their sources.
-- Done when: every PNG golden under `bin/` comes from a CPU render and the default GPU golden
-  campaign passes against them on more than one graphics device.
+- Evidence: the golden campaign compares a GPU image with a tolerance that follows local
+  contrast, then renders each difference again on CPU. GUI and Vault pass on the GPU against
+  their CPU references. Capture keeps 19 and Scope 32 differences whose CPU render still matches
+  the reference, so the two renderers disagree there, each with a `<name>.actual.gpu.png` beside
+  its golden: scaled video frames (`viewer.video.*`, `menus.video.*`), scaled pictures
+  (`imageset-real-review`, `viewer.comic.page`, `viewer.image.transformed.paper`, `home.*`,
+  `menus.image.*`, Capture `area*`, `recent.bar`), spreadsheet cell fills (`viewer.xlsx.*`, a
+  flat fifteen levels apart), hatched and thin-stroked marks (Capture `presets*`,
+  `edit.callout`, `edit.shape.presets.paper`, `edit.arrow.paper`, `status.*`, `editor.menu.*`,
+  `inspector.time`, `tasks.frame.fr.papier`), the strikeout of `viewer.markdown.document`, and
+  `viewer.midi.vertical-zoom`, `viewer.odt.reading.encre`, `viewer.information.movie.encre`.
+  Some of these goldens also carry uncommitted source changes and were left as recorded.
+- Next: take one family at a time, starting with the picture and video scaling filter, find where
+  `RenderCpu` samples or covers differently from OpenGL, bring it to the GPU result, and record
+  the references again from CPU. Run the campaign on a second graphics device to check that
+  three levels and 35% of the local contrast hold beyond this machine.
+- Done when: `tools/coverage.bat -Suite goldens` passes on the GPU for every module, on more than
+  one graphics device, with every PNG golden recorded from a CPU render.
 
 ---

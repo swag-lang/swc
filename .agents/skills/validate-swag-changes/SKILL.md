@@ -121,10 +121,9 @@ stress solely because it is new or somewhat slower.
 
 GPU is the default renderer for all coverage suites and direct `HeadlessHost` tests. Pass
 `-Renderer cpu` to `tools/coverage.bat` or set `SWAG_TEST_RENDERER=cpu` for a direct compiler test
-command in CI/cloud environments without a usable graphics device, and whenever a PNG golden has
-to be recorded or moved. Use `goldens` for the complete golden campaign, the selected renderer
-compared against the CPU references, when shared rendering behavior can reach snapshots beyond
-a confidently bounded set. Use `parity` for Pixel tests tagged
+command in CI/cloud environments without a usable graphics device. Use `goldens` for the golden
+campaign against the CPU references, complete when shared rendering behavior can reach snapshots
+beyond a confidently bounded set. Use `parity` for Pixel tests tagged
 `integration.renderer.opengl`. Reserve `full` for scheduled complete standard-module and
 application coverage, including golden and stress tests; it does not include privileged or
 external integration campaigns.
@@ -270,14 +269,20 @@ consumer that activates the changed behavior.
   decoding, compositing, or paint primitives require this complete golden-only pass. It selects
   every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
   without promoting them.
-- A PNG golden is a CPU reference, identical on every machine. A GPU run, the default, compares
-  against it and never records: a missing golden fails, and a mismatch leaves only
-  `<name>.actual.gpu.png`, a diagnostic nothing promotes. Record or move a PNG golden from a CPU
-  run alone (`SWAG_TEST_RENDERER=cpu` on the owning test file, or
-  `tools/coverage.bat -DevMode -Suite goldens -Renderer cpu`), then confirm the GPU run passes
-  against the new reference. A GPU mismatch the CPU run does not reproduce is a renderer
-  divergence to fix or bound with a declared tolerance, never a reason for a GPU-specific golden.
-  A test that renders with `RenderCpu` itself says so with `{cpuRendered: true}`.
+- A PNG golden is a CPU reference, identical on every machine: only a CPU render records one or
+  writes the `<name>.actual.png` that gets promoted. Run golden tests through
+  `tools/coverage.bat -DevMode -Suite goldens`, narrowed with `-Workspace`, `-Module` and
+  `-TestFile` to the owners a change reaches. Its GPU pass compares with a tolerance that follows
+  local contrast, so it is fast and holds on any graphics device; each source that differs is
+  then rendered again on CPU, which settles it. A CPU render that differs too moved the
+  reference: review its `.actual.png` and accept it. A CPU render that still matches is a
+  renderer divergence, reported with the `<name>.actual.gpu.png` the GPU left: the GPU is
+  presumed right, so fix the CPU renderer, or bound a difference that is legitimate with an
+  `ImageGoldenOptions` tolerance the test states. Never add a golden for one renderer. A test
+  that renders with `RenderCpu` itself says so with `{cpuRendered: true}`.
+- The GPU tolerance cannot see a flat color that moved by three levels or fewer. A change to a
+  palette token, a blend or a color conversion also runs its owners with `-Renderer cpu`, which
+  compares exactly.
 - A golden mismatch fails its test through `Swag.check`, which lets the test go on: one run
   writes every `.actual` a change moved, and the run stays red until each is promoted or fixed.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside

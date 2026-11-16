@@ -12,6 +12,7 @@ try {
         @"
 @echo off
 echo $tool^|%SWAG_TEST_RENDERER%^|%* >>"%SWAG_COVERAGE_LOG%"
+if "%SWAG_COVERAGE_FAILURE%"=="$tool" if defined SWAG_COVERAGE_SOURCE echo source:  %SWAG_COVERAGE_SOURCE%
 if "%SWAG_COVERAGE_FAILURE%"=="$tool" exit /b 7
 exit /b 0
 "@ | Set-Content -LiteralPath (Join-Path $scratch "$tool.bat")
@@ -47,10 +48,30 @@ exit /b 0
     if ($LASTEXITCODE -ne 1) { throw 'A failed workspace was hidden.' }
     if (!(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_.StartsWith('apps|') })) { throw 'A failure prevented the remaining workspace from running.' }
     if ($env:SWAG_TEST_RENDERER -ne 'original') { throw 'Renderer selection escaped the launcher.' }
-    Write-Output 'Coverage runner: suite selection, failure propagation and environment isolation passed.'
+
+    # A golden the GPU run reports is rendered again on CPU, and only its own test source.
+    $env:SWAG_COVERAGE_FAILURE = 'goldens'
+    $env:SWAG_COVERAGE_SOURCE = 'C:\checkout\bin\std\modules\gui\src\tests\cases\golden\menu.swg:12:5'
+    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Suite goldens | Out-Null
+    if ($LASTEXITCODE -ne 1) { throw 'A failed golden campaign was hidden.' }
+    $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
+    if ($calls.Count -ne 2 -or !$calls[0].StartsWith('goldens|gpu|')) { throw "The golden campaign did not confirm its failure: $calls" }
+    if (!$calls[1].StartsWith('std|cpu|dm test gui --test-tag golden --test-file golden\menu.swg ')) { throw "Wrong CPU confirmation: $($calls[1])" }
+    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Suite goldens -Renderer cpu | Out-Null
+    if (@(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ }).Count -ne 1) { throw 'A CPU golden campaign confirmed itself.' }
+    $env:SWAG_COVERAGE_SOURCE = $null
+    $env:SWAG_COVERAGE_FAILURE = 'apps'
+    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -Suite goldens -Workspace apps -Module swagscope -TestFile explorer.swg | Out-Null
+    $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
+    if ($calls.Count -ne 1 -or !$calls[0].StartsWith('apps|gpu|test swagscope --test-tag golden --test-file explorer.swg ')) { throw "Wrong focused golden campaign: $calls" }
+    Write-Output 'Coverage runner: suite selection, golden confirmation, failure propagation and environment isolation passed.'
 } finally {
     $env:SWAG_COVERAGE_LOG = $oldLog
     $env:SWAG_COVERAGE_FAILURE = $oldFailure
+    $env:SWAG_COVERAGE_SOURCE = $null
     $env:SWAG_TEST_RENDERER = $oldRenderer
     $resolved = [IO.Path]::GetFullPath($scratch)
     if (!$resolved.StartsWith($scratchBase, [StringComparison]::OrdinalIgnoreCase)) { throw 'Scratch path escaped the temporary directory.' }

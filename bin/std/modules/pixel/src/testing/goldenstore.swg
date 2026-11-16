@@ -112,23 +112,32 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // [[Pixel.RenderCpu]] produces the same pixels on every machine, so only an image it rendered
 // may record or replace one. An image is a reference when the run selected the CPU renderer
 // (`SWAG_TEST_RENDERER=cpu`) or when [[Pixel.Testing.ImageGoldenOptions.cpuRendered]] says the
-// test rendered it with the CPU backend itself. A GPU-hosted run, which is the default, only
-// compares against that reference.
+// test rendered it with the CPU backend itself.
 //
-// From a reference image, a missing golden is created and passes, like
+// A reference image is compared exactly. A missing golden is created and passes, like
 // [[Pixel.Testing.assertGolden]], and a mismatch writes `<name>.actual.png`, the file
-// `tools/goldens.bat accept` promotes. From a GPU image, a missing golden fails without recording
-// anything, and a mismatch writes `<name>.actual.gpu.png`: a diagnostic of what that machine
-// drew, which nothing promotes. Either mismatch reports its first differing pixel and fails the
-// test through [[Swag.check]], which lets it compare its other goldens.
+// `tools/goldens.bat accept` promotes.
 //
-// [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or raster differences; both
-// limits default to exact comparison. The check remains active when Pixel is built as a release
-// dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add
-// into FMA, which rounds antialiased samples slightly differently: a release build also accepts
-// a channel delta of two and four pixels beyond it, for a glyph that crosses into its
-// neighbouring quarter-pixel phase. A GPU image also accepts a channel delta of two, with no
-// pixels outside that tolerance.
+// A GPU image, which a hosted run produces by default, is only compared, and the way two
+// graphics devices differ: each channel may be off by a few levels anywhere, for rounding in
+// blending, and by a share of the contrast around the pixel, for antialiasing and filtering.
+// A shape that moved by a pixel, lost a stroke or changed color exceeds both and is a
+// difference; so does a missing golden, which a GPU never records. A difference writes
+// `<name>.actual.gpu.png`, a diagnostic of what that machine drew which nothing promotes, and
+// asks for the CPU render of the same test. That render settles it: if it differs too, the
+// reference moved and its `.actual.png` is the candidate; if it matches, the two renderers
+// disagree, which the CPU run reports when it finds the diagnostic still there.
+//
+// Either mismatch reports its first differing pixel and fails the test through [[Swag.check]],
+// which lets it compare its other goldens. A comparison that passes removes the pending file
+// an earlier run left for the same renderer.
+//
+// [[Pixel.Testing.ImageGoldenOptions]] widens either comparison; both limits default to exact
+// for a reference image. The check remains active when Pixel is built as a release dependency.
+// Goldens are recorded from devmode, and the release preset contracts multiply-add into FMA,
+// which rounds antialiased samples slightly differently: a release build also accepts a channel
+// delta of two and four pixels beyond it, for a glyph that crosses into its neighbouring
+// quarter-pixel phase.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
@@ -165,15 +174,30 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
     }
 
     let tolerance  = goldenTolerance(options, reference)
-    let difference = compareImages(&expected, image, tolerance)
-    if isWithinTolerance(&difference, tolerance) do
-        return
+    let difference = reference ? compareImages(&expected, image, tolerance) : compareGpuImage(&expected, image, tolerance)
 
     // Only a reference image leaves a file that can be promoted. What a GPU drew is kept under a
     // name the promotion ignores, so it can be looked at but never becomes the golden.
-    let actual = actualPath(path.toString(), ".png", reference ? ".actual.png" : ".actual.gpu.png")
-    discard writeImage(image, actual.toString())
+    let cpuActual = actualPath(path.toString(), ".png", ".actual.png")
+    let gpuActual = actualPath(path.toString(), ".png", ".actual.gpu.png")
+    let actual    = reference ? cpuActual : gpuActual
 
+    if isWithinTolerance(&difference, tolerance)
+    {
+        discard catch File.delete(actual)
+
+        // The reference stands and a GPU still drew something else: the renderers disagree.
+        if reference and File.exists(gpuActual)
+        {
+            Console.println("[golden] renderers diverge for ", name, " -- the CPU render matches its golden")
+            Console.println("         gpu    : ", gpuActual)
+            Console.println("         the GPU is presumed right: bring the CPU renderer to it, then record again")
+        }
+
+        return
+    }
+
+    discard writeImage(image, actual.toString())
     if reference
     {
         Console.println("[golden] pixels differ for ", name)
@@ -212,17 +236,24 @@ private func goldenTolerance(options: ImageGoldenOptions, reference: bool)->Imag
     }
 
     if not reference do
-        result.maxChannelDelta = Math.max(result.maxChannelDelta, 2)
+        result.maxChannelDelta = Math.max(result.maxChannelDelta, GpuChannelSlack)
 
     return result
 }
 
-// Names the only run that can record or move a PNG golden.
+// Names the run that tells a moved reference from a renderer divergence.
 private func reportCpuRecording()
 {
-    Console.println("         a PNG golden moves only from a CPU render: when the reference is the one")
-    Console.println("         to change, run the test again with SWAG_TEST_RENDERER=cpu")
+    Console.println("         render the same test on CPU to settle it: run it again with")
+    Console.println("         SWAG_TEST_RENDERER=cpu, or let 'coverage.bat -Suite goldens' do it")
 }
+
+// Levels each channel of a GPU image may be off by anywhere, for rounding in blending.
+private const GpuChannelSlack = 3'u8
+
+// Share of the contrast around a pixel a GPU image may also be off by, for antialiasing and
+// filtering. A shape moved by one pixel costs the whole contrast, so it stays a difference.
+private const GpuContrastShare = 0.35'f32
 
 private
 {
@@ -281,6 +312,128 @@ private
             result.a = alpha
             return result
         }
+
+        // Reads the pixel at `(x, y)`, clamped to the image the way a border is extended.
+        mtd const at(x, y: s32)->Color
+        {
+            let px  = Math.clamp(x, 0, .image.width - 1)
+            let py  = Math.clamp(y, 0, .image.height - 1)
+            let row = .image.pixels.storage() + cast(u64, .image.height - py - 1) * .image.rowStride
+            return .color(row, px, py)
+        }
+    }
+
+    func channelDelta(expected, actual: Color)->s32
+    {
+        let deltaA = Math.abs(cast(s32, expected.a) - actual.a)
+        let deltaR = Math.abs(cast(s32, expected.r) - actual.r)
+        let deltaG = Math.abs(cast(s32, expected.g) - actual.g)
+        let deltaB = Math.abs(cast(s32, expected.b) - actual.b)
+        return Math.max(deltaA, deltaR, deltaG, deltaB)
+    }
+
+    // Returns the widest channel range of the 3x3 neighbourhood of `(x, y)` across both images.
+    func localContrast(expected, actual: ComparisonPixels, x, y: s32)->s32
+    {
+        var low:  [4] s32 = [255, 255, 255, 255]
+        var high: [4] s32 = [0, 0, 0, 0]
+        for dy in -1 to 1
+        {
+            for dx in -1 to 1
+            {
+                for side in 2
+                {
+                    let color = side == 0 ? expected.at(x + dx, y + dy) : actual.at(x + dx, y + dy)
+                    let channels: [4] s32 = [color.a, color.r, color.g, color.b]
+                    for i in 4
+                    {
+                        low[i]  = Math.min(low[i], channels[i])
+                        high[i] = Math.max(high[i], channels[i])
+                    }
+                }
+            }
+        }
+
+        return Math.max(high[0] - low[0], high[1] - low[1], high[2] - low[2], high[3] - low[3])
+    }
+
+    // Compares what a GPU drew against a CPU reference, the way two graphics devices differ.
+    //
+    // A pixel is accepted while its largest channel difference stays within
+    // `options.maxChannelDelta` plus [[GpuContrastShare]] of the contrast around it. A flat area
+    // therefore only gets the rounding slack, and an edge gets a share of its own contrast. A
+    // rejected pixel counts as a difference when two of its neighbours are rejected too: a real
+    // defect is a shape, while a lone pixel is a corner the two rasterizers closed differently.
+    internal func compareGpuImage(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
+    {
+        var result: #returntype
+        result.sameSize = expected.width == actual.width and expected.height == actual.height
+        if not result.sameSize do
+            return result
+
+        let expectedPixels = ComparisonPixels.create(expected)
+        let actualPixels   = ComparisonPixels.create(actual)
+        let width          = actual.width
+        let height         = actual.height
+
+        // Mark the pixels neither tolerance explains.
+        var rejected: Array'bool
+        rejected.resize(cast(u64, width) * cast(u64, height))
+        var anyRejected = false
+        for y in height
+        {
+            for x in width
+            {
+                let delta = channelDelta(expectedPixels.at(x, y), actualPixels.at(x, y))
+                result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8, delta))
+                if delta <= options.maxChannelDelta do
+                    continue
+
+                let contrast = localContrast(expectedPixels, actualPixels, x, y)
+                if cast(f32, delta) <= options.maxChannelDelta + GpuContrastShare * contrast do
+                    continue
+
+                rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] = true
+                anyRejected = true
+            }
+        }
+
+        if not anyRejected do
+            return result
+
+        // Keep the rejected pixels that form a shape.
+        for y in height
+        {
+            for x in width
+            {
+                if not rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] do
+                    continue
+
+                var cluster = 0
+                for ny in Math.max(y - 1, 0) to Math.min(y + 1, height - 1)
+                {
+                    for nx in Math.max(x - 1, 0) to Math.min(x + 1, width - 1)
+                    {
+                        if rejected[cast(u64, ny) * cast(u64, width) + cast(u64, nx)] do
+                            cluster += 1
+                    }
+                }
+
+                if cluster < 3 do
+                    continue
+
+                result.differentPixels += 1
+                if result.differentPixels == 1
+                {
+                    result.firstX        = x
+                    result.firstY        = y
+                    result.firstExpected = expectedPixels.at(x, y)
+                    result.firstActual   = actualPixels.at(x, y)
+                }
+            }
+        }
+
+        return result
     }
 
     internal func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference

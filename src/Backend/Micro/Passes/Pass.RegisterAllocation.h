@@ -509,7 +509,7 @@ private:
     // The pass object lives on a compiler worker across functions. Retain capacity for
     // arrays that are fully overwritten before each use instead of allocating them again.
     std::vector<int32_t>  loopDepthDelta_;
-    std::vector<uint8_t>  loopRegionIsLabelAt_;
+    std::vector<uint32_t> loopRegionLabelIndices_;
     std::vector<uint8_t>  loopRegionJumpsToOwnNextLabel_;
     std::vector<uint64_t> globalBenefits_;
     std::vector<uint64_t> globalAccessBenefits_;

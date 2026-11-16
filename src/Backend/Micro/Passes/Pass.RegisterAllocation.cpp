@@ -1031,16 +1031,18 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     if (!hasControlFlow_ || !instructionCount_ || !functionHasLoop_)
         return;
 
-    auto& isLabelAt           = loopRegionIsLabelAt_;
+    auto& labelIndices        = loopRegionLabelIndices_;
     auto& jumpsToOwnNextLabel = loopRegionJumpsToOwnNextLabel_;
-    // The instruction walk assigns both flags before any region reads them.
-    isLabelAt.resize(instructionCount_);
+    // The instruction walk records labels in source order and assigns the jump flags before any
+    // region reads either table.
+    labelIndices.clear();
     jumpsToOwnNextLabel.resize(instructionCount_);
     {
         uint32_t idx = 0;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            isLabelAt[idx] = it->op == MicroInstrOpcode::Label;
+            if (it->op == MicroInstrOpcode::Label)
+                labelIndices.push_back(idx);
 
             // A jump to the next label lands after anything inserted before
             // that label, so it cannot enter through the reservation fill.
@@ -1067,9 +1069,9 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         SWC_ASSERT(idx == instructionCount_);
     }
 
-    for (uint32_t header = 0; header < instructionCount_; ++header)
+    for (const uint32_t header : labelIndices)
     {
-        if (!isLabelAt[header] || predecessors_[header].empty())
+        if (predecessors_[header].empty())
             continue;
 
         uint32_t tail        = 0;
@@ -1094,10 +1096,9 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         SWC_ASSERT(tail < instructionCount_);
 
         bool sealed = true;
-        for (uint32_t inner = header + 1; inner <= tail && sealed; ++inner)
+        for (auto innerLabel = std::ranges::upper_bound(labelIndices, header); innerLabel != labelIndices.end() && *innerLabel <= tail && sealed; ++innerLabel)
         {
-            if (!isLabelAt[inner])
-                continue;
+            const uint32_t inner = *innerLabel;
             for (const uint32_t pred : predecessors_[inner])
                 sealed = sealed && pred >= header && pred <= tail;
         }

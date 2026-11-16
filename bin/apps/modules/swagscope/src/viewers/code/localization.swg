@@ -10,6 +10,7 @@ using Core, Gui
 struct Texts
 {
     ui_ZoomMenu: string = "Zoom…"     // Tooltip of the zoom value menu.
+    ui_Blanks:   string = "Show Whitespace"     // Lens command marking each space with a dot and each tabulation with an arrow.
     // Summary the host shows beside the file size. `%` takes the name of the language.
     ui_Details:   string = "% · UTF-8"
     err_Read:     string = "source stream could not be read"     // Diagnostics of a source the viewer cannot show.

@@ -8,6 +8,9 @@ private var g_ZoomPercent: u32 = 100
 // Whether basic text numbers its lines. The choice follows the reader from file to file.
 private var g_LineNumbers: bool
 
+// Whether basic text marks its spaces and tabulations. The choice follows the reader from file to file.
+private var g_Blanks: bool
+
 // Stable identity and smoke input of the text plugin.
 const ViewerKey    = "text"
 const SmokeFixture = "comprehensive.txt"
@@ -123,6 +126,7 @@ struct Panel
     contentStart:       u64
     wrapping:           bool = true
     lineNumbers:        bool
+    blanks:             bool
     windowLine:         u64     // Number of the resident window's first line, or zero when it is not counted.
     lines:              Viewer.LineCounter
     zoomPercent:        u32  = 100
@@ -530,6 +534,8 @@ impl Panel
             flags.add(.WordWrap)
         if .lineNumbers and .windowLine do
             flags.add(.LineNumbers)
+        if .blanks do
+            flags.add(.DrawBlanks)
         .editor.setFlags(flags)
         .scheduleMore()
     }
@@ -555,6 +561,13 @@ impl Panel
         .lineNumbers  = not .lineNumbers
         g_LineNumbers = .lineNumbers
         .numberWindow()
+    }
+
+    mtd toggleBlanks()
+    {
+        .blanks  = not .blanks
+        g_Blanks = .blanks
+        .updateWrap()
     }
 
     // Rereads the resident window under `encoding`, keeping the reader where they were.
@@ -721,6 +734,7 @@ impl Panel
         result.encoding     = probed.encoding
         result.contentStart = probed.contentStart
         result.lineNumbers  = g_LineNumbers
+        result.blanks       = g_Blanks
 
         result.createReadingControls(host)
         result.createEditor()
@@ -789,6 +803,7 @@ impl Panel
         let strings = texts()
         entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
+        entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks)
         for encoding in Encodings
         {
             let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
@@ -813,6 +828,7 @@ impl Panel
         let strings = texts()
         page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() }, icon: .theme().icon(.Wrap, themeRowIconSize(.themeMetrics())))
         page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() }, icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
+        page.addToggle(strings.ui_Blanks, .blanks, func|view = me|(_) { view.toggleBlanks() }, icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.

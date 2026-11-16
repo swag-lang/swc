@@ -325,5 +325,37 @@ struct CodeLanguageSample
     Swag.require(markupStyles[8] == Code.GenericLexer.Style.String)
     Swag.require(markupStyles[12] == Code.GenericLexer.Style.Default)
     Swag.require(markupStyles[17] == Code.GenericLexer.Style.Comment)
+}
 
+// Marking the blanks of source code is a lens command whose choice follows the reader to the next
+// source file.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-blanks-", ".c")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "int main()\n{\n\treturn 0;\n}\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var first = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view  = assume cast(*Code.Panel, first.view)
+    Swag.require(not view.editor.flags.has(.DrawBlanks))
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == Code.texts().ui_Blanks
+    {
+        Swag.require(not entry.checked)
+        entry.run!()
+        found = true
+    }
+
+    Swag.require(found and view.editor.flags.has(.DrawBlanks) and view.editor.flags.has(.LineNumbers))
+    defer view.toggleBlanks()
+
+    var second = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let next   = assume cast(*Code.Panel, second.view)
+    Swag.require(next.editor.flags.has(.DrawBlanks))
 }

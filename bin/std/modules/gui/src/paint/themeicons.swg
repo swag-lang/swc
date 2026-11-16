@@ -115,6 +115,7 @@ enum ThemeIcons
     GoTo                  // Jump to a specified position in a document.
     SelectAll             // Select every item in the current content.
     MainMenu              // Opens the application's complete command menu.
+    Whitespace            // Show the spaces and tabulations of a text.
 }
 
 // Extensions read as each kind of file, compared without case.

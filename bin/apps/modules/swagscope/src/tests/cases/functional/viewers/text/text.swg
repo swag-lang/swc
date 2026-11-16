@@ -113,6 +113,13 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     view.describeOptions(&options)
     Swag.require(options.rows[0].kind == .Toggle and options.rows[0].checked == view.wrapping)
     Swag.require(options.rows[1].label == PlainText.texts().ui_Numbers and options.rows[1].checked)
+
+    // Marking the blanks is one more flag of the same editor; numbering stays as it was.
+    Swag.require(options.rows[2].label == PlainText.texts().ui_Blanks and not options.rows[2].checked)
+    view.toggleBlanks()
+    defer if view.blanks do
+        view.toggleBlanks()
+    Swag.require(view.editor.flags.has(.DrawBlanks) and view.editor.flags.has(.LineNumbers))
     view.toggleWrap()
     Swag.require(view.editor.flags.has(.LineNumbers) and not view.editor.flags.has(.WordWrap))
     view.toggleWrap()

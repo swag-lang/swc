@@ -5,6 +5,9 @@ using Core, Pixel, Gui
 
 private var g_ZoomPercent: u32 = 100
 
+// Whether source code marks its spaces and tabulations. The choice follows the reader from file to file.
+private var g_Blanks: bool
+
 private func pluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and shebang(cast(string, content.head)).found
 
 // Describes the source-code viewer to the host.
@@ -302,13 +305,30 @@ impl Panel
         Viewer.centerColumn(.editor, Viewer.CodeColumn * scale)
     }
 
-    // Gives the lens the zoom of the source.
+    // Marks the spaces and tabulations of the source, or stops marking them.
+    mtd toggleBlanks()
+    {
+        g_Blanks = not .editor.flags.has(.DrawBlanks)
+        .applyBlanks()
+    }
+
+    mtd applyBlanks()
+    {
+        if g_Blanks do
+            .editor.flags.add(.DrawBlanks)
+        else do
+            .editor.flags.remove(.DrawBlanks)
+        .editor.setFlags(.editor.flags)
+    }
+
+    // Gives the lens the whitespace marks and the zoom of the source.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Reset, me.zoomPercent)|() { view.setZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+        entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks))
     }
 
     mtd showZoomMenu()
@@ -343,6 +363,7 @@ impl Panel
 
         result.applyLayout()
         result.setZoom(g_ZoomPercent)
+        result.applyBlanks()
         result.scheduleMore()
         return result
     }

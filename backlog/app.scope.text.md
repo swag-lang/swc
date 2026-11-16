@@ -333,14 +333,15 @@ large-file work without editing, implicit network access, macros or source mutat
   and schemas are local or explicitly supplied rather than fetched from the network.
 - Related: app.scope.text.004, app.scope.viewers.004, app.scope.viewers.006
 
-### app.scope.text.003 — Basic text has no whitespace view or newline diagnostics
+### app.scope.text.003 — Basic text has no newline or control-character diagnostics
 
-- Evidence: the basic viewer numbers its lines on demand, but mixed CRLF/LF/CR, tabs, trailing
-  spaces, control characters, BOMs, and missing final newlines are invisible.
-- Next: add an optional non-printing-character layer without injecting decoration into
-  selectable text.
-- Done when: mixed newline kinds and invalid/control bytes are distinguishable, tabs and spaces
-  can be shown, and copy returns only source text.
+- Evidence: basic text and code can mark every space with a dot and every tabulation with a line
+  to its stop (`RichEditFlags.DrawBlanks`), without moving the text. Mixed CRLF/LF/CR, control
+  characters, a BOM and a missing final newline are still invisible.
+- Next: extend the blank marks with line-end and control-character marks drawn over the text's
+  own advance, without injecting decoration into selectable text.
+- Done when: mixed newline kinds and invalid/control bytes are distinguishable and copy returns
+  only source text.
 
 ### app.scope.text.004 — Character encoding choice is too narrow and cannot explain decoding damage
 

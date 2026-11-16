@@ -20,17 +20,17 @@ integration around those engines.
 - Done when: representative freely licensed RTF documents retain their reading order and common
   visual structure, unsupported content remains explicit, and all decoding remains native Swag.
 
-### app.scope.document.001 — The full Markdown outline lacks reading-position tracking and history
+### app.scope.document.001 — The full Markdown outline reads the whole source and has no breadcrumb
 
-- Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets
-  and reveals them through `Markdown.View.revealHeading`. Filtering and keyboard navigation use
-  source offsets. The full outline still keeps the last chosen row rather than following reading
-  position; it has no breadcrumb path or navigation history, and its worker reads the complete
-  source.
-- Next: build a bounded heading index and synchronize the full outline with the document's
-  current block; retain source offsets as identity and add bounded back/forward history.
-- Done when: the visible section updates the full outline's selected heading/breadcrumb,
-  and back/forward restores a reading location without retaining the whole source.
+- Evidence: `DocumentOutline` lists Markdown headings with depth and source offsets, marks the
+  heading being read from the reader's first move on, and keeps the mark through its filter. Choosing a
+  heading records the place left in `Viewer.History`; Alt+arrows and the lens return through
+  `Markdown.View.revealBlock`. The outline worker still reads the complete source, a rendered
+  link is not a recorded jump, and no breadcrumb names the enclosing sections.
+- Next: build a bounded heading index instead of reading the whole file, then show the path of
+  enclosing headings for the marked one.
+- Done when: the outline of a very large document appears without retaining its whole source,
+  and the visible section's enclosing headings are readable beside it.
 - Related: std.gui.markdown.005, app.scope.viewers.003
 
 ### app.scope.document.013 — PDF page links do not join the back/forward history

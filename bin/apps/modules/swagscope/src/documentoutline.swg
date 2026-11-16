@@ -58,6 +58,8 @@ struct DocumentOutline
     markdownFile: String
     filter:       String
     loaded:       bool
+    marking:      bool     // Whether the selection is being moved to follow the reading, not by the reader.
+    reading:      u64 = Swag.U64.Max     // Target last given to `markReading`, marked again when the rows change.
     headings:     Array'DocumentHeading
     sigSelected:  SigArray'func||(*Wnd, u64)
     sigPublished: SigArray'func||(*DocumentOutline)     // Emitted after the headings listed changed.
@@ -147,8 +149,10 @@ impl DocumentOutline
             .updateFlags(.HotTrack | .Ellipsis)
             .sigSelectionChanged += func|panel = result|(list)
             {
+                if panel.marking do
+                    return
                 if let line = list.selectedLine() do
-                    panel.sigSelected.call(panel, cast(u64, line.userData0) - 1)
+                    panel.sigSelected.call(panel, targetOf(line))
             }
         }
 
@@ -299,6 +303,9 @@ impl DocumentOutline
         for heading in .headings where .filter.isEmpty() or
                                        heading.title.indexOf(filter, comparisonType: .Latin1NoCase) != Swag.U64.Max do
             .add(heading.title, heading.level, heading.sourceOffset)
+
+        // The rows are new: the heading being read is found among them again.
+        .markReading(.reading)
     }
 
     mtd refresh()
@@ -322,6 +329,53 @@ impl DocumentOutline
         .status.show(.levels.isEmpty() or (not .headings.isEmpty() and not .filter.isEmpty() and .rows.isEmpty()))
         .list.computeLayout()
         .applyLayout()
+    }
+
+    // Returns the target a row was added with; it is stored plus one, see `add`.
+    private func targetOf(line: *ListLine)->u64 => cast(u64, line.userData0) - 1
+
+    // Returns the target of the heading selected in the list, or `U64.Max` without one.
+    mtd markedTarget()->u64
+    {
+        let line = .list.selectedLine()
+        return line ? targetOf(line) : Swag.U64.Max
+    }
+
+    // Marks the heading being read: the last one listed at or before `target`, or none when the
+    // reader is above the first. Nothing is emitted, since the document is already there.
+    //
+    // At the end of a document, `atEnd`, every later heading is on screen with no room to rise to
+    // the top, so a later heading the reader chose there stays marked.
+    mtd markReading(target: u64, atEnd = false)
+    {
+        if target == Swag.U64.Max do
+            return
+        .reading = target
+        let marked = .markedTarget()
+        if atEnd and marked != Swag.U64.Max and marked >= target do
+            return
+
+        var row       = Swag.U64.Max
+        var rowTarget = Swag.U64.Max
+        for line, index in .rows where targetOf(line) <= target
+        {
+            row       = index
+            rowTarget = targetOf(line)
+        }
+
+        if rowTarget == marked do
+            return
+
+        .marking = true
+        defer .marking = false
+        if row == Swag.U64.Max
+        {
+            .list.unselectAll()
+            return
+        }
+
+        .list.selectLine(cast(u32, row))
+        .list.ensureVisibleLine(cast(u32, row))
     }
 
     mtd bindHtml(view: *HtmlView)
@@ -359,6 +413,12 @@ impl DocumentOutline
         .sigSelected += func|view|(_, offset)
         {
             discard view.revealHeading(offset)
+        }
+
+        // The heading being read follows the document from the reader's first move on.
+        view.sigScrolled += func|panel = me, view|(_)
+        {
+            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
         }
     }
 

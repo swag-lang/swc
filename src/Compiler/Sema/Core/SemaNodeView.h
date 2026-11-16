@@ -5,6 +5,7 @@
 
 SWC_BEGIN_NAMESPACE()
 class Symbol;
+class SymbolFunction;
 class Sema;
 class ConstantValue;
 class TypeInfo;
@@ -36,6 +37,7 @@ struct SemaNodeView
 
     void    getSymbols(SmallVector<Symbol*>& symbols) const;
     Symbol* singleSymbol() const;
+    SymbolFunction* singleFunction() const;
 
     // A singleton span borrows this view's storage; keep the view alive while using it.
     std::span<Symbol* const> symbols() const&;

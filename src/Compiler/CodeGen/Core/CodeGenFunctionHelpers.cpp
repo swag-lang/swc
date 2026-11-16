@@ -1591,9 +1591,9 @@ bool CodeGenFunctionHelpers::isOwnedCallResult(CodeGen& codeGen, AstNodeRef node
     if (codeGen.node(resolvedRef).isNot(AstNodeId::CallExpr))
         return false;
 
-    const SymbolFunction* calledFunction = CodeGenExprView::singleFunction(codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol));
+    const SymbolFunction* calledFunction = codeGen.sema().viewStored(resolvedRef, SemaNodeViewPartE::Symbol).singleFunction();
     if (!calledFunction)
-        calledFunction = CodeGenExprView::singleFunction(codeGen.viewSymbol(resolvedRef));
+        calledFunction = codeGen.viewSymbol(resolvedRef).singleFunction();
     if (!calledFunction || !calledFunction->returnTypeRef().isValid())
         return false;
 

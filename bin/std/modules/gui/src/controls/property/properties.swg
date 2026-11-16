@@ -87,7 +87,8 @@ enum PropertiesKind
     Condensed     // Uses a compact classic grid with thin rows and controls.
     Panel         // Uses full-width self-labelled controls and separator categories.
 }
-const PropertiesKindValues: [4] PropertiesKind = [.List, .Grid, .Condensed, .Panel]
+
+internal const PropertiesKindValues: [4] PropertiesKind = [.List, .Grid, .Condensed, .Panel]
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
 internal const PropCondensedControlHeight = 20'f32
@@ -462,6 +463,7 @@ impl Properties
             .wndFlags            |= .NoFocusRing
             .scrollWnd           = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
+
             // Property editors keep a fixed trailing safe edge beside the
             // overlaid bar, so their width never follows scroll visibility.
             .scrollWnd.updateFlags(.TransparentBars)
@@ -533,7 +535,7 @@ impl Properties
         Swag.assert(left >= 0 and right >= 0)
         if .leftMargin == left and .rightMargin == right do
             return
-        .leftMargin = left
+        .leftMargin  = left
         .rightMargin = right
         .updateStates()
     }
@@ -638,24 +640,28 @@ impl Properties
         .edView.sendResizeEvent()
     }
 
-    // Sets the height of a row and the air between two rows, for a grid denser or looser than its
-    // kind, such as the settings of an inspector. Set it before the first row is added.
+    // Sets the row height and gap for a grid denser or looser than its kind.
+    //
+    // Set these metrics before adding the first row.
     mtd setRowMetrics(height: f32, gap: f32)
     {
         .gridLineHeight = height
         .gridLineMargin = cast(s32, gap)
     }
 
-    // Shows or hides the hairline after a section label of a panel, for a column whose other
-    // sections are labels alone, such as an inspector.
+    // Shows or hides the rule after a section label in a panel.
+    //
+    // This is useful when the panel's other sections are labels alone, such as in an inspector.
     mtd setSectionRules(visible: bool)
     {
         .sectionRules = visible
         .invalidate()
     }
 
-    // Shows or hides the ground behind the focused and the hovered rows. An inspector, whose rows
-    // are the controls themselves, leaves it out: the ground would only show behind the labels.
+    // Shows or hides the ground behind focused and hovered rows.
+    //
+    // An inspector whose rows are controls may leave it out; the ground would only show behind
+    // the labels.
     mtd setRowGrounds(visible: bool)
     {
         .rowGrounds = visible
@@ -899,8 +905,9 @@ impl Properties
         .updateStates()
     }
 
-    // Counts the fields the text filter found: visible rows holding a value whose own name or
-    // description contains the filter. Zero when no text filter is set.
+    // Counts visible rows whose value name or description contains the text filter.
+    //
+    // Returns zero when no text filter is set.
     mtd matchCount()->u32
     {
         if .stringFilter.isEmpty() do

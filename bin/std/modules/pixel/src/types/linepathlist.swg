@@ -69,6 +69,22 @@ private func contoursIntersect(a, b: const *Polygon)->bool
     return false
 }
 
+private func contourContainsContour(outer, inner: const *Polygon)->bool
+{
+    if not outer.points.count or not inner.points.count or
+       inner.minBounds.x < outer.minBounds.x or inner.maxBounds.x > outer.maxBounds.x or
+       inner.minBounds.y < outer.minBounds.y or inner.maxBounds.y > outer.maxBounds.y do
+        return false
+    return outer.contains(inner.pointAt(0)[])
+}
+
+private func contourBoundsArea(polygon: const *Polygon)->f64
+{
+    let width  = cast(f64, polygon.maxBounds.x) - cast(f64, polygon.minBounds.x)
+    let height = cast(f64, polygon.maxBounds.y) - cast(f64, polygon.minBounds.y)
+    return width * height
+}
+
 private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 {
     for p in pathList.paths where not p.polygon.isSimple do
@@ -95,6 +111,7 @@ impl LinePathList
     mtd const memoryUsage()->u64
     {
         var result = cast(u64, #sizeof(LinePathList))
+        result += .paths.capacity * #sizeof(*LinePath)
         for path in .paths do
             result += path.memoryUsage()
         result += .fillCacheStamps.capacity * #sizeof(u64)
@@ -301,9 +318,8 @@ impl LinePathList
         }
 
         .clear()
-        .paths     = #move newList.paths
-        .minBounds = newList.minBounds
-        .maxBounds = newList.maxBounds
+        .paths = #move newList.paths
+        .refreshBounds()
     }
 
     // Moves the paths of `solved` over, each outer contour followed by its own holes.
@@ -314,24 +330,35 @@ impl LinePathList
     {
         var claimed: Array'bool
         claimed.resize(solved.paths.count)
+        var parentOuter: Array'u64
+        parentOuter.resize(solved.paths.count)
+        for i in parentOuter.count do
+            parentOuter[i] = Swag.U64.Max
 
-        for outer in solved.paths where outer.polygon.isClockwise
+        // The contours do not cross, so containing outers are nested. The smallest bounds area
+        // therefore identifies the immediate parent for each hole.
+        for hole, holeIndex in solved.paths where not hole.polygon.isClockwise
+        {
+            var smallestArea = Swag.F64.Max
+            for outer, outerIndex in solved.paths where outer.polygon.isClockwise
+            {
+                if not contourContainsContour(&outer.polygon, &hole.polygon) do
+                    continue
+                let area = contourBoundsArea(&outer.polygon)
+                if area < smallestArea
+                {
+                    smallestArea          = area
+                    parentOuter[holeIndex] = outerIndex
+                }
+            }
+        }
+
+        for outer, outerIndex in solved.paths where outer.polygon.isClockwise
         {
             .paths.add(outer)
-            for hole, index in solved.paths where not hole.polygon.isClockwise and not claimed[index]
+            for hole, index in solved.paths
+                where not hole.polygon.isClockwise and not claimed[index] and parentOuter[index] == outerIndex
             {
-                // A hole lies wholly inside its outer, so the cheap bounds test settles
-                // every pair but the few that share a region, and one point decides those:
-                // the contours of a boolean result never cross.
-                if hole.minBounds.x < outer.minBounds.x or hole.maxBounds.x > outer.maxBounds.x do
-                    continue
-                if hole.minBounds.y < outer.minBounds.y or hole.maxBounds.y > outer.maxBounds.y do
-                    continue
-                if not outer.polygon.points.count or not hole.polygon.points.count do
-                    continue
-                if not outer.polygon.contains(hole.polygon.pointAt(0)[]) do
-                    continue
-
                 claimed[index] = true
                 .paths.add(hole)
             }

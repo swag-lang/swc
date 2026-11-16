@@ -8,10 +8,11 @@ using Core, Pixel
 //
 // Call on the window thread between event-loop frames. Polls a pending transfer without waiting
 // and returns false until it or the first frame completes. Fails if the surface has no native
-// OpenGL renderer, drawing or readback failed, a transfer fell back, or any presented byte differs. The
-// comparison reads the GPU synchronously and is
-// intended for smoke checkpoints, not performance measurements. Disabled surfaces use their
-// tinted presentation target. This checks the bitmap handed to the compositor, not desktop capture.
+// OpenGL renderer, drawing or readback failed, a transfer fell back, or any presented byte differs.
+//
+// The comparison reads the GPU synchronously and is intended for smoke checkpoints, not
+// performance measurements. Disabled surfaces use their tinted presentation target. This checks
+// the bitmap handed to the compositor, not desktop capture.
 func verifyNativePresentation(surface: *Surface)->bool fail
 {
     if not (surface.app.renderer is RenderOgl) do

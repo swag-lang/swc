@@ -289,9 +289,10 @@ impl Toast
             .startTimer()
     }
 
-    // Keeps the pill above a bar the application floats at the foot of the parent, whose top is
-    // `top` in the parent's coordinates, such as the timeline of a recording; zero gives the pill
-    // its place above the hint line back.
+    // Keeps the pill above a bar that floats at the foot of its parent.
+    //
+    // `top` is the bar's top edge in parent coordinates. Pass zero to place the pill above the
+    // hint line again.
     mtd keepAbove(top: f32)
     {
         if .barTop == top do

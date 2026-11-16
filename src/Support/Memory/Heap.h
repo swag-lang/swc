@@ -2,7 +2,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-void* heapAlloc(std::size_t size) noexcept;
+void* heapAlloc(std::size_t size);
 void  heapFree(void* ptr) noexcept;
 
 // Typed wrappers

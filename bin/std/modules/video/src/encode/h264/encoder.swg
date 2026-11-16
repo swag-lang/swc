@@ -15,7 +15,7 @@ private struct EncoderMotion
     inter: bool
 }
 
-struct EncoderSlicePacket
+private struct EncoderSlicePacket
 {
     bytes: Array'u8
 }
@@ -35,8 +35,10 @@ private const MotionOffsets: [16, 2] s32 = [
     [-16, 0], [16, 0], [-32, 0], [32, 0],
     [-16, -16], [16, 16]]
 
-// Inverse of Table 9-4's inter coded-block-pattern column. CAVLC writes this
-// code for every residual macroblock, so avoid scanning 48 entries per block.
+// Maps an inter coded-block pattern to its CAVLC code number.
+//
+// This is the inverse of Table 9-4's inter coded-block-pattern column. CAVLC writes the code for
+// each residual macroblock, avoiding a scan of 48 entries per block.
 const InterCbpToGolomb: [48] u8 = [
     0, 2, 3, 7, 4, 8, 17, 13, 5, 18, 9, 14, 10, 15, 16, 11,
     1, 32, 33, 36, 34, 37, 44, 40, 35, 45, 38, 41, 39, 42, 43, 19,

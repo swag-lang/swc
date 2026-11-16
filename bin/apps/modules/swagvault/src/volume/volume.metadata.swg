@@ -99,7 +99,9 @@ impl Volume
             fail volumeError(.Corrupted)
         .containerSize = storedSize
 
-        let expectedPages = (.metadataSize + BlockSize - 1) / BlockSize
+        var expectedPages = .metadataSize / BlockSize
+        if .metadataSize % BlockSize do
+            expectedPages += 1
         if expectedPages > .blockCount do
             fail volumeError(.Corrupted)
 
@@ -145,7 +147,21 @@ impl Volume
         .dirty = false
         try .replayJournal()
 
-        if .nodeById(RootNodeId) == null do
+        let root = .nodeById(RootNodeId)
+        if not root or not root.isDirectory() or root.parentId != RootNodeId do
+            fail volumeError(.Corrupted)
+        var maximumNodeId = 0'u64
+        for node in .nodes
+        {
+            maximumNodeId = Math.max(maximumNodeId, node.id)
+            if node.id != RootNodeId
+            {
+                let parent = .nodeById(node.parentId)
+                if not parent or not parent.isDirectory() do
+                    fail volumeError(.Corrupted)
+            }
+        }
+        if not .nextNodeId or .nextNodeId <= maximumNodeId do
             fail volumeError(.Corrupted)
         try .rebuildFreeList()
     }
@@ -181,7 +197,7 @@ impl Volume
 
         for page in .metadataPages
         {
-            if page >= .blockCount do
+            if page >= .blockCount or used.get(page) do
                 fail volumeError(.Corrupted)
             used.set(page, true)
         }
@@ -195,7 +211,11 @@ impl Volume
                    mapping.count > .blockCount - mapping.physical do
                     fail volumeError(.Corrupted)
                 for physical in mapping.physical until mapping.physical + mapping.count do
+                {
+                    if used.get(physical) do
+                        fail volumeError(.Corrupted)
                     used.set(physical, true)
+                }
             }
         }
 
@@ -252,12 +272,16 @@ impl Volume
         try .requireWritable()
         if not .dirty do
             return
+        if .sequence >= Swag.U64.Max - 1 do
+            fail volumeError(.DiskFull)
 
         var previousPages: Array'u64
         previousPages.add(.metadataPages.toSlice())
         var previousFree: Array'FreeExtent
         previousFree.add(.blocks.free.toSlice())
         let previousFreeBlocksCount = .blocks.freeBlocksCount
+        let previousMetadataSize     = .metadataSize
+        let previousSequence         = .sequence
 
         var committed = false
         defer
@@ -267,13 +291,19 @@ impl Volume
                 .blocks.free   = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
                 .metadataPages = #move previousPages
+                .metadataSize  = previousMetadataSize
+                .sequence      = previousSequence
             }
         }
 
         var image = .serializeNodes()
         defer Core.Crypto.secureClear(image.toSlice())
         let imageSize = image.count
-        let pageCount = (imageSize + BlockSize - 1) / BlockSize
+        var pageCount = imageSize / BlockSize
+        if imageSize % BlockSize do
+            pageCount += 1
+        if pageCount > Swag.U64.Max / BlockSize do
+            fail volumeError(.DiskFull)
         image.resize(pageCount * BlockSize)
 
         // The pages are allocated before anything is released, so a checkpoint
@@ -496,6 +526,8 @@ impl Volume
             return try .checkpoint()
         if .sequence - .checkpointAt >= JournalCapacity do
             return try .checkpoint()
+        if .sequence >= Swag.U64.Max - 1 do
+            fail volumeError(.DiskFull)
 
         var upserted: Array'(*Node)
         upserted.reserve(.touched.count)
@@ -599,6 +631,8 @@ impl Volume
             let index = .nodeIndex(node.id)
             if index != Swag.U64.Max do
                 .removeNodeAt(index)
+            elif .nodes.count >= MaximumNodeCount do
+                fail volumeError(.Corrupted)
 
             var copy   = node[]
             let target = .nodes.count

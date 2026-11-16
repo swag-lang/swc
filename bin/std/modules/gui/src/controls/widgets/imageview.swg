@@ -433,8 +433,9 @@ impl ImageView
         .zoomToFit()
     }
 
-    // Returns the bitmap the view shows, the still image or the current frame of a movie, as
-    // decoded and before the view's rotation, mirroring, and zoom; null for a vector drawing or an
+    // Returns the decoded bitmap shown by the view, before rotation, mirroring, and zoom.
+    //
+    // This is the still image or current movie frame. Returns null for a vector drawing or an
     // empty view.
     mtd const picture()->const *Image?
     {

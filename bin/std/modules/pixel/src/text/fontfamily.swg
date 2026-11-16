@@ -28,6 +28,7 @@ enum FontFamilyStyle
     SemiBold       // Upright text between regular and bold.
 }
 
+// Font-family styles in enum order, for settings and other ordinal-indexed mappings.
 const FontFamilyStyleValues: [6] FontFamilyStyle = [
     .Regular, .Bold, .Italic, .BoldItalic, .Light, .SemiBold]
 

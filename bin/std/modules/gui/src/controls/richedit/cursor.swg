@@ -26,8 +26,9 @@ impl RichEditCtrl
         return result
     }
 
-    // Returns the zero-based rune offset of the caret within its logical line, counting the runes of
-    // the wrapped continuations before it.
+    // Returns the zero-based rune offset of the caret within its logical line.
+    //
+    // Counts runes in wrapped continuations before the caret.
     mtd cursorLogicalCharPos()->u64
     {
         var result = .cursorPos.charPosInLine

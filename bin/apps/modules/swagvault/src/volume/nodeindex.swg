@@ -42,6 +42,8 @@ impl NodeIndex
     // already taken in its directory.
     mtd add(node: *Node, index: u64)->bool
     {
+        if not node.id do
+            return false
         if .byId.contains(node.id) do
             return false
         if node.id != RootNodeId

@@ -38,17 +38,31 @@ namespace WinFsp
     func volumeSerialNumber(creationTime: u64)->u32
         => cast(u32, (creationTime & 0xFFFF_FFFF))
 
+    func writableVolume(volume: *Volume)->s32
+    {
+        discard catch volume.requireWritable() { return statusFromError(Swag.err) }
+        return StatusSuccess
+    }
+
     // Describes a node to WinFsp: its sizes, attributes, times, and index number.
     func fillInfo(volume: *Volume, nodeId: u64, output: *FileInfo)->s32
     {
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
+        var allocationSize = node.size / BlockSize * BlockSize
+        if node.size % BlockSize
+        {
+            if allocationSize > Swag.U64.Max - BlockSize do
+                allocationSize = Swag.U64.Max
+            else do
+                allocationSize += BlockSize
+        }
         with output
         {
             // Windows reports the space a file occupies, so a file always
             // rounds up to whole blocks and a directory occupies none.
-            .allocationSize = node.isDirectory() ? 0 : (node.size + BlockSize - 1) / BlockSize * BlockSize
+            .allocationSize = node.isDirectory() ? 0 : allocationSize
             .fileAttributes = node.attributes
             .fileSize       = node.size
             .creationTime   = node.creationTime
@@ -64,27 +78,45 @@ namespace WinFsp
     // Reports the size, the free space, and the label of the volume, cut to `labelCapacity`.
     func callbackGetVolumeInfo(context: *void?, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
+        if not labelCapacity do
+            return StatusInvalidParameter
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         total[] = volume.totalBytes()
         free[]  = volume.freeBytes()
-        let count = Math.min(volume.label.length, cast(u64, labelCapacity) - 1)
+        var count = Math.min(volume.label.length, cast(u64, labelCapacity) - 1)
+        while count and (volume.label.buffer[count] & 0xC0) == 0x80 do
+            count -= 1
         if count do
             Swag.memcpy(label, volume.label.toString().buffer, count)
         label[count] = 0
         return StatusSuccess
     }
 
-    // Renames the volume and commits; a label holds at most 32 characters, so 128 UTF-8 bytes.
+    // Renames the volume and commits; WinFsp stores labels in 32 UTF-16 code units.
     func callbackSetVolumeLabel(context: *void?, label: const [*] u8?)->s32
     {
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         let value = cString(label)
-        if value.count > 32 * 4 do
+        if value.count > 32 * 4 or not Utf8.isValid(value) do
             return StatusInvalidParameter
+        let bytes = cast(const [..] u8, value)
+        var offset = 0'u64
+        var units  = 0'u32
+        while offset < bytes.count
+        {
+            let {c, eat} = Utf8.decodeRune(bytes[offset to])
+            units += c > 0xFFFF ? 2 : 1
+            if units > 32 do
+                return StatusInvalidParameter
+            offset += eat
+        }
         volume.label = value
         volume.touchScalars()
         var errOutcome: Swag.Error
@@ -109,6 +141,8 @@ namespace WinFsp
     // data and times are journaled with it.
     func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
+        if securitySize and not security do
+            return StatusInvalidParameter
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
@@ -142,12 +176,18 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
         volume.freeNodeBlocks(node)
         node.size = 0
         if replaceAttributes do
             node.attributes = attributes ? attributes : FileAttributeNormal
         else do
             node.attributes |= attributes
+        node.attributes &= ~FileAttributeDirectory
         node.changeTime    = volumeTimeNow()
         node.lastWriteTime = node.changeTime
         volume.touch(nodeId)
@@ -164,6 +204,8 @@ namespace WinFsp
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
+        if writableVolume(volume) != StatusSuccess do
+            return
         if (flags & CleanupDelete) != 0
         {
             discard catch volume.deleteNode(nodeId)
@@ -242,6 +284,11 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
         var writeOffset = writeToEnd ? node.size : offset
         var writeLength = cast(u64, length)
         if constrained
@@ -303,10 +350,14 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         if attributes != Swag.U32.Max
         {
+            let isDirectory = node.isDirectory()
             node.attributes = attributes ? attributes : FileAttributeNormal
-            if node.isDirectory() do
+            if isDirectory do
                 node.attributes |= FileAttributeDirectory
             else do
                 node.attributes &= ~FileAttributeDirectory
@@ -336,6 +387,11 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
 
         // Setting the allocation size can only shrink the node down to what it already holds.
         let targetSize = setAllocationSize ? Math.min(newSize, node.size) : newSize
@@ -359,6 +415,9 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if nodeId == 1 do
             return StatusAccessDenied
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         if (node.attributes & FileAttributeReadOnly) != 0 do
             return StatusAccessDenied
         if node.isDirectory() and volume.hasChildren(nodeId) do
@@ -400,12 +459,17 @@ namespace WinFsp
 
     func callbackSetSecurity(context: *void?, nodeId: u64, security: const *void?, securitySize: u32)->s32
     {
+        if securitySize > MaximumSecuritySize or (securitySize and not security) do
+            return StatusInvalidParameter
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         node.security.resize(securitySize)
         if securitySize do
             Swag.memcpy(node.security.storage(), unwrap security, securitySize)
@@ -490,6 +554,8 @@ namespace WinFsp
         let directory = volume.nodeById(directoryId)
         if not directory do
             return StatusObjectNameNotFound
+        if not directory.isDirectory() do
+            return StatusNotADirectory
         let value = cString(name)
         if value == "." do
             return fillInfo(volume, directoryId, info)

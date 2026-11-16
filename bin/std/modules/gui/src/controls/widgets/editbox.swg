@@ -1428,8 +1428,9 @@ impl EditBox
         .invalidate()
     }
 
-    // Changes the faint reading at the trailing edge, such as "3 results" after a search; empty
-    // removes it. The text gives it its room.
+    // Sets the faint reading shown at the trailing edge, such as "3 results" after a search.
+    //
+    // An empty string removes the reading, and the text determines the room reserved for it.
     mtd setReading(reading: string)
     {
         if .reading == reading do

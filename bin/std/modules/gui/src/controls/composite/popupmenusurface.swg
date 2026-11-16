@@ -18,6 +18,7 @@ struct PopupMenuSurface {}
 impl PopupMenuSurface
 {
     // Creates a tool surface at `anchor` so its initial DPI matches that monitor.
+    //
     // Returns `null` when the native surface could not be created.
     #[Swag.Discardable]
     func create(app: *Application, anchor: Math.Point)->*Surface?

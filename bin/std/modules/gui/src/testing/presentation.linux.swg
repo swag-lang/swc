@@ -5,9 +5,10 @@
 using Core, Pixel
 
 // Compares an X11 surface's presented pixels with its completed OpenGL render target.
-// Call on the window thread between frames; false means the latest frame has not
-// reached the X11 drawable yet (EGL swap and X11 presentation can be asynchronous).
-// This inspects the native window drawable, not the composited desktop image.
+//
+// Call on the window thread between frames. Returns false until the latest frame reaches the X11
+// drawable, since EGL swap and X11 presentation can be asynchronous. Inspects the native window
+// drawable, not the composited desktop image.
 func verifyNativePresentation(surface: *Surface)->bool fail
 {
     if not (surface.app.renderer is RenderOgl) do

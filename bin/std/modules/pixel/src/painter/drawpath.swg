@@ -56,6 +56,16 @@ struct Context
 
 impl Context
 {
+    // Effective length of one pattern element in path units. Blank scaling participates in the
+    // period and offset as well as in the segment walk, so every phase uses the same lengths.
+    mtd patternLength(index: s32)->f32
+    {
+        var result = Math.max(.pattern[index], 0.01) * .pen.size
+        if index & 1 do
+            result *= Math.max(.pen.dashBlankScale, 0)
+        return result
+    }
+
     // The stroke's own half-width normal, recovered from the one a border pass widened.
     //
     // A cap is shaped from the stroke it terminates and is then pushed out, so it is measured
@@ -677,8 +687,7 @@ impl Painter
 
         cxt.patternTotalLen = 0
         for i in cxt.patternCount do
-            cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
-        cxt.patternTotalLen *= cxt.pen.size
+            cxt.patternTotalLen += cxt.patternLength(i)
 
         let repeatCount = cast(s32, (cxt.path.polygon.perimeter / cxt.patternTotalLen))
         cxt.error = cxt.path.polygon.perimeter - (repeatCount * cxt.patternTotalLen)
@@ -691,9 +700,8 @@ impl Painter
         // First pattern. We start at half the size of the first pattern, in order to not
         // finish on a blank, but with half the size of the first pattern also.
         cxt.patternIndex        = 0
-        cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
-        cxt.remainingPatternLen *= cxt.pen.size
-        if not cxt.path.isClosed and cxt.pen.dashStyle != .Pattern do
+        cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
+        if not cxt.path.isClosed and (cxt.pen.dashStyle != .Pattern or cxt.pen.dashStartHalf) do
             cxt.remainingPatternLen *= 0.5
 
         if cxt.pen.dashOffset
@@ -710,7 +718,7 @@ impl Painter
             {
                 phase -= cxt.remainingPatternLen
                 cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
-                cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01) * cxt.pen.size
+                cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
             }
 
             cxt.remainingPatternLen -= phase
@@ -745,9 +753,6 @@ impl Painter
                 lengthInPattern += addBlank
             }
 
-            if blankPatternIdx do
-                lengthInPattern *= cxt.pen.dashBlankScale
-
             // The current remaining length in the current segment is greater
             // than what's left in the current pattern. We draw to cover the
             // current pattern, and change the pattern to be the next
@@ -769,8 +774,7 @@ impl Painter
                 remainingSegLen         -= lengthInPattern
                 cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
                 blankPatternIdx         = blankPatternIdx ? false : true
-                cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
-                cxt.remainingPatternLen *= cxt.pen.size
+                cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
                 continue
             }
 
@@ -1072,13 +1076,50 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
     var result = pen
     result.size = 1 / deviceScale
     result.brush.multiplyOpacity(pen.size * deviceScale)
+    result.dashStartHalf = false
 
     // Dash lengths are stroke-width multiples, so widening the pen must not lengthen them.
-    if result.dashStyle == .Pattern
+    if result.dashStyle != .None
     {
         let ratio = pen.size / result.size
-        for &value in result.pattern do
-            value[] *= ratio
+        if result.dashStyle == .Pattern
+        {
+            if result.pattern.isEmpty()
+            {
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+            }
+            else
+            {
+                for &value in result.pattern do
+                    value[] *= ratio
+            }
+        }
+        else
+        {
+            result.pattern.clear()
+            result.dashStartHalf = true
+            switch result.dashStyle
+            {
+            case .Dot:
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+
+            case .Dash:
+                result.pattern.add(2 * ratio)
+                result.pattern.add(ratio)
+
+            case .DashDot:
+                result.pattern.add(2 * ratio)
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+
+            case .None, .Pattern:
+                break
+            }
+            result.dashStyle = .Pattern
+        }
     }
 
     return result

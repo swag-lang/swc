@@ -94,8 +94,7 @@ stages. After reverting the flat-map experiment, the rebuilt retained tree also
 passed all 69 compiler stages, before the latest allocator changes. After the
 loop residency and liveness table changes, DevMode passed 1,715 C++ tests, the
 full native suite (3/3 stages) and the full compiler campaign (69/69 stages).
-The live-bit loop-carried marking change passed C++ and the full native suite;
-the full compiler campaign remains to be repeated after it. The changes reduce
-repeated scans, size comparisons and table growth checks by construction. Their
-net speed and memory effects remain for the dedicated benchmark campaign to
-measure.
+After adding live-bit loop-carried marking, the rebuilt compiler again passed
+69/69 stages. The changes reduce repeated scans, size comparisons and table
+growth checks by construction. Their net speed and memory effects remain for
+the dedicated benchmark campaign to measure.

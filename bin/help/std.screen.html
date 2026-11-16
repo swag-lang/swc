@@ -132,11 +132,11 @@
 </section>
 <h3 id="types">Types</h3>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Screen_Source" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.Source</span> <a class="api-item-permalink" href="#Screen_Source" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L60">src</a></div>
+<div class="api-item api-item-struct"><span id="Screen_Source" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.Source</span> <a class="api-item-permalink" href="#Screen_Source" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L59">src</a></div>
 <p>Owns a live desktop source and its most recent image.</p>
 <p>The source must be used and destroyed on the thread that opened it. <span class="code-inline">grabInto</span> retains bounded storage at the selected dimensions and may reuse the previous image when the desktop has not presented a new frame.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque, </span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Screen_Source">Source</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>, </span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Source</span></span></div>
 </section>
 <h3 id="Screen_Source_methods">Methods</h3>
 <table class="api-summary">
@@ -155,9 +155,9 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Screen_SourceMetrics" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.SourceMetrics</span> <a class="api-item-permalink" href="#Screen_SourceMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L35">src</a></div>
+<div class="api-item api-item-struct"><span id="Screen_SourceMetrics" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.SourceMetrics</span> <a class="api-item-permalink" href="#Screen_SourceMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L34">src</a></div>
 <p>Cumulative acquisition costs for one <a href="#Screen_Source">Screen.Source</a>, in microseconds.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SourceMetrics</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -196,9 +196,9 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Screen_SourceOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.SourceOptions</span> <a class="api-item-permalink" href="#Screen_SourceOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L25">src</a></div>
+<div class="api-item api-item-struct"><span id="Screen_SourceOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Screen.SourceOptions</span> <a class="api-item-permalink" href="#Screen_SourceOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L24">src</a></div>
 <p>One physical desktop area to capture; dimensions must be positive.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SourceOptions</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -218,30 +218,29 @@
 </table>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L148">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_grabInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.grabInto</span> <a class="api-item-permalink" href="#Screen_Source_grabInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L150">src</a></div>
 <p>Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.</p>
 <p>False means no new pixels are available yet, either because the desktop did not change or because a video readback is still pending. It is not a source failure. By default the previous picture is copied to <span class="code-inline">target</span>. Set <span class="code-inline">copyUnchanged</span> to false when the caller will reuse its previous encoded picture instead; on a false return, <span class="code-inline">target</span> is then left untouched. With <span class="code-inline">updateChangedOnly</span> and <span class="code-inline">copyUnchanged</span> false, successive grabs into the same unmodified target may update only changed regions after the first complete frame. Replacing or resizing the target causes a complete copy. The target remains owned by the caller.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grabInto</span>(target: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, copyUnchanged: <span class="STpe">bool</span> = <span class="SKwd">true</span>,
-             updateChangedOnly: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">grabInto</span>(target: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>, copyUnchanged: <span class="STpe">bool</span> = <span class="SKwd">true</span>, updateChangedOnly: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L233">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L251">src</a></div>
 <p>Returns cumulative native and composition timing since this source was opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metrics</span>()-&gt;<span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L275">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L294">src</a></div>
 <p>Releases the native capture handles and cached frames on the opening thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.open</span> <a class="api-item-permalink" href="#Screen_Source_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L81">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_open" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.open</span> <a class="api-item-permalink" href="#Screen_Source_open" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L80">src</a></div>
 <p>Opens a native source for one physical desktop area.</p>
 <p>Rejects invalid dimensions, unavailable displays and capture permission failures.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">open</span>(options: <span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L260">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L279">src</a></div>
 <p>Reopens a source after a display change or native access loss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reopen</span>() <span class="SKwd">fail</span></span></div>
 </section>

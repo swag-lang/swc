@@ -2250,7 +2250,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>An ordinary enum can only be constructed from a compile-time value that matches one of its declared members. Runtime values cannot be cast to an ordinary enum, including with <span class="code-inline">try cast</span>; this keeps invalid discriminants out of enum values. Use an enum marked <span class="code-inline">#[Swag.EnumFlags]</span> when runtime bit combinations are intended. An enum marked <span class="code-inline">#[Swag.Incomplete]</span> may also carry values outside its declared members.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">CastSeverity</span>: <span class="STpe">s32</span>
 {
-    <span class="SCst">Low</span> = <span class="SNum">1</span>
+    <span class="SCst">Low</span>  = <span class="SNum">1</span>
     <span class="SCst">High</span> = <span class="SNum">4</span>
 }
 
@@ -2263,7 +2263,7 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> severity: <span class="SCst">CastSeverity</span> = <span class="SKwd">cast</span>(<span class="SCst">CastSeverity</span>, <span class="SNum">4</span>'<span class="STpe">s32</span>)
+    <span class="SKwd">let</span> severity:    <span class="SCst">CastSeverity</span>   = <span class="SKwd">cast</span>(<span class="SCst">CastSeverity</span>, <span class="SNum">4</span>'<span class="STpe">s32</span>)
     <span class="SKwd">let</span> permissions: <span class="SCst">CastPermission</span> = <span class="SKwd">cast</span>(<span class="SCst">CastPermission</span>, <span class="SNum">3</span>'<span class="STpe">u32</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(severity == .<span class="SCst">High</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(permissions == (<span class="SCst">CastPermission</span>.<span class="SCst">Read</span> | <span class="SCst">CastPermission</span>.<span class="SCst">Write</span>))
@@ -2746,7 +2746,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(a[<span class="SNum">1</span>] == <span class="SNum">2</span>)
 }
 
-<span class="SKwd">func</span> <span class="SFct">emptySliceCount</span>(values: <span class="SKwd">const</span> [..] <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span> =&gt; values.count
+<span class="SKwd">func</span> <span class="SFct">emptySliceCount</span>(values: <span class="SKwd">const</span> [..] <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span>        =&gt; values.count
 <span class="SKwd">func</span> <span class="SFct">emptySliceDefault</span>(values: <span class="SKwd">const</span> [..] <span class="STpe">u32</span> = [])-&gt;<span class="STpe">u64</span> =&gt; values.count
 <span class="SKwd">func</span> <span class="SFct">emptySliceReturn</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u32</span> =&gt; []
 
@@ -3885,7 +3885,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>((<span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a)) == <span class="SKwd">null</span>)
-    <span class="SKwd">let</span> ptr    = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a)
+    <span class="SKwd">let</span> ptr = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(ptr[] == <span class="SNum">6</span>)
 }
@@ -3893,8 +3893,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> value: <span class="STpe">s32</span> = <span class="SNum">6</span>
-    <span class="SKwd">var</span> a: <span class="STpe">any</span> = value
-    <span class="SKwd">let</span> ptr = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a)
+    <span class="SKwd">var</span> a:     <span class="STpe">any</span> = value
+    <span class="SKwd">let</span> ptr        = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="STpe">s32</span>?, a)
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(ptr != <span class="SKwd">null</span>)
     ptr[] = <span class="SNum">7</span>
     <span class="SNsp">Swag</span>.<span class="SFct">require</span>(value == <span class="SNum">7</span>)
@@ -5983,8 +5983,10 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">opCompare</span>(other: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span>
     {
-        <span class="SLgc">if</span> .value &lt; other <span class="SLgc">do</span> <span class="SLgc">return</span> -<span class="SNum">1</span>
-        <span class="SLgc">if</span> .value &gt; other <span class="SLgc">do</span> <span class="SLgc">return</span> <span class="SNum">1</span>
+        <span class="SLgc">if</span> .value &lt; other <span class="SLgc">do</span>
+            <span class="SLgc">return</span> -<span class="SNum">1</span>
+        <span class="SLgc">if</span> .value &gt; other <span class="SLgc">do</span>
+            <span class="SLgc">return</span> <span class="SNum">1</span>
         <span class="SLgc">return</span> <span class="SNum">0</span>
     }
 }
@@ -8664,11 +8666,11 @@ swc test -w path/to/workspace -m messages</span></div>
 <tr><td>'Safety(what: SafetyWhat, value: bool)'</td><td>Enable or disable runtime guards</td></tr>
 <tr><td>'Sanity(what: SafetyWhat, value: bool)'</td><td>Enable or disable static proven-fault checks</td></tr>
 <tr><td>'Warning(what: string, level: WarningLevel)'</td><td>Disable, restore, or promote named warnings</td></tr>
-<tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0, ..., returnsFields = "", freesFields = "", resetsFields = "")'</td><td>Describe pointer escape, payload borrowing, and invalidation behavior</td></tr>
+<tr><td>'BorrowSummary(returns, stores = 0, into = 0, frees = 0, reallocates = 0, returnsPayload = 0, ..., returnsFields = "", freesFields = "", resetsFields = "", writesFields = "", writesFieldsComplete = false)'</td><td>Describe pointer escape, payload borrowing, and invalidation behavior</td></tr>
 </tbody>
 </table>
 <p><span class="code-inline">SafetyWhat</span> is shared by runtime safety and static sanity, although not every flag has meaningful behavior in both systems. See the dedicated safety and sanity chapters before overriding defaults.</p>
-<p><span class="code-inline">BorrowSummary</span> is emitted automatically for ordinary Swag functions. Write it manually only for a foreign declaration whose ownership behavior the compiler cannot inspect. Generated module APIs encode first-level fields of a returned carrier that borrow a parameter in <span class="code-inline">returnsFields</span>. Each entry contains a parameter index, a colon, and the field name as hexadecimal UTF-8 bytes; multiple entries use semicolons. <span class="code-inline">freesFields</span> names first-level pointer fields of pointer parameters whose contents the function releases. <span class="code-inline">resetsFields</span> names those fields when the function also leaves a live replacement in the field on return; copies made before that replacement still refer to the released value.</p>
+<p><span class="code-inline">BorrowSummary</span> is emitted automatically for ordinary Swag functions. Write it manually only for a foreign declaration whose ownership behavior the compiler cannot inspect. Generated module APIs encode first-level fields of a returned carrier that borrow a parameter in <span class="code-inline">returnsFields</span>. Each entry contains a parameter index, a colon, and the field name as hexadecimal UTF-8 bytes; multiple entries use semicolons. <span class="code-inline">freesFields</span> names first-level pointer fields of pointer parameters whose contents the function releases. <span class="code-inline">resetsFields</span> names those fields when the function also leaves a live replacement in the field on return; copies made before that replacement still refer to the released value. <span class="code-inline">writesFields</span> lists first-level pointer fields a function may change. A generated 'writesFieldsComplete: true' means the list covers every possible write visible to the compiler; callers can preserve provenance through bodyless API calls for fields absent from the list. A partial or unavailable summary leaves every unlisted field conservative. This write list is not a guarantee about the order of a write and a release, and does not make a post-call field valid.</p>
 <h3 id="_010_002_predefined_attributes_swg_Native_Interoperability">Native Interoperability</h3>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Foreign(
     module: "native_module",

@@ -264,7 +264,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_Http_GetOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Http.GetOptions</span> <a class="api-item-permalink" href="#Net_Http_GetOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/request.swg#L17">src</a></div>
 <p>Limits and headers for a synchronous GET request.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Http_GetOptions">GetOptions</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">GetOptions</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -283,7 +283,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_Http_Header" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Http.Header</span> <a class="api-item-permalink" href="#Net_Http_Header" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/request.swg#L7">src</a></div>
 <p>One HTTP request header; both strings are borrowed for the duration of the request.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Http_Header">Header</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Header</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -298,7 +298,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_Http_Response" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Http.Response</span> <a class="api-item-permalink" href="#Net_Http_Response" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/http/request.swg#L29">src</a></div>
 <p>An HTTP response whose body storage is owned by the value.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Http_Response">Response</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Response</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -315,7 +315,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_Endpoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.Endpoint</span> <a class="api-item-permalink" href="#Net_Endpoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/endpoint.swg#L4">src</a></div>
 <p>An IPv4 address and TCP port in host byte order.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Endpoint">Endpoint</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Endpoint</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -330,7 +330,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_NetworkError" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.NetworkError</span> <a class="api-item-permalink" href="#Net_NetworkError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/networkerror.swg#L4">src</a></div>
 <p>Reports a network operation failure with the host's diagnostic code.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_NetworkError">NetworkError</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">NetworkError</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -345,8 +345,8 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_TcpListener" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.TcpListener</span> <a class="api-item-permalink" href="#Net_TcpListener" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcplistener.swg#L5">src</a></div>
 <p>Owns a blocking TCP listener; it cannot be copied.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Net_TcpListener">TcpListener</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">TcpListener</span></span></div>
 </section>
 <h3 id="Net_TcpListener_methods">Methods</h3>
 <table class="api-summary">
@@ -367,8 +367,8 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_TcpStream" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Net.TcpStream</span> <a class="api-item-permalink" href="#Net_TcpStream" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/tcpstream.swg#L5">src</a></div>
 <p>Owns a blocking TCP connection; it cannot be copied.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Net_TcpStream">TcpStream</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">TcpStream</span></span></div>
 </section>
 <h3 id="Net_TcpStream_methods">Methods</h3>
 <table class="api-summary">
@@ -391,7 +391,7 @@
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Net_Url_HttpTarget" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Url.HttpTarget</span> <a class="api-item-permalink" href="#Net_Url_HttpTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L7">src</a></div>
 <p>The owned parts needed for an HTTP request to a DNS name or IPv4 address.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Net_Url_HttpTarget">HttpTarget</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">HttpTarget</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -485,7 +485,7 @@
 <div class="api-item api-item-func"><span id="Net_Url_decodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.decodeComponent</span> <a class="api-item-permalink" href="#Net_Url_decodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L169">src</a></div>
 <p>Decodes percent escapes in one URL component into its original bytes.</p>
 <p><span class="code-inline">+</span> remains <span class="code-inline">+</span>. A truncated escape or a non-hexadecimal digit fails; unescaped bytes are copied without interpreting or validating UTF-8.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeComponent</span>(text: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeComponent</span>(text: <span class="STpe">string</span>)-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Net_Url_encodeComponent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Url.encodeComponent</span> <a class="api-item-permalink" href="#Net_Url_encodeComponent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/net/src/url.swg#L138">src</a></div>

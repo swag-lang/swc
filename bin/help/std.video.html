@@ -107,6 +107,13 @@
 <li><a href="#Video_Subtitle_Format">Subtitle.Format</a></li>
 </ul>
 </details>
+<details class="toc-group" open>
+<summary><span class="toc-label">Constants</span><span class="toc-count">1</span></summary>
+<ul class="toc-symbols">
+<li><a href="#summary-constants">All Constants</a></li>
+<li><a href="#Video_H264_InterCbpToGolomb">H264.InterCbpToGolomb</a></li>
+</ul>
+</details>
 <details class="toc-group">
 <summary><span class="toc-label">Functions</span><span class="toc-count">204</span></summary>
 <ul class="toc-symbols">
@@ -514,14 +521,12 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Format: Audio Video Interleave (AVI/RIFF) encoder component. Supported: Indexed Motion JPEG video with a standard <span class="code-inline">idx1</span> index and files up to the 32-bit RIFF size limit. Not supported: OpenDML/AVI 2.0, audio tracks, uncompressed output, and files of 4 GiB or more. Role: This file owns public AVI Motion JPEG encoder options.</p>
 <h3 id="file_src_encode_h264_annexb_swg"><code>src/encode/h264/annexb.swg</code></h3>
 <p>Format: H.264 Annex B access-unit packetization. Supported: Three- and four-byte start codes, AVC decoder configuration from SPS/PPS, and length-prefixed samples. Not supported: Changing parameter sets after an MP4 writer has been initialized, or splitting an access unit across calls. Role: This file converts a codec's Annex B output into the AVC layout consumed by MP4.</p>
+<h3 id="file_src_encode_h264_bitwriter_swg"><code>src/encode/h264/bitwriter.swg</code></h3>
+<p>Format: H.264/AVC bitstream writing. Supported: Exp-Golomb codes, CAVLC residual blocks, and length-prefixed escaped NAL units. Not supported: CABAC. Role: This file is the bit-level writer the encoder paths share.</p>
 <h3 id="file_src_encode_h264_encoder_swg"><code>src/encode/h264/encoder.swg</code></h3>
-<p>Format: H.264/AVC constrained-baseline encoder. Supported: Progressive NV12, quantized intra and inter residuals, PCM blocks, integer-pixel motion copies, P-skip, and periodic IDR pictures. Not supported: Rate control, B pictures, and real-time full-motion high-resolution capture. Role: This file supplies encoded packets without an external codec or platform encoder.</p>
-<h3 id="file_src_encode_h264_motion_search_swg"><code>src/encode/h264/motion.search.swg</code></h3>
-<p>Format: H.264/AVC integer-pixel inter motion preselection. Supported: Progressive 8-bit luma, even-pixel motion candidates and complete 16x16 macroblocks. Not supported: Fractional-pixel interpolation, cropped edge macroblocks or final rate-distortion choice. Role: This file cheaply screens a shifted decoded reference before quantizing its residual.</p>
-<h3 id="file_src_encode_h264_quantize_inter_swg"><code>src/encode/h264/quantize.inter.swg</code></h3>
-<p>Format: H.264/AVC inter residual quantization. Supported: Progressive 8-bit inter 4x4 luma and 4:2:0 chroma blocks at QP 0 through 51. Not supported: Intra prediction, entropy coding, and rate control. Role: This file prepares quantized inter levels and their locally reconstructed prediction.</p>
-<h3 id="file_src_encode_h264_quantize_intra_swg"><code>src/encode/h264/quantize.intra.swg</code></h3>
-<p>Format: H.264/AVC intra luma quantization. Supported: Progressive 8-bit Intra_16x16 luma and 4:2:0 chroma DC prediction at QP 0 through 51. Not supported: Other intra prediction modes, entropy coding, and rate control. Role: This file prepares intra levels and their local reconstruction.</p>
+<p>Format: H.264/AVC constrained-baseline encoder. Supported: Progressive NV12, an exact mode at QP 0, and quantized pictures with Intra_16x16 and Intra_4x4 prediction, quarter-sample motion, P-skip, in-loop deblocking, and periodic IDR pictures. Not supported: Rate control, B pictures, CABAC, and macroblock partitions. Role: This file supplies encoded packets without an external codec or platform encoder.</p>
+<h3 id="file_src_encode_h264_lossy_swg"><code>src/encode/h264/lossy.swg</code></h3>
+<p>Format: H.264/AVC constrained-baseline quantized picture coding. Supported: Progressive 8-bit 4:2:0 I and P pictures, quarter-sample 16x16 motion, P-skip, Intra_16x16 and Intra_4x4 prediction in both, and CAVLC residuals at a fixed QP of 1 through 51, key pictures three steps finer. Not supported: Macroblock partitions, several references, B pictures, CABAC, the 8x8 transform, and rate control. Role: This file codes the pictures of a quantized encoder against its own decoded reference.</p>
 <h3 id="file_src_encode_h264_rate_control_swg"><code>src/encode/h264/rate.control.swg</code></h3>
 <p>Format: H.264 software rate-control preparation. Supported: Fractional per-picture budgets, a bounded virtual reservoir, and bounded QP changes. Not supported: A hard output-size guarantee, lookahead, or automatic encoder integration. Role: This private helper estimates the next quantizer from observed picture sizes.</p>
 <h3 id="file_src_encode_mp4_fragmented_cut_swg"><code>src/encode/mp4/fragmented.cut.swg</code></h3>
@@ -664,6 +669,14 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#Video_Subtitle_Format">Subtitle.Format</a></td><td><p>Text subtitle syntax decoded into timed cues.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="summary-constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_H264_InterCbpToGolomb">H264.InterCbpToGolomb</a></td><td><p>Maps an inter coded-block pattern to its CAVLC code number.</p>
 </td></tr>
 </tbody>
 </table>
@@ -1167,6 +1180,14 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </td></tr>
 </tbody>
 </table>
+<h3 id="namespace_Video_H264_constants">Constants</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Video_H264_InterCbpToGolomb">H264.InterCbpToGolomb</a></td><td><p>Maps an inter coded-block pattern to its CAVLC code number.</p>
+</td></tr>
+</tbody>
+</table>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-namespace"><span id="namespace_Video_Mp4" class="api-item-title"><span class="api-item-title-kind">namespace</span> <span class="api-item-title-strong">Video.Mp4</span> <a class="api-item-permalink" href="#namespace_Video_Mp4" aria-label="Permalink">#</a></span></div>
@@ -1289,7 +1310,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_H264_AnnexBAccessUnit" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">H264.AnnexBAccessUnit</span> <a class="api-item-permalink" href="#Video_H264_AnnexBAccessUnit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/annexb.swg#L24">src</a></div>
 <p>Owns an H.264 access unit in MP4's four-byte-length-prefixed form.</p>
 <p><span class="code-inline">decoderConfig</span> is an AVCDecoderConfigurationRecord when this access unit carries both SPS and PPS NAL units, and is empty otherwise. Pass a configuration from the first key access unit to <a href="#Video_Mp4_FragmentedWriter_create">Video.Mp4.FragmentedWriter.create</a> before submitting <span class="code-inline">bytes</span>. A later configuration change requires a new MP4 writer. A configuration-only access unit has no coded picture.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_H264_AnnexBAccessUnit">AnnexBAccessUnit</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AnnexBAccessUnit</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1314,9 +1335,9 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Video_H264_Encoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">H264.Encoder</span> <a class="api-item-permalink" href="#Video_H264_Encoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L304">src</a></div>
+<div class="api-item api-item-struct"><span id="Video_H264_Encoder" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">H264.Encoder</span> <a class="api-item-permalink" href="#Video_H264_Encoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L76">src</a></div>
 <p>Encodes NV12 pictures as H.264 access units for a fragmented MP4 writer.</p>
-<p>This portable first stage codes flat intra blocks and exact quantized luma/chroma residuals at QP 0, integer-pixel motion copies, and P-skip. A residual is used only when local inverse reconstruction matches all input samples and its code is smaller than I_PCM. Other changes use I_PCM. It is useful for scrolling and interoperability, but uncompressed remaining blocks are not suitable for arbitrary high-motion 1080p60 recording. The result borrows the encoder's packet storage until the next call to encode. The AVC configuration remains valid for the encoder's lifetime and uses four-byte NAL lengths.</p>
+<p>QP 0 keeps every sample: flat intra blocks, exact residuals, integer-pixel copies and P-skip, with I_PCM for whatever these cannot hold. A positive QP trades precision for size: each macroblock is predicted from its neighbours or from the preceding picture at quarter-sample precision, only the quantized difference is written, and block edges are smoothed in the loop, so a decoder rebuilds the exact picture the encoder predicts from. The quantizer is fixed for the encoder's lifetime; the size of a picture follows its content. The result borrows the encoder's packet storage until the next call to encode. The AVC configuration remains valid for the encoder's lifetime and uses four-byte NAL lengths.</p>
 <div class="code-block"><span class="SCde"><span class="SCmp">#import</span>(<span class="SStr">"video"</span>)
 <span class="SKwd">using</span> <span class="SCst"><a href="#namespace_Video">Video</a></span>
 
@@ -1328,8 +1349,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
                                             encoder.<span class="SFct">decoderConfig</span>())
 <span class="SKwd">try</span> writer.<span class="SFct">addPacket</span>(<span class="SKwd">try</span> encoder.<span class="SFct">encode</span>(&amp;nv12, <span class="SNum">0</span>, <span class="SNum">3_000</span>))
 <span class="SKwd">try</span> writer.<span class="SFct">end</span>()</span></div>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_H264_Encoder">Encoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Encoder</span></span></div>
 </section>
 <h3 id="Video_H264_Encoder_methods">Methods</h3>
 <table class="api-summary">
@@ -1349,7 +1370,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_AudioPresentationRange" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.AudioPresentationRange</span> <a class="api-item-permalink" href="#Video_Mp4_AudioPresentationRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.swg#L70">src</a></div>
 <p>Selects the audible part of one decoded AAC track, in its sample-rate clock.</p>
 <p>Encoded packets may retain preceding transform history and a padded final packet. These samples remain in the file but are omitted from the track's presentation edit. The end must lie within its last encoded packet; extra trailing packets must be removed before publication.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_AudioPresentationRange">AudioPresentationRange</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">AudioPresentationRange</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1378,7 +1399,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedAudioConfig" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedAudioConfig</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedAudioConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.swg#L58">src</a></div>
 <p>Describes one AAC-LC sound track to add when the fragmented MP4 file is created.</p>
 <p><span class="code-inline">decoderConfig</span> is a borrowed two-byte MPEG-4 AudioSpecificConfig. Its sample rate and channel configuration must match <span class="code-inline">sampleRate</span> and <span class="code-inline">channelCount</span>; the writer copies it before returning.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedAudioConfig">FragmentedAudioConfig</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedAudioConfig</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1396,7 +1417,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedAudioInfo" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedAudioInfo</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedAudioInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.packet.swg#L28">src</a></div>
 <p>Describes one AAC-LC track of a fragmented MP4 file.</p>
 <p><span class="code-inline">decoderConfig</span> is borrowed from the reader and remains valid until it closes.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedAudioInfo">FragmentedAudioInfo</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedAudioInfo</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1416,7 +1437,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedCursorPacket" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedCursorPacket</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedCursorPacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.cursor.swg#L32">src</a></div>
 <p>One compressed sample found while walking MP4 fragments in file order.</p>
 <p><span class="code-inline">trackIndex</span> is zero for video; for audio it is the zero-based index returned by <a href="#Video_Mp4_FragmentedPacketCursor_audioTrack">Video.Mp4.FragmentedPacketCursor.audioTrack</a>. <span class="code-inline">info.sourceOffset</span> can be passed to <a href="#Video_Mp4_FragmentedPacketCursor_readPayload">Video.Mp4.FragmentedPacketCursor.readPayload</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedCursorPacket">FragmentedCursorPacket</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedCursorPacket</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1438,8 +1459,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedIndex" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedIndex</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.index.swg#L33">src</a></div>
 <p>Reads the final <span class="code-inline">mfra</span> index of one fragmented MP4 track with bounded memory.</p>
 <p>Opening reads the last box and validates its entries, without scanning media fragments. Lookup uses binary search and reads entries directly from the file. The file must stay unchanged while this value is open; call <span class="code-inline">close</span> to release it early.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedIndex">FragmentedIndex</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">FragmentedIndex</span></span></div>
 </section>
 <h3 id="Video_Mp4_FragmentedIndex_methods">Methods</h3>
 <table class="api-summary">
@@ -1462,7 +1483,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedOptions</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.swg#L46">src</a></div>
 <p>Controls how encoded packets are grouped into MP4 fragments.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedOptions">FragmentedOptions</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedOptions</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1482,8 +1503,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedPacketCursor" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedPacketCursor</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketCursor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.cursor.swg#L48">src</a></div>
 <p>Walks a fragmented H.264 MP4 without retaining a table for the whole recording.</p>
 <p>Opening reads only the initialization movie. Each call to <span class="code-inline">nextPacket</span> parses at most one <span class="code-inline">moof</span>/<span class="code-inline">mdat</span> pair and keeps at most 1024 sample descriptions. Payload bytes are read only on request. A completed <a href="#Video_Mp4_FragmentedIndex">Video.Mp4.FragmentedIndex</a> can supply a key-frame fragment offset for <span class="code-inline">seekFragment</span>. The file must remain unchanged while the cursor is open.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedPacketCursor">FragmentedPacketCursor</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">FragmentedPacketCursor</span></span></div>
 </section>
 <h3 id="Video_Mp4_FragmentedPacketCursor_methods">Methods</h3>
 <table class="api-summary">
@@ -1525,7 +1546,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedPacketInfo" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedPacketInfo</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.packet.swg#L15">src</a></div>
 <p>Describes one compressed sample without reading its payload.</p>
 <p>Times use the containing track's timescale. The signed presentation time retains negative composition offsets that <a href="#Video_EncodedPacket">Video.EncodedPacket</a> cannot represent.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedPacketInfo">FragmentedPacketInfo</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedPacketInfo</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1549,8 +1570,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedPacketReader" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedPacketReader</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketReader" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.packet.swg#L43">src</a></div>
 <p>Reads encoded H.264 and AAC-LC packets from a fragmented MP4 without decoding them.</p>
 <p>Opening scans fragment headers and retains packet offsets and timestamps, while payloads remain in the file. The file must stay unchanged until the reader closes. Use <a href="#Video_Mp4_FragmentedIndex">Video.Mp4.FragmentedIndex</a> to locate key-frame fragments in a long completed file without a full header scan.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedPacketReader">FragmentedPacketReader</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">FragmentedPacketReader</span></span></div>
 </section>
 <h3 id="Video_Mp4_FragmentedPacketReader_methods">Methods</h3>
 <table class="api-summary">
@@ -1588,7 +1609,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedRecordingSummary" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedRecordingSummary</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedRecordingSummary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.summary.swg#L28">src</a></div>
 <p>Describes the complete portion of a fragmented H.264 recording.</p>
 <p>Audio tracks keep their movie order, including empty tracks. A complete final <span class="code-inline">mfra</span> index is outside <span class="code-inline">completeMediaByteCount</span>. An interrupted tail may be removed and indexed through <a href="#Video_Mp4_rebuildFragmentedIndex">Video.Mp4.rebuildFragmentedIndex</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedRecordingSummary">FragmentedRecordingSummary</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedRecordingSummary</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1612,7 +1633,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedSeekPoint" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedSeekPoint</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedSeekPoint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.index.swg#L18">src</a></div>
 <p>One sync sample located by a fragmented MP4 random-access index.</p>
 <p><span class="code-inline">decodeTime</span> uses the indexed track's timescale. <span class="code-inline">moofOffset</span> is an absolute file offset; the three one-based numbers select its track fragment, run, and sample.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedSeekPoint">FragmentedSeekPoint</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedSeekPoint</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1634,7 +1655,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_FragmentedTrackSummary" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.FragmentedTrackSummary</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedTrackSummary" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.summary.swg#L15">src</a></div>
 <p>Counts one fragmented MP4 track on its own integer clock.</p>
 <p>An empty track has zero packets and zero start and end times. <span class="code-inline">endDecodeTime</span> is the end of its last complete packet, so a gap before the first packet does not change its count.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedTrackSummary">FragmentedTrackSummary</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FragmentedTrackSummary</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1655,8 +1676,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Writes H.264 and optional AAC-LC access units to a fragmented MP4 file.</p>
 <p>The caller supplies an AVC decoder configuration (<span class="code-inline">avcC</span>) with four-byte NAL lengths and submits access units in decode order through <a href="#Video_Mp4_FragmentedWriter_addPacket">Video.Mp4.FragmentedWriter.addPacket</a>. By default every call writes and flushes one <span class="code-inline">moof</span>/<span class="code-inline">mdat</span> pair. <a href="#Video_Mp4_FragmentedOptions">Video.Mp4.FragmentedOptions</a> can group video and AAC packets per track within fixed byte and count limits. <a href="#Video_Mp4_FragmentedWriter_flush">Video.Mp4.FragmentedWriter.flush</a> completes all pending groups. The first video packet must be a key frame. Video timestamps use the <span class="code-inline">timescale</span> given at creation.</p>
 <p><a href="#Video_Mp4_FragmentedWriter_createWithAudioTracks">Video.Mp4.FragmentedWriter.createWithAudioTracks</a> adds up to four AAC-LC tracks. Audio packets are submitted separately and may be interleaved with video calls. A final key-frame index can be requested in the options; sequential playback and recovery of complete fragments work before <a href="#Video_Mp4_FragmentedWriter_end">Video.Mp4.FragmentedWriter.end</a>. <a href="#Video_Reader">Video.Reader</a> scans fragment headers and ignores a partial final fragment or index after at least one complete video fragment.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_FragmentedWriter">FragmentedWriter</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">FragmentedWriter</span></span></div>
 </section>
 <h3 id="Video_Mp4_FragmentedWriter_methods">Methods</h3>
 <table class="api-summary">
@@ -1697,7 +1718,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareAudioConfig" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareAudioConfig</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareAudioConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L11">src</a></div>
 <p>Configures one separately retained AAC-LC sound track in a software recording.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_SoftwareAudioConfig">SoftwareAudioConfig</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SoftwareAudioConfig</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1715,15 +1736,15 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-alias"><span id="Video_Mp4_SoftwareFrameRenderer" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">Mp4.SoftwareFrameRenderer</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareFrameRenderer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.trim.swg#L29">src</a></div>
 <p>Replaces one decoded picture with its edited pixels; the image and index are borrowed.</p>
 <p>The callback runs synchronously on the calling thread and may fail. Keep the original geometry.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst"><a href="#Video_Mp4_SoftwareFrameRenderer">SoftwareFrameRenderer</a></span> = <span class="SKwd">func</span>||(frameIndex: <span class="STpe">u64</span>, image: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">SoftwareFrameRenderer</span> = <span class="SKwd">func</span>||(frameIndex: <span class="STpe">u64</span>, image: *<span class="SCst"><a href="std.pixel.html#Pixel_Image">Image</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareRecording" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareRecording</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRecording" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.recording.swg#L43">src</a></div>
 <p>Records RGB pictures and PCM16 sound as a fragmented MP4 without codec libraries.</p>
 <p>The caller assigns video slots with <a href="#Video_FramePacer">Video.FramePacer</a>. Every slot, including a repeated picture for a missed capture, must be submitted in order. Sound may arrive in arbitrary complete-frame chunks. With audio, the first video packet begins one AAC priming packet after sound. The live prefix lets <a href="#Video_Reader">Video.Reader</a> derive the 1024-sample encoder delay; <span class="code-inline">end</span> publishes standard edit lists that align both tracks at zero and omit final AAC padding. It drains audio before finalizing the file. Internal picture, PCM and packet storage stays bounded as the recording grows. Up to four independent sound tracks share one sample rate; a capture source can be kept on each track for later mixing. A video-only recording starts at video time zero and needs no audio device. Video quantization parameter 0 preserves exact samples. Values 1 through 51 may quantize textured IDR and P pictures; this fixed setting does not target a bitrate. Each picture may use one through eight H.264 slices, up to its macroblock-row count. One video producer and one producer per audio track may encode concurrently. Container writes are serialized after encoding. Create and finish the recording with all producers stopped; query each encoder's counters only from its producer or after joining it.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_SoftwareRecording">SoftwareRecording</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">SoftwareRecording</span></span></div>
 </section>
 <h3 id="Video_Mp4_SoftwareRecording_methods">Methods</h3>
 <table class="api-summary">
@@ -1768,7 +1789,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareRenderRange" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareRenderRange</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareRenderRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.trim.swg#L20">src</a></div>
 <p>Selects source pictures whose pixels must be rendered during a trim.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_SoftwareRenderRange">SoftwareRenderRange</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SoftwareRenderRange</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1784,7 +1805,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareTrimEdits" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareTrimEdits</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareTrimEdits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.trim.swg#L36">src</a></div>
 <p>Supplies timed pixel edits without forcing a full-recording transcode.</p>
 <p>Ranges may overlap and need not be ordered. They and the callback are borrowed for the call to <a href="#Video_Mp4_trimSoftwareRecording">Video.Mp4.trimSoftwareRecording</a>. Each edited span starts an independently encoded passage; copying resumes at the next original IDR after the span ends.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_SoftwareTrimEdits">SoftwareTrimEdits</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SoftwareTrimEdits</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1799,7 +1820,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Mp4_SoftwareTrimResult" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.SoftwareTrimResult</span> <a class="api-item-permalink" href="#Video_Mp4_SoftwareTrimResult" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/software.trim.swg#L12">src</a></div>
 <p>Reports work performed by <a href="#Video_Mp4_trimSoftwareRecording">Video.Mp4.trimSoftwareRecording</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_SoftwareTrimResult">SoftwareTrimResult</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">SoftwareTrimResult</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1817,7 +1838,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_VideoPacketRange" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.VideoPacketRange</span> <a class="api-item-permalink" href="#Video_Mp4_VideoPacketRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.cut.swg#L16">src</a></div>
 <p>Selects a half-open range of video packets in decode order.</p>
 <p>The first packet and the packet just after the range must be key frames, unless the range reaches the end of the source. Ranges passed to <a href="#Video_Mp4_copyVideoRanges">Video.Mp4.copyVideoRanges</a> or <a href="#Video_Mp4_copyRanges">Video.Mp4.copyRanges</a> must be ordered and separate.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_VideoPacketRange">VideoPacketRange</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">VideoPacketRange</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1833,7 +1854,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Mp4_VideoTimeRange" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Mp4.VideoTimeRange</span> <a class="api-item-permalink" href="#Video_Mp4_VideoTimeRange" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.cut.swg#L27">src</a></div>
 <p>Selects a half-open interval on the video track's decode-time clock.</p>
 <p>Times are ticks at <a href="#Video_Mp4_FragmentedPacketCursor_timescale">Video.Mp4.FragmentedPacketCursor.timescale</a>. The first selected picture may precede <span class="code-inline">startDecodeTime</span>; the last selected picture may end after <span class="code-inline">endDecodeTime</span> because a copy needs complete groups of pictures.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Mp4_VideoTimeRange">VideoTimeRange</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">VideoTimeRange</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1848,7 +1869,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Subtitle_Cue" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Subtitle.Cue</span> <a class="api-item-permalink" href="#Video_Subtitle_Cue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L18">src</a></div>
 <p>One subtitle cue on the media timeline.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Subtitle_Cue">Cue</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Cue</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1873,7 +1894,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_Subtitle_Presentation" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Subtitle.Presentation</span> <a class="api-item-permalink" href="#Video_Subtitle_Presentation" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L40">src</a></div>
 <p>Text and next transition visible at one media position.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Subtitle_Presentation">Presentation</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Presentation</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1899,7 +1920,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Subtitle_Track" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Subtitle.Track</span> <a class="api-item-permalink" href="#Video_Subtitle_Track" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L63">src</a></div>
 <p>Owns one ordered subtitle track.</p>
 <p>A track stores plain UTF-8 cue text. Container or file styling is deliberately reduced to text; presentation belongs to the player and can therefore be changed without decoding again.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Track</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -1985,8 +2006,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Clip" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Clip</span> <a class="api-item-permalink" href="#Video_Clip" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L11">src</a></div>
 <p>Owns a silent sequence of equal-sized image frames held in memory.</p>
 <p>A clip is what a program builds when it produces a video: frames are added in playback order, then encoded. It holds every frame it was given, so its memory cost is the whole clip; reading an existing stream, of any length, is <a href="#Video_Reader">Video.Reader</a> instead.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Clip">Clip</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Clip</span></span></div>
 </section>
 <h3 id="Video_Clip_methods">Methods</h3>
 <table class="api-summary">
@@ -2022,7 +2043,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_EncodedPacket" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.EncodedPacket</span> <a class="api-item-permalink" href="#Video_EncodedPacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/packet.swg#L12">src</a></div>
 <p>Describes one encoded access unit on the track's integer timescale.</p>
 <p><span class="code-inline">bytes</span> is borrowed for the call that consumes the packet. <span class="code-inline">decodeTime</span> and <span class="code-inline">presentationTime</span> are ticks from the track's origin; <span class="code-inline">duration</span> is positive ticks. A key frame can start decoding without any preceding packet. Containers may restrict the supported range or packet layout.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">EncodedPacket</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -2044,8 +2065,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_FramePacer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.FramePacer</span> <a class="api-item-permalink" href="#Video_FramePacer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framepacer.swg#L21">src</a></div>
 <p>Assigns captured pictures to an exact frame-rate timeline without cumulative rounding.</p>
 <p>Input timestamps use one monotonic clock. The first picture starts slot zero; later pictures that arrive in an already accepted slot are ignored. A late picture skips whole slots, which the caller may count as dropped frames or fill by repeating the previous picture. The pacer neither sleeps nor stores pictures. Its state has constant size for long recordings.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_FramePacer">FramePacer</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">FramePacer</span></span></div>
 </section>
 <h3 id="Video_FramePacer_methods">Methods</h3>
 <table class="api-summary">
@@ -2065,8 +2086,8 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_FrameRate" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.FrameRate</span> <a class="api-item-permalink" href="#Video_FrameRate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framerate.swg#L10">src</a></div>
 <p>Describes an exact number of video frames per second.</p>
 <p>The rate is <span class="code-inline">numerator / denominator</span>. Both parts are positive and remain unchanged, so broadcast rates such as <span class="code-inline">30000 / 1001</span> do not lose precision.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_FrameRate">FrameRate</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">FrameRate</span></span></div>
 </section>
 <h3 id="Video_FrameRate_methods">Methods</h3>
 <table class="api-summary">
@@ -2087,7 +2108,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Video_FrameSlot" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.FrameSlot</span> <a class="api-item-permalink" href="#Video_FrameSlot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/framepacer.swg#L6">src</a></div>
 <p>One accepted picture on a constant-rate recording timeline.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_FrameSlot">FrameSlot</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FrameSlot</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -2106,7 +2127,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-interface"><span id="Video_IAudioDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Video.IAudioDecoder</span> <a class="api-item-permalink" href="#Video_IAudioDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L77">src</a></div>
 <p>Optional decoder capability exposing sound tracks carried by a video container.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_IAudioDecoder">IAudioDecoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IAudioDecoder</span></span></div>
 </section>
 <h3 id="Video_IAudioDecoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2123,7 +2144,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Decodes one video format, one frame at a time, from a byte source.</p>
 <p>A decoder instance is created per <a href="#Video_Reader">Video.Reader</a> and keeps whatever state its format needs between frames. It never holds the stream: everything it reads comes from the <a href="std.core.html#Core_ByteSource">Core.ByteSource</a> it is handed, so a decoder written this way costs the same memory on a ten-frame stream and on a ten-hour one.</p>
 <p>The two positioning operations are separate on purpose. <span class="code-inline">seekFrame</span> is where a format implements random access — a trivial multiplication for a fixed frame size, an index lookup for a container that carries one, a keyframe followed by decoding forward for an inter-coded format — while <span class="code-inline">decodeFrame</span> only ever decodes the frame the decoder is already positioned on.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_IDecoder">IDecoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IDecoder</span></span></div>
 </section>
 <h3 id="Video_IDecoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2146,7 +2167,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <p>Encodes one video format, one frame at a time, into a byte sink.</p>
 <p>An encoder instance is created per <a href="#Video_Writer">Video.Writer</a> and keeps whatever state its format needs between frames, including the scratch storage of one frame. It never accumulates the encoded stream: everything it produces goes to the <a href="std.core.html#Core_ByteSink">Core.ByteSink</a> it is handed, so writing a long video costs the memory of one frame.</p>
 <p><span class="code-inline">begin</span>, <span class="code-inline">addFrame</span> and <span class="code-inline">end</span> are called in that order, with <span class="code-inline">begin</span> and <span class="code-inline">end</span> each called once. A format whose header needs a value known only at the end — a frame count, a total size, an index — writes it in <span class="code-inline">end</span>, either as a trailer, or by reserving the field in the header and rewriting it with <a href="std.core.html#Core_ByteSink_patch">Core.ByteSink.patch</a> once the last frame is written.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_IEncoder">IEncoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IEncoder</span></span></div>
 </section>
 <h3 id="Video_IEncoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2166,7 +2187,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-interface"><span id="Video_IKeyPictureDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Video.IKeyPictureDecoder</span> <a class="api-item-permalink" href="#Video_IKeyPictureDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L121">src</a></div>
 <p>Optional decoder capability reaching a clean decode point by time without the frames around it.</p>
 <p>A seek to a frame reads everything between the container's index entry and that frame, and what follows it while pictures are reordered. A still that only stands for a moment — a thumbnail, a chapter mark — needs the clean point alone, which is a tenth of a second of a film instead of several seconds of it.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_IKeyPictureDecoder">IKeyPictureDecoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IKeyPictureDecoder</span></span></div>
 </section>
 <h3 id="Video_IKeyPictureDecoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2180,7 +2201,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-interface"><span id="Video_IPlanarDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Video.IPlanarDecoder</span> <a class="api-item-permalink" href="#Video_IPlanarDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L101">src</a></div>
 <p>Optional decoder capability handing pictures over without converting them to RGB.</p>
 <p>A codec that reconstructs planar YCbCr implements this so a consumer drawing through a renderer never pays for a conversion on the processor: at 4K that conversion costs more than the entropy decode, the reconstruction and the loop filter together.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_IPlanarDecoder">IPlanarDecoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">IPlanarDecoder</span></span></div>
 </section>
 <h3 id="Video_IPlanarDecoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2195,7 +2216,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-interface"><span id="Video_ISubtitleDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Video.ISubtitleDecoder</span> <a class="api-item-permalink" href="#Video_ISubtitleDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L87">src</a></div>
 <p>Optional decoder capability exposing timed text tracks carried by a video container.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_ISubtitleDecoder">ISubtitleDecoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">ISubtitleDecoder</span></span></div>
 </section>
 <h3 id="Video_ISubtitleDecoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2210,7 +2231,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-interface"><span id="Video_ITimedDecoder" class="api-item-title"><span class="api-item-title-kind">interface</span> <span class="api-item-title-strong">Video.ITimedDecoder</span> <a class="api-item-permalink" href="#Video_ITimedDecoder" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L131">src</a></div>
 <p>Optional decoder capability exposing exact presentation timestamps.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst"><a href="#Video_ITimedDecoder">ITimedDecoder</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">interface</span> <span class="SCst">ITimedDecoder</span></span></div>
 </section>
 <h3 id="Video_ITimedDecoder_methods">Methods</h3>
 <table class="api-summary">
@@ -2226,7 +2247,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <div class="api-item api-item-struct"><span id="Video_Nv12Frame" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Nv12Frame</span> <a class="api-item-permalink" href="#Video_Nv12Frame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/nv12frame.swg#L101">src</a></div>
 <p>Owns one tightly packed NV12 picture for a video encoder.</p>
 <p>The first <span class="code-inline">width * height</span> bytes are top-down luma. The remainder is top-down interleaved Cb/Cr, with one pair for each two-by-two block. Rows use <span class="code-inline">width</span> bytes without padding. <a href="#Video_Nv12Frame_convertFrom">Video.Nv12Frame.convertFrom</a> applies the BT.709 matrix and studio range (Y 16–235, chroma 16–240). Storage is reused when consecutive pictures have the same dimensions.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Nv12Frame">Nv12Frame</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Nv12Frame</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -2263,7 +2284,7 @@ src/encode/mp4/mp4.swg   Mp4.Encoder</span></div>
 <span class="SKwd">var</span> texture = renderer.<span class="SFct">addImage</span>(&amp;planes)
 painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <p>Keep <span class="code-inline">texture</span> alive until the submitted frame is rendered, then release it with <a href="std.pixel.html#Pixel_IRenderer_removeTexture">Pixel.IRenderer.removeTexture</a>. Reuse it for later pictures of the same size with <a href="std.pixel.html#Pixel_IRenderer_updateTexture">Pixel.IRenderer.updateTexture</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_PlanarFrame">PlanarFrame</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PlanarFrame</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -2317,8 +2338,8 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <p>Decodes the frames of a video stream without holding the stream in memory.</p>
 <p>A reader owns its source and its decoder instance. Frame <span class="code-inline">index</span> is zero-based; decoding frames in order never seeks, and decoding them out of order costs whatever random access costs in that format.</p>
 <p>The stream must remain available and unchanged while the reader is open: a file-backed reader keeps the file open, and a memory-backed reader borrows the bytes it was given.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Reader">Reader</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Reader</span></span></div>
 </section>
 <h3 id="Video_Reader_methods">Methods</h3>
 <table class="api-summary">
@@ -2395,7 +2416,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <p>Names one video file format and the filename extensions that select it.</p>
 <p>A decoder or an encoder declares this once, and the registry derives extension matching from it: <a href="#Video_Reader_canOpen">Video.Reader.canOpen</a>, <a href="#Video_Writer_canCreate">Video.Writer.canCreate</a> and the codec lookup all read the same declaration, so a codec cannot claim an extension its format does not list.</p>
 <p>A user interface enumerates the supported formats with <a href="#Video_Reader_decodableFormats">Video.Reader.decodableFormats</a> or <a href="#Video_Writer_encodableFormats">Video.Writer.encodableFormats</a> and builds its file filters from them.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">StreamFormat</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -2430,7 +2451,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-struct"><span id="Video_StreamInfo" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.StreamInfo</span> <a class="api-item-permalink" href="#Video_StreamInfo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/streaminfo.swg#L9">src</a></div>
 <p>Describes the video stream a codec opened or is about to write.</p>
 <p>It is what a decoder reports from the header of a stream, and what an encoder is handed before its first frame, so the two sides of a format describe a stream the same way.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Video_StreamInfo">StreamInfo</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">StreamInfo</span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
@@ -2467,8 +2488,8 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-struct"><span id="Video_Timebase" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Timebase</span> <a class="api-item-permalink" href="#Video_Timebase" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/timebase.swg#L10">src</a></div>
 <p>Describes an integer media clock in ticks per second.</p>
 <p>Convert absolute timestamps, then subtract adjacent results for packet durations. Converting each duration separately can accumulate rounding error over a long recording.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Timebase">Timebase</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Opaque">Opaque</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Timebase</span></span></div>
 </section>
 <h3 id="Video_Timebase_methods">Methods</h3>
 <table class="api-summary">
@@ -2486,8 +2507,8 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-struct"><span id="Video_Writer" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Video.Writer</span> <a class="api-item-permalink" href="#Video_Writer" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L63">src</a></div>
 <p>Encodes frames into a video stream without holding the stream in memory.</p>
 <p>A writer owns its sink and its encoder instance. Frames are appended in playback order and must all have the geometry the writer was created with; <a href="#Video_Writer_end">Video.Writer.end</a> finishes the stream and is what decides whether it is complete, so its failure must be handled rather than left to destruction.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
-<span class="SKwd">struct</span> <span class="SCst"><a href="#Video_Writer">Writer</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoCopy">NoCopy</a>]</span>
+<span class="SKwd">struct</span> <span class="SCst">Writer</span></span></div>
 </section>
 <h3 id="Video_Writer_methods">Methods</h3>
 <table class="api-summary">
@@ -2521,7 +2542,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-enum"><span id="Video_Subtitle_Format" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">Subtitle.Format</span> <a class="api-item-permalink" href="#Video_Subtitle_Format" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L7">src</a></div>
 <p>Text subtitle syntax decoded into timed cues.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#Video_Subtitle_Format">Format</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst">Format</span></span></div>
 </section>
 <h3>Cases</h3>
 <table class="table-enumeration api-summary">
@@ -2541,6 +2562,16 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 </td></tr>
 </tbody>
 </table>
+<h3 id="constants">Constants</h3>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Video_H264_InterCbpToGolomb" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">H264.InterCbpToGolomb</span> <a class="api-item-permalink" href="#Video_H264_InterCbpToGolomb" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L42">src</a></div>
+<p>Maps an inter coded-block pattern to its CAVLC code number.</p>
+<p>This is the inverse of Table 9-4's inter coded-block-pattern column. CAVLC writes the code for each residual macroblock, avoiding a scan of 48 entries per block.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst">InterCbpToGolomb</span>: [<span class="SNum">48</span>] <span class="STpe">u8</span> = [
+    <span class="SNum">0</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">7</span>, <span class="SNum">4</span>, <span class="SNum">8</span>, <span class="SNum">17</span>, <span class="SNum">13</span>, <span class="SNum">5</span>, <span class="SNum">18</span>, <span class="SNum">9</span>, <span class="SNum">14</span>, <span class="SNum">10</span>, <span class="SNum">15</span>, <span class="SNum">16</span>, <span class="SNum">11</span>,
+    <span class="SNum">1</span>, <span class="SNum">32</span>, <span class="SNum">33</span>, <span class="SNum">36</span>, <span class="SNum">34</span>, <span class="SNum">37</span>, <span class="SNum">44</span>, <span class="SNum">40</span>, <span class="SNum">35</span>, <span class="SNum">45</span>, <span class="SNum">38</span>, <span class="SNum">41</span>, <span class="SNum">39</span>, <span class="SNum">42</span>, <span class="SNum">43</span>, <span class="SNum">19</span>,
+    <span class="SNum">6</span>, <span class="SNum">24</span>, <span class="SNum">25</span>, <span class="SNum">20</span>, <span class="SNum">26</span>, <span class="SNum">21</span>, <span class="SNum">46</span>, <span class="SNum">28</span>, <span class="SNum">27</span>, <span class="SNum">47</span>, <span class="SNum">22</span>, <span class="SNum">29</span>, <span class="SNum">23</span>, <span class="SNum">30</span>, <span class="SNum">31</span>, <span class="SNum">12</span>]</span></div>
+</section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_H264_AnnexBAccessUnit_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">AnnexBAccessUnit.parse</span> <a class="api-item-permalink" href="#Video_H264_AnnexBAccessUnit_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/annexb.swg#L39">src</a></div>
@@ -2575,7 +2606,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_encodeToBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.encodeToBytes</span> <a class="api-item-permalink" href="#Video_Clip_encodeToBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L112">src</a></div>
 <p>Encodes the clip to one contiguous owned byte array.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">encodeToBytes</span>(fileName: <span class="STpe">string</span>, options: <span class="STpe">any</span>? = <span class="SKwd">null</span>)-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Clip_frame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Clip.frame</span> <a class="api-item-permalink" href="#Video_Clip_frame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/clip.swg#L86">src</a></div>
@@ -2627,25 +2658,24 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">startTime</span>()-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.create</span> <a class="api-item-permalink" href="#Video_H264_Encoder_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L339">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.create</span> <a class="api-item-permalink" href="#Video_H264_Encoder_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L113">src</a></div>
 <p>Creates an encoder for even NV12 dimensions and an IDR interval in frames.</p>
 <p>The image may be cropped within its final macroblock. Dimensions are limited to 4096 pixels per side and 36864 macroblocks, matching H.264 level 5.2 frame size. The interval is 1 to 255 pictures. A new encoder starts with an IDR picture. <span class="code-inline">quantizationQp</span> is 0 for exact samples or 1 through 51 for quantized intra and inter residuals. This fixed QP is not a target-bitrate controller. <span class="code-inline">sliceCount</span> divides each picture into 1 to 8 complete macroblock-row bands. The default single slice preserves the original bitstream.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>,
-            quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_H264_Encoder">Encoder</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(width, height: <span class="STpe">s32</span>, keyInterval: <span class="STpe">u32</span> = <span class="SNum">60</span>, quantizationQp: <span class="STpe">u32</span> = <span class="SNum">0</span>, sliceCount: <span class="STpe">u32</span> = <span class="SNum">1</span>)-&gt;<span class="SCst"><a href="#Video_H264_Encoder">Encoder</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_decoderConfig" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.decoderConfig</span> <a class="api-item-permalink" href="#Video_H264_Encoder_decoderConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L368">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_decoderConfig" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.decoderConfig</span> <a class="api-item-permalink" href="#Video_H264_Encoder_decoderConfig" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L152">src</a></div>
 <p>Borrows the AVC decoder configuration until this encoder is destroyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decoderConfig</span>()-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.encode</span> <a class="api-item-permalink" href="#Video_H264_Encoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L376">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_encode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.encode</span> <a class="api-item-permalink" href="#Video_H264_Encoder_encode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L160">src</a></div>
 <p>Encodes one picture and returns its MP4-ready access unit.</p>
 <p>The input must have the dimensions supplied to create and exactly one tightly packed NV12 picture. Decode times may have gaps but cannot overlap; durations are positive. The packet payload is borrowed until the next encode call. Validation failure leaves the previously encoded picture and packet intact.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">encode</span>(frame: <span class="SKwd">const</span> *<span class="SCst"><a href="#Video_Nv12Frame">Nv12Frame</a></span>, decodeTime: <span class="STpe">u64</span>, duration: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_H264_Encoder_repeatPrevious" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.repeatPrevious</span> <a class="api-item-permalink" href="#Video_H264_Encoder_repeatPrevious" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L447">src</a></div>
+<div class="api-item api-item-func"><span id="Video_H264_Encoder_repeatPrevious" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Encoder.repeatPrevious</span> <a class="api-item-permalink" href="#Video_H264_Encoder_repeatPrevious" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/h264/encoder.swg#L234">src</a></div>
 <p>Holds the last encoded picture for another video slot without analyzing its pixels.</p>
 <p>The first picture must already have been encoded. At an IDR boundary the stored input picture is encoded normally, preserving the configured clean-point interval. The packet borrows its bytes until the next encode or repeat call.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">repeatPrevious</span>(decodeTime: <span class="STpe">u64</span>, duration: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
@@ -2735,7 +2765,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-func"><span id="Video_Mp4_FragmentedPacketCursor_readPayload" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FragmentedPacketCursor.readPayload</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketCursor_readPayload" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.cursor.swg#L192">src</a></div>
 <p>Reads a packet's encoded payload into caller-owned storage.</p>
 <p><span class="code-inline">packet</span> must have been returned by this cursor while its source file was unchanged.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readPayload</span>(packet: <span class="SCst"><a href="#Video_Mp4_FragmentedCursorPacket">FragmentedCursorPacket</a></span>, bytes: *<span class="SFct">Array</span>'<span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readPayload</span>(packet: <span class="SCst"><a href="#Video_Mp4_FragmentedCursorPacket">FragmentedCursorPacket</a></span>, bytes: *<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Mp4_FragmentedPacketCursor_seekFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FragmentedPacketCursor.seekFragment</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketCursor_seekFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.cursor.swg#L204">src</a></div>
@@ -2816,13 +2846,13 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-func"><span id="Video_Mp4_FragmentedPacketReader_readAudioPacket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FragmentedPacketReader.readAudioPacket</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketReader_readAudioPacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.packet.swg#L139">src</a></div>
 <p>Reads one raw AAC-LC access unit into <span class="code-inline">bytes</span> with its original track timestamps.</p>
 <p>The returned payload borrows <span class="code-inline">bytes</span> until it is changed. It contains no ADTS header and can be passed to <a href="#Video_Mp4_FragmentedWriter_addAudioPacket">Video.Mp4.FragmentedWriter.addAudioPacket</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readAudioPacket</span>(trackIndex, packetIndex: <span class="STpe">u64</span>, bytes: *<span class="SFct">Array</span>'<span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readAudioPacket</span>(trackIndex, packetIndex: <span class="STpe">u64</span>, bytes: *<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Mp4_FragmentedPacketReader_readPacket" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FragmentedPacketReader.readPacket</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketReader_readPacket" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.packet.swg#L99">src</a></div>
 <p>Reads one video access unit into <span class="code-inline">bytes</span> and returns its original track timestamps.</p>
 <p>The returned payload borrows <span class="code-inline">bytes</span> until it is changed. The caller can pass it directly to <a href="#Video_Mp4_FragmentedWriter_addPacket">Video.Mp4.FragmentedWriter.addPacket</a>. A negative composition time cannot be represented by <a href="#Video_EncodedPacket">Video.EncodedPacket</a> and produces an unsupported-format error.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readPacket</span>(index: <span class="STpe">u64</span>, bytes: *<span class="SFct">Array</span>'<span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readPacket</span>(index: <span class="STpe">u64</span>, bytes: *<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="STpe">u8</span>)-&gt;<span class="SCst"><a href="#Video_EncodedPacket">EncodedPacket</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Mp4_FragmentedPacketReader_timescale" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">FragmentedPacketReader.timescale</span> <a class="api-item-permalink" href="#Video_Mp4_FragmentedPacketReader_timescale" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/mp4/fragmented.packet.swg#L78">src</a></div>
@@ -3090,7 +3120,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-func"><span id="Video_Mp4_planVideoTimeRanges" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mp4.planVideoTimeRanges</span> <a class="api-item-permalink" href="#Video_Mp4_planVideoTimeRanges" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.cut.swg#L42">src</a></div>
 <p>Expands decode-time intervals to complete key-frame-aligned packet ranges.</p>
 <p>Each start moves back to the last key frame at or before it, or to the first video packet. Each end moves forward to the first key frame at or after it, or to the end of the recording. Intervals must be nonempty, ordered and separate, and end no later than the last complete video packet. Expansion must leave each interval nonempty and may not make intervals overlap. The returned ranges can be passed to <a href="#Video_Mp4_copyRanges">Video.Mp4.copyRanges</a> or <a href="#Video_Mp4_copyVideoRanges">Video.Mp4.copyVideoRanges</a>. The scan reads fragment headers only and uses memory proportional to the number of requested intervals, independent of recording duration.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">planVideoTimeRanges</span>(fileName: <span class="STpe">string</span>, ranges: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Video_Mp4_VideoTimeRange">VideoTimeRange</a></span>)-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Video_Mp4_VideoPacketRange">VideoPacketRange</a></span> <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">planVideoTimeRanges</span>(fileName: <span class="STpe">string</span>, ranges: <span class="SKwd">const</span> [..] <span class="SCst"><a href="#Video_Mp4_VideoTimeRange">VideoTimeRange</a></span>)-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="SCst"><a href="#Video_Mp4_VideoPacketRange">VideoPacketRange</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Mp4_rebuildFragmentedIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mp4.rebuildFragmentedIndex</span> <a class="api-item-permalink" href="#Video_Mp4_rebuildFragmentedIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/mp4/fragmented.recover.swg#L19">src</a></div>
@@ -3155,7 +3185,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Presentation_content" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Presentation.content</span> <a class="api-item-permalink" href="#Video_Subtitle_Presentation_content" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L53">src</a></div>
 <p>Borrows the active cue text.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">content</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
@@ -3188,7 +3218,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-func"><span id="Video_Reader_decodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodableFormats</span> <a class="api-item-permalink" href="#Video_Reader_decodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L196">src</a></div>
 <p>Returns the format read by each registered decoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another decoder afterwards does not change it. Use it to build the format list of an open dialog.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodableFormats</span>()-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Reader_decodeFrame" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.decodeFrame</span> <a class="api-item-permalink" href="#Video_Reader_decodeFrame" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/decode/reader.swg#L483">src</a></div>
@@ -3474,25 +3504,25 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_copyCueContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.copyCueContent</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_copyCueContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L507">src</a></div>
 <p>Copies one cue's text into caller-owned storage.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">copyCueContent</span>(index: <span class="STpe">u64</span>, result: *<span class="SCst"><a href="std.core.html#Core_String">String</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_copyDisplayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.copyDisplayName</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_copyDisplayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L470">src</a></div>
 <p>Copies the display name into caller-owned storage.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">copyDisplayName</span>(result: *<span class="SCst"><a href="std.core.html#Core_String">String</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_copyLanguageTag" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.copyLanguageTag</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_copyLanguageTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L478">src</a></div>
 <p>Copies the language tag into caller-owned storage.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">copyLanguageTag</span>(result: *<span class="SCst"><a href="std.core.html#Core_String">String</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_copyPresentationAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.copyPresentationAt</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_copyPresentationAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L734">src</a></div>
 <p>Copies the active cue text into caller-owned storage and returns the next transition.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">copyPresentationAt</span>(seconds: <span class="STpe">f64</span>, result: *<span class="SCst"><a href="std.core.html#Core_String">String</a></span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -3508,37 +3538,37 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueContent" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueContent</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueContent" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L497">src</a></div>
 <p>Borrows one cue's text, or returns an empty view when <span class="code-inline">index</span> is outside the track.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueContent</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueCount</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L490">src</a></div>
 <p>Returns the number of timed cues.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueEndTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueEndTime</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueEndTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L520">src</a></div>
 <p>Returns the exclusive end of one cue, or zero outside the track.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueEndTime</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueStartTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueStartTime</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueStartTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L516">src</a></div>
 <p>Returns the inclusive start of one cue, or zero outside the track.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueStartTime</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">f64</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueTextData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueTextData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueTextData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L524">src</a></div>
 <p>Borrows the UTF-8 bytes for one cue. The pointer remains valid while the track is alive.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueTextData</span>(index: <span class="STpe">u64</span>)-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_cueTextLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.cueTextLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_cueTextLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L533">src</a></div>
 <p>Returns the UTF-8 byte count for one cue, or zero outside the track.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">cueTextLength</span>(index: <span class="STpe">u64</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -3555,25 +3585,25 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.destroy</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L675">src</a></div>
 <p>Releases a track returned by <a href="#Video_Subtitle_Track_loadOwned">Video.Subtitle.Track.loadOwned</a>.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">func</span> <span class="SFct">destroy</span>(track: *<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>)</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayName</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L462">src</a></div>
 <p>Borrows the container or file display name.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayName</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayNameData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayNameData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayNameData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L537">src</a></div>
 <p>Borrows the display-name bytes. Use <a href="#Video_Subtitle_Track_displayNameLength">Video.Subtitle.Track.displayNameLength</a> for the size.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_displayNameLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.displayNameLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_displayNameLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L541">src</a></div>
 <p>Returns the display-name byte count.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">displayNameLength</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -3584,19 +3614,19 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTag" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTag</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTag" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L466">src</a></div>
 <p>Borrows the BCP 47 or container language tag.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTag</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTagData" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTagData</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTagData" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L545">src</a></div>
 <p>Borrows the language-tag bytes. Use <a href="#Video_Subtitle_Track_languageTagLength">Video.Subtitle.Track.languageTagLength</a> for the size.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagData</span>()-&gt;<span class="SKwd">const</span> [*] <span class="STpe">u8</span>?</span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_languageTagLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.languageTagLength</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_languageTagLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L549">src</a></div>
 <p>Returns the language-tag byte count.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagLength</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -3614,7 +3644,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_loadOwned" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.loadOwned</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_loadOwned" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L656">src</a></div>
 <p>Loads a track whose lifetime remains owned by the video module.</p>
 <p>A successful call returns a non-null pointer. Call <a href="#Video_Subtitle_Track_destroy">Video.Subtitle.Track.destroy</a> when the track is no longer needed.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">func</span> <span class="SFct">loadOwned</span>(fileName: <span class="STpe">string</span>)-&gt;*<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -3630,7 +3660,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Subtitle_Track_sourceFormat" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.sourceFormat</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_sourceFormat" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L486">src</a></div>
 <p>Returns the decoded source syntax.</p>
-<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_NoInline">NoInline</a>]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">sourceFormat</span>()-&gt;<span class="SCst"><a href="#Video_Subtitle_Format">Format</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -3677,7 +3707,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="api-item api-item-func"><span id="Video_Writer_encodableFormats" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.encodableFormats</span> <a class="api-item-permalink" href="#Video_Writer_encodableFormats" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L106">src</a></div>
 <p>Returns the format written by each registered encoder, in registration order.</p>
 <p>The result is owned by the caller and is a snapshot: registering another encoder afterwards does not change it. Use it to build the format list of a save dialog.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodableFormats</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">encodableFormats</span>()-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="SCst"><a href="#Video_StreamFormat">StreamFormat</a></span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Video_Writer_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Writer.end</span> <a class="api-item-permalink" href="#Video_Writer_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/encode/writer.swg#L229">src</a></div>
@@ -4121,6 +4151,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 "k|Video.Subtitle.Format.SubRip|Video_Subtitle_Format_SubRip|SubRip .srt timestamps and cue blocks.",
 "k|Video.Subtitle.Format.SubStationAlpha|Video_Subtitle_Format_SubStationAlpha|SubStation Alpha .ssa and Advanced SubStation Alpha .ass events.",
 "k|Video.Subtitle.Format.WebVtt|Video_Subtitle_Format_WebVtt|WebVTT .vtt cues and inline markup.",
+"c|Video.H264.InterCbpToGolomb|Video_H264_InterCbpToGolomb|Maps an inter coded-block pattern to its CAVLC code number.",
 "a|Video.Mp4.SoftwareFrameRenderer|Video_Mp4_SoftwareFrameRenderer|Replaces one decoded picture with its edited pixels; the image and index are borrowed.",
 "f|Video.Clip.addFrame|Video_Clip_addFrame|Adds an owned copy of one frame to the clip.",
 "f|Video.Clip.create|Video_Clip_create|Creates an empty clip with fixed geometry and timing.",

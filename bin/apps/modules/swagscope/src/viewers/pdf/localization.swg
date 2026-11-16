@@ -12,6 +12,8 @@ struct Texts
     ui_ZoomIn:          string = "Zoom In"                                   // Tooltip of the zoom-in button.
     ui_Fit:             string = "Fit Page"                                  // Zoom menu action that fits a whole page.
     ui_FitWidth:        string = "Fit Width"                                 // Zoom menu action that fits the page width.
+    ui_CopyText:        string = "Copy Selected Text"                        // Lens command copying the text selected on the pages.
+    ui_SelectPage:      string = "Select the Page's Text"                    // Lens command selecting the whole text of the page in view.
     ui_Actual:          string = "Actual Size"                               // Tooltip of the actual-size button.
     ui_ZoomMenu:        string = "Zoom…"                                     // Tooltip of the zoom value menu.
     ui_GoToPage:        string = "Go to Page"                                // Title and tooltip of direct page navigation.

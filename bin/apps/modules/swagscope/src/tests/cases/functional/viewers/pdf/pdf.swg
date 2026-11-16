@@ -215,3 +215,40 @@ internal func createPdfFixture()->String
     Swag.require(view.goToTypedPage("4") and view.pdfView.pageIndex == 3)
     Swag.require(not view.goToTypedPage("xiv"))
 }
+
+// The lens selects the text of the page in view and copies a selection, as the page's context
+// menu does; with nothing selected, the copy is offered faint.
+#test
+{
+    var host: HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, scopeTestDataPath("viewer.pdf"))
+    let view    = assume cast(*PdfDocument.Panel, session.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    view.resize(640, 360)
+    view.applyLayout()
+    discard host.render(view)
+
+    func row(view: *PdfDocument.Panel, host: *HeadlessHost, title: string, results: *Lens.Results)->*Lens.Entry?
+    {
+        var entries = Viewer.LensEntries.create(results, "PDF", host.theme)
+        view.describeLens(&entries)
+        for &entry in results.sections[0]!.entries where entry.title == title do
+            return entry
+        Swag.require(false, title)
+        return null
+    }
+
+    var before: Lens.Results
+    Swag.require((unwrap row(view, &host, PdfDocument.texts().ui_CopyText, &before)).disabled)
+    var select: Lens.Results
+    (unwrap row(view, &host, PdfDocument.texts().ui_SelectPage, &select)).run!()
+    Swag.require(view.pdfView.hasSelection())
+
+    discard catch Clipboard.resetFake()
+    var copy: Lens.Results
+    let entry = unwrap row(view, &host, PdfDocument.texts().ui_CopyText, &copy)
+    Swag.require(not entry.disabled)
+    entry.run!()
+    Swag.require(not Clipboard.getString().isEmpty())
+}

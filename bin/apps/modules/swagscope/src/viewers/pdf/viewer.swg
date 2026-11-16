@@ -435,6 +435,10 @@ private impl Panel
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+
+        // The commands of the page's context menu, so none of them needs a right click.
+        entries.add(strings.ui_CopyText, .Copy, func|view = me|() { discard view.pdfView.copySelection() }, disabled: not .pdfView.hasSelection(), shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(strings.ui_SelectPage, .SelectAll, func|view = me|() { view.pdfView.selectAll() }, disabled: not .pdfView.pageCount(), shortcut: Input.formatKeyShortcut(.Control, .A))
     }
 
     mtd promptGoToPage()

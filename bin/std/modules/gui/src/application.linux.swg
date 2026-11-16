@@ -114,19 +114,19 @@ impl Application
                                                                                  0,
                                                                                  0),
                                                         null)
-        if not reply
 
+        // The server refuses the grab while another client holds the pointer, or before it shows
+        // the window. The capture still sends `window` the pointer events this application
+        // receives, which is all of them for a surface covering the desktop: a refusal costs
+        // the events outside the application, never the application itself.
+        if reply
         {
-            expect LinuxDesktop.failNative(Linux.EIO)
-
-            unreachable
+            if reply.status == 0 do
+                context.pointerCapture = surface
+            Linux.free(reply)
         }
 
-        defer Linux.free(reply)
-        if reply.status != 0 do
-            expect LinuxDesktop.failNative(Linux.EBUSY)
-        context.pointerCapture = surface
-        .mouseCaptureWnd       = window
+        .mouseCaptureWnd = window
     }
 
     internal mtd releaseMouse()

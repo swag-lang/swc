@@ -185,6 +185,29 @@ public impl Keyboard
     // Only the first three pointer buttons are supported by this core-protocol adapter.
     func isKeyPressed(key: Key)->bool
     {
+        // A pointer button is one bit of the pointer state. The mouse asks for each of its
+        // buttons on every frame, so it is not answered by reading the whole keyboard and its
+        // mapping, four round trips to the server per button.
+        var button: u16
+        switch key
+        {
+        case .LButton:            button = 1 << 8
+        case .MButton:            button = 1 << 9
+        case .RButton:            button = 1 << 10
+        case .XButton1, .XButton2: return false
+        }
+
+        if button
+        {
+            let context    = catch LinuxDesktop.ensure() { return false; }
+            let connection = unwrap context.connection
+            let pointer    = context.xcb_query_pointer_reply(connection, context.xcb_query_pointer(connection, context.screen.root), null)
+            if not pointer do
+                return false
+            defer Linux.free(pointer)
+            return (pointer.mask & button) != 0
+        }
+
         var snapshot: KeyboardStateNative
         snapshot.updateNative()
         return snapshot.isKeyPressed(key)

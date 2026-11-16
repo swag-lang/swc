@@ -1053,3 +1053,28 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     f.main.recentWnd.addRecent("one-more", preview, front: true)
     Swag.require(f.main.recentWnd.recentView.selected == Swag.U64.Max)
 }
+
+// A picture opened from a file is known by its own name, not by the generated name of the
+// library file that stores it; a title or a source application still comes first.
+#test
+{
+    var capture: Capture
+    capture.file        = Path.combine(Env.sandboxRoot(), "11_15_2026_22_22_15.scc")
+    capture.linkedImage = Path.combine(Env.sandboxRoot(), "pictures", "release notes.png")
+    Swag.require(capture.displayName() == "release notes")
+
+    capture.sourceApplication = "Swag Scope"
+    Swag.require(capture.displayName() == "Swag Scope")
+    capture.title = "Toolbar"
+    Swag.require(capture.displayName() == "Toolbar")
+
+    capture.title.clear()
+    capture.sourceApplication.clear()
+    capture.linkedImage.clear()
+    Swag.require(capture.displayName() == "11_15_2026_22_22_15")
+
+    // A rename starts from the name shown, but not from a generated library file name.
+    Swag.require(capture.editableName().isEmpty())
+    capture.linkedImage = Path.combine(Env.sandboxRoot(), "pictures", "release notes.png")
+    Swag.require(capture.editableName() == "release notes")
+}

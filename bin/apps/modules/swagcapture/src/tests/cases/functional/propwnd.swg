@@ -751,3 +751,45 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     Swag.require(prop.getSelectedForm'FormCallout() == null)
     Swag.require(prop.getSelectedForm'FormText() != null)
 }
+
+// Returns the value the first row of `count` glyph choices under `wnd` has checked, as the
+// kind of a shape is; the maximum when no glyph is checked.
+func testFirstCheckedChoice(wnd: *Wnd, count: u64)->u64
+{
+    for child in wnd.children
+    {
+        if child.itf is IconButton as glyph where glyph.flags.has(.Radio) and wnd.children.count == count
+        {
+            for other in wnd.children where (assume cast(*IconButton, other)).isChecked do
+                return cast(u64, other.userData)
+            return Swag.U64.Max
+        }
+
+        let found = testFirstCheckedChoice(child, count)
+        if found != Swag.U64.Max - 1 do
+            return found
+    }
+
+    return Swag.U64.Max - 1
+}
+
+// The first frame makes the first preset of each set the model of its tool: the properties of
+// the inspector follow, rather than showing the model as it was before.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let prop = testSetupPropWnd(&f)
+    f.main.editMode = .Shape
+    f.main.mdlFormShape.kind = .Ellipse
+    prop.selectionHasChanged()
+    f.gui.pump()
+    Swag.require(testFirstCheckedChoice(prop, FormShapeKind.count) == cast(u64, FormShapeKind.Ellipse))
+
+    (assume cast(*FormShape, f.main.quickWnd.qsShape.forms[0])).kind = .Rectangle
+    f.main.quickWnd.setDefault()
+    f.gui.pump()
+    Swag.require(f.main.mdlFormShape.kind == .Rectangle)
+    Swag.require(testFirstCheckedChoice(prop, FormShapeKind.count) == cast(u64, FormShapeKind.Rectangle))
+}

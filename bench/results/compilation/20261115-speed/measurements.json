@@ -1,0 +1,3622 @@
+{
+  "method": "alternating AB/BA, forced rebuild, per-role cache roots, no overlapping compiler workload; ratios are median(round new/base)",
+  "accepted": [
+    {
+      "id": "final-ab-core-devmode-3core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "core",
+          "cfg": "devmode",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 13,
+          "out": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 3.8812623119993077,
+            "cpu_s": 10.642404,
+            "rss_kib": 545396,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 3.8208926070001326,
+            "cpu_s": 10.556326,
+            "rss_kib": 542636,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 3.7478506270017533,
+            "cpu_s": 10.387870999999999,
+            "rss_kib": 560764,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 3.914856391000285,
+            "cpu_s": 10.655040999999999,
+            "rss_kib": 558768,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 3.7766848110004503,
+            "cpu_s": 10.433467,
+            "rss_kib": 575176,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 3.7011328490007145,
+            "cpu_s": 10.155064999999999,
+            "rss_kib": 574836,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 3.8137750980004057,
+            "cpu_s": 10.568417,
+            "rss_kib": 571316,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 4.084974427998532,
+            "cpu_s": 11.303387,
+            "rss_kib": 585172,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 3.8455320980010583,
+            "cpu_s": 10.624015,
+            "rss_kib": 569012,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 3.856862770000589,
+            "cpu_s": 10.630662000000001,
+            "rss_kib": 566724,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "new",
+            "wall_s": 3.941117762000431,
+            "cpu_s": 10.777138,
+            "rss_kib": 579432,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/5-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "base",
+            "wall_s": 3.9538878530001966,
+            "cpu_s": 10.932857,
+            "rss_kib": 577200,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/5-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "base",
+            "wall_s": 3.9397070390004956,
+            "cpu_s": 10.955556,
+            "rss_kib": 576972,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/6-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "new",
+            "wall_s": 3.9813391549996595,
+            "cpu_s": 10.898121999999999,
+            "rss_kib": 583056,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/6-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "new",
+            "wall_s": 4.070239459999357,
+            "cpu_s": 11.259801999999999,
+            "rss_kib": 566844,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/7-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "base",
+            "wall_s": 4.070445855999424,
+            "cpu_s": 11.25515,
+            "rss_kib": 576456,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/7-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "base",
+            "wall_s": 4.074615330000597,
+            "cpu_s": 11.294419000000001,
+            "rss_kib": 564500,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/8-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "new",
+            "wall_s": 3.9665306080005394,
+            "cpu_s": 10.960645,
+            "rss_kib": 565424,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/8-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 9,
+            "role": "new",
+            "wall_s": 4.079948456999773,
+            "cpu_s": 11.178740999999999,
+            "rss_kib": 568764,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/9-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 9,
+            "role": "base",
+            "wall_s": 3.9760395949997474,
+            "cpu_s": 10.998357,
+            "rss_kib": 548408,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/9-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 10,
+            "role": "base",
+            "wall_s": 4.044767440000214,
+            "cpu_s": 11.198571000000001,
+            "rss_kib": 581348,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/10-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 10,
+            "role": "new",
+            "wall_s": 3.789358681999147,
+            "cpu_s": 10.44455,
+            "rss_kib": 571236,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/10-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 11,
+            "role": "new",
+            "wall_s": 3.6607462400006625,
+            "cpu_s": 10.195798,
+            "rss_kib": 556472,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/11-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 11,
+            "role": "base",
+            "wall_s": 3.7826094330011983,
+            "cpu_s": 10.525007,
+            "rss_kib": 546568,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/11-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 12,
+            "role": "base",
+            "wall_s": 3.8432380740014196,
+            "cpu_s": 10.67476,
+            "rss_kib": 559900,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/12-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 12,
+            "role": "new",
+            "wall_s": 3.8902217899994866,
+            "cpu_s": 10.599157,
+            "rss_kib": 566940,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/12-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "core",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab-core-devmode-3core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 13,
+        "wall_s": {
+          "base_median": 3.9397070390004956,
+          "new_median": 3.856862770000589,
+          "paired_median_ratio": 0.9844458580363052,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.9844458580363052,
+            0.9573405133372312,
+            0.9799951635414018,
+            0.9336105195324313,
+            1.0029464510270036,
+            0.9967702445100775,
+            1.01056731264204,
+            0.9999492940067578,
+            0.9734736378169858,
+            1.0261337593646453,
+            0.9368545258065434,
+            0.9677833000845009,
+            1.0122250339670344
+          ]
+        },
+        "cpu_s": {
+          "base_median": 10.932857,
+          "new_median": 10.599157,
+          "paired_median_ratio": 0.9857567880015261,
+          "new_lower_pairs": 10,
+          "paired_ratios": [
+            0.9919117898549988,
+            0.9749254836278903,
+            0.9733164440928407,
+            0.9349778964482062,
+            1.0006256580021773,
+            0.9857567880015261,
+            0.9947575458516208,
+            1.0004133219015294,
+            0.9704478822682245,
+            1.0164009951668234,
+            0.932668105600259,
+            0.9687212559573594,
+            0.9929175925266704
+          ]
+        },
+        "rss_kib": {
+          "base_median": 569012,
+          "new_median": 566940,
+          "paired_median_ratio": 1.0016368467670504,
+          "new_lower_pairs": 6,
+          "paired_ratios": [
+            0.9949394568350336,
+            1.0035721444320362,
+            0.9994088765873402,
+            0.9763214918007014,
+            0.9959789951705764,
+            1.0038669438669439,
+            1.0105447058089474,
+            0.9833257004871143,
+            1.0016368467670504,
+            1.0371183498417236,
+            0.9826059434280328,
+            1.0181203436717847,
+            1.012573673870334
+          ]
+        }
+      }
+    },
+    {
+      "id": "final-ab-gui-devmode-3core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "gui",
+          "cfg": "devmode",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 9,
+          "out": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 30.396647194998877,
+            "cpu_s": 84.61820200000001,
+            "rss_kib": 1421244,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 27.038083331000962,
+            "cpu_s": 75.68257299999999,
+            "rss_kib": 1430708,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 27.015782518001288,
+            "cpu_s": 75.768872,
+            "rss_kib": 1419900,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 31.069820996001,
+            "cpu_s": 86.687673,
+            "rss_kib": 1431628,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 29.374946518999423,
+            "cpu_s": 82.06756,
+            "rss_kib": 1411876,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 26.171758935999605,
+            "cpu_s": 73.39739499999999,
+            "rss_kib": 1432036,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 26.113147690000915,
+            "cpu_s": 73.39088000000001,
+            "rss_kib": 1420804,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 29.51515296999969,
+            "cpu_s": 82.581426,
+            "rss_kib": 1440356,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 29.563711631999467,
+            "cpu_s": 81.96822900000001,
+            "rss_kib": 1411808,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 26.717463783999847,
+            "cpu_s": 75.00032300000001,
+            "rss_kib": 1395772,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "new",
+            "wall_s": 26.45684807699945,
+            "cpu_s": 74.274211,
+            "rss_kib": 1429960,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/5-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "base",
+            "wall_s": 30.691844937000496,
+            "cpu_s": 85.691091,
+            "rss_kib": 1425800,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/5-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "base",
+            "wall_s": 30.576383637000617,
+            "cpu_s": 84.74046000000001,
+            "rss_kib": 1438404,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/6-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "new",
+            "wall_s": 27.201169412001036,
+            "cpu_s": 76.339119,
+            "rss_kib": 1425036,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/6-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "new",
+            "wall_s": 26.118837317000725,
+            "cpu_s": 73.682831,
+            "rss_kib": 1409352,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/7-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "base",
+            "wall_s": 28.82169545999932,
+            "cpu_s": 80.28704499999999,
+            "rss_kib": 1414264,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/7-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "base",
+            "wall_s": 29.131107412998972,
+            "cpu_s": 80.984635,
+            "rss_kib": 1416456,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/8-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "new",
+            "wall_s": 26.123314634000053,
+            "cpu_s": 73.259412,
+            "rss_kib": 1429144,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/8-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab-gui-devmode-3core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 9,
+        "wall_s": {
+          "base_median": 29.563711631999467,
+          "new_median": 26.45684807699945,
+          "paired_median_ratio": 0.8896136879668393,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.8895087394852385,
+            0.8695184475468491,
+            0.8909551177930477,
+            0.884736993114801,
+            0.9037249489025975,
+            0.862015565740867,
+            0.8896136879668393,
+            0.9062214037078491,
+            0.8967497961420865
+          ]
+        },
+        "cpu_s": {
+          "base_median": 82.581426,
+          "new_median": 74.274211,
+          "paired_median_ratio": 0.894400627893275,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.894400627893275,
+            0.8740443638393661,
+            0.8943533230426247,
+            0.8887092843371343,
+            0.9149926003647096,
+            0.8667670131542612,
+            0.9008579726850666,
+            0.9177424701581681,
+            0.904608781653458
+          ]
+        },
+        "rss_kib": {
+          "base_median": 1421244,
+          "new_median": 1425036,
+          "paired_median_ratio": 0.9965268153612056,
+          "new_lower_pairs": 5,
+          "paired_ratios": [
+            1.0066589551125633,
+            0.9918079277577695,
+            1.0142788743487388,
+            0.9864255781209645,
+            0.9886415149935402,
+            1.0029176602609062,
+            0.9907063662225634,
+            0.9965268153612056,
+            1.0089575673370723
+          ]
+        }
+      }
+    },
+    {
+      "id": "final-ab3-gui-devmode-1core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "gui",
+          "cfg": "devmode",
+          "cores": 1,
+          "workspace": "std",
+          "rounds": 5,
+          "out": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 76.70021122100297,
+            "cpu_s": 76.534648,
+            "rss_kib": 1191172,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 67.38878440999906,
+            "cpu_s": 67.247978,
+            "rss_kib": 1192456,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 67.45673033099956,
+            "cpu_s": 67.338439,
+            "rss_kib": 1200040,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 76.21684708999965,
+            "cpu_s": 76.09172000000001,
+            "rss_kib": 1178444,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 77.45175106100214,
+            "cpu_s": 77.286626,
+            "rss_kib": 1196144,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 66.36321064599906,
+            "cpu_s": 66.222876,
+            "rss_kib": 1197440,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 69.14088522699967,
+            "cpu_s": 69.007301,
+            "rss_kib": 1201872,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 79.69323353000073,
+            "cpu_s": 79.55334599999999,
+            "rss_kib": 1191532,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 78.61862498700066,
+            "cpu_s": 78.521484,
+            "rss_kib": 1200272,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 68.41329586800202,
+            "cpu_s": 68.27600199999999,
+            "rss_kib": 1192084,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "1",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "1",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab3-gui-devmode-1core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 5,
+        "wall_s": {
+          "base_median": 77.45175106100214,
+          "new_median": 67.45673033099956,
+          "paired_median_ratio": 0.8701919663351266,
+          "new_lower_pairs": 5,
+          "paired_ratios": [
+            0.8785997240063121,
+            0.885063249222894,
+            0.856832928073252,
+            0.8675879013112375,
+            0.8701919663351266
+          ]
+        },
+        "cpu_s": {
+          "base_median": 77.286626,
+          "new_median": 67.338439,
+          "paired_median_ratio": 0.8695200156940487,
+          "new_lower_pairs": 5,
+          "paired_ratios": [
+            0.8786605773636014,
+            0.8849640801916422,
+            0.8568478070190307,
+            0.8674342999978908,
+            0.8695200156940487
+          ]
+        },
+        "rss_kib": {
+          "base_median": 1191532,
+          "new_median": 1197440,
+          "paired_median_ratio": 1.0010834815875012,
+          "new_lower_pairs": 1,
+          "paired_ratios": [
+            1.0010779299714903,
+            1.018325860202097,
+            1.0010834815875012,
+            1.0086779037407305,
+            0.9931782129384006
+          ]
+        }
+      }
+    },
+    {
+      "id": "final-ab3-gui-release-3core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "gui",
+          "cfg": "release",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 9,
+          "out": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 21.00102064300154,
+            "cpu_s": 58.88492,
+            "rss_kib": 1123464,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 18.961525107999478,
+            "cpu_s": 52.672824999999996,
+            "rss_kib": 1126028,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 18.40506410099988,
+            "cpu_s": 51.158348999999994,
+            "rss_kib": 1112216,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 19.559839022000233,
+            "cpu_s": 54.434647999999996,
+            "rss_kib": 1118848,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 19.64455192800233,
+            "cpu_s": 54.404527,
+            "rss_kib": 1126264,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 19.496010824001132,
+            "cpu_s": 53.431041,
+            "rss_kib": 1119304,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 19.45129953400101,
+            "cpu_s": 52.881333000000005,
+            "rss_kib": 1106596,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 19.68739464099781,
+            "cpu_s": 54.475639,
+            "rss_kib": 1126680,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 20.781889280999167,
+            "cpu_s": 57.135808,
+            "rss_kib": 1113716,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 18.178504736999457,
+            "cpu_s": 50.426814,
+            "rss_kib": 1104232,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "new",
+            "wall_s": 18.71661804100222,
+            "cpu_s": 52.051697,
+            "rss_kib": 1099292,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/5-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "base",
+            "wall_s": 19.445994203000737,
+            "cpu_s": 54.036186,
+            "rss_kib": 1115216,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/5-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "base",
+            "wall_s": 19.472465371,
+            "cpu_s": 54.10594,
+            "rss_kib": 1114160,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/6-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "new",
+            "wall_s": 18.77833294100128,
+            "cpu_s": 52.043997,
+            "rss_kib": 1117388,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/6-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "new",
+            "wall_s": 18.708927269002743,
+            "cpu_s": 51.936534,
+            "rss_kib": 1129872,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/7-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "base",
+            "wall_s": 19.44777050599805,
+            "cpu_s": 54.05271,
+            "rss_kib": 1126416,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/7-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "base",
+            "wall_s": 18.952765157999238,
+            "cpu_s": 52.993474,
+            "rss_kib": 1118420,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/8-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "new",
+            "wall_s": 18.15666563600098,
+            "cpu_s": 50.389838999999995,
+            "rss_kib": 1117708,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/8-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab3-gui-release-3core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 9,
+        "wall_s": {
+          "base_median": 19.559839022000233,
+          "new_median": 18.71661804100222,
+          "paired_median_ratio": 0.9620088463730362,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.9028858849447534,
+            0.9409619414709138,
+            0.9924385598335048,
+            0.988007803404055,
+            0.8747282064302028,
+            0.9624922153948825,
+            0.9643531305988364,
+            0.9620088463730362,
+            0.9579956003590191
+          ]
+        },
+        "cpu_s": {
+          "base_median": 54.404527,
+          "new_median": 52.043997,
+          "paired_median_ratio": 0.9608497705295443,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.8945044843399633,
+            0.9398122497274162,
+            0.9821065258043692,
+            0.970733597085479,
+            0.8825781198368631,
+            0.9632748136591283,
+            0.9618906352980837,
+            0.9608497705295443,
+            0.9508687616894109
+          ]
+        },
+        "rss_kib": {
+          "base_median": 1118848,
+          "new_median": 1117388,
+          "paired_median_ratio": 0.9940724745452465,
+          "new_lower_pairs": 6,
+          "paired_ratios": [
+            1.0022822271118612,
+            0.9940724745452465,
+            0.9938202765958958,
+            0.9821741754535449,
+            0.991484364056905,
+            0.9857211517768755,
+            1.0028972499461477,
+            1.0030681382366728,
+            0.9993633876361295
+          ]
+        }
+      }
+    },
+    {
+      "id": "final-ab3-gui-release-safe-3core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "gui",
+          "cfg": "release-safe",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 9,
+          "out": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 33.30069318800088,
+            "cpu_s": 90.631602,
+            "rss_kib": 1429528,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 28.24141835699993,
+            "cpu_s": 79.320641,
+            "rss_kib": 1441736,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 28.673888876001,
+            "cpu_s": 80.662385,
+            "rss_kib": 1425232,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 33.591751259002194,
+            "cpu_s": 91.11381999999999,
+            "rss_kib": 1428372,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 33.92373090500041,
+            "cpu_s": 91.918793,
+            "rss_kib": 1435380,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 27.989555210999242,
+            "cpu_s": 78.968395,
+            "rss_kib": 1438640,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 27.62839054000142,
+            "cpu_s": 77.67739,
+            "rss_kib": 1441840,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 33.55287165600021,
+            "cpu_s": 90.97273799999999,
+            "rss_kib": 1437196,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 33.81803975799994,
+            "cpu_s": 92.06325,
+            "rss_kib": 1418392,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 27.627570158998424,
+            "cpu_s": 77.62251099999999,
+            "rss_kib": 1455428,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "new",
+            "wall_s": 27.721139427998423,
+            "cpu_s": 78.081735,
+            "rss_kib": 1427260,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/5-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "base",
+            "wall_s": 33.239468851999845,
+            "cpu_s": 89.972616,
+            "rss_kib": 1432916,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/5-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "base",
+            "wall_s": 33.423247447000904,
+            "cpu_s": 90.359353,
+            "rss_kib": 1439744,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/6-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "new",
+            "wall_s": 28.500280094001937,
+            "cpu_s": 79.940344,
+            "rss_kib": 1427544,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/6-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "new",
+            "wall_s": 28.165815570999257,
+            "cpu_s": 79.19792,
+            "rss_kib": 1441424,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/7-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 7,
+            "role": "base",
+            "wall_s": 32.77967043299941,
+            "cpu_s": 88.984319,
+            "rss_kib": 1449896,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/7-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "base",
+            "wall_s": 32.8083672770008,
+            "cpu_s": 89.09553899999999,
+            "rss_kib": 1417944,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/8-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 8,
+            "role": "new",
+            "wall_s": 27.602330953999626,
+            "cpu_s": 77.66408,
+            "rss_kib": 1456512,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/8-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release-safe",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab3-gui-release-safe-3core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 9,
+        "wall_s": {
+          "base_median": 33.423247447000904,
+          "new_median": 27.989555210999242,
+          "paired_median_ratio": 0.8413198596855904,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.8480729874769112,
+            0.8535991069628064,
+            0.8250730230522356,
+            0.8234284928950538,
+            0.816947710650878,
+            0.8339826232310745,
+            0.8527082875233685,
+            0.8592464536386745,
+            0.8413198596855904
+          ]
+        },
+        "cpu_s": {
+          "base_median": 90.631602,
+          "new_median": 78.968395,
+          "paired_median_ratio": 0.8716943729360008,
+          "new_lower_pairs": 9,
+          "paired_ratios": [
+            0.8751984876092116,
+            0.885292538497453,
+            0.859110443280081,
+            0.8538534918010273,
+            0.8431432846439811,
+            0.8678388877789215,
+            0.8846936298890941,
+            0.890021083377623,
+            0.8716943729360008
+          ]
+        },
+        "rss_kib": {
+          "base_median": 1432916,
+          "new_median": 1441424,
+          "paired_median_ratio": 1.0022711755771991,
+          "new_lower_pairs": 4,
+          "paired_ratios": [
+            1.008539881695217,
+            0.997801693116359,
+            1.0022711755771991,
+            1.003231292043674,
+            1.026111258382732,
+            0.996052804211831,
+            0.9915262713371266,
+            0.9941568222824257,
+            1.027199945837071
+          ]
+        }
+      }
+    },
+    {
+      "id": "final-broad-scope",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "swagscope",
+          "cfg": "devmode",
+          "cores": 3,
+          "workspace": "apps",
+          "rounds": 4,
+          "out": "/workspace/swc-opt-20261115/final-broad-scope",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 53.861497580001014,
+            "cpu_s": 149.14384900000002,
+            "rss_kib": 2523464,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 48.95339570099895,
+            "cpu_s": 136.114994,
+            "rss_kib": 2546012,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 49.31277796499853,
+            "cpu_s": 136.548658,
+            "rss_kib": 2541880,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 52.62050856199858,
+            "cpu_s": 145.410121,
+            "rss_kib": 2527180,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 55.24504538900146,
+            "cpu_s": 152.88549500000002,
+            "rss_kib": 2508572,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 48.676328367997485,
+            "cpu_s": 134.935484,
+            "rss_kib": 2570592,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 48.44931537700177,
+            "cpu_s": 134.639294,
+            "rss_kib": 2540948,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 53.39032936900185,
+            "cpu_s": 147.916245,
+            "rss_kib": 2547628,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-broad-scope/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-broad-scope/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 4,
+        "wall_s": {
+          "base_median": 53.62591347450143,
+          "new_median": 48.81486203449822,
+          "paired_median_ratio": 0.9081651956390837,
+          "new_lower_pairs": 4,
+          "paired_ratios": [
+            0.9088755029190934,
+            0.9371398968312363,
+            0.8810985315560674,
+            0.9074548883590741
+          ]
+        },
+        "cpu_s": {
+          "base_median": 148.53004700000002,
+          "new_median": 135.525239,
+          "paired_median_ratio": 0.9114412165851618,
+          "new_lower_pairs": 4,
+          "paired_ratios": [
+            0.9126423577817143,
+            0.9390588293369206,
+            0.8825917985221553,
+            0.9102400753886093
+          ]
+        },
+        "rss_kib": {
+          "base_median": 2525322.0,
+          "new_median": 2543946.0,
+          "paired_median_ratio": 1.0073760483444896,
+          "new_lower_pairs": 1,
+          "paired_ratios": [
+            1.0089353365056921,
+            1.0058167601832873,
+            1.0247232289924308,
+            0.9973779531391553
+          ]
+        }
+      }
+    },
+    {
+      "id": "final-broad-std-all",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "",
+          "cfg": "devmode",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 7,
+          "out": "/workspace/swc-opt-20261115/final-broad-std-all",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 44.39011745099924,
+            "cpu_s": 124.34620699999999,
+            "rss_kib": 1750900,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 39.427435222001805,
+            "cpu_s": 111.055924,
+            "rss_kib": 1745984,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 39.8824775940011,
+            "cpu_s": 112.271221,
+            "rss_kib": 1776480,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 46.98847207699873,
+            "cpu_s": 131.960168,
+            "rss_kib": 1798280,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 44.886904382001376,
+            "cpu_s": 125.418352,
+            "rss_kib": 1799348,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 39.73835366899948,
+            "cpu_s": 111.771467,
+            "rss_kib": 1681052,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 41.1748261419998,
+            "cpu_s": 115.796364,
+            "rss_kib": 1793840,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 43.731222021000576,
+            "cpu_s": 122.730227,
+            "rss_kib": 1758244,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 44.81348202000299,
+            "cpu_s": 125.659288,
+            "rss_kib": 1774428,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 40.23276026399981,
+            "cpu_s": 113.479052,
+            "rss_kib": 1796876,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "new",
+            "wall_s": 39.56136495300234,
+            "cpu_s": 111.418357,
+            "rss_kib": 1810168,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/5-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "base",
+            "wall_s": 43.74404555000001,
+            "cpu_s": 122.992328,
+            "rss_kib": 1786852,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/5-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "base",
+            "wall_s": 44.907967923001706,
+            "cpu_s": 126.152748,
+            "rss_kib": 1777096,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/6-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 6,
+            "role": "new",
+            "wall_s": 40.35347132500101,
+            "cpu_s": 113.67126200000001,
+            "rss_kib": 1827412,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all/6-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-broad-std-all/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-broad-std-all/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "summary": {
+        "pairs": 7,
+        "wall_s": {
+          "base_median": 44.81348202000299,
+          "new_median": 39.8824775940011,
+          "paired_median_ratio": 0.8977825076400328,
+          "new_lower_pairs": 7,
+          "paired_ratios": [
+            0.8882029939552294,
+            0.8487715354661196,
+            0.8852994924937094,
+            0.941543003811484,
+            0.8977825076400328,
+            0.9043828584117395,
+            0.8985815478043954
+          ]
+        },
+        "cpu_s": {
+          "base_median": 125.418352,
+          "new_median": 112.271221,
+          "paired_median_ratio": 0.901060530207396,
+          "new_lower_pairs": 7,
+          "paired_ratios": [
+            0.8931187100865893,
+            0.8507962872554087,
+            0.8911890900942472,
+            0.943503217019227,
+            0.9030693536955262,
+            0.905896805205606,
+            0.901060530207396
+          ]
+        },
+        "rss_kib": {
+          "base_median": 1777096,
+          "new_median": 1793840,
+          "paired_median_ratio": 1.0126508373402583,
+          "new_lower_pairs": 3,
+          "paired_ratios": [
+            0.9971923011022903,
+            0.9878773049803146,
+            0.9342561861296426,
+            1.020245199187371,
+            1.0126508373402583,
+            1.0130486464463762,
+            1.0283136082687712
+          ]
+        }
+      }
+    }
+  ],
+  "excluded": [
+    {
+      "id": "final-ab-gui-release-3core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "gui",
+          "cfg": "release",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 9,
+          "out": "/workspace/swc-opt-20261115/final-ab-gui-release-3core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 19.66449566600022,
+            "cpu_s": 54.827712000000005,
+            "rss_kib": 1115952,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 18.726166910999382,
+            "cpu_s": 52.048694,
+            "rss_kib": 1118508,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 18.169524174998514,
+            "cpu_s": 50.387921,
+            "rss_kib": 1105668,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 19.207784930000344,
+            "cpu_s": 53.446763,
+            "rss_kib": 1121504,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 1.6468113840001024,
+            "cpu_s": 4.436083,
+            "rss_kib": 337008,
+            "exit": 5,
+            "log": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": false,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab-gui-release-3core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "reason": "nonzero compiler exit",
+      "failures": [
+        {
+          "round": 2,
+          "role": "base",
+          "exit": 5,
+          "log_tail": "\n  \u25c6  swag        build \u2022 std [gui] \u2022 release\n  \u2713  module      linux \u2022 85 files \u2022 62 ms\nerror: expected a value expression here\n   --> /workspace/swc-opt-20261115/fixtures/std/modules/core/src/text/regexp/prefilter.swg:795:33-37\n795 \u2502     let tail = Simd.load(data + last)\n    \u2502                                 ^^^^\n\n  \u2716  compiling   core \u2022 474 files \u2022 874 ms\n  \u2716  building    std [gui] \u2022 1/6 modules \u2022 1 s 629 ms\n  \u2716  stopped     1 error \u2022 1 s 631 ms\n"
+        }
+      ]
+    },
+    {
+      "id": "final-ab2-gui-release-3core",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "gui",
+          "cfg": "release",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 9,
+          "out": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 19.437135092000972,
+            "cpu_s": 54.020796,
+            "rss_kib": 1127432,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 18.12185846400098,
+            "cpu_s": 50.394780000000004,
+            "rss_kib": 1120392,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "new",
+            "wall_s": 18.386020130998077,
+            "cpu_s": 51.081023,
+            "rss_kib": 1107888,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/1-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 1,
+            "role": "base",
+            "wall_s": 19.838046769000357,
+            "cpu_s": 55.006283,
+            "rss_kib": 1118460,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/1-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "base",
+            "wall_s": 19.543155126000784,
+            "cpu_s": 54.517188999999995,
+            "rss_kib": 1131592,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/2-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 2,
+            "role": "new",
+            "wall_s": 18.713356350999675,
+            "cpu_s": 52.121458000000004,
+            "rss_kib": 1132376,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/2-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "new",
+            "wall_s": 18.267809551001847,
+            "cpu_s": 50.713363,
+            "rss_kib": 1099548,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/3-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 3,
+            "role": "base",
+            "wall_s": 18.74907321700084,
+            "cpu_s": 52.367491,
+            "rss_kib": 1113604,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/3-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "base",
+            "wall_s": 18.67526921699755,
+            "cpu_s": 52.113039,
+            "rss_kib": 1114052,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/4-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 4,
+            "role": "new",
+            "wall_s": 18.427405326001463,
+            "cpu_s": 51.395937,
+            "rss_kib": 1098876,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/4-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "new",
+            "wall_s": 18.515826024999114,
+            "cpu_s": 51.552433,
+            "rss_kib": 1121552,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/5-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 5,
+            "role": "base",
+            "wall_s": 20.022745270001906,
+            "cpu_s": 55.693481999999996,
+            "rss_kib": 1123584,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/5-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--workspace-module",
+              "gui",
+              "--build-cfg",
+              "release",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": false,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-ab2-gui-release-3core/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "reason": "interrupted or incomplete series"
+    },
+    {
+      "id": "final-broad-scope-pilot",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "swagscope",
+          "cfg": "devmode",
+          "cores": 3,
+          "workspace": "apps",
+          "rounds": 1,
+          "out": "/workspace/swc-opt-20261115/final-broad-scope-pilot",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 53.70004176400107,
+            "cpu_s": 148.090601,
+            "rss_kib": 2514184,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope-pilot/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 48.84449176799899,
+            "cpu_s": 135.143178,
+            "rss_kib": 2550116,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-scope-pilot/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/apps",
+              "--workspace-module",
+              "swagscope",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-broad-scope-pilot/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-broad-scope-pilot/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "reason": "pilot only"
+    },
+    {
+      "id": "final-broad-std-all-pilot",
+      "measurement": {
+        "args": {
+          "base": "/workspace/swc-opt-20261115/baseline/swc",
+          "new": "/workspace/swc-opt-20261115/final/release/swc",
+          "module": "",
+          "cfg": "devmode",
+          "cores": 3,
+          "workspace": "std",
+          "rounds": 1,
+          "out": "/workspace/swc-opt-20261115/final-broad-std-all-pilot",
+          "extra": []
+        },
+        "binaries": {
+          "base": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+          "new": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+        },
+        "samples": [
+          {
+            "round": 0,
+            "role": "base",
+            "wall_s": 44.988272932001564,
+            "cpu_s": 125.89182,
+            "rss_kib": 1806968,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all-pilot/0-base.log",
+            "command": [
+              "/workspace/swc-opt-20261115/baseline/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          },
+          {
+            "round": 0,
+            "role": "new",
+            "wall_s": 39.74742833900018,
+            "cpu_s": 112.047425,
+            "rss_kib": 1781628,
+            "exit": 0,
+            "log": "/workspace/swc-opt-20261115/final-broad-std-all-pilot/0-new.log",
+            "command": [
+              "/workspace/swc-opt-20261115/final/release/swc",
+              "build",
+              "--workspace",
+              "/workspace/swc-opt-20261115/fixtures/std",
+              "--build-cfg",
+              "devmode",
+              "--num-cores",
+              "3",
+              "--rebuild"
+            ]
+          }
+        ]
+      },
+      "complete": true,
+      "environment": {
+        "SWAG_PATH": "/workspace/swc-opt-20261115/fixtures",
+        "SWAG_RUNTIME_THREADS": "3",
+        "cache_roots": {
+          "base": "/workspace/swc-opt-20261115/final-broad-std-all-pilot/cache-base",
+          "new": "/workspace/swc-opt-20261115/final-broad-std-all-pilot/cache-new"
+        },
+        "TEMP_TMP_TMPDIR": "set to the corresponding cache root"
+      },
+      "reason": "pilot only"
+    }
+  ]
+}

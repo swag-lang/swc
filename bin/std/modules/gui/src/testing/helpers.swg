@@ -154,6 +154,16 @@ func countNonZeroBytes(img: Image)->u64
     return count
 }
 
+// Forgets the repaint `surface` has pending, so a test sees only what the next events invalidate.
+func clearPendingRepaint(surface: *Surface)
+{
+    surface.isDirty   = false
+    surface.dirtyRect = {Swag.F32.Max, Swag.F32.Max, 0, 0}
+}
+
+// Returns whether `surface` has a repaint pending, and the surface region it covers.
+func pendingRepaint(surface: const *Surface)->{dirty: bool, rect: Math.Rectangle} => {surface.isDirty, surface.dirtyRect}
+
 // Returns an empty command state event for the command `id`.
 func commandState(id: WndId)->CommandStateEvent
 {

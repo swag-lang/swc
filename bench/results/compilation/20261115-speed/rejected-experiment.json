@@ -1,0 +1,578 @@
+{
+  "retained": false,
+  "experiment": "Batch the unchanged little-endian source flags and seven-byte instruction header when serializing cache fingerprints",
+  "comparison": "A is the final retained batch; B is an external one-translation-unit probe, not applied to repository sources",
+  "binaries": {
+    "A": {
+      "path": "/workspace/swc-opt-20261115/final/release/swc",
+      "sha256": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d"
+    },
+    "B": {
+      "path": "/workspace/swc-opt-20261115/cache-header/swc",
+      "sha256": "d314573e308422cca8d4c7e22d8408f1cb980d4a184d274ba39fb10e85b34013"
+    }
+  },
+  "probe_source_sha256": "c5c4a197d4f5f16a4108086112964688453df83007ee8a572cb96b52d8175ad9",
+  "command": [
+    "python3",
+    "bench/scripts/compile.py",
+    "--swc",
+    "/workspace/swc-opt-20261115/final/release/swc",
+    "--against",
+    "/workspace/swc-opt-20261115/cache-header/swc",
+    "--swc-cores",
+    "3",
+    "--only",
+    "core_rebuild,core_touch,core_delta",
+    "--reps",
+    "11"
+  ],
+  "reported_ratios": {
+    "core_rebuild": {
+      "wall": 1.01,
+      "cpu": 1.017,
+      "rss": 0.999
+    },
+    "core_touch": {
+      "wall": 0.981,
+      "cpu": 0.998,
+      "rss": 0.998
+    },
+    "core_delta": {
+      "wall": 1.02,
+      "cpu": 1.023,
+      "rss": 0.976
+    }
+  },
+  "samples": [
+    {
+      "round": 1,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3603.7,
+      "cpu_ms": 9926.1,
+      "rss_mib": 555.7
+    },
+    {
+      "round": 1,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1707.8,
+      "cpu_ms": 4469.7,
+      "rss_mib": 519.5
+    },
+    {
+      "round": 1,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 1900.9,
+      "cpu_ms": 4943.4,
+      "rss_mib": 618.5
+    },
+    {
+      "round": 1,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3668.4,
+      "cpu_ms": 10092.0,
+      "rss_mib": 555.3
+    },
+    {
+      "round": 1,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1638.9,
+      "cpu_ms": 4258.3,
+      "rss_mib": 517.5
+    },
+    {
+      "round": 1,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 1836.9,
+      "cpu_ms": 4757.9,
+      "rss_mib": 562.5
+    },
+    {
+      "round": 2,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3754.4,
+      "cpu_ms": 10283.5,
+      "rss_mib": 553.8
+    },
+    {
+      "round": 2,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1691.9,
+      "cpu_ms": 4415.8,
+      "rss_mib": 515.5
+    },
+    {
+      "round": 2,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3264.5,
+      "cpu_ms": 8961.4,
+      "rss_mib": 559.7
+    },
+    {
+      "round": 2,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3764.1,
+      "cpu_ms": 10306.8,
+      "rss_mib": 555.4
+    },
+    {
+      "round": 2,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1678.2,
+      "cpu_ms": 4349.1,
+      "rss_mib": 501.9
+    },
+    {
+      "round": 2,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3193.0,
+      "cpu_ms": 8761.1,
+      "rss_mib": 573.4
+    },
+    {
+      "round": 3,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3649.6,
+      "cpu_ms": 10093.6,
+      "rss_mib": 559.4
+    },
+    {
+      "round": 3,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1716.3,
+      "cpu_ms": 4495.5,
+      "rss_mib": 517.2
+    },
+    {
+      "round": 3,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3131.3,
+      "cpu_ms": 8585.7,
+      "rss_mib": 597.3
+    },
+    {
+      "round": 3,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3828.9,
+      "cpu_ms": 10570.6,
+      "rss_mib": 547.2
+    },
+    {
+      "round": 3,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1745.8,
+      "cpu_ms": 4504.7,
+      "rss_mib": 497.0
+    },
+    {
+      "round": 3,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3156.6,
+      "cpu_ms": 8636.3,
+      "rss_mib": 563.3
+    },
+    {
+      "round": 4,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3880.9,
+      "cpu_ms": 10807.3,
+      "rss_mib": 551.6
+    },
+    {
+      "round": 4,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1732.9,
+      "cpu_ms": 4553.8,
+      "rss_mib": 557.6
+    },
+    {
+      "round": 4,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3417.7,
+      "cpu_ms": 9426.9,
+      "rss_mib": 575.1
+    },
+    {
+      "round": 4,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3845.6,
+      "cpu_ms": 10668.6,
+      "rss_mib": 547.8
+    },
+    {
+      "round": 4,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1787.8,
+      "cpu_ms": 4694.7,
+      "rss_mib": 507.8
+    },
+    {
+      "round": 4,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3217.9,
+      "cpu_ms": 8836.4,
+      "rss_mib": 585.7
+    },
+    {
+      "round": 5,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3880.4,
+      "cpu_ms": 10739.6,
+      "rss_mib": 545.6
+    },
+    {
+      "round": 5,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1733.2,
+      "cpu_ms": 4547.7,
+      "rss_mib": 527.9
+    },
+    {
+      "round": 5,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3174.5,
+      "cpu_ms": 8789.4,
+      "rss_mib": 551.6
+    },
+    {
+      "round": 5,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3586.3,
+      "cpu_ms": 9934.5,
+      "rss_mib": 564.5
+    },
+    {
+      "round": 5,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1770.9,
+      "cpu_ms": 4630.3,
+      "rss_mib": 527.5
+    },
+    {
+      "round": 5,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3226.5,
+      "cpu_ms": 8879.2,
+      "rss_mib": 569.2
+    },
+    {
+      "round": 6,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3883.0,
+      "cpu_ms": 10732.6,
+      "rss_mib": 553.1
+    },
+    {
+      "round": 6,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1780.1,
+      "cpu_ms": 4639.2,
+      "rss_mib": 503.6
+    },
+    {
+      "round": 6,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3206.5,
+      "cpu_ms": 8792.5,
+      "rss_mib": 565.4
+    },
+    {
+      "round": 6,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3606.9,
+      "cpu_ms": 9954.4,
+      "rss_mib": 545.7
+    },
+    {
+      "round": 6,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1595.6,
+      "cpu_ms": 4200.4,
+      "rss_mib": 519.4
+    },
+    {
+      "round": 6,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3129.1,
+      "cpu_ms": 8580.0,
+      "rss_mib": 601.8
+    },
+    {
+      "round": 7,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3792.8,
+      "cpu_ms": 10430.6,
+      "rss_mib": 553.9
+    },
+    {
+      "round": 7,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1804.0,
+      "cpu_ms": 4582.4,
+      "rss_mib": 525.7
+    },
+    {
+      "round": 7,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3179.6,
+      "cpu_ms": 8724.3,
+      "rss_mib": 576.4
+    },
+    {
+      "round": 7,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3829.8,
+      "cpu_ms": 10468.8,
+      "rss_mib": 545.3
+    },
+    {
+      "round": 7,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1769.4,
+      "cpu_ms": 4575.1,
+      "rss_mib": 543.5
+    },
+    {
+      "round": 7,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3186.0,
+      "cpu_ms": 8697.3,
+      "rss_mib": 577.6
+    },
+    {
+      "round": 8,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3886.1,
+      "cpu_ms": 10666.3,
+      "rss_mib": 569.6
+    },
+    {
+      "round": 8,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1679.2,
+      "cpu_ms": 4403.6,
+      "rss_mib": 519.4
+    },
+    {
+      "round": 8,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3102.0,
+      "cpu_ms": 8553.8,
+      "rss_mib": 566.1
+    },
+    {
+      "round": 8,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3728.0,
+      "cpu_ms": 10252.4,
+      "rss_mib": 543.8
+    },
+    {
+      "round": 8,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1743.8,
+      "cpu_ms": 4585.6,
+      "rss_mib": 513.7
+    },
+    {
+      "round": 8,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3147.6,
+      "cpu_ms": 8663.1,
+      "rss_mib": 569.8
+    },
+    {
+      "round": 9,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3690.3,
+      "cpu_ms": 10131.3,
+      "rss_mib": 567.8
+    },
+    {
+      "round": 9,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1767.8,
+      "cpu_ms": 4576.9,
+      "rss_mib": 537.7
+    },
+    {
+      "round": 9,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 2996.8,
+      "cpu_ms": 8295.8,
+      "rss_mib": 574.3
+    },
+    {
+      "round": 9,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3723.0,
+      "cpu_ms": 10332.9,
+      "rss_mib": 562.3
+    },
+    {
+      "round": 9,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1721.4,
+      "cpu_ms": 4494.4,
+      "rss_mib": 519.3
+    },
+    {
+      "round": 9,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3092.5,
+      "cpu_ms": 8543.6,
+      "rss_mib": 549.5
+    },
+    {
+      "round": 10,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3524.7,
+      "cpu_ms": 9751.3,
+      "rss_mib": 541.8
+    },
+    {
+      "round": 10,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1693.3,
+      "cpu_ms": 4437.4,
+      "rss_mib": 519.5
+    },
+    {
+      "round": 10,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3233.1,
+      "cpu_ms": 8889.4,
+      "rss_mib": 593.2
+    },
+    {
+      "round": 10,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3705.0,
+      "cpu_ms": 10200.9,
+      "rss_mib": 551.8
+    },
+    {
+      "round": 10,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1687.1,
+      "cpu_ms": 4399.4,
+      "rss_mib": 520.8
+    },
+    {
+      "round": 10,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3114.5,
+      "cpu_ms": 8508.6,
+      "rss_mib": 580.3
+    },
+    {
+      "round": 11,
+      "role": "A",
+      "workload": "core_rebuild",
+      "wall_ms": 3672.9,
+      "cpu_ms": 10210.5,
+      "rss_mib": 549.7
+    },
+    {
+      "round": 11,
+      "role": "A",
+      "workload": "core_touch",
+      "wall_ms": 1739.3,
+      "cpu_ms": 4583.7,
+      "rss_mib": 541.7
+    },
+    {
+      "round": 11,
+      "role": "A",
+      "workload": "core_delta",
+      "wall_ms": 3134.7,
+      "cpu_ms": 8585.2,
+      "rss_mib": 589.5
+    },
+    {
+      "round": 11,
+      "role": "B",
+      "workload": "core_rebuild",
+      "wall_ms": 3770.9,
+      "cpu_ms": 10483.8,
+      "rss_mib": 579.4
+    },
+    {
+      "round": 11,
+      "role": "B",
+      "workload": "core_touch",
+      "wall_ms": 1624.1,
+      "cpu_ms": 4224.4,
+      "rss_mib": 537.5
+    },
+    {
+      "round": 11,
+      "role": "B",
+      "workload": "core_delta",
+      "wall_ms": 3196.0,
+      "cpu_ms": 8778.9,
+      "rss_mib": 569.3
+    }
+  ],
+  "reason": "No net compile-time benefit: rebuild and function-delta wall/CPU medians regress; touched-file wall improvement lacks a matching CPU benefit."
+}

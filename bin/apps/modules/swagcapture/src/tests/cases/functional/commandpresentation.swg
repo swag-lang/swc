@@ -272,3 +272,30 @@ using Swag, Core
     Swag.require(inspected)
     host.pump()
 }
+
+// About is one row of the lens, with its glyph, as in the other applications.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    main.lens.open("about")
+    var rows: u32
+    for section in main.lens.results.sections where section
+    {
+        for &entry in section.entries where entry.title == strings().appearance_About
+        {
+            Swag.require(entry.glyph.isValid())
+            rows += 1
+        }
+    }
+
+    main.lens.close()
+    Swag.require(rows == 1)
+}

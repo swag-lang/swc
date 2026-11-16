@@ -615,8 +615,8 @@ impl QuickWnd
         if .qsCallout.forms.isEmpty() do
             .defaultQuickStyleCallout()
 
-        .updateQuickStyles(forceRebuild: true)
-
+        // The row of presets and the properties of the inspector are written from the models:
+        // the models take their first entries before either is written again.
         .main.updateModel(.qsArrow.forms[0])
         .main.updateModel(.qsLine.forms[0])
         .main.updateModel(.qsShape.forms[0])
@@ -626,7 +626,8 @@ impl QuickWnd
         .main.updateModel(.qsText.forms[0])
         .main.updateModel(.qsDraw.forms[0])
         .main.updateModel(.qsCallout.forms[0])
-        .updateSelection()
+        .updateQuickStyles(forceRebuild: true)
+        .main.updateState()
     }
 
     // Shows the quick-style menu at `pos`: keep the current style, edit a saved preset, or reset.
@@ -1110,10 +1111,24 @@ impl QuickWnd
     }
 
     // Checks the quick style button that matches the model of the active tool.
+    //
+    // A property edit reaches the row only through here, and can make the model equal to a
+    // preset or different from all of them: the chip of the unsaved style then comes or goes
+    // with the rebuild, rather than standing checked beside the preset it now equals.
     mtd updateSelection()
     {
         if not .currentStyle do
             return
+
+        var showsCurrent = false
+        for c in .layout.children where not c.isPendingDestroy and (assume cast(*QuickButton, c)).isTransient do
+            showsCurrent = true
+        if showsCurrent != .canAddCurrentStyle()
+        {
+            .updateQuickStyles(forceRebuild: true)
+            return
+        }
+
         var done  = false
         let mode  = .presetMode().mode
         let model = .main.editModeToModel(mode)

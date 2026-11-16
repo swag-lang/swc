@@ -2,6 +2,8 @@
 #include "Support/Math/Sha256.h"
 #if defined(_M_X64)
 #include <intrin.h>
+#elif defined(__x86_64__)
+#include <immintrin.h>
 #endif
 
 SWC_BEGIN_NAMESPACE();
@@ -20,11 +22,12 @@ namespace
 
     uint32_t rotr(const uint32_t value, const uint32_t count) { return (value >> count) | (value << (32 - count)); }
 
-#if defined(_M_X64)
+#if defined(_M_X64) || defined(__x86_64__)
     // The SHA extensions run two rounds per instruction, an order of magnitude faster than the
     // portable rounds. The machine-code cache hashes every function's input stream with this.
     bool hasShaExtensions()
     {
+#if defined(_M_X64)
         static const bool available = [] {
             int registers[4];
             __cpuid(registers, 0);
@@ -33,11 +36,18 @@ namespace
             __cpuidex(registers, 7, 0);
             return (registers[1] & (1 << 29)) != 0;
         }();
+#else
+        static const bool available = __builtin_cpu_supports("sha") && __builtin_cpu_supports("ssse3") && __builtin_cpu_supports("sse4.1");
+#endif
         return available;
     }
 
     // Intel's reference schedule. The state lives as ABEF/CDGH pairs across the rounds; each
     // group of four message words is extended from the previous four groups.
+#if defined(__GNUC__)
+    // Keep SHA instructions inside the dispatched function; x86-64-v3 does not require them.
+    __attribute__((target("sha,ssse3,sse4.1")))
+#endif
     void shaExtensionBlocks(uint32_t state[8], const uint8_t* data, size_t count)
     {
         const __m128i byteSwap = _mm_set_epi64x(0x0c0d0e0f08090a0bull, 0x0405060700010203ull);
@@ -85,7 +95,7 @@ namespace
 
         void blocks(const uint8_t* data, size_t count)
         {
-#if defined(_M_X64)
+#if defined(_M_X64) || defined(__x86_64__)
             if (hasShaExtensions())
             {
                 shaExtensionBlocks(h, data, count);

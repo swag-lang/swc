@@ -189,6 +189,10 @@ if __name__ == "__main__":
         elif mode == 'read-large':
             assert read(utf8) == b'x' * 262144
             print('ok')
+        elif mode == 'read-files':
+            expected = b'file:///tmp/swag%20capture/demo%20r%C3%A9glages.gif\r\nfile:///tmp/second.gif\r\n'
+            assert read(atom('text/uri-list')) == expected
+            print('ok')
         elif mode == 'read-png':
             assert read(atom('image/png')).startswith(b'\x89PNG\r\n\x1a\n')
             print('ok')

@@ -498,6 +498,9 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(libWnd.dateFilters[5].month == 1 and libWnd.dateFilters[6].day == 2)
     Swag.require(libWnd.view.items.count == 3)
 
+    // The library tab counts the captures the first fill listed, not the empty page before it.
+    Swag.require(libWnd.folderTabs.items[0]!.count == "3")
+
     // Narrowing to a date keeps its captures only.
     libWnd.applyDateFilter(libWnd.dateFilters[3])
     Swag.require(libWnd.view.items.count == 1)
@@ -960,4 +963,101 @@ impl IAllocator for LibraryRejectAllocator
     lib.view.setFocus()
     f.gui.keyPress(.Oem2)
     Swag.require(lib.searchEdit.hasFocus())
+}
+
+// A library folder whose parents are missing, as the documents folder of a new account can be,
+// is created with them rather than stopping the application before its first window.
+#test
+{
+    testUseScratchLibrary()
+    defer discard catch g_Library.setFolder("")
+
+    let folder = Path.combine(Env.sandboxRoot(), "newaccount", "Documents", "Swag Capture")
+    expect g_Library.setFolder(folder)
+    Swag.require(Directory.exists(folder))
+    Swag.require(Directory.exists(Path.combine(folder, ".trash")))
+}
+
+// Ordering by similarity waits for the loader: while previews still stream in, a refresh of the
+// list keeps the order it has, and the refresh after the last preview places each capture
+// after the one it looks most like.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer
+    {
+        g_UpdatingLib = false
+        f.shutdown()
+    }
+
+    let lib  = f.setupLibraryWnd()
+    let view = lib.view
+    func features(topLeft, topRight, bottomLeft, bottomRight: Color)->ImageStatistics.HaarFeatures
+    {
+        var image = Image.create(32, 32, .BGRA8)
+        image.fillGradient(topLeft, topRight, bottomLeft, bottomRight)
+        return ImageStatistics.quickExtractHaarFeatures(image, 32)
+    }
+
+    // Two left-to-right ramps, nearly equal, and one top-to-bottom ramp.
+    let across = testAddLibraryItem(view, "across.scc", 10, 1)
+    let down   = testAddLibraryItem(view, "down.scc", 10, 1)
+    let nearly = testAddLibraryItem(view, "nearly.scc", 10, 1)
+    let gray   = Color.fromRgb(24, 24, 24)
+    across.haar = features(Argb.Black, Argb.White, Argb.Black, Argb.White)
+    down.haar   = features(Argb.Black, Argb.Black, Argb.White, Argb.White)
+    nearly.haar = features(gray, Argb.White, gray, Argb.White)
+    lib.sortMethod = .Similar
+
+    g_UpdatingLib = true
+    view.sort()
+    Swag.require(view.items[0] == across and view.items[1] == down and view.items[2] == nearly)
+
+    g_UpdatingLib = false
+    view.sort()
+    Swag.require(view.items[0] == across and view.items[1] == nearly and view.items[2] == down)
+}
+
+// A long page title takes room from the search before it is cut: the search narrows down to its
+// minimum, and the title never runs under the menus beside it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(1024, 600)
+    defer f.shutdown()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let libWnd = f.main.libWnd
+    libWnd.setPosition({0, 0, 1024, 600})
+    libWnd.applyLayout()
+    Swag.require(libWnd.searchEdit.position.width == LibrarySearchWidth)
+
+    libWnd.titleLabel.setText("Bibliothèque de captures")
+    libWnd.fitTitleRow()
+    libWnd.applyLayout()
+    let label = libWnd.titleLabel
+    let title = Painter.measureString(label.text(), unwrap label.font().regular).width
+    Swag.require(libWnd.searchEdit.position.width < LibrarySearchWidth)
+    Swag.require(title <= label.position.width + 1 or libWnd.searchEdit.position.width == LibrarySearchMin)
+    Swag.require(label.position.right() <= libWnd.commandBar.position.x + 0.5)
+}
+
+// The quiet menus of the page take the width of their words again in another language, rather
+// than keeping the width of the English ones and cutting the French.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(1024, 600)
+    defer f.shutdown()
+    defer discard catch f.gui.app.setLanguage(Gui.ReferenceLanguage)
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let libWnd = f.main.libWnd
+    libWnd.setPosition({0, 0, 1024, 600})
+
+    expect f.gui.app.setLanguage("fr")
+    libWnd.applyLanguage()
+    libWnd.applyLayout()
+    Swag.require(libWnd.viewBtn.text() == appStrings().ui_BarView)
+    for button in [libWnd.viewBtn, libWnd.filterBtn, libWnd.folderBtn] do
+        Swag.require(button.position.width >= Math.floor(button.itf.measureContent({}).x))
 }

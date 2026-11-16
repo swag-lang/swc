@@ -83,7 +83,12 @@ impl IWnd for EditView
 
         if .capture.mouse(me, evt)
         {
-            .invalidate()
+            // A step of a body drag or a create drag repaints only the region it changed
+            // (Capture.invalidateMovedRegion): a full repaint here would draw every form on
+            // each move of the pointer.
+            let mode = .capture.mouseMode
+            if evt.kind != .Move or (mode != .Moving and mode != .Creating) do
+                .invalidate()
             evt.accepted = true
             .setFocus()
 

@@ -46,6 +46,28 @@ SWC_TEST_BEGIN(Sha256_FragmentedInputBoundaries)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Sha256_UnalignedMultiBlockInput)
+{
+    constexpr size_t length = 4097;
+
+    std::array<std::byte, length + 31> storage;
+    for (size_t offset = 0; offset < 32; ++offset)
+    {
+        const std::span<std::byte> bytes = std::span{storage}.subspan(offset, length);
+        for (size_t index = 0; index < length; ++index)
+            bytes[index] = static_cast<std::byte>((index * 131 + 17) & 0xFF);
+        const auto hash = sha256(bytes);
+        if (Utf8Helper::toLowerHex(hash) != "6b828a41dabc57049f86a8a1b0ceac3e4112258b236a527395c8116c99424ffd")
+            return Result::Error;
+
+        // A buffered prefix shifts the following bulk blocks away from the input alignment.
+        for (const size_t split : {size_t{1}, size_t{55}, size_t{64}, size_t{65}})
+            if (sha256Parts({bytes.first(split), {}, bytes.subspan(split)}) != hash)
+                return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

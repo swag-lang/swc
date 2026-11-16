@@ -82,7 +82,9 @@ whole recording loaded at once.
   workers. Exporting an unchanged video from the editor, an individual library selection or a
   selected-library batch now copies its MP4 on a worker and publishes it atomically, without
   borrowing the editable capture. The batch waits for each copy before reporting completion. Image
-  composition and timed-media encoding for edited captures still run on the interface thread.
+  composition and timed-media encoding for edited captures still run on the interface thread, and
+  so does the PNG or JPEG encoding of a picture saved from the editor (`doSaveImage`), which the
+  library path already hands to a `CaptureImageWriteJob`.
   A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old full-load path.
 - Next: move timed-media copy/export encoding away from the interface where renderer ownership
   permits. Preserve save ordering and failure reports.
@@ -100,6 +102,40 @@ whole recording loaded at once.
 - Done when: a documented selection rule has measured benefits on representative captures,
   and any new encoding round-trips with compatibility tests for existing deflate files.
 - Related: app.capture.021
+
+### app.capture.040 — Automatic saves encode an unchanged background again
+
+- Evidence: `snapshotSave` copies `backImg` and `backImgOriginal` on the interface thread and
+  `writeScc` deflates both on every save, about a second after each burst of edits, even when only
+  forms changed. A 4K capture copies and deflates about 66 MB per save. The background is also
+  replaced through direct assignments in many places, so a revision counter that one of them
+  forgets would save a stale picture.
+- Next: give `Capture` one owner for background changes (a setter that bumps a revision), migrate
+  every assignment to it, then reuse the encoded chunks of an unchanged revision in `writeScc`.
+- Done when: a save after a form edit neither copies nor deflates the background, with a test that
+  a background change after an earlier save is still written.
+- Related: app.capture.021, app.capture.025
+
+### app.capture.042 — The tool dock does not fit beside an open recent strip at the minimum size
+
+- Evidence: at the minimum window size with the recent strip open, the eight tools of the dock
+  are taller than the work left above the strip. `ToolDock` centres itself on its parent, so its
+  first tool, Select, goes under the top of the work; keeping the top inside instead puts the
+  last tool over the size buttons of the recent strip.
+- Next: give `ToolDock` a way to fit a short parent, such as a tighter gap and then an overflow
+  cell, and let Swag Capture place it in the work above the recent strip.
+- Done when: at the minimum size with the recent strip open, every tool is reachable and no
+  control of the strip is covered, with a layout test.
+
+### app.capture.041 — The video playback test is unstable on Linux
+
+- Evidence: under Xvfb with Mesa software rendering, `functional/videoplayback.swg` fails with
+  "video prefetch did not finish" in about one run of three, and one run of the same file did not
+  end within ten minutes, before and after the current changes alike. The decoder of the timeline
+  must ready four pictures of a ten-picture 64×48 recording within two seconds.
+- Next: log the decoder worker's wake, reader open and decode of each picture during a failing
+  run, and find whether the worker starts late, waits on the wrong event or decodes slowly.
+- Done when: the file passes twenty runs in a row on Linux without a hang.
 
 ### app.capture.002 — No capture-level effect pipeline
 

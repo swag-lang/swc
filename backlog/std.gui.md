@@ -598,17 +598,37 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: the same functional selections demonstrate the benefit of reuse, with CPU/GPU
   parity, multi-host teardown and cross-test resource/state isolation covered.
 
-### std.gui.063 — The Linux clipboard file list has never been compiled
+### std.gui.063 — Copied files have not been pasted into a Linux file manager
 
-- Evidence: `Clipboard.setFiles` and `Clipboard.getFiles` are tested on Windows and in the sandbox
-  store; their Linux implementation (`text/uri-list`) was written without a Linux build.
-- Next: build the gui module and its clipboard test on Linux, and copy a file to a Linux file
-  manager.
-- Done when: the clipboard test passes on Linux and a copied file pastes into a file manager.
+- Evidence: the Linux `text/uri-list` of `Clipboard.setFiles` builds, and the isolated X11
+  clipboard integration test reads it from an independent client and back through
+  `Clipboard.getFiles`. GNOME Files pastes copied files from `x-special/gnome-copied-files`
+  (`copy` then one URI per line), which the clipboard does not offer, and may take a bare URI list
+  as text.
+- Next: copy a capture from Swag Capture and paste it in GNOME Files and Dolphin; offer
+  `x-special/gnome-copied-files` beside `text/uri-list` if GNOME pastes text.
+- Done when: a file copied by Swag Capture pastes as a file in GNOME Files and Dolphin.
 - Related: platform.portability.101
 
-### std.gui.064 — Make Linux desktop input focus setup runnable
+### std.gui.065 — The event loop wakes sixty times a second while idle
 
-- Next: Run the portable Capture desktop plan on an isolated X11 server and verify the XTEST click, drag, undo and redo.
-- Done when: `drawandundo.swg` passes on Linux through XTEST, including the click, drag, undo and redo.
-- Evidence: the Linux test previously compiled, then SIGSEGV occurred in `XGetInputFocus` inside `DesktopInput.openNative`. All seven Xlib/XTest function-pointer aliases now declare the C calling convention; the focused GUI module test compiles and passes. The live XTEST plan remains unverified here because this host has no `DISPLAY` or Xvfb.
+- Evidence: `nativeFrameWaitMicroseconds` waits at most 16 ms even when no surface is dirty, no
+  animation runs and no timer is due, because an event posted from a worker has no way to wake
+  the loop. Each idle frame still polls the keyboard (`Keyboard.update` on X11: four requests and
+  a pass over every key and keycode). An idle Swag Capture window under Xvfb costs about 6 % of a
+  core once pointer buttons stopped rebuilding the keyboard state.
+- Next: give `postEvent` from another thread a wake (an eventfd polled beside the X connection on
+  Linux, a thread message on Windows), then wait for input, a posted event or the next timer.
+- Done when: an idle application blocks until input, a posted event or a timer, with a test that a
+  worker's posted event is still delivered promptly.
+
+### std.gui.066 — The keypad Enter closes a box the lens opened on X11
+
+- Evidence: in Swag Capture on an X11 session, choosing Options in the lens with the keypad Enter
+  opens the options box and closes it at once; the main Enter key keeps it open, and About
+  chosen with the keypad Enter stays open. Both keys reach the lens as `Input.Key.Return`, so
+  the difference lies in what follows the press, such as a character or a release delivered to
+  the new box.
+- Next: log the key and character events an X11 keypad Enter produces through the lens and the
+  options box, and find which one activates its default button.
+- Done when: a box opened from the lens with the keypad Enter stays open, with an XTEST test.

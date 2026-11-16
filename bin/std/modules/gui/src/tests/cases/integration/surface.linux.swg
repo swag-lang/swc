@@ -11,6 +11,7 @@ using Core, Pixel
     var app: Application
     app.setMotionPreference(.Reduced)
     let surface = expect app.createSurface(70, 60, 360, 240, surfaceId: "linux-native-gui")
+    surface.minSize = {300, 200}
     surface.setTitle("Native GUI — é")
     discard PushButton.create(surface.wnd.view, "Native button", {24, 72, 160, 36})
     surface.show()
@@ -27,6 +28,17 @@ using Core, Pixel
     Linux.free(attrs)
     let title = expect LinuxDesktop.readProperty(context, drawable.window, expect LinuxDesktop.atom(context, "_NET_WM_NAME"))
     Swag.require(Utf8.compare(title.toSlice(), "Native GUI — é") == 0)
+
+    // WM_NORMAL_HINTS says the position was asked for, so a window manager places the surface
+    // there rather than by its own policy.
+    let hints  = expect LinuxDesktop.readProperty(context, drawable.window, 40)
+    let fields = assume cast(const [*]u32, hints.buffer)
+    Swag.require(hints.count == 18 * 4)
+    Swag.require((fields[0] & 5) == 5)
+
+    // A minimum size set after creation, as an application sets it, still reaches the hints.
+    Swag.require((fields[0] & 16) == 16)
+    Swag.require(fields[5] == cast(u32, 300 * surface.dpiScale) and fields[6] == cast(u32, 200 * surface.dpiScale))
 
     app.renderer.setCurrentContext(surface.rc)
     let expected = app.renderer.readRenderTarget(&surface.rt, 160, 140, 1, 1).pixelColor(0, 0)
@@ -218,4 +230,19 @@ struct NativeInputProbe
     Swag.require(probe.screenshot == 1, "the native Print Screen shortcut did not reach its command target")
     Swag.require(probe.shiftA == 1 and probe.controlA == 1 and probe.characters == 1 and probe.character == 'A',
                 Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
+}
+
+// A pointer grab the server refuses, as it does for a window it does not show yet, leaves the
+// capture to the application rather than stopping it.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 200, 120, surfaceId: "linux-native-grab")
+    let view    = surface.wnd.view
+    view.captureMouse()
+    Swag.require(view.mouseCapture() == view)
+    view.releaseMouse()
+    Swag.require(view.mouseCapture() == null)
 }

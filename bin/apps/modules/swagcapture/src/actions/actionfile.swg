@@ -239,11 +239,12 @@ impl IActionUI for ActionFile
             // Snapshot the values now: `capture` may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
             let file = capture.file.toString()
+            let name = capture.editableName()
 
             var editOptions: EditDlgOptions
             editOptions.title   = appStrings().dlg_TitleRenameCapture
             editOptions.message = appStrings().ui_CaptureName
-            editOptions.text    = capture.title
+            editOptions.text    = name
             let dialog = EditDlg.createSingleLine(unwrap main.surface, editOptions)
             if dialog.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dialog.text())

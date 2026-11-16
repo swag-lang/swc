@@ -314,6 +314,43 @@ SWC_TEST_BEGIN(MachineCodeCache_RebindsSourceLocationsWithoutChangingCodeIdentit
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MachineCodeCache_PreservesSourceSharingAcrossGapsAndFlagChanges)
+{
+    SourceFile&         first  = Unittest::addTestSource(ctx, "Micro", "CacheSourceSequenceOriginal", "");
+    SourceFile&         moved  = Unittest::addTestSource(ctx, "Micro", "CacheSourceSequenceMoved", "");
+    auto*               caller = makeCacheFunction(ctx, "cacheSourceSequenceCaller");
+    std::array<Utf8, 4> keys;
+    for (uint32_t variant = 0; variant < keys.size(); ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        const auto     view      = variant == 0 ? first.ast().srcView().ref() : moved.ast().srcView().ref();
+        const uint32_t tokenBase = variant == 0 ? 10 : 20;
+        for (uint32_t index = 0; index < 9; ++index)
+        {
+            if (index == 8)
+                builder.emitRet();
+            else
+                builder.emitNop();
+            auto& source = builder.instructions().ptr(builder.instructions().lastInstructionRef())->debugSourceInfo;
+            source       = {};
+            if (index == 2 || index == 7)
+                continue;
+            uint32_t tokenDelta = index == 3 || index == 6 ? 1 : 0;
+            if (index == 8 && variant == 2)
+                tokenDelta = 2;
+            source.sourceCodeRef      = {view, TokenRef{tokenBase + tokenDelta}};
+            source.debugNoStep        = index == 1 && variant == 3;
+        }
+        keys[variant] = cacheKey(ctx, *caller, builder);
+        if (keys[variant].empty())
+            return Result::Error;
+    }
+    if (keys[0] != keys[1] || keys[0] == keys[2] || keys[0] == keys[3])
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MachineCodeCache_PreservesFunctionReferenceSharing)
 {
     auto*        caller = makeCacheFunction(ctx, "cacheCaller");
@@ -437,6 +474,65 @@ SWC_TEST_BEGIN(MachineCodeCache_IdentifiesPointerFreeConstantsByContent)
     const Utf8 key = cacheKey(ctx, *caller, sameCopy);
     if (key.empty() || key != cacheKey(ctx, *caller, twoCopies) || key == cacheKey(ctx, *caller, changed))
         return Result::Error;
+}
+SWC_TEST_END()
+
+// Pointer addresses and shard placement are incidental; graph edges, interior
+// offsets and scalar bytes must still distinguish cached inputs.
+SWC_TEST_BEGIN(MachineCodeCache_TracksRelocatedConstantGraphs)
+{
+    auto*               caller = makeCacheFunction(ctx, "cacheGraphCaller");
+    std::array<Utf8, 5> keys;
+    for (uint32_t variant = 0; variant < keys.size(); ++variant)
+    {
+        const uint32_t shard     = variant == 0 ? 0 : 1;
+        DataSegment&   segment   = ctx.cstMgr().shardDataSegment(shard);
+        const auto     leaf      = segment.addString(variant == 2 ? "changed graph leaf" : "cache graph leaf").second;
+        const auto [root, words] = segment.reserve<std::array<uint64_t, 4>>();
+        const uint32_t interior  = variant == 3 ? 2 : 1;
+        (*words)[0]              = reinterpret_cast<uint64_t>(segment.ptr<std::byte>(leaf));
+        (*words)[1]              = (*words)[0] + interior;
+        (*words)[2]              = reinterpret_cast<uint64_t>(words);
+        (*words)[3]              = variant == 4 ? 42 : 41;
+        segment.addRelocation(root, {.shardIndex = shard, .offset = leaf});
+        segment.addRelocation(root + sizeof(uint64_t), {.shardIndex = shard, .offset = leaf + interior});
+        segment.addRelocation(root + 2 * sizeof(uint64_t), {.shardIndex = shard, .offset = root});
+        MicroBuilder builder(ctx);
+        emitConstantLoad(ctx, builder, 0, shard, root);
+        keys[variant] = cacheKey(ctx, *caller, builder);
+        if (keys[variant].empty())
+            return Result::Error;
+    }
+    if (keys[0] != keys[1] || keys[0] == keys[2] || keys[0] == keys[3] || keys[0] == keys[4])
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_PreservesConstantLeafAlignmentBytesAndOffsets)
+{
+    auto*                         caller = makeCacheFunction(ctx, "cacheLeafLayoutCaller");
+    constexpr std::array<char, 8> payload{'a', '\0', 'b', 'c', 'd', 'e', 'f', 'g'};
+    std::array<Utf8, 5>           keys;
+    for (uint32_t variant = 0; variant < keys.size(); ++variant)
+    {
+        const uint32_t shard             = variant == 0 ? 0 : 1;
+        DataSegment&   segment           = ctx.cstMgr().shardDataSegment(shard);
+        const auto [first, firstBytes]   = segment.reserveBytes(payload.size(), 8, false);
+        const auto [second, secondBytes] = segment.reserveBytes(payload.size(), variant == 2 ? 16 : 8, false);
+        std::memcpy(firstBytes, payload.data(), payload.size());
+        std::memcpy(secondBytes, payload.data(), payload.size());
+        if (variant == 3)
+            secondBytes[5] = std::byte{'x'};
+        MicroBuilder builder(ctx);
+        emitConstantLoad(ctx, builder, 0, shard, first);
+        emitConstantLoad(ctx, builder, 1, shard, variant == 0 ? first : second + (variant == 4 ? 1 : 0));
+        keys[variant] = cacheKey(ctx, *caller, builder);
+        if (keys[variant].empty())
+            return Result::Error;
+    }
+    if (keys[0] != keys[1] || keys[0] == keys[2] || keys[0] == keys[3] || keys[0] == keys[4])
+        return Result::Error;
+    return Result::Continue;
 }
 SWC_TEST_END()
 

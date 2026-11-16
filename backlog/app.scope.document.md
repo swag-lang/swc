@@ -59,15 +59,17 @@ integration around those engines.
   reader mode preserves links and text order; and switching modes retains the logical location.
 - Related: std.gui.html.017
 
-### app.scope.document.016 — Image-only PDF pages do not explain why text search finds nothing
+### app.scope.document.016 — Image-only PDF pages are named only when a search finds nothing
 
-- Evidence: the PDF adapter forwards document search into `PdfView`, but its information surface
-  does not distinguish a decoded page with no text from a page whose text has not been loaded.
-  An image-only page gives no explanation that optical character recognition is unavailable.
-- Next: expose the decoded page's text availability through the existing information surface,
-  distinguishing loading, absent text, and unavailable decoding without scanning the whole file.
-- Done when: searching an image-only page explains that OCR is absent, text-backed scans stay
-  searchable, and a pending or failed page is not mislabeled as having no text.
+- Evidence: once the document's text has been extracted for search, `PdfView.textCoverage`
+  counts pages with no text and pages whose text failed to decode, and a search that found
+  nothing says so beside its `0/0`. A search that does find words in a partly scanned document
+  still gives no hint that some pages were not searched, and the information sheet does not
+  report the text layer at all.
+- Next: report the pages without a text layer in the PDF information sheet, and mark the count
+  of a successful search over a partly scanned document.
+- Done when: a reader can tell, without searching, that a document or some of its pages have no
+  text layer, and a found count over such a document says which pages it could not cover.
 - Related: std.gui.pdf.040, std.gui.pdf.041, std.gui.pdf.042
 
 ### app.scope.document.003 — Markdown links and resources have no trust or diagnostics surface

@@ -17,8 +17,9 @@ struct DocumentText
     task:     Swag.Task
     fileName: String
     pages:    Array'String     // One entry per page, written once by the worker before it is published.
-    ready:    u32     // Pages published so far, from the first; read and written atomically.
-    cancel:   u32     // Asks the worker to stop after the page it is on; read and written atomically.
+    ready:    u32              // Pages published so far, from the first; read and written atomically.
+    cancel:   u32              // Asks the worker to stop after the page it is on; read and written atomically.
+    failed:   Array'bool       // Whether each page's text could not be read, written with `pages`.
     started:  bool
 }
 
@@ -30,6 +31,7 @@ impl DocumentText
         Swag.assert(not .started)
         .fileName = fileName
         .pages.resize(pageCount)
+        .failed.resize(pageCount)
         .ready   = 0
         .cancel  = 0
         .started = true
@@ -43,6 +45,13 @@ impl DocumentText
 
     // Reports whether every page has its text published.
     mtd isComplete()->bool => .started and .readyCount() == .pages.count
+
+    // Reports whether one published page's text could not be read, rather than holding none.
+    mtd pageFailed(index: u64)->bool
+    {
+        Swag.assert(index < .readyCount())
+        return .failed[index]
+    }
 
     // Returns the text of one published page.
     mtd pageText(index: u64)->string
@@ -67,6 +76,7 @@ impl DocumentText
         .task.wait()
         .started = false
         .pages.clear()
+        .failed.clear()
         .ready  = 0
         .cancel = 0
     }
@@ -86,7 +96,12 @@ impl DocumentText
         var reader: #decltype(expect Reader.open(.fileName.toString()))
         catch { reader = try Reader.open(.fileName.toString()) } as openErrorOutcome
         let openError = openErrorOutcome.value()
-        if openError == null
+        if openError != null
+        {
+            for index in .failed.count do
+                .failed[index] = true
+        }
+        else
         {
             let count = Math.min(reader.pageCount(), .pages.count)
             for index in count
@@ -99,6 +114,8 @@ impl DocumentText
                 let pageError = pageErrorOutcome.value()
                 if pageError == null do
                     .pages[index] = #move text
+                else do
+                    .failed[index] = true
                 Atomic.exchange(&.ready, cast(u32, (index + 1)))
             }
         }

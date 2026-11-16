@@ -115,3 +115,29 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         Swag.require(caret.y > top and caret.y <= top + editor.paddedClientRect().height, "the line is out of view")
     }
 }
+
+// A search that found nothing in a document of pictures of pages says why: there are no words to
+// find, not none that match. A document with text keeps the plain answer.
+#test
+{
+    for name, index in ["viewer.jpeg.pdf", "viewer.pdf"]
+    {
+        var host: HeadlessHost
+        host.setup(960, 680)
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        window.resize(960, 680)
+        window.openFile(scopeTestDataPath(name))
+        completeQueuedViewerFile(&host, window)
+        window.applyLayout()
+
+        window.showSearch()
+        window.searchBox.setText("qqzzxx")
+        completeFind(&host, window)
+        Swag.require(window.searchComplete and window.searchMatches.isEmpty())
+        let toolTip = window.searchCountLabel.toolTip.toString()
+        if index == 0 do
+            Swag.require(Utf8.contains(toolTip, PdfDocument.texts().ui_NoTextLayer), toolTip)
+        else do
+            Swag.require(toolTip == appStrings().ui_NoMatch, toolTip)
+    }
+}

@@ -56,6 +56,11 @@ alias ClearSearch = func||()
 // appends every match and answers true at once.
 alias CollectSearchMatches = func||(string, SearchOptions, *u64, *Array'SearchMatch)->bool
 
+// Explains why a complete search of a query found nothing, when the viewer knows a reason the
+// reader cannot see on screen — a scanned page holds a picture of words, not words — or returns an
+// empty string to leave the plain answer.
+alias ExplainNoMatch = func||(string)->String
+
 // Applies the shared query as a live visibility filter owned by the viewer.
 alias ApplySearchFilter = func||(string, SearchOptions)
 
@@ -113,6 +118,7 @@ struct SearchApi
         prepare:            PrepareSearch?            // Validates a streamed-file query before scanning.
         collectFileMatches: CollectFileMatches?       // Scans one host-owned streamed source window.
         useMatches:         UseSearchMatches?         // Borrows the active host result index.
+        explainNoMatch:     ExplainNoMatch?           // Says why a complete search found nothing, when the viewer knows.
     }
 }
 

@@ -352,6 +352,16 @@ impl ViewerWindow
         {
             .searchCountLabel.setText("0/0")
             .searchCountLabel.toolTip = appStrings().ui_NoMatch
+            if .activeChoiceIndex < .instances.count
+            {
+                let instance = &.instances[.activeChoiceIndex]
+                if instance.view and instance.explainNoMatch
+                {
+                    let reason = instance.explainNoMatch(.searchQuery)
+                    if not reason.isEmpty() do
+                        .searchCountLabel.toolTip = Format.toString("% · %", appStrings().ui_NoMatch, reason)
+                }
+            }
         }
         else
         {

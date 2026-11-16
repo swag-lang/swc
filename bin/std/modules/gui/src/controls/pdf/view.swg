@@ -1361,6 +1361,28 @@ impl PdfView
     // Returns the number of pages of the open document, or zero when none is open.
     mtd const pageCount()->u64 => .hasDocument ? .pageSizes.count : 0
 
+    // Counts the pages a text search finds no words in, once the document's text has been
+    // extracted for search: `pictures` carry no text at all, as a scan without a recognized text
+    // layer does, and `unreadable` could not be decoded. `complete` is false while the extraction
+    // [[Gui.PdfView.collectTextMatches]] starts is still running, and both counts are then zero.
+    mtd textCoverage()->{ complete: bool, pictures: u64, unreadable: u64 }
+    {
+        var result: #returntype
+        if not .hasDocument or not .documentText.isComplete() do
+            return result
+
+        result.complete = true
+        for index in .documentText.pages.count
+        {
+            if .documentText.pageFailed(index) do
+                result.unreadable += 1
+            elif not Latin1.trim(.documentText.pageText(index)).count do
+                result.pictures += 1
+        }
+
+        return result
+    }
+
     // Returns the dimensions of the page the viewport shows, in PDF points.
     mtd const pageSize()->Math.Point => .hasDocument ? .pageSizes[.pageIndex] : {}
 

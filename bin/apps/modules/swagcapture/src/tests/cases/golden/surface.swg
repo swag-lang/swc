@@ -412,6 +412,13 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
 #[Swag.TestTag("golden")]
 #test
 {
+    // A test run sees no installed font, and a picture must not list the fonts of the machine
+    // that recorded it: the families offered are named here, enough of them to scroll.
+    g_MiniBarFonts.clear()
+    for index in 24 do
+        g_MiniBarFonts.add(Pixel.SystemFontFamilyInfo{name: Format.toString("Test Family %{02}", index + 1)})
+    defer g_MiniBarFonts.clear()
+
     var host: Gui.Testing.HeadlessHost
     let main = testSetupEditorSurface(&host, dark: false)
     defer
@@ -436,10 +443,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var allImage = host.render(main)
     Pixel.Testing.assertImageGolden(&allImage, "edit.font-choice.all.paper")
 
-    let scroll = popup.list.scrollWnd
+    let scroll  = popup.list.scrollWnd
     let metrics = scroll.themeMetrics()
-    let hit = scroll.localToSurface(Math.Point{scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5,
-                                               scroll.view.position.y + metrics.scrollBar_BoxMinSize * 0.5})
+    let hit     = scroll.localToSurface(Math.Point{scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5,
+                                                   scroll.view.position.y + metrics.scrollBar_BoxMinSize * 0.5})
     Swag.require(host.mouseTargetAt(hit) == scroll, "the font scrollbar is outside its parent hit region")
     host.moveMouse(hit)
     host.mouseDown(hit)

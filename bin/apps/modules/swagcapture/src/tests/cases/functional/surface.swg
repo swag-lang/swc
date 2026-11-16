@@ -200,8 +200,8 @@ internal func testSetupEditorSurface(host: *Gui.Testing.HeadlessHost, dark: bool
     // The scrollbar occupies only the extra room on the right of that viewport.
     let frame = main.inspector.surfaceRect()
     let quick = main.quickWnd.surfaceRect()
-    let view = main.propWnd.grid.scrollWnd.view.surfaceRect()
-    let pad = main.inspector.themeMetrics().scrollBar_HitSize + main.inspector.themeMetrics().scrollBar_EdgeInset
+    let view  = main.propWnd.grid.scrollWnd.view.surfaceRect()
+    let pad   = main.inspector.themeMetrics().scrollBar_HitSize + main.inspector.themeMetrics().scrollBar_EdgeInset
     Swag.require(Math.abs((quick.x - frame.x) - (frame.right() - quick.right())) <= 2)
     Swag.require(Math.abs((view.x + cast(f32, GridRowInset) - frame.x) - (frame.right() - view.right())) <= 2)
     Swag.require(Math.abs(view.x + cast(f32, GridRowInset) - frame.x - pad) <= 2)
@@ -532,6 +532,15 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
 #[Swag.TestTag("capture.interaction")]
 #test
 {
+    // A test run sees no installed font: the families the inspector and the mini-bar offer
+    // are named here.
+    Gui.Properties.setFontNames(["Test Mono", "Test Sans", "Test Serif"])
+    defer Gui.Properties.setFontNames([])
+    g_MiniBarFonts.clear()
+    for name in ["Test Mono", "Test Sans", "Test Serif"] do
+        g_MiniBarFonts.add(Pixel.SystemFontFamilyInfo{name: name})
+    defer g_MiniBarFonts.clear()
+
     var host: Gui.Testing.HeadlessHost
     let main = testSetupEditorSurface(&host, dark: true)
     defer
@@ -550,7 +559,7 @@ func testRectInFrame(frame: *Gui.SurfaceWnd, wnd: *Gui.Wnd)->Math.Rectangle
     var font: *PropertiesItem?
     for item in main.propWnd.grid.items where item!.typeValue.name == #nameof(FormText.fontName) do
         font = item
-    Swag.require(font != null and font.comboBox.items.count > 2)
+    Swag.require(font != null and font.comboBox.items.count == 5)
     let first: String = font.comboBox.items[2]!.name.text
     font.comboBox.setSelectedIndex(2)
     Swag.require(text.fontName == first)
@@ -1304,6 +1313,7 @@ func testBeginInlineText(host: *Gui.Testing.HeadlessHost, main: *MainWnd, index:
     let button = unwrap swatch
     button.sigPopupRequested.call(button)
     host.finishAnimations()
+
     // The popover stands by the button that opened it, without covering it.
     button.hidePopup()
     host.clickWnd(button)
@@ -1448,6 +1458,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
             if item.wnd is IconButton as button where button.textPosition == .Right and button.icon.isValid() do
                 count += 1
         }
+
         return count
     }
 
@@ -1461,12 +1472,13 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     for item in editor.bar.items
     {
         if item.wnd is IconButton as button where button.flags.has(.Radio) and
-           enumFromUserData'InPlaceEditMode(button.userData) == .Marker
+                                                  enumFromUserData'InPlaceEditMode(button.userData) == .Marker
         {
             markerButton = button
             break
         }
     }
+
     host.clickWnd(unwrap markerButton)
     Swag.require(editor.editMode == .Marker)
     let forms = editor.capture!.forms.count
@@ -1486,6 +1498,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         Swag.require(host.clickPopupMenuItem(kindMenuId(.Animation)))
         chosen[] = true
     }
+
     host.clickWnd(editor.kindButton)
     host.app.sigFrame.clear()
     Swag.require(chosen)
@@ -1525,6 +1538,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
             break
         }
     }
+
     let rate = editor.source.captureOptions.recordRate
     for 3
     {
@@ -1534,6 +1548,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
         Swag.require(editor.source.captureOptions.recordRate == expected)
         Swag.require(rateChip.name.text.toString() == Format.toString(appStrings().ui_AimRate, expected.framesPerSecond()))
     }
+
     Swag.require(editor.source.captureOptions.recordRate == rate)
 
     // Video leaves the frozen editor; the live preparation owns its sound choices.
@@ -1567,7 +1582,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     }
 
     editor.setMedia(.Animation)
-    let zone  = unwrap editor.capture
+    let zone = unwrap editor.capture
     Swag.require(zone.forms.count > 0)
 
     // As the grab does once Record is chosen: the view lets the zone go, and the zone is recorded.
@@ -1604,7 +1619,7 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     }
 
     editor.setMedia(.Video)
-    let zone  = unwrap editor.capture
+    let zone = unwrap editor.capture
     Swag.require(zone.forms.count > 0)
     editor.editWnd.editView.capture = null
     editor.capture = null

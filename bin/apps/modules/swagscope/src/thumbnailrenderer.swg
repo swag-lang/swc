@@ -19,18 +19,9 @@ impl ThumbnailRenderer
 {
     func create()->ThumbnailRenderer fail
     {
-        var face: *TypeFace?
-        for name in ["Segoe UI", "Noto Sans", "DejaVu Sans", "Liberation Sans", "Arial"]
-        {
-            let family = FontFamily.findSystemFont(name)
-            if family.name.isEmpty() do
-                continue
-            face = catch FontFamily.createTypeFace(family, .Regular)
-            if face do
-                break
-        }
-        if not face do
-            fail Errors.InvalidFormatError{"a system font is unavailable"}
+        // The interface face compiled into the toolkit: a preview reads the same on every
+        // machine, and never fails for want of an installed font.
+        let face = try Gui.embeddedTypeFace(false, .Regular)
 
         // The renderer owns the font cache, so the fonts outlive the canvas moving in.
         var canvas = try ImageCanvas.create(ThumbnailWidth, ThumbnailHeight)
@@ -92,5 +83,4 @@ impl ThumbnailRenderer
         var stream = try File.openReadLive(path)
         return try stream.readUtf8Chunk(ThumbnailSourceSize)
     }
-
 }

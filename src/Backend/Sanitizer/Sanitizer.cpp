@@ -503,8 +503,9 @@ void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIn
             {
                 if (!reg.isVirtual())
                     continue;
-                const uint32_t dense = liveRegIndex_.ensure(reg);
-                if (dense >= defStamp.size())
+                bool           inserted = false;
+                const uint32_t dense    = liveRegIndex_.ensure(reg, &inserted);
+                if (inserted)
                     defStamp.resize(dense + 1, 0);
                 if (defStamp[dense] != stamp && defStamp[dense] != useStamp)
                 {
@@ -517,8 +518,9 @@ void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIn
             {
                 if (!reg.isVirtual())
                     continue;
-                const uint32_t dense = liveRegIndex_.ensure(reg);
-                if (dense >= defStamp.size())
+                bool           inserted = false;
+                const uint32_t dense    = liveRegIndex_.ensure(reg, &inserted);
+                if (inserted)
                     defStamp.resize(dense + 1, 0);
                 if (defStamp[dense] != stamp)
                 {

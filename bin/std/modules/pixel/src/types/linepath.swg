@@ -891,12 +891,6 @@ impl LinePath
     // Calculate optimal number of segments for cubic polynomial
     func calculateCubicPolynomialSegments(p0, p1, p2, p3: Vector2, startPt, endPt: Vector2, tolerance: f32)->u32
     {
-        // Calculate chord length
-        let chordLength = startPt.distanceTo(endPt)
-
-        if chordLength < tolerance do
-            return 1     // Very short curve
-
         // For cubic polynomials, we need to estimate maximum curvature
         // Sample a few points to get an approximation of maximum deviation
         var maxDeviation = 0.0
@@ -1000,13 +994,6 @@ impl LinePath
     {
         // Calculate the maximum curvature using the control polygon method
         // This is much faster than iterative subdivision
-
-        // Vector from start to end
-        let chord       = Vector2{x: p3.x - p0.x, y: p3.y - p0.y}
-        let chordLength = chord.length()
-
-        if chordLength < tolerance do
-            return 1     // Very short curve
 
         // Calculate maximum deviation of control points from chord
         var maxDeviation = 0.0

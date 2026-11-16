@@ -91,7 +91,7 @@ command in its workspace passed all 165 tests. A fresh full compiler campaign
 then passed 69/69 stages, including C++, safety, sanity, native and workspace
 stages. After reverting the flat-map experiment, the rebuilt retained tree also
 passed all 69 compiler stages, before the latest allocator changes. The loop
-residency and liveness table changes passed their C++ and focused native tests.
-The changes reduce repeated scans, size comparisons and table growth checks by
-construction. Their net speed and memory effects remain for the dedicated
-benchmark campaign to measure.
+residency and liveness table changes passed 1,715 C++ tests and the full native
+suite (3/3 stages). The changes reduce repeated scans, size comparisons and
+table growth checks by construction. Their net speed and memory effects remain
+for the dedicated benchmark campaign to measure.

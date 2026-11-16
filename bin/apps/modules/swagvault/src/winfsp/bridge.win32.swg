@@ -254,7 +254,8 @@ namespace WinFsp
     {
         let context = cast(*FspEmitContext, unwrap emitContext)
         let name16  = Utf16.toZeroTerminated(cString(name))
-        let bytes   = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
+        let nameLength = name16.count - 1
+        let bytes      = #offsetof(FspDirInfo.fileName) + nameLength * #sizeof(u16)
         if bytes > Swag.U16.Max do
             return 0
 
@@ -264,8 +265,8 @@ namespace WinFsp
         let dirInfo = cast(*FspDirInfo, storage.storage())
         dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info[]
-        if name16.count > 1 do
-            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), (name16.count - 1) * #sizeof(u16))
+        if nameLength do
+            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), nameLength * #sizeof(u16))
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)
     }
 
@@ -293,13 +294,14 @@ namespace WinFsp
             return status
 
         let name16 = Utf16.toZeroTerminated(value)
-        let bytes  = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
+        let nameLength = name16.count - 1
+        let bytes      = #offsetof(FspDirInfo.fileName) + nameLength * #sizeof(u16)
         if bytes > Swag.U16.Max do
             return StatusInvalidParameter
         dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info
-        if name16.count > 1 do
-            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), (name16.count - 1) * #sizeof(u16))
+        if nameLength do
+            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), nameLength * #sizeof(u16))
         return StatusSuccess
     }
 

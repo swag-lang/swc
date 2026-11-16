@@ -111,9 +111,9 @@ module's roadmap.
 - Evidence: `emitFspDir` and `fspGetDirInfoByName` set `FspDirInfo.size` to the filename
   offset plus the full zero-terminated UTF-16 array length. Windows directory enumeration
   exposes the terminator as a character in the returned name; callers that use the returned
-  string as a path can fail to open the file.
-- Next: check the WinFsp directory-info size contract, exclude the terminator from `size`, and
-  add an integration assertion that enumerated names contain no embedded NUL and reopen.
+  string as a path can fail to open the file. Both callbacks now exclude the terminator, matching
+  the official WinFsp examples; a Windows integration assertion is still missing.
+- Next: add an integration assertion that enumerated names contain no embedded NUL and reopen.
 - Done when: WinFsp enumeration returns exact filenames and every enumerated path opens.
 
 ### app.vault.014 — Container reads share one seekable cursor

@@ -610,12 +610,6 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: a file copied by Swag Capture pastes as a file in GNOME Files and Dolphin.
 - Related: platform.portability.101
 
-### std.gui.064 — Make Linux desktop input focus setup runnable
-
-- Next: Run the portable Capture desktop plan on an isolated X11 server and verify the XTEST click, drag, undo and redo.
-- Done when: `drawandundo.swg` passes on Linux through XTEST, including the click, drag, undo and redo.
-- Evidence: the Linux test previously compiled, then SIGSEGV occurred in `XGetInputFocus` inside `DesktopInput.openNative`. All seven Xlib/XTest function-pointer aliases now declare the C calling convention; the focused GUI module test compiles and passes. The live XTEST plan remains unverified here because this host has no `DISPLAY` or Xvfb.
-
 ### std.gui.065 — The event loop wakes sixty times a second while idle
 
 - Evidence: `nativeFrameWaitMicroseconds` waits at most 16 ms even when no surface is dirty, no

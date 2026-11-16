@@ -1882,6 +1882,14 @@ namespace
             const TypeInfo& payloadType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), parameterType.payloadTypeRef());
             if (!payloadType.isStruct() || &payloadType.payloadSymStruct() != &carrierType.payloadSymStruct())
                 continue;
+            if (!carrierType.payloadSymStruct().isSemaCompleted())
+            {
+                // Rebinding a pointer does not require its pointee's layout. Preserve
+                // this conservative write summary without reading unpublished fields.
+                sema.ctx().compiler().addEscapeFieldSummaryForwarding({.caller = function, .callerParamIndex = static_cast<uint32_t>(index), .payloadStruct = &carrierType.payloadSymStruct()});
+                markedAnyField = true;
+                continue;
+            }
             for (const SymbolVariable* field : carrierType.payloadSymStruct().fields())
                 if (field)
                 {
@@ -5967,13 +5975,11 @@ namespace SemaEscape
                     continue;
                 }
 
-                for (const SymbolVariable* field : payloadStruct.fields())
-                {
-                    if (!field)
-                        continue;
-
-                    sema.ctx().compiler().addEscapeFieldSummaryForwarding({caller, callee, static_cast<uint32_t>(origin), static_cast<uint32_t>(thisParam), field});
-                }
+                sema.ctx().compiler().addEscapeFieldSummaryForwarding({.caller           = caller,
+                                                                       .callee           = callee,
+                                                                       .callerParamIndex = static_cast<uint32_t>(origin),
+                                                                       .calleeParamIndex = static_cast<uint32_t>(thisParam),
+                                                                       .payloadStruct    = &payloadStruct});
             }
         }
     }
@@ -6404,9 +6410,40 @@ namespace SemaEscape
 
     void reportDeferredChecks(TaskContext& ctx)
     {
-        std::vector<SemaEscapeDeferredCheck>                checks           = ctx.compiler().takeDeferredEscapeChecks();
-        const std::vector<SemaEscapeSummaryEdge>            edges            = ctx.compiler().takeEscapeSummaryEdges();
-        const std::vector<SemaEscapeFieldSummaryForwarding> fieldForwardings = ctx.compiler().takeEscapeFieldSummaryForwardings();
+        std::vector<SemaEscapeDeferredCheck>                checks                  = ctx.compiler().takeDeferredEscapeChecks();
+        const std::vector<SemaEscapeSummaryEdge>            edges                   = ctx.compiler().takeEscapeSummaryEdges();
+        const std::vector<SemaEscapeFieldSummaryForwarding> pendingFieldForwardings = ctx.compiler().takeEscapeFieldSummaryForwardings();
+
+        // A pointer argument may have been resolved while its payload declaration
+        // was still appending fields. The module drain makes that list stable here.
+        std::vector<SemaEscapeFieldSummaryForwarding> fieldForwardings;
+        fieldForwardings.reserve(pendingFieldForwardings.size());
+        for (const SemaEscapeFieldSummaryForwarding& pending : pendingFieldForwardings)
+        {
+            if (!pending.payloadStruct)
+            {
+                fieldForwardings.push_back(pending);
+                continue;
+            }
+
+            for (const SymbolVariable* field : pending.payloadStruct->fields())
+            {
+                if (!field)
+                    continue;
+                if (!pending.callee)
+                {
+                    // Whole-carrier assignments already establish a write; only its
+                    // field names had to wait for the pointed-to declaration.
+                    pending.caller->markParamFieldPossiblyWritten(pending.callerParamIndex, field->name(ctx));
+                    continue;
+                }
+
+                SemaEscapeFieldSummaryForwarding resolved = pending;
+                resolved.field                            = field;
+                resolved.payloadStruct                    = nullptr;
+                fieldForwardings.push_back(resolved);
+            }
+        }
 
         // Known body calls need not invalidate every field of a carrier. Propagate their
         // actual possible writes first; bodyless and unknown callees remain conservative.

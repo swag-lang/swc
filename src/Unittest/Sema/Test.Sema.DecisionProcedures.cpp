@@ -20,6 +20,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Unittest.h"
@@ -914,6 +915,82 @@ SWC_TEST_BEGIN(Sema_GenericDeductionBindingHandlesConflictsAndDefaults)
         if (!resolvedArgs[0].present)
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Sema_PassedPayloadFieldsAreReadAfterPublication)
+{
+    CommandLine      commandLine;
+    CompilerInstance compiler(ctx.global(), commandLine);
+    TaskContext      testCtx(compiler);
+    if (compiler.setupSema(testCtx) != Result::Continue)
+        return Result::Error;
+    SemaDecisionFixture fixture(testCtx, "PassedPayloadFieldPublication");
+    Sema&               sema = fixture.sema();
+
+    constexpr SymbolFlags flags      = SymbolFlagsE::Declared | SymbolFlagsE::Typed;
+    auto*                 record     = Symbol::make<SymbolStruct>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    const TypeRef         recordType = testCtx.typeMgr().addType(TypeInfo::makeStruct(record));
+    record->setTypeRef(recordType);
+    const TypeRef pointerType = testCtx.typeMgr().addType(TypeInfo::makeValuePointer(recordType));
+
+    auto* caller = Symbol::make<SymbolFunction>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    auto* callee = Symbol::make<SymbolFunction>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    caller->setReturnTypeRef(testCtx.typeMgr().typeVoid());
+    callee->setReturnTypeRef(testCtx.typeMgr().typeVoid());
+    auto* argument = Symbol::make<SymbolVariable>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    argument->addExtraFlag(SymbolVariableFlagsE::Parameter);
+    argument->setTypeRef(pointerType);
+    argument->setOwnerSymMap(caller);
+    caller->addParameter(argument);
+    auto* parameter = Symbol::make<SymbolVariable>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    parameter->addExtraFlag(SymbolVariableFlagsE::Parameter);
+    parameter->setTypeRef(pointerType);
+    parameter->setOwnerSymMap(callee);
+    callee->addParameter(parameter);
+    sema.frame().setCurrentFunction(caller);
+
+    const AstNodeRef argumentRef = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    sema.setSymbol(argumentRef, argument);
+    auto [callRef, call] = sema.ast().makeNode<AstNodeId::CallExpr>(TokenRef::invalid());
+    call->nodeExprRef    = AstNodeRef::invalid();
+    sema.setSymbol(callRef, callee);
+    const ResolvedCallArgument resolvedArgument{.argRef = argumentRef};
+    sema.setResolvedCallArguments(callRef, std::span{&resolvedArgument, 1});
+
+    // A pointer call can resolve before the pointed-to declaration finishes its
+    // fields. The summary must see fields published after this call was recorded.
+    SemaEscape::noteCallArguments(sema, callRef);
+
+    auto* writer = Symbol::make<SymbolFunction>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    writer->setReturnTypeRef(testCtx.typeMgr().typeVoid());
+    auto* rebound = Symbol::make<SymbolVariable>(testCtx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), flags);
+    rebound->addExtraFlag(SymbolVariableFlagsE::Parameter);
+    rebound->setTypeRef(pointerType);
+    rebound->setOwnerSymMap(writer);
+    writer->addParameter(rebound);
+    const AstNodeRef reboundRef = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    sema.setSymbol(reboundRef, rebound);
+    sema.frame().setCurrentFunction(writer);
+    if (SemaEscape::applyAssignment(sema, reboundRef, reboundRef) != Result::Continue)
+        return Result::Error;
+    sema.frame().setCurrentFunction(caller);
+
+    const IdentifierRef fieldId = testCtx.idMgr().addIdentifierOwned("publishedLater");
+    auto*               field   = Symbol::make<SymbolVariable>(testCtx, nullptr, TokenRef::invalid(), fieldId, flags);
+    field->setTypeRef(testCtx.typeMgr().typeS32());
+    record->addField(field);
+    const IdentifierRef releasedId    = testCtx.idMgr().addIdentifierOwned("releasedLater");
+    auto*               releasedField = Symbol::make<SymbolVariable>(testCtx, nullptr, TokenRef::invalid(), releasedId, flags);
+    releasedField->setTypeRef(testCtx.typeMgr().typeValuePtrVoid());
+    record->addField(releasedField);
+    callee->addFreedParamField(0, "releasedLater");
+    record->setSemaCompleted(testCtx);
+
+    SemaEscape::reportDeferredChecks(testCtx);
+    if (!caller->hasPossiblyWrittenParamField(0, "publishedLater") || !caller->hasFreedParamField(0, "releasedLater") ||
+        !writer->hasPossiblyWrittenParamField(0, "publishedLater"))
+        return Result::Error;
 }
 SWC_TEST_END()
 

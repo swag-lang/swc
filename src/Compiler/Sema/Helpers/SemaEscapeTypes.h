@@ -8,6 +8,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
+class SymbolStruct;
 class SymbolVariable;
 enum class DiagnosticId;
 
@@ -202,6 +203,10 @@ struct SemaEscapeFieldSummaryForwarding
     uint32_t              calleeParamIndex            = 0;
     const SymbolVariable* field                       = nullptr;
     bool                  calleeFreesProjectedPointer = false;
+
+    // Pointer calls do not require a complete pointee. Read its final fields only
+    // after semantic jobs drain, rather than retaining a growing vector's entries.
+    const SymbolStruct* payloadStruct = nullptr;
 };
 
 // Only release-forwarding edges propagate frees: either directly through the

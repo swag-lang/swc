@@ -710,7 +710,7 @@ impl RecentWnd
         if not .main.openHubAfterRecentLoad or not .hubSizeReady() do
             return
         .main.openHubAfterRecentLoad = false
-        ResidentPanel.open(.main, .Hub)
+        ResidentPanel.open(.main, .Centered)
     }
 
     // Drops `file` from the recent strip once the library deleted it.

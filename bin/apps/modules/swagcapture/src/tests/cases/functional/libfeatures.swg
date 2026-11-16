@@ -267,10 +267,15 @@ using Swag, Core
     Swag.require(f.main.copyJob == null and f.main.copyTimer != null)
 
     Swag.require(g_CaptureSaves.flush(secondPath).isEmpty())
+    // The timer starts the copy of the second capture. The pump that follows the timer may
+    // already have collected a quick one; the clipboard tells which capture was copied.
     f.gui.fireTimer(f.main.copyTimer)
-    Swag.require(f.main.copyJob and f.main.copyJob.file == secondPath)
-    f.main.copyJob.task.wait()
-    f.gui.pump()
+    if f.main.copyJob
+    {
+        Swag.require(f.main.copyJob.file == secondPath)
+        f.main.copyJob.task.wait()
+        f.gui.pump()
+    }
 
     let copied = Clipboard.getImage()
     Swag.require(copied.isValid() and copied.width == 13 and copied.height == 7)
@@ -510,4 +515,48 @@ using Swag, Core
     let secondImage = expect Image.load(Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(secondPath) orelse "capture")))
     Swag.require(firstImage.width == 16 and firstImage.height == 10)
     Swag.require(secondImage.width == 19 and secondImage.height == 12)
+}
+
+// In the library, the chosen capture is only its preview: Copy as Image copies the whole picture,
+// read from its file, and Paste has nothing in the library to paste into.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+    let lib = f.setupLibraryWnd()
+
+    let cap = Memory.new'Capture()
+    defer Memory.delete(cap)
+    cap.width, cap.widthOrg   = 20
+    cap.height, cap.heightOrg = 14
+    cap.backImg               = Gui.Testing.indexedImage(20, 14)
+    cap.preview               = Gui.Testing.indexedImage(16, 12)
+    let path = testTempCapturePath()
+    cap.file    = path
+    cap.changed = true
+    expect cap.save()
+    defer discard catch File.delete(path)
+
+    let item = testAddLibraryItem(lib.view, path, 1, 1)
+    Memory.delete(item.capture)
+    item.capture       = expect Capture.load(path, preview: true)
+    lib.view.focusItem = 0
+    f.main.libraryMode = true
+
+    Clipboard.addImage(Gui.Testing.indexedImage(4, 4))
+    var evt = Gui.Testing.commandState(ActionCopyPaste.Paste)
+    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.Paste, &evt))
+    Swag.require(evt.disabled)
+
+    evt = Gui.Testing.commandState(ActionCopyPaste.CopyAsImage)
+    Swag.require(Gui.Testing.actionUpdate'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage, &evt))
+    Swag.require(not evt.disabled)
+    Swag.require(Gui.Testing.actionExecute'ActionCopyPaste(f.main, ActionCopyPaste.CopyAsImage))
+    Swag.require(f.main.copyJob != null)
+    f.main.copyJob.task.wait()
+    f.gui.pump()
+    let image = Clipboard.getImage()
+    Swag.require(image.width == 20 and image.height == 14)
 }

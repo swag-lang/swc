@@ -28,8 +28,9 @@ public impl Image
         CatmullRom     // Sharper Catmull-Rom cubic reconstruction.
     }
 
-    // Resizes the image, preserving aspect ratio when one dimension is zero. A derived dimension
-    // rounds down, with one pixel as the minimum.
+    // Resizes the image, preserving aspect ratio when one dimension is zero.
+    //
+    // A derived dimension rounds down and is at least one pixel.
     mtd resize(newWidth, newHeight: s32, mode = ResizeMode.Nearest)
     {
         Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))
@@ -43,8 +44,9 @@ public impl Image
         .applyWorkingBuffer()
     }
 
-    // Returns a resized copy, preserving aspect ratio when one dimension is zero. A derived
-    // dimension rounds down, with one pixel as the minimum.
+    // Returns a resized copy, preserving aspect ratio when one dimension is zero.
+    //
+    // A derived dimension rounds down and is at least one pixel.
     mtd const resized(newWidth, newHeight: s32, mode = ResizeMode.Nearest)->Image
     {
         Swag.assert(newWidth >= 0 and newHeight >= 0 and (newWidth > 0 or newHeight > 0))

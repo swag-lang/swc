@@ -294,7 +294,7 @@ impl MainWnd
             g_Width = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
-                g_Height = Math.max(1, cast(s32, g_Width / ratio))
+                g_Height = Math.max(1, Math.roundS32(g_Width / ratio))
                 edit1.setText(Format.toString("%", g_Height), notify: false)
             }
         }
@@ -304,7 +304,7 @@ impl MainWnd
             g_Height = catch StrConv.toS32(edt.text())
             if g_KeepRatio
             {
-                g_Width = Math.max(1, cast(s32, g_Height * ratio))
+                g_Width = Math.max(1, Math.roundS32(g_Height * ratio))
                 edit0.setText(Format.toString("%", g_Width), notify: false)
             }
         }

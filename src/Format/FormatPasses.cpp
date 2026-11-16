@@ -26,29 +26,14 @@ namespace FormatPassUtil
         if (identity)
             return;
 
-        // Snapshot the pieces and inner gaps of each segment, plus the leading
-        // gap of each segment *position*.
-        struct Segment
-        {
-            std::vector<FormatPiece> pieces;
-            std::vector<FormatGap>   innerGaps; // gaps before pieces[1..]
-        };
-
-        std::vector<Segment>   snapshots(segments.size());
+        std::vector<SegmentSnapshot> snapshots(segments.size());
         std::vector<FormatGap> leadingGaps(segments.size());
 
         for (size_t s = 0; s < segments.size(); ++s)
         {
             const PieceRange& range = segments[s];
             SWC_ASSERT(range.first != INVALID_PIECE && range.last >= range.first);
-            leadingGaps[s] = model.gapBefore(range.first);
-
-            for (uint32_t i = range.first; i <= range.last; ++i)
-            {
-                snapshots[s].pieces.push_back(model.piece(i));
-                if (i != range.first)
-                    snapshots[s].innerGaps.push_back(model.gapBefore(i));
-            }
+            snapshotSegment(model, range, snapshots[s], leadingGaps[s]);
         }
 
         // Write the permuted segments back. Segments must be contiguous:
@@ -56,7 +41,7 @@ namespace FormatPassUtil
         uint32_t writeIndex = segments.front().first;
         for (size_t s = 0; s < segments.size(); ++s)
         {
-            const Segment& segment = snapshots[order[s]];
+            const SegmentSnapshot& segment = snapshots[order[s]];
 
             model.gapBefore(writeIndex) = leadingGaps[s];
             for (size_t p = 0; p < segment.pieces.size(); ++p)

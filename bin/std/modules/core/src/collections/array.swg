@@ -260,7 +260,11 @@ impl Array
             return
         }
 
-        let newBuffer = cast([*] T, Memory.realloc(.buffer, newCapacity * #sizeof(T), .capacity * #sizeof(T), .allocator))
+        let newBuffer = cast([*] T, Memory.realloc(.buffer,
+                                                   newCapacity * #sizeof(T),
+                                                   .capacity * #sizeof(T),
+                                                   .allocator,
+                                                   #alignof(T)))
 
         // Elements that moved to a new block must be told so through 'opPostMove'.
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)

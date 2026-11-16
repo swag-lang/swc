@@ -22,6 +22,21 @@ namespace FormatSiblings
         bool braceable   = false; // safe to wrap in braces
     };
 
+    // Aggregate the layout properties shared by groups of function bodies.
+    struct BodyGroupShape
+    {
+        bool oneLine  = false;
+        bool expanded = false;
+        bool compact  = true;
+
+        void add(const BodyShape& shape, const bool requireValid = false)
+        {
+            oneLine  = oneLine || shape.oneLine;
+            expanded = expanded || !shape.oneLine;
+            compact  = compact && shape.compact && (!requireValid || shape.valid);
+        }
+    };
+
     BodyShape branchShape(const FormatModel& model, const FormatBranch& branch);
     BodyShape functionShape(const FormatModel& model, const FormatFunctionBody& body);
 

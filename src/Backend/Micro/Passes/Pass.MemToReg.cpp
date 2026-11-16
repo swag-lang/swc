@@ -979,9 +979,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
 
     bool       erasedDeadStores = false;
     const auto finish           = [&] {
-        if (context.ssaState)
-            context.ssaState->invalidate();
-        context.builder->invalidateControlFlowGraph();
+        MicroPassHelpers::invalidateCfgAndSsa(context);
         context.passChanged = true;
         return Result::Continue;
     };
@@ -2381,9 +2379,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         }
     }
 
-    if (context.ssaState)
-        context.ssaState->invalidate();
-    context.builder->invalidateControlFlowGraph();
+    MicroPassHelpers::invalidateCfgAndSsa(context);
     context.passChanged = true;
     return Result::Continue;
 }

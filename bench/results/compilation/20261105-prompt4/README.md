@@ -59,3 +59,72 @@ At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite
 configuration. The changes are structural; no speed or memory improvement is
 claimed without a benchmark.
+
+## Follow-up checkpoint, 2026-11-16
+
+This follow-up continues the register-allocation work using the retained
+DevMode and memory evidence above. It makes no timing, CPU or memory claims.
+The static Micro comparison builds each task once and checks its listing and
+checksum; it does not record elapsed time.
+
+| Retained change | Compiler work removed | Equivalence argument | Validation |
+| --- | --- | --- | --- |
+| Build register position lists during dense-index collection | A second pass over each instruction's already-collected unique use/def indices | Each position is appended when its per-instruction dense index is first inserted; source instruction order is unchanged. | DevMode build; C++ suite passed. |
+| Mark wide register requirements during indexing | A temporary list of wide instructions and its later instruction lookup/rescan | The same instruction flags the same unique virtual registers while its use/def lists are available. | DevMode build; C++ suite passed. |
+| Report dense-index insertion directly | Re-reading the register table size and comparing it with the returned index at each insertion site | `ensure` sets the result only in its new-entry branch; the dense index and insertion behavior are unchanged. | DevMode build; C++ suite passed. |
+| Grow sink counters on dense-index insertion | A register-table size comparison for each sink use/definition | The counter table is cleared with the index and grows once for each newly assigned dense index. | DevMode build; C++ suite passed. |
+| Grow sanitizer stamps on dense-index insertion | A stamp-vector size comparison for each sanitizer use/definition | Both structures start empty in `computeChainLiveness`; new dense indices are sequential and each appends exactly one stamp slot. | DevMode build; C++ suite and sanity suite passed. |
+| Grow global range lists on dense-index insertion | A range-table size comparison for each global range insertion | `clearState` clears the dense index and range table together; each newly assigned dense index gets one range list. | DevMode build; C++ suite and focused native register-pressure stages passed. |
+| Cache loop residency use counts across removals | Recounting each mapped register's in-loop uses every time the residency cap drops another value | When at least two values must be dropped, use counts are computed once. The cached candidate list mirrors the allocator's swap-with-last removal, preserving tie order; one-drop cases retain the original scan. | DevMode build; 1,715 C++ tests and three focused native fixtures passed, including pressure and loop-carried cases. |
+| Skip redundant liveness side-table resizes | Final `resize` checks after dense-index insertion has already grown each nonempty side table to its exact dense count | Dense insertion assigns consecutive indices and grows the parallel vector at each new index; the no-concrete-register case still clears stale touch lists. | DevMode build; 1,715 C++ tests and focused native register-pressure stages passed. |
+| Mark loop-carried registers from live bits | Testing every virtual register against every loop header | Visit only set bits in header liveness rows, mark each qualifying state once, then allocate spill slots in the original dense-register order. | DevMode build; 1,715 C++ tests and full native suite passed. |
+| Fuse loop-header discovery with live-bit marking | A temporary list of loop-header indices and its later readback | Headers are still visited in instruction order and each matching live row is marked once; the no-header path still returns before spill-slot allocation. | DevMode build; 1,715 C++ tests, full native suite (3/3 stages), and full compiler campaign (69/69 stages) passed. |
+| Build loop preload candidates from live bits | Testing every dense virtual register at each loop header to select only live candidates | Set-bit iteration visits candidates in ascending dense-index order, preserving the stable use-count sort and its tie order. | DevMode build; 1,715 C++ tests, full native suite (3/3 stages), full compiler campaign (69/69 stages), and all twelve static Micro task checksums matched. |
+| Cache loop back-edge ranges during copy coalescing | Rescanning predecessor lists up to every integer copy candidate inside a loop | The first query keeps its original CFG walk and records containing ranges in order; later queries scan only newly reached headers and cached ranges that still cover the copy. Strict shorter-span replacement preserves the selected range and ties. | DevMode build; full compiler campaign (69/69 stages, including 1,832 C++ tests and native), all twelve static Micro task checksums matched, and task-owned listings unchanged. |
+| Index repeated copy-coalescing pairs after sixteen candidates | Scanning every previously collected candidate for each additional eligible copy | A canonical packed dense-register pair maps to the original candidate-vector index; small candidate sets keep the linear lookup, while duplicate updates and first-seen vector order stay unchanged. | DevMode build; full compiler campaign (69/69 stages, including 1,833 C++ tests, native and workspace stages); `RegAlloc_IndexesManySameValueCopyPairs` covers seventeen unique pairs and a repeated lookup after indexing; all twelve static Micro task checksums matched and task-owned listings stayed unchanged. |
+| Enumerate loop-region labels from a source-ordered index | Scanning every instruction index to find loop headers and nested labels | One pass records label indices in source order; header discovery visits those labels, and the header's list position starts the nested-label scan without another binary search. The same predecessor checks and order are retained. | DevMode build; full compiler campaign (69/69 stages, including 1,833 C++ tests, native and workspace); all twelve static Micro task checksums matched. Listing differences were confined to runtime `AtomicValue` clone ordering and synthetic lambda/`__run_expr` labels. |
+| Count global register reservations once per pool | Rescanning every existing global reservation for each physical register tried while enforcing the class and persistent-register floors | The same pool-filtered class counts and floor comparisons are computed once before its register scan; empty pools skip the count. Candidate and register order are unchanged. | DevMode build; full compiler campaign (69/69 stages, including 1,833 C++ tests, native and workspace); all twelve static Micro task checksums matched, with listing differences limited to runtime `AtomicValue` clone ordering and synthetic lambda/`__run_expr` labels. |
+
+Rejected experiment: storing `upperRegValues` directly in `SanitizerFlatMap`
+passed DevMode C++, safety, sanity and a 69-stage compiler campaign, but grew
+every `SanitizerState` by 16 bytes even when the map was empty. Without evidence
+about map occupancy, the added copy work is not justified by fewer node
+allocations; the map remains sparse.
+
+At this checkpoint DevMode passed 1,715 C++ tests. The broad compiler suite
+passed 69/69 stages before the final three insertion-driven table-growth edits;
+the latest targeted native run passed all 3 stages, including its two owning
+error suites. A later full compiler run first passed 8/69 stages and reported
+one `safety` failure on `cwe416_use_after_free.swg`; rerunning that safety
+command in its workspace passed all 165 tests. A fresh full compiler campaign
+then passed 69/69 stages, including C++, safety, sanity, native and workspace
+stages. After reverting the flat-map experiment, the rebuilt retained tree also
+passed all 69 compiler stages, before the latest allocator changes. After the
+loop residency and liveness table changes, DevMode passed 1,715 C++ tests, the
+full native suite (3/3 stages) and the full compiler campaign (69/69 stages).
+After adding live-bit loop-carried marking, the rebuilt compiler again passed
+69/69 stages. The subsequent loop-header fusion passed the C++ suite (1,715
+tests), all three native stages, and the full compiler campaign (69/69 stages).
+The later preload live-bit walk passed the C++ suite, all three native stages,
+the full compiler campaign (69/69 stages), and the twelve-task static Micro
+comparison with identical checksums. Listing differences included reordered
+duplicate `AtomicValue` clone bodies and synthetic `__run_expr` addresses; all
+task-owned function listings were unchanged, and a same-binary control
+reproduced the runtime/synthetic variations. The subsequent back-edge cache
+passed the full compiler campaign too (69/69 stages, including 1,832 C++ tests
+and native), with all twelve checksums matching and every task-owned listing
+unchanged. The retained changes reduce repeated scans, size comparisons,
+table growth checks, and temporary header storage by construction. Their net
+speed and memory effects remain for the dedicated benchmark campaign to
+measure. Indexing repeated copy-coalescing pairs, with a test covering
+seventeen unique pairs and a repeated lookup after indexing, preserves all
+twelve static Micro task checksums and task-owned listings; the full 69-stage
+compiler campaign passed with 1,833 C++ tests and native validation.
+Enumerating loop-region labels from a source-ordered index also passed the
+69-stage compiler campaign with 1,833 C++ tests, native and workspace stages;
+all twelve static Micro task checksums matched.
+Reusing each header's list position to start the nested-label scan passed the
+same 69-stage campaign and preserved all twelve static Micro task checksums.
+Hoisting the global reservation count out of the physical-register scan passed
+the same 69-stage campaign and preserved all twelve static Micro task
+checksums.

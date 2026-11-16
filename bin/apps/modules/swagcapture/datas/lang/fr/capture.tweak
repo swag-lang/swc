@@ -126,7 +126,6 @@ ui_AimRecord           Enregistrer
 ui_AimReady            Prêt à enregistrer
 hint_AimWindow         maintenir pour viser la fenêtre
 hint_AimAttach         suivre la fenêtre
-hint_AimFormat         changer le format
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_VideoKeptAfterError Enregistrement arrêté après une erreur ; le fichier vidéo a été conservé

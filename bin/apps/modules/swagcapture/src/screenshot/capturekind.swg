@@ -2,16 +2,8 @@ using Core, Gui, Pixel
 
 // Capture kinds and their compact choices in the in-place overlay.
 
-// The kinds a zone can become, in menu and Tab order. A kind joins when it can be taken.
+// The kinds a zone can become, in menu order. A kind joins when it can be taken.
 const KindMedia = [CaptureMedia.Picture, CaptureMedia.Animation, CaptureMedia.Video]
-
-// Returns the next capture kind for the overlay's Tab key.
-func nextCaptureMedia(media: CaptureMedia)->CaptureMedia
-{
-    for kind, index in KindMedia where kind == media do
-        return KindMedia[(index + 1) % KindMedia.count]
-    return KindMedia[0]
-}
 
 // Returns the name of the kind of capture `media`.
 func kindName(media: CaptureMedia)->string

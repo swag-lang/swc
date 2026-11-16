@@ -269,6 +269,10 @@ impl Capture
     // copied because a later crop or flatten may replace them while a job still encodes.
     private mtd snapshotSave(target: string = "", duplicate = false)->*CaptureSaveJob fail
     {
+        // A library preview holds no pixels: written as a document, it would erase its picture.
+        if .previewOnly do
+            fail Core.Errors.BadParameterError{"a capture loaded as a preview cannot be saved"}
+
         var metadata     = .libraryMetadata()
         var model        = .fileModel()
         if duplicate
@@ -427,12 +431,13 @@ impl Capture
     // Changes library metadata without decoding or recompressing the background, original or
     // preview images. The model chunk is rewritten so older readers see the same values as the
     // manifest; every other stored chunk keeps its exact bytes and identifier.
-    func updateFileMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null) fail
+    // `unlink` removes the link to an external image.
+    func updateFileMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false) fail
     {
-        if title == null and not tags and not favorite and not rating do
+        if title == null and not tags and not favorite and not rating and not unlink do
             return
 
-        try rewriteFileMetadata(file, file, title, tags, favorite, rating, false)
+        try rewriteFileMetadata(file, file, title, tags, favorite, rating, false, unlink)
     }
 
     // Duplicates a document with a fresh container identity, keeping encoded images and media
@@ -448,7 +453,7 @@ impl Capture
             if File.exists(media) do
                 try File.duplicate(mediaPathOf(target, kind), media)
         }
-        try rewriteFileMetadata(source, target, null, null, null, null, true)
+        try rewriteFileMetadata(source, target, null, null, null, null, true, true)
     }
 
     // Writes a duplicate of a live, possibly unsaved editor snapshot on a worker.
@@ -467,7 +472,7 @@ impl Capture
         try writeScc(snapshot)
     }
 
-    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool) fail
+    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool, unlink: bool) fail
     {
 
         var reader: Scc.Reader
@@ -497,7 +502,7 @@ impl Capture
             model.favorite = favorite[]
         if rating do
             model.rating = rating[]
-        if duplicate
+        if unlink
         {
             model.linkedImage.clear()
             model.linkedUpToDate = true
@@ -527,7 +532,7 @@ impl Capture
                 entry.tags = tags[]
         }
 
-        if favorite or rating or duplicate
+        if favorite or rating or unlink
         {
             var metadataDecoder: Decoder'Read.TagBin
             let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
@@ -539,7 +544,7 @@ impl Capture
                 metadata.favorite = favorite[]
             if rating do
                 metadata.rating = rating[]
-            if duplicate
+            if unlink
             {
                 metadata.linkedImage.clear()
                 metadata.linkedUpToDate = true
@@ -664,7 +669,8 @@ impl Capture
                 capture.preview = try Image.decode("preview.png", imageBytes.toSlice())
         }
 
-        capture.file = file
+        capture.file        = file
+        capture.previewOnly = preview
         for itf in capture.forms do
             itf.setup(capture)
         reader.close()

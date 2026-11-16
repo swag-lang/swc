@@ -1550,8 +1550,10 @@ public impl MenuCtrl
         return mitem
     }
 
-    // Adds the label opening a group of entries of a popup, such as "Presentation" above the ways
-    // of showing a view, and returns it. It is written as a section label and is never chosen.
+    // Adds and returns a label that opens a group of popup entries.
+    //
+    // For example, "Presentation" can label the available ways to show a view. The label is never
+    // chosen as a command.
     #[Swag.Discardable]
     mtd addLabel(name: string)->*PopupMenuItem
     {

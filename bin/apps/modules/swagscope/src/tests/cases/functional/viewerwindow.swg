@@ -243,6 +243,12 @@ func createSidePanelFixture(host: Viewer.Host)
 
     let withFile: [2] string = [executable, executable]
     Swag.require(viewerStartupFile(withFile) == executable)
+
+    let unavailable = Path.combine(Env.getSpecialDirectory(.Temp), "scope-unavailable-drive", "missing.html")
+    let arguments: [6] string = [executable, "swag.sandbox", "swag.smoke=2", "--frames", "--unavailable-option", unavailable]
+    Swag.require(viewerStartupFile(arguments) == unavailable)
+    let relative: [2] string = [executable, "swag.html"]
+    Swag.require(viewerStartupFile(relative) == "swag.html")
 }
 
 #test

@@ -439,13 +439,14 @@ impl Writer
             fail InvalidFormatError{"SCC stored chunk checksum does not match its bytes"}
 
         var pending: PendingChunk
-        pending.info = info[]
+        pending.info      = info[]
         pending.alignment = 8
         pending.bytes.add(source)
         .chunks.add(#move pending)
     }
 
     // Writes the complete container to a temporary peer and atomically replaces `fileName`.
+    //
     // Fails if the container identity is null or its generation is zero.
     mtd saveAtomic(fileName: string) fail
     {

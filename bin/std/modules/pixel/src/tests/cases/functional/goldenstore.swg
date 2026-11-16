@@ -95,3 +95,130 @@ func checkDifference(expected, actual: const *Image)
     let actual   = Image.create(2, 3, .BGRA8)
     checkDifference(&expected, &actual)
 }
+
+func setGray(image: *Image, x, y: s32, level: u8)
+{
+    let pixel = image.pixels.storage() + cast(u64, y) * image.rowStride + cast(u64, x) * 4
+    pixel[0] = level
+    pixel[1] = level
+    pixel[2] = level
+    pixel[3] = 255
+}
+
+func grayAt(image: const *Image, x, y: s32)->u8
+{
+    return image.pixels.storage()[cast(u64, y) * image.rowStride + cast(u64, x) * 4]
+}
+
+// A dark ground carrying a bright box and a two-pixel rule, moved right by `shift` pixels.
+func paintGpuScene(shift: s32 = 0, withRule = true)->Image
+{
+    var result = Image.create(32, 24, .RGBA8)
+    for y in result.height
+    {
+        for x in result.width
+        {
+            let sourceX = x - shift
+            var level   = 30'u8
+            if withRule and sourceX >= 4 and sourceX < 28 and y >= 18 and y < 20 do
+                level = 160
+            if sourceX >= 8 and sourceX < 20 and y >= 4 and y < 14 do
+                level = 200
+            setGray(&result, x, y, level)
+        }
+    }
+
+    return result
+}
+
+func gpuDifferences(reference, drawn: const *Image)->u64
+{
+    return Testing.compareGpuImage(reference, drawn, {maxChannelDelta: 3}).differentPixels
+}
+
+// What separates two graphics devices passes: rounding everywhere, a softer edge, a lone pixel.
+#test
+{
+    let reference = paintGpuScene()
+
+    var rounded = paintGpuScene()
+    for y in rounded.height
+    {
+        for x in rounded.width do
+            setGray(&rounded, x, y, grayAt(&reference, x, y) + 3)
+    }
+
+    Swag.require(gpuDifferences(&reference, &rounded) == 0)
+
+    var softened = paintGpuScene()
+    for y in 4 until 14
+    {
+        setGray(&softened, 7, y, 85)
+        setGray(&softened, 8, y, 145)
+    }
+
+    Swag.require(gpuDifferences(&reference, &softened) == 0)
+
+    var speck = paintGpuScene()
+    setGray(&speck, 2, 2, 255)
+    Swag.require(gpuDifferences(&reference, &speck) == 0)
+}
+
+// A shape that moved, disappeared or changed color stays a difference on any device.
+#test
+{
+    let reference = paintGpuScene()
+
+    let moved = paintGpuScene(shift: 1)
+    Swag.require(gpuDifferences(&reference, &moved) != 0)
+
+    let ruleless = paintGpuScene(withRule: false)
+    Swag.require(gpuDifferences(&reference, &ruleless) != 0)
+
+    var tinted = paintGpuScene()
+    for y in 2 until 10
+    {
+        for x in 22 until 30 do
+            setGray(&tinted, x, y, 36)
+    }
+
+    Swag.require(gpuDifferences(&reference, &tinted) != 0)
+
+    let resized = Image.create(16, 24, .RGBA8)
+    Swag.require(not Testing.compareGpuImage(&reference, &resized, {}).sameSize)
+}
+
+// Where a pixel centre meets a texel boundary each renderer picks a side, which moves one
+// boundary by one pixel. The comparison accepts that when asked to, and nothing more: a boundary
+// two pixels off and a missing rule are still differences.
+#test
+{
+    let reference = paintGpuScene()
+    func differences(reference, drawn: const *Image, acceptEdgeChoice: bool)->u64
+    {
+        return Testing.compareGpuImage(reference, drawn, {maxChannelDelta: 3, acceptEdgeChoice: acceptEdgeChoice}).differentPixels
+    }
+
+    // The box reaches one row lower.
+    var grown = paintGpuScene()
+    for x in 8 until 20 do
+        setGray(&grown, x, 14, 200)
+    Swag.require(differences(&reference, &grown, false) != 0)
+    Swag.require(differences(&reference, &grown, true) == 0)
+
+    // The box reaches two rows lower.
+    var overgrown = paintGpuScene()
+    for x in 8 until 20
+    {
+        setGray(&overgrown, x, 14, 200)
+        setGray(&overgrown, x, 15, 200)
+    }
+
+    Swag.require(differences(&reference, &overgrown, true) != 0)
+
+    // A one-pixel rule is added to the reference, then lost by the drawn image.
+    var ruled = paintGpuScene()
+    for x in 4 until 28 do
+        setGray(&ruled, x, 22, 160)
+    Swag.require(differences(&ruled, &reference, true) != 0)
+}

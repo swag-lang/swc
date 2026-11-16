@@ -374,8 +374,8 @@ private:
 
     Diagnostic reportExpectedDoBlock(TokenRef tknRefAfterHeader);
     Diagnostic reportUnexpectedDoBlock(TokenRef doTokRef);
-    Diagnostic reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);
-    Diagnostic reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
+    void        reportEmptySwitchCase(AstNodeRef caseRef, TokenRef boundaryRef, DiagnosticId noteId);
+    void        reportEmptySwitchBody(TokenRef openRef, TokenRef closeRef);
     Diagnostic reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, TokenRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     Diagnostic reportArgumentCountError(DiagnosticId id, TokenRef calleeRef, AstNodeRef errorRef, uint32_t expectedCount, uint32_t actualCount, bool atLeast = false);
     void       reportArgumentCountForList(TokenRef calleeRef, const SmallVector<AstNodeRef>& args, uint32_t minCount, uint32_t maxCount, bool atLeastWhenUnbounded);

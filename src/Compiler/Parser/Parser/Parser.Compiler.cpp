@@ -409,15 +409,13 @@ AstNodeRef Parser::parseCompilerSwitch(TokenRef staticTokRef)
 
         if (ast_->spanSize(bodyPtr->spanChildrenRef) == 0)
         {
-            const Diagnostic diag = reportEmptySwitchCase(caseRef, ref(), is(TokenId::SymRightCurly) ? DiagnosticId::parser_note_switch_section_ends_here : DiagnosticId::parser_note_next_switch_section_starts_here);
-            diag.report(*ctx_);
+            reportEmptySwitchCase(caseRef, ref(), is(TokenId::SymRightCurly) ? DiagnosticId::parser_note_switch_section_ends_here : DiagnosticId::parser_note_next_switch_section_starts_here);
         }
     }
 
     if (caseRefs.empty())
     {
-        const Diagnostic diag = reportEmptySwitchBody(openRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid());
-        diag.report(*ctx_);
+        reportEmptySwitchBody(openRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid());
     }
 
     nodePtr->spanCasesRef = ast_->pushSpan(caseRefs.span());

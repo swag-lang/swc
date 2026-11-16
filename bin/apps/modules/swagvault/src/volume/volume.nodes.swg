@@ -95,10 +95,16 @@ impl Volume
     mtd createNodePending(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
         try .requireWritable()
+        if not .nextNodeId do
+            fail volumeError(.Corrupted)
+        if .nodes.count >= MaximumNodeCount or .nextNodeId == Swag.U64.Max do
+            fail volumeError(.DiskFull)
         let {parent, name} = .resolveParent(path)
         if parent == null or not parent.isDirectory() do
             fail volumeError(.NotFound)
         if not name.count or name == "." or name == ".." do
+            fail volumeError(.InvalidInput)
+        if name.count > MaximumNameSize or security.count > MaximumSecuritySize do
             fail volumeError(.InvalidInput)
         if .findChild(parent.id, name) do
             fail volumeError(.AlreadyExists)
@@ -111,7 +117,9 @@ impl Volume
         node.attributes = attributes
         if directory do
             node.attributes |= FileAttributeDirectory
-        elif not node.attributes do
+        else do
+            node.attributes &= ~FileAttributeDirectory
+        if not node.attributes do
             node.attributes = FileAttributeNormal
         node.creationTime   = now
         node.lastAccessTime = now
@@ -177,20 +185,32 @@ impl Volume
         if id == RootNodeId do
             fail volumeError(.AccessDenied)
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or not parent.isDirectory() or not name.count do
+        if parent == null or not parent.isDirectory() do
+            fail volumeError(.NotFound)
+        if not name.count or name == "." or name == ".." or name.count > MaximumNameSize do
+            fail volumeError(.InvalidInput)
+        let source = .nodeById(id)
+        if not source do
             fail volumeError(.NotFound)
         let destinationParentId = parent.id
-        let sourceIsDirectory   = .nodeById(id)!.isDirectory()
+        let sourceIsDirectory   = source.isDirectory()
 
         // Reject a cycle before replacing anything: a failed move must leave both names intact.
         if sourceIsDirectory
         {
             var ancestor = destinationParentId
+            var remaining = .nodes.count
             while ancestor != RootNodeId
             {
                 if ancestor == id do
                     fail volumeError(.InvalidInput)
-                ancestor = .nodeById(ancestor)!.parentId
+                if not remaining do
+                    fail volumeError(.Corrupted)
+                remaining -= 1
+                let ancestorNode = .nodeById(ancestor)
+                if not ancestorNode do
+                    fail volumeError(.Corrupted)
+                ancestor = ancestorNode.parentId
             }
         }
 

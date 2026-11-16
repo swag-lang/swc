@@ -82,9 +82,10 @@ whole recording loaded at once.
   workers. Exporting an unchanged video from the editor, an individual library selection or a
   selected-library batch now copies its MP4 on a worker and publishes it atomically, without
   borrowing the editable capture. The batch waits for each copy before reporting completion. Image
-  composition and timed-media encoding for edited captures still run on the interface thread, and
-  so does the PNG or JPEG encoding of a picture saved from the editor (`doSaveImage`), which the
-  library path already hands to a `CaptureImageWriteJob`.
+  composition and timed-media encoding for edited captures still run on the interface thread. A
+  picture saved from the editor to another file is now encoded and written by the same
+  `CaptureImageWriteJob` as the library's; writing the linked image, and saving from the in-place
+  editor, which closes at once, still encode on the interface thread.
   A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old full-load path.
 - Next: move timed-media copy/export encoding away from the interface where renderer ownership
   permits. Preserve save ordering and failure reports.
@@ -102,16 +103,6 @@ whole recording loaded at once.
 - Done when: a documented selection rule has measured benefits on representative captures,
   and any new encoding round-trips with compatibility tests for existing deflate files.
 - Related: app.capture.021
-
-### app.capture.041 — The video playback test is unstable on Linux
-
-- Evidence: under Xvfb with Mesa software rendering, `functional/videoplayback.swg` fails with
-  "video prefetch did not finish" in about one run of three, and one run of the same file did not
-  end within ten minutes, before and after the current changes alike. The decoder of the timeline
-  must ready four pictures of a ten-picture 64×48 recording within two seconds.
-- Next: log the decoder worker's wake, reader open and decode of each picture during a failing
-  run, and find whether the worker starts late, waits on the wrong event or decodes slowly.
-- Done when: the file passes twenty runs in a row on Linux without a hang.
 
 ### app.capture.002 — No capture-level effect pipeline
 

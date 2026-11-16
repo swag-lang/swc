@@ -1196,8 +1196,9 @@ impl ThemeColors
         .apply(papierPalette())
     }
 
-    // Returns Encre, the dark palette: a slightly cold graphite, Voltage for what acts and Arc
-    // for what is chosen.
+    // Returns the dark Encre palette.
+    //
+    // It uses slightly cool graphite, Voltage for actions, and Arc for selected items.
     func encrePalette()->ThemePalette
     {
         let ground: Color = 0xFF17181C
@@ -1264,8 +1265,9 @@ impl ThemeColors
         return result
     }
 
-    // Returns Papier, the light palette: warm paper, ink for what acts, a deepened Arc for what
-    // is chosen.
+    // Returns the light Papier palette.
+    //
+    // It uses warm paper, ink for actions, and a deepened Arc for selected items.
     func papierPalette()->ThemePalette
     {
         let paper: Color = 0xFFF5F4F0

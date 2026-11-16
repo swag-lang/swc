@@ -418,3 +418,23 @@ ships; history lives in Git, not here.
 - Related: std.pixel.008, std.pixel.009
 
 ---
+
+### std.pixel.038 — A hatch has a different period on the two renderers at a fractional content scale
+
+- Evidence: `tools/coverage.bat -Suite parity -Sweep -Workspace apps` now reports two scenes
+  besides those being changed elsewhere. Capture `tasks.frame.fr.papier` shows a
+  `DiagonalForwardLight` chip on a scaled display: `RenderCpu` lays the pattern out in path
+  units, so its eight-unit period covers ten device pixels at 1.25 and lands unevenly, while the
+  GPU draws it with an even eight-pixel period. The scene of `hatch.parity.ogl.swg` reproduces it
+  when the painter is given `setContentScale(1.25)` and the cells are divided by that scale:
+  424 pixels differ. `RenderCpu.samplePaintBatch` takes `floor(paintPos - boundRect) mod 8`; the
+  OpenGL tile path divides the same path-space distance by the texture size, which should give
+  the same ten-pixel period, so where the GPU loses the scale is not understood yet. Scope
+  `viewer.odt.reading.encre` differs on five pixels at the end of a one-pixel rule.
+- Next: find which side follows the contract of a hatch brush at a content scale that is not one,
+  starting from the uniforms the OpenGL tile path receives for that draw; fix the other side and
+  add the scaled scene to `hatch.parity.ogl.swg`.
+- Done when: the sweep reports nothing on the three applications and the scaled hatch scene
+  passes in the parity campaign.
+
+---

@@ -16,6 +16,8 @@ namespace __LinuxRT
     }
 
     const ClockMonotonic = 1's32
+    const FutexWait = 0's32
+    const FutexWake = 1's32
     const FutexWaitPrivate = 128's32
     const FutexWakePrivate = 129's32
     const FutexSyscall = 202's64
@@ -107,6 +109,30 @@ private const LinuxWriter = 0x8000_0000'u32
 private func __linuxWake(address: *u32, count: u32)
 {
     discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, address, __LinuxRT.FutexWakePrivate, count, null, null, 0)
+}
+
+// A lock in storage several mappings share, such as the process storage that each loaded runtime
+// maps at its own address. A private futex is keyed by the address it is given: a wake through one
+// mapping misses a thread asleep through another, which then sleeps with the lock free. The
+// shared operations are keyed by the page itself.
+#[Swag.Safety(.ValueBorrow, false)]
+func __linuxLockProcessWide(lock: *(*void?))
+{
+    let state = cast(*u32, lock)
+    while not __hostTryLockExclusive(lock)
+    {
+        let observed = Swag.atomicLoad(state)
+        if observed do
+            discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWait, observed, null, null, 0)
+    }
+}
+
+#[Swag.Safety(.ValueBorrow, false)]
+func __linuxUnlockProcessWide(lock: *(*void?))
+{
+    let state = cast(*u32, lock)
+    Swag.atomicStore(state, 0)
+    discard __LinuxRT.syscall(__LinuxRT.FutexSyscall, state, __LinuxRT.FutexWake, 0x7FFF_FFFF, null, null, 0)
 }
 
 #[Swag.Safety(.ValueBorrow, false)]

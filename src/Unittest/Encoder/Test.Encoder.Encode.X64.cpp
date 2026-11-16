@@ -822,17 +822,7 @@ SWC_TEST_BEGIN(EncodeX64_LegalizeLargeCmpRegImmPreservesLhs)
     builder.emitCmpRegImm(R12, ApInt(0x7FFFFFFFFFFFFFFF, 64), MicroOpBits::B64);
     builder.emitRet();
 
-    MicroRegisterAllocationPass regAllocPass;
-    MicroLegalizePass           legalizePass;
-    MicroEmitPass               encodePass;
-    MicroPassManager            passes;
-    passes.addStartPass(regAllocPass);
-    passes.addStartPass(legalizePass);
-    passes.addStartPass(regAllocPass);
-    passes.addStartPass(encodePass);
-
-    MicroPassContext passCtx;
-    SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
+    SWC_RESULT(Backend::Unittest::runEncodePipeline(builder, encoder));
     SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
 
     bool hasLargeImmLoad = false;

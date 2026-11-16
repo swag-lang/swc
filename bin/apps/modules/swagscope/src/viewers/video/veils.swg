@@ -191,6 +191,7 @@ struct BottomVeil
         tracksButton:  *IconButton
         muteButton:    *IconButton
         volumeSlider:  *Slider
+        timeButton:    *IconButton
     }
 
     elapsed: String     // Time played, written first and strong.
@@ -216,8 +217,10 @@ impl BottomVeil
             .wndFlags        |= .TopMost
         }
 
-        result.timeline      = Wnd.create'VideoTimeline(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
-        result.playButton    = createGlyph(result, .Play, "scope.video.play")
+        result.timeline   = Wnd.create'VideoTimeline(result, "scope.video.timeline", Math.Rectangle{0, 0, 0, TimelineHeight})
+        result.playButton = createGlyph(result, .Play, "scope.video.play")
+        result.timeButton = IconButton.createQuiet(result, "scope.video.time", menu: false)
+        result.timeButton.style.setFont(parent.theme().createDefaultFontFs(parent.themeMetrics().defaultFixedFontSize), .Regular)
         result.optionsButton = createGlyph(result, .Settings, "scope.video.options")
         result.tracksButton  = createGlyph(result, .AudioTracks, "scope.video.tracks")
         result.muteButton    = createGlyph(result, .Volume, "scope.video.mute", .Toggle)
@@ -242,6 +245,8 @@ impl BottomVeil
             return
         .elapsed = elapsed
         .length  = length
+        .timeButton.setQuietText(.timeText())
+        .arrange()
         .invalidate()
     }
 
@@ -258,6 +263,9 @@ impl BottomVeil
                                              width + 2 * KnobInset,
                                              TimelineHeight})
         .playButton.setPosition(Math.Rectangle{room.x + VeilInset - glyph * 0.25, lineY - glyph * 0.5, glyph, glyph})
+        .timeButton.setPosition(Math.Rectangle{.playButton.position.right() + RowGap,
+                                               lineY - .timeButton.position.height * 0.5,
+                                               .timeButton.position.width, .timeButton.position.height})
 
         // The right end of the row reads from the edge inwards: volume, mute, tracks and options.
         var right = room.right() - VeilInset + glyph * 0.25
@@ -294,12 +302,7 @@ impl IWnd for BottomVeil
         let words   = .theme().createDefaultFont(metrics.defaultFontSize)
         let lineY   = room.bottom() - RowBottom
 
-        var x = .playButton.position.right() + RowGap
-        painter.drawString(x, mono.opticalLineTop(lineY), .elapsed, mono, .themeColors().softText)
-        x += Painter.measureString(.elapsed, mono).width
-        let length = Format.toString(" / %", .length)
-        painter.drawString(x, mono.opticalLineTop(lineY), length, mono, .themeColors().faintText)
-        x += Painter.measureString(length, mono).width + 2 * RowGap
+        let x       = .timeButton.position.right() + 2 * RowGap
         let textEnd = .optionsButton.position.x
         if not .chapter.isEmpty() and x + Painter.measureString(.chapter, words).width + RowGap < textEnd do
             painter.drawString(x, words.opticalLineTop(lineY), .chapter, words, .themeColors().faintText)

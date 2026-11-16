@@ -43,7 +43,7 @@ using Core, Gui, Pixel
         }
     }
 
-    let hub = unwrap ResidentPanel.open(main, .Hub)
+    let hub = unwrap ResidentPanel.open(main, .Centered)
     hub.choose(ActionCapture.Area)
     app.runFrame()
 

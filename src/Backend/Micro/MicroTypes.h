@@ -326,6 +326,22 @@ enum class MicroOp : uint8_t
     VecProductSubtractFromF64,
 };
 
+inline bool isScalarShiftOp(const MicroOp op)
+{
+    switch (op)
+    {
+        case MicroOp::ShiftLeft:
+        case MicroOp::ShiftArithmeticLeft:
+        case MicroOp::ShiftRight:
+        case MicroOp::ShiftArithmeticRight:
+        case MicroOp::RotateLeft:
+        case MicroOp::RotateRight:
+            return true;
+        default:
+            return false;
+    }
+}
+
 // True for the 128-bit packed operations: they run on the float register
 // file, ignore the CPU flags, and keep their immediate operands verbatim (a
 // shift count, a rounding mode, a shuffle control), so scalar rewrites must

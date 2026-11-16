@@ -461,8 +461,9 @@ impl InfoSheet
         .relayout()
     }
 
-    // Names the file or folder the sheet describes; the glyph of its kind leads the identity line.
-    // An empty file name removes the glyph.
+    // Names the file or folder the sheet describes.
+    //
+    // The glyph of its kind leads the identity line; an empty file name removes the glyph.
     mtd setSubjectFile(fileName: string, directory = false)
     {
         .subjectFile      = fileName
@@ -488,8 +489,10 @@ impl InfoSheet
         .relayout()
     }
 
-    // Begins a named page; readings added afterward belong to it. A single page shows no tabs.
-    // The name of every page stands on the top line of the sheet, and a click shows its page.
+    // Begins a named page; readings added afterward belong to it.
+    //
+    // A single page shows no tabs. The name of each page appears on the top line, and a click
+    // shows that page.
     mtd beginPage(name: string)
     {
         .pages.add(name)
@@ -507,9 +510,10 @@ impl InfoSheet
         .relayout()
     }
 
-    // Stands the picture at the left of the title, the title, the identity and the figures beside
-    // it, and the action right under them, as a poster or a cover heads what it describes; or back
-    // at the head of the sheet.
+    // Places the picture beside the title, identity, and figures, with the action below them.
+    //
+    // This layout resembles a poster or cover. Set it to false to place the picture above the
+    // sheet content.
     mtd setPictureBeside(beside: bool)
     {
         .beside = beside
@@ -573,8 +577,9 @@ impl InfoSheet
         .relayout()
     }
 
-    // Appends a faint footnote, such as where the readings came from, followed by a link in Arc
-    // posting the command `id` when `link` is not empty.
+    // Appends a faint footnote, such as the source of the readings.
+    //
+    // A non-empty `link` appears after the text in Arc and posts command `id` when clicked.
     mtd addFootnote(text: string, link: string = "", id: WndId? = null)
     {
         .blocks.add(InfoSheetBlock{kind: .Footnote, label: text, value: link, page: .writingPage})

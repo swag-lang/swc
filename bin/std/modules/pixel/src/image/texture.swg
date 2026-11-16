@@ -43,8 +43,10 @@ enum UVMode
 
 impl Texture
 {
-    // Returns the tightly packed texture storage size, in bytes. Planar chroma planes use their
-    // rounded-up subsampled dimensions, so odd-sized pictures include the full edge samples.
+    // Returns the tightly packed texture storage size, in bytes.
+    //
+    // Planar chroma planes use rounded-up subsampled dimensions, so odd-sized pictures include
+    // their full edge samples.
     mtd const byteCount()->u64
     {
         let width  = cast(u64, .width)
@@ -55,6 +57,7 @@ impl Texture
             let chromaHeight = height / 2 + height % 2
             return width * height + 2 * chromaWidth * chromaHeight
         }
+
         return width * height * .pixelFormat.bitsPerPixel() / 8
     }
 

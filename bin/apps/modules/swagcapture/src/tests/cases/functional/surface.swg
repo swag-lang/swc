@@ -754,6 +754,14 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     capture.backImagePos = {-580, -180}
     host.runFrames(1)
     Swag.require(editor.bar.position.right() <= 888)
+
+    // The shortcuts follow the zone's monitor rather than the whole virtual desktop.
+    editor.source.monitors.clear()
+    testAddMonitorAt(editor.source, {0, 0, 512, 640})
+    testAddMonitorAt(editor.source, {512, 0, 512, 480})
+    host.runFrames(1)
+    let hints = editor.hintLine.surfaceRect()
+    Swag.require(hints.x >= 512 and hints.right() <= 1024 and hints.bottom() <= 480)
 }
 
 // Something that must not leave the screen is hidden in place, before the copy: the bar has a
@@ -1551,10 +1559,12 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
 
     Swag.require(editor.source.captureOptions.recordRate == rate)
 
-    // Video leaves the frozen editor; the live preparation owns its sound choices.
+    // Tab leaves the chosen capture kind unchanged; video is an explicit choice.
     var key = Gui.KeyEvent{kind: .Pressed, key: .Tab}
     g_Exit, g_GrabDone = false
     editor.sendEvent(&key)
+    Swag.require(g_CaptureMedia == .Animation and not g_Exit and not g_GrabDone)
+    editor.setMedia(.Video)
     Swag.require(g_CaptureMedia == .Video and g_Exit and g_GrabDone)
 
     // In an animation, Enter starts the recording of the zone.

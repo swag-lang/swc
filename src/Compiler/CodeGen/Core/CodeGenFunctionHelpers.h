@@ -17,6 +17,11 @@ enum class CallConvKind : uint8_t;
 struct CallConv;
 struct CodeGenNodePayload;
 
+namespace ABITypeNormalize
+{
+    struct NormalizedType;
+}
+
 namespace SemaError
 {
     enum class ReportLocation;
@@ -66,6 +71,7 @@ namespace CodeGenFunctionHelpers
     bool               functionUsesIndirectReturnStorage(CodeGen& codeGen, const SymbolFunction& symbolFunc);
     bool               usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar);
     CodeGenNodePayload resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar);
+    void               emitCompilerRunReturnValue(CodeGen& codeGen, CallConvKind callConvKind, TypeRef returnTypeRef, MicroReg outputStorageReg, MicroReg payloadReg, bool payloadLValue, const ABITypeNormalize::NormalizedType& normalizedRet);
 
     CodeGenNodePayload resolveClosureCapturePayload(CodeGen& codeGen, const SymbolVariable& symVar);
     CodeGenNodePayload resolveStoredVariablePayload(CodeGen& codeGen, const SymbolVariable& symVar);

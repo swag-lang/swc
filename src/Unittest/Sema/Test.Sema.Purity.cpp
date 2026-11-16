@@ -14,15 +14,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct RestoreErrorCount
-    {
-        uint64_t saved = 0;
-
-        ~RestoreErrorCount()
-        {
-            Stats::get().numErrors.store(saved, std::memory_order_relaxed);
-        }
-    };
 }
 
 SWC_TEST_BEGIN(SemaPurity_GlobalVariableReadIsNotConstFolded)
@@ -54,7 +45,7 @@ func divideByRuntimeDenominator(value: u64)->u64
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t    errorsBefore = Stats::getNumErrors();
-    RestoreErrorCount restoreErrors{errorsBefore};
+    Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
     CompilerInstance  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
 
@@ -101,7 +92,7 @@ func divideByRuntimeDenominator(value: u64)->u64
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t    errorsBefore = Stats::getNumErrors();
-    RestoreErrorCount restoreErrors{errorsBefore};
+    Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
     CompilerInstance  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
 

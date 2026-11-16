@@ -1,10 +1,10 @@
 using Core, Pixel, Gui
 
-// What a resident panel lists.
-enum ResidentPanelKind
+// Where the same resident home opens.
+enum ResidentPanelPlacement
 {
-    Hub      // What to capture or record, the recent captures, then the pages of the window.
-    Menu     // Every capture command and its settings, as the menu of the notification-area icon.
+    Centered     // Centered on the monitor, as at startup.
+    AtPointer    // Beside the pointer, as a menu of the notification-area icon.
 }
 
 // The last captures, as one row of pictures in the hub. A click opens one in the editor.
@@ -137,11 +137,9 @@ impl HubRecents
 // The floating list a resident Swag Capture answers its icon with, on a surface of its own: the
 // main window may be hidden while it is on screen.
 //
-// The hub stands in the upper middle of the screen and is what the application starts on by
-// default: what to capture, what to record, the last captures, then the editor, the library
-// and the way back behind the icon.
-// The menu of the notification-area icon stands at the pointer and carries every capture command
-// with its settings. While a recording runs, both offer to stop it instead of starting another.
+// One home lists what to capture, what to record, the capture settings and recent captures,
+// then the editor, the library and the way back behind the icon. It opens centered at startup
+// or beside the pointer from the icon. While recording, it offers to stop or abandon the session.
 //
 // The panel runs no loop of its own. A timer watches for a choice, so the application keeps
 // running under it and can quit while it is on screen. It leaves on a choice, on `Esc`, and when
@@ -152,7 +150,8 @@ struct ResidentPanel
 
     late main: *MainWnd
     late menu: *MenuCtrl
-    kind:      ResidentPanelKind
+    placement: ResidentPanelPlacement
+    anchor:    Math.Point       // Original screen anchor, retained while recent captures load.
     listSize:  Math.Point       // Size the list asks for, before the surface docks it to its own.
     recents:   *HubRecents?     // The row of recent captures, when the hub has some to show.
     watch:     *Gui.Timer?      // Watches for a choice while the panel floats.
@@ -181,12 +180,12 @@ impl IWnd for ResidentPanel
                 return
             }
         }
-        elif .kind == .Hub and not g_Recorder and HubRecents.available(.main)
+        elif not g_Recorder and HubRecents.available(.main)
         {
             .rebuild()
         }
 
-        if .kind == .Menu
+        if .placement == .AtPointer
         {
             if PopupMenuSurface.shouldDismiss(me, .menu, &.wasActive, &.armed) do
                 .choose(null)
@@ -237,9 +236,9 @@ impl ResidentPanel
         return .app().isActivated
     }
 
-    // Opens the panel of `kind` on a surface of its own, in place of the one on screen.
+    // Opens the resident home at `placement`, replacing the one on screen.
     #[Swag.Discardable]
-    func open(main: *MainWnd, kind: ResidentPanelKind)->*ResidentPanel?
+    func open(main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel?
     {
         main.residentNotice?.close()
         main.residentPanel?.close()
@@ -250,11 +249,11 @@ impl ResidentPanel
         if not surface do
             return null
 
-        let result = create(surface.wnd, main, kind)
+        let result = create(surface.wnd, main, placement)
         result.floating = true
-        if kind == .Menu
+        if placement == .AtPointer
         {
-            PopupMenuSurface.show(result, result.menu, {pointer.x, pointer.y, 0, 0}, .AtPoint, pointer)
+            result.place(pointer)
         }
         else
         {
@@ -273,8 +272,8 @@ impl ResidentPanel
         return result
     }
 
-    // Builds the panel of `kind` in `parent`, without a surface of its own.
-    func create(parent: *Wnd, main: *MainWnd, kind: ResidentPanelKind)->*ResidentPanel
+    // Builds the same home in `parent`, regardless of where it will open.
+    func create(parent: *Wnd, main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel
     {
         with let result = Wnd.create'ResidentPanel(parent)
         {
@@ -282,7 +281,7 @@ impl ResidentPanel
             .backgroundStyle = .Window
             .focusPolicy     = .Click
             .main            = main
-            .kind            = kind
+            .placement       = placement
         }
 
         result.fill()
@@ -306,10 +305,9 @@ impl ResidentPanel
     mtd choose(id: WndId?)
     {
         let main = .main
-        let kind = .kind
 
         // Once the hub leaves, the application is resident behind its notification-area icon.
-        let showNotice = kind == .Hub and (not id or id == ActionGlobal.Minimize) and main.surface!.isHidden
+        let showNotice = (not id or id == ActionGlobal.Minimize) and main.surface!.isHidden
         .close()
         if showNotice do
             main.noticeResident()
@@ -345,19 +343,17 @@ impl ResidentPanel
         // Every command that starts a recording stops the one that runs: it is offered once.
         if g_Recorder do
             .addRecordingItems()
-        elif .kind == .Hub do
-            .addHubItems()
         else do
-            .addMenuItems()
+            .addHubItems()
 
         with .menu
         {
             .addItem(ActionOptions.Options)
             .addSeparator()
 
-            // The hub says how to leave it and keep the application; the menu is the icon's own.
-            if me.kind == .Hub do
-                .addItem(ActionGlobal.Minimize).rightName.set(Input.formatKeyShortcut(.None, .Escape))
+            .addItem(null, ActionGlobal.Minimize,
+                     rightName: Input.formatKeyShortcut(.None, .Escape),
+                     disabled: me.placement == .AtPointer)
             .addItem(ActionGlobal.Exit)
 
             .owner     = me.main
@@ -375,6 +371,7 @@ impl ResidentPanel
     private mtd rebuild()
     {
         .menu.destroy()
+        .armed = false
         .fill()
         .applyLayout()
 
@@ -384,8 +381,7 @@ impl ResidentPanel
         // A floating panel stays on the monitor it stands on, whatever the pointer did since.
         if .floating
         {
-            let stands = .surface!.position
-            .place({stands.horzCenter(), stands.vertCenter()})
+            .place(.anchor)
         }
     }
 
@@ -402,7 +398,9 @@ impl ResidentPanel
 
     private mtd addHubItems()
     {
-        let texts = appStrings()
+        let texts   = appStrings()
+        let main    = .main
+        let screens = main.monitors.count > 1 ? main.monitors.count : 0
         with .menu
         {
             .addLabel(texts.ui_MenuCapture)
@@ -410,13 +408,19 @@ impl ResidentPanel
             .addItem(ActionCapture.FullScreen)
             .addItem(ActionCapture.ActiveWnd)
             .addItem(ActionCapture.LastArea)
-
+            for index in screens do
+                .addItem(ActionCapture.screenId(index))
             .addLabel(texts.ui_HubRecord)
             .addItem(ActionCapture.RecordVideo)
             .addItem(ActionCapture.RecordScreen)
             .addItem(ActionCapture.RecordActiveWindow)
             .addItem(ActionCapture.Record)
+            for index in screens do
+                .addItem(ActionCapture.recordScreenId(index))
+            .addLabel(texts.ui_MenuCaptureSetup)
         }
+
+        .main.addDelayChoices(.menu, includeCursor: true)
 
         if HubRecents.available(.main)
         {
@@ -433,59 +437,24 @@ impl ResidentPanel
         }
     }
 
-    private mtd addMenuItems()
-    {
-        // One monitor is the whole screen: its own entries would only repeat that command.
-        let main    = .main
-        let screens = main.monitors.count > 1 ? main.monitors.count : 0
-
-        with .menu
-        {
-            .addItem(ActionGlobal.ShowHub)
-            .addItem(ActionGlobal.ShowEditor)
-
-            .addSeparator()
-            .addItem(ActionCapture.Area)
-            .addItem(ActionCapture.LastArea)
-            .addItem(ActionCapture.FullScreen)
-            .addItem(ActionCapture.ActiveWnd)
-            for index in screens do
-                .addItem(ActionCapture.screenId(index))
-
-            .addSeparator()
-            .addItem(ActionCapture.RecordVideo)
-            .addItem(ActionCapture.RecordScreen)
-            .addItem(ActionCapture.RecordActiveWindow)
-            for index in screens do
-                .addItem(ActionCapture.recordScreenId(index))
-
-            .addSeparator()
-            .addItem(ActionCapture.Record)
-
-            .addSeparator()
-            .addItem(ActionCapture.CaptureCursor)
-        }
-
-        main.addDelayChoices(.menu)
-        .menu.addSeparator()
-    }
-
-    // Stands the surface around its list: the hub in the upper middle of the monitor under
-    // `pointer`, the menu at `pointer`. The list is measured in logical units and the surface
-    // placed in physical screen pixels.
+    // Stands the same home centered on the monitor or beside `pointer`.
+    // The list uses logical units; the surface and its anchor use physical screen pixels.
     mtd place(pointer: Math.Point)
     {
+        .anchor = pointer
+        if .placement == .AtPointer
+        {
+            PopupMenuSurface.show(me, .menu, {pointer.x, pointer.y, 0, 0}, .AtPoint, pointer)
+            return
+        }
+
         let surface = unwrap .surface
         let shadow  = .themeMetrics().surfaceWnd_ShadowSize
         let width   = (.listSize.x + 2 * shadow) * surface.dpiScale
         let height  = (.listSize.y + 2 * shadow) * surface.dpiScale
 
-        var corner = pointer
-        if .kind == .Hub
-        {
-            let area = Env.monitorForPoint(pointer).physicalWorkArea
-            corner = {area.horzCenter() - width * 0.5, area.y + (area.height - height) * 0.4}
-        }
+        let area = Env.monitorForPoint(pointer).physicalWorkArea
+        let corner = Math.Point{area.horzCenter() - width * 0.5, area.vertCenter() - height * 0.5}
 
         surface.setPosition({corner.x, corner.y, width, height})
         surface.constrainPositionToScreen()

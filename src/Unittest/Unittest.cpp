@@ -23,6 +23,16 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Unittest
 {
+    ScopedErrorCountRestore::ScopedErrorCountRestore(const uint64_t saved) :
+        saved_(saved)
+    {
+    }
+
+    ScopedErrorCountRestore::~ScopedErrorCountRestore()
+    {
+        Stats::get().numErrors.store(saved_, std::memory_order_relaxed);
+    }
+
     bool isDecommittedMemory(const void* address)
     {
 #ifdef _WIN32

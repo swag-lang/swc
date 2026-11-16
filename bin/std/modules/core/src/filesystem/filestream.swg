@@ -54,8 +54,8 @@ impl FileStream
 
     // Reads at most `length` bytes into `buffer` and returns the number of bytes read.
     //
-    // The read is split into host-sized chunks and stops early only at the end of the file.
-    // `buffer` must be non-null, including when `length` is zero.
+    // A short read may mean end of file or a partial read from the host; use `readExact` when
+    // every requested byte is required. `buffer` must be non-null, including when `length` is zero.
     mtd read(buffer: *void, length: u64)->u64 fail
     {
         Swag.assert(.isOpen())
@@ -310,10 +310,12 @@ impl FileStream
     // Writes at most the size of `buffer` and returns the number of bytes written.
     mtd write(buffer: const [..] u8)->u64 fail => try .write(buffer.buffer, buffer.count)
 
-    // Reads the complete `buffer` and returns false only when the stream ends first.
+    // Reads `buffer` and returns whether the read supplied every byte it holds.
+    //
+    // If fewer bytes are read, the stream position advances by the number that were available.
     mtd readExact(buffer: [..] u8)->bool fail => try .read(buffer) == buffer.count
 
-    // Moves to `offset`, reads the complete `buffer`, and returns false only when the stream ends first.
+    // Moves to `offset`, reads `buffer`, and returns whether the read supplied every byte it holds.
     //
     // The resulting stream position follows the bytes read.
     mtd readExactAt(offset: u64, buffer: [..] u8)->bool fail

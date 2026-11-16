@@ -1273,8 +1273,10 @@ impl View
         return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
     }
 
-    // Returns the source byte offset of the block nearest the top reading inset, or `U64.Max`
-    // while no block is laid out; the heading being read is the last one before it.
+    // Returns the source byte offset of the block nearest the top reading inset.
+    //
+    // Returns `U64.Max` while no block is laid out. The heading being read is the last one before
+    // this offset.
     mtd readingOffset()->u64
     {
         let viewport = .scroll.paddedClientRect()

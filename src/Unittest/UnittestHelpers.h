@@ -11,6 +11,9 @@ SWC_BEGIN_NAMESPACE();
 // Only ever named through a reference here; the encoder tests include the concrete
 // encoder they drive.
 class Encoder;
+class NativeBackendBuilder;
+class SymbolVariable;
+class TaskContext;
 
 namespace Backend::Unittest
 {
@@ -21,6 +24,10 @@ namespace Backend::Unittest
     };
 
     Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
+    const SymbolVariable* findRegularGlobal(const NativeBackendBuilder& nativeBuilder, TaskContext& ctx, std::string_view name);
+
+    // Runs allocation, legalization, final allocation, and emission for tests.
+    Result runEncodePipeline(MicroBuilder& builder, Encoder& encoder);
 
     // Runs one pass over what the builder holds, in a default Swag-convention context.
     template<typename PASS>

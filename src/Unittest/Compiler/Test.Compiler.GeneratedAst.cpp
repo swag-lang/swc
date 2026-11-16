@@ -25,15 +25,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct RestoreErrorCount
-    {
-        size_t saved = 0;
-
-        ~RestoreErrorCount()
-        {
-            Stats::get().numErrors.store(saved, std::memory_order_relaxed);
-        }
-    };
 
     class ScopedGeneratedAstDirectory
     {
@@ -185,7 +176,7 @@ func touch()
         CommandLineParser::refreshBuildCfg(cmdLine);
 
         const uint64_t          errorsBefore = Stats::getNumErrors();
-        const RestoreErrorCount restoreErrors{errorsBefore};
+        const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
         CompilerInstance        compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, SOURCE);
         if (compiler.run() != ExitCode::Success)
@@ -319,7 +310,7 @@ func touch()
         CommandLineParser::refreshBuildCfg(cmdLine);
 
         const uint64_t          errorsBefore = Stats::getNumErrors();
-        const RestoreErrorCount restoreErrors{errorsBefore};
+        const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
         CompilerInstance        compiler(ctx.global(), cmdLine);
         Unittest::registerTestSource(compiler, sourcePath, SOURCE);
         if (compiler.run() != ExitCode::Success)
@@ -395,7 +386,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstMaterializesPerThreadFiles)
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t          errorsBefore = Stats::getNumErrors();
-    const RestoreErrorCount restoreErrors{errorsBefore};
+    const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
     CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() != ExitCode::Success)
@@ -608,7 +599,7 @@ struct GeneratedInitNoise
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t          errorsBefore = Stats::getNumErrors();
-    const RestoreErrorCount restoreErrors{errorsBefore};
+    const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
     CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() != ExitCode::Success)
@@ -729,7 +720,7 @@ func touch()
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t          errorsBefore = Stats::getNumErrors();
-    const RestoreErrorCount restoreErrors{errorsBefore};
+    const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
     CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() != ExitCode::Success)
@@ -802,7 +793,7 @@ SWC_TEST_BEGIN(Compiler_GeneratedAstDiagnosticsUseMaterializedSourceFile)
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     const uint64_t          errorsBefore = Stats::getNumErrors();
-    const RestoreErrorCount restoreErrors{errorsBefore};
+    const Unittest::ScopedErrorCountRestore restoreErrors{errorsBefore};
     CompilerInstance        compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     if (compiler.run() == ExitCode::Success)

@@ -121,11 +121,12 @@ stress solely because it is new or somewhat slower.
 
 GPU is the default renderer for all coverage suites and direct `HeadlessHost` tests. Pass
 `-Renderer cpu` to `tools/coverage.bat` or set `SWAG_TEST_RENDERER=cpu` for a direct compiler test
-command in CI/cloud environments without a usable graphics device. Use `goldens` for the complete
-golden campaign on the selected renderer when shared rendering behavior can reach snapshots beyond
-a confidently bounded set. Use `parity` for Pixel tests tagged
-`integration.renderer.opengl`. Reserve `full` for scheduled complete standard-module and
-application coverage, including golden and stress tests; it does not include privileged or
+command in CI/cloud environments without a usable graphics device. Golden tests are the exception:
+they always render on CPU, whatever renderer a suite selects. Use `goldens` for the golden
+campaign, complete when shared rendering behavior can reach snapshots beyond a confidently
+bounded set. Use `parity` for the tests tagged `integration.renderer.opengl`, which compare the
+CPU and GPU renderers on the same scene. Reserve `full` for scheduled complete standard-module
+and application coverage, including golden and stress tests; it does not include privileged or
 external integration campaigns.
 
 ### Generated-code optimizations
@@ -269,6 +270,26 @@ consumer that activates the changed behavior.
   decoding, compositing, or paint primitives require this complete golden-only pass. It selects
   every `golden`-tagged test, continues across failing modules, and reports all `.actual` files
   without promoting them.
+- A PNG golden is a CPU reference, identical on every machine: it is recorded, compared exactly
+  and replaced from a CPU render and from nothing else. The launchers select the CPU renderer for
+  every run that selects the `golden` tag, so run golden tests through
+  `tools/coverage.bat -DevMode -Suite goldens`, narrowed with `-Workspace`, `-Module` and
+  `-TestFile`, or through `tools/std.bat`/`tools/apps.bat ... --test-tag golden`. A golden test
+  reached by a GPU run is not compared. Never add a golden, a file variant or a tolerance for one
+  renderer. A test that renders with `RenderCpu` itself says so with `{cpuRendered: true}`.
+- What a GPU draws is checked by the renderer parity campaign, not by goldens: tests tagged
+  `integration.renderer.opengl` draw one scene with both renderers and compare them through
+  `Pixel.Testing.assertRenderersAgree`, whose tolerance follows local contrast so it holds on any
+  graphics device. Run `tools/coverage.bat -DevMode -Suite parity` when a renderer, a shader, a
+  sampler or a paint primitive changes. A divergence is a defect: reduce it to a small parity
+  scene, watch that scene fail, fix the renderer (the GPU is presumed right, so the CPU renderer
+  is the one brought to it), keep the scene as the regression test, and record again the goldens
+  the fix moves. `-Suite parity -Sweep` finds such divergences in real scenes: it draws the golden
+  scenes on the GPU and compares them with their CPU references without recording. What it
+  reports is a lead to reduce, never the regression test itself. The sweep accepts a boundary one
+  pixel off, because a real layout draws pictures at sizes where a pixel centre meets a texel
+  boundary and OpenGL leaves that side to the implementation; a dedicated parity scene stays
+  strict and avoids such ties, with odd picture sizes and positions off the pixel centres.
 - A golden mismatch fails its test through `Swag.check`, which lets the test go on: one run
   writes every `.actual` a change moved, and the run stays red until each is promoted or fixed.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside

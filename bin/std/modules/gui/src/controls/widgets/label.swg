@@ -323,8 +323,9 @@ impl Label
         return sf
     }
 
-    // Creates a label showing the literal text `name`, with optional wrapping, sizing, and link
-    // behavior.
+    // Creates a label showing the literal text `name`.
+    //
+    // `flags` controls wrapping, automatic sizing, emphasis, ellipsis, and link actions.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: LabelFlags = .None)->*Label
     {
@@ -407,8 +408,10 @@ impl Label
         .invalidate()
     }
 
-    // Returns the first visible URL span's bounds in label coordinates, or an empty rectangle.
-    // Use this after layout when anchoring a popup to an inline action.
+    // Returns the first visible URL span's bounds in label coordinates.
+    //
+    // Returns an empty rectangle when there is no visible URL. Use after layout when anchoring a
+    // popup to an inline action.
     mtd firstLinkRect()->Math.Rectangle
     {
         var result: Math.Rectangle

@@ -209,6 +209,30 @@ using Swag, Core
     Swag.require(Math.isEqualEpsilon(f.editView.zoom, EditView.MaxZoom, 0.001))
 }
 
+// The zoom answers the keys of the main row as well as those of the keypad.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testRegisterHeadlessActions(f.main)
+    f.main.registerShortcuts()
+    f.capture.width  = 400
+    f.capture.height = 300
+    f.editView.setFocus()
+
+    f.editView.setZoom(1)
+    f.gui.keyPress(.OemPlus, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1.5, 0.001))
+    f.gui.keyPress(.OemMinus, .Control)
+    f.gui.keyPress(.OemMinus, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 0.67, 0.001))
+    f.gui.keyPress(.D0, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1, 0.001))
+    f.gui.keyPress(.Add, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1.5, 0.001))
+}
+
 // Zoom actions expose disabled state at clamps and execute without paint.
 #test
 {

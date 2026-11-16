@@ -1310,18 +1310,8 @@ namespace
             if (!resolvedTypeRef.isValid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
                 continue;
 
-            if (compareTypeRef.isInvalid())
-            {
-                outBindingTypeRef = paramTypeRef;
-                compareTypeRef    = resolvedTypeRef;
-                continue;
-            }
-
-            if (compareTypeRef != resolvedTypeRef)
-            {
-                outBindingTypeRef = TypeRef::invalid();
+            if (!SemaHelpers::mergeCompatibleFunctionBindingType(paramTypeRef, resolvedTypeRef, outBindingTypeRef, compareTypeRef))
                 return Result::Continue;
-            }
         }
 
         return Result::Continue;

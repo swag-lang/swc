@@ -1518,19 +1518,11 @@ namespace
 
     const SymbolFunction* resolvedCallFunction(Sema& sema, AstNodeRef callRef, AstNodeRef calleeRef)
     {
-        const auto singleFunction = [](const SemaNodeView& view) -> const SymbolFunction* {
-            Symbol* symbol = view.singleSymbol();
-            if (!symbol || !symbol->isFunction())
-                return nullptr;
-
-            return &symbol->cast<SymbolFunction>();
-        };
-
-        if (const SymbolFunction* fn = singleFunction(sema.viewSymbol(callRef)))
+        if (const SymbolFunction* fn = sema.viewSymbol(callRef).singleFunction())
             return fn;
         if (calleeRef.isValid())
         {
-            if (const SymbolFunction* fn = singleFunction(sema.viewSymbol(calleeRef)))
+            if (const SymbolFunction* fn = sema.viewSymbol(calleeRef).singleFunction())
                 return fn;
         }
 

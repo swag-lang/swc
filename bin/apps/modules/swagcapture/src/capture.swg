@@ -199,8 +199,10 @@ struct CaptureFileModel
 // and where it came from.
 struct Capture
 {
+    // The sizes the resize and expand boxes accept. The largest is the largest texture side current
+    // graphics cards take, past the grab of a desktop across several monitors.
     const MinSize = 16
-    const MaxSize = 4096
+    const MaxSize = 16384
     width, height:       s32
     backImg:             Image
     widthOrg, heightOrg: s32
@@ -249,6 +251,9 @@ struct Capture
         // corrupt payloads. Nonzero means the file did not fully match the current
         // schema and a save would not preserve everything it held.
         loadIssues: u32
+
+        // Loaded for the library: its metadata and its preview, without its pictures.
+        previewOnly: bool
 
         // Encoded SCC thumbnail retained by the library until a visible cell needs pixels.
         previewBytes: Array'u8
@@ -381,6 +386,7 @@ struct CaptureMetadataJob
     hasTags:     bool
     hasFavorite: bool
     hasRating:   bool
+    unlink:      bool
     error:       Swag.Error
 }
 

@@ -957,8 +957,7 @@ namespace InstructionCombine
             return false;
         if (remainder)
         {
-            ctx.ensureVirtualIndices();
-            if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+            if (!ctx.ensureAvailableVirtualIntReg())
                 return false;
         }
         if (!claimWithZeroExtendDefinitions(ctx, ref, reaching.valueId))

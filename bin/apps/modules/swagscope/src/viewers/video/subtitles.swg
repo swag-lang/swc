@@ -51,8 +51,7 @@ enum SubtitleColor
     Yellow
 }
 
-// How subtitles look and how far they are shifted in time; shared by every video and saved
-// with the window state.
+// Subtitle appearance, shared by every video and saved with the window state.
 struct SubtitleSettings
 {
     #[Properties.Name("Subtitle Font")]
@@ -65,22 +64,32 @@ struct SubtitleSettings
     position: SubtitlePosition
     #[Properties.Name("Subtitle Color")]
     color: SubtitleColor
-    #[Properties.Name("Subtitle Delay"), Properties.SliderMinMax(-60, 60), Properties.Unit("s")]
-    delay: f64
-}
-
-impl SubtitleSettings
-{
-    // Brings preferences read back from a saved state into the ranges the menus offer.
-    mtd sanitize()
-    {
-        .delay = Math.clamp(.delay, -60, 60)
-    }
 }
 
 var g_SubtitleSettings: SubtitleSettings
 
 private func addViewerOptions(grid: *PropertiesCtrl, section: string) => grid.addStruct(g_SubtitleSettings, section)
+
+// Owns a manually loaded track until the video overlay accepts it, including cancelled loads.
+#[Swag.NoCopy]
+struct LoadedSubtitle
+{
+    track: *Subtitle.Track?
+}
+
+impl LoadedSubtitle
+{
+    func load(fileName: string)->LoadedSubtitle fail
+    {
+        return {try Subtitle.Track.loadOwned(fileName)}
+    }
+
+    mtd opDrop()
+    {
+        if .track do
+            Subtitle.Track.destroy(.track)
+    }
+}
 
 // Replaces `result` with the cues showing at `seconds`, one per line, and returns the next time that text changes.
 func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: *String)->f64
@@ -108,7 +117,7 @@ func subtitlePresentationAt(track: const *Subtitle.Track, seconds: f64, result: 
     return nextChange
 }
 
-private func hasSubtitleExtension(fileName: string)->bool
+func hasSubtitleExtension(fileName: string)->bool
 {
     let extension = String.toLower(Path.extension(fileName))
     switch extension.toString()

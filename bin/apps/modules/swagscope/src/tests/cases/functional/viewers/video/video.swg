@@ -338,7 +338,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     view.refreshSubtitle()
     Swag.require(view.subtitleOverlay.text == "Second caption")
 
-    Film.g_SubtitleSettings.delay = -0.5
+    view.subtitleDelay = -0.5
     view.subtitleSettingsChanged()
     Swag.require(view.subtitleOverlay.text == "Opening caption")
 
@@ -346,6 +346,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     // place, and the track.
     let strings = Film.texts()
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    host.thenActivateOptionRow(strings.ui_SubtitleAppearance)
     host.thenActivateOptionRow(strings.ui_SubtitleSize)
     host.thenActivateOptionRow(strings.ui_SubtitleSizeLarge)
     view.showTracks()
@@ -355,12 +356,13 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
     host.thenActivateOptionRow(strings.ui_SubtitleDelay, step: 10)
     view.showTracks()
-    Swag.require(Math.isEqualEpsilon(Film.g_SubtitleSettings.delay, 0.5, 0.0001))
+    Swag.require(Math.isEqualEpsilon(view.subtitleDelay, 0, 0.0001))
+    view.subtitleDelay = 0.25
     host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
     host.thenActivateOptionRow(strings.ui_SubtitleDelayReset)
     host.thenActivateOptionRow(strings.ui_SubtitleOff)
     view.showTracks()
-    Swag.require(Film.g_SubtitleSettings.delay == 0)
+    Swag.require(view.subtitleDelay == 0)
     Swag.require(view.subtitleSource == .Off and view.subtitleOverlay.text.isEmpty())
     Film.g_SubtitleSettings = {}
 }
@@ -648,16 +650,16 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Video", host.theme)
     view.describeLens(&entries)
-    Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 3)
+    Swag.require(results.sections.count == 1 and results.sections[0]!.entries.count == 6)
     Swag.require(results.sections[0]!.entries[0].title == appStrings().cmd_Play)
-    Swag.require(results.sections[0]!.entries[1].title == Film.texts().cmd_Speed)
-    Swag.require(results.sections[0]!.entries[2].title == appStrings().cmd_Options)
+    Swag.require(results.sections[0]!.entries[1].title == Film.texts().cmd_Subtitles)
+    Swag.require(results.sections[0]!.entries[2].title == Film.texts().cmd_GoToTime)
     for &entry in results.sections[0]!.entries do
         Swag.require(entry.glyph.isValid(), entry.title)
 
     // Playback options open the speed choices, with the current rate checked.
     Swag.require(view.optionsButton.isEnabled() and
-                 not view.tracksButton.isEnabled() and
+                 view.tracksButton.isEnabled() and
                  not view.volumeSlider.isEnabled())
     var speeds: OptionSheet.Page
     view.describeSpeeds(&speeds)
@@ -689,7 +691,7 @@ internal func videoMatroskaFixturePath()->String => scopeTestDataPath("ffmpeg-h2
         Swag.require(row.label != Film.texts().ui_OptionAudio)
     Swag.require(not view.muteButton.isEnabled() and
                  not view.volumeSlider.isEnabled() and
-                 not view.tracksButton.isEnabled())
+                 view.tracksButton.isEnabled())
 
     host.setReducedMotion(false)
     view.showSeekFeedback(10)

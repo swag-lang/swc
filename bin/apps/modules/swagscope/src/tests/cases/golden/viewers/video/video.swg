@@ -84,6 +84,9 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #[Swag.TestTag("golden")]
 #test
 {
+    let savedHints = Film.g_PlaybackHintUses
+    defer Film.g_PlaybackHintUses = savedHints
+    Film.g_PlaybackHintUses = 3
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -154,6 +157,9 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 #[Swag.TestTag("golden")]
 #test
 {
+    let savedHints = Film.g_PlaybackHintUses
+    defer Film.g_PlaybackHintUses = savedHints
+    Film.g_PlaybackHintUses = 3
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
 
@@ -194,7 +200,7 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
 
         if rendered[] == 0
         {
-            Swag.require(sheet.page.rows.count == 2 and sheet.page.rows[1].value == "1.5×")
+            Swag.require(sheet.page.rows.count == 5 and sheet.page.rows[1].value == "1.5×")
             var first = host.render()
             assertVideoRendererGolden(&first, "viewer.video.options")
             Swag.require(sheet.activateRow(Film.texts().ui_OptionSpeed))

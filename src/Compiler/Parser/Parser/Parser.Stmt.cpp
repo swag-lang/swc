@@ -739,8 +739,7 @@ AstNodeRef Parser::parseSwitch()
                 {
                     if (nodeStmts.empty())
                     {
-                        const Diagnostic diag = reportEmptySwitchCase(currentCaseRef, ref(), DiagnosticId::parser_note_next_switch_section_starts_here);
-                        diag.report(*ctx_);
+                        reportEmptySwitchCase(currentCaseRef, ref(), DiagnosticId::parser_note_next_switch_section_starts_here);
                     }
                     currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
                 }
@@ -782,15 +781,13 @@ AstNodeRef Parser::parseSwitch()
     {
         if (nodeStmts.empty())
         {
-            const Diagnostic diag = reportEmptySwitchCase(currentCaseRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid(), DiagnosticId::parser_note_switch_section_ends_here);
-            diag.report(*ctx_);
+            reportEmptySwitchCase(currentCaseRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid(), DiagnosticId::parser_note_switch_section_ends_here);
         }
         currentBody->spanChildrenRef = ast_->pushSpan(nodeStmts.span());
     }
     else
     {
-        const Diagnostic diag = reportEmptySwitchBody(openRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid());
-        diag.report(*ctx_);
+        reportEmptySwitchBody(openRef, is(TokenId::SymRightCurly) ? ref() : TokenRef::invalid());
     }
 
     nodePtr->spanChildrenRef = ast_->pushSpan(nodeChildren.span());

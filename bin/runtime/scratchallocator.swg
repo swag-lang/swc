@@ -251,7 +251,9 @@ impl IAllocator for ScratchAllocator
     {
         if request.size == 0
         {
-            .free(request)
+            var freeRequest = request[]
+            freeRequest.size = request.oldSize
+            .free(&freeRequest)
             request.address = null
             return
         }

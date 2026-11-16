@@ -42,15 +42,16 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   restores normal end behavior.
 - Related: app.scope.audio.002
 
-### app.scope.video.012 — Playback position and track choices are not resumed safely
+### app.scope.video.012 — Media identity and track choices are not resumed safely
 
-- Evidence: subtitle font, size, effect, position, color and delay already persist as global
-  settings. Automatic reload already restores time, rate, volume and mute through
-  `ViewerReadingState`. Closing the document or opening another file loses that state, selected
-  tracks are not restored, and there is no persisted file-specific resume state. Blindly restoring by path would apply stale time to a
-  replaced file or resume near credits without consent.
-- Next: specify media state fields, stable stream matching, identity checks, completion threshold,
-  and privacy controls on top of app.scope.viewers.003.
+- Evidence: subtitle appearance persists globally. Reload and the home's saved per-file resume
+  points retain time, rate, volume, mute and subtitle delay through `ViewerReadingState`, but
+  selected audio/subtitle tracks and manual attachments are not restored. Resume points match
+  paths without a media fingerprint, so replacing a file can apply an old reading state to new
+  content. The home already offers explicit resume or restart and excludes near-start and
+  completed media from its resume points.
+- Next: add stable stream matching, attachment ownership and media identity checks to the
+  existing reading state, preserving its completion threshold and privacy controls.
 - Done when: opted-in resume restores a compatible position and tracks, completed media restarts
   according to policy, replacement identity clears stale state, and one action forgets history.
 - Related: app.scope.viewers.003
@@ -105,21 +106,23 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   possible, and the report can be copied/exported.
 - Related: app.scope.viewers.006
 
-### app.scope.video.002 — Video has no previous/next frame or exact time/frame address
+### app.scope.video.002 — Exact frame addresses and decode boundaries are not exposed
 
 - Evidence: Left/Right seek by ten seconds, Ctrl+Left/Right step one frame and pause playback when
-  needed, and the timeline seeks approximately. A reader cannot enter a timestamp, seek to a
-  presentation frame/index, or inspect keyframe versus decoded-frame boundaries.
-- Next: add a timecode address box backed by presentation timestamps,
-  then expose keyframe/preroll information where the container provides it.
+  needed. The clickable time and Ctrl+G accept absolute timestamps or signed seconds through
+  presentation-time seeking. A reader cannot address a presentation frame/index or inspect
+  keyframe versus decoded-frame boundaries.
+- Next: add a numeric frame address and expose keyframe/preroll information where the container
+  provides it, preserving source-time interpretation for variable-frame-rate streams.
 - Done when: previous/next frame reaches the exact display order, numeric time and frame jumps
   validate their interpretation, variable-frame-rate content never invents a constant mapping, and
   the current PTS/DTS/keyframe state is inspectable.
 
-### app.scope.video.004 — Chapters, editions, markers, and seek history are absent
+### app.scope.video.004 — Chapters, editions, markers, and full seek history are absent
 
-- Evidence: container chapters and Matroska editions are not surfaced, and repeated seeks have no
-  back/forward history or temporary bookmarks.
+- Evidence: container chapters and Matroska editions are not surfaced. Return Before Last Jump
+  restores one deliberate seek's source position; repeated seeks have no back/forward history
+  or temporary bookmarks.
 - Next: normalize container chapters/editions and sidecar chapter files into a landmark track,
   followed by session bookmarks and navigation history.
 - Done when: chapter list, previous/next, edition selection, temporary named markers, and
@@ -149,13 +152,15 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
   range and matrix handling.
 - Related: std.pixel.001, std.pixel.image.019, std.pixel.003, std.video.006
 
-### app.scope.video.008 — Subtitle files can only be auto-discovered, not deliberately loaded and managed
+### app.scope.video.008 — Attached subtitles have no full track-management workflow
 
-- Evidence: same-stem sidecars are discovered and a menu selects embedded or found tracks. There is
-  no Open Subtitle File, reload after edit, encoding override, multiple simultaneous tracks,
-  preferred-language policy, safe-area guide, or list of parse warnings.
-- Next: add explicit local sidecar attachment and a subtitle-track manager reusing the standalone
-  viewer's diagnostics.
+- Evidence: same-stem sidecars are discovered; arbitrary supported files attach from the track
+  menu or a drop on the picture. One manual attachment replaces the previous one after successful
+  decoding. Timing belongs to the film's reading state. There is no explicit reload after edit,
+  detach, encoding override, multiple simultaneous tracks, preferred-language policy, safe-area
+  guide, or list of parse warnings.
+- Next: add reload and detach to the existing attachment workflow, then a subtitle-track manager
+  reusing the standalone viewer's diagnostics.
 - Done when: arbitrary supported sidecars can be attached/reloaded/detached, encoding and FPS
   policy are visible, primary and secondary tracks can coexist, parse warnings link to cues, and
   language preference persists without hiding other tracks.

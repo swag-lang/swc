@@ -3,7 +3,7 @@
 
 using Core, Pixel
 
-// A dark application keeps a light document's ground even while its vertical scrollbar is hovered.
+// A dark application keeps a long light document's ground and an undistorted minimal thumb on hover.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -18,7 +18,8 @@ using Core, Pixel
     let view = scroll.createView'Wnd()
     let title = Label.create(view, "A page keeps its own ground", {24, 24, 440, 40})
     title.style.setStyleSheetColors("label_Text 0xFF222222")
-    scroll.setScrollSize(0, 1200)
+    scroll.setScrollSize(0, 100_000)
+    Swag.require(scroll.sizeBoxV == host.theme.metrics.scrollBar_BoxMinSize)
     let track = scroll.verticalThumbRect(true)
     host.moveMouse(scroll.localToSurface(track.center()))
     host.finishAnimations()
@@ -30,7 +31,7 @@ using Core, Pixel
     Pixel.Testing.assertImageGolden(&image, "scroll.hover.light-content.encre")
 }
 
-// A light application keeps a translucent track while the narrow thumb of a dark view is dragged.
+// A light application keeps a translucent track while the minimal thumb of a wide dark view is dragged.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -44,7 +45,8 @@ using Core, Pixel
     let view = scroll.createView'Wnd()
     let title = Label.create(view, "The thumb carries the gesture", {24, 24, 440, 40})
     title.style.setStyleSheetColors("label_Text 0xFFECEDF0")
-    scroll.setScrollSize(1600, 0)
+    scroll.setScrollSize(100_000, 0)
+    Swag.require(scroll.sizeBoxH == host.theme.metrics.scrollBar_BoxMinSize)
     let thumb = scroll.horizontalThumbRect()
     host.moveMouse(scroll.localToSurface(thumb.center()))
     host.finishAnimations()

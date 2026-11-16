@@ -7,6 +7,8 @@ SWC_BEGIN_NAMESPACE();
 class Sema;
 class TaskContext;
 class TypeInfo;
+class ConstantValue;
+struct DataSegmentRef;
 struct SemaNodeView;
 class SymbolFunction;
 struct AstNode;
@@ -23,6 +25,7 @@ namespace ConstantHelpers
 
     bool   hasSourceFunctionRelocation(Sema& sema, const void* fieldPtr);
     Result waitStaticPayloadTypeReady(Sema& sema, TypeRef typeRef, AstNodeRef waitNodeRef);
+    ConstantValue finalizeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, ConstantValue result, DataSegmentRef dataSegmentRef);
 
     uint64_t    materializeConstantStorageAndGetAddress(Sema& sema, const SemaNodeView& view);
     ConstantRef materializeStaticPayloadConstant(Sema& sema, TypeRef typeRef, std::span<const std::byte> payload);

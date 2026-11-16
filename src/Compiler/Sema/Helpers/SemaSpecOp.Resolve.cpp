@@ -1146,18 +1146,8 @@ Result SemaSpecOp::resolveAssignLambdaBindingType(Sema& sema, const AstAssignStm
         if (resolvedTypeRef.isInvalid() || !sema.typeMgr().get(resolvedTypeRef).isFunction())
             continue;
 
-        if (compareTypeRef.isInvalid())
-        {
-            outBindingTypeRef = param->typeRef();
-            compareTypeRef    = resolvedTypeRef;
-            continue;
-        }
-
-        if (compareTypeRef != resolvedTypeRef)
-        {
-            outBindingTypeRef = TypeRef::invalid();
+        if (!SemaHelpers::mergeCompatibleFunctionBindingType(param->typeRef(), resolvedTypeRef, outBindingTypeRef, compareTypeRef))
             return Result::Continue;
-        }
     }
 
     // A callback connected to a signal receives the owner written on the left, typed as such.

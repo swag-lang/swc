@@ -115,25 +115,6 @@ namespace PostRaPeephole
         return inst.op == MicroInstrOpcode::Nop || isSelfCopyNoEffect(inst, ops);
     }
 
-    bool instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        return MicroPassHelpers::instructionActuallyDefinesCpuFlags(inst, ops);
-    }
-
-    bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops)
-    {
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        if (!info.flags.has(MicroInstrFlagsE::UsesCpuFlags))
-            return false;
-
-        if ((inst.op == MicroInstrOpcode::JumpCond || inst.op == MicroInstrOpcode::JumpCondImm) &&
-            ops &&
-            ops[0].cpuCond == MicroCond::Unconditional)
-            return false;
-
-        return true;
-    }
-
     bool isRedundantFallthroughJumpToNextLabel(const Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::JumpCond || !ops)

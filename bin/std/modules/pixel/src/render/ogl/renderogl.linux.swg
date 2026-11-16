@@ -72,8 +72,9 @@ internal impl NativeRenderOgl
 
 impl RenderOgl
 {
-    // The GUI render target may be padded beyond the current window size. Copy its
-    // visible top-left rectangle directly into the EGL back buffer, preserving texels.
+    // Copies the visible top-left rectangle of the render target into the EGL back buffer.
+    //
+    // The GUI render target may be padded beyond the current window size; this preserves texels.
     mtd blitRenderTargetToWindow(target: const *RenderTarget, width, height: s32)->bool fail
     {
         if not target.colorBuffer.isValid() or width <= 0 or height <= 0 or

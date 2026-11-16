@@ -646,6 +646,7 @@ impl Polygon
         let points          = .points.storage()
         var signedTwiceArea = 0'f32
         var firstTurnSign   = 0'f32
+        var convexTurnAngle = 0'f32
         var next            = 1'u64
         var afterNext       = count > 2 ? 2'u64 : 2 - count
 
@@ -683,7 +684,9 @@ impl Polygon
 
             if count >= 3
             {
-                let turn = (nextPoint - current).cross(points[afterNext] - nextPoint)
+                let incoming = nextPoint - current
+                let outgoing = points[afterNext] - nextPoint
+                let turn     = incoming.cross(outgoing)
                 if not Math.isZeroEpsilon(turn)
                 {
                     if Math.isZeroEpsilon(firstTurnSign) do
@@ -691,6 +694,9 @@ impl Polygon
                     elif Math.sign(turn) != firstTurnSign do
                         .isConvex = false
                 }
+
+                if .isConvex do
+                    convexTurnAngle += Math.atan2(turn, incoming.dot(outgoing))
             }
 
             next      = next + 1 == count ? 0 : next + 1
@@ -700,12 +706,15 @@ impl Polygon
         .area        = Math.abs(signedTwiceArea) * 0.5
         .isClockwise = count >= 3 and signedTwiceArea >= 0
 
-        // A convex polygon never self-intersects, so it is simple by construction.
-        // Skip the O(n^2) self-intersection test in that case — it covers the common
-        // UI shapes (round rects, circles, ellipses) flattened every frame. 'isSimple'
-        // is only read for non-convex polygons (the triangulated fill branch and the
-        // offset-input selection), so this stays correct.
-        if .isConvex or knownSimple do
+        // A self-crossing star can turn in the same direction at every vertex while winding
+        // around the center more than once. It is locally convex but not a convex polygon, so
+        // bound the total turn before trusting the fast path. A simple convex ring turns once.
+        if .isConvex and Math.abs(convexTurnAngle) > Math.ConstF32.TwoPi * 1.5 do
+            .isConvex = false
+
+        // A genuinely convex polygon cannot self-intersect. Clipper's known-simple outputs
+        // can skip the spatial test even when they are concave.
+        if knownSimple or .isConvex do
             .isSimple = true
         else do
             .isSimple = .computeIsSimple(count)

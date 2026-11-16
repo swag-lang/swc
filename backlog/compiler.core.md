@@ -4,6 +4,40 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.115 — Diagnose repeated single-use test category attributes
+
+- Evidence: adjacent `#[Swag.TestTag("golden")]` and
+  `#[Swag.TestTag("capture.resident.home")]` on a `#test` compile without a diagnostic, but
+  selecting the second category executes no tests. `Swag.TestTag` declares one category and
+  does not carry `Swag.AttrMulti`.
+- Next: reduce the repeated attributes to a standalone semantic fixture and trace attribute
+  multiplicity validation together with the category passed to `Swag.__runTest`.
+- Done when: repeating a single-use attribute gives a located diagnostic, while attributes
+  marked `Swag.AttrMulti` retain their supported repeated values.
+
+### compiler.core.114 — Resolve a DevMode host exception while compiling Swag Vault
+
+- Evidence: `tools/apps.bat dm test swagvault --test-tag golden` with three workers raised
+  `0xC0000005` after rebuilding the Pixel dependency. The read address was
+  `0xFFFFFFFFFFFFFFFF`, `rcx` contained `0xDFDFDFDFDFDFDFDF`, and the faulting DevMode RVA was
+  `0xCA7DBA`; the exception report contained no current source span or resolved stack symbols.
+- Next: retain the matching compiler and PDB on recurrence, resolve the faulting stack, and
+  identify which compiler-owned object was read after release before reducing the import path.
+- Done when: a reduced workspace regression protects the corrected lifetime and the application
+  compiles repeatedly with parallel workers and retained dependencies.
+
+### compiler.core.113 — Wait for imported struct layout before lowering an empty slice default
+
+- Evidence: `tools/apps.bat dm test swagcapture --test-tag golden`, with three compiler workers,
+  asserted `sizeInBytes != 0` in `Symbol.Struct.cpp` during semantic parsing of the imported
+  `video` API. The source span is `SoftwareTrimEdits.ranges: const [..] SoftwareRenderRange = []`
+  in `bin/apps/.dep/video/shared-library/devmode/x86_64/video.swg`. The reported structure is
+  declared and typed, has one field so far, and is not semantically complete.
+- Next: reduce the imported structure and empty slice default to a workspace fixture, then
+  trace the layout wait before constant lowering under parallel semantic analysis.
+- Done when: the reduced fixture and the application compile with DevMode assertions enabled,
+  including retained dependency APIs and parallel workers, without changing the valid default.
+
 ### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
 
 - Evidence: the Linux Release compiler reports that `state` may refer to released memory at
@@ -116,8 +150,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   grouping now uses one composite-key first-index table and a source-ordered list of instruction refs,
   instead of nested maps and per-location vectors. A worker-kept `FlatKeyMap` also clears its
   largest previously used capacity on each rebuild.
-- Next: choose one of the remaining node maps, establish its traversal order, and design an
-  order-preserving flat representation; leave the kept-table reset tradeoff for measurement.
+- Rejected for now: embedding `upperRegValues` in `SanitizerFlatMap` passed the compiler suites but
+  adds 16 bytes to every `SanitizerState`, including empty maps. Without occupancy evidence, fewer
+  node allocations do not prove that the larger, more frequently copied state is a net saving.
+- Next: choose another remaining map, establish its traversal order, and design an order-preserving
+  flat representation; leave the kept-table reset tradeoff for measurement.
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no
   lower-work representation preserves its traversal contract.
 

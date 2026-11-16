@@ -158,7 +158,6 @@ struct AppStrings
     ui_AimReady:                  string = "Ready to Record"     // The live-area preparation is waiting for Record.
     hint_AimWindow:               string = "hold for window"     // W temporarily aims at the window under the pointer.
     hint_AimAttach:               string = "follow window"       // A opts a drawn area into following its window.
-    hint_AimFormat:               string = "change format"       // Tab cycles Picture, GIF and Video.
     msg_FailedCaptureScreen:      string = "Failed to capture the screen"
     msg_FailedRecordScreen:       string = "The recording could not be written"
     msg_VideoKeptAfterError:      string = "Recording stopped after an error; the video file was kept"

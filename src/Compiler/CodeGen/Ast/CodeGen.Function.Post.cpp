@@ -1223,27 +1223,7 @@ namespace
             const CodeGenNodePayload& exprPayload     = codeGen.payload(exprRef);
             const MicroReg            payloadReg      = exprPayload.reg;
             const bool                payloadLValue   = exprPayload.isAddress();
-            const bool                needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
-
-            if (normalizedRet.isIndirect)
-            {
-                SWC_ASSERT(normalizedRet.indirectSize != 0);
-                if (needsPersistent)
-                    CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-                else
-                    CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
-            }
-            else
-            {
-                // Argument cleanup can call runtime helpers after the result was materialized.
-                ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
-
-                if (needsPersistent)
-                {
-                    // Compiler-run blocks also need persistence for direct register returns like `string`.
-                    CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-                }
-            }
+            CodeGenFunctionHelpers::emitCompilerRunReturnValue(codeGen, callConvKind, returnTypeRef, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
         }
 
         SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));

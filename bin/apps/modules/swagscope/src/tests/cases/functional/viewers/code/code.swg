@@ -325,4 +325,5 @@ struct CodeLanguageSample
     Swag.require(markupStyles[8] == Code.GenericLexer.Style.String)
     Swag.require(markupStyles[12] == Code.GenericLexer.Style.Default)
     Swag.require(markupStyles[17] == Code.GenericLexer.Style.Comment)
+
 }

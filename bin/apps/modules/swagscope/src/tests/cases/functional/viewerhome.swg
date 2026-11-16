@@ -229,9 +229,10 @@ internal func completeHomePreviews(host: *Testing.HeadlessHost, home: *ViewerHom
 
     window.recent.add(homeFixture("gone-for-good.txt"))
     window.recentOpened.add(HomeNow)
-    Swag.require(window.missingRecentCount() == 1)
     window.removeMissingRecent()
-    Swag.require(window.recent.count == 5 and window.missingRecentCount() == 0)
+    window.historyCleanup.task.wait()
+    host.pump()
+    Swag.require(window.recent.count == 5 and not window.recent.contains(String.from(homeFixture("gone-for-good.txt"))))
 
     // The fixtures were opened in the year 2025 of the fixed clock; the real one is later.
     Swag.require(window.olderRecentCount() == 5)

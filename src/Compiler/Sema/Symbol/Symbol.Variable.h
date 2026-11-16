@@ -141,13 +141,14 @@ public:
 
     // TLS storage holds the initial value, while each use addresses the calling thread's copy.
     // Materialize that address with a call; it cannot be a link-time constant.
-    bool     isThreadLocal() const noexcept { return threadLocalSize_ != 0; }
+    bool     isThreadLocal() const noexcept { return threadLocalStorage_; }
     uint32_t threadLocalSize() const noexcept { return threadLocalSize_; }
     uint32_t threadLocalIdOffset() const noexcept { return threadLocalIdOffset_; }
     void     setThreadLocalStorage(uint32_t idOffset, uint32_t size) noexcept
     {
         threadLocalIdOffset_ = idOffset;
         threadLocalSize_     = size;
+        threadLocalStorage_  = true;
     }
 
     MemberAccess memberAccess() const noexcept { return memberAccess_; }
@@ -176,6 +177,7 @@ private:
 
     uint32_t threadLocalIdOffset_ = 0;
     uint32_t threadLocalSize_     = 0;
+    bool     threadLocalStorage_  = false;
 
     bool declaredGlobal_       = false;
     bool declaredThreadLocal_  = false;

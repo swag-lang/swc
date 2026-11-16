@@ -116,7 +116,6 @@ namespace
 
     ConstantValue makeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, const TypeInfo& storageType, std::span<const std::byte> storedBytes, DataSegmentRef dataSegmentRef)
     {
-        const TypeRef typeRef        = originalType.typeRef();
         const TypeRef storageTypeRef = storageType.typeRef();
         ConstantValue result;
 
@@ -126,19 +125,7 @@ namespace
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else
             result = ConstantValue::make(ctx, storedBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-
-        if (!result.isValid())
-            return result;
-
-        result.setDataSegmentRef(dataSegmentRef);
-        if (ConstantHelpers::isEnumValueType(ctx, originalType, typeRef))
-        {
-            const ConstantRef storageRef = ctx.cstMgr().addConstant(ctx, result);
-            return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
-        }
-
-        result.setTypeRef(typeRef);
-        return result;
+        return ConstantHelpers::finalizeMaterializedConstantValue(ctx, originalType, std::move(result), dataSegmentRef);
     }
 
     bool requirePointerShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, const void* ptr)
@@ -410,6 +397,23 @@ bool ConstantHelpers::typeHasUnionStorage(const TaskContext& ctx, const TypeInfo
 
     RefSet<TypeRef> visited;
     return typeHasUnionStorageRec(ctx, type, visited);
+}
+
+ConstantValue ConstantHelpers::finalizeMaterializedConstantValue(TaskContext& ctx, const TypeInfo& originalType, ConstantValue result, const DataSegmentRef dataSegmentRef)
+{
+    const TypeRef typeRef = originalType.typeRef();
+    if (!result.isValid())
+        return result;
+
+    result.setDataSegmentRef(dataSegmentRef);
+    if (isEnumValueType(ctx, originalType, typeRef))
+    {
+        const ConstantRef storageRef = ctx.cstMgr().addConstant(ctx, result);
+        return ConstantValue::makeEnumValue(ctx, storageRef, typeRef);
+    }
+
+    result.setTypeRef(typeRef);
+    return result;
 }
 
 ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema, TypeRef typeRef, std::span<const ConstantPayloadWrite> writes)

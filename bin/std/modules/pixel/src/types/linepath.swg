@@ -153,6 +153,7 @@ public impl LinePath
         .isClosed   = false
         .isDirty    = true
         .isPolyOnly = false
+        .serial     = 0
         .startPoint = Vector2{startX, startY}
         .endPoint   = .startPoint
     }
@@ -269,6 +270,23 @@ public impl LinePath
     // ```
     mtd transform(transform: Math.Transform2)
     {
+        if .isPolyOnly
+        {
+            .startPoint = transform.transformPoint(.startPoint)
+            .endPoint   = transform.transformPoint(.endPoint)
+            for &point in .polygon.points do
+                point[] = transform.transformPoint(point[])
+            .polygon.recompute()
+            .triangles.clear()
+            .triangleOffsets.clear()
+            .minBounds        = .polygon.minBounds
+            .maxBounds        = .polygon.maxBounds
+            .isDirty          = false
+            .isFlatten        = true
+            .revision         = nextContourRevision()
+            return
+        }
+
         .rewriteArcsAsBeziers()
         .startPoint = transform.transformPoint(.startPoint)
         .endPoint   = transform.transformPoint(.endPoint)
@@ -874,12 +892,6 @@ impl LinePath
     // Calculate optimal number of segments for cubic polynomial
     func calculateCubicPolynomialSegments(p0, p1, p2, p3: Vector2, startPt, endPt: Vector2, tolerance: f32)->u32
     {
-        // Calculate chord length
-        let chordLength = startPt.distanceTo(endPt)
-
-        if chordLength < tolerance do
-            return 1     // Very short curve
-
         // For cubic polynomials, we need to estimate maximum curvature
         // Sample a few points to get an approximation of maximum deviation
         var maxDeviation = 0.0
@@ -984,13 +996,6 @@ impl LinePath
         // Calculate the maximum curvature using the control polygon method
         // This is much faster than iterative subdivision
 
-        // Vector from start to end
-        let chord       = Vector2{x: p3.x - p0.x, y: p3.y - p0.y}
-        let chordLength = chord.length()
-
-        if chordLength < tolerance do
-            return 1     // Very short curve
-
         // Calculate maximum deviation of control points from chord
         var maxDeviation = 0.0
 
@@ -1018,7 +1023,12 @@ impl LinePath
     mtd flattenArc(pos, p1, p2: Vector2, tolerance: f32)
     {
         let angleSpan = p1.y - p1.x
-        let radius    = Math.max(p2.x, p2.y)     // Use the larger radius component
+        let radius    = Math.max(Math.abs(p2.x), Math.abs(p2.y))     // Use the larger radius magnitude
+
+        // `arcTo` joins the current point to the arc's start with a straight segment. Add that
+        // point before sampling the arc; otherwise the first chord cuts directly to an interior
+        // sample and skips the authored join.
+        .flattenLine(arcPoint(pos, p2, p1.x))
 
         // Calculate required number of segments analytically
         let numSegments = calculateFlattenArcSegments(angleSpan, radius, tolerance)

@@ -124,7 +124,7 @@ namespace
         }
 
         const SemaNodeView storedCallView = codeGen.sema().viewStored(codeGen.curNodeRef(), SemaNodeViewPartE::Symbol);
-        if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(storedCallView))
+        if (SymbolFunction* calledFunction = storedCallView.singleFunction())
         {
             outCalledFunction = calledFunction;
             return Result::Continue;
@@ -133,14 +133,14 @@ namespace
         if (calleeRef.isValid())
         {
             const SemaNodeView calleeView = codeGen.viewNodeSymbolList(calleeRef);
-            if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(calleeView))
+            if (SymbolFunction* calledFunction = calleeView.singleFunction())
             {
                 outCalledFunction = calledFunction;
                 return Result::Continue;
             }
 
             const SemaNodeView storedCalleeView = codeGen.sema().viewStored(calleeRef, SemaNodeViewPartE::Symbol);
-            if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(storedCalleeView))
+            if (SymbolFunction* calledFunction = storedCalleeView.singleFunction())
             {
                 outCalledFunction = calledFunction;
                 return Result::Continue;
@@ -150,7 +150,7 @@ namespace
             if (resolvedCalleeRef.isValid() && resolvedCalleeRef != calleeRef)
             {
                 const SemaNodeView resolvedCalleeView = codeGen.sema().viewStored(resolvedCalleeRef, SemaNodeViewPartE::Symbol);
-                if (SymbolFunction* calledFunction = CodeGenExprView::singleFunction(resolvedCalleeView))
+                if (SymbolFunction* calledFunction = resolvedCalleeView.singleFunction())
                 {
                     outCalledFunction = calledFunction;
                     return Result::Continue;
@@ -1555,7 +1555,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const
 
 SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNodeRef callRef)
 {
-    if (auto* function = CodeGenExprView::singleFunction(codeGen.viewSymbol(callRef)))
+    if (auto* function = codeGen.viewSymbol(callRef).singleFunction())
         return function;
 
     // Operators retain their selected function in a semantic payload because publishing

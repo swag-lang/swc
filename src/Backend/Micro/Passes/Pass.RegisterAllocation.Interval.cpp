@@ -2330,9 +2330,22 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         uint32_t copyDepth;
         bool     rejected;
     };
+    constexpr size_t K_CANDIDATE_LOOKUP_THRESHOLD = 16;
+    FlatKeyMap<uint32_t, uint64_t> candidateIndexByPair;
+    const auto candidatePairKey = [](const uint32_t lhs, const uint32_t rhs) {
+        const uint32_t first  = std::min(lhs, rhs);
+        const uint32_t second = std::max(lhs, rhs);
+        return (static_cast<uint64_t>(first) << 32u) | second;
+    };
     const auto depthAt = [&](const uint32_t idx) {
         return idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
     };
+
+    // Integer loop copies are collected in instruction order. Keep back-edges
+    // in CFG order so equal-span ties retain the original earliest-header choice.
+    SmallVector<std::pair<uint32_t, uint32_t>, 8> backEdgeRanges;
+    uint32_t                                       nextBackEdgeHeader = 0;
+    bool                                            backEdgeCacheReady = false;
 
     // Inside a loop, the source of a joined copy must die in the loop: outside
     // it, the joined value then lives exactly where the destination did, and
@@ -2345,19 +2358,50 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         uint32_t head   = 0;
         uint32_t tail   = 0;
         bool     inLoop = false;
-        for (uint32_t s = 0; s <= copyIdx; ++s)
-        {
-            for (const uint32_t p : predecessors_[s])
+        const auto considerRange = [&](const uint32_t s, const uint32_t p) {
+            if (!inLoop || p - s < tail - head)
             {
-                SWC_ASSERT(p < instructionCount_);
-                if (p < copyIdx)
-                    continue;
-                if (!inLoop || p - s < tail - head)
+                head   = s;
+                tail   = p;
+                inLoop = true;
+            }
+        };
+
+        if (!backEdgeCacheReady)
+        {
+            // The first query keeps the original single predecessor walk while
+            // collecting its containing ranges for later queries.
+            for (uint32_t s = 0; s <= copyIdx; ++s)
+            {
+                for (const uint32_t p : predecessors_[s])
                 {
-                    head   = s;
-                    tail   = p;
-                    inLoop = true;
+                    SWC_ASSERT(p < instructionCount_);
+                    if (p < copyIdx)
+                        continue;
+                    backEdgeRanges.emplace_back(s, p);
+                    considerRange(s, p);
                 }
+            }
+            nextBackEdgeHeader = copyIdx + 1;
+            backEdgeCacheReady = true;
+        }
+        else
+        {
+            while (nextBackEdgeHeader <= copyIdx)
+            {
+                const uint32_t s = nextBackEdgeHeader++;
+                for (const uint32_t p : predecessors_[s])
+                {
+                    SWC_ASSERT(p < instructionCount_);
+                    if (p >= copyIdx)
+                        backEdgeRanges.emplace_back(s, p);
+                }
+            }
+
+            for (const auto& [s, p] : backEdgeRanges)
+            {
+                if (p >= copyIdx)
+                    considerRange(s, p);
             }
         }
         if (!inLoop)
@@ -2437,14 +2481,43 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         // retaining the same-value interference proof below.
         const uint32_t copyDepth = depthAt(idx);
         const bool     confined  = !copyDepth || srcReg.isVirtualFloat() || sourceStaysInCopyLoop(idx, src);
-        const auto     known     = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
-        if (known != candidates.end())
+        Candidate*     known   = nullptr;
+        uint64_t       pairKey = 0;
+        if (candidateIndexByPair.empty() && candidates.size() < K_CANDIDATE_LOOKUP_THRESHOLD)
+        {
+            const auto it = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
+            if (it != candidates.end())
+                known = &*it;
+        }
+        else
+        {
+            pairKey = candidatePairKey(dst, src);
+            if (candidateIndexByPair.empty())
+            {
+                candidateIndexByPair.reserve(candidates.size());
+                for (uint32_t candidateIndex = 0; candidateIndex < candidates.size(); ++candidateIndex)
+                {
+                    const Candidate& candidate = candidates[candidateIndex];
+                    candidateIndexByPair.emplace(candidatePairKey(candidate.dst, candidate.src), candidateIndex);
+                }
+            }
+            if (const uint32_t* candidateIndex = candidateIndexByPair.find(pairKey))
+            {
+                SWC_ASSERT(*candidateIndex < candidates.size());
+                known = &candidates[*candidateIndex];
+            }
+        }
+        if (known)
         {
             known->copyDepth = std::max(known->copyDepth, copyDepth);
             known->rejected |= !confined;
             continue;
         }
+
+        const uint32_t candidateIndex = static_cast<uint32_t>(candidates.size());
         candidates.push_back({.dst = dst, .src = src, .copyDepth = copyDepth, .rejected = !confined});
+        if (!candidateIndexByPair.empty())
+            candidateIndexByPair.emplace(pairKey, candidateIndex);
     }
 
     if (candidates.empty())

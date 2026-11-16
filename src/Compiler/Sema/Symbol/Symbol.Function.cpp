@@ -1516,32 +1516,22 @@ bool SymbolFunction::hasUnmaterializedGenericBody() const noexcept
 
 SymbolFunction* SymbolFunction::genericRootOrSelf() noexcept
 {
-    SymbolFunction* root = genericRootSym();
-    SWC_ASSERT(root != nullptr || !isGenericInstance());
-    return root ? root : this;
+    return SymbolGenericData::rootOrSelf(this, genericRootSym());
 }
 
 const SymbolFunction* SymbolFunction::genericRootOrSelf() const noexcept
 {
-    const SymbolFunction* root = genericRootSym();
-    SWC_ASSERT(root != nullptr || !isGenericInstance());
-    return root ? root : this;
+    return SymbolGenericData::rootOrSelf(this, genericRootSym());
 }
 
 SymbolFunction* SymbolFunction::genericRootSym() noexcept
 {
-    if (const auto* data = genericData())
-        return data->rootSym;
-
-    return nullptr;
+    return SymbolGenericData::rootSym(genericData());
 }
 
 const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 {
-    if (const auto* data = genericData())
-        return data->rootSym;
-
-    return nullptr;
+    return SymbolGenericData::rootSym(genericData());
 }
 
 const SymbolImpl* SymbolFunction::declImplContext() const noexcept

@@ -438,7 +438,10 @@ func capacityText(bytes: u64)->String
     let texts = appStrings()
     if bytes >= Gibibyte and not (bytes % Gibibyte) do
         return Format.toString("% %", bytes / Gibibyte, texts.ui_UnitGiB)
-    return Format.toString("% %", (bytes + Mebibyte - 1) / Mebibyte, texts.ui_UnitMiB)
+    var mebibytes = bytes / Mebibyte
+    if bytes % Mebibyte do
+        mebibytes += 1
+    return Format.toString("% %", mebibytes, texts.ui_UnitMiB)
 }
 
 // Reads a capacity field and its unit, or says why the pair cannot be used.

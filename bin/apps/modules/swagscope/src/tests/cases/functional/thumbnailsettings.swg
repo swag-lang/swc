@@ -119,9 +119,9 @@ using Core, Gui, Pixel, Viewers
     defer catch File.delete(path)
     host.app.setStatePath(path)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let album  = ExplorerEntry{path: "C:/music/first.mp3", size: 20, creationStamp: 3, modifiedStamp: 4}
+    let album  = ExplorerEntry{path: scopeTestDataPath("pacman_beginning.wav"), size: 20, creationStamp: 3, modifiedStamp: 4}
     let id     = "48140466-cff6-3222-bd55-63c27e43190d"
-    setMusicChoice(&window.musicChoices, &album, id)
+    window.privacy.rememberMusicChoice(&album, id, album.path)
     expect host.app.saveState()
     window.musicChoices.clear()
     expect host.app.loadState()

@@ -53,9 +53,10 @@ const FontGamma = 1.0'f32 / 0.75
 // The value must remain twice the font atlas spread.
 const MsdfRange = 16.0'f32
 
-// Last mip level of a distance-field atlas: a level averages blocks of 2^level texels, and glyphs
-// sit on cells of the 8-texel spread (`RefEmSpread`), so level 3 is the last one whose blocks stay
-// inside one glyph.
+// Last mip level of a distance-field atlas.
+//
+// A level averages blocks of 2^level texels. Glyphs occupy cells of the 8-texel spread
+// (`RefEmSpread`), so level 3 is the last whose blocks stay inside one glyph.
 const FontAtlasMaxLevel: GLint = 3
 
 #[Swag.Strict]
@@ -485,9 +486,15 @@ private impl RenderOgl
             glPixelStorei(GL_UNPACK_SKIP_PIXELS, previousSkipPixels)
         }
 
+        // A pattern is authored from its top row down, and a texture is stored from its bottom
+        // row up like every image this renderer uploads: hand the rows over in that order, or a
+        // forward diagonal is drawn backward.
         var arr: [64] u32
-        for p, i in datas do
-            arr[i] = p ? 0xFFFFFFFF : 0
+        for y in h
+        {
+            for x in w do
+                arr[cast(u64, ((h - y - 1) * w + x))] = datas[cast(u64, (y * w + x))] ? 0xFFFFFFFF : 0
+        }
 
         var result: GLuint
         glGenTextures(1, &result)

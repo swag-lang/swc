@@ -23,16 +23,16 @@ namespace
 
     struct ElfSection
     {
-        Utf8 name;
-        uint32_t type = K_PROGBITS;
-        uint64_t flags = 0;
-        uint64_t alignment = 1;
-        uint64_t entrySize = 0;
-        uint32_t link = 0;
-        uint32_t info = 0;
-        uint64_t size = 0;
-        uint64_t offset = 0;
-        uint32_t nameOffset = 0;
+        Utf8      name;
+        uint32_t  type       = K_PROGBITS;
+        uint64_t  flags      = 0;
+        uint64_t  alignment  = 1;
+        uint64_t  entrySize  = 0;
+        uint32_t  link       = 0;
+        uint32_t  info       = 0;
+        uint64_t  size       = 0;
+        uint64_t  offset     = 0;
+        uint32_t  nameOffset = 0;
         ByteArray bytes;
     };
 
@@ -71,7 +71,7 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     // Index zero is the mandatory null section. Original sections retain consecutive
     // indices so a symbol's section number does not depend on relocation discovery.
     std::vector<ElfSection> sections(1);
-    sections.front().type = 0;
+    sections.front().type      = 0;
     sections.front().alignment = 0;
     for (const LinkSection& source : image.sections)
     {
@@ -84,7 +84,7 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
         if (source.isUninit() && (!source.bytes.empty() || !source.relocs.empty()))
             return objectError(outDiag, "a zero-filled section cannot hold file bytes or relocations");
         ElfSection section;
-        section.name = source.name;
+        section.name  = source.name;
         section.type  = source.isUninit() ? K_NOBITS : K_PROGBITS;
         section.flags = source.flags.has(LinkSectionFlagsE::Debug) ? 0 : K_ALLOC;
         if (source.flags.has(LinkSectionFlagsE::Write))
@@ -101,8 +101,8 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
             section.flags |= K_WRITE;
         }
         section.alignment = source.align;
-        section.size = source.virtualSize();
-        section.bytes = source.bytes;
+        section.size      = source.virtualSize();
+        section.bytes     = source.bytes;
         sections.push_back(std::move(section));
     }
 
@@ -146,11 +146,11 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     strings.type = K_STRTAB;
     strings.bytes.pushBack(std::byte{0});
     ElfSection symbols;
-    symbols.name = ".symtab";
-    symbols.type = K_SYMTAB;
+    symbols.name      = ".symtab";
+    symbols.type      = K_SYMTAB;
     symbols.alignment = 8;
     symbols.entrySize = 24;
-    symbols.info = 1; // Only the null symbol is local.
+    symbols.info      = 1; // Only the null symbol is local.
     symbols.bytes.resize(24);
     std::map<Utf8, uint32_t> symbolIndices;
     // Debug contribution bases are local symbols: they join section offsets across
@@ -179,7 +179,7 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     }
 
     const uint32_t symbolsIndex = static_cast<uint32_t>(sections.size());
-    symbols.link = symbolsIndex + 1;
+    symbols.link                = symbolsIndex + 1;
     sections.push_back(std::move(symbols));
     sections.push_back(std::move(strings));
     std::set<Utf8> importedData;
@@ -195,19 +195,19 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
             continue;
         ElfSection relocs;
         relocs.name      = ".rela" + sections[index + 1].name;
-        relocs.type = K_RELA;
+        relocs.type      = K_RELA;
         relocs.alignment = 8;
         relocs.entrySize = 24;
-        relocs.link = symbolsIndex;
-        relocs.info = index + 1;
+        relocs.link      = symbolsIndex;
+        relocs.info      = index + 1;
         for (const LinkReloc& relocation : source.relocs)
         {
             uint32_t type;
             uint64_t addend;
-            size_t width;
+            size_t   width;
             if (relocation.kind == LinkRelocKind::Abs64)
             {
-                type = K_ABS64;
+                type  = K_ABS64;
                 width = 8;
                 if (!source.bytes.containsRange(relocation.offset, width))
                     return objectError(outDiag, "an absolute relocation extends beyond its section");
@@ -241,7 +241,7 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     stack.name = ".note.GNU-stack"; // No executable process stack is needed.
     sections.push_back(std::move(stack));
     const uint16_t namesIndex = static_cast<uint16_t>(sections.size());
-    ElfSection names;
+    ElfSection     names;
     names.name = ".shstrtab";
     names.type = K_STRTAB;
     names.bytes.pushBack(std::byte{0});
@@ -255,7 +255,7 @@ bool buildElfObject(ByteArray& outBytes, Diagnostic& outDiag, const LinkImage& i
     bytes[4] = std::byte{2}; // ELFCLASS64
     bytes[5] = std::byte{1}; // ELFDATA2LSB
     bytes[6] = std::byte{1}; // EV_CURRENT
-    bytes.writeLe16(16, 1); // ET_REL
+    bytes.writeLe16(16, 1);  // ET_REL
     bytes.writeLe16(18, 62); // EM_X86_64
     bytes.writeLe32(20, 1);
     bytes.writeLe16(52, 64);
@@ -300,10 +300,10 @@ bool buildElfStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::
     struct ArchiveSymbol
     {
         std::string_view name;
-        size_t member;
+        size_t           member;
     };
     std::vector<ArchiveSymbol> symbols;
-    uint64_t namesSize = 0;
+    uint64_t                   namesSize = 0;
     for (size_t member = 0; member < members.size(); ++member)
     {
         const ByteView bytes(members[member].bytes.span());
@@ -312,7 +312,7 @@ bool buildElfStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::
             members[member].bytes[4] != std::byte{2} || members[member].bytes[5] != std::byte{1} || bytes.readLe16(58) != 64)
             return objectError(outDiag, "archive member needs a little-endian ELF64 x86-64 relocatable object");
         const uint64_t sections = bytes.readLe64(40);
-        const uint32_t count = bytes.readLe16(60);
+        const uint32_t count    = bytes.readLe16(60);
         if (!count || !bytes.containsRange(sections, uint64_t{count} * 64))
             return objectError(outDiag, "ELF archive member has no complete section table");
         for (uint32_t section = 1; section < count; ++section)
@@ -320,20 +320,20 @@ bool buildElfStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::
             const uint64_t header = sections + uint64_t{section} * 64;
             if (bytes.readLe32(header + 4) != K_SYMTAB)
                 continue;
-            const uint64_t table = bytes.readLe64(header + 24);
-            const uint64_t size = bytes.readLe64(header + 32);
+            const uint64_t table        = bytes.readLe64(header + 24);
+            const uint64_t size         = bytes.readLe64(header + 32);
             const uint32_t stringsIndex = bytes.readLe32(header + 40);
             if (size % 24 || bytes.readLe64(header + 56) != 24 || !bytes.containsRange(table, size) || !stringsIndex || stringsIndex >= count)
                 return objectError(outDiag, "ELF archive symbol table needs complete ELF64 entries and a linked string table");
             const uint64_t stringsHeader = sections + uint64_t{stringsIndex} * 64;
-            const uint64_t strings = bytes.readLe64(stringsHeader + 24);
-            const uint64_t stringsSize = bytes.readLe64(stringsHeader + 32);
+            const uint64_t strings       = bytes.readLe64(stringsHeader + 24);
+            const uint64_t stringsSize   = bytes.readLe64(stringsHeader + 32);
             if (bytes.readLe32(stringsHeader + 4) != K_STRTAB || !bytes.containsRange(strings, stringsSize))
                 return objectError(outDiag, "ELF archive symbol names need a bounded string table");
             for (uint64_t offset = 0; offset < size; offset += 24)
             {
-                const uint64_t symbol = table + offset;
-                const uint8_t binding = std::to_integer<uint8_t>(members[member].bytes[symbol + 4]) >> 4;
+                const uint64_t symbol  = table + offset;
+                const uint8_t  binding = std::to_integer<uint8_t>(members[member].bytes[symbol + 4]) >> 4;
                 // GNU ar indexes global, weak and GNU unique definitions, including COMMON/ABS.
                 if ((binding != 1 && binding != 2 && binding != 10) || !bytes.readLe16(symbol + 6))
                     continue;
@@ -341,7 +341,7 @@ bool buildElfStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::
                 if (nameOffset >= stringsSize)
                     return objectError(outDiag, "ELF archive symbol name lies outside its string table");
                 const char* name = reinterpret_cast<const char*>(members[member].bytes.data() + strings + nameOffset);
-                const auto* end = static_cast<const char*>(std::memchr(name, 0, stringsSize - nameOffset));
+                const auto* end  = static_cast<const char*>(std::memchr(name, 0, stringsSize - nameOffset));
                 if (!end)
                     return objectError(outDiag, "ELF archive symbol name has no null terminator");
                 if (end == name)
@@ -353,8 +353,8 @@ bool buildElfStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std::
     }
 
     // Fixed short names avoid a GNU long-name table and preserve the former MRI member order.
-    const uint64_t indexSize = 4 + uint64_t{symbols.size()} * 4 + namesSize;
-    uint64_t total = 8 + 60 + indexSize + (indexSize & 1);
+    const uint64_t        indexSize = 4 + uint64_t{symbols.size()} * 4 + namesSize;
+    uint64_t              total     = 8 + 60 + indexSize + (indexSize & 1);
     std::vector<uint32_t> offsets;
     offsets.reserve(members.size());
     for (const LinkArchiveMember& member : members)

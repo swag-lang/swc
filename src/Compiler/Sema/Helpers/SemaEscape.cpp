@@ -1188,8 +1188,8 @@ namespace
             return info;
         }
 
-        const TypeRef operandTypeRef = operandSelfSubst ? sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef() : expressionTypeRef(sema, operandRef);
-        const TypeRef sourceTypeRef  = SemaHelpers::unwrapAliasRefType(sema.ctx(), operandTypeRef);
+        const TypeRef         operandTypeRef     = operandSelfSubst ? sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef() : expressionTypeRef(sema, operandRef);
+        const TypeRef         sourceTypeRef      = SemaHelpers::unwrapAliasRefType(sema.ctx(), operandTypeRef);
         const SymbolVariable* indexedStorageRoot = nullptr;
         if (resultTypeRef.isValid() && sourceTypeRef.isValid() &&
             sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef).isSlice() &&
@@ -1209,7 +1209,7 @@ namespace
         SemaEscapeInfo info = operandSelfSubst ? expressionEscapeInfoAt(sema, operandRef, budget) : expressionEscapeInfoRec(sema, operandRef, budget);
         if (info.hasBorrow())
         {
-            info.typeRef = resultTypeRef;
+            info.typeRef            = resultTypeRef;
             info.indexedStorageRoot = indexedStorageRoot;
             if (sourceTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef).isAny())
                 info.viaErasedPayload = true;
@@ -1833,9 +1833,7 @@ namespace
             return false;
 
         const TypeInfo& carrierValueType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), carrierTypeRef);
-        const TypeInfo& carrierType = carrierValueType.isPointerOrReference() ?
-                                          sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), carrierValueType.payloadTypeRef()) :
-                                          carrierValueType;
+        const TypeInfo& carrierType      = carrierValueType.isPointerOrReference() ? sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), carrierValueType.payloadTypeRef()) : carrierValueType;
         if (!carrierType.isStruct())
             return false;
 
@@ -1967,8 +1965,8 @@ namespace
     {
         if (sema.projectionEscapeInfos().empty())
             return;
-        const TypeInfo& returnType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), returnTypeRef);
-        const TypeRef carrierTypeRef = returnType.isPointerOrReference() ? returnType.payloadTypeRef() : returnTypeRef;
+        const TypeInfo& returnType     = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), returnTypeRef);
+        const TypeRef   carrierTypeRef = returnType.isPointerOrReference() ? returnType.payloadTypeRef() : returnTypeRef;
         if (!structuralBorrowCarrierType(sema, carrierTypeRef))
             return;
 
@@ -5905,7 +5903,7 @@ namespace SemaEscape
             if (paramIndex >= callee->parameters().size())
                 break;
 
-            const size_t thisParam = paramIndex++;
+            const size_t          thisParam   = paramIndex++;
             const SymbolVariable* calleeParam = callee->parameters()[thisParam];
             if (!calleeParam || argument.argRef.isInvalid() || thisParam >= 64)
                 continue;
@@ -5917,13 +5915,13 @@ namespace SemaEscape
             if (!paramType.isPointerOrReference())
                 continue;
 
-            uint32_t budget = K_EXPR_BUDGET;
-            const SemaEscapeInfo info = borrowInfoFromCallArgument(sema, argument, calleeParam->typeRef(), budget);
+            uint32_t             budget = K_EXPR_BUDGET;
+            const SemaEscapeInfo info   = borrowInfoFromCallArgument(sema, argument, calleeParam->typeRef(), budget);
             if (info.kind != SemaEscapeKind::Parameter)
                 continue;
 
-            const uint64_t origins = parameterOriginsMask(*caller, info);
-            const SymbolVariable* callerField = callerArgumentProjectionField(sema, resolvedRef, *callee, thisParam, argument.argRef);
+            const uint64_t        origins        = parameterOriginsMask(*caller, info);
+            const SymbolVariable* callerField    = callerArgumentProjectionField(sema, resolvedRef, *callee, thisParam, argument.argRef);
             const SymbolVariable* projectedField = callerField ? callerField : info.borrowedParameterField;
             if (callerField)
             {
@@ -6406,8 +6404,8 @@ namespace SemaEscape
 
     void reportDeferredChecks(TaskContext& ctx)
     {
-        std::vector<SemaEscapeDeferredCheck>     checks = ctx.compiler().takeDeferredEscapeChecks();
-        const std::vector<SemaEscapeSummaryEdge> edges  = ctx.compiler().takeEscapeSummaryEdges();
+        std::vector<SemaEscapeDeferredCheck>                checks           = ctx.compiler().takeDeferredEscapeChecks();
+        const std::vector<SemaEscapeSummaryEdge>            edges            = ctx.compiler().takeEscapeSummaryEdges();
         const std::vector<SemaEscapeFieldSummaryForwarding> fieldForwardings = ctx.compiler().takeEscapeFieldSummaryForwardings();
 
         // Known body calls need not invalidate every field of a carrier. Propagate their
@@ -6457,10 +6455,8 @@ namespace SemaEscape
                 if (!forwarding.caller || !forwarding.callee || !forwarding.field)
                     continue;
 
-                const std::string_view fieldName = forwarding.field->name(ctx);
-                const bool calleeFreesField = forwarding.calleeFreesProjectedPointer ?
-                                                  (forwarding.callee->freesParamsMask() & (1ULL << forwarding.calleeParamIndex)) != 0 :
-                                                  forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName);
+                const std::string_view fieldName        = forwarding.field->name(ctx);
+                const bool             calleeFreesField = forwarding.calleeFreesProjectedPointer ? (forwarding.callee->freesParamsMask() & (1ULL << forwarding.calleeParamIndex)) != 0 : forwarding.callee->hasFreedParamField(forwarding.calleeParamIndex, fieldName);
                 if (!calleeFreesField)
                     continue;
 
@@ -6542,8 +6538,8 @@ namespace SemaEscape
         };
 
         auto propagateReturnedFields = [](const SemaEscapeSummaryEdge& edge, const SymbolFunction& source, uint32_t sourceParam) {
-            const size_t before = edge.caller->returnFieldBorrows().size();
-            const auto forward = [&](std::span<const SymbolFunction::ReturnFieldBorrow> entries) {
+            const size_t before  = edge.caller->returnFieldBorrows().size();
+            const auto   forward = [&](std::span<const SymbolFunction::ReturnFieldBorrow> entries) {
                 for (const SymbolFunction::ReturnFieldBorrow& entry : entries)
                 {
                     if (entry.paramIndex == sourceParam)
@@ -6636,8 +6632,8 @@ namespace SemaEscape
 
                                 if ((edge.callee->returnsStorageParamsMask() & calleeBit) && !edge.returnGuards.empty())
                                 {
-                                    const SemaEscapeDeferredGuard& source = edge.returnGuards.front();
-                                    const bool laterPreserveStorage = std::ranges::all_of(edge.returnGuards.begin() + 1, edge.returnGuards.end(), [](const SemaEscapeDeferredGuard& guard) {
+                                    const SemaEscapeDeferredGuard& source               = edge.returnGuards.front();
+                                    const bool                     laterPreserveStorage = std::ranges::all_of(edge.returnGuards.begin() + 1, edge.returnGuards.end(), [](const SemaEscapeDeferredGuard& guard) {
                                         return guard.callee && !guard.indirect && (guard.callee->returnsStorageParamsMask() & (1ULL << guard.paramIndex));
                                     });
                                     if (source.callee && !source.indirect && laterPreserveStorage &&
@@ -6908,9 +6904,9 @@ namespace SemaEscape
                         // later wrapper must return that selected pointer's storage.
                         if (!check.selectedReturnField)
                             continue;
-                        const std::string_view fieldName = check.selectedReturnField->name(ctx);
-                        bool       foundFieldOrigin = false;
-                        bool       validFieldRoute  = true;
+                        const std::string_view fieldName        = check.selectedReturnField->name(ctx);
+                        bool                   foundFieldOrigin = false;
+                        bool                   validFieldRoute  = true;
                         for (const SemaEscapeDeferredGuard& guard : check.guards)
                         {
                             if (!guard.callee || guard.indirect)

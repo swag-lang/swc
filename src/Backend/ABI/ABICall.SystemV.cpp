@@ -38,7 +38,9 @@ namespace
 
     uint32_t chunkBytes(const uint32_t remaining)
     {
-        return remaining >= 8 ? 8 : remaining >= 4 ? 4 : remaining >= 2 ? 2 : 1;
+        return remaining >= 8 ? 8 : remaining >= 4 ? 4
+                                : remaining >= 2   ? 2
+                                                   : 1;
     }
 
     void loadIntegerPart(MicroBuilder& builder, const MicroReg destination, const MicroReg address, const uint32_t offset, const uint32_t size, const MicroReg scratch)
@@ -49,7 +51,7 @@ namespace
         uint32_t cursor = 0;
         while (cursor < size)
         {
-            const uint32_t bytes = chunkBytes(size - cursor);
+            const uint32_t bytes  = chunkBytes(size - cursor);
             const MicroReg target = cursor ? scratch : destination;
             ABICall::loadCanonicalIntFromMemToReg(builder, target, address, offset + cursor, static_cast<uint8_t>(bytes * 8), false);
             if (cursor)
@@ -92,9 +94,9 @@ namespace
         {
             for (uint32_t offset = 0; offset < type.size;)
             {
-                const uint32_t bytes = type.size - offset >= 16 ? 16 : chunkBytes(type.size - offset);
-                const MicroOpBits bits = microOpBitsFromBitWidth(bytes * 8);
-                const MicroReg temporary = bytes == 16 ? conv.floatReturn : conv.intReturn;
+                const uint32_t    bytes     = type.size - offset >= 16 ? 16 : chunkBytes(type.size - offset);
+                const MicroOpBits bits      = microOpBitsFromBitWidth(bytes * 8);
+                const MicroReg    temporary = bytes == 16 ? conv.floatReturn : conv.intReturn;
                 builder.emitLoadRegMem(temporary, address, offset, bits);
                 builder.emitLoadMemReg(conv.stackPointer, location.stackOffset + offset, temporary, bits);
                 offset += bytes;
@@ -130,8 +132,8 @@ namespace
     void storeReturnParts(MicroBuilder& builder, const Classification& type, const MicroReg address, const MicroReg scratch)
     {
         const std::array integerReturns{MicroReg::intReg(0), MicroReg::intReg(3)};
-        uint32_t integer = 0;
-        uint32_t vector = 0;
+        uint32_t         integer = 0;
+        uint32_t         vector  = 0;
         for (uint32_t part = 0; part < 2; ++part)
         {
             if (type.classes[part] == Class::Integer)
@@ -148,7 +150,7 @@ void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callC
     const CallConv& conv = CallConv::get(callConvKind);
     SWC_ASSERT(conv.isSystemVAMD64);
     SystemVAbi::ArgumentAllocator allocator;
-    const bool hiddenReturn = !ret.isVoid && ret.systemVType && ret.systemVType->memory();
+    const bool                    hiddenReturn = !ret.isVoid && ret.systemVType && ret.systemVType->memory();
     if (hiddenReturn)
     {
         SWC_ASSERT(ret.valuePtr);
@@ -159,7 +161,7 @@ void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callC
     for (const Arg& arg : args)
         locations.push_back(allocator.next(arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits)));
     PreparedCall prepared;
-    prepared.stackAdjust = reserveCallStorage(builder, conv, allocator.stackSize(), allocator.stackAlignment());
+    prepared.stackAdjust          = reserveCallStorage(builder, conv, allocator.stackSize(), allocator.stackAlignment());
     prepared.stackAlreadyAdjusted = true;
     if (allocator.stackAlignment() > conv.stackAlignment)
         prepared.stackAlignmentLog2 = static_cast<uint8_t>(std::countr_zero(allocator.stackAlignment()));
@@ -178,9 +180,9 @@ void ABICall::callSystemVAddress(MicroBuilder& builder, const CallConvKind callC
             const auto& location = locations[index];
             if (location.onStack != onStack)
                 continue;
-            const Arg& arg = args[index];
-            const Classification type = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
-            const uint64_t entry = static_cast<uint64_t>(index) * sizeof(Arg);
+            const Arg&           arg   = args[index];
+            const Classification type  = arg.systemVType ? *arg.systemVType : packedType(arg.isFloat, arg.numBits);
+            const uint64_t       entry = static_cast<uint64_t>(index) * sizeof(Arg);
             if (arg.systemVType)
                 builder.emitLoadRegMem(address, base, entry + offsetof(Arg, value), MicroOpBits::B64);
             else
@@ -219,7 +221,7 @@ void ABICall::storeSystemVReturn(MicroBuilder& builder, const MicroReg destinati
 void ABICall::storeSystemVArgument(MicroBuilder& builder, const MicroReg destination, const Classification& type, const SystemVAbi::ArgumentLocation& location)
 {
     const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);
-    MicroReg address, scratch;
+    MicroReg        address, scratch;
     SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(address, scratch));
     builder.emitLoadRegReg(address, destination, MicroOpBits::B64);
     if (location.onStack)
@@ -230,8 +232,8 @@ void ABICall::storeSystemVArgument(MicroBuilder& builder, const MicroReg destina
         builder.emitLoadAddressRegMem(scratch, conv.framePointer, 2 * sizeof(void*) + location.stackOffset, MicroOpBits::B64);
         for (uint32_t offset = 0; offset < type.size;)
         {
-            const uint32_t bytes = chunkBytes(type.size - offset);
-            const MicroOpBits bits = microOpBitsFromBitWidth(bytes * 8);
+            const uint32_t    bytes = chunkBytes(type.size - offset);
+            const MicroOpBits bits  = microOpBitsFromBitWidth(bytes * 8);
             builder.emitLoadRegMem(conv.intReturn, scratch, offset, bits);
             builder.emitLoadMemReg(address, offset, conv.intReturn, bits);
             offset += bytes;
@@ -252,8 +254,8 @@ void ABICall::storeSystemVArgument(MicroBuilder& builder, const MicroReg destina
 void ABICall::retainSystemVReturnRegs(MicroBuilder& builder, const Classification& type)
 {
     const uint32_t integers = type.memory() ? 1 : type.integerRegisters();
-    const uint32_t vectors = type.vectorRegisters();
-    uint64_t extra = builder.extraReturnRegsOnRet();
+    const uint32_t vectors  = type.vectorRegisters();
+    uint64_t       extra    = builder.extraReturnRegsOnRet();
     if (integers > 1)
         extra |= MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::intReg(3));
     if (vectors > 1)
@@ -277,8 +279,8 @@ void ABICall::loadSystemVReturn(MicroBuilder& builder, const MicroReg source, co
     SWC_INTERNAL_CHECK(conv.tryPickIntScratchRegs(address, scratch));
     builder.emitLoadRegReg(address, source, MicroOpBits::B64);
     const std::array integerReturns{MicroReg::intReg(0), MicroReg::intReg(3)};
-    uint32_t integer = 0;
-    uint32_t vector = 0;
+    uint32_t         integer = 0;
+    uint32_t         vector  = 0;
     for (uint32_t part = 0; part < 2; ++part)
     {
         if (type.classes[part] == Class::Integer)
@@ -292,9 +294,9 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
 {
     const CallConv& conv = CallConv::get(callConvKind);
     SWC_ASSERT(conv.isSystemVAMD64);
-    SystemVAbi::ArgumentAllocator allocator;
+    SystemVAbi::ArgumentAllocator             allocator;
     SmallVector<SystemVAbi::ArgumentLocation> locations;
-    SmallVector<Classification> types;
+    SmallVector<Classification>               types;
     locations.reserve(args.size());
     types.reserve(args.size());
     for (const PreparedArg& arg : args)
@@ -307,10 +309,10 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
     // be an argument or scratch register, and one aggregate can claim two lanes.
     // Each home holds either a scalar (up to 128 bits) or an aggregate address.
     constexpr uint32_t K_SOURCE_HOME_SIZE = 16;
-    const uint64_t homes = (allocator.stackSize() + K_SOURCE_HOME_SIZE - 1) / K_SOURCE_HOME_SIZE * K_SOURCE_HOME_SIZE;
-    const uint64_t storage = homes + args.size() * K_SOURCE_HOME_SIZE;
-    PreparedCall prepared;
-    prepared.stackAdjust = reserveCallStorage(builder, conv, storage, allocator.stackAlignment());
+    const uint64_t     homes              = (allocator.stackSize() + K_SOURCE_HOME_SIZE - 1) / K_SOURCE_HOME_SIZE * K_SOURCE_HOME_SIZE;
+    const uint64_t     storage            = homes + args.size() * K_SOURCE_HOME_SIZE;
+    PreparedCall       prepared;
+    prepared.stackAdjust          = reserveCallStorage(builder, conv, storage, allocator.stackAlignment());
     prepared.stackAlreadyAdjusted = true;
     if (allocator.stackAlignment() > conv.stackAlignment)
         prepared.stackAlignmentLog2 = static_cast<uint8_t>(std::countr_zero(allocator.stackAlignment()));
@@ -318,8 +320,8 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
     {
         const PreparedArg& arg = args[index];
         SWC_ASSERT(arg.srcReg != conv.stackPointer);
-        const bool addressSource = arg.hasSystemVStorage() || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject;
-        const MicroOpBits bits = addressSource || !arg.isFloat ? MicroOpBits::B64 : valueBits(arg.numBits);
+        const bool        addressSource = arg.hasSystemVStorage() || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject;
+        const MicroOpBits bits          = addressSource || !arg.isFloat ? MicroOpBits::B64 : valueBits(arg.numBits);
         builder.emitLoadMemReg(conv.stackPointer, homes + index * K_SOURCE_HOME_SIZE, arg.srcReg, bits);
     }
 
@@ -332,9 +334,9 @@ ABICall::PreparedCall ABICall::prepareSystemVStorageArgs(MicroBuilder& builder, 
             const auto& location = locations[index];
             if (location.onStack != onStack)
                 continue;
-            const PreparedArg& arg = args[index];
+            const PreparedArg&    arg  = args[index];
             const Classification& type = types[index];
-            const uint64_t home = homes + index * K_SOURCE_HOME_SIZE;
+            const uint64_t        home = homes + index * K_SOURCE_HOME_SIZE;
             if (arg.hasSystemVStorage() || arg.isAddressed || arg.kind == PreparedArgKind::InterfaceObject)
             {
                 builder.emitLoadRegMem(address, conv.stackPointer, home, MicroOpBits::B64);

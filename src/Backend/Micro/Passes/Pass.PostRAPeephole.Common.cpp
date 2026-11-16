@@ -143,7 +143,7 @@ namespace PostRaPeephole
         auto           scanIt      = MicroStorage::Iterator{ctx.storage, ref};
         for (++scanIt; scanIt.current.isValid(); ++scanIt)
         {
-            const MicroInstr*   scanInst = &*scanIt;
+            const MicroInstr* scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             if (scanInst->op == MicroInstrOpcode::Nop)
@@ -233,7 +233,7 @@ namespace PostRaPeephole
         ++scanIt;
         for (uint32_t step = 0; step < K_MAX_STORE_SCAN_WINDOW && scanIt.current.isValid(); ++step, ++scanIt)
         {
-            const MicroInstr*   scanInst = &*scanIt;
+            const MicroInstr* scanInst = &*scanIt;
             if (!scanInst)
                 return false;
             const MicroInstrOperand* scanOps = scanInst->op == MicroInstrOpcode::LoadMemReg ? scanInst->ops(*ctx.operands) : nullptr;

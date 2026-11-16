@@ -24,8 +24,8 @@ struct MachineCode
         ResolvedDebugSourceInfo source;
     };
 
-    ByteArray                     bytes;
-    ByteArray                     unwindInfo;
+    ByteArray bytes;
+    ByteArray unwindInfo;
     // Present only across host/target OS boundaries; native output keeps unwindInfo.
     ByteArray                     hostUnwindInfo;
     std::vector<X64TlsAccess>     tlsAccesses;

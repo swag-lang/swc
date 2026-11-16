@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Backend/Linker/Linker.ELF.h"
-#include "Backend/Linker/ObjectWriter.ELF.h"
 #include "Backend/Linker/ImageWriter.ELF.h"
+#include "Backend/Linker/ObjectWriter.ELF.h"
 #include "Backend/Linker/SymbolTable.ELF.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
@@ -171,7 +171,7 @@ namespace
     bool publishImage(LinkJob& job)
     {
         ByteArray bytes;
-        Utf8 error;
+        Utf8      error;
         if (!buildElfImage(bytes, error, job) || !ELFSymbolTable::finalizeImage(bytes, error))
             return linkError(job, error.view());
         FileSystem::IoErrorInfo io;
@@ -215,14 +215,14 @@ namespace
 
 Result ELFLinker::prepareLink(LinkJob& outJob)
 {
-    outJob            = {};
-    outJob.targetOs   = Runtime::TargetOs::Linux;
-    outJob.outputPath = fs::absolute(builder_->artifactPath);
-    outJob.buildDir   = fs::absolute(builder_->buildDir);
+    outJob                 = {};
+    outJob.targetOs        = Runtime::TargetOs::Linux;
+    outJob.outputPath      = fs::absolute(builder_->artifactPath);
+    outJob.buildDir        = fs::absolute(builder_->buildDir);
     outJob.elfStripSymbols = !builder_->compiler().buildCfg().backend.debugInfo;
-    const auto kind   = builder_->compiler().buildCfg().backendKind;
-    outJob.output     = kind == Runtime::BuildCfgBackendKind::StaticLibrary ? LinkJob::Output::StaticLibrary : kind == Runtime::BuildCfgBackendKind::SharedLibrary ? LinkJob::Output::SharedLibrary
-                                                                                                                                                                   : LinkJob::Output::Executable;
+    const auto kind        = builder_->compiler().buildCfg().backendKind;
+    outJob.output          = kind == Runtime::BuildCfgBackendKind::StaticLibrary ? LinkJob::Output::StaticLibrary : kind == Runtime::BuildCfgBackendKind::SharedLibrary ? LinkJob::Output::SharedLibrary
+                                                                                                                                                                        : LinkJob::Output::Executable;
     if (kind != Runtime::BuildCfgBackendKind::StaticLibrary)
         SWC_RESULT(builder_->buildObjectBytes());
     takeObjects(outJob.archiveMembers, *builder_);
@@ -236,7 +236,7 @@ Result ELFLinker::prepareLink(LinkJob& outJob)
     }
     if (kind == Runtime::BuildCfgBackendKind::SharedLibrary)
     {
-        const Utf8 scope = nativeArtifactScopeName(builder_->compiler());
+        const Utf8 scope      = nativeArtifactScopeName(builder_->compiler());
         outJob.elfRuntimeHook = runtimeHookSymbolName(scope.view());
     }
 
@@ -331,12 +331,12 @@ Result ELFLinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, 
     if (FileSystem::readBinaryFile(objectPaths.front(), bytes, error) != Result::Continue || !readRelinkCache(objects, bytes))
         return Result::Continue;
 
-    outJob                = {};
-    outJob.targetOs       = Runtime::TargetOs::Linux;
-    outJob.output         = LinkJob::Output::Executable;
-    outJob.outputPath     = fs::absolute(builder_->artifactPath);
-    outJob.buildDir       = fs::absolute(builder_->buildDir);
-    outJob.archiveMembers = std::move(objects);
+    outJob                 = {};
+    outJob.targetOs        = Runtime::TargetOs::Linux;
+    outJob.output          = LinkJob::Output::Executable;
+    outJob.outputPath      = fs::absolute(builder_->artifactPath);
+    outJob.buildDir        = fs::absolute(builder_->buildDir);
+    outJob.archiveMembers  = std::move(objects);
     outJob.elfStripSymbols = true;
     // The manifest owns API freshness; dependency paths are resolved again against
     // this invocation's selected artifacts, never replayed from an old command line.

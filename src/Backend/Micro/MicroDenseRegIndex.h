@@ -59,7 +59,7 @@ public:
                 *outInserted = false;
             return *found;
         }
-        const uint32_t newIndex = static_cast<uint32_t>(regs_.size());
+        const uint32_t newIndex              = static_cast<uint32_t>(regs_.size());
         regToIndex_->getOrInsert(reg.packed) = newIndex;
         regs_.push_back(reg);
         if (outInserted)

@@ -10,7 +10,10 @@ struct NativeObjDescription;
 class NativeObjFileWriter
 {
 public:
-    explicit NativeObjFileWriter(NativeBackendBuilder& builder) : builder_(&builder) {}
+    explicit NativeObjFileWriter(NativeBackendBuilder& builder) :
+        builder_(&builder)
+    {
+    }
     virtual ~NativeObjFileWriter() = default;
 
     static std::unique_ptr<NativeObjFileWriter> create(NativeBackendBuilder& builder);

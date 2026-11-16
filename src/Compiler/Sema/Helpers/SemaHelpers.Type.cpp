@@ -726,8 +726,8 @@ TypeRef SemaHelpers::preciseAnyBoxedValueTypeRef(Sema& sema, TypeRef valueTypeRe
     if (!valueTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TaskContext& ctx = sema.ctx();
-    const auto readonlyPayloadType = [&](TypeRef typeRef) {
+    const TaskContext& ctx                 = sema.ctx();
+    const auto         readonlyPayloadType = [&](TypeRef typeRef) {
         if (!valueCstRef.isValid() || sema.cstMgr().get(valueCstRef).isNull())
             return typeRef;
 

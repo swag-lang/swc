@@ -1070,13 +1070,13 @@ namespace
     }
 
     Result emitAnyRuntimeAsCall(
-        MicroReg& outResultReg,
-        CodeGen& codeGen,
+        MicroReg&             outResultReg,
+        CodeGen&              codeGen,
         const SymbolFunction& asFn,
-        TypeRef targetTypeRef,
-        MicroReg sourceTypeReg,
-        MicroReg valueAddrReg,
-        bool copyValue = false)
+        TypeRef               targetTypeRef,
+        MicroReg              sourceTypeReg,
+        MicroReg              valueAddrReg,
+        bool                  copyValue = false)
     {
         MicroBuilder& builder = codeGen.builder();
 
@@ -1087,8 +1087,8 @@ namespace
         if (copyValue)
         {
             // User-authored type descriptions may not have an unqualified descriptor.
-            castSourceTypeReg = codeGen.nextVirtualIntRegister();
-            const MicroReg unqualifiedTypeReg = codeGen.nextVirtualIntRegister();
+            castSourceTypeReg                       = codeGen.nextVirtualIntRegister();
+            const MicroReg      unqualifiedTypeReg  = codeGen.nextVirtualIntRegister();
             const MicroLabelRef keepSourceTypeLabel = builder.createLabel();
             builder.emitLoadRegReg(castSourceTypeReg, sourceTypeReg, MicroOpBits::B64);
             builder.emitCmpRegImm(sourceTypeReg, ApInt(0, 64), MicroOpBits::B64);
@@ -1759,7 +1759,7 @@ namespace
             if (srcType.isChar())
                 anyTypeRef = typeMgr.typeRune();
             const SemaNodeView sourceView = codeGen.viewTypeConstant(srcNodeRef);
-            anyTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(codeGen.sema(), anyTypeRef, sourceView.cstRef(), srcNodeRef);
+            anyTypeRef                    = SemaHelpers::preciseAnyBoxedValueTypeRef(codeGen.sema(), anyTypeRef, sourceView.cstRef(), srcNodeRef);
 
             MicroReg valuePtrReg = srcPayload.reg;
             if (!srcPayload.isAddress())

@@ -912,7 +912,7 @@ JobResult JobManager::executeJob(Job& job)
     // Native compiler faults remain fatal; generated code owns its narrower
     // recovery boundary inside JIT::call. Restore task TLS on ordinary C++ throws.
     const TaskScopedContext scopedContext(job.ctx());
-    const JobResult result = job.exec();
+    const JobResult         result = job.exec();
     reportSilentJobFailure(job, result);
     return result;
 #endif

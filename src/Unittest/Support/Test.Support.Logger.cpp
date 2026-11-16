@@ -147,7 +147,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Logger_ShellRedirectionKeepsPlainOutputAndExitCode)
     SWC_RESULT(writeText(sourcePath, "#main\n{\n}\n"));
 #ifdef _WIN32
     const fs::path batchPath = testDir.path() / "compile.bat";
-    const Utf8 batch = std::format("@echo off\r\n\"{}\" syntax --num-cores 3 -f \"{}\" > \"{}\" 2>&1\r\nexit /b %errorlevel%\r\n", Os::getExeFullName().string(), sourcePath.string(), logPath.string());
+    const Utf8     batch     = std::format("@echo off\r\n\"{}\" syntax --num-cores 3 -f \"{}\" > \"{}\" 2>&1\r\nexit /b %errorlevel%\r\n", Os::getExeFullName().string(), sourcePath.string(), logPath.string());
     SWC_RESULT(writeText(batchPath, batch));
 
     const std::optional<Utf8> commandInterpreter = Os::readEnvironmentVariable("ComSpec");

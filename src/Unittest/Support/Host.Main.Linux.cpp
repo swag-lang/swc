@@ -91,7 +91,7 @@ namespace swc::LinuxHostTests
     void testProtectionRange()
     {
         const uint32_t pageSize = Os::memoryPageSize();
-        auto*          memory = static_cast<uint8_t*>(Os::allocProximityMemory(3 * pageSize));
+        auto*          memory   = static_cast<uint8_t*>(Os::allocProximityMemory(3 * pageSize));
         require(memory != nullptr, "cannot allocate page-range fixture");
         require(Os::makeExecutableMemory(memory + pageSize - 1, 2), "cannot protect a range across two pages");
         expectAccessFault(memory + pageSize - 1, true);
@@ -104,10 +104,10 @@ namespace swc::LinuxHostTests
 
     void testConcurrentCarves()
     {
-        constexpr size_t                    count = 96;
-        std::array<void*, count>            carves{};
-        std::array<std::jthread, 3>          workers;
-        const uint32_t                      pageSize = Os::memoryPageSize();
+        constexpr size_t            count = 96;
+        std::array<void*, count>    carves{};
+        std::array<std::jthread, 3> workers;
+        const uint32_t              pageSize = Os::memoryPageSize();
         for (size_t worker = 0; worker < workers.size(); ++worker)
         {
             workers[worker] = std::jthread([&, worker] {
@@ -143,7 +143,7 @@ namespace swc::LinuxHostTests
         if (child == 0)
         {
             constexpr uint32_t arenaSize = 1u << 31;
-            void*              arena = Os::allocProximityMemory(arenaSize);
+            void*              arena     = Os::allocProximityMemory(arenaSize);
             if (!arena || Os::allocProximityMemory(1))
                 _exit(1);
             const uint32_t pageSize = Os::memoryPageSize();
@@ -205,8 +205,10 @@ namespace swc::LinuxHostTests
         require(hasBytes(newGeneration, "replacement"), "unlink changed an existing reader");
 
         writeFile(cache, "x");
-        const auto descriptorCount = [] { return std::distance(fs::directory_iterator("/proc/self/fd"), fs::directory_iterator{}); };
-        const auto before = descriptorCount();
+        const auto descriptorCount = [] {
+            return std::distance(fs::directory_iterator("/proc/self/fd"), fs::directory_iterator{});
+        };
+        const auto  before   = descriptorCount();
         const void* lastView = nullptr;
         for (size_t i = 0; i < 128; ++i)
         {

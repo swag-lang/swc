@@ -35,7 +35,7 @@ void ExternalModuleManager::registerDependencies(Utf8 moduleName, std::vector<Ut
 
 bool ExternalModuleManager::loadModule(void*& outModuleHandle, const std::string_view moduleName)
 {
-    const std::unique_lock lock(mutex_);
+    const std::unique_lock        lock(mutex_);
     std::vector<std::string_view> activeModules;
     return loadModuleLocked(outModuleHandle, moduleName, activeModules);
 }

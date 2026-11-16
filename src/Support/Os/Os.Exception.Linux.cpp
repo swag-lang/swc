@@ -18,16 +18,16 @@ namespace
 {
     struct FaultBoundary
     {
-        sigjmp_buf point;
-        uintptr_t cfa = 0;
-        _Unwind_Exception exception{};
-        Os::LinuxException* output = nullptr;
-        bool unwinding = false;
+        sigjmp_buf          point;
+        uintptr_t           cfa = 0;
+        _Unwind_Exception   exception{};
+        Os::LinuxException* output    = nullptr;
+        bool                unwinding = false;
     };
 
-    thread_local FaultBoundary* activeBoundary = nullptr;
-    constexpr std::array<int, 4> K_FAULT_SIGNALS = {SIGSEGV, SIGBUS, SIGILL, SIGFPE};
-    std::array<struct sigaction, K_FAULT_SIGNALS.size()> previousHandlers{};
+    thread_local FaultBoundary*                           activeBoundary  = nullptr;
+    constexpr std::array<int, 4>                          K_FAULT_SIGNALS = {SIGSEGV, SIGBUS, SIGILL, SIGFPE};
+    std::array<struct sigaction, K_FAULT_SIGNALS.size()>  previousHandlers{};
     std::array<std::atomic<bool>, K_FAULT_SIGNALS.size()> previousHandlerConsumed{};
     static_assert(std::atomic<bool>::is_always_lock_free);
 
@@ -59,8 +59,8 @@ namespace
         auto* boundary = static_cast<FaultBoundary*>(data);
         if (_Unwind_GetCFA(context) == boundary->cfa)
             siglongjmp(boundary->point, 1);
-        auto& output = *boundary->output;
-        const uintptr_t ip = _Unwind_GetIP(context);
+        auto&           output = *boundary->output;
+        const uintptr_t ip     = _Unwind_GetIP(context);
         if (output.frameCount < output.frames.size() && (output.frameCount || ip == output.instructionAddress))
             output.frames[output.frameCount++] = ip;
         if (actions & _UA_END_OF_STACK)
@@ -71,10 +71,10 @@ namespace
     void captureFault(Os::LinuxException& output, const int signal, const siginfo_t* info, const ucontext_t& context)
     {
         constexpr std::array<int, 17> K_GREGS = {REG_RAX, REG_RDX, REG_RCX, REG_RBX, REG_RSI, REG_RDI, REG_RBP, REG_RSP, REG_R8, REG_R9, REG_R10, REG_R11, REG_R12, REG_R13, REG_R14, REG_R15, REG_RIP};
-        output.signal = signal;
-        output.signalCode = info ? info->si_code : 0;
-        output.instructionAddress = context.uc_mcontext.gregs[REG_RIP];
-        output.faultAddress = info ? reinterpret_cast<uintptr_t>(info->si_addr) : 0;
+        output.signal                         = signal;
+        output.signalCode                     = info ? info->si_code : 0;
+        output.instructionAddress             = context.uc_mcontext.gregs[REG_RIP];
+        output.faultAddress                   = info ? reinterpret_cast<uintptr_t>(info->si_addr) : 0;
         for (size_t i = 0; i < K_GREGS.size(); ++i)
             output.registers[i] = context.uc_mcontext.gregs[K_GREGS[i]];
     }
@@ -86,9 +86,9 @@ namespace
             Os::isRegisteredJitCode(context->uc_mcontext.gregs[REG_RIP]))
         {
             FaultBoundary* boundary = activeBoundary;
-            boundary->unwinding = true;
+            boundary->unwinding     = true;
             captureFault(*boundary->output, signal, info, *context);
-            boundary->exception.exception_class = 0x5357434c494e5558ULL;
+            boundary->exception.exception_class   = 0x5357434c494e5558ULL;
             boundary->exception.exception_cleanup = abandonedFaultUnwind;
             _Unwind_ForcedUnwind(&boundary->exception, stopFaultUnwind, boundary);
             terminateWithSignal(signal);
@@ -130,7 +130,7 @@ namespace
         for (size_t i = 0; i < K_FAULT_SIGNALS.size(); ++i)
         {
             SWC_FORCE_ASSERT(sigaction(K_FAULT_SIGNALS[i], nullptr, &previousHandlers[i]) == 0);
-            action.sa_mask = previousHandlers[i].sa_mask;
+            action.sa_mask  = previousHandlers[i].sa_mask;
             action.sa_flags = SA_SIGINFO | SA_ONSTACK | (previousHandlers[i].sa_flags & (SA_NODEFER | SA_RESTART));
             SWC_FORCE_ASSERT(sigaction(K_FAULT_SIGNALS[i], &action, nullptr) == 0);
         }
@@ -138,8 +138,8 @@ namespace
 
     struct FaultHandlerStack
     {
-        void* mapping = nullptr;
-        size_t mappingSize = 0;
+        void*   mapping     = nullptr;
+        size_t  mappingSize = 0;
         stack_t previous{};
 
         ~FaultHandlerStack()
@@ -163,13 +163,13 @@ namespace
         {
             if (mapping)
                 return;
-            const size_t page = Os::memoryPageSize();
-            const long recommended = sysconf(_SC_SIGSTKSZ);
+            const size_t page        = Os::memoryPageSize();
+            const long   recommended = sysconf(_SC_SIGSTKSZ);
             // Account for the kernel's extended CPU-state signal frame, with room for the
             // fault reporter even when the interrupted thread has exhausted its own stack.
             const size_t usable = (std::max<size_t>(64 * 1024, recommended > 0 ? recommended : 0) + page - 1) & ~(page - 1);
-            mappingSize = usable + 2 * page;
-            void* memory = mmap(nullptr, mappingSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            mappingSize         = usable + 2 * page;
+            void* memory        = mmap(nullptr, mappingSize, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
             SWC_FORCE_ASSERT(memory != MAP_FAILED);
             void* base = static_cast<std::byte*>(memory) + page;
             if (mprotect(base, usable, PROT_READ | PROT_WRITE) != 0)
@@ -204,8 +204,8 @@ __attribute__((noinline)) bool Os::executeWithHostFaultHandler(LinuxException& o
         ~RestoreBoundary() { activeBoundary = previous; }
     } restore{activeBoundary};
     boundary.output = &outException;
-    boundary.cfa = reinterpret_cast<uintptr_t>(__builtin_dwarf_cfa());
-    activeBoundary = &boundary;
+    boundary.cfa    = reinterpret_cast<uintptr_t>(__builtin_dwarf_cfa());
+    activeBoundary  = &boundary;
     if (sigsetjmp(boundary.point, 1))
         return false;
     function(argument);

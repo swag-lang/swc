@@ -2,8 +2,8 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Linker/SymbolTable.ELF.h"
 #include "Backend/Linker/LinkImage.h"
+#include "Backend/Linker/SymbolTable.ELF.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -1177,9 +1177,9 @@ namespace
                                 default: return K_INVALID_ID;
                             }
 
-                            const uint64_t splatValue = n0.imm;
+                            const uint64_t  splatValue = n0.imm;
                             const uint32_t* knownSplat = plan_->splatRegs.find(splatValue);
-                            uint32_t       splatReg   = K_INVALID_ID;
+                            uint32_t        splatReg   = K_INVALID_ID;
                             if (knownSplat)
                             {
                                 splatReg = *knownSplat;
@@ -1281,9 +1281,9 @@ namespace
                     if (!allEqual(&SlpValue::imm))
                         return K_INVALID_ID;
 
-                    const uint64_t splatValue = n0.imm;
+                    const uint64_t  splatValue = n0.imm;
                     const uint32_t* knownSplat = plan_->splatRegs.find(splatValue);
-                    uint32_t       splatReg   = K_INVALID_ID;
+                    uint32_t        splatReg   = K_INVALID_ID;
                     if (knownSplat)
                     {
                         splatReg = *knownSplat;
@@ -1450,7 +1450,9 @@ namespace
             // a table reference across recursive queries: a flat-table growth can
             // move its entries.
             states_.emplace(valueId, State::InProgress);
-            const auto setState = [&](const State state) { *states_.find(valueId) = state; };
+            const auto setState = [&](const State state) {
+                *states_.find(valueId) = state;
+            };
 
             const MicroSsaState::ValueInfo* info = fn_->ssa->valueInfo(valueId);
             if (!info)
@@ -1540,10 +1542,10 @@ namespace
             Live,
         };
 
-        SlpFunctionContext*                 fn_                = nullptr;
-        const FlatKeySet*                  deletedStoreRefs_  = nullptr;
-        const FlatKeySet*                  scalarDefinitions_ = nullptr;
-        FlatKeyMap<State> states_;
+        SlpFunctionContext* fn_                = nullptr;
+        const FlatKeySet*   deletedStoreRefs_  = nullptr;
+        const FlatKeySet*   scalarDefinitions_ = nullptr;
+        FlatKeyMap<State>   states_;
     };
 
     // ------------------------------------------------------------------
@@ -2268,10 +2270,10 @@ namespace
                 vectorizedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + static_cast<uint64_t>(lane) * fn.shape.bytes));
         }
 
-        FlatKeySet                   deletedStoreRefs;
-        SmallVector<uint32_t, 16>    deletedStoreRefsInOrder;
-        uint32_t                     firstDeletedPos = K_INVALID_ID;
-        MicroInstrRef                firstDeletedRef = MicroInstrRef::invalid();
+        FlatKeySet                deletedStoreRefs;
+        SmallVector<uint32_t, 16> deletedStoreRefsInOrder;
+        uint32_t                  firstDeletedPos = K_INVALID_ID;
+        MicroInstrRef             firstDeletedRef = MicroInstrRef::invalid();
         for (const StoreRecord& record : scan.stores)
         {
             if (!record.plainLane || !vectorizedLocations.contains(BlockScan::locationKey(record.rootKey, record.offset)))
@@ -2338,7 +2340,7 @@ namespace
             if (!fn.ssa)
                 return false;
         }
-        FlatKeySet                   scalarDefinitions;
+        FlatKeySet scalarDefinitions;
         for (const PlanInstr& operation : plan.ops)
             for (const MicroInstrRef definition : {operation.scalarDefinition, operation.scalarDefinition2})
                 if (definition.isValid())
@@ -2374,7 +2376,7 @@ namespace
         // once an earlier block has been rewritten.
         FlatKeySet               referencedRoots;
         SmallVector<uint32_t, 8> referencedRootOrder;
-        const auto addReferencedRoot = [&](const uint32_t rootKey) {
+        const auto               addReferencedRoot = [&](const uint32_t rootKey) {
             if (referencedRoots.insert(rootKey))
                 referencedRootOrder.push_back(rootKey);
         };

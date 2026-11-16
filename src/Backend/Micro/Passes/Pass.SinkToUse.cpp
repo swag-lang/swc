@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/Passes/Pass.SinkToUse.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
@@ -213,7 +213,7 @@ namespace
                     if (!def.isVirtual())
                         continue;
 
-                    bool           inserted = false;
+                    bool           inserted   = false;
                     const uint32_t denseIndex = scratch.virtualRegs.ensure(def, &inserted);
                     if (inserted)
                         scratch.regCounts.emplace_back();
@@ -224,7 +224,7 @@ namespace
                     if (!used.isVirtual())
                         continue;
 
-                    bool           inserted = false;
+                    bool           inserted   = false;
                     const uint32_t denseIndex = scratch.virtualRegs.ensure(used, &inserted);
                     if (inserted)
                         scratch.regCounts.emplace_back();
@@ -309,8 +309,8 @@ namespace
                     {
                         MicroInstrRef frameDefinition;
                         uint64_t      frameOffset = 0;
-                        frameBase = MicroPassHelpers::detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameDefinition, frameOffset);
-                        frameBaseReady = true;
+                        frameBase                 = MicroPassHelpers::detectFrameBase(storage, operands, stackPointer, context.debugStackBaseVirtualReg, frameDefinition, frameOffset);
+                        frameBaseReady            = true;
                     }
                     retargetAddress = ops[1].reg == frameBase;
                 }

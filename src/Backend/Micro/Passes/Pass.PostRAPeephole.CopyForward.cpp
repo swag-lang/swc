@@ -1791,7 +1791,7 @@ namespace PostRaPeephole
 
         MicroInstrOperand savedLoad[Action::K_MAX_OPS];
         std::copy_n(loaded, load->numOperands, savedLoad);
-        savedLoad[0].reg = copy[0].reg;
+        savedLoad[0].reg             = copy[0].reg;
         MicroInstrOperand address[4] = {};
         address[0].reg               = copy[1].reg;
         address[1].reg               = copy[0].reg;
@@ -1824,19 +1824,19 @@ namespace PostRaPeephole
         const MicroReg result = copy[0].reg;
         const MicroReg other  = copy[1].reg;
 
-        MicroInstrRef       selectRef = ctx.previousRef(copyRef);
-        const MicroInstr*   select    = ctx.instruction(selectRef);
-        const MicroInstr*   store     = nullptr;
-        MicroInstrRef       storeRef;
-        MicroInstrOperand   stored[Action::K_MAX_OPS];
-        uint32_t            storeSource = 0;
+        MicroInstrRef     selectRef = ctx.previousRef(copyRef);
+        const MicroInstr* select    = ctx.instruction(selectRef);
+        const MicroInstr* store     = nullptr;
+        MicroInstrRef     storeRef;
+        MicroInstrOperand stored[Action::K_MAX_OPS];
+        uint32_t          storeSource = 0;
         if (select && (select->op == MicroInstrOpcode::LoadMemReg || select->op == MicroInstrOpcode::LoadAmcMemReg))
         {
-            store       = select;
-            storeRef    = selectRef;
-            storeSource = store->op == MicroInstrOpcode::LoadMemReg ? 1 : 2;
-            const auto* ops = store->ops(*ctx.operands);
-            const auto bits = store->op == MicroInstrOpcode::LoadMemReg ? ops[2].opBits : ops[4].opBits;
+            store            = select;
+            storeRef         = selectRef;
+            storeSource      = store->op == MicroInstrOpcode::LoadMemReg ? 1 : 2;
+            const auto* ops  = store->ops(*ctx.operands);
+            const auto  bits = store->op == MicroInstrOpcode::LoadMemReg ? ops[2].opBits : ops[4].opBits;
             if (ops[storeSource].reg != other || bits != MicroOpBits::B64)
                 return false;
             for (uint32_t i = 0; i < storeSource; ++i)
@@ -1844,8 +1844,8 @@ namespace PostRaPeephole
                     return false;
             std::copy_n(ops, store->numOperands, stored);
             stored[storeSource].reg = result;
-            selectRef = ctx.previousRef(storeRef);
-            select    = ctx.instruction(selectRef);
+            selectRef               = ctx.previousRef(storeRef);
+            select                  = ctx.instruction(selectRef);
         }
         const auto* selected = select ? select->ops(*ctx.operands) : nullptr;
         if (!select || select->op != MicroInstrOpcode::LoadCondRegReg || !selected ||
@@ -1873,13 +1873,13 @@ namespace PostRaPeephole
             offset[0].reg != temporary || offset[1].reg != result || offset[2].opBits != MicroOpBits::B64)
             return false;
 
-        MicroInstrOperand rewrittenAddress[4] = {offset[0], offset[1], offset[2], offset[3]};
-        rewrittenAddress[0].reg               = result;
-        MicroInstrOperand rewrittenCompare[3] = {compared[0], compared[1], compared[2]};
+        MicroInstrOperand rewrittenAddress[4]                      = {offset[0], offset[1], offset[2], offset[3]};
+        rewrittenAddress[0].reg                                    = result;
+        MicroInstrOperand rewrittenCompare[3]                      = {compared[0], compared[1], compared[2]};
         rewrittenCompare[compared[0].reg == temporary ? 0 : 1].reg = result;
-        MicroInstrOperand rewrittenSelect[4] = {selected[0], selected[1], selected[2], selected[3]};
-        rewrittenSelect[0].reg               = result;
-        rewrittenSelect[1].reg               = other;
+        MicroInstrOperand rewrittenSelect[4]                       = {selected[0], selected[1], selected[2], selected[3]};
+        rewrittenSelect[0].reg                                     = result;
+        rewrittenSelect[1].reg                                     = other;
         if (!MicroPassHelpers::invertCondition(rewrittenSelect[2].cpuCond, selected[2].cpuCond))
             return false;
         MicroConformanceIssue issue;

@@ -12,15 +12,15 @@ namespace swc::LinuxHostTests
 {
     void testThreadStorage()
     {
-        const uint32_t before = Os::tlsSlotsInUse();
-        const uint64_t slot = Os::tlsAlloc();
+        const uint32_t before      = Os::tlsSlotsInUse();
+        const uint64_t slot        = Os::tlsAlloc();
         int            parentValue = 7;
         require(Os::tlsSlotsInUse() == before + 1, "TLS slot accounting differs");
         require(Os::tlsGetValue(slot) == nullptr, "new TLS slot is not empty");
         Os::tlsSetValue(slot, &parentValue);
         std::array<std::jthread, 3> workers;
-        std::atomic<bool>          isolated = true;
-        std::barrier               barrier(3);
+        std::atomic<bool>           isolated = true;
+        std::barrier                barrier(3);
         for (auto& worker : workers)
         {
             worker = std::jthread([&] {
@@ -45,7 +45,7 @@ namespace swc::LinuxHostTests
 
     void testModuleLoading()
     {
-        const fs::path directory = fs::absolute("module path");
+        const fs::path directory  = fs::absolute("module path");
         const fs::path modulePath = directory / "libswc_host_test.so";
         require(fs::is_regular_file(modulePath), "shared-library fixture is missing");
         void* handle = reinterpret_cast<void*>(1);
@@ -100,7 +100,7 @@ namespace swc::LinuxHostTests
         close(slave);
         const int status = waitForChild(child);
         require(WIFEXITED(status) && WEXITSTATUS(status) == 0, "terminal capability child failed");
-        char buffer[64];
+        char       buffer[64];
         const auto length = read(master, buffer, sizeof(buffer));
         close(master);
         require(length == 12 && std::string_view(buffer, static_cast<size_t>(length)) == "\x1b[?25l\x1b[?25h", "cursor was not restored on normal exit");

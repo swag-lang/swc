@@ -761,7 +761,7 @@ namespace
     std::string encodeReturnFieldOrigins(const SymbolFunction& function, const SymbolFunction* variant)
     {
         std::vector<SymbolFunction::ReturnFieldBorrow> origins;
-        const auto append = [&origins](const SymbolFunction* source) {
+        const auto                                     append = [&origins](const SymbolFunction* source) {
             if (!source)
                 return;
             for (const auto& entry : source->returnFieldBorrows())
@@ -777,7 +777,7 @@ namespace
         origins.erase(std::unique(origins.begin(), origins.end()), origins.end());
 
         constexpr char HEX[] = "0123456789abcdef";
-        std::string result;
+        std::string    result;
         for (const auto& entry : origins)
         {
             if (!result.empty())
@@ -796,10 +796,10 @@ namespace
     std::string encodeEffectFields(const SymbolFunction& function, const SymbolFunction* variant, bool writes)
     {
         std::vector<SymbolFunction::ReturnFieldBorrow> origins;
-        const auto append = [&origins, writes](const SymbolFunction* source) {
+        const auto                                     append = [&origins, writes](const SymbolFunction* source) {
             if (!source)
                 return;
-            const auto local = writes ? source->resetParamFields() : source->freedParamFields();
+            const auto local    = writes ? source->resetParamFields() : source->freedParamFields();
             const auto imported = writes ? source->importedResetParamFields() : source->importedFreedParamFields();
             origins.insert(origins.end(), local.begin(), local.end());
             origins.insert(origins.end(), imported.begin(), imported.end());
@@ -812,7 +812,7 @@ namespace
         origins.erase(std::unique(origins.begin(), origins.end()), origins.end());
 
         constexpr char HEX[] = "0123456789abcdef";
-        std::string result;
+        std::string    result;
         for (const auto& entry : origins)
         {
             if (!result.empty())
@@ -831,10 +831,10 @@ namespace
     std::string encodePossibleWriteFields(const SymbolFunction& function, const SymbolFunction* variant)
     {
         std::vector<SymbolFunction::ReturnFieldBorrow> origins;
-        const auto append = [&origins](const SymbolFunction* source) {
+        const auto                                     append = [&origins](const SymbolFunction* source) {
             if (!source)
                 return;
-            const auto local = source->writtenParamFields();
+            const auto local    = source->writtenParamFields();
             const auto imported = source->importedWrittenParamFields();
             origins.insert(origins.end(), local.begin(), local.end());
             origins.insert(origins.end(), imported.begin(), imported.end());
@@ -847,7 +847,7 @@ namespace
         origins.erase(std::unique(origins.begin(), origins.end()), origins.end());
 
         constexpr char HEX[] = "0123456789abcdef";
-        std::string result;
+        std::string    result;
         for (const auto& entry : origins)
         {
             if (!result.empty())
@@ -907,19 +907,19 @@ namespace
         const uint64_t returnsPayloadMask = symbolFunction.returnsPayloadParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsPayloadParamsMask() : 0);
         const uint64_t returnsStorageMask = symbolFunction.returnsStorageParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsStorageParamsMask() : 0);
 
-        const uint64_t returnsIndirectMask = symbolFunction.returnsIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsIndirectParamsMask() : 0);
-        const uint64_t storesIndirectMask  = symbolFunction.storesIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->storesIndirectParamsMask() : 0);
-        const uint64_t intoIndirectPairs   = symbolFunction.storesIndirectIntoParamPairs() | (fwdMoveVariant ? fwdMoveVariant->storesIndirectIntoParamPairs() : 0);
-        const uint64_t freesIndirectMask   = symbolFunction.freesIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->freesIndirectParamsMask() : 0);
-        const bool     observesExternal    = symbolFunction.observesExternalBorrows() || (fwdMoveVariant && fwdMoveVariant->observesExternalBorrows());
-        const std::string returnFieldOrigins = encodeReturnFieldOrigins(symbolFunction, fwdMoveVariant);
-        const std::string freedFieldOrigins = encodeEffectFields(symbolFunction, fwdMoveVariant, false);
-        const std::string writtenFieldOrigins = encodeEffectFields(symbolFunction, fwdMoveVariant, true);
-        const std::string possibleWriteFieldOrigins = encodePossibleWriteFields(symbolFunction, fwdMoveVariant);
+        const uint64_t    returnsIndirectMask          = symbolFunction.returnsIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->returnsIndirectParamsMask() : 0);
+        const uint64_t    storesIndirectMask           = symbolFunction.storesIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->storesIndirectParamsMask() : 0);
+        const uint64_t    intoIndirectPairs            = symbolFunction.storesIndirectIntoParamPairs() | (fwdMoveVariant ? fwdMoveVariant->storesIndirectIntoParamPairs() : 0);
+        const uint64_t    freesIndirectMask            = symbolFunction.freesIndirectParamsMask() | (fwdMoveVariant ? fwdMoveVariant->freesIndirectParamsMask() : 0);
+        const bool        observesExternal             = symbolFunction.observesExternalBorrows() || (fwdMoveVariant && fwdMoveVariant->observesExternalBorrows());
+        const std::string returnFieldOrigins           = encodeReturnFieldOrigins(symbolFunction, fwdMoveVariant);
+        const std::string freedFieldOrigins            = encodeEffectFields(symbolFunction, fwdMoveVariant, false);
+        const std::string writtenFieldOrigins          = encodeEffectFields(symbolFunction, fwdMoveVariant, true);
+        const std::string possibleWriteFieldOrigins    = encodePossibleWriteFields(symbolFunction, fwdMoveVariant);
         const bool        completePossibleWriteSummary = hasCompletePossibleWriteSummary(symbolFunction) && intoPairs == 0 && storesIndirectMask == 0 &&
-                                                   intoIndirectPairs == 0 &&
-                                                   (!fwdMoveVariant || (hasCompletePossibleWriteSummary(*fwdMoveVariant) && intoPairs == 0 && storesIndirectMask == 0 &&
-                                                                        intoIndirectPairs == 0));
+                                                  intoIndirectPairs == 0 &&
+                                                  (!fwdMoveVariant || (hasCompletePossibleWriteSummary(*fwdMoveVariant) && intoPairs == 0 && storesIndirectMask == 0 &&
+                                                                       intoIndirectPairs == 0));
 
         if ((returnsMask != 0 ||
              storesMask != 0 ||
@@ -1284,7 +1284,7 @@ namespace
         if (hasForwardingParameter && !isFwdCopyVariant(*symbolFunction))
             return {};
 
-        SmallVector<Utf8> attributes;
+        SmallVector<Utf8>     attributes;
         const SymbolFunction* compiledMoveVariant = nullptr;
         if (hasForwardingParameter && !symbolFunction->isForeign())
         {

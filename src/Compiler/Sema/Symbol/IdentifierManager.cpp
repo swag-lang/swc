@@ -216,12 +216,12 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]               = predefined(PredefinedName::RuntimeIs);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]          = predefined(PredefinedName::RuntimeTypeCmp);
 
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]    = predefined(PredefinedName::RuntimeTlsAlloc);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)] = predefined(PredefinedName::RuntimeTlsSetValue);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]   = predefined(PredefinedName::RuntimeTlsGetPtr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)] = predefined(PredefinedName::RuntimeTlsGetValue);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]   = predefined(PredefinedName::RuntimeTlsVarPtr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostProcessStorage)] = predefined(PredefinedName::RuntimeHostProcessStorage);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]            = predefined(PredefinedName::RuntimeTlsAlloc);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)]         = predefined(PredefinedName::RuntimeTlsSetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]           = predefined(PredefinedName::RuntimeTlsGetPtr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]         = predefined(PredefinedName::RuntimeTlsGetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]           = predefined(PredefinedName::RuntimeTlsVarPtr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostProcessStorage)]  = predefined(PredefinedName::RuntimeHostProcessStorage);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HostCurrentThreadId)] = predefined(PredefinedName::RuntimeHostCurrentThreadId);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);

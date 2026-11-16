@@ -1208,10 +1208,10 @@ namespace Os
         PROCESS_INFORMATION processInfo{};
         startupInfo.cb = sizeof(startupInfo);
 
-        HANDLE     childOutputRead  = nullptr;
-        HANDLE     childOutputWrite = nullptr;
+        HANDLE        childOutputRead  = nullptr;
+        HANDLE        childOutputWrite = nullptr;
         ProcessOutput output(options);
-        const bool redirectOutput = output.needsPipe();
+        const bool    redirectOutput = output.needsPipe();
         if (redirectOutput)
         {
             SECURITY_ATTRIBUTES securityAttributes{};
@@ -1279,7 +1279,7 @@ namespace Os
 
         if (childOutputRead)
         {
-            char        buffer[4096];
+            char buffer[4096];
             for (;;)
             {
                 DWORD available = 0;
@@ -1656,8 +1656,8 @@ namespace Os
     {
         if (!size)
             return nullptr;
-        const std::wstring name = std::format(L"Local\\Swag.Rt.{:x}.{:x}", GetCurrentProcessId(), key);
-        const HANDLE mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, size, name.c_str());
+        const std::wstring name    = std::format(L"Local\\Swag.Rt.{:x}.{:x}", GetCurrentProcessId(), key);
+        const HANDLE       mapping = CreateFileMappingW(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, size, name.c_str());
         if (!mapping)
             return nullptr;
         void* view = MapViewOfFile(mapping, FILE_MAP_ALL_ACCESS, 0, 0, size);

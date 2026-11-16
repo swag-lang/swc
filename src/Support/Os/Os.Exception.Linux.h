@@ -7,14 +7,14 @@ namespace Os
 {
     struct LinuxException
     {
-        uint32_t signal = 0;
-        int32_t signalCode = 0;
+        uint32_t  signal             = 0;
+        int32_t   signalCode         = 0;
         uintptr_t instructionAddress = 0;
-        uintptr_t faultAddress = 0;
+        uintptr_t faultAddress       = 0;
         // x86-64 DWARF register order, followed by RIP at index 16.
-        std::array<uint64_t, 17> registers{};
+        std::array<uint64_t, 17>  registers{};
         std::array<uintptr_t, 64> frames{};
-        uint32_t frameCount = 0;
+        uint32_t                  frameCount = 0;
     };
 
     // Signal-safe lookup. The caller must still keep executing JIT memory alive.

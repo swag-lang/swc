@@ -300,7 +300,7 @@ private:
     ConstantKind kind_               = ConstantKind::Invalid;
     bool         payloadBorrowed_    = false;
     bool         compilerRunPointer_ = false;
-    TypeRef      typeRef_         = TypeRef::invalid();
+    TypeRef      typeRef_            = TypeRef::invalid();
 
     std::atomic<uint64_t> dataSegmentRef_{packDataSegmentRef({})};
 

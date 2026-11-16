@@ -56,8 +56,8 @@ namespace
         constexpr char message[] =
             "fatal error: swc needs a CPU with AVX2 (x86-64-v3)\n"
             "note: swc emits x86-64-v3 code and executes it in its own JIT, so the host CPU needs it too\n";
-        const char* cursor = message;
-        size_t remaining = sizeof(message) - 1;
+        const char* cursor    = message;
+        size_t      remaining = sizeof(message) - 1;
         while (remaining)
         {
             const ssize_t written = write(STDERR_FILENO, cursor, remaining);

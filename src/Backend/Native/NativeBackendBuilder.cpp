@@ -2,9 +2,9 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/BinaryPatch.h"
 #include "Backend/Linker/Archive.h"
-#include "Backend/Linker/Reader.COFF.h"
-#include "Backend/Linker/Linker.h"
 #include "Backend/Linker/Format.COFF.h"
+#include "Backend/Linker/Linker.h"
+#include "Backend/Linker/Reader.COFF.h"
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
@@ -1504,8 +1504,8 @@ Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& sect
         section.name            = ".rbss";
         section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ;
         section.requireAlignment(allocation.align);
-        section.bss             = true;
-        section.bssSize         = allocation.size;
+        section.bss     = true;
+        section.bssSize = allocation.size;
         return Result::Continue;
     }
 
@@ -2353,7 +2353,7 @@ bool NativeBackendBuilder::parseNativeTestProgressEvent(NativeTestProgressEvent&
 void NativeBackendBuilder::parseNativeTestSummary(const std::string& output)
 {
     constexpr std::string_view PREFIX = "[swag.test] executed=";
-    const size_t              pos    = output.rfind(PREFIX);
+    const size_t               pos    = output.rfind(PREFIX);
     if (pos == std::string::npos)
         return;
 
@@ -2362,8 +2362,8 @@ void NativeBackendBuilder::parseNativeTestSummary(const std::string& output)
     if (failedPos == std::string_view::npos)
         return;
 
-    uint32_t executed = 0;
-    uint32_t failed   = 0;
+    uint32_t               executed       = 0;
+    uint32_t               failed         = 0;
     const std::string_view executedText   = summary.substr(0, failedPos);
     const std::string_view failedTail     = summary.substr(failedPos + 8);
     const std::string_view failedText     = failedTail.substr(0, failedTail.find_first_of("\r\n"));

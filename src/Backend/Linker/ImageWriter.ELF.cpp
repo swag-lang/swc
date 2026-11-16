@@ -254,8 +254,8 @@ namespace
             }
         }
         OutputSection out;
-        out.name = name;
-        out.type = type;
+        out.name  = name;
+        out.type  = type;
         out.flags = flags;
         out.align = align;
         sections_.push_back(std::move(out));
@@ -264,7 +264,7 @@ namespace
 
     bool ElfImageLink::readObject(const std::span<const std::byte> bytes, const Utf8& name)
     {
-        auto file = std::make_unique<ELF::File>();
+        auto file  = std::make_unique<ELF::File>();
         file->name = name;
         if (!file->read(*error_, bytes))
             return false;
@@ -278,21 +278,23 @@ namespace
             if (!symbol.binding() || !symbol.section || symbol.name.empty())
                 continue;
             const SymbolReference reference{file.get(), index};
-            const auto found = definitions_.find(symbol.name);
+            const auto            found = definitions_.find(symbol.name);
             if (found == definitions_.end())
                 definitions_.emplace(symbol.name, reference);
             else
             {
-                const ELF::Symbol& previous = found->second.symbol();
-                const uint8_t previousStrength = previous.binding() == 2 ? 0 : previous.section == ELF::SHN_COMMON ? 1 : 2;
-                const uint8_t strength = symbol.binding() == 2 ? 0 : symbol.section == ELF::SHN_COMMON ? 1 : 2;
+                const ELF::Symbol& previous         = found->second.symbol();
+                const uint8_t      previousStrength = previous.binding() == 2 ? 0 : previous.section == ELF::SHN_COMMON ? 1
+                                                                                                                        : 2;
+                const uint8_t      strength         = symbol.binding() == 2 ? 0 : symbol.section == ELF::SHN_COMMON ? 1
+                                                                                                                    : 2;
                 if (strength > previousStrength)
                     found->second = reference;
                 else if (strength == previousStrength && strength == 1)
                 {
                     ELF::Symbol& common = found->second.file->symbols[found->second.index];
-                    common.size = std::max(common.size, symbol.size);
-                    common.value = std::max(common.value, symbol.value);
+                    common.size         = std::max(common.size, symbol.size);
+                    common.value        = std::max(common.value, symbol.value);
                 }
                 else if (strength == previousStrength && strength == 2 && (symbol.binding() != 10 || previous.binding() != 10))
                     return fail(std::format("symbol '{}' is defined by both '{}' and '{}'", symbol.name, found->second.file->name, name));
@@ -308,7 +310,7 @@ namespace
         if (name.is_absolute())
             return fs::is_regular_file(name, error) ? name : fs::path{};
         std::vector<std::string> candidates;
-        const std::string text = name.string();
+        const std::string        text = name.string();
         if (name.has_extension() || name.has_parent_path())
             candidates.push_back(text);
         else
@@ -317,7 +319,8 @@ namespace
             if (text == "c" || text == "m")
                 candidates.push_back("lib" + text + ".so.6");
             else if (text == "dl" || text == "pthread" || text == "rt")
-                candidates.push_back("lib" + text + ".so." + (text == "dl" ? "2" : text == "rt" ? "1" : "0"));
+                candidates.push_back("lib" + text + ".so." + (text == "dl" ? "2" : text == "rt" ? "1"
+                                                                                                : "0"));
             else if (text == "gcc_s")
                 candidates.push_back("libgcc_s.so.1");
             candidates.push_back("lib" + text + ".so");
@@ -336,7 +339,7 @@ namespace
 
     bool ElfImageLink::loadScript(const fs::path& path, const std::span<const std::byte> bytes, const bool direct)
     {
-        std::string_view text(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        std::string_view         text(reinterpret_cast<const char*>(bytes.data()), bytes.size());
         std::vector<std::string> tokens;
         for (size_t cursor = 0; cursor < text.size();)
         {
@@ -358,7 +361,7 @@ namespace
                 tokens.emplace_back(1, text[cursor++]);
                 continue;
             }
-            const char quote = text[cursor] == '\'' || text[cursor] == '"' ? text[cursor++] : 0;
+            const char   quote = text[cursor] == '\'' || text[cursor] == '"' ? text[cursor++] : 0;
             const size_t start = cursor;
             while (cursor < text.size() && (quote ? text[cursor] != quote : !std::isspace(static_cast<unsigned char>(text[cursor])) && text[cursor] != '(' && text[cursor] != ')' && text[cursor] != ','))
                 ++cursor;
@@ -366,13 +369,13 @@ namespace
             if (quote && cursor < text.size())
                 ++cursor;
         }
-        size_t depth = 0;
-        bool inputs = false, sawInput = false;
+        size_t depth  = 0;
+        bool   inputs = false, sawInput = false;
         for (const std::string& token : tokens)
         {
             if (!depth && (token == "GROUP" || token == "INPUT"))
             {
-                inputs = true;
+                inputs   = true;
                 sawInput = true;
             }
             else if (token == "(")
@@ -386,7 +389,8 @@ namespace
             }
             else if (inputs && depth && token != "AS_NEEDED")
             {
-                const std::string_view name = token.starts_with("-l:") ? std::string_view(token).substr(3) : token.starts_with("-l") ? std::string_view(token).substr(2) : std::string_view(token);
+                const std::string_view name = token.starts_with("-l:") ? std::string_view(token).substr(3) : token.starts_with("-l") ? std::string_view(token).substr(2)
+                                                                                                                                     : std::string_view(token);
                 if (!loadLibrary(fs::path(name), path.parent_path(), direct))
                     return false;
             }
@@ -400,7 +404,7 @@ namespace
         if (found.empty())
             return fail(std::format("cannot find Linux link library '{}'", Utf8(name)));
         std::error_code ec;
-        const fs::path path = fs::weakly_canonical(found, ec);
+        const fs::path  path = fs::weakly_canonical(found, ec);
         if (ec)
             return fail(std::format("cannot resolve Linux link library '{}': {}", Utf8(found), ec.message()));
         if (!loaded_.insert(path).second)
@@ -409,7 +413,7 @@ namespace
         // Reuse the shared mapped reader instead of copying every member into memory.
         if (path.extension() == ".a")
         {
-            auto archive = std::make_unique<InputArchive>();
+            auto       archive = std::make_unique<InputArchive>();
             Diagnostic diagnostic;
             if (!archive->archive.loadFile(diagnostic, path))
                 return fail(std::format("cannot read indexed archive '{}'", Utf8(path)));
@@ -417,13 +421,13 @@ namespace
             archives_.push_back(std::move(archive));
             return true;
         }
-        ByteArray bytes;
+        ByteArray               bytes;
         FileSystem::IoErrorInfo io;
         if (FileSystem::readBinaryFile(path, bytes, io) != Result::Continue)
             return fail(std::format("cannot read '{}': {}", Utf8(path), FileSystem::describeIoFailure(io)));
         if (bytes.size() >= 8 && std::memcmp(bytes.data(), "!<arch>\n", 8) == 0)
         {
-            auto archive = std::make_unique<InputArchive>();
+            auto       archive = std::make_unique<InputArchive>();
             Diagnostic diagnostic;
             if (!archive->archive.load(diagnostic, std::move(bytes)))
                 return fail(std::format("{}: cannot decode the archive symbol directory", Utf8(path)));
@@ -433,8 +437,8 @@ namespace
         }
         if (bytes.size() < 4 || bytes.readLe32(0) != 0x464c457f)
             return loadScript(path, bytes.span(), direct);
-        auto file = std::make_unique<ELF::File>();
-        file->name = Utf8(path);
+        auto file   = std::make_unique<ELF::File>();
+        file->name  = Utf8(path);
         file->owned = std::move(bytes);
         if (!file->read(*error_, file->owned.span()))
             return false;
@@ -461,14 +465,14 @@ namespace
 
     bool ElfImageLink::addBootstrap()
     {
-        LinkImage image;
+        LinkImage   image;
         LinkSection text;
-        text.name = ".text";
+        text.name  = ".text";
         text.align = 16;
         text.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
         // System V process entry: preserve the loader finalizer, recover argc/argv and
         // align the stack before entering glibc. SWC's ordinary 'main' owns its runtime.
-        constexpr unsigned char code[] = {0x31,0xed,0x49,0x89,0xd1,0x5e,0x48,0x89,0xe2,0x48,0x83,0xe4,0xf0,0x50,0x54,0x45,0x31,0xc0,0x31,0xc9,0x48,0x8d,0x3d,0,0,0,0,0xff,0x15,0,0,0,0,0xf4};
+        constexpr unsigned char code[] = {0x31, 0xed, 0x49, 0x89, 0xd1, 0x5e, 0x48, 0x89, 0xe2, 0x48, 0x83, 0xe4, 0xf0, 0x50, 0x54, 0x45, 0x31, 0xc0, 0x31, 0xc9, 0x48, 0x8d, 0x3d, 0, 0, 0, 0, 0xff, 0x15, 0, 0, 0, 0, 0xf4};
         text.bytes.append(std::as_bytes(std::span(code)));
         text.relocs.push_back({.offset = 23, .kind = LinkRelocKind::Rel32, .symbolName = "main"});
         text.relocs.push_back({.offset = 29, .kind = LinkRelocKind::GotRel32, .symbolName = "__libc_start_main"});
@@ -483,7 +487,7 @@ namespace
     bool ElfImageLink::extractArchives()
     {
         std::set<std::string> pending;
-        size_t scanned = 0;
+        size_t                scanned = 0;
         // Scan each loaded member once. COMMON declarations also search archives for
         // stronger definitions, including a later entry behind a weak indexed definition.
         while (scanned < objects_.size() || !pending.empty())
@@ -509,20 +513,20 @@ namespace
             const std::string name = *pending.begin();
             pending.erase(pending.begin());
             const auto definition = definitions_.find(name);
-            const bool common = definition != definitions_.end() && definition->second.symbol().section == ELF::SHN_COMMON;
+            const bool common     = definition != definitions_.end() && definition->second.symbol().section == ELF::SHN_COMMON;
             if (definition != definitions_.end() && !common)
                 continue;
             bool loaded = false;
             for (const auto& archive : archives_)
             {
-                const Utf8 symbolName(name);
+                const Utf8                    symbolName(name);
                 const std::array<uint32_t, 1> first = {archive->archive.memberOffsetForSymbol(symbolName)};
-                std::vector<uint32_t> alternatives;
-                std::span<const uint32_t> candidates(first);
+                std::vector<uint32_t>         alternatives;
+                std::span<const uint32_t>     candidates(first);
                 if (common)
                 {
                     alternatives = archive->archive.memberOffsetsForSymbol(symbolName);
-                    candidates = alternatives;
+                    candidates   = alternatives;
                 }
                 for (const uint32_t offset : candidates)
                 {
@@ -696,7 +700,7 @@ namespace
             ElfContentCandidate candidate;
             candidate.file          = file.get();
             candidate.normalizeSelf = true;
-            bool eligible  = true;
+            bool eligible           = true;
             for (ELF::Section& input : file->sections)
             {
                 if (!(input.flags & ELF::SHF_ALLOC) || !input.size)
@@ -972,32 +976,32 @@ namespace
     size_t ElfImageLink::addTarget(const std::string& name, const SymbolReference& reference, const bool imported)
     {
         const ELF::Symbol& symbol = reference.symbol();
-        Target target;
-        target.name = name;
-        target.reference = reference;
-        target.info = imported ? static_cast<uint8_t>((symbol.binding() == 2 ? 0x20 : 0x10) | (symbol.type() == 10 ? 2 : symbol.type())) : symbol.info;
+        Target             target;
+        target.name       = name;
+        target.reference  = reference;
+        target.info       = imported ? static_cast<uint8_t>((symbol.binding() == 2 ? 0x20 : 0x10) | (symbol.type() == 10 ? 2 : symbol.type())) : symbol.info;
         target.visibility = imported ? 0 : symbol.visibility;
-        target.size = symbol.size;
-        target.weak = symbol.binding() == 2;
-        target.imported = imported;
+        target.size       = symbol.size;
+        target.weak       = symbol.binding() == 2;
+        target.imported   = imported;
         if (!imported && symbol.section == ELF::SHN_ABS)
         {
             target.absolute = true;
-            target.offset = symbol.value;
+            target.offset   = symbol.value;
         }
         else if (!imported && symbol.section == ELF::SHN_COMMON)
         {
             SWC_ASSERT(std::has_single_bit(std::max<uint64_t>(1, symbol.value)));
-            target.section = section(".bss", ELF::SHT_NOBITS, ELF::SHF_ALLOC | ELF::SHF_WRITE, std::max<uint64_t>(1, symbol.value));
+            target.section     = section(".bss", ELF::SHT_NOBITS, ELF::SHF_ALLOC | ELF::SHF_WRITE, std::max<uint64_t>(1, symbol.value));
             OutputSection& bss = sections_[target.section];
-            target.offset = alignTo(bss.size, std::max<uint64_t>(1, symbol.value));
-            bss.size = target.offset + symbol.size;
+            target.offset      = alignTo(bss.size, std::max<uint64_t>(1, symbol.value));
+            bss.size           = target.offset + symbol.size;
         }
         else if (!imported && symbol.section)
         {
             const ELF::Section& contribution = reference.file->sections[symbol.section];
-            target.section = contribution.output;
-            target.offset = contribution.contribution + symbol.value;
+            target.section                   = contribution.output;
+            target.offset                    = contribution.contribution + symbol.value;
         }
         targets_.push_back(std::move(target));
         return targets_.size() - 1;
@@ -1051,7 +1055,7 @@ namespace
                 if (!relocation.type)
                     continue;
                 Target& target = targets_[file->symbols[relocation.symbol].target];
-                target.used = true;
+                target.used    = true;
                 if (target.imported && target.reference.symbol().type() == 6)
                     return fail(std::format("{}: imported TLS symbol '{}' needs a supported TLS relocation model", file->name, target.name));
                 if (!target.imported && !target.absolute && !target.section && target.reference.symbol().section)
@@ -1064,27 +1068,27 @@ namespace
                         return fail(std::format("shared or protected imported ELF data '{}' needs a GOT-relative access", target.name));
                     if (!target.copy)
                     {
-                        const ELF::Symbol& imported = target.reference.symbol();
-                        uint64_t alignment = 16;
+                        const ELF::Symbol& imported  = target.reference.symbol();
+                        uint64_t           alignment = 16;
                         if (imported.section < target.reference.file->sections.size())
                         {
                             const uint64_t sectionAlign = target.reference.file->sections[imported.section].align;
-                            const uint64_t valueAlign = imported.value ? imported.value & (~imported.value + 1) : sectionAlign;
-                            alignment = std::max(alignment, std::min(sectionAlign, valueAlign));
+                            const uint64_t valueAlign   = imported.value ? imported.value & (~imported.value + 1) : sectionAlign;
+                            alignment                   = std::max(alignment, std::min(sectionAlign, valueAlign));
                         }
                         if (alignment > UINT32_MAX || target.size > UINT32_MAX)
                             return fail(std::format("imported ELF data '{}' exceeds the image size or alignment range", target.name));
-                        target.section = section(".bss", ELF::SHT_NOBITS, ELF::SHF_ALLOC | ELF::SHF_WRITE, alignment);
+                        target.section     = section(".bss", ELF::SHT_NOBITS, ELF::SHF_ALLOC | ELF::SHF_WRITE, alignment);
                         OutputSection& bss = sections_[target.section];
-                        target.offset = alignTo(bss.size, alignment);
-                        bss.size = target.offset + target.size;
+                        target.offset      = alignTo(bss.size, alignment);
+                        bss.size           = target.offset + target.size;
                         if (bss.size > UINT32_MAX)
                             return fail("ELF copy relocations exceed the image size limit");
                         target.copy = true;
                     }
                 }
-                const ELF::Section& source = file->sections[relocation.section];
-                const bool importedFunctionAddress = !shared_ && target.imported && target.reference.file->shared &&
+                const ELF::Section& source                  = file->sections[relocation.section];
+                const bool          importedFunctionAddress = !shared_ && target.imported && target.reference.file->shared &&
                                                      target.reference.symbol().type() == 2 && relocation.type == ELF::R_ABS64 &&
                                                      source.output && (sections_[source.output].flags & ELF::SHF_ALLOC) &&
                                                      !(sections_[source.output].flags & ELF::SHF_WRITE);
@@ -1113,7 +1117,8 @@ namespace
 
     uint64_t ElfImageLink::address(const Target& target) const
     {
-        return target.absolute ? target.offset : target.section ? sections_[target.section].address + target.offset : 0;
+        return target.absolute ? target.offset : target.section ? sections_[target.section].address + target.offset
+                                                                : 0;
     }
 
     bool ElfImageLink::prepareDynamic()
@@ -1231,7 +1236,7 @@ namespace
                 {
                     const Target& target     = targets_[file->symbols[relocation.symbol].target];
                     const bool    pltAddress = !shared_ && target.imported && target.plt != K_NO_TARGET &&
-                                               !(sections_[source.output].flags & ELF::SHF_WRITE);
+                                            !(sections_[source.output].flags & ELF::SHF_WRITE);
                     if (!target.absolute && (shared_ || (target.imported && !target.copy && !pltAddress)))
                         ++relocationCount_;
                 }
@@ -1595,7 +1600,7 @@ namespace
 
     bool ElfImageLink::emit(ByteArray& bytes)
     {
-        ByteArray image(64);
+        ByteArray      image(64);
         const uint16_t programCount = shared_ ? 9 : 10;
         image.writeLe32(0, 0x464c457f);
         image[4] = std::byte{2};
@@ -1625,7 +1630,9 @@ namespace
         for (size_t index = 0; index < 4; ++index)
         {
             const Segment& segment = segments_[index];
-            appendProgram(image, 1, index == 1 ? 5 : index ? 6 : 4, segment.begin, base_ + segment.begin, segment.end - segment.begin, segment.memoryEnd - segment.begin, page_);
+            appendProgram(image, 1, index == 1 ? 5 : index ? 6
+                                                           : 4,
+                          segment.begin, base_ + segment.begin, segment.end - segment.begin, segment.memoryEnd - segment.begin, page_);
         }
         const OutputSection& dynamic = sections_[dynamic_];
         appendProgram(image, 2, 6, dynamic.offset, dynamic.address, dynamic.size, dynamic.size, 8);

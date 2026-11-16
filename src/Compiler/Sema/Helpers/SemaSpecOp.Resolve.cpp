@@ -1963,13 +1963,12 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     else
         return Result::Continue;
 
-    const auto ownerFor = [&](const SemaNodeView& receiver, const SemaNodeView& argument) -> const SymbolStruct*
-    {
+    const auto ownerFor = [&](const SemaNodeView& receiver, const SemaNodeView& argument) -> const SymbolStruct* {
         if (!receiver.type())
             return nullptr;
 
-        TypeRef        typeRef = relationalOperandTypeRef(sema, receiver.typeRef());
-        const TypeInfo* type   = &sema.typeMgr().get(typeRef);
+        TypeRef         typeRef = relationalOperandTypeRef(sema, receiver.typeRef());
+        const TypeInfo* type    = &sema.typeMgr().get(typeRef);
         // A receiver cast can leave a pointer here. Compare its pointee when the
         // other operand is a value; pointer comparisons keep their built-in meaning.
         if (type->isNonNullValuePointer() && argument.type() &&
@@ -2017,10 +2016,10 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     if (!leftViable && !rightViable && leftCandidates.empty())
         return Result::Continue;
 
-    const bool               reversed    = !leftViable && rightViable;
-    SmallVector<Symbol*>&    candidates  = reversed ? rightCandidates : leftCandidates;
-    const AstNodeRef         receiverRef = reversed ? node.nodeRightRef : node.nodeLeftRef;
-    const AstNodeRef         argumentRef = reversed ? node.nodeLeftRef : node.nodeRightRef;
+    const bool            reversed    = !leftViable && rightViable;
+    SmallVector<Symbol*>& candidates  = reversed ? rightCandidates : leftCandidates;
+    const AstNodeRef      receiverRef = reversed ? node.nodeRightRef : node.nodeLeftRef;
+    const AstNodeRef      argumentRef = reversed ? node.nodeLeftRef : node.nodeRightRef;
 
     const AstNodeRef relRef = sema.curNodeRef();
 
@@ -2098,8 +2097,8 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
             {
                 if (reversed)
                 {
-                    ApsInt value = sema.cstMgr().get(specOpCstRef).getInt();
-                    bool overflow = false;
+                    ApsInt value    = sema.cstMgr().get(specOpCstRef).getInt();
+                    bool   overflow = false;
                     value.negate(overflow);
                     const ConstantValue result = ConstantValue::makeInt(sema.ctx(), value, 32, TypeInfo::Sign::Signed);
                     sema.setConstant(relRef, sema.cstMgr().addConstant(sema.ctx(), result));

@@ -51,15 +51,15 @@ namespace swc::LinuxHostTests
         void checkDirectoryWaiter(const bool replace)
         {
             const fs::path directory = replace ? "replace-lock" : "alias-lock";
-            const fs::path alias = directory.string() + "-alias";
+            const fs::path alias     = directory.string() + "-alias";
             fs::create_directory(directory);
             fs::create_directory_symlink(directory, alias);
 
             // Fork before opening either lock: a fork inherits flock's open-file ownership.
-            Pipe          start;
-            Pipe          entered;
-            Pipe          acquired;
-            const pid_t   child = fork();
+            Pipe        start;
+            Pipe        entered;
+            Pipe        acquired;
+            const pid_t child = fork();
             if (child == 0)
             {
                 try
@@ -113,7 +113,7 @@ namespace swc::LinuxHostTests
         require(Os::currentProcessId() == static_cast<uint32_t>(getpid()), "process identity differs");
         require(fs::equivalent(Os::getExeFullName(), "/proc/self/exe"), "executable path differs");
         require(fs::is_directory(Os::getTemporaryPath()), "temporary path is not a directory");
-        uint32_t thread = 0;
+        uint32_t     thread = 0;
         std::jthread worker([&] { thread = Os::currentThreadId(); });
         worker.join();
         require(thread && thread != Os::currentThreadId(), "thread identities are not distinct");
@@ -138,12 +138,17 @@ namespace swc::LinuxHostTests
 
     void testFileOwners()
     {
-        const fs::path path = "file-users.bin";
+        const fs::path path  = "file-users.bin";
         const fs::path alias = "file-users-alias.bin";
-        { std::ofstream file(path); file << "mapped bytes"; }
+        {
+            std::ofstream file(path);
+            file << "mapped bytes";
+        }
         fs::create_symlink(path, alias);
         std::vector<Os::FileLockOwner> owners;
-        const auto contains = [&](const uint32_t pid) { return std::ranges::any_of(owners, [pid](const auto& owner) { return owner.processId == pid && !owner.processName.empty(); }); };
+        const auto                     contains = [&](const uint32_t pid) {
+            return std::ranges::any_of(owners, [pid](const auto& owner) { return owner.processId == pid && !owner.processName.empty(); });
+        };
         Os::queryFileLockOwners(owners, Os::getExeFullName());
         require(contains(Os::currentProcessId()), "executable user was not found");
         Os::queryFileLockOwners(owners, path);
@@ -157,8 +162,8 @@ namespace swc::LinuxHostTests
         Os::queryFileLockOwners(owners, path);
         require(owners.empty(), "unmapped file retained its earlier user");
 
-        Pipe ready;
-        Pipe finish;
+        Pipe        ready;
+        Pipe        finish;
         const pid_t child = fork();
         if (child == 0)
         {
@@ -172,7 +177,10 @@ namespace swc::LinuxHostTests
                 close(file);
                 _exit(0);
             }
-            catch (...) { _exit(2); }
+            catch (...)
+            {
+                _exit(2);
+            }
         }
         require(child > 0, "cannot create file-user fixture child");
         ready.receive();
@@ -197,7 +205,7 @@ namespace swc::LinuxHostTests
                 unsetenv("WindowsSDKVersion");
                 Os::WindowsToolchainPaths paths;
                 require(Os::discoverWindowsToolchainPaths(paths) == Os::WindowsToolchainDiscoveryResult::MissingMsvcToolchain, "missing cross toolchain was accepted");
-                const fs::path vc = fs::absolute("cross toolchain/vc");
+                const fs::path vc  = fs::absolute("cross toolchain/vc");
                 const fs::path sdk = fs::absolute("cross toolchain/sdk");
                 fs::create_directories(vc / "lib/x64");
                 require(setenv("VCToolsInstallDir", vc.c_str(), 1) == 0, "cannot set cross toolchain path");
@@ -228,9 +236,9 @@ namespace swc::LinuxHostTests
     void testFileServices()
     {
         fs::create_directory("file-services");
-        const fs::path cache = "file-services/cache.bin";
-        const std::string oldBytes("old\0generation", 14);
-        const std::string newBytes(16 * 1024, 'n');
+        const fs::path          cache = "file-services/cache.bin";
+        const std::string       oldBytes("old\0generation", 14);
+        const std::string       newBytes(16 * 1024, 'n');
         FileSystem::IoErrorInfo error;
         require(FileSystem::writeBinaryFileAtomic(cache, oldBytes.data(), oldBytes.size(), error) == Result::Continue, "cannot publish first cache");
         Os::ReadOnlyFileMapping oldMapping;
@@ -259,7 +267,7 @@ namespace swc::LinuxHostTests
         const std::string valueB(32 * 1024, 'b');
         require(FileSystem::writeBinaryFileAtomic(cache, valueA.data(), valueA.size(), error) == Result::Continue, "cannot initialize concurrent publication");
         std::atomic<bool> writerOk = true;
-        std::jthread writer([&] {
+        std::jthread      writer([&] {
             FileSystem::IoErrorInfo writeError;
             for (size_t i = 0; i < 64; ++i)
             {

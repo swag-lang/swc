@@ -9,8 +9,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr std::string_view ARCHIVE_MAGIC        = "!<arch>\n";
-    constexpr size_t           MEMBER_HEADER_SIZE   = 60;
+    constexpr std::string_view ARCHIVE_MAGIC      = "!<arch>\n";
+    constexpr size_t           MEMBER_HEADER_SIZE = 60;
 
     // Member sizes are stored as a right-padded decimal ASCII string.
     bool parseMemberSize(uint32_t& outSize, const ByteView bytes, size_t headerOffset)
@@ -169,18 +169,18 @@ uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
 std::vector<uint32_t> Archive::memberOffsetsForSymbol(const Utf8& symbol) const
 {
     std::vector<uint32_t> result;
-    uint32_t size = 0;
-    constexpr size_t data = ARCHIVE_MAGIC.size() + MEMBER_HEADER_SIZE;
+    uint32_t              size = 0;
+    constexpr size_t      data = ARCHIVE_MAGIC.size() + MEMBER_HEADER_SIZE;
     if (!parseMemberSize(size, bytes_, ARCHIVE_MAGIC.size()) || size < 4 || !bytes_.containsRange(data, size))
         return result;
     const uint32_t count = bytes_.readBe32(data);
     if (count > (size - 4) / 4)
         return result;
-    size_t cursor = data + 4 + size_t{count} * 4;
-    const size_t end = data + size;
+    size_t       cursor = data + 4 + size_t{count} * 4;
+    const size_t end    = data + size;
     for (uint32_t index = 0; index < count && cursor < end; ++index)
     {
-        const char* begin = reinterpret_cast<const char*>(bytes_.data() + cursor);
+        const char* begin      = reinterpret_cast<const char*>(bytes_.data() + cursor);
         const auto* terminator = static_cast<const char*>(std::memchr(begin, 0, end - cursor));
         if (!terminator)
             return {};

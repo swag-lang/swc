@@ -54,7 +54,7 @@ namespace Backend::Unittest
             JITMemoryManager manager;
             JITMemory        memory;
             manager.allocateAndCopy(memory, code.span());
-            using WindowsTestFn = void (__attribute__((ms_abi)) *)(uint64_t*);
+            using WindowsTestFn = void(__attribute__((ms_abi))*)(uint64_t*);
             reinterpret_cast<WindowsTestFn>(memory.entryPoint())(values);
             return Result::Continue;
         }

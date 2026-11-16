@@ -75,7 +75,7 @@ namespace Command
 
         // Generated hooks use Swag's scalar registers, including on a System V host.
 #if defined(__linux__) && defined(__x86_64__)
-        using RuntimeHookInvoker = void (__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+        using RuntimeHookInvoker = void(__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
 #else
         using RuntimeHookInvoker = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
 #endif
@@ -110,8 +110,7 @@ namespace Command
             return Result::Continue;
         }
 
-        Result runRuntimeDependencyHooks(TaskContext& ctx, std::span<const NativeRuntimeDependency> dependencies, std::span<const uint32_t> order,
-                                         const ScriptRuntimeHookStage stage, std::span<uint8_t> initialized)
+        Result runRuntimeDependencyHooks(TaskContext& ctx, std::span<const NativeRuntimeDependency> dependencies, std::span<const uint32_t> order, const ScriptRuntimeHookStage stage, std::span<uint8_t> initialized)
         {
             SWC_ASSERT(initialized.size() == dependencies.size());
             bool succeeded = true;
@@ -243,7 +242,7 @@ namespace Command
             SWC_RESULT(runScriptRuntimeSetup(ctx));
             std::vector<uint8_t> initializedDependencies(runtimeDependencies.size());
             Result               executionResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyInitOrder, ScriptRuntimeHookStage::Init, initializedDependencies);
-            const bool           moduleStarted    = executionResult == Result::Continue;
+            const bool           moduleStarted   = executionResult == Result::Continue;
             if (moduleStarted)
             {
                 executionResult = runJitScriptFunctions(ctx, initFunctions, JITRuntimeSetupMode::None);
@@ -257,7 +256,7 @@ namespace Command
 
             // Cleanup also follows a failed initializer or pre-main hook. Only dependencies
             // whose initialization completed receive a drop hook.
-            const Result dropResult = moduleStarted ? runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true) : Result::Continue;
+            const Result dropResult           = moduleStarted ? runJitScriptFunctions(ctx, dropFunctions, JITRuntimeSetupMode::None, true) : Result::Continue;
             const Result dependencyDropResult = runRuntimeDependencyHooks(ctx, runtimeDependencies, runtimeDependencyDropOrder, ScriptRuntimeHookStage::Drop, initializedDependencies);
             if (executionResult != Result::Continue || dropResult != Result::Continue || dependencyDropResult != Result::Continue)
                 return Result::Error;

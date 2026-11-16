@@ -166,7 +166,7 @@ namespace
     // at any later frame access.
     MicroReg findLocalBaseRegister(MicroStorage& storage, MicroOperandStorage& operands, const CallConv& conv, const Encoder* encoder, MicroInstrRef& outRef)
     {
-        SmallVector<MicroReg, 8> candidates;
+        SmallVector<MicroReg, 8>      candidates;
         SmallVector<MicroInstrRef, 8> candidateRefs;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
@@ -193,7 +193,7 @@ namespace
             const MicroInstr& inst = *it;
             if (inst.op == MicroInstrOpcode::Pop && isTerminalRegisterRestore(storage, it.current))
                 continue;
-            const MicroInstrDef& info = MicroInstr::info(inst.op);
+            const MicroInstrDef& info            = MicroInstr::info(inst.op);
             const auto           countDefinition = [&](const MicroReg reg) {
                 const auto candidate = std::ranges::find(candidates, reg);
                 if (candidate == candidates.end())
@@ -226,7 +226,7 @@ namespace
                 continue;
             if (selected.isValid())
                 return MicroReg::invalid();
-            selected = candidates[i];
+            selected      = candidates[i];
             selectedIndex = i;
         }
         if (selected.isValid())
@@ -247,7 +247,7 @@ namespace
 
         // An address into no known object: the extents cannot vouch for what it
         // reaches.
-        out.localSpaceEscapes = true;
+        out.localSpaceEscapes      = true;
         out.localValuesStayPrivate = false;
     }
 
@@ -363,7 +363,7 @@ namespace
                 {
                     if (!out.extentsKnown)
                     {
-                        out.localSpaceEscapes = true;
+                        out.localSpaceEscapes      = true;
                         out.localValuesStayPrivate = false;
                     }
                     else if (inst.op == MicroInstrOpcode::LoadAddrRegMem)
@@ -703,9 +703,9 @@ namespace
                              const CallConv&              conv,
                              const FrameReachability&     reach,
                              const bool                   restrictToUnreachable,
-                              const MicroPassContext&,
-                             std::vector<Carried>&        out,
-                             std::vector<SunkStore>&      sunkStores)
+                             const MicroPassContext&,
+                             std::vector<Carried>&   out,
+                             std::vector<SunkStore>& sunkStores)
     {
         const auto     instrRefs = cfg.instructionRefs();
         const uint32_t n         = cfg.instructionCount();
@@ -1079,14 +1079,14 @@ namespace
     // changes roles between accesses. Keeping every read and write coherent also
     // handles branch arms and distinct loop exits.
     bool cachePrivateSpills(
-        MicroPassContext& context,
+        MicroPassContext&            context,
         const MicroControlFlowGraph& cfg,
-        const MicroPhysLiveness& liveness,
-        const NaturalLoop& loop,
-        const FrameReachability& reach,
-        const FrameRangeNormalizer& ranges,
-        const bool stackEscaped,
-        std::vector<uint8_t>& visited)
+        const MicroPhysLiveness&     liveness,
+        const NaturalLoop&           loop,
+        const FrameReachability&     reach,
+        const FrameRangeNormalizer&  ranges,
+        const bool                   stackEscaped,
+        std::vector<uint8_t>&        visited)
     {
         if (stackEscaped || (reach.localSpaceEscapes && !reach.localValuesStayPrivate) || context.spillAreaLo >= context.spillAreaHi)
             return false;

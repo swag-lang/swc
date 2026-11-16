@@ -221,7 +221,7 @@ namespace
         {
             const Token& token = srcView.token(TokenRef(tokIndex));
             updateModuleApiDelimiterBalance(balance, token.id);
-            ioEndOffset = srcView.tokenByteEnd(token);
+            ioEndOffset      = srcView.tokenByteEnd(token);
             snippetEndTokRef = TokenRef(tokIndex);
         }
 

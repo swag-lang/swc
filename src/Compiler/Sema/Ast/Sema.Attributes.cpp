@@ -13,8 +13,8 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/SourceFile.h"
-#include "Main/Global.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/Global.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Logger.h"
@@ -351,9 +351,9 @@ namespace
         std::string_view remaining = encoded->getString();
         while (!remaining.empty())
         {
-            const size_t end = remaining.find(';');
+            const size_t           end   = remaining.find(';');
             const std::string_view entry = remaining.substr(0, end);
-            const size_t colon = entry.find(':');
+            const size_t           colon = entry.find(':');
             if (colon == std::string_view::npos || !colon || colon + 1 == entry.size() || (entry.size() - colon - 1) % 2)
                 return invalid();
 
@@ -373,7 +373,7 @@ namespace
             for (size_t i = colon + 1; i < entry.size(); i += 2)
             {
                 const int high = hexDigit(entry[i]);
-                const int low = hexDigit(entry[i + 1]);
+                const int low  = hexDigit(entry[i + 1]);
                 if (high < 0 || low < 0)
                     return invalid();
                 fieldName.push_back(static_cast<char>(high * 16 + low));

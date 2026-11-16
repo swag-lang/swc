@@ -1839,10 +1839,10 @@ namespace
 
             for (uint32_t index = 0; index < candidateCount; ++index)
             {
-                const MicroReg     source    = MicroReg::virtualIntReg(9300 + index * 2);
-                const MicroReg     copy      = MicroReg::virtualIntReg(9301 + index * 2);
-                const MicroLabelRef skipLabel = builder.createLabel();
-                const int64_t      baseOffset = 8 + static_cast<int64_t>(index) * 32;
+                const MicroReg      source     = MicroReg::virtualIntReg(9300 + index * 2);
+                const MicroReg      copy       = MicroReg::virtualIntReg(9301 + index * 2);
+                const MicroLabelRef skipLabel  = builder.createLabel();
+                const int64_t       baseOffset = 8 + static_cast<int64_t>(index) * 32;
 
                 builder.emitLoadRegMem(source, conv.stackPointer, baseOffset, MicroOpBits::B64);
                 builder.emitLoadRegReg(copy, source, MicroOpBits::B64);

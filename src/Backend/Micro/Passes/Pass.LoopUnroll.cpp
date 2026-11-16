@@ -77,7 +77,7 @@ namespace
                 const uint32_t newIndex = static_cast<uint32_t>(groups_.size());
                 groups_.emplace_back();
                 indices_.getOrInsert(slot) = newIndex;
-                index = indices_.find(slot);
+                index                      = indices_.find(slot);
             }
             groups_[*index].relocations.push_back(relocation);
         }
@@ -216,9 +216,9 @@ namespace
             int64_t offset = 0;
             bool    valid  = false;
         };
-        FlatKeyMap<InnerLoop>                   innerByHeader;
-        FlatKeyMap<Guard>                       guardByJump;
-        FlatKeyMap<OffsetValue>                 offsets;
+        FlatKeyMap<InnerLoop>   innerByHeader;
+        FlatKeyMap<Guard>       guardByJump;
+        FlatKeyMap<OffsetValue> offsets;
         offsets.emplace(outer.counter.packed, OffsetValue{.offset = 0, .valid = true});
 
         const auto labelOrdinal = [&](const uint64_t id) {
@@ -282,8 +282,8 @@ namespace
                 const auto innerIt = innerByHeader.find(o);
                 if (!innerIt)
                     continue;
-                const MicroInstrOperand* cmpOps   = storage.ptr(order[innerIt->jump - 1])->ops(operands);
-                const OffsetValue*        offset = offsets.find(cmpOps[0].reg.packed);
+                const MicroInstrOperand* cmpOps = storage.ptr(order[innerIt->jump - 1])->ops(operands);
+                const OffsetValue*       offset = offsets.find(cmpOps[0].reg.packed);
                 if (!offset || !offset->valid)
                     return false;
                 innerIt->initOffset = offset->offset;
@@ -702,10 +702,10 @@ namespace
         const uint32_t bodyCount = bodyEnd - bodyBegin;
         if (!bodyCount || bodyCount > limits.maxPartialBodyInstructions)
             return false;
-        bool                         indexedRead            = false;
-        bool                         indexedWrite           = false;
-        bool                         sawStore               = false;
-        bool                         allReadsHaveUnitStride = true;
+        bool                     indexedRead            = false;
+        bool                     indexedWrite           = false;
+        bool                     sawStore               = false;
+        bool                     allReadsHaveUnitStride = true;
         SmallVector<MicroReg, 2> indexedBases;
         FlatKeySet               bodyDefs;
         MicroReg                 loadedValue   = MicroReg::invalid();
@@ -1074,9 +1074,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
         // Labels a relocation points at are pinned; relocations by owning slot
         // let clones keep the tables and constants the body reads.
-        FlatKey64Set                                                  relocLabels;
-        RelocationsBySlot                                             relocsBySlot;
-        bool                                                          relocationsIndexed = false;
+        FlatKey64Set      relocLabels;
+        RelocationsBySlot relocsBySlot;
+        bool              relocationsIndexed = false;
 
         for (const auto& [jccOrdinal, headerId] : jumps)
         {
@@ -1313,11 +1313,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // Body scan: collect internal labels, verify every branch is either
             // internal (remappable) or a forward exit, and that nothing but the
             // latch touches the counter.
-            FlatKey64Set                 internalLabels;
-            SmallVector<uint64_t, 4>     internalLabelOrder;
-            bool                         ok = true;
-            SmallVector<MicroReg, 4>     constantTableBases;
-            SmallVector<MicroReg, 4>     indexValues;
+            FlatKey64Set             internalLabels;
+            SmallVector<uint64_t, 4> internalLabelOrder;
+            bool                     ok = true;
+            SmallVector<MicroReg, 4> constantTableBases;
+            SmallVector<MicroReg, 4> indexValues;
             indexValues.push_back(counter);
             uint32_t indexedConstantLoads = 0;
             for (uint32_t o = bodyBegin; o < bodyEnd && ok; ++o)
@@ -1473,11 +1473,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // allocator has constraints on. Internal control flow makes a
             // linear renaming wrong at a join, so a body with labels keeps
             // every name.
-            FlatKeySet                   renamable;
-            FlatKeySet                   potentialRenamable;
-            SmallVector<MicroReg, 16>    renamableRegs;
-            bool                         hasRenamableFloat = false;
-            MicroInstrRegOperandRefs     regOps;
+            FlatKeySet                renamable;
+            FlatKeySet                potentialRenamable;
+            SmallVector<MicroReg, 16> renamableRegs;
+            bool                      hasRenamableFloat = false;
+            MicroInstrRegOperandRefs  regOps;
             if (internalLabels.empty())
             {
                 FlatKeySet seenInBody;
@@ -1509,9 +1509,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                 // Only the body's candidates matter outside it. Mark those
                 // candidates as carried instead of recording unrelated reads.
-                FlatKeySet carriedOutside;
+                FlatKeySet   carriedOutside;
                 const size_t outsideCandidateCount = renamableRegs.size() - (counter.isVirtual() && potentialRenamable.contains(counter.packed) ? 1 : 0);
-                const auto excludeOutsideReads = [&](uint32_t begin, uint32_t end) {
+                const auto   excludeOutsideReads   = [&](uint32_t begin, uint32_t end) {
                     for (uint32_t o = begin; o < end && carriedOutside.size() < outsideCandidateCount; ++o)
                     {
                         const MicroInstr* inst = storage.ptr(order[o]);
@@ -1548,9 +1548,9 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             SmallVector<MicroReg, 4> steppedPointers;
             if (!partial && internalLabels.empty())
             {
-                FlatKeyMap<uint32_t>                   definitions;
-                FlatKeySet                             addressBases;
-                bool                                   readsFlags = false;
+                FlatKeyMap<uint32_t> definitions;
+                FlatKeySet           addressBases;
+                bool                 readsFlags = false;
                 for (uint32_t o = bodyBegin; o < bodyEnd && !readsFlags; ++o)
                 {
                     const MicroInstr*        inst = storage.ptr(order[o]);
@@ -1587,8 +1587,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             else
                 firstFreshVirtual = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-            FlatKeyMap<uint32_t, uint32_t>                        currentName;
-            uint32_t                                              nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
+            FlatKeyMap<uint32_t, uint32_t>                currentName;
+            uint32_t                                      nextFreshInt = firstFreshVirtual + (partial ? 0 : static_cast<uint32_t>(copies) - 1);
             std::optional<FlatKeyMap<uint64_t, uint64_t>> labelMap;
             if (!internalLabels.empty())
                 labelMap.emplace().reserve(internalLabels.size());
@@ -1642,8 +1642,8 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
 
                     if (src->op == MicroInstrOpcode::OpBinaryRegImm && std::ranges::find(steppedPointers, newOps[0].reg) != steppedPointers.end())
                     {
-                        const MicroReg pointer = newOps[0].reg;
-                        const uint32_t* nameIt = currentName.find(pointer.packed);
+                        const MicroReg  pointer = newOps[0].reg;
+                        const uint32_t* nameIt  = currentName.find(pointer.packed);
                         SWC_ASSERT(nextFreshInt < MicroReg::K_MAX_INDEX);
                         const MicroReg    fresh = MicroReg::virtualIntReg(nextFreshInt++);
                         const uint64_t    delta = newOps[2].microOp == MicroOp::Add ? newOps[3].valueU64 : 0 - newOps[3].valueU64;
@@ -1698,7 +1698,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                                 fresh = MicroReg::virtualIntReg(nextFreshInt++);
                             }
                             currentName.getOrInsert(original.packed) = fresh.packed;
-                            *regOp.reg            = fresh;
+                            *regOp.reg                               = fresh;
                         }
                     }
 

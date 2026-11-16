@@ -30,7 +30,7 @@ namespace Unittest
         return VirtualQuery(address, &memory, sizeof(memory)) && memory.State == MEM_RESERVE;
 #elif defined(__linux__)
         unsigned char resident = 1;
-        std::byte byte{};
+        std::byte     byte{};
         return mincore(const_cast<void*>(address), Os::memoryPageSize(), &resident) == 0 && !(resident & 1) && !Os::tryReadMemory(std::span{&byte, 1}, address);
 #endif
     }
@@ -42,7 +42,7 @@ namespace Unittest
         return VirtualQuery(address, &memory, sizeof(memory)) && memory.Type == MEM_MAPPED;
 #elif defined(__linux__)
         std::ifstream maps("/proc/self/maps");
-        std::string line;
+        std::string   line;
         while (std::getline(maps, line))
         {
             unsigned long long start = 0, end = 0, inode = 0;

@@ -30,7 +30,7 @@ namespace swc::LinuxHostTests
 
         struct ChildTree
         {
-            pid_t command = 0;
+            pid_t command    = 0;
             pid_t descendant = 0;
             pid_t supervisor = 0;
         };
@@ -40,7 +40,7 @@ namespace swc::LinuxHostTests
             const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(3);
             while (std::chrono::steady_clock::now() < deadline)
             {
-                ChildTree tree;
+                ChildTree     tree;
                 std::ifstream file(path);
                 if (file >> tree.command >> tree.descendant >> tree.supervisor)
                     return tree;
@@ -62,12 +62,12 @@ namespace swc::LinuxHostTests
             int previous = 0;
             require(prctl(PR_GET_CHILD_SUBREAPER, &previous) == 0 && prctl(PR_SET_CHILD_SUBREAPER, 1) == 0, "cannot supervise caller-death test");
             const fs::path marker = fs::absolute("caller-death.txt");
-            const pid_t runner = fork();
+            const pid_t    runner = fork();
             if (runner == 0)
             {
-                uint32_t exitCode;
+                uint32_t                    exitCode;
                 const Os::ProcessRunOptions options{.forwardOutput = false, .timeoutMs = 10000};
-                const std::array<Utf8, 3> args{"--host-child", "tree", marker.string()};
+                const std::array<Utf8, 3>   args{"--host-child", "tree", marker.string()};
                 Os::runProcess(exitCode, Os::getExeFullName(), args, {}, &options);
                 _exit(1);
             }
@@ -115,7 +115,8 @@ namespace swc::LinuxHostTests
         }
         if (mode == "context")
         {
-            std::cout << fs::current_path().string() << '\n' << std::getenv("PATH") << '\n';
+            std::cout << fs::current_path().string() << '\n'
+                      << std::getenv("PATH") << '\n';
             return 0;
         }
         if (mode == "exit")
@@ -165,7 +166,8 @@ namespace swc::LinuxHostTests
             std::ofstream marker(argv[3]);
             marker << getpid() << ' ' << descendant << ' ' << getppid();
             marker.close();
-            std::cout << "tree ready\n" << std::flush;
+            std::cout << "tree ready\n"
+                      << std::flush;
             if (mode == "tree-exit")
                 return 0;
         }
@@ -177,15 +179,15 @@ namespace swc::LinuxHostTests
 
     void testProcessOutput()
     {
-        Lines observed;
-        Lines forwarded;
-        std::string captured;
+        Lines                 observed;
+        Lines                 forwarded;
+        std::string           captured;
         Os::ProcessRunOptions options{
-            .capturedOutput = &captured,
-            .forwardLineCallback = &Lines::forward,
-            .forwardLineUserData = &forwarded,
-            .outputLineCallback = &Lines::observe,
-            .outputLineUserData = &observed,
+            .capturedOutput            = &captured,
+            .forwardLineCallback       = &Lines::forward,
+            .forwardLineUserData       = &forwarded,
+            .outputLineCallback        = &Lines::observe,
+            .outputLineUserData        = &observed,
             .suppressForwardLinePrefix = "[marker]",
         };
         Os::ProcessOutput output(&options);
@@ -204,12 +206,12 @@ namespace swc::LinuxHostTests
 
     void testProcessServices()
     {
-        uint32_t exitCode = 0;
-        const fs::path executable = Os::getExeFullName();
-        std::string captured;
-        Os::ProcessRunOptions options{.capturedOutput = &captured, .forwardOutput = false, .timeoutMs = 3000};
+        uint32_t                  exitCode   = 0;
+        const fs::path            executable = Os::getExeFullName();
+        std::string               captured;
+        Os::ProcessRunOptions     options{.capturedOutput = &captured, .forwardOutput = false, .timeoutMs = 3000};
         const std::array<Utf8, 8> args{"--host-child", "echo", "", "two words", "quote'\"", "slash\\", "line\nbreak", "\xc3\xa9"};
-        const auto argumentResult = Os::runProcess(exitCode, executable, args, {}, &options);
+        const auto                argumentResult = Os::runProcess(exitCode, executable, args, {}, &options);
         require(argumentResult == Os::ProcessRunResult::Ok && !exitCode, std::format("argument-vector child failed: result {}, exit {}, errno {}", static_cast<int>(argumentResult), exitCode, errno).c_str());
         std::string expected;
         for (size_t i = 2; i < args.size(); ++i)
@@ -217,16 +219,16 @@ namespace swc::LinuxHostTests
         require(captured == expected, "process quoting changed arguments");
         require(Os::formatProcessCommandLine("a b", std::array<Utf8, 2>{"", "x'y"}) == "'a b' '' 'x'\\''y'", "process display quoting differs");
 
-        Lines observed;
-        Lines forwarded;
+        Lines                       observed;
+        Lines                       forwarded;
         const Os::ProcessRunOptions streamOptions{
-            .capturedOutput = &captured,
-            .forwardLineCallback = &Lines::forward,
-            .forwardLineUserData = &forwarded,
-            .outputLineCallback = &Lines::observe,
-            .outputLineUserData = &observed,
+            .capturedOutput            = &captured,
+            .forwardLineCallback       = &Lines::forward,
+            .forwardLineUserData       = &forwarded,
+            .outputLineCallback        = &Lines::observe,
+            .outputLineUserData        = &observed,
             .suppressForwardLinePrefix = "[marker]",
-            .timeoutMs = 3000,
+            .timeoutMs                 = 3000,
         };
         const std::array<Utf8, 2> lineArgs{"--host-child", "lines"};
         captured.clear();
@@ -253,8 +255,8 @@ namespace swc::LinuxHostTests
         fs::create_directory("process search path");
         fs::create_symlink(executable, "process search path/host-child");
         const std::array<fs::path, 1> search{fs::absolute("process search path")};
-        const std::string parentPath = std::getenv("PATH");
-        options.additionalPathDirectories = search;
+        const std::string             parentPath = std::getenv("PATH");
+        options.additionalPathDirectories        = search;
         const std::array<Utf8, 2> contextArgs{"--host-child", "context"};
         captured.clear();
         require(Os::runProcess(exitCode, "host-child", contextArgs, "process working directory", &options) == Os::ProcessRunResult::Ok && !exitCode, "PATH/working-directory child failed");
@@ -265,7 +267,7 @@ namespace swc::LinuxHostTests
         const int descriptor = open("descriptor-fixture", O_CREAT | O_RDWR, 0600);
         require(descriptor >= 0, "cannot open inherited-descriptor fixture");
         const std::array<Utf8, 3> descriptorArgs{"--host-child", "descriptor", std::to_string(descriptor)};
-        const auto descriptorResult = Os::runProcess(exitCode, executable, descriptorArgs, {}, &options);
+        const auto                descriptorResult = Os::runProcess(exitCode, executable, descriptorArgs, {}, &options);
         close(descriptor);
         require(descriptorResult == Os::ProcessRunResult::Ok && !exitCode, "process inherited an unrelated descriptor");
 
@@ -276,19 +278,19 @@ namespace swc::LinuxHostTests
             const std::array<Utf8, 2> timeoutArgs{"--host-child", mode};
             require(Os::runProcess(exitCode, executable, timeoutArgs, {}, &options) == Os::ProcessRunResult::TimedOut, "process deadline did not cover output pumping");
         }
-        options.timeoutMs = 3000;
-        const fs::path treeMarker = fs::absolute("completed-tree.txt");
+        options.timeoutMs                    = 3000;
+        const fs::path            treeMarker = fs::absolute("completed-tree.txt");
         const std::array<Utf8, 3> treeArgs{"--host-child", "tree-exit", treeMarker.string()};
         require(Os::runProcess(exitCode, executable, treeArgs, {}, &options) == Os::ProcessRunResult::Ok && !exitCode, "tree-exit child failed");
         requireTreeGone(readTree(treeMarker));
         checkCallerDeath();
 
-        const fs::path unwindMarker = fs::absolute("unwound-tree.txt");
-        const std::array<Utf8, 3> unwindArgs{"--host-child", "tree", unwindMarker.string()};
+        const fs::path              unwindMarker = fs::absolute("unwound-tree.txt");
+        const std::array<Utf8, 3>   unwindArgs{"--host-child", "tree", unwindMarker.string()};
         const Os::ProcessRunOptions unwindOptions{
-            .forwardOutput = false,
+            .forwardOutput      = false,
             .outputLineCallback = [](void*, std::string_view) { throw std::runtime_error("stop process observer"); },
-            .timeoutMs = 3000,
+            .timeoutMs          = 3000,
         };
         bool observerThrew = false;
         try
@@ -302,12 +304,12 @@ namespace swc::LinuxHostTests
         require(observerThrew, "process observer exception was swallowed");
         requireTreeGone(readTree(unwindMarker));
 
-        std::atomic<bool> parallelOk = true;
+        std::atomic<bool>           parallelOk = true;
         std::array<std::jthread, 3> workers;
         for (auto& worker : workers)
         {
             worker = std::jthread([&] {
-                uint32_t code;
+                uint32_t                    code;
                 const Os::ProcessRunOptions localOptions{.forwardOutput = false, .timeoutMs = 3000};
                 for (size_t i = 0; i < 3; ++i)
                 {

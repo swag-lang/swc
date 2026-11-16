@@ -23,10 +23,10 @@ namespace
 
     struct EmittedLoop
     {
-        uint32_t size          = 0;
-        uint32_t codeAlignment = 0;
-        uint32_t groupStart    = 0; // cmp rax, rcx
-        uint32_t groupEnd      = 0; // after the short jb
+        uint32_t size            = 0;
+        uint32_t codeAlignment   = 0;
+        uint32_t groupStart      = 0; // cmp rax, rcx
+        uint32_t groupEnd        = 0; // after the short jb
         uint32_t entryGroupStart = 0;
         uint32_t entryGroupEnd   = 0;
         uint32_t nestedStart     = 0;

@@ -11,7 +11,7 @@ inline constexpr uint32_t K_NATIVE_TEXT_SECTION_COFF_CHARACTERISTICS = PE::SCN_C
 inline uint32_t applyNativeSectionCoffProperties(LinkSection& destination, const NativeSectionData& source)
 {
     const uint32_t alignment = coffSectionAlignmentFromCharacteristics(source.characteristics);
-    destination.align = std::max(destination.align, alignment);
+    destination.align        = std::max(destination.align, alignment);
     destination.flags.add(linkSectionFlagsFromCoffCharacteristics(source.characteristics));
     return alignment;
 }

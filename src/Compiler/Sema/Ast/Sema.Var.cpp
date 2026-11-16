@@ -117,12 +117,12 @@ namespace
         const TypeInfo& storageTypeInfo = typeInfo.unwrapAliasTypeOrSelf(ctx);
         const TypeRef   storageTypeRef  = storageTypeInfo.typeRef();
 
-        const uint64_t sizeU64 = storageTypeInfo.sizeOf(ctx);
+        const uint64_t sizeU64   = storageTypeInfo.sizeOf(ctx);
         uint32_t       alignment = storageTypeInfo.alignOf(ctx);
         if (!alignment)
             alignment = 1;
 
-        const bool      isCompilerGlobal   = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
+        const bool isCompilerGlobal = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
 
         // The runtime copies a TLS value without running its drop lifecycle. Reject such a
         // declaration before the zero-sized-type fast path too, where no ordinary storage is
@@ -157,7 +157,7 @@ namespace
         }
 
         SWC_ASSERT(sizeU64 <= std::numeric_limits<uint32_t>::max());
-        const uint32_t size               = static_cast<uint32_t>(sizeU64);
+        const uint32_t  size               = static_cast<uint32_t>(sizeU64);
         const bool      hasInitializerData = symVar.cstRef().isValid();
         const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr;
         DataSegmentKind storageKind        = isCompilerGlobal ? DataSegmentKind::Compiler : DataSegmentKind::GlobalZero;

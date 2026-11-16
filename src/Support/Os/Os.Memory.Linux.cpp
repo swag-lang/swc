@@ -3,8 +3,8 @@
 #include "Support/Report/Assert.h"
 
 #ifdef __linux__
-#include <fcntl.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/uio.h>
@@ -23,12 +23,12 @@ namespace
         if (cursor > static_cast<uintptr_t>(std::numeric_limits<off_t>::max()) - outBytes.size())
             return false;
         const uintptr_t limit = cursor + outBytes.size();
-        std::ifstream maps("/proc/self/maps");
-        std::string line;
+        std::ifstream   maps("/proc/self/maps");
+        std::string     line;
         while (cursor < limit && std::getline(maps, line))
         {
             unsigned long long start = 0, end = 0;
-            char permissions[5]{};
+            char               permissions[5]{};
             if (std::sscanf(line.c_str(), "%llx-%llx %4s", &start, &end, permissions) != 3 || end <= cursor)
                 continue;
             if (start > cursor || permissions[0] != 'r')
@@ -59,7 +59,7 @@ bool Os::tryReadMemory(const std::span<std::byte> outBytes, const void* address)
         return false;
     const iovec local{outBytes.data(), outBytes.size()};
     const iovec remote{const_cast<void*>(address), outBytes.size()};
-    ssize_t count;
+    ssize_t     count;
     do
         count = process_vm_readv(getpid(), &local, 1, &remote, 1, 0);
     while (count < 0 && errno == EINTR);
@@ -111,7 +111,7 @@ void* Os::allocProximityMemory(const uint32_t size)
         return nullptr;
 
     const std::scoped_lock lock(g_proximityArena.mutex);
-    auto&                 arena = g_proximityArena;
+    auto&                  arena = g_proximityArena;
     if (!arena.base.load(std::memory_order_relaxed))
     {
         void* base = mmap(nullptr, K_PROXIMITY_RESERVE, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -200,7 +200,11 @@ void* Os::processStorage(const uint32_t key, const uint32_t size)
     struct Descriptor
     {
         int value;
-        ~Descriptor() { if (value >= 0) close(value); }
+        ~Descriptor()
+        {
+            if (value >= 0)
+                close(value);
+        }
     } lock{open("/proc/self", O_RDONLY | O_DIRECTORY | O_CLOEXEC)};
     if (lock.value < 0)
         return nullptr;
@@ -220,7 +224,7 @@ void* Os::processStorage(const uint32_t key, const uint32_t size)
     while (const dirent* entry = readdir(directory.get()))
     {
         std::array<char, 64> target{};
-        const ssize_t length = readlinkat(directoryId, entry->d_name, target.data(), target.size());
+        const ssize_t        length = readlinkat(directoryId, entry->d_name, target.data(), target.size());
         if (length < 0 || std::string_view(target.data(), static_cast<size_t>(length)) != wanted)
             continue;
         const Descriptor existing{openat(directoryId, entry->d_name, O_RDWR | O_CLOEXEC)};

@@ -19,7 +19,7 @@ namespace ELF
         if (offset >= strings.size || !bytes.containsRange(strings.offset, strings.size))
             return inputError(error, name, "ELF string lies outside its string table");
         const char* begin = reinterpret_cast<const char*>(bytes.data() + strings.offset + offset);
-        const auto* end = static_cast<const char*>(std::memchr(begin, 0, strings.size - offset));
+        const auto* end   = static_cast<const char*>(std::memchr(begin, 0, strings.size - offset));
         if (!end)
             return inputError(error, name, "ELF string has no null terminator");
         out.assign(begin, end);
@@ -41,7 +41,7 @@ namespace ELF
         const uint16_t type = bytes.readLe16(16);
         if (type != 1 && type != 3)
             return inputError(error, name, "link input needs a relocatable object or shared library");
-        shared = type == 3;
+        shared               = type == 3;
         const uint64_t table = bytes.readLe64(40);
         const uint32_t count = bytes.readLe16(60);
         const uint32_t names = bytes.readLe16(62);
@@ -50,17 +50,17 @@ namespace ELF
         sections.resize(count);
         for (uint32_t index = 0; index < count; ++index)
         {
-            const uint64_t header = table + uint64_t{index} * 64;
-            Section& section = sections[index];
-            section.type = bytes.readLe32(header + 4);
-            section.flags = bytes.readLe64(header + 8);
-            section.address = bytes.readLe64(header + 16);
-            section.offset = bytes.readLe64(header + 24);
-            section.size = bytes.readLe64(header + 32);
-            section.link = bytes.readLe32(header + 40);
-            section.info = bytes.readLe32(header + 44);
-            section.align = std::max<uint64_t>(1, bytes.readLe64(header + 48));
-            section.entrySize = bytes.readLe64(header + 56);
+            const uint64_t header  = table + uint64_t{index} * 64;
+            Section&       section = sections[index];
+            section.type           = bytes.readLe32(header + 4);
+            section.flags          = bytes.readLe64(header + 8);
+            section.address        = bytes.readLe64(header + 16);
+            section.offset         = bytes.readLe64(header + 24);
+            section.size           = bytes.readLe64(header + 32);
+            section.link           = bytes.readLe32(header + 40);
+            section.info           = bytes.readLe32(header + 44);
+            section.align          = std::max<uint64_t>(1, bytes.readLe64(header + 48));
+            section.entrySize      = bytes.readLe64(header + 56);
             if (!std::has_single_bit(section.align) ||
                 (section.type != SHT_NOBITS && !bytes.containsRange(section.offset, section.size)))
                 return inputError(error, name, "ELF section has unbounded contents or a non-power-of-two alignment");
@@ -88,15 +88,15 @@ namespace ELF
         symbols.resize(syms.size / 24);
         for (size_t index = 0; index < symbols.size(); ++index)
         {
-            const uint64_t entry = syms.offset + index * 24;
-            Symbol& symbol = symbols[index];
+            const uint64_t entry  = syms.offset + index * 24;
+            Symbol&        symbol = symbols[index];
             if (!string(symbol.name, error, sections[syms.link], bytes.readLe32(entry)))
                 return false;
-            symbol.info = std::to_integer<uint8_t>(input[entry + 4]);
+            symbol.info       = std::to_integer<uint8_t>(input[entry + 4]);
             symbol.visibility = std::to_integer<uint8_t>(input[entry + 5]) & 3;
-            symbol.section = bytes.readLe16(entry + 6);
-            symbol.value = bytes.readLe64(entry + 8);
-            symbol.size = bytes.readLe64(entry + 16);
+            symbol.section    = bytes.readLe16(entry + 6);
+            symbol.value      = bytes.readLe64(entry + 8);
+            symbol.size       = bytes.readLe64(entry + 16);
             if (symbol.section && symbol.section != SHN_ABS && symbol.section != SHN_COMMON && symbol.section >= count)
                 return inputError(error, name, "ELF symbol references a section outside its input");
             if (!shared && symbol.section == SHN_COMMON && (symbol.size > UINT32_MAX || symbol.value > UINT32_MAX))
@@ -116,7 +116,7 @@ namespace ELF
                 for (uint64_t offset = 0; offset < section.size; offset += 24)
                 {
                     const uint64_t entry = section.offset + offset;
-                    const uint64_t info = bytes.readLe64(entry + 8);
+                    const uint64_t info  = bytes.readLe64(entry + 8);
                     if ((info >> 32) >= symbols.size())
                         return inputError(error, name, "ELF relocation references a symbol outside its table");
                     relocations.push_back({.section = section.info, .symbol = static_cast<uint32_t>(info >> 32), .type = static_cast<uint32_t>(info), .offset = bytes.readLe64(entry), .addend = std::bit_cast<int64_t>(bytes.readLe64(entry + 16))});
@@ -155,7 +155,7 @@ namespace ELF
             {
                 if (offset > section.size || section.size - offset < 20)
                     return inputError(error, name, "ELF version definition extends beyond its section");
-                const uint64_t entry = section.offset + offset;
+                const uint64_t entry     = section.offset + offset;
                 const uint32_t auxiliary = bytes.readLe32(entry + 12);
                 if (auxiliary > section.size - offset || section.size - offset - auxiliary < 8)
                     return inputError(error, name, "ELF version name extends beyond its section");
@@ -179,9 +179,9 @@ namespace ELF
                 return inputError(error, name, "ELF symbol versions do not cover the dynamic symbol table");
             for (size_t index = 0; index < symbols.size(); ++index)
             {
-                const uint16_t version = bytes.readLe16(section.offset + index * 2);
+                const uint16_t version       = bytes.readLe16(section.offset + index * 2);
                 symbols[index].hiddenVersion = (version & 0x8000) != 0;
-                const auto found = versions.find(version & 0x7fff);
+                const auto found             = versions.find(version & 0x7fff);
                 if ((version & 0x7fff) > 1 && found != versions.end())
                     symbols[index].version = found->second;
             }
@@ -194,7 +194,7 @@ namespace ELF
         uint32_t result = 0;
         for (const unsigned char character : name)
         {
-            result = (result << 4) + character;
+            result              = (result << 4) + character;
             const uint32_t high = result & 0xf0000000;
             result ^= high >> 24;
             result &= ~high;

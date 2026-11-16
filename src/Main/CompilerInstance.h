@@ -283,21 +283,21 @@ public:
     bool                         setMainFunc(AstCompilerFunc* node);
     AstCompilerFunc*             mainFunc() const { return mainFunc_.load(std::memory_order_acquire); }
 
-    bool                                 registerForeignLib(std::string_view name);
-    const std::vector<Utf8>&             foreignLibs() const { return foreignLibs_; }
-    const CompilerTag*                   findCompilerTag(std::string_view name) const;
-    const std::vector<CompilerTag>&      compilerTags() const { return compilerTags_.all(); }
-    void                                 registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
-    SymbolFunction*                      runtimeFunctionSymbol(IdentifierRef idRef) const;
-    SymbolFunction*                      runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind kind) const;
-    bool                                 tryRegisterReportedDiagnostic(std::string_view message);
-    bool                                 hasErrorDiagnostic() const { return hasErrorDiagnostic_.load(std::memory_order_acquire); }
-    void                                 recordErrorDiagnostic() { hasErrorDiagnostic_.store(true, std::memory_order_release); }
-    void                                 addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
-    std::vector<SemaEscapeDeferredCheck> takeDeferredEscapeChecks();
-    void                                 addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
-    std::vector<SemaEscapeSummaryEdge>   copyEscapeSummaryEdges() const;
-    void                                 addEscapeFieldSummaryForwarding(const SemaEscapeFieldSummaryForwarding& forwarding);
+    bool                                          registerForeignLib(std::string_view name);
+    const std::vector<Utf8>&                      foreignLibs() const { return foreignLibs_; }
+    const CompilerTag*                            findCompilerTag(std::string_view name) const;
+    const std::vector<CompilerTag>&               compilerTags() const { return compilerTags_.all(); }
+    void                                          registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
+    SymbolFunction*                               runtimeFunctionSymbol(IdentifierRef idRef) const;
+    SymbolFunction*                               runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind kind) const;
+    bool                                          tryRegisterReportedDiagnostic(std::string_view message);
+    bool                                          hasErrorDiagnostic() const { return hasErrorDiagnostic_.load(std::memory_order_acquire); }
+    void                                          recordErrorDiagnostic() { hasErrorDiagnostic_.store(true, std::memory_order_release); }
+    void                                          addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);
+    std::vector<SemaEscapeDeferredCheck>          takeDeferredEscapeChecks();
+    void                                          addEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge);
+    std::vector<SemaEscapeSummaryEdge>            copyEscapeSummaryEdges() const;
+    void                                          addEscapeFieldSummaryForwarding(const SemaEscapeFieldSummaryForwarding& forwarding);
     std::vector<SemaEscapeFieldSummaryForwarding> takeEscapeFieldSummaryForwardings();
 
     // Runs `visit` over the edges the frees propagation reads, in place and under a shared lock:
@@ -705,13 +705,13 @@ private:
     std::unordered_map<IdentifierRef, uint32_t>                                                                  pendingImplRegistrations_;
     // Number of names in 'pendingImplRegistrations_', written inside the same exclusive section,
     // so the usual "nothing pending" answer needs neither the lock nor a lookup.
-    std::atomic<uint32_t>                pendingImplRegistrationNames_{0};
-    std::mutex                           reportedDiagnosticsMutex_;
-    std::atomic<bool>                    hasErrorDiagnostic_ = false;
-    std::unordered_set<Utf8>             reportedDiagnostics_;
-    mutable std::shared_mutex            deferredEscapeChecksMutex_;
-    std::vector<SemaEscapeDeferredCheck> deferredEscapeChecks_;
-    std::vector<SemaEscapeSummaryEdge>   escapeSummaryEdges_;
+    std::atomic<uint32_t>                         pendingImplRegistrationNames_{0};
+    std::mutex                                    reportedDiagnosticsMutex_;
+    std::atomic<bool>                             hasErrorDiagnostic_ = false;
+    std::unordered_set<Utf8>                      reportedDiagnostics_;
+    mutable std::shared_mutex                     deferredEscapeChecksMutex_;
+    std::vector<SemaEscapeDeferredCheck>          deferredEscapeChecks_;
+    std::vector<SemaEscapeSummaryEdge>            escapeSummaryEdges_;
     std::vector<SemaEscapeFieldSummaryForwarding> fieldSummaryForwardings_;
     // Positions in `escapeSummaryEdges_` of the only two kinds the frees propagation reads, kept
     // as the edges arrive: that pass runs once per compile-time call and must not rescan the

@@ -99,15 +99,15 @@ struct AttributeList
     uint64_t returnsPayloadParamsMask = 0;
     uint64_t returnsStorageParamsMask = 0;
 
-    uint64_t returnsIndirectParamsMask    = 0;
-    uint64_t storesIndirectParamsMask     = 0;
-    uint64_t storesIndirectIntoParamPairs = 0;
-    uint64_t freesIndirectParamsMask      = 0;
+    uint64_t                       returnsIndirectParamsMask    = 0;
+    uint64_t                       storesIndirectParamsMask     = 0;
+    uint64_t                       storesIndirectIntoParamPairs = 0;
+    uint64_t                       freesIndirectParamsMask      = 0;
     std::vector<BorrowFieldOrigin> returnFieldBorrows;
     std::vector<BorrowFieldOrigin> freesParamFields;
     std::vector<BorrowFieldOrigin> resetsParamFields;
     std::vector<BorrowFieldOrigin> writesParamFields;
-    bool writesParamFieldsComplete = false;
+    bool                           writesParamFieldsComplete = false;
 
     // Debug print options are rare, but every scope copies its attribute list.
     // Keep their string storage in vectors instead of inflating each copied list.

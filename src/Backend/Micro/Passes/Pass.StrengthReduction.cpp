@@ -1522,7 +1522,7 @@ namespace
                 };
                 const MicroCond cond    = selected[2].cpuCond;
                 const bool      minimum = ((cond == MicroCond::Less || cond == MicroCond::LessOrEqual) && source == lhs && matchesRight(old)) ||
-                                          ((cond == MicroCond::Greater || cond == MicroCond::GreaterOrEqual) && old == lhs && matchesRight(source));
+                                     ((cond == MicroCond::Greater || cond == MicroCond::GreaterOrEqual) && old == lhs && matchesRight(source));
                 if (!minimum)
                     return false;
                 return true;
@@ -1873,7 +1873,7 @@ namespace
 
         std::vector<SignTest> tests;
         collectSignTests(tests, *ssa, cfg, storage, operands);
-        CountedLoopRanges countedRanges(context, *ssa, dom);
+        CountedLoopRanges    countedRanges(context, *ssa, dom);
         GuardedCounterRanges guardedRanges(context, *ssa, dom);
 
         bool changed = false;

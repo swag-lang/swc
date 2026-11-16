@@ -351,11 +351,11 @@ namespace
         {
             switch (tokId)
             {
-                case TokenId::SymLess:         tokId = TokenId::SymGreater; break;
-                case TokenId::SymLessEqual:    tokId = TokenId::SymGreaterEqual; break;
-                case TokenId::SymGreater:      tokId = TokenId::SymLess; break;
+                case TokenId::SymLess: tokId = TokenId::SymGreater; break;
+                case TokenId::SymLessEqual: tokId = TokenId::SymGreaterEqual; break;
+                case TokenId::SymGreater: tokId = TokenId::SymLess; break;
                 case TokenId::SymGreaterEqual: tokId = TokenId::SymLessEqual; break;
-                default:                       SWC_UNREACHABLE();
+                default: SWC_UNREACHABLE();
             }
         }
 

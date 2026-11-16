@@ -727,10 +727,10 @@ namespace
         const bool passAddressRef = normalizedType.isReference() && resolvedArg.bindsReferenceToValue;
 
         outPreparedArg.systemVTypeRef = normalizedArg.isSystemVStorage() ? normalizedType.typeRef() : TypeRef::invalid();
-        outPreparedArg.isFloat     = normalizedArg.isFloat;
-        outPreparedArg.isSigned    = normalizedArg.isSigned;
-        outPreparedArg.numBits     = normalizedArg.numBits;
-        outPreparedArg.isAddressed = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
+        outPreparedArg.isFloat        = normalizedArg.isFloat;
+        outPreparedArg.isSigned       = normalizedArg.isSigned;
+        outPreparedArg.numBits        = normalizedArg.numBits;
+        outPreparedArg.isAddressed    = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
     }
 
     void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)

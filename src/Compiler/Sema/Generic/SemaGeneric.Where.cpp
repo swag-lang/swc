@@ -66,7 +66,7 @@ namespace SemaGeneric
             std::span<const SemaClone::ParamBinding> bindings;
 
             SpanRef       spanWhereRef = SpanRef::invalid();
-            AstNodeRef     mainRef      = AstNodeRef::invalid();
+            AstNodeRef    mainRef      = AstNodeRef::invalid();
             SourceCodeRef mainCodeRef;
 
             std::string_view               symbolName;
@@ -182,9 +182,7 @@ namespace SemaGeneric
         {
             SWC_ASSERT(context.mainRef.isValid() || context.mainCodeRef.isValid());
 
-            auto diag = context.mainCodeRef.isValid() ?
-                            SemaError::report(sema, diagId, context.mainCodeRef) :
-                            SemaError::report(sema, diagId, context.mainRef);
+            auto diag = context.mainCodeRef.isValid() ? SemaError::report(sema, diagId, context.mainCodeRef) : SemaError::report(sema, diagId, context.mainRef);
             diag.addArgument(Diagnostic::ARG_SYM, context.symbolName);
 
             if (const Utf8* bindingText = genericConstraintBindingText(sema, context))

@@ -2,9 +2,9 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPrinter.h"
+#include "Backend/RuntimeName.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"

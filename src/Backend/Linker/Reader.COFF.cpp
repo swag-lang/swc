@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Linker/Format.COFF.h"
 #include "Backend/Linker/Reader.COFF.h"
 #include "Backend/Debug/SymbolTable.h"
+#include "Backend/Linker/Format.COFF.h"
 #include "Support/Core/StringMap.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
@@ -127,7 +127,7 @@ namespace
         for (size_t i = 0; i < symbolCount;)
         {
             const size_t symbolOffset = symbolTableOffset + i * sizeof(PE::Symbol);
-            PE::Symbol record{};
+            PE::Symbol   record{};
             if (!tryReadValue(record, bytes, symbolOffset))
             {
                 outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_symbols);

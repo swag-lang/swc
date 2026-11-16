@@ -8,8 +8,7 @@
 #include <poll.h>
 #include <signal.h>
 // Some glibc pidfd headers omit C++ linkage guards around their C declarations.
-extern "C"
-{
+extern "C" {
 #include <sys/pidfd.h>
 }
 #include <sys/prctl.h>
@@ -22,9 +21,9 @@ namespace
 {
     struct ProcessResult
     {
-        Os::ProcessRunResult result = Os::ProcessRunResult::StartFailed;
-        uint32_t            exitCode = 0;
-        int                 error = 0;
+        Os::ProcessRunResult result   = Os::ProcessRunResult::StartFailed;
+        uint32_t             exitCode = 0;
+        int                  error    = 0;
     };
 
     void closeDescriptor(int& descriptor)
@@ -55,9 +54,9 @@ namespace
     struct ProcessHandles
     {
         int   control[2] = {-1, -1};
-        int   status[2] = {-1, -1};
-        int   output[2] = {-1, -1};
-        int   parent = -1;
+        int   status[2]  = {-1, -1};
+        int   output[2]  = {-1, -1};
+        int   parent     = -1;
         pid_t supervisor = -1;
 
         ~ProcessHandles()
@@ -101,7 +100,7 @@ namespace
             return false;
         }
         std::error_code error;
-        const fs::path workingDirectory = directory.empty() ? fs::current_path(error) : fs::absolute(directory, error);
+        const fs::path  workingDirectory = directory.empty() ? fs::current_path(error) : fs::absolute(directory, error);
         if (error)
         {
             errno = error.value();
@@ -143,7 +142,7 @@ namespace
         // Preserve that process-option contract on ELF hosts, where the dynamic
         // loader has a separate search variable. Only the child environment changes.
         std::string librarySearchPath = searchPath;
-        const bool addLibraryPath = !librarySearchPath.empty();
+        const bool  addLibraryPath    = !librarySearchPath.empty();
         if (addLibraryPath)
         {
             const char* inheritedLibraries = std::getenv("LD_LIBRARY_PATH");
@@ -171,11 +170,11 @@ namespace
             out.executable = (executable.is_absolute() ? executable : workingDirectory / executable).string();
         else
         {
-            size_t start = 0;
-            bool denied = false;
+            size_t start  = 0;
+            bool   denied = false;
             while (true)
             {
-                const size_t end = searchPath.find(':', start);
+                const size_t   end       = searchPath.find(':', start);
                 const fs::path candidate = workingDirectory / searchPath.substr(start, end == std::string::npos ? end : end - start) / executable;
                 if (access(candidate.c_str(), X_OK) == 0 && fs::is_regular_file(candidate, error))
                 {
@@ -207,8 +206,8 @@ namespace
                 if (keep[j] < keep[i])
                 {
                     const int value = keep[i];
-                    keep[i] = keep[j];
-                    keep[j] = value;
+                    keep[i]         = keep[j];
+                    keep[j]         = value;
                 }
             }
         }
@@ -236,9 +235,9 @@ namespace
     {
         if (lseek(procDirectory, 0, SEEK_SET) < 0)
             return;
-        const pid_t supervisor = getpid();
+        const pid_t            supervisor = getpid();
         alignas(dirent64) char entries[8192];
-        ssize_t length;
+        ssize_t                length;
         while ((length = getdents64(procDirectory, entries, sizeof(entries))) > 0)
         {
             for (size_t offset = 0; offset < static_cast<size_t>(length);)
@@ -257,7 +256,7 @@ namespace
                 close(directory);
                 if (stat < 0)
                     continue;
-                char data[1024];
+                char          data[1024];
                 const ssize_t size = read(stat, data, sizeof(data));
                 close(stat);
                 // comm can contain spaces and parentheses. The final ')' precedes state/ppid.
@@ -285,7 +284,7 @@ namespace
         kill(command, SIGKILL);
         while (true)
         {
-            int status;
+            int   status;
             pid_t child;
             do
                 child = waitpid(-1, &status, WNOHANG);
@@ -312,24 +311,24 @@ namespace
         ready = ready && closeOtherDescriptors(keep, 1) && chdir(args.directory.c_str()) == 0;
         if (ready)
             execve(args.executable.c_str(), args.argv.data(), args.envp.data());
-        const int error = errno;
+        const int                      error   = errno;
         [[maybe_unused]] const ssize_t written = write(errorPipe, &error, sizeof(error));
         _exit(127);
     }
 
     [[noreturn]] void supervise(const ProcessArguments& args, ProcessHandles& handles, const uint32_t timeout)
     {
-        ProcessResult result;
-        int keep[]{handles.control[0], handles.status[1], handles.parent, handles.output[1]};
-        bool ready = closeOtherDescriptors(keep, 4) && setsid() >= 0 && prctl(PR_SET_CHILD_SUBREAPER, 1) == 0;
+        ProcessResult    result;
+        int              keep[]{handles.control[0], handles.status[1], handles.parent, handles.output[1]};
+        bool             ready = closeOtherDescriptors(keep, 4) && setsid() >= 0 && prctl(PR_SET_CHILD_SUBREAPER, 1) == 0;
         struct sigaction action{};
         action.sa_handler = SIG_DFL;
         sigemptyset(&action.sa_mask);
-        ready = ready && sigaction(SIGCHLD, &action, nullptr) == 0;
-        int execError[2] = {-1, -1};
+        ready                   = ready && sigaction(SIGCHLD, &action, nullptr) == 0;
+        int       execError[2]  = {-1, -1};
         const int procDirectory = ready ? open("/proc", O_RDONLY | O_DIRECTORY | O_CLOEXEC) : -1;
-        ready = ready && procDirectory >= 0;
-        ready = ready && pipe2(execError, O_CLOEXEC | O_NONBLOCK) == 0;
+        ready                   = ready && procDirectory >= 0;
+        ready                   = ready && pipe2(execError, O_CLOEXEC | O_NONBLOCK) == 0;
         const pid_t supervisor  = getpid();
         const pid_t command     = ready ? _Fork() : -1;
         if (command == 0)
@@ -348,25 +347,25 @@ namespace
             const uint64_t deadline = timeout ? monotonicMilliseconds() + timeout : 0;
             while (true)
             {
-                pollfd watched[]{{handles.control[0], POLLIN, 0}, {handles.parent, POLLIN, 0}, {execError[0], POLLIN, 0}};
+                pollfd    watched[]{{handles.control[0], POLLIN, 0}, {handles.parent, POLLIN, 0}, {execError[0], POLLIN, 0}};
                 const int polled = poll(watched, 3, 10);
                 if (polled < 0 && errno == EINTR)
                     continue;
                 if (polled < 0)
                 {
                     result.result = Os::ProcessRunResult::WaitFailed;
-                    result.error = errno;
+                    result.error  = errno;
                     break;
                 }
                 if (watched[0].revents || watched[1].revents)
                 {
                     result.result = Os::ProcessRunResult::WaitFailed;
-                    result.error = ECANCELED;
+                    result.error  = ECANCELED;
                     break;
                 }
                 if (execError[0] >= 0)
                 {
-                    int error = 0;
+                    int           error    = 0;
                     const ssize_t received = read(execError[0], &error, sizeof(error));
                     if (received == sizeof(error))
                     {
@@ -378,7 +377,7 @@ namespace
                     else if (received < 0 && errno != EINTR && errno != EAGAIN)
                     {
                         result.result = Os::ProcessRunResult::WaitFailed;
-                        result.error = errno;
+                        result.error  = errno;
                         break;
                     }
                 }
@@ -389,12 +388,12 @@ namespace
                     if (errno == EINTR)
                         continue;
                     result.result = Os::ProcessRunResult::WaitFailed;
-                    result.error = errno;
+                    result.error  = errno;
                     break;
                 }
                 if (status.si_pid && execError[0] < 0)
                 {
-                    result.result = Os::ProcessRunResult::Ok;
+                    result.result   = Os::ProcessRunResult::Ok;
                     result.exitCode = status.si_code == CLD_EXITED ? static_cast<uint32_t>(status.si_status) : 128u + static_cast<uint32_t>(status.si_status);
                     break;
                 }
@@ -415,7 +414,7 @@ namespace
 Utf8 Os::formatProcessCommandLine(const fs::path& executable, const std::span<const Utf8> args)
 {
     // Display/copy syntax only: execve always receives the unmodified argument vector.
-    Utf8 result;
+    Utf8       result;
     const auto append = [&](const std::string_view value) {
         result += '\'';
         for (const char ch : value)
@@ -442,7 +441,7 @@ Os::ProcessRunResult Os::runProcess(uint32_t& outExitCode, const fs::path& execu
     ProcessArguments arguments;
     if (!prepareProcess(arguments, executable, args, workingDirectory, options))
         return ProcessRunResult::StartFailed;
-    ProcessOutput output(options);
+    ProcessOutput  output(options);
     ProcessHandles handles;
     handles.parent = pidfd_open(getpid(), 0);
     if (handles.parent < 0 || !makePipe(handles.control) || !makePipe(handles.status) || (output.needsPipe() && !makePipe(handles.output)))
@@ -458,10 +457,10 @@ Os::ProcessRunResult Os::runProcess(uint32_t& outExitCode, const fs::path& execu
     closeDescriptor(handles.parent);
 
     ProcessResult result;
-    bool receivedStatus = false;
+    bool          receivedStatus = false;
     while (!receivedStatus || handles.output[0] >= 0)
     {
-        pollfd watched[]{{handles.status[0], POLLIN, 0}, {handles.output[0], POLLIN, 0}};
+        pollfd    watched[]{{handles.status[0], POLLIN, 0}, {handles.output[0], POLLIN, 0}};
         const int polled = poll(watched, 2, -1);
         if (polled < 0)
         {
@@ -471,7 +470,7 @@ Os::ProcessRunResult Os::runProcess(uint32_t& outExitCode, const fs::path& execu
         }
         if (watched[1].revents)
         {
-            char buffer[16384];
+            char          buffer[16384];
             const ssize_t count = read(handles.output[0], buffer, sizeof(buffer));
             if (count > 0)
                 output.append(std::string_view(buffer, static_cast<size_t>(count)));

@@ -1,7 +1,7 @@
 #include "pch.h"
-#include "Backend/Linker/Format.COFF.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/Linker/Format.COFF.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
@@ -1059,19 +1059,19 @@ Result NativeArtifactBuilder::buildStartup(TaskContext& ctx) const
 
     if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
     {
-        startup->symbolName = "main";
-        startup->debugName = "main";
+        startup->symbolName           = "main";
+        startup->debugName            = "main";
         const auto* argumentsFunction = builder_->compiler().runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind::SetupUnixArguments);
         SWC_ASSERT(argumentsFunction);
         if (!argumentsFunction)
             return builder_->reportError(DiagnosticId::cmd_err_native_test_entry_lower_failed);
         const CallConv& incoming = CallConv::get(CallConvKind::SystemVAMD64);
-        const MicroReg argcReg = nextVirtualIntReg(nextVirtualIntRegIndex);
-        const MicroReg argvReg = nextVirtualIntReg(nextVirtualIntRegIndex);
+        const MicroReg  argcReg  = nextVirtualIntReg(nextVirtualIntRegIndex);
+        const MicroReg  argvReg  = nextVirtualIntReg(nextVirtualIntRegIndex);
         builder.emitLoadRegReg(argcReg, incoming.intArgRegs[0], MicroOpBits::B32);
         builder.emitLoadRegReg(argvReg, incoming.intArgRegs[1], MicroOpBits::B64);
         const std::array<ABICall::PreparedArg, 2> arguments = {{{.srcReg = argcReg, .numBits = 32}, {.srcReg = argvReg, .numBits = 64}}};
-        const auto prepared = ABICall::prepareArgs(builder, argumentsFunction->callConvKind(), arguments);
+        const auto                                prepared  = ABICall::prepareArgs(builder, argumentsFunction->callConvKind(), arguments);
         ABICall::callLocal(builder, argumentsFunction->callConvKind(), argumentsFunction, prepared);
     }
 

@@ -917,11 +917,11 @@ bool MicroEmitPass::pinLoopBranchGroups()
         LabelInfo& label = labelInfo(candidate.labelRef);
         if (label.pinnedStamp == functionStamp_)
             continue;
-        label.pinnedStamp = functionStamp_;
+        label.pinnedStamp     = functionStamp_;
         label.pinnedAlignment = candidate.alignment;
         label.pinnedPhase     = (candidate.start + candidate.phaseShift) & (candidate.alignment - 1);
         pinnedAlignment_      = std::max(pinnedAlignment_, candidate.alignment);
-        pinned = true;
+        pinned                = true;
     }
 
     return pinned;

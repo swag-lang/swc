@@ -1002,14 +1002,14 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
         return Result::Continue;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
-    MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
-    auto&                 knownValues = scratch.knownValues;
-    auto&                 knownFlags  = scratch.flags;
-    const bool hasKnownValues = computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
+    MicroSsaValueScratch& scratch        = *context.ssaValueScratch;
+    auto&                 knownValues    = scratch.knownValues;
+    auto&                 knownFlags     = scratch.flags;
+    const bool            hasKnownValues = computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
 
     // The rewrite walk can only fold from known SSA values or constant-address
     // relocations. Avoid scanning every instruction when neither source exists.
-    bool       hasConstantAddress = false;
+    bool hasConstantAddress = false;
     if (!hasKnownValues && context.builder && context.taskContext && context.taskContext->hasCompiler())
     {
         for (const MicroRelocation& relocation : context.builder->codeRelocations())

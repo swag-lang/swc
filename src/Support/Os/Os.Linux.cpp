@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Support/Os/Os.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
-#include "Support/Os/Os.h"
 
 #ifdef __linux__
 #include <sys/resource.h>
@@ -84,7 +84,7 @@ bool Os::isDebuggerAttached()
         const size_t start = line.find_first_not_of(" \t", 10);
         if (start == std::string::npos)
             return false;
-        uint32_t tracer = 0;
+        uint32_t   tracer = 0;
         const auto result = std::from_chars(line.data() + start, line.data() + line.size(), tracer);
         return result.ec == std::errc{} && tracer != 0;
     }

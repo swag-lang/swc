@@ -539,12 +539,12 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     if (args.empty())
         return preparedCall;
 
-    const CallConv& conv            = CallConv::get(callConvKind);
+    const CallConv& conv = CallConv::get(callConvKind);
     if (conv.isSystemVAMD64 && std::ranges::any_of(args, [](const PreparedArg& arg) { return arg.hasSystemVStorage(); }))
         return prepareSystemVStorageArgs(builder, callConvKind, args);
-    const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
-    const auto      argLayouts      = collectArgLayouts(args);
-    preparedCall.numPreparedArgs    = numPreparedArgs;
+    const auto numPreparedArgs   = static_cast<uint32_t>(args.size());
+    const auto argLayouts        = collectArgLayouts(args);
+    preparedCall.numPreparedArgs = numPreparedArgs;
 
     const CallArgMasks argMasks = computeCallArgMasks(conv, argLayouts.span());
     preparedCall.intArgMask     = argMasks.ints;

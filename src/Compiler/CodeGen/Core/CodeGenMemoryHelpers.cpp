@@ -654,11 +654,11 @@ void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg 
     const MicroReg sizeReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegImm(sizeReg, ApInt(static_cast<uint64_t>(symVar.threadLocalSize()), 64), MicroOpBits::B64);
 
-    const TypeInfo& typeInfo    = codeGen.typeMgr().get(symVar.typeRef());
-    uint32_t        alignment   = typeInfo.alignOf(codeGen.ctx());
+    const TypeInfo& typeInfo  = codeGen.typeMgr().get(symVar.typeRef());
+    uint32_t        alignment = typeInfo.alignOf(codeGen.ctx());
     if (!alignment)
         alignment = 1;
-    const MicroReg  alignmentReg = codeGen.nextVirtualIntRegister();
+    const MicroReg alignmentReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegImm(alignmentReg, ApInt(alignment, 32), MicroOpBits::B32);
 
     const MicroReg templateReg = codeGen.nextVirtualIntRegister();

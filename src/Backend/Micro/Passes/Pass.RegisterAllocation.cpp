@@ -988,13 +988,13 @@ bool MicroRegisterAllocationPass::globalRangesOverlap(const uint32_t denseIndex,
 
 void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const uint32_t lo, const uint32_t hi, const uint32_t ownerDense)
 {
-    bool           inserted = false;
+    bool           inserted   = false;
     const uint32_t denseIndex = denseGlobalPhysRegs_.ensure(physReg, &inserted);
     if (inserted)
         globalRangesByPhysDense_.resize(denseIndex + 1);
 
-    auto&       ranges = globalRangesByPhysDense_[denseIndex];
-    const auto  at     = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::lo);
+    auto&      ranges = globalRangesByPhysDense_[denseIndex];
+    const auto at     = std::ranges::lower_bound(ranges, lo, {}, &GlobalRange::lo);
     // Callers check for overlap first, so ordering by lo also orders hi.
     SWC_ASSERT(at == ranges.begin() || std::prev(at)->hi < lo);
     SWC_ASSERT(at == ranges.end() || hi < at->lo);
@@ -1211,11 +1211,11 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
     const size_t totalFloatRegs = freeFloatTransient_.size() + freeFloatPersistent_.size() + mappedFloatRegs;
     for (int classPass = 0; classPass < 2; ++classPass)
     {
-        const bool   forFloat    = classPass == 1;
-        const size_t cap         = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
-                                            : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
-        size_t       mappedCount = forFloat ? mappedFloatRegs : mappedIntRegs;
-        const bool cacheUseCounts = mappedCount > cap && mappedCount - cap > 1;
+        const bool                                     forFloat       = classPass == 1;
+        const size_t                                   cap            = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
+                                                                                 : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
+        size_t                                         mappedCount    = forFloat ? mappedFloatRegs : mappedIntRegs;
+        const bool                                     cacheUseCounts = mappedCount > cap && mappedCount - cap > 1;
         SmallVector<std::pair<uint32_t, uint32_t>, 32> useCounts;
         if (cacheUseCounts)
         {
@@ -1416,7 +1416,7 @@ void MicroRegisterAllocationPass::conformLoopResidency(const uint32_t instructio
         while (residency.nextBackEdgeIndex < residency.backEdges.size() && residency.backEdges[residency.nextBackEdgeIndex] < instructionIndex)
             ++residency.nextBackEdgeIndex;
         residency.backEdgeAtCurrentInstruction = residency.nextBackEdgeIndex < residency.backEdges.size() &&
-                                                  residency.backEdges[residency.nextBackEdgeIndex] == instructionIndex;
+                                                 residency.backEdges[residency.nextBackEdgeIndex] == instructionIndex;
         if (!residency.backEdgeAtCurrentInstruction)
             continue;
 
@@ -1784,8 +1784,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // local stack base, and handing either to a value is a crash, not a
         // slowdown. A value not crossing a call is offered caller-saved
         // registers first, so it does not force a prologue push.
-        const SmallVector<MicroReg>& persistentPool = isFloat ? freeFloatPersistent_ : freeIntPersistent_;
-        const SmallVector<MicroReg>& transientPool  = isFloat ? freeFloatTransient_ : freeIntTransient_;
+        const SmallVector<MicroReg>& persistentPool    = isFloat ? freeFloatPersistent_ : freeIntPersistent_;
+        const SmallVector<MicroReg>& transientPool     = isFloat ? freeFloatTransient_ : freeIntTransient_;
         const uint32_t               minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
 
         MicroReg picked           = MicroReg::invalid();
@@ -1921,7 +1921,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 if (globalRangesOverlap(regDense, lo, hi))
                     continue;
 
-                const bool     isPersistent      = poolIsPersistent;
+                const bool isPersistent = poolIsPersistent;
                 if (hasCalls && isPersistent && totalPersistent <= minFreePersistent)
                     continue;
 
@@ -2235,7 +2235,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 bool           inserted = false;
-                const uint32_t regIndex  = denseVirtualRegs_.ensure(reg, &inserted);
+                const uint32_t regIndex = denseVirtualRegs_.ensure(reg, &inserted);
                 if (inserted)
                 {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
@@ -2248,7 +2248,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             else if (reg.isInt() || reg.isFloat())
             {
                 bool           inserted = false;
-                const uint32_t regIndex  = denseConcreteRegs_.ensure(reg, &inserted);
+                const uint32_t regIndex = denseConcreteRegs_.ensure(reg, &inserted);
                 if (inserted)
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(usesC, regIndex))
@@ -2261,7 +2261,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 bool           inserted = false;
-                const uint32_t regIndex  = denseVirtualRegs_.ensure(reg, &inserted);
+                const uint32_t regIndex = denseVirtualRegs_.ensure(reg, &inserted);
                 if (inserted)
                 {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
@@ -2274,7 +2274,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             else if (reg.isInt() || reg.isFloat())
             {
                 bool           inserted = false;
-                const uint32_t regIndex  = denseConcreteRegs_.ensure(reg, &inserted);
+                const uint32_t regIndex = denseConcreteRegs_.ensure(reg, &inserted);
                 if (inserted)
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(defsC, regIndex))
@@ -4283,10 +4283,10 @@ void MicroRegisterAllocationPass::rewriteInstructions()
 
         for (const auto& requestInfo : allocRequests)
         {
-            AllocRequest request = requestInfo;
-            const bool     isDeadIndirectCallTarget = it->op == MicroInstrOpcode::CallIndirect &&
-                                                      instOps && instOps[0].reg == request.virtKey &&
-                                                      request.isUse && !request.isDef && !isLiveOut(request.denseIndex, stamp);
+            AllocRequest request                  = requestInfo;
+            const bool   isDeadIndirectCallTarget = it->op == MicroInstrOpcode::CallIndirect &&
+                                                  instOps && instOps[0].reg == request.virtKey &&
+                                                  request.isUse && !request.isDef && !isLiveOut(request.denseIndex, stamp);
 
             const bool defOnlyCopyFromConcrete = request.isDef &&
                                                  !request.isUse &&
@@ -4354,10 +4354,10 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                     if (!request.virtKey.isSameClass(key))
                         continue;
 
-                    const uint32_t concreteDense = denseConcreteRegs_.find(key);
+                    const uint32_t concreteDense     = denseConcreteRegs_.find(key);
                     const bool     isCallClobberOnly = isDeadIndirectCallTarget &&
-                                                       std::ranges::find(defConcreteIndices_[idx], concreteDense) != defConcreteIndices_[idx].end() &&
-                                                       std::ranges::find(useConcreteIndices_[idx], concreteDense) == useConcreteIndices_[idx].end();
+                                                   std::ranges::find(defConcreteIndices_[idx], concreteDense) != defConcreteIndices_[idx].end() &&
+                                                   std::ranges::find(useConcreteIndices_[idx], concreteDense) == useConcreteIndices_[idx].end();
                     // The call reads its target before clobbering caller-saved registers. A target
                     // that dies here can use a clobbered register, provided it is not a concrete
                     // argument register used by the same call.

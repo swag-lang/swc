@@ -756,7 +756,7 @@ namespace SemaGeneric
                 FunctionWhereInputs whereInputs;
                 buildFunctionWhereInputs(*sourceSema, *function, source, whereInputs);
 
-                bool satisfied = true;
+                bool                satisfied    = true;
                 const SourceCodeRef errorCodeRef = errorNodeRef.isValid() ? sema.node(errorNodeRef).codeRef() : SourceCodeRef::invalid();
                 SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, outWhereFailure, errorCodeRef));
 

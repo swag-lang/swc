@@ -744,9 +744,9 @@ Result AstArrayLiteral::semaPostNode(Sema& sema)
             if (!target.isSlice())
                 continue;
 
-            static constexpr std::array emptySliceStorage{std::byte{}};
+            static constexpr std::array      emptySliceStorage{std::byte{}};
             const std::span<const std::byte> emptySlice{emptySliceStorage.data(), 0};
-            ConstantValue value = ConstantValue::makeSliceCounted(sema.ctx(), target.payloadTypeRef(), emptySlice, 0, target.flags());
+            ConstantValue                    value = ConstantValue::makeSliceCounted(sema.ctx(), target.payloadTypeRef(), emptySlice, 0, target.flags());
             value.setTypeRef(bindingTypeRef);
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
             sema.setIsValue(*this);

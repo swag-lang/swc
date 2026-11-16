@@ -395,7 +395,7 @@ namespace
 
     Utf8 resolveDependencyLinkModuleName(const fs::path& linkDir, const std::string_view fallbackStem, const Runtime::TargetOs targetOs)
     {
-        Utf8 result;
+        Utf8       result;
         const bool linuxTarget = targetOs == Runtime::TargetOs::Linux;
         if (tryFindDependencyArtifactStem(result, linkDir, fallbackStem, linuxTarget ? ".a" : ".lib", linuxTarget))
             return result;
@@ -2328,8 +2328,8 @@ struct DependencyPlanBuilder
     Result captureDependencyImportSnapshot(const fs::path& depsFile, CompilerInstance::ModuleSetupSnapshot& outSnapshot) const;
     // Parsing and checking dependency metadata is expensive, and several roots can reach the same
     // file. Cache its import list so the global resolution visits it once.
-    Result captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
-    Result resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
+    Result      captureDependencyImports(const fs::path& depsFile, const std::vector<CompilerInstance::ModuleSetupImport>** outImports);
+    Result      resolveNode(size_t& outIndex, CompilerInstance::DependencyPlan& plan, const CompilerInstance::ModuleSetupImport& importRequest, const fs::path* preferredDependencyRoot);
     static void collectClosure(std::vector<size_t>& outClosure, std::vector<Utf8>& outModules, const CompilerInstance::DependencyPlan& plan, size_t nodeIndex);
 
     CompilerInstance& instance() const
@@ -2522,7 +2522,7 @@ Result ModuleSetupInputApplier::apply(const CompilerInstance::ModuleSetupSnapsho
             if (hostTargetOs() == Runtime::TargetOs::Linux && !node.paths.sharedDir.empty())
             {
                 std::vector<size_t> closure;
-                std::vector<Utf8> transitiveModules;
+                std::vector<Utf8>   transitiveModules;
                 DependencyPlanBuilder::collectClosure(closure, transitiveModules, *resolvedImport.plan, nodeIndex);
                 std::vector<Utf8> sharedDependencies;
                 for (const size_t dependencyIndex : closure)
@@ -3429,7 +3429,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
             moduleBuild.filteredOut = false;
 
         CommandLine setupCmdLine = cmdLine();
-        setupCmdLine.rebuild = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
+        setupCmdLine.rebuild     = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
         setupCmdLine.workspacePath.clear();
         setupCmdLine.modulePath     = moduleBuild.moduleDir;
         setupCmdLine.moduleFilePath = moduleBuild.moduleFile;
@@ -3764,7 +3764,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun,
     outCompiled = false;
 
     CommandLine moduleCmdLine = cmdLine();
-    moduleCmdLine.rebuild = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
+    moduleCmdLine.rebuild     = cmdLine().rebuild || (cmdLine().rebuildModule && moduleBuild.commandTarget);
     if (moduleRun.buildNativeDependency)
         moduleCmdLine.command = CommandKind::Build;
     moduleCmdLine.modulePath     = moduleBuild.moduleDir;

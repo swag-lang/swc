@@ -72,17 +72,17 @@ namespace
 
     struct ProgramLayout
     {
-        std::vector<MicroInstrRef> order;
+        std::vector<MicroInstrRef>    order;
         mutable std::vector<uint32_t> ordinalByRef;
-        size_t                       ordinalSlotCount   = 0;
-        mutable bool                 ordinalsBuilt      = false;
-        RetainedCountTable         labelOrdinalById;
-        bool                       hasAnyLabel         = false;
-        bool                       hasConditionalJump  = false;
-        bool                       hasImmediateCompare = false;
-        bool                       hasRegisterCompare  = false;
-        bool                       hasSetCondition     = false;
-        bool                       hasIntegerClear     = false;
+        size_t                        ordinalSlotCount = 0;
+        mutable bool                  ordinalsBuilt    = false;
+        RetainedCountTable            labelOrdinalById;
+        bool                          hasAnyLabel         = false;
+        bool                          hasConditionalJump  = false;
+        bool                          hasImmediateCompare = false;
+        bool                          hasRegisterCompare  = false;
+        bool                          hasSetCondition     = false;
+        bool                          hasIntegerClear     = false;
 
         uint32_t ordinalOf(MicroInstrRef ref) const
         {
@@ -3320,8 +3320,8 @@ namespace
 
         struct TableScratch
         {
-            CountTable       chainJumps;
-            FlatKeyMap<Arm>  arms;
+            CountTable      chainJumps;
+            FlatKeyMap<Arm> arms;
         };
 
         bool                                           changed = false;
@@ -3849,7 +3849,7 @@ namespace
                 uint32_t& seen = chainJumps.getOrInsert(labelId);
                 if (seen)
                     continue;
-                seen = 1;
+                seen           = 1;
                 const Arm* arm = arms.find(labelId);
                 SWC_ASSERT(arm != nullptr);
                 eraseArm(*arm);
@@ -4155,7 +4155,7 @@ namespace
             --copyIt;
             if (!copyIt.current.isValid() || copyIt->op != MicroInstrOpcode::LoadRegReg)
                 continue;
-            MicroStorage::Iterator setIt   = copyIt;
+            MicroStorage::Iterator setIt = copyIt;
             --setIt;
             if (!setIt.current.isValid() || setIt->op != MicroInstrOpcode::SetCondReg)
                 continue;
@@ -8179,10 +8179,10 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // Branch-value folds need SSA only when a conditional branch has a compare
     // or clear that can produce its flags.
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    MicroSsaState&               ssaScratch       = context.ssaState ? *context.ssaState : localSsaState.emplace();
     const bool                   hasSsaBranchWork = hasConditionalJump &&
-                                   (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare || scanCache.scan.layout.hasIntegerClear);
-    const MicroSsaState*         ssaState         = hasSsaBranchWork ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
+                                  (scanCache.scan.layout.hasImmediateCompare || scanCache.scan.layout.hasRegisterCompare || scanCache.scan.layout.hasIntegerClear);
+    const MicroSsaState* ssaState = hasSsaBranchWork ? MicroSsaState::ensureFor(context, ssaScratch) : nullptr;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;

@@ -13,17 +13,17 @@ namespace
 
     struct Key
     {
-        pthread_key_t slot = 0;
+        pthread_key_t slot      = 0;
         void (*callback)(void*) = nullptr;
-        uint32_t activeCalls = 0;
-        bool allocated = false;
-        bool retiring = false;
+        uint32_t activeCalls    = 0;
+        bool     allocated      = false;
+        bool     retiring       = false;
     };
 
     struct Value
     {
         std::shared_ptr<Key> key;
-        void* data = nullptr;
+        void*                data = nullptr;
     };
 
     struct ThreadValues
@@ -33,13 +33,13 @@ namespace
 
     struct Registry
     {
-        std::mutex mutex;
-        std::condition_variable completed;
-        pthread_key_t anchor = 0;
-        bool anchorReady = false;
-        std::vector<std::shared_ptr<Key>> keys;
+        std::mutex                                 mutex;
+        std::condition_variable                    completed;
+        pthread_key_t                              anchor      = 0;
+        bool                                       anchorReady = false;
+        std::vector<std::shared_ptr<Key>>          keys;
         std::vector<std::unique_ptr<ThreadValues>> threads;
-        std::vector<const OwnsCallback*> retiringOwners;
+        std::vector<const OwnsCallback*>           retiringOwners;
     };
 
     Registry& registry()
@@ -92,8 +92,8 @@ namespace
 
     void retireThread(void* pointer)
     {
-        auto* thread = static_cast<ThreadValues*>(pointer);
-        Registry& state = registry();
+        auto*     thread = static_cast<ThreadValues*>(pointer);
+        Registry& state  = registry();
         // Reentrant sets during a callback join this same thread record. The native
         // keys contain raw user values, so unwrapped C readers retain POSIX semantics.
         SWC_FORCE_ASSERT(pthread_setspecific(state.anchor, thread) == 0);
@@ -134,7 +134,7 @@ namespace
         if (result)
             return 0;
         auto thread = std::make_unique<ThreadValues>();
-        result = thread.get();
+        result      = thread.get();
         state.threads.push_back(std::move(thread));
         const int status = pthread_setspecific(state.anchor, result);
         if (status)
@@ -152,7 +152,7 @@ int JITThreadStorage::create(pthread_key_t* slot, void (*callback)(void*))
         return pthread_key_create(slot, nullptr);
     try
     {
-        Registry& state = registry();
+        Registry&              state = registry();
         const std::scoped_lock lock(state.mutex);
         for (const OwnsCallback* owner : state.retiringOwners)
             if ((*owner)(reinterpret_cast<const void*>(callback)))
@@ -164,7 +164,7 @@ int JITThreadStorage::create(pthread_key_t* slot, void (*callback)(void*))
                 return status;
             state.anchorReady = true;
         }
-        auto key = std::make_shared<Key>();
+        auto key      = std::make_shared<Key>();
         key->callback = callback;
         state.keys.push_back(key);
         // The only kernel callback is the process-owned anchor, never generated code.
@@ -175,7 +175,7 @@ int JITThreadStorage::create(pthread_key_t* slot, void (*callback)(void*))
             return status;
         }
         key->allocated = true;
-        *slot = key->slot;
+        *slot          = key->slot;
         return 0;
     }
     catch (const std::bad_alloc&)
@@ -186,16 +186,16 @@ int JITThreadStorage::create(pthread_key_t* slot, void (*callback)(void*))
 
 int JITThreadStorage::erase(pthread_key_t slot)
 {
-    Registry& state = registry();
+    Registry&              state = registry();
     const std::scoped_lock lock(state.mutex);
-    const auto key = findKey(state, slot);
-    const int status = pthread_key_delete(slot);
+    const auto             key    = findKey(state, slot);
+    const int              status = pthread_key_delete(slot);
     if (!key || status)
         return status;
     // Explicit pthread_key_delete never calls destructors. Keep an already active
     // callback registered until it finishes so compiler teardown can still wait for it.
     key->allocated = false;
-    key->retiring = true;
+    key->retiring  = true;
     for (const auto& thread : state.threads)
         std::erase_if(thread->values, [&](const Value& value) { return value.key == key; });
     pruneKeys(state);
@@ -206,9 +206,9 @@ int JITThreadStorage::set(pthread_key_t slot, const void* data)
 {
     try
     {
-        Registry& state = registry();
+        Registry&              state = registry();
         const std::scoped_lock lock(state.mutex);
-        const auto key = findKey(state, slot);
+        const auto             key = findKey(state, slot);
         if (!key)
             return pthread_setspecific(slot, data);
         if (key->retiring)
@@ -224,7 +224,7 @@ int JITThreadStorage::set(pthread_key_t slot, const void* data)
         const int threadStatus = currentThread(thread, state);
         if (threadStatus)
             return threadStatus;
-        auto entry = std::ranges::find_if(thread->values, [&](const Value& value) { return value.key == key; });
+        auto       entry    = std::ranges::find_if(thread->values, [&](const Value& value) { return value.key == key; });
         const bool inserted = entry == thread->values.end();
         if (inserted)
         {
@@ -252,13 +252,13 @@ void JITThreadStorage::release(const OwnsCallback& ownsCallback)
         const OwnsCallback* owner;
         ~RetiringOwner()
         {
-            Registry& state = registry();
+            Registry&              state = registry();
             const std::scoped_lock lock(state.mutex);
             std::erase(state.retiringOwners, owner);
         }
     } retiring{&ownsCallback};
     std::vector<std::shared_ptr<Key>> selected;
-    std::vector<Value> pending;
+    std::vector<Value>                pending;
     {
         const std::scoped_lock lock(state.mutex);
         state.retiringOwners.push_back(&ownsCallback);

@@ -477,9 +477,9 @@ namespace
             const auto& incoming = cfg.predecessors(labelIndex);
             if (incoming.size() < 2 || !std::ranges::binary_search(incoming, labelIndex - 1))
                 continue;
-            const MicroInstr* fallthrough = storage.ptr(refs[labelIndex - 1]);
+            const MicroInstr* fallthrough            = storage.ptr(refs[labelIndex - 1]);
             const bool        conditionalFallthrough = delayed && fallthrough && fallthrough->op == MicroInstrOpcode::JumpCond &&
-                                                       fallthrough->ops(operands)[0].cpuCond != MicroCond::Unconditional;
+                                                fallthrough->ops(operands)[0].cpuCond != MicroCond::Unconditional;
             if (!fallthrough || (MicroInstr::info(fallthrough->op).flags.has(MicroInstrFlagsE::TerminatorInstruction) && !conditionalFallthrough))
                 continue;
             if (delayed)
@@ -751,18 +751,18 @@ namespace
         // instructions that address the frame through the stack pointer, and whether any
         // instruction makes every slot opaque. Both are read off the function once, on the first
         // candidate, instead of walking the whole function again for each spill store.
-        bool                  frameAccessesCollected = false;
-        bool                  anySlotOpaque          = false;
-        std::vector<uint32_t>      frameAccesses;
-        std::vector<uint32_t>      sameStores;
-        std::vector<MicroInstrRef> deadStores;
-        std::vector<int64_t>       frameDepth;
-        std::vector<uint8_t>       reachesRead;
-        std::vector<uint8_t>       seen;
-        std::vector<uint32_t>      pending;
+        bool                                          frameAccessesCollected = false;
+        bool                                          anySlotOpaque          = false;
+        std::vector<uint32_t>                         frameAccesses;
+        std::vector<uint32_t>                         sameStores;
+        std::vector<MicroInstrRef>                    deadStores;
+        std::vector<int64_t>                          frameDepth;
+        std::vector<uint8_t>                          reachesRead;
+        std::vector<uint8_t>                          seen;
+        std::vector<uint32_t>                         pending;
         std::optional<MicroPassHelpers::MicroDomTree> dominators;
-        uint8_t                    seenStamp = 0;
-        const auto nextSeenStamp = [&] {
+        uint8_t                                       seenStamp     = 0;
+        const auto                                    nextSeenStamp = [&] {
             seenStamp = static_cast<uint8_t>(seenStamp + 1);
             if (!seenStamp)
             {
@@ -771,7 +771,7 @@ namespace
             }
             return seenStamp;
         };
-        const auto            collectFrameAccesses = [&] {
+        const auto collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             // Outgoing-call adjustments change the meaning of a displacement.
             // Give every access an address relative to the entry stack pointer
@@ -982,7 +982,7 @@ namespace
                 }
                 pending.assign(1, labelIndex);
                 const uint8_t stableStackStamp = nextSeenStamp();
-                bool stableStack = true;
+                bool          stableStack      = true;
                 while (!pending.empty() && stableStack)
                 {
                     const uint32_t index = pending.back();
@@ -1011,9 +1011,9 @@ namespace
                 // slot's last value. A later loop-latch store is also a valid
                 // source; the store we move is the source on the first trip.
                 pending.assign(1, branchIndex);
-                const uint8_t valueStamp = nextSeenStamp();
-                size_t visitedCount = 0;
-                bool   valid        = true;
+                const uint8_t valueStamp   = nextSeenStamp();
+                size_t        visitedCount = 0;
+                bool          valid        = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
@@ -1071,7 +1071,7 @@ namespace
                     for (const uint32_t successor : cfg.successors(otherStore))
                         pending.push_back(successor);
                     const uint8_t otherStoreStamp = nextSeenStamp();
-                    bool readBeforeCold = false;
+                    bool          readBeforeCold  = false;
                     while (!pending.empty() && !readBeforeCold)
                     {
                         const uint32_t index = pending.back();

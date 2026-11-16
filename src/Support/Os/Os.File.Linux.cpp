@@ -30,10 +30,10 @@ namespace
         // A read-only cache view normally outlives its descriptor. Compare file identities,
         // not path strings: aliases and renamed-but-mapped files still refer to the same inode.
         std::ifstream maps(process / "maps");
-        std::string line;
+        std::string   line;
         while (std::getline(maps, line))
         {
-            unsigned int deviceMajor = 0, deviceMinor = 0;
+            unsigned int       deviceMajor = 0, deviceMinor = 0;
             unsigned long long inode = 0;
             if (std::sscanf(line.c_str(), "%*s %*s %*s %x:%x %llu", &deviceMajor, &deviceMinor, &inode) == 3 && inode == file.st_ino && deviceMajor == major(file.st_dev) && deviceMinor == minor(file.st_dev))
                 return true;
@@ -52,18 +52,18 @@ void Os::queryFileLockOwners(std::vector<FileLockOwner>& outOwners, const fs::pa
     std::error_code error;
     for (fs::directory_iterator process("/proc", fs::directory_options::skip_permission_denied, error), end; !error && process != end; process.increment(error))
     {
-        const std::string name = process->path().filename().string();
-        uint32_t pid = 0;
-        const auto parsed = std::from_chars(name.data(), name.data() + name.size(), pid);
+        const std::string name   = process->path().filename().string();
+        uint32_t          pid    = 0;
+        const auto        parsed = std::from_chars(name.data(), name.data() + name.size(), pid);
         if (parsed.ec != std::errc{} || parsed.ptr != name.data() + name.size() || !pid || !processUsesFile(process->path(), file))
             continue;
 
         std::error_code nameError;
-        Utf8 processName = fs::read_symlink(process->path() / "exe", nameError).filename();
+        Utf8            processName = fs::read_symlink(process->path() / "exe", nameError).filename();
         if (processName.empty())
         {
             std::ifstream comm(process->path() / "comm");
-            std::string text;
+            std::string   text;
             std::getline(comm, text);
             processName = text;
         }
@@ -101,11 +101,11 @@ Os::WindowsToolchainDiscoveryResult Os::discoverWindowsToolchainPaths(WindowsToo
     }
     for (const auto& root : candidates)
     {
-        const fs::path um = root / "um" / "x64";
+        const fs::path um   = root / "um" / "x64";
         const fs::path ucrt = root / "ucrt" / "x64";
         if (fs::is_directory(um, error) && fs::is_directory(ucrt, error))
         {
-            outToolchain.sdkUmLibPath = um;
+            outToolchain.sdkUmLibPath   = um;
             outToolchain.sdkUcrtLibPath = ucrt;
             break;
         }

@@ -36,26 +36,26 @@ private:
         bool     queued  = false;
     };
 
-    static int64_t adjustDistance(int64_t distance, int64_t amount, bool subtract);
+    static int64_t  adjustDistance(int64_t distance, int64_t amount, bool subtract);
     static uint32_t registerSlot(MicroReg reg);
     static uint32_t dwarfRegister(uint32_t slot);
-    State initialState() const;
-    void transfer(State& state, const MicroInstr& inst, const MicroInstrOperand* ops);
-    void emitState(const State& state, uint32_t codeOffset);
-    static bool merge(State& into, const State& incoming);
+    State           initialState() const;
+    void            transfer(State& state, const MicroInstr& inst, const MicroInstrOperand* ops);
+    void            emitState(const State& state, uint32_t codeOffset);
+    static bool     merge(State& into, const State& incoming);
 
     std::vector<const MicroInstr*> instructions_;
     std::vector<uint32_t>          blockOf_;
     std::vector<Block>             blocks_;
-    MicroInstrUseDef              useDef_;
-    State                         current_{};
-    State                         emitted_{};
+    MicroInstrUseDef               useDef_;
+    State                          current_{};
+    State                          emitted_{};
     X64DwarfFrame                  frame_;
-    uint32_t                      persistent_ = 0;
-    uint32_t                      frameReg_   = 5;
-    uint32_t                      cursor_     = 0;
-    const MicroOperandStorage*    operands_   = nullptr;
-    const Encoder*                encoder_    = nullptr;
+    uint32_t                       persistent_ = 0;
+    uint32_t                       frameReg_   = 5;
+    uint32_t                       cursor_     = 0;
+    const MicroOperandStorage*     operands_   = nullptr;
+    const Encoder*                 encoder_    = nullptr;
 };
 
 SWC_END_NAMESPACE();

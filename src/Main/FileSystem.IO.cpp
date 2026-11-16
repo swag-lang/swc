@@ -207,7 +207,7 @@ void FileSystem::removeMovedAsideFiles(const fs::path& directory)
 // replaces the directory entry without overwriting the previous bytes.
 Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error, const FileReplacement replacement)
 {
-    error = {};
+    error                 = {};
     const auto deadline   = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     bool       movedAside = false;
     while (true)

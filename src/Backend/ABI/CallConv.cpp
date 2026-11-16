@@ -92,13 +92,13 @@ namespace
     void setupCallConvSystemVAMD64(CallConv& conv)
     {
         setupX64RegisterFile(conv);
-        conv.name                = "sysv64";
-        conv.displayName         = "System V AMD64";
-        conv.intArgRegs          = SmallVector{MicroReg::intReg(7), MicroReg::intReg(6), MicroReg::intReg(3), MicroReg::intReg(2), MicroReg::intReg(8), MicroReg::intReg(9)};
-        conv.floatArgRegs        = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5), MicroReg::floatReg(6), MicroReg::floatReg(7)};
-        conv.intTransientRegs    = SmallVector{MicroReg::intReg(0), MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11)};
-        conv.intPersistentRegs   = SmallVector{MicroReg::intReg(1), MicroReg::intReg(5), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
-        conv.floatTransientRegs  = conv.floatRegs;
+        conv.name               = "sysv64";
+        conv.displayName        = "System V AMD64";
+        conv.intArgRegs         = SmallVector{MicroReg::intReg(7), MicroReg::intReg(6), MicroReg::intReg(3), MicroReg::intReg(2), MicroReg::intReg(8), MicroReg::intReg(9)};
+        conv.floatArgRegs       = SmallVector{MicroReg::floatReg(0), MicroReg::floatReg(1), MicroReg::floatReg(2), MicroReg::floatReg(3), MicroReg::floatReg(4), MicroReg::floatReg(5), MicroReg::floatReg(6), MicroReg::floatReg(7)};
+        conv.intTransientRegs   = SmallVector{MicroReg::intReg(0), MicroReg::intReg(2), MicroReg::intReg(3), MicroReg::intReg(6), MicroReg::intReg(7), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10), MicroReg::intReg(11)};
+        conv.intPersistentRegs  = SmallVector{MicroReg::intReg(1), MicroReg::intReg(5), MicroReg::intReg(12), MicroReg::intReg(13), MicroReg::intReg(14), MicroReg::intReg(15)};
+        conv.floatTransientRegs = conv.floatRegs;
         conv.floatPersistentRegs.clear();
         conv.stackAlignment      = 16;
         conv.stackParamAlignment = 8;
@@ -107,7 +107,7 @@ namespace
         conv.independentArgBanks = true;
         conv.isSystemVAMD64      = true;
         // Frames use explicit storage even though the ABI permits a 128-byte red zone.
-        conv.stackRedZone        = false;
+        conv.stackRedZone = false;
     }
 
     void setupCallConvC(CallConv& conv, const CallConv& native)

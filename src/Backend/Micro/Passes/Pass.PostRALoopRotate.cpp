@@ -988,10 +988,10 @@ namespace
     // This is post-RA so block layout cannot change register assignment.
     bool placeShortLoopStep(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
     {
-        MicroStorage&                                         storage  = *context.instructions;
-        MicroOperandStorage&                                  operands = *context.operands;
+        MicroStorage&                                 storage  = *context.instructions;
+        MicroOperandStorage&                          operands = *context.operands;
         std::optional<FlatKeyMap<uint32_t, uint64_t>> labelOrdinals;
-        const auto                                   findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
+        const auto                                    findLabel = [&](const uint64_t id, const uint32_t endOrdinal) {
             if (!labelOrdinals)
             {
                 auto& labels = labelOrdinals.emplace();
@@ -1573,20 +1573,20 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     {
         SmallVector<MicroRelocation, 2> relocations;
     };
-    FlatKeyMap<uint32_t>       relocationGroupByRef;
+    FlatKeyMap<uint32_t>         relocationGroupByRef;
     std::vector<RelocationGroup> relocationGroups;
     for (const MicroRelocation& reloc : context.builder->codeRelocations())
     {
         if (reloc.instructionRef.isValid())
         {
-            const uint32_t slot = reloc.instructionRef.get();
+            const uint32_t slot       = reloc.instructionRef.get();
             uint32_t*      groupIndex = relocationGroupByRef.find(slot);
             if (!groupIndex)
             {
                 const uint32_t newIndex = static_cast<uint32_t>(relocationGroups.size());
                 relocationGroups.emplace_back();
                 relocationGroupByRef.getOrInsert(slot) = newIndex;
-                groupIndex = relocationGroupByRef.find(slot);
+                groupIndex                             = relocationGroupByRef.find(slot);
             }
             relocationGroups[*groupIndex].relocations.push_back(reloc);
         }
@@ -1618,9 +1618,9 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
             SWC_ASSERT(testOps);
             SmallVector<MicroInstrOperand, 8> testCopy;
             testCopy.append(testOps, testInst->numOperands);
-            const MicroInstrOpcode testOp  = testInst->op;
-            const MicroInstrRef    copyRef = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
-            const uint32_t* groupIndex = relocationGroupByRef.find(order[ordinal].get());
+            const MicroInstrOpcode testOp     = testInst->op;
+            const MicroInstrRef    copyRef    = storage.insertDerivedBefore(operands, rotation.backRef, testOp, {testCopy.data(), testCopy.size()});
+            const uint32_t*        groupIndex = relocationGroupByRef.find(order[ordinal].get());
             if (groupIndex)
             {
                 for (MicroRelocation reloc : relocationGroups[*groupIndex].relocations)

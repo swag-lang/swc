@@ -351,7 +351,7 @@ namespace
         SmallVector<uint32_t, 32>                               active;
         std::vector<uint32_t>                                   inactive;
         const std::vector<uint32_t>*                            loopDepth  = nullptr;
-        const SmallVector<LoopRange, 8>*                         loops      = nullptr;
+        const SmallVector<LoopRange, 8>*                        loops      = nullptr;
         uint32_t                                                splitCount = 0;
         uint32_t                                                spillCount = 0;
         bool                                                    failed     = false;
@@ -2330,9 +2330,9 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         uint32_t copyDepth;
         bool     rejected;
     };
-    constexpr size_t K_CANDIDATE_LOOKUP_THRESHOLD = 16;
+    constexpr size_t               K_CANDIDATE_LOOKUP_THRESHOLD = 16;
     FlatKeyMap<uint32_t, uint64_t> candidateIndexByPair;
-    const auto candidatePairKey = [](const uint32_t lhs, const uint32_t rhs) {
+    const auto                     candidatePairKey = [](const uint32_t lhs, const uint32_t rhs) {
         const uint32_t first  = std::min(lhs, rhs);
         const uint32_t second = std::max(lhs, rhs);
         return (static_cast<uint64_t>(first) << 32u) | second;
@@ -2344,8 +2344,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     // Integer loop copies are collected in instruction order. Keep back-edges
     // in CFG order so equal-span ties retain the original earliest-header choice.
     SmallVector<std::pair<uint32_t, uint32_t>, 8> backEdgeRanges;
-    uint32_t                                       nextBackEdgeHeader = 0;
-    bool                                            backEdgeCacheReady = false;
+    uint32_t                                      nextBackEdgeHeader = 0;
+    bool                                          backEdgeCacheReady = false;
 
     // Inside a loop, the source of a joined copy must die in the loop: outside
     // it, the joined value then lives exactly where the destination did, and
@@ -2355,9 +2355,9 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     // at the definition it spilled from before.
     const auto sourceStaysInCopyLoop = [&](const uint32_t copyIdx, const uint32_t src) {
         SWC_ASSERT(copyIdx < predecessors_.size());
-        uint32_t head   = 0;
-        uint32_t tail   = 0;
-        bool     inLoop = false;
+        uint32_t   head          = 0;
+        uint32_t   tail          = 0;
+        bool       inLoop        = false;
         const auto considerRange = [&](const uint32_t s, const uint32_t p) {
             if (!inLoop || p - s < tail - head)
             {
@@ -2481,8 +2481,8 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         // retaining the same-value interference proof below.
         const uint32_t copyDepth = depthAt(idx);
         const bool     confined  = !copyDepth || srcReg.isVirtualFloat() || sourceStaysInCopyLoop(idx, src);
-        Candidate*     known   = nullptr;
-        uint64_t       pairKey = 0;
+        Candidate*     known     = nullptr;
+        uint64_t       pairKey   = 0;
         if (candidateIndexByPair.empty() && candidates.size() < K_CANDIDATE_LOOKUP_THRESHOLD)
         {
             const auto it = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });

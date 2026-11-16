@@ -124,9 +124,9 @@ public:
     bool mayWriteUnknownParamFields() const noexcept { return unknownCallMayWriteParamFields_; }
     void addFreedParamField(size_t paramIndex, std::string_view fieldName);
     // Possible writes suppress inferred freesFields when no must-reset proof exists.
-    void markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName);
-    void suppressInferredFreedParamFields();
-    void addResetParamField(size_t paramIndex, std::string_view fieldName);
+    void                               markParamFieldPossiblyWritten(size_t paramIndex, std::string_view fieldName);
+    void                               suppressInferredFreedParamFields();
+    void                               addResetParamField(size_t paramIndex, std::string_view fieldName);
     std::span<const ReturnFieldBorrow> freedParamFields() const noexcept { return freedParamFields_; }
     std::span<const ReturnFieldBorrow> resetParamFields() const noexcept { return resetParamFields_; }
     std::span<const ReturnFieldBorrow> writtenParamFields() const noexcept { return writtenParamFields_; }
@@ -652,15 +652,15 @@ private:
     uint32_t numComputedLocals_ = 0;
     uint32_t localStackOffset_  = 0;
 
-    uint64_t returnBorrowsParamsMask_  = 0;
+    uint64_t                       returnBorrowsParamsMask_ = 0;
     std::vector<ReturnFieldBorrow> returnFieldBorrows_;
     std::vector<ReturnFieldBorrow> freedParamFields_;
     std::vector<ReturnFieldBorrow> resetParamFields_;
     std::vector<ReturnFieldBorrow> writtenParamFields_;
-    bool                            unknownCallMayWriteParamFields_ = false;
-    uint64_t returnsStorageParamsMask_ = 0;
-    bool     observesExternalBorrows_  = false;
-    bool     borrowEffectsComputed_    = false;
+    bool                           unknownCallMayWriteParamFields_ = false;
+    uint64_t                       returnsStorageParamsMask_       = 0;
+    bool                           observesExternalBorrows_        = false;
+    bool                           borrowEffectsComputed_          = false;
 
     uint64_t storesParamsMask_     = 0;
     uint64_t storesIntoParamPairs_ = 0;

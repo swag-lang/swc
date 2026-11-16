@@ -203,7 +203,7 @@ private:
     const Symbol*                printSymbol_             = nullptr;
     bool                         usesIntReturnRegOnRet_   = true;
     bool                         usesFloatReturnRegOnRet_ = true;
-    uint64_t                     extraReturnRegsOnRet_   = 0;
+    uint64_t                     extraReturnRegsOnRet_    = 0;
     std::vector<Utf8>            printPassOptions_;
     Runtime::BuildCfgBackend     backendBuildCfg_{};
     std::vector<MicroInstrRef>   labels_;

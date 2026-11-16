@@ -11,17 +11,17 @@ namespace swc::LinuxHostTests
 {
     namespace
     {
-        thread_local uintptr_t stackBegin = 0;
-        thread_local uintptr_t stackEnd = 0;
+        thread_local uintptr_t             stackBegin       = 0;
+        thread_local uintptr_t             stackEnd         = 0;
         thread_local volatile sig_atomic_t deliveredOnStack = 0;
-        thread_local bool exitOnSignal = false;
+        thread_local bool                  exitOnSignal     = false;
 
         void observeSignal(int)
         {
-            volatile unsigned char marker = 0;
-            const auto address = reinterpret_cast<uintptr_t>(&marker);
-            const bool onStack = stackBegin <= address && address < stackEnd;
-            deliveredOnStack = onStack ? 1 : -1;
+            volatile unsigned char marker  = 0;
+            const auto             address = reinterpret_cast<uintptr_t>(&marker);
+            const bool             onStack = stackBegin <= address && address < stackEnd;
+            deliveredOnStack               = onStack ? 1 : -1;
             if (exitOnSignal)
                 _exit(onStack ? 0 : 1);
         }
@@ -33,7 +33,7 @@ namespace swc::LinuxHostTests
             if (sigaltstack(nullptr, &stack) != 0 || (stack.ss_flags & SS_DISABLE) || stack.ss_size < 64 * 1024)
                 return false;
             stackBegin = reinterpret_cast<uintptr_t>(stack.ss_sp);
-            stackEnd = stackBegin + stack.ss_size;
+            stackEnd   = stackBegin + stack.ss_size;
             Os::reserveFaultHandlerStack();
             stack_t repeated{};
             return sigaltstack(nullptr, &repeated) == 0 && repeated.ss_sp == stack.ss_sp && repeated.ss_size == stack.ss_size;
@@ -46,13 +46,13 @@ namespace swc::LinuxHostTests
         require(!Os::isFatalHostException(SIGUSR1) && !Os::isFatalHostException(0), "ordinary signal was classified as a hardware fault");
         struct sigaction action{}, previous{};
         action.sa_handler = observeSignal;
-        action.sa_flags = SA_ONSTACK;
+        action.sa_flags   = SA_ONSTACK;
         sigemptyset(&action.sa_mask);
         require(sigaction(SIGUSR1, &action, &previous) == 0, "cannot install signal-stack observer");
-        std::array<uintptr_t, 3> stacks{};
+        std::array<uintptr_t, 3>    stacks{};
         std::array<std::jthread, 3> workers;
-        std::barrier ready(3);
-        std::atomic_bool passed = true;
+        std::barrier                ready(3);
+        std::atomic_bool            passed = true;
         for (size_t i = 0; i < workers.size(); ++i)
         {
             workers[i] = std::jthread([&, i] {
@@ -82,7 +82,7 @@ namespace swc::LinuxHostTests
             // sub rsp, 4096; mov [rsp], rax; jmp back. Touch every page until the regular
             // stack cannot grow; only the alternate signal stack can report this fault.
             const uint8_t instructions[]{0x48, 0x81, 0xec, 0x00, 0x10, 0x00, 0x00, 0x48, 0x89, 0x04, 0x24, 0xeb, 0xf3};
-            void* code = Os::allocExecutableMemory(Os::memoryPageSize());
+            void*         code = Os::allocExecutableMemory(Os::memoryPageSize());
             if (!code)
                 _exit(2);
             std::memcpy(code, instructions, sizeof(instructions));

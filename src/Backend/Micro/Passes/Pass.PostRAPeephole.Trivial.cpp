@@ -263,9 +263,9 @@ namespace PostRaPeephole
         const auto isSourceObjectSlot = [&](const MicroInstrOperand* source) {
             if (!ctx.passContext->sanitizerFunction || source[1].reg != ctx.localStackBase)
                 return false;
-            const uint64_t offset = source[3].valueU64;
-            const auto objects = MicroPassHelpers::frameObjects(*ctx.passContext);
-            auto       object  = std::ranges::upper_bound(objects, offset, {}, &MicroFrameObject::offset);
+            const uint64_t offset  = source[3].valueU64;
+            const auto     objects = MicroPassHelpers::frameObjects(*ctx.passContext);
+            auto           object  = std::ranges::upper_bound(objects, offset, {}, &MicroFrameObject::offset);
             if (object == objects.begin())
                 return false;
             --object;

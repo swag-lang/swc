@@ -1407,15 +1407,15 @@ namespace InstructionCombine
 
         const bool isArithmeticOrBitwise = updateOp == MicroOp::Add || updateOp == MicroOp::Subtract ||
                                            updateOp == MicroOp::And || updateOp == MicroOp::Or || updateOp == MicroOp::Xor;
-        const bool immediateUpdate       = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
-                                           useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
-                                           ((isShiftOrRotate && useOps[4].valueU64 <= 0x7F) ||
-                                            (isArithmeticOrBitwise && fitsMemoryImmediate(useOps[4].valueU64)));
-        const bool immediateStore        = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
-                                           !useOps[3].hasWideImmediateValue() &&
-                                           (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));
-        const bool immediateCompare      = useInst->op == MicroInstrOpcode::CmpMemImm && useOps[2].valueU64 == 0 &&
-                                           !useOps[3].hasWideImmediateValue() && fitsMemoryImmediate(useOps[3].valueU64);
+        const bool immediateUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
+                                     useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
+                                     ((isShiftOrRotate && useOps[4].valueU64 <= 0x7F) ||
+                                      (isArithmeticOrBitwise && fitsMemoryImmediate(useOps[4].valueU64)));
+        const bool immediateStore = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
+                                    !useOps[3].hasWideImmediateValue() &&
+                                    (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));
+        const bool immediateCompare = useInst->op == MicroInstrOpcode::CmpMemImm && useOps[2].valueU64 == 0 &&
+                                      !useOps[3].hasWideImmediateValue() && fitsMemoryImmediate(useOps[3].valueU64);
         // A B64 store with a larger immediate expands into two memory writes;
         // one RIP displacement cannot represent both of their destinations.
         if (!regUpdate && !regCompare && !immediateUpdate && !immediateStore && !immediateCompare)

@@ -68,9 +68,9 @@ private:
 
     struct PinCandidate
     {
-        MicroLabelRef labelRef = MicroLabelRef::invalid();
-        uint32_t      start    = 0;
-        uint32_t      end      = 0;
+        MicroLabelRef labelRef   = MicroLabelRef::invalid();
+        uint32_t      start      = 0;
+        uint32_t      end        = 0;
         uint32_t      alignment  = 0;
         uint32_t      phaseShift = 0;
     };

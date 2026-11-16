@@ -225,7 +225,7 @@ ConstantValue::ConstantValue(ConstantValue&& other) noexcept :
 
     other.kind_ = ConstantKind::Invalid;
     other.dataSegmentRef_.store(packDataSegmentRef({}), std::memory_order_relaxed);
-    other.payloadBorrowed_ = false;
+    other.payloadBorrowed_    = false;
     other.compilerRunPointer_ = false;
 }
 

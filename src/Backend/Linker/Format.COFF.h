@@ -3,34 +3,34 @@
 // COFF records shared by object files and PE images.
 namespace swc::PE
 {
-    constexpr uint16_t FILE_MACHINE_I386 = 0x014c;
-    constexpr uint16_t FILE_MACHINE_AMD64 = 0x8664;
+    constexpr uint16_t FILE_MACHINE_I386    = 0x014c;
+    constexpr uint16_t FILE_MACHINE_AMD64   = 0x8664;
     constexpr uint16_t FILE_RELOCS_STRIPPED = 0x0001;
-    constexpr size_t SIZEOF_SHORT_NAME = 8;
+    constexpr size_t   SIZEOF_SHORT_NAME    = 8;
 
-    constexpr uint32_t SCN_CNT_CODE = 0x00000020;
-    constexpr uint32_t SCN_CNT_INITIALIZED_DATA = 0x00000040;
+    constexpr uint32_t SCN_CNT_CODE               = 0x00000020;
+    constexpr uint32_t SCN_CNT_INITIALIZED_DATA   = 0x00000040;
     constexpr uint32_t SCN_CNT_UNINITIALIZED_DATA = 0x00000080;
-    constexpr uint32_t SCN_LNK_INFO = 0x00000200;
-    constexpr uint32_t SCN_LNK_REMOVE = 0x00000800;
-    constexpr uint32_t SCN_ALIGN_1BYTES = 0x00100000;
-    constexpr uint32_t SCN_ALIGN_4BYTES = 0x00300000;
-    constexpr uint32_t SCN_ALIGN_8BYTES = 0x00400000;
-    constexpr uint32_t SCN_ALIGN_16BYTES = 0x00500000;
-    constexpr uint32_t SCN_ALIGN_32BYTES = 0x00600000;
-    constexpr uint32_t SCN_LNK_NRELOC_OVFL = 0x01000000;
-    constexpr uint32_t SCN_MEM_DISCARDABLE = 0x02000000;
-    constexpr uint32_t SCN_MEM_EXECUTE = 0x20000000;
-    constexpr uint32_t SCN_MEM_READ = 0x40000000;
-    constexpr uint32_t SCN_MEM_WRITE = 0x80000000;
+    constexpr uint32_t SCN_LNK_INFO               = 0x00000200;
+    constexpr uint32_t SCN_LNK_REMOVE             = 0x00000800;
+    constexpr uint32_t SCN_ALIGN_1BYTES           = 0x00100000;
+    constexpr uint32_t SCN_ALIGN_4BYTES           = 0x00300000;
+    constexpr uint32_t SCN_ALIGN_8BYTES           = 0x00400000;
+    constexpr uint32_t SCN_ALIGN_16BYTES          = 0x00500000;
+    constexpr uint32_t SCN_ALIGN_32BYTES          = 0x00600000;
+    constexpr uint32_t SCN_LNK_NRELOC_OVFL        = 0x01000000;
+    constexpr uint32_t SCN_MEM_DISCARDABLE        = 0x02000000;
+    constexpr uint32_t SCN_MEM_EXECUTE            = 0x20000000;
+    constexpr uint32_t SCN_MEM_READ               = 0x40000000;
+    constexpr uint32_t SCN_MEM_WRITE              = 0x80000000;
 
-    constexpr uint16_t REL_AMD64_ADDR64 = 0x0001;
+    constexpr uint16_t REL_AMD64_ADDR64   = 0x0001;
     constexpr uint16_t REL_AMD64_ADDR32NB = 0x0003;
-    constexpr uint16_t REL_AMD64_REL32 = 0x0004;
-    constexpr uint16_t REL_AMD64_SECTION = 0x000a;
-    constexpr uint16_t REL_AMD64_SECREL = 0x000b;
-    constexpr uint8_t SYM_CLASS_EXTERNAL = 2;
-    constexpr uint8_t SYM_CLASS_STATIC = 3;
+    constexpr uint16_t REL_AMD64_REL32    = 0x0004;
+    constexpr uint16_t REL_AMD64_SECTION  = 0x000a;
+    constexpr uint16_t REL_AMD64_SECREL   = 0x000b;
+    constexpr uint8_t  SYM_CLASS_EXTERNAL = 2;
+    constexpr uint8_t  SYM_CLASS_STATIC   = 3;
     constexpr uint16_t SYM_DTYPE_FUNCTION = 2;
 
 #pragma pack(push, 1)
@@ -75,10 +75,10 @@ namespace swc::PE
             } Name;
         } N;
         uint32_t Value;
-        int16_t SectionNumber;
+        int16_t  SectionNumber;
         uint16_t Type;
-        uint8_t StorageClass;
-        uint8_t NumberOfAuxSymbols;
+        uint8_t  StorageClass;
+        uint8_t  NumberOfAuxSymbols;
     };
 
     struct Relocation

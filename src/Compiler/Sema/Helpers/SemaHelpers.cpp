@@ -1216,7 +1216,7 @@ void SemaHelpers::killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, Sem
     // A loop body executes multiple times: any fact whose root the body may reassign (or
     // whose address it takes) is not stable across the back edge, so drop it up front.
     SmallVector8<IdentifierRef> writtenRoots;
-    bool                        killAll = false;
+    bool                        killAll             = false;
     bool                        implicitMemberWrite = false;
     collectNarrowLoopBodyWrites(sema, bodyRef, writtenRoots, killAll, implicitMemberWrite);
 

@@ -541,9 +541,9 @@ const GeneratedB = 2
         return Result::Error;
 
     CommandLine cmdLine;
-    cmdLine.command = CommandKind::Sema;
+    cmdLine.command  = CommandKind::Sema;
     cmdLine.targetOs = hostTargetOs();
-    cmdLine.name    = "compiler_generated_ast_runtime_location";
+    cmdLine.name     = "compiler_generated_ast_runtime_location";
     CommandLineParser::refreshBuildCfg(cmdLine);
 
     CompilerInstance compiler(ctx.global(), cmdLine);

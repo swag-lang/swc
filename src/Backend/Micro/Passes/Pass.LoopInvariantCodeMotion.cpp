@@ -1019,10 +1019,10 @@ namespace
             // not. A violating register is banned and the whole pipeline reruns
             // without it, cascading until stable.
             // Both keyed by the register's packed form, and only looked up.
-            FlatKeyMap<uint32_t> inLoopUse;
-            FlatKeySet           nestedLoopUses;
-            bool                 countedLoopUses = false;
-            FlatKeySet           keep;
+            FlatKeyMap<uint32_t>  inLoopUse;
+            FlatKeySet            nestedLoopUses;
+            bool                  countedLoopUses = false;
+            FlatKeySet            keep;
             std::vector<uint32_t> worklist;
             for (;;)
             {

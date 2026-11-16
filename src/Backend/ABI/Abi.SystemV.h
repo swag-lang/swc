@@ -22,7 +22,7 @@ namespace SystemVAbi
         uint32_t             size      = 0;
         uint32_t             alignment = 1;
 
-        bool memory() const { return classes[0] == Class::Memory; }
+        bool     memory() const { return classes[0] == Class::Memory; }
         uint32_t integerRegisters() const;
         uint32_t vectorRegisters() const;
     };
@@ -35,19 +35,19 @@ namespace SystemVAbi
     struct ArgumentLocation
     {
         static constexpr uint8_t K_NO_REGISTER = UINT8_MAX;
-        std::array<uint8_t, 2> registers{K_NO_REGISTER, K_NO_REGISTER};
-        uint64_t               stackOffset = 0;
-        bool                   onStack     = false;
+        std::array<uint8_t, 2>   registers{K_NO_REGISTER, K_NO_REGISTER};
+        uint64_t                 stackOffset = 0;
+        bool                     onStack     = false;
     };
 
     class ArgumentAllocator
     {
     public:
         ArgumentLocation next(const Classification& type);
-        uint32_t integerRegisters() const { return integers_; }
-        uint32_t vectorRegisters() const { return vectors_; }
-        uint64_t stackSize() const { return stackSize_; }
-        uint32_t stackAlignment() const { return stackAlignment_; }
+        uint32_t         integerRegisters() const { return integers_; }
+        uint32_t         vectorRegisters() const { return vectors_; }
+        uint64_t         stackSize() const { return stackSize_; }
+        uint32_t         stackAlignment() const { return stackAlignment_; }
 
     private:
         uint32_t integers_       = 0;

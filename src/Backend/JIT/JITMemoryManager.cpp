@@ -140,13 +140,13 @@ void JITMemoryManager::copyUnwindInfo(JITMemory& executableMemory, const std::sp
     if (bytes.empty())
     {
         executableMemory.unwindInfoOffset_ = 0;
-        executableMemory.unwindInfoSize_ = 0;
+        executableMemory.unwindInfoSize_   = 0;
         return;
     }
     auto* destination = static_cast<std::byte*>(executableMemory.ptr_) + offset;
     std::memcpy(destination, bytes.data(), bytes.size());
     executableMemory.unwindInfoOffset_ = offset;
-    executableMemory.unwindInfoSize_ = static_cast<uint32_t>(bytes.size());
+    executableMemory.unwindInfoSize_   = static_cast<uint32_t>(bytes.size());
 }
 
 void JITMemoryManager::registerUnwindInfo(JITMemory& executableMemory)

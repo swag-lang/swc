@@ -1,6 +1,6 @@
 #pragma once
-#include "Backend/Linker/Reader.COFF.h"
 #include "Backend/Linker/LinkDebugInfo.CodeView.h"
+#include "Backend/Linker/Reader.COFF.h"
 
 SWC_BEGIN_NAMESPACE();
 

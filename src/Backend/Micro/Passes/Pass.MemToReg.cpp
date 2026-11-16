@@ -409,8 +409,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     thread_local FlatKeySet addressAdjustments;
     // The further frame offsets a register is given by later leas or copies:
     // it may point at any of those objects, so an escape poisons them all.
-    thread_local FlatKeyMap<uint32_t>                       addrRegMoreOffsetGroups;
-    thread_local std::vector<SmallVector<uint64_t, 2>>      addrRegMoreOffsets;
+    thread_local FlatKeyMap<uint32_t>                  addrRegMoreOffsetGroups;
+    thread_local std::vector<SmallVector<uint64_t, 2>> addrRegMoreOffsets;
     addressAdjustments.clear();
     addrRegMoreOffsetGroups.clear();
     addrRegMoreOffsets.clear();
@@ -466,7 +466,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     const uint32_t newIndex = static_cast<uint32_t>(addrRegMoreOffsets.size());
                     addrRegMoreOffsets.emplace_back();
                     addrRegMoreOffsetGroups.getOrInsert(ar.packed) = newIndex;
-                    groupIndex = addrRegMoreOffsetGroups.find(ar.packed);
+                    groupIndex                                     = addrRegMoreOffsetGroups.find(ar.packed);
                 }
                 addrRegMoreOffsets[*groupIndex].push_back(offset);
             }
@@ -1588,8 +1588,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     if (hasFieldSplitWrite && hasNarrowFieldRead)
     {
         std::optional<FlatKeyMap<uint32_t>> position;
-        uint32_t                           entryEnd        = std::numeric_limits<uint32_t>::max();
-        const auto                         ensurePositions = [&] {
+        uint32_t                            entryEnd        = std::numeric_limits<uint32_t>::max();
+        const auto                          ensurePositions = [&] {
             if (position)
                 return;
             auto&    ordinals = position.emplace();
@@ -1597,7 +1597,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it, ++index)
             {
                 ordinals.getOrInsert(it.current.get()) = index;
-                const MicroInstrDef& info  = MicroInstr::info(it->op);
+                const MicroInstrDef& info              = MicroInstr::info(it->op);
                 if (entryEnd == std::numeric_limits<uint32_t>::max() &&
                     (it->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
                      info.flags.has(MicroInstrFlagsE::IsCallInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction)))
@@ -1959,10 +1959,10 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
         else
             recordStateAt.emplace();
 
-        const bool              forwardOnly = !cfg.hasLoop();
-        const uint32_t          sweepLimit  = forwardOnly ? 1 : 64;
-        SmallVector<RecordWord> kept;
-        FlatKeyMap<RecordState> writeEffects;
+        const bool                     forwardOnly = !cfg.hasLoop();
+        const uint32_t                 sweepLimit  = forwardOnly ? 1 : 64;
+        SmallVector<RecordWord>        kept;
+        FlatKeyMap<RecordState>        writeEffects;
         std::unique_ptr<RecordState[]> in;
         std::vector<uint8_t>           reached;
         if (!records.empty())
@@ -2030,7 +2030,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                     const RecordState out = transfer(index, in[index]);
                     for (const uint32_t succ : cfg.successors(index))
                     {
-                        const bool successorReached = reached[succ] == recordEpoch;
+                        const bool        successorReached = reached[succ] == recordEpoch;
                         const RecordState merged{
                             .defined = static_cast<uint8_t>(successorReached ? in[succ].defined & out.defined : out.defined),
                             .zero    = static_cast<uint8_t>(successorReached ? in[succ].zero & out.zero : out.zero),

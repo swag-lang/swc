@@ -60,7 +60,7 @@ namespace
                 SWC_RESULT(appendDataSection(builder_->mergedRData, builder_->scopedSymbolNames().rdataBase));
             for (uint32_t index = 0; index < description.rdataAllocationCount; ++index)
             {
-                const auto& allocation = builder_->rdataAllocations[description.rdataAllocationIndex + index];
+                const auto&       allocation = builder_->rdataAllocations[description.rdataAllocationIndex + index];
                 NativeSectionData section;
                 SWC_RESULT(builder_->buildRDataAllocationSection(section, allocation));
                 SWC_RESULT(appendDataSection(section, builder_->rdataAllocationSymbol(allocation)));
@@ -115,7 +115,7 @@ namespace
             target.relocations            = &textSection.relocations;
             target.functionOffset         = functionOffset;
             target.allowUnresolvedSymbols = allowUnresolvedSymbols;
-            target.splitRDataReferences = splitRDataReferences;
+            target.splitRDataReferences   = splitRDataReferences;
 
             for (const MicroRelocation& relocation : code.codeRelocations)
                 SWC_RESULT(builder_->appendCodeRelocation(target, ownerName, relocation));
@@ -243,7 +243,7 @@ namespace
             }
 
             LinkSection&   linkSection = image_->sections[sectionIndex];
-            const uint32_t align = applyNativeSectionCoffProperties(linkSection, section);
+            const uint32_t align       = applyNativeSectionCoffProperties(linkSection, section);
             if (isDebug)
                 linkSection.flags.add(LinkSectionFlagsE::Debug);
 
@@ -363,7 +363,7 @@ Result NativeImageBuilder::build(LinkImage& image, NativeBackendBuilder& builder
 
 Result NativeImageBuilder::buildObject(LinkImage& image, NativeBackendBuilder& builder, const NativeObjDescription& description)
 {
-    NativeImageLowering lowering(builder, image);
+    NativeImageLowering            lowering(builder, image);
     NativeImageDescriptionSections sections;
     SWC_RESULT(lowering.buildDescription(sections, description));
     return lowering.placeDescription(sections, description);

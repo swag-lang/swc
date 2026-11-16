@@ -659,7 +659,7 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
         uint32_t      baseUses = 0;
         bool          stable   = true;
     };
-    FlatKeyMap<Cand> cands;
+    FlatKeyMap<Cand>         cands;
     SmallVector<MicroReg, 8> candidateRegs;
 
     // Pass A: collect sp-derived definitions.
@@ -677,7 +677,7 @@ MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandSt
             Cand*          found = cands.find(key);
             if (!found)
                 candidateRegs.push_back(ops[0].reg);
-            Cand&          c     = cands.getOrInsert(key);
+            Cand& c = cands.getOrInsert(key);
             if (c.defRef.isValid())
                 c.stable = false; // defined more than once: not a stable base.
             else

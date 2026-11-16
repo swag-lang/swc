@@ -1083,7 +1083,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication)
 {
     ApiPublicationTestDirectory directory("InheritedForeign");
-    constexpr std::string_view providerSource = R"(#global public
+    constexpr std::string_view  providerSource = R"(#global public
 #[Foreign(module: "libc.so.6", link: "c", callconv: .C)]
 {
     func read(fd: s32, buffer: *void, count: u64)->s64
@@ -1102,10 +1102,10 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_InheritedForeignAttributesSurvivePublication
 #[Foreign(module: "libc.so.6", function: "strlen", link: "c", callconv: .C)]
 func length(value: const [*] u8)->u64
 )";
-    constexpr std::string_view consumerSetup = R"(#import("provider")
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
 #run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }
 )";
-    constexpr std::string_view consumerSource = R"(func verify()
+    constexpr std::string_view  consumerSource = R"(func verify()
 {
     var byte: u8
     Swag.assert(Provider.read(-1, &byte, 1) == -1)
@@ -1125,15 +1125,15 @@ func length(value: const [*] u8)->u64
     {
         const fs::path workspace = directory.path() / backend;
         const fs::path modules   = workspace / "modules";
-        const Utf8 setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
+        const Utf8     setup{std::format("#run {{ with let cfg = unwrap Swag.compiler().getBuildCfg() {{\n.moduleNamespace = \"Provider\"\n.backendKind = .{}\n}} }}\n", backend)};
         SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", setup.view()));
         SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "provider.swg", providerSource));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
         SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "src" / "consumer.swg", consumerSource));
 
         const std::vector<Utf8> arguments = {"test", "--os", "linux", "--workspace", Utf8(workspace), "--workspace-module", "consumer", "--num-cores", "3", "--no-log-color"};
-        Os::ProcessRunOptions options;
-        std::string           output;
+        Os::ProcessRunOptions   options;
+        std::string             output;
         options.capturedOutput = &output;
         options.forwardOutput  = false;
         uint32_t exitCode      = UINT32_MAX;
@@ -1290,7 +1290,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Workspace_GuardedTestEditReusesProductionDependencies)
 {
     ApiPublicationTestDirectory directory("GuardedTestCache");
-    const fs::path              modules = directory.path() / "modules";
+    const fs::path              modules  = directory.path() / "modules";
     const fs::path              testFile = modules / "consumer" / "src" / "tests" / "test_only.swg";
 
     SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", R"(#import("core", location: "swag@std")

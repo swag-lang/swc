@@ -1196,11 +1196,11 @@ namespace
         }
 
         // kindOf reports the logical value type, without its backing-storage flag.
-        const MicroReg anyBaseReg     = exprPayload.reg;
-        const MicroReg anyTypeReg     = codeGen.nextVirtualIntRegister();
-        const MicroReg flagsReg       = codeGen.nextVirtualIntRegister();
-        const MicroReg unqualifiedReg = codeGen.nextVirtualIntRegister();
-        const MicroLabelRef done      = builder.createLabel();
+        const MicroReg      anyBaseReg     = exprPayload.reg;
+        const MicroReg      anyTypeReg     = codeGen.nextVirtualIntRegister();
+        const MicroReg      flagsReg       = codeGen.nextVirtualIntRegister();
+        const MicroReg      unqualifiedReg = codeGen.nextVirtualIntRegister();
+        const MicroLabelRef done           = builder.createLabel();
         builder.emitLoadRegMem(anyTypeReg, anyBaseReg, offsetof(Runtime::Any, type), MicroOpBits::B64);
         builder.emitLoadRegReg(result.reg, anyTypeReg, MicroOpBits::B64);
         builder.emitCmpRegImm(anyTypeReg, ApInt(0, 64), MicroOpBits::B64);
@@ -1280,7 +1280,7 @@ namespace
         preparedArgs.push_back(locationArg);
 
         ABICall::PreparedArg kindArg;
-        kindArg.srcReg = codeGen.nextVirtualIntRegister();
+        kindArg.srcReg               = codeGen.nextVirtualIntRegister();
         const uint64_t exceptionKind = node.intrinsicId == TokenId::IntrinsicCheck ? K_RUNTIME_EXCEPTION_KIND_CHECK : K_RUNTIME_EXCEPTION_KIND_ASSERT;
         builder.emitLoadRegImm(kindArg.srcReg, ApInt(exceptionKind, 64), MicroOpBits::B64);
         kindArg.kind        = ABICall::PreparedArgKind::Direct;
@@ -1485,15 +1485,15 @@ namespace
 
     Result codeGenBitCount(CodeGen& codeGen, const AstIntrinsicCallExpr& node, BitCountKind kind)
     {
-        const AstNodeRef          valueRef        = codeGen.ast().oneNode(node.spanChildrenRef);
-        const CodeGenNodePayload& valuePayload    = codeGen.payload(valueRef);
-        const TypeRef             valueTypeRef    = CodeGenExprView::payloadTypeRef(codeGen, valuePayload, valueRef);
-        const SemaNodeView        resultView      = codeGen.curViewType();
-        const TypeRef             resultTypeRef   = resultView.typeRef();
-        const TypeInfo&           resultType      = resultView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
-        const MicroOpBits         resultBits      = CodeGenTypeHelpers::numericBits(resultType);
-        CodeGenNodePayload&       resultPayload   = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-        MicroBuilder&             builder         = codeGen.builder();
+        const AstNodeRef          valueRef      = codeGen.ast().oneNode(node.spanChildrenRef);
+        const CodeGenNodePayload& valuePayload  = codeGen.payload(valueRef);
+        const TypeRef             valueTypeRef  = CodeGenExprView::payloadTypeRef(codeGen, valuePayload, valueRef);
+        const SemaNodeView        resultView    = codeGen.curViewType();
+        const TypeRef             resultTypeRef = resultView.typeRef();
+        const TypeInfo&           resultType    = resultView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const MicroOpBits         resultBits    = CodeGenTypeHelpers::numericBits(resultType);
+        CodeGenNodePayload&       resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+        MicroBuilder&             builder       = codeGen.builder();
         MicroReg                  materializedValue;
 
         SWC_ASSERT(resultType.isIntLikeUnsigned());
@@ -1896,9 +1896,9 @@ namespace
         if (codeGen.isNativeBuild() && !SemaRuntime::isCompilerOnlyFunction(codeGen.compiler(), codeGen.function()))
             return codeGenGetContextNative(codeGen);
 
-        const CallConvKind                callConvKind        = CallConv::hostKind();
-        const SemaNodeView                resultView          = codeGen.curViewType();
-        MicroBuilder&                     builder             = codeGen.builder();
+        const CallConvKind                callConvKind = CallConv::hostKind();
+        const SemaNodeView                resultView   = codeGen.curViewType();
+        MicroBuilder&                     builder      = codeGen.builder();
         SmallVector<ABICall::PreparedArg> preparedArgs;
 
         const MicroReg tlsIdReg = materializeHostRuntimeContextTlsId(codeGen);
@@ -1957,12 +1957,12 @@ namespace
             SWC_ASSERT(payload && payload->runtimeFunctionSymbol);
             return emitTlsSetValueCall(codeGen, *payload->runtimeFunctionSymbol, tlsIdReg, contextReg);
         }
-        tlsIdReg = materializeHostRuntimeContextTlsId(codeGen);
-        MicroBuilder& builder = codeGen.builder();
+        tlsIdReg                 = materializeHostRuntimeContextTlsId(codeGen);
+        MicroBuilder&  builder   = codeGen.builder();
         const MicroReg targetReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&Os::tlsSetValue));
         const std::array<ABICall::PreparedArg, 2> args{{{.srcReg = tlsIdReg, .numBits = 64}, {.srcReg = contextReg, .numBits = 64}}};
-        const auto prepared = ABICall::prepareArgs(builder, CallConv::hostKind(), args);
+        const auto                                prepared = ABICall::prepareArgs(builder, CallConv::hostKind(), args);
         ABICall::callReg(builder, CallConv::hostKind(), targetReg, prepared);
         return Result::Continue;
     }

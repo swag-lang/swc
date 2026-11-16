@@ -541,9 +541,9 @@ SWC_TEST_BEGIN(DebugInfo_EmitsWindowsSymbolAndTypeRecords)
     MachineCode code;
     code.bytes.pushBack(std::byte{0xC3});
 
-    const fs::path objectPath = Os::getTemporaryPath() / "swc-debug-info-test.obj";
-    const Utf8 objectName = objectPath.string();
-    static constexpr std::string_view DEBUG_NAME  = "debug::proc";
+    const fs::path                    objectPath = Os::getTemporaryPath() / "swc-debug-info-test.obj";
+    const Utf8                        objectName = objectPath.string();
+    static constexpr std::string_view DEBUG_NAME = "debug::proc";
 
     const DebugInfoFunctionRecord function = {
         .symbolName  = "__swc_debug_info_test_proc",

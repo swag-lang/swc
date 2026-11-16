@@ -8,8 +8,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
-#include "Support/Os/Os.h"
 #include "Support/Os/Os.Exception.Linux.h"
+#include "Support/Os/Os.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 #include <signal.h>
@@ -18,9 +18,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    struct UnwindMarker {};
+    struct UnwindMarker
+    {
+    };
     thread_local std::array<uintptr_t, 64> captured{};
-    thread_local uint32_t capturedCount = 0;
+    thread_local uint32_t                  capturedCount = 0;
 
     __attribute__((noinline)) void captureGeneratedStack()
     {
@@ -83,7 +85,7 @@ namespace
         ByteArray unwind;
         encoder.buildUnwindInfo(unwind);
         JITMemoryManager manager;
-        JITMemory memory;
+        JITMemory        memory;
         manager.allocateWithCodeSize(memory, static_cast<uint32_t>(code.size() + unwind.size() + 3), static_cast<uint32_t>(code.size()));
         std::memcpy(memory.entryPoint(), code.data(), code.size());
         JITMemoryManager::copyUnwindInfo(memory, unwind.span());
@@ -93,9 +95,9 @@ namespace
         for (const uint64_t path : {0, 1})
         {
             capturedCount = 0;
-            Invocation invocation{memory.entryPoint(), captureGeneratedStack, path};
+            Invocation         invocation{memory.entryPoint(), captureGeneratedStack, path};
             Os::LinuxException exception;
-            const bool completed = Os::executeWithHostFaultHandler(exception, invokeWithCleanup, &invocation);
+            const bool         completed = Os::executeWithHostFaultHandler(exception, invokeWithCleanup, &invocation);
             if (completed == fault || invocation.destroyed != 1)
                 return Result::Error;
             if (fault && (exception.signal != SIGSEGV || exception.instructionAddress < address || exception.instructionAddress >= address + code.size()))
@@ -106,9 +108,9 @@ namespace
             if (!sawGenerated || capturedCount < 3)
                 return Result::Error;
 
-            invocation.callback = throwAcrossGeneratedFrame;
+            invocation.callback  = throwAcrossGeneratedFrame;
             invocation.destroyed = 0;
-            bool caught = false;
+            bool caught          = false;
             try
             {
                 Os::executeWithHostFaultHandler(exception, invokeWithCleanup, &invocation);
@@ -126,13 +128,13 @@ namespace
     Result verifyControlFlowUnwind(TaskContext& ctx, const bool sharedEpilogue, const bool fault)
     {
         CommandLine commandLine = ctx.cmdLine();
-        commandLine.targetOs = Runtime::TargetOs::Linux;
+        commandLine.targetOs    = Runtime::TargetOs::Linux;
         CompilerInstance compiler(ctx.global(), commandLine);
-        TaskContext linuxContext(compiler);
-        MicroBuilder builder(linuxContext);
-        const auto cold = builder.createLabel();
-        const auto done = builder.createLabel();
-        const auto loop = builder.createLabel();
+        TaskContext      linuxContext(compiler);
+        MicroBuilder     builder(linuxContext);
+        const auto       cold = builder.createLabel();
+        const auto       done = builder.createLabel();
+        const auto       loop = builder.createLabel();
         builder.emitPush(MicroReg::intReg(5));
         builder.emitLoadRegReg(MicroReg::intReg(5), MicroReg::intReg(4), MicroOpBits::B64);
         builder.emitOpBinaryRegImm(MicroReg::intReg(4), ApInt(32, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -161,12 +163,12 @@ namespace
     Result verifyFramelessUnwind(TaskContext& ctx, const bool indirectJump, const bool fault)
     {
         CommandLine commandLine = ctx.cmdLine();
-        commandLine.targetOs = Runtime::TargetOs::Linux;
-        CompilerInstance compiler(ctx.global(), commandLine);
-        TaskContext context(compiler);
-        MicroBuilder builder(context);
-        constexpr MicroReg sp = MicroReg::intReg(4);
-        constexpr MicroReg rbx = MicroReg::intReg(1);
+        commandLine.targetOs    = Runtime::TargetOs::Linux;
+        CompilerInstance   compiler(ctx.global(), commandLine);
+        TaskContext        context(compiler);
+        MicroBuilder       builder(context);
+        constexpr MicroReg sp   = MicroReg::intReg(4);
+        constexpr MicroReg rbx  = MicroReg::intReg(1);
         constexpr MicroReg xmm6 = MicroReg::floatReg(6);
         builder.emitPush(rbx);
         builder.emitOpBinaryRegImm(sp, ApInt(512, 64), MicroOp::Subtract, MicroOpBits::B64);
@@ -175,7 +177,7 @@ namespace
         builder.emitLoadRegImm(rbx, ApInt(0x12345678, 64), MicroOpBits::B64);
         if (indirectJump)
         {
-            const auto destination = builder.createLabel();
+            const auto       destination = builder.createLabel();
             const std::array labels{destination};
             builder.emitLoadLabelAddress(MicroReg::intReg(0), destination);
             builder.emitJumpReg(MicroReg::intReg(0), labels);

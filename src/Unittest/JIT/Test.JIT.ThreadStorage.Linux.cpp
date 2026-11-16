@@ -10,13 +10,17 @@ namespace
 {
     struct Slot
     {
-        pthread_key_t key = 0;
-        bool allocated = false;
-        ~Slot() { if (allocated) JITThreadStorage::erase(key); }
+        pthread_key_t key       = 0;
+        bool          allocated = false;
+        ~Slot()
+        {
+            if (allocated)
+                JITThreadStorage::erase(key);
+        }
         int create(void (*callback)(void*))
         {
             const int status = JITThreadStorage::create(&key, callback);
-            allocated = status == 0;
+            allocated        = status == 0;
             return status;
         }
         int erase()
@@ -35,9 +39,9 @@ namespace
 
     struct RearmState
     {
-        Slot* slot = nullptr;
-        uint32_t calls = 0;
-        bool correct = true;
+        Slot*    slot    = nullptr;
+        uint32_t calls   = 0;
+        bool     correct = true;
     };
 
     void rearmCleanup(void* value)
@@ -52,10 +56,10 @@ namespace
 
     struct RetireState
     {
-        Slot* slot = nullptr;
-        std::atomic<uint32_t> calls = 0;
-        int rearmStatus = 0;
-        int createStatus = 0;
+        Slot*                 slot         = nullptr;
+        std::atomic<uint32_t> calls        = 0;
+        int                   rearmStatus  = 0;
+        int                   createStatus = 0;
     };
 
     void retiringCleanup(void* value)
@@ -69,20 +73,20 @@ namespace
 
     struct BlockingState
     {
-        Slot* slot = nullptr;
-        Slot replacement;
-        std::atomic<uint32_t> replacementCalls = 0;
-        bool reusedKey = false;
-        std::mutex mutex;
+        Slot*                   slot = nullptr;
+        Slot                    replacement;
+        std::atomic<uint32_t>   replacementCalls = 0;
+        bool                    reusedKey        = false;
+        std::mutex              mutex;
         std::condition_variable changed;
-        bool setupFinished = false;
-        bool installed = false;
-        bool entered = false;
-        bool deleted = false;
-        bool ownerSeen = false;
-        bool allowExit = false;
-        bool releaseFinished = false;
-        uint32_t calls = 0;
+        bool                    setupFinished   = false;
+        bool                    installed       = false;
+        bool                    entered         = false;
+        bool                    deleted         = false;
+        bool                    ownerSeen       = false;
+        bool                    allowExit       = false;
+        bool                    releaseFinished = false;
+        uint32_t                calls           = 0;
     };
 
     void blockingCleanup(void* value)
@@ -106,7 +110,7 @@ namespace
 SWC_TEST_BEGIN(JIT_ThreadStoragePreservesRawValuesAndExplicitDeletion)
 {
     std::atomic<uint32_t> calls = 0;
-    Slot slot;
+    Slot                  slot;
     if (slot.create(&countCleanup) || JITThreadStorage::set(slot.key, &calls) || pthread_getspecific(slot.key) != &calls)
         return Result::Error;
     JITThreadStorage::release([](const void*) { return false; });
@@ -127,8 +131,8 @@ SWC_TEST_BEGIN(JIT_ThreadStorageRunsRearmedExitCallbacks)
     Slot slot;
     if (slot.create(&rearmCleanup))
         return Result::Error;
-    RearmState state{.slot = &slot};
-    bool installed = false;
+    RearmState   state{.slot = &slot};
+    bool         installed = false;
     std::jthread worker([&] { installed = JITThreadStorage::set(slot.key, &state) == 0; });
     worker.join();
     return installed && state.correct && state.calls == 3 && !slot.allocated ? Result::Continue : Result::Error;
@@ -140,9 +144,9 @@ SWC_TEST_BEGIN(JIT_ThreadStorageRetirementDrainsLiveThreadsOnce)
     Slot slot;
     if (slot.create(&retiringCleanup))
         return Result::Error;
-    RetireState state{.slot = &slot};
-    std::latch installed(1), leave(1);
-    bool ready = false;
+    RetireState  state{.slot = &slot};
+    std::latch   installed(1), leave(1);
+    bool         ready = false;
     std::jthread worker([&] {
         ready = JITThreadStorage::set(slot.key, &state) == 0;
         installed.count_down();
@@ -163,14 +167,14 @@ SWC_TEST_BEGIN(JIT_ThreadStorageRetirementWaitsForDeletedActiveCallbacks)
     if (slot.create(&blockingCleanup))
         return Result::Error;
     BlockingState state{.slot = &slot};
-    std::jthread worker([&] {
-        const bool installed = JITThreadStorage::set(slot.key, &state) == 0;
+    std::jthread  worker([&] {
+        const bool             installed = JITThreadStorage::set(slot.key, &state) == 0;
         const std::scoped_lock lock(state.mutex);
-        state.installed = installed;
+        state.installed     = installed;
         state.setupFinished = true;
         state.changed.notify_all();
     });
-    bool entered = false;
+    bool          entered = false;
     {
         std::unique_lock lock(state.mutex);
         state.changed.wait(lock, [&] { return state.entered || (state.setupFinished && !state.installed); });
@@ -189,11 +193,11 @@ SWC_TEST_BEGIN(JIT_ThreadStorageRetirementWaitsForDeletedActiveCallbacks)
         state.releaseFinished = true;
         state.changed.notify_all();
     });
-    bool waited = false;
+    bool         waited = false;
     {
         std::unique_lock lock(state.mutex);
         state.changed.wait(lock, [&] { return state.ownerSeen || state.releaseFinished; });
-        waited = state.ownerSeen && !state.releaseFinished;
+        waited          = state.ownerSeen && !state.releaseFinished;
         state.allowExit = true;
         state.changed.notify_all();
     }

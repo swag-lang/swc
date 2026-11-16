@@ -14,9 +14,9 @@ namespace swc::LinuxHostTests
 
     void testCallStacks()
     {
-        const uint32_t expected = 0x12345678;
-        uint32_t value = 0;
-        const auto destination = std::as_writable_bytes(std::span{&value, 1});
+        const uint32_t expected    = 0x12345678;
+        uint32_t       value       = 0;
+        const auto     destination = std::as_writable_bytes(std::span{&value, 1});
         require(Os::tryReadMemory(destination, &expected) && value == expected, "diagnostic memory read changed the value");
         require(Os::tryReadMemory({}, nullptr), "empty diagnostic read failed");
         require(!Os::tryReadMemory(destination, nullptr) && !Os::tryReadMemory(destination, reinterpret_cast<void*>(1)), "invalid diagnostic address was readable");

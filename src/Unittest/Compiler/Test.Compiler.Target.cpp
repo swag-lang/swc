@@ -52,13 +52,13 @@ SWC_TEST_BEGIN(Compiler_CommandLineSelectsTargetOs)
 {
     for (const auto target : {Runtime::TargetOs::Windows, Runtime::TargetOs::Linux})
     {
-        CommandLine commandLine;
-        char arg0[] = "swc";
-        char arg1[] = "syntax";
-        char arg2[] = "--os";
-        char windows[] = "windows";
-        char linuxOs[] = "linux";
-        char* argv[] = {arg0, arg1, arg2, target == Runtime::TargetOs::Windows ? windows : linuxOs};
+        CommandLine       commandLine;
+        char              arg0[]    = "swc";
+        char              arg1[]    = "syntax";
+        char              arg2[]    = "--os";
+        char              windows[] = "windows";
+        char              linuxOs[] = "linux";
+        char*             argv[]    = {arg0, arg1, arg2, target == Runtime::TargetOs::Windows ? windows : linuxOs};
         CommandLineParser parser(const_cast<Global&>(ctx.global()), commandLine);
         SWC_RESULT(parser.parse(std::size(argv), argv));
         if (commandLine.targetOs != target)
@@ -75,13 +75,20 @@ SWC_TEST_BEGIN(Compiler_TargetWindowsO0AllowsDeadIndirectCallTargetInClobberedRe
 
     const std::vector<Utf8> args = {
         "build",
-        "--os", "windows",
-        "--artifact-kind", "export",
-        "--optim-level", "0",
-        "--num-cores", "1",
-        "--work-dir", (directory.path() / "work").string(),
-        "--out-dir", (directory.path() / "out").string(),
-        "--file", sourcePath.string(),
+        "--os",
+        "windows",
+        "--artifact-kind",
+        "export",
+        "--optim-level",
+        "0",
+        "--num-cores",
+        "1",
+        "--work-dir",
+        (directory.path() / "work").string(),
+        "--out-dir",
+        (directory.path() / "out").string(),
+        "--file",
+        sourcePath.string(),
     };
 
     uint32_t              exitCode = UINT32_MAX;

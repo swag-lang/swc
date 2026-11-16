@@ -739,8 +739,8 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
         // caller (System V XMM6-XMM15 inside a Swag function, for example). Same-ABI
         // calls cannot clobber persistent registers and need no extra classification.
         // Encoder-only writes such as VPGATHERDD's XMM15 mask have the same obligation.
-        const MicroInstrDef& info = MicroInstr::info(inst.op);
-        const bool foreignCall = info.flags.has(MicroInstrFlagsE::IsCallInstruction) && inst.ops(storeOps)[info.callConvIndex].callConv != context.callConvKind;
+        const MicroInstrDef& info        = MicroInstr::info(inst.op);
+        const bool           foreignCall = info.flags.has(MicroInstrFlagsE::IsCallInstruction) && inst.ops(storeOps)[info.callConvIndex].callConv != context.callConvKind;
         if (foreignCall || (context.encoder && info.flags.has(MicroInstrFlagsE::EncoderRegUseDef)))
         {
             for (const MicroReg reg : inst.collectUseDef(storeOps, context.encoder).defs)

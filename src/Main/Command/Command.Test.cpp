@@ -673,7 +673,7 @@ namespace
         // frame, later tests and module drop hooks may wait on locks that its defers kept held.
         uint32_t executedTestCount = 0;
         uint32_t failedTestCount   = 0;
-        abandoned = false;
+        abandoned                  = false;
         for (const SymbolFunction* function : testFunctions)
         {
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);

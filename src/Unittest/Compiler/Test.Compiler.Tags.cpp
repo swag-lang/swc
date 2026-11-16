@@ -16,7 +16,7 @@ SWC_BEGIN_NAMESPACE();
 
 SWC_TEST_BEGIN(Compiler_RunArgumentsPreserveValuesAndOutliveTheirInstance)
 {
-    const std::vector<Utf8> values = {"", "two words", "a\"b", "tail\\", "\t", "caf\xC3\xA9"};
+    const std::vector<Utf8>         values = {"", "two words", "a\"b", "tail\\", "\t", "caf\xC3\xA9"};
     Runtime::Slice<Runtime::String> saved{};
     {
         CommandLine cmdLine;
@@ -69,9 +69,9 @@ SWC_TEST_BEGIN(Compiler_OptimizerConfigurationReachesNativeLayout)
 )";
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "OptimizerConfigurationReachesNativeLayout");
     CommandLine                       cmdLine;
-    cmdLine.command = CommandKind::Sema;
+    cmdLine.command  = CommandKind::Sema;
     cmdLine.targetOs = hostTargetOs();
-    cmdLine.name    = "compiler_optimizer_configuration";
+    cmdLine.name     = "compiler_optimizer_configuration";
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
     const uint64_t   errorsBefore = Stats::getNumErrors();
@@ -104,9 +104,9 @@ SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "CommandLineTagsReachSema");
 
     CommandLine cmdLine;
-    cmdLine.command = CommandKind::Sema;
+    cmdLine.command  = CommandKind::Sema;
     cmdLine.targetOs = hostTargetOs();
-    cmdLine.name    = "compiler_command_line_tags";
+    cmdLine.name     = "compiler_command_line_tags";
     cmdLine.files.insert(sourcePath);
     cmdLine.tags.emplace_back("User.Flag");
     cmdLine.tags.emplace_back("User.Count: u64 = 42");
@@ -228,9 +228,9 @@ SWC_TEST_BEGIN(Compiler_InternalTagPrecedesUserOverride)
     const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "InternalTagPrecedesUserOverride");
 
     CommandLine cmdLine;
-    cmdLine.command = CommandKind::Sema;
+    cmdLine.command  = CommandKind::Sema;
     cmdLine.targetOs = hostTargetOs();
-    cmdLine.name    = "compiler_internal_tag_precedence";
+    cmdLine.name     = "compiler_internal_tag_precedence";
     cmdLine.files.insert(sourcePath);
     cmdLine.tags.emplace_back("Swag.Endian: string = big");
     CommandLineParser::refreshBuildCfg(cmdLine);

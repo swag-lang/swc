@@ -739,7 +739,7 @@ Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
     // API publication writes this complete name into the importer's Foreign attribute.
     const Utf8 artifact = ctx.compiler().artifactName();
     const auto bytes    = std::span{reinterpret_cast<const uint8_t*>(artifact.data()), artifact.size()};
-    apiName = "__swc_api_" + Utf8Helper::toLowerHex(bytes) + "__" + apiName;
+    apiName             = "__swc_api_" + Utf8Helper::toLowerHex(bytes) + "__" + apiName;
 
     return apiName;
 }

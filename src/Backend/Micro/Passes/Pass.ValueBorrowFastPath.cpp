@@ -270,7 +270,7 @@ namespace
         if (callsOnlyChecks && firstRef.isValid() && (calls.size() > 1 || context.builder->controlFlowGraph().hasLoop()))
         {
             HoistedExtent hoisted;
-            hoisted.insertBefore        = firstRef;
+            hoisted.insertBefore                    = firstRef;
             outLoops.getOrInsert(K_FUNCTION_REGION) = hoisted;
             outLoopOrder.push_back(K_FUNCTION_REGION);
             for (const MicroInstrRef callRef : calls)
@@ -474,9 +474,9 @@ Result MicroValueBorrowFastPathPass::run(MicroPassContext& context)
     uint32_t nextFloat = 0;
     MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
 
-    FlatKeyMap<uint32_t>                        guardLoop;
+    FlatKeyMap<uint32_t>      guardLoop;
     FlatKeyMap<HoistedExtent> hoistedLoops;
-    SmallVector<uint32_t, 4> hoistedLoopOrder;
+    SmallVector<uint32_t, 4>  hoistedLoopOrder;
     findHoistableLoops(guardLoop, hoistedLoops, hoistedLoopOrder, context, calls.span());
 
     bool changed = false;

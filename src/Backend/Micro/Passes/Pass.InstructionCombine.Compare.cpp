@@ -287,7 +287,7 @@ namespace InstructionCombine
             const uint32_t last  = cfg.indexOf(loadRef);
             if (first >= last || last - first > MicroOptimizationLimits::InstructionCombineCompare::K_MAX_RELOAD_SCAN)
                 return false;
-            SmallVector<uint32_t> pending;
+            SmallVector<uint32_t>                                                                                   pending;
             std::array<uint64_t, (MicroOptimizationLimits::InstructionCombineCompare::K_MAX_RELOAD_SCAN + 63) / 64> visited{};
             for (const uint32_t predecessor : cfg.predecessors(last))
                 pending.push_back(predecessor);
@@ -428,7 +428,7 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::JumpCond)
             return false;
-        const MicroInstrOperand* cmp      = cmpInst->ops(*ctx.operands);
+        const MicroInstrOperand* cmp = cmpInst->ops(*ctx.operands);
         if (!cmp || cmp[2].opBits != MicroOpBits::B64 ||
             (cmp[0].reg != copy[1].reg && cmp[1].reg != copy[1].reg))
             return false;

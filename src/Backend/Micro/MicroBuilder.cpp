@@ -1158,7 +1158,7 @@ Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder,
     context.passPrintOptions        = printPassOptions_;
     context.usesIntReturnRegOnRet   = usesIntReturnRegOnRet_;
     context.usesFloatReturnRegOnRet = usesFloatReturnRegOnRet_;
-    context.extraReturnRegsOnRet   = extraReturnRegsOnRet_;
+    context.extraReturnRegsOnRet    = extraReturnRegsOnRet_;
 #if SWC_HAS_VALIDATE_MICRO
     if (!context.validateMicro && ctx_)
         context.validateMicro = ctx_->cmdLine().validateMicro;
@@ -1220,7 +1220,7 @@ void MicroBuilder::setRetUsesAbiRegs(const bool usesIntReturnReg, const bool use
 {
     usesIntReturnRegOnRet_   = usesIntReturnReg;
     usesFloatReturnRegOnRet_ = usesFloatReturnReg;
-    extraReturnRegsOnRet_   = extraReturnRegs;
+    extraReturnRegsOnRet_    = extraReturnRegs;
 }
 
 // The function is named only when a listing or a report asks: formatting the scoped name and
@@ -1256,7 +1256,7 @@ void MicroBuilder::releaseMemory()
     printSymbol_                     = nullptr;
     usesIntReturnRegOnRet_           = true;
     usesFloatReturnRegOnRet_         = true;
-    extraReturnRegsOnRet_           = 0;
+    extraReturnRegsOnRet_            = 0;
     printPassOptions_                = std::vector<Utf8>{};
     labels_                          = std::vector<MicroInstrRef>{};
     relocations_                     = std::vector<MicroRelocation>{};

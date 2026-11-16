@@ -47,10 +47,10 @@ namespace Os
 
     struct ProcessRunOptions
     {
-        std::string*              capturedOutput = nullptr;
-        bool                      forwardOutput  = true;
+        std::string* capturedOutput                                              = nullptr;
+        bool         forwardOutput                                               = true;
         void (*forwardLineCallback)(const void* userData, std::string_view line) = nullptr;
-        const void* forwardLineUserData = nullptr;
+        const void*               forwardLineUserData                            = nullptr;
         std::span<const fs::path> additionalPathDirectories{};
         void (*outputLineCallback)(void* userData, std::string_view line) = nullptr;
         void* outputLineUserData                                          = nullptr;
@@ -123,8 +123,8 @@ namespace Os
     // patching range-checks the distance it can no longer guarantee.
     void* allocProximityMemory(uint32_t size);
     // Release committed pages without reusing their addresses while other JIT allocations live.
-    void     freeProximityMemory(void* ptr, uint32_t size);
-    bool     isProximityMemory(const void* ptr);
+    void freeProximityMemory(void* ptr, uint32_t size);
+    bool isProximityMemory(const void* ptr);
     // Best-effort diagnostic read. On failure the destination may contain a partial prefix.
     bool     tryReadMemory(std::span<std::byte> outBytes, const void* address);
     bool     addHostJitFunctionTable(JITMemory& executableMemory);

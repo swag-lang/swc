@@ -1475,8 +1475,8 @@ namespace PostRaPeephole
                 return false;
             opBits = consumerBits;
         }
-        const bool        packed        = opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(op);
-        const bool        integerPacked = packed && !isPackedFloatBinaryMicroOp(op);
+        const bool packed        = opBits == MicroOpBits::B128 && isPackedBinaryMemoryMicroOp(op);
+        const bool integerPacked = packed && !isPackedFloatBinaryMicroOp(op);
         if (packed && indexed && !integerPacked)
             return false;
         if (consumerBits != opBits || (opBits == MicroOpBits::B128 && !fused && !packed))
@@ -1499,9 +1499,9 @@ namespace PostRaPeephole
         const auto* copyInst     = ctx.instruction(copyRef);
         const auto* copyOps      = copyInst ? copyInst->ops(*ctx.operands) : nullptr;
         const bool  restoredLeft = isFloat && threeOperand && !packed && consumerOps[0].reg == loaded &&
-                                   copyInst && copyInst->op == MicroInstrOpcode::LoadRegReg && copyOps &&
-                                   copyOps[0].reg == consumerOps[1].reg && copyOps[1].reg == loaded && copyOps[2].opBits == opBits;
-        const bool  vexMemory    = isFloat && !restoredLeft && (packed || (threeOperand && consumerOps[0].reg != consumerOps[leftIndex].reg) || (lateFloatMemory && !threeOperand));
+                                  copyInst && copyInst->op == MicroInstrOpcode::LoadRegReg && copyOps &&
+                                  copyOps[0].reg == consumerOps[1].reg && copyOps[1].reg == loaded && copyOps[2].opBits == opBits;
+        const bool vexMemory = isFloat && !restoredLeft && (packed || (threeOperand && consumerOps[0].reg != consumerOps[leftIndex].reg) || (lateFloatMemory && !threeOperand));
         if (fused || vexMemory)
         {
             // This VEX memory form uses a full-width base and index. A
@@ -2621,7 +2621,7 @@ namespace PostRaPeephole
 
         const bool     indexed = opInst->op == MicroInstrOpcode::OpBinaryRegAmcMem;
         const bool     memory  = indexed || opInst->op == MicroInstrOpcode::OpBinaryRegMem;
-        const MicroReg src2 = binOps[1].reg;
+        const MicroReg src2    = binOps[1].reg;
         // A register right operand cannot read the destination before the
         // removed copy has supplied it. Memory bases are integer registers.
         if (!memory && (!src2.isFloat() || src2 == dst))

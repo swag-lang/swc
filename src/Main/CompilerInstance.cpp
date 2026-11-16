@@ -279,7 +279,7 @@ namespace
     // another module's code reaches them. A thread with no compiler task has no registry to check.
     // This re-enters a Swag function, whose scalar ABI follows Windows x64 on every host.
 #if defined(__linux__) && defined(__x86_64__)
-    using RuntimeAllocatorBorrowGuard = void (__attribute__((ms_abi)) *)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
+    using RuntimeAllocatorBorrowGuard = void(__attribute__((ms_abi)) *)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
 #else
     using RuntimeAllocatorBorrowGuard = void (*)(const void*, uint64_t, const Runtime::SourceCodeLocation*, uint64_t*);
 #endif
@@ -393,7 +393,7 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     externalModuleMgr_ = std::make_unique<ExternalModuleManager>();
     // Code generation may embed this interface's address before any JIT call.
     // Its native adapters are only needed when generated code actually executes.
-    runtimeCompiler_.obj = this;
+    runtimeCompiler_.obj    = this;
     runtimeCompiler_.itable = runtimeCompilerITable_;
 }
 
@@ -831,7 +831,7 @@ void CompilerInstance::ensureProcessInfoRunArgs()
     // never die with an instance: intern it for the lifetime of the process.
     struct StoredProcessArgs
     {
-        std::string                 commandLine;
+        std::string                  commandLine;
         std::vector<std::string>     values;
         std::vector<Runtime::String> slices;
     };

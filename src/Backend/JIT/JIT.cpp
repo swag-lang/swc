@@ -28,8 +28,8 @@
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Helpers.h"
-#include "Support/Os/Os.h"
 #include "Support/Os/Os.Exception.Linux.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Support/Report/HardwareException.h"
@@ -73,9 +73,9 @@ namespace
     // shares their argument/result and nonvolatile registers with Windows x64;
     // select that scalar call contract explicitly on a System V compiler host.
 #if defined(__linux__) && defined(__x86_64__)
-    using RuntimeSetupInvoker = void (__attribute__((ms_abi)) *)(Runtime::RuntimeFlags);
-    using RuntimeHookInvoker  = void (__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
-    using SwagScalarInvoker   = void (__attribute__((ms_abi)) *)(uint64_t);
+    using RuntimeSetupInvoker = void(__attribute__((ms_abi)) *)(Runtime::RuntimeFlags);
+    using RuntimeHookInvoker  = void(__attribute__((ms_abi)) *)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+    using SwagScalarInvoker   = void(__attribute__((ms_abi)) *)(uint64_t);
 #else
     using RuntimeSetupInvoker = void (*)(Runtime::RuntimeFlags);
     using RuntimeHookInvoker  = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
@@ -143,9 +143,9 @@ namespace
 
     struct RuntimeExceptionDiagnosticInfo
     {
-        DiagnosticId       diagId          = DiagnosticId::None;
-        DiagnosticSeverity severity        = DiagnosticSeverity::Error;
-        JITCallErrorKind   errorKind       = JITCallErrorKind::None;
+        DiagnosticId           diagId          = DiagnosticId::None;
+        DiagnosticSeverity     severity        = DiagnosticSeverity::Error;
+        JITCallErrorKind       errorKind       = JITCallErrorKind::None;
         RuntimeExceptionAction exceptionAction = RuntimeExceptionAction::Recover;
     };
 
@@ -877,18 +877,18 @@ namespace
         // is not entered. Process storage must join the native host runtime's anchor.
         if (ctx.cmdLine().targetOs != hostTargetOs())
         {
-            using Kind = IdentifierManager::RuntimeFunctionKind;
-            void* hostFunction = nullptr;
-            uint32_t numArgs = 0;
+            using Kind            = IdentifierManager::RuntimeFunctionKind;
+            void*    hostFunction = nullptr;
+            uint32_t numArgs      = 0;
             if (&targetFunction == ctx.compiler().runtimeFunctionSymbol(Kind::TlsGetPtr))
             {
                 hostFunction = reinterpret_cast<void*>(&Os::tlsGetValue);
-                numArgs = 1;
+                numArgs      = 1;
             }
             else if (&targetFunction == ctx.compiler().runtimeFunctionSymbol(Kind::HostProcessStorage))
             {
                 hostFunction = reinterpret_cast<void*>(&Os::processStorage);
-                numArgs = 2;
+                numArgs      = 2;
             }
             else if (&targetFunction == ctx.compiler().runtimeFunctionSymbol(Kind::HostCurrentThreadId))
                 hostFunction = reinterpret_cast<void*>(&Os::currentThreadId);
@@ -1467,7 +1467,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
 
     // Allocate writable memory first. Relocations and optional unwind bytes are patched
     // before finalize() flips the page permissions and registers host unwind metadata.
-    const uint32_t codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
+    const uint32_t codeSize       = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool     registerUnwind = !unwindInfo.empty();
 
     // Calls reserve nearby fallback thunks for targets outside rel32 reach.
@@ -1531,7 +1531,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     if (registerUnwind)
         JITMemoryManager::copyUnwindInfo(outExecutableMemory, unwindInfo.span());
 #ifdef __linux__
-    uint32_t tlsIsland = static_cast<uint32_t>(islandBaseU64) + relocationIslandSize;
+    uint32_t        tlsIsland = static_cast<uint32_t>(islandBaseU64) + relocationIslandSize;
     const std::span patchableCode{static_cast<std::byte*>(outExecutableMemory.entryPoint()), allocationSize};
     for (const X64TlsAccess& access : tlsAccesses)
     {
@@ -1645,13 +1645,13 @@ Result JIT::emitForeignTargetGuard(TaskContext& ctx, JITMemory& outExecutableMem
 {
     SWC_ASSERT(ctx.cmdLine().targetOs != hostTargetOs());
     MicroBuilder builder(ctx);
-    const auto functionReg = MicroReg::virtualIntReg(1);
-    const auto callbackReg = MicroReg::virtualIntReg(2);
+    const auto   functionReg = MicroReg::virtualIntReg(1);
+    const auto   callbackReg = MicroReg::virtualIntReg(2);
     // The guard outlives emission; embed its stable symbol address rather than
     // borrowing the raw-call helper's argument array from this native stack.
     builder.emitLoadRegPtrImm(functionReg, reinterpret_cast<uint64_t>(&targetFunction));
     const ABICall::PreparedArg argument{.srcReg = functionReg, .numBits = 64};
-    const auto prepared = ABICall::prepareArgs(builder, CallConv::hostKind(), std::span{&argument, 1});
+    const auto                 prepared = ABICall::prepareArgs(builder, CallConv::hostKind(), std::span{&argument, 1});
     builder.emitLoadRegPtrImm(callbackReg, reinterpret_cast<uint64_t>(&rejectForeignTargetCall));
     ABICall::callReg(builder, CallConv::hostKind(), callbackReg, prepared);
     builder.emitTrap();
@@ -1700,7 +1700,7 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
     const CallConv&         incomingConv = CallConv::get(CallConvKind::Swag);
     // Compiler callbacks always use the host ABI, independently of native output.
     const CallConvKind nativeKind = CallConv::hostKind();
-    const CallConv& nativeConv = CallConv::get(nativeKind);
+    const CallConv&    nativeConv = CallConv::get(nativeKind);
     SWC_ASSERT(incomingConv.intReturn == nativeConv.intReturn);
 
     // Capture every incoming lane before the native ABI assigns its own lanes.
@@ -1723,7 +1723,7 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
         args[index] = {.srcReg = source, .numBits = 64};
     }
     const ABICall::PreparedCall preparedCall = ABICall::prepareArgs(builder, nativeKind, std::span(args.data(), numArgs));
-    const MicroReg targetReg = MicroReg::virtualIntReg(3);
+    const MicroReg              targetReg    = MicroReg::virtualIntReg(3);
     builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(targetFn));
     ABICall::callReg(builder, nativeKind, targetReg, preparedCall);
     builder.emitRet();
@@ -1760,10 +1760,10 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     SmallVector<ABICall::Arg>               packedArgs;
     SmallVector<SystemVAbi::Classification> systemVArgTypes;
     SmallVector<IndirectArgCopy>            indirectArgCopies;
-    uint32_t                     indirectArgStorageSize = 0;
-    const bool                   hasIndirectRetArg      = retType.isIndirect;
-    const uint32_t               packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
-    const bool                   directReturn           = !retType.isVoid && !retType.isIndirect;
+    uint32_t                                indirectArgStorageSize = 0;
+    const bool                              hasIndirectRetArg      = retType.isIndirect;
+    const uint32_t                          packedArgBaseOffset    = hasIndirectRetArg ? 1u : 0u;
+    const bool                              directReturn           = !retType.isVoid && !retType.isIndirect;
 
     packedArgs.resize(args.size() + packedArgBaseOffset);
     if (conv.isSystemVAMD64)
@@ -1794,8 +1794,8 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
         if (argType.isSystemVStorage())
         {
-            const uint32_t index = i + packedArgBaseOffset;
-            systemVArgTypes[index]       = argType.systemVStorageType();
+            const uint32_t index          = i + packedArgBaseOffset;
+            systemVArgTypes[index]        = argType.systemVStorageType();
             packedArgs[index].value       = reinterpret_cast<uint64_t>(arg.valuePtr);
             packedArgs[index].numBits     = 64;
             packedArgs[index].systemVType = &systemVArgTypes[index];
@@ -2143,10 +2143,10 @@ namespace
         const TaskContext* current = TaskContext::current();
         SWC_ASSERT(current && current->hasCompiler());
         SWC_ASSERT(context == CompilerInstance::runtimeContextFromTls());
-        TaskContext& ctx = *const_cast<TaskContext*>(current);
-        auto errorKind = JITCallErrorKind::None;
-        auto action = RuntimeExceptionAction::Recover;
-        const bool reported = tryReportRuntimeException(ctx, K_COMPILER_EXCEPTION_CODE, nullptr, &errorKind, action);
+        TaskContext& ctx       = *const_cast<TaskContext*>(current);
+        auto         errorKind = JITCallErrorKind::None;
+        auto         action    = RuntimeExceptionAction::Recover;
+        const bool   reported  = tryReportRuntimeException(ctx, K_COMPILER_EXCEPTION_CODE, nullptr, &errorKind, action);
         SWC_ASSERT(reported);
         if (action == RuntimeExceptionAction::Recover)
             throw RuntimeDiagnosticCall{errorKind};
@@ -2323,7 +2323,7 @@ namespace
 #ifdef _WIN32
     int windowsJitExceptionFilter(TaskContext& ctx, const void* exceptionPointers, JITCallErrorKind& errorKind)
     {
-        uint32_t code = 0;
+        uint32_t    code    = 0;
         const void* address = nullptr;
         Os::decodeHostException(code, address, exceptionPointers);
         // Native C++ exceptions must reach their handlers and run destructors.
@@ -2407,8 +2407,8 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
         ctx.compiler().ensureProcessInfoRunArgs();
     }
 
-    auto callError    = JITCallErrorKind::None;
-    auto callResult   = Result::Continue;
+    auto callError  = JITCallErrorKind::None;
+    auto callResult = Result::Continue;
 
     auto invoke = [&] {
         if (setupInvoker)
@@ -2443,7 +2443,7 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
     catch (const RuntimeDiagnosticCall& error)
     {
         hasException = true;
-        callError = error.errorKind;
+        callError    = error.errorKind;
     }
     catch (const ForeignTargetCall& error)
     {

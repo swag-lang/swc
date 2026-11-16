@@ -171,7 +171,7 @@ namespace
         else
         {
             Os::WindowsToolchainPaths toolchain;
-            const auto toolchainResult = Linker::queryToolchainPaths(nativeBuilder, toolchain);
+            const auto                toolchainResult = Linker::queryToolchainPaths(nativeBuilder, toolchain);
             CommandPrint::addNativeToolchainEntries(entries, toolchainResult, toolchain);
         }
 

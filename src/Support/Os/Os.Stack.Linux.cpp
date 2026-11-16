@@ -54,8 +54,8 @@ bool Os::resolveAddress(ResolvedAddress& outAddress, const uintptr_t address, co
         outAddress.moduleName = info.dli_fname;
     if (info.dli_sname)
     {
-        int status = 0;
-        char* demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
+        int   status          = 0;
+        char* demangled       = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
         outAddress.symbolName = status == 0 && demangled ? demangled : info.dli_sname;
         std::free(demangled);
     }

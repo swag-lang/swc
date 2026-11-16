@@ -294,9 +294,9 @@ SWC_TEST_END()
 // Equal SSA values also keep the register-to-register compare path eligible.
 SWC_TEST_BEGIN(BranchSimplify_FoldsKnownRegRegBranch)
 {
-    constexpr MicroReg vA = MicroReg::virtualIntReg(1);
-    constexpr MicroReg vB = MicroReg::virtualIntReg(2);
-    MicroBuilder      builder(ctx);
+    constexpr MicroReg  vA = MicroReg::virtualIntReg(1);
+    constexpr MicroReg  vB = MicroReg::virtualIntReg(2);
+    MicroBuilder        builder(ctx);
     const MicroLabelRef labelThen = builder.createLabel();
 
     builder.emitLoadRegImm(vA, ApInt(7, 64), MicroOpBits::B64);

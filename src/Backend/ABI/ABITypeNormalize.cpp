@@ -68,8 +68,8 @@ ABITypeNormalize::NormalizedType ABITypeNormalize::normalize(TaskContext& ctx, c
         SWC_FORCE_ASSERT(storage.has_value() && "unsupported System V storage type");
         NormalizedType result = makeNormalizedType(false, false, false, 64);
         result.systemVClasses = 0x80 | static_cast<uint8_t>(storage->classes[0]) | (static_cast<uint8_t>(storage->classes[1]) << 3);
-        result.indirectSize = storage->size;
-        result.indirectAlign = storage->alignment;
+        result.indirectSize   = storage->size;
+        result.indirectAlign  = storage->alignment;
         // MEMORY arguments are copied by value onto the stack. Only a MEMORY
         // result consumes an implicit pointer in the first integer argument lane.
         result.isIndirect = usage == Usage::Return && storage->memory();

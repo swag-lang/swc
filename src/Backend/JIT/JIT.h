@@ -64,7 +64,7 @@ public:
     static void releaseThreadStorage(const std::function<bool(const void*)>& ownsCallback);
 
 private:
-    static void prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations, std::span<const X64TlsAccess> tlsAccesses = {});
+    static void  prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemory, const ByteArray& linearCode, const ByteArray& unwindInfo, std::span<const MicroRelocation> relocations, std::span<const X64TlsAccess> tlsAccesses = {});
     static void* hostTlsReadAdapter(const X64TlsAccess& access);
 };
 

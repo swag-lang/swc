@@ -196,11 +196,11 @@ struct SemaEscapeFreesForwarding
 
 struct SemaEscapeFieldSummaryForwarding
 {
-    SymbolFunction*       caller           = nullptr;
-    const SymbolFunction* callee           = nullptr;
-    uint32_t              callerParamIndex = 0;
-    uint32_t              calleeParamIndex = 0;
-    const SymbolVariable* field            = nullptr;
+    SymbolFunction*       caller                      = nullptr;
+    const SymbolFunction* callee                      = nullptr;
+    uint32_t              callerParamIndex            = 0;
+    uint32_t              calleeParamIndex            = 0;
+    const SymbolVariable* field                       = nullptr;
     bool                  calleeFreesProjectedPointer = false;
 };
 

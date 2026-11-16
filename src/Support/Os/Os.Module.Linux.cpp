@@ -42,8 +42,8 @@ bool Os::loadExternalModule(void*& outModuleHandle, const std::string_view modul
     if (moduleName.empty() || moduleName.find('\0') != std::string_view::npos)
         return false;
 
-    const fs::path requested{moduleName};
-    const auto     filename = requested.filename().string();
+    const fs::path        requested{moduleName};
+    const auto            filename = requested.filename().string();
     std::vector<fs::path> candidates{requested};
     if (!filename.ends_with(".so") && filename.find(".so.") == std::string::npos)
     {

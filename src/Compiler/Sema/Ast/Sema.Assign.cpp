@@ -31,7 +31,7 @@ namespace
         if (assignList.hasFlag(AstAssignListFlagsE::Destructuring))
             return TypeRef::invalid();
 
-        TypeRef result = TypeRef::invalid();
+        TypeRef                 result = TypeRef::invalid();
         SmallVector<AstNodeRef> leftRefs;
         sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
         for (const AstNodeRef leftRef : leftRefs)
@@ -403,7 +403,7 @@ Result AstAssignStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
     if (childRef == nodeLeftRef && nodeRightRef.isValid())
     {
         // Provide a type hint to the RHS: `a = expr` should type `expr` as `typeof(a)` when possible.
-        const SemaNodeView leftView = sema.viewType(nodeLeftRef);
+        const SemaNodeView leftView       = sema.viewType(nodeLeftRef);
         TypeRef            bindingTypeRef = leftView.typeRef();
         if (sema.node(nodeLeftRef).is(AstNodeId::AssignList))
             bindingTypeRef = commonMultiAssignTargetTypeRef(sema, sema.node(nodeLeftRef).cast<AstAssignList>());

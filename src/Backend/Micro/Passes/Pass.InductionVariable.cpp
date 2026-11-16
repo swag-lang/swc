@@ -680,10 +680,10 @@ namespace
             if (nextVirtualIntRegIndex == 0)
                 nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-            thread_local std::vector<Carrier>         carriers;
-            thread_local std::vector<MicroInstrRef>   erased;
-            thread_local FlatKeySet                   inductionsCarried;
-            thread_local std::vector<uint32_t>        carriedInductionOrder;
+            thread_local std::vector<Carrier>       carriers;
+            thread_local std::vector<MicroInstrRef> erased;
+            thread_local FlatKeySet                 inductionsCarried;
+            thread_local std::vector<uint32_t>      carriedInductionOrder;
             carriers.clear();
             erased.clear();
             inductionsCarried.clear();

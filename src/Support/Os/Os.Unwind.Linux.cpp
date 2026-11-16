@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "Support/Os/Os.h"
 #include "Backend/Encoder/Frame.DWARF.X64.h"
 #include "Backend/JIT/JITMemory.h"
-#include "Support/Os/Os.h"
 #include "Support/Os/Os.Exception.Linux.h"
 
 #ifdef __linux__
@@ -14,16 +14,16 @@ namespace
 {
     struct RegisteredFrame
     {
-        ByteArray frame;
-        uintptr_t start = 0;
-        uintptr_t end = 0;
-        std::atomic<RegisteredFrame*> next = nullptr;
-        RegisteredFrame* previous = nullptr; // Only registration writers use this link.
+        ByteArray                     frame;
+        uintptr_t                     start    = 0;
+        uintptr_t                     end      = 0;
+        std::atomic<RegisteredFrame*> next     = nullptr;
+        RegisteredFrame*              previous = nullptr; // Only registration writers use this link.
     };
 
-    std::mutex frameMutex;
-    std::atomic<RegisteredFrame*> firstFrame = nullptr;
-    std::atomic<uint32_t> frameReaders = 0;
+    std::mutex                    frameMutex;
+    std::atomic<RegisteredFrame*> firstFrame   = nullptr;
+    std::atomic<uint32_t>         frameReaders = 0;
     static_assert(std::atomic<RegisteredFrame*>::is_always_lock_free && std::atomic<uint32_t>::is_always_lock_free);
 }
 
@@ -60,10 +60,10 @@ bool Os::addHostJitFunctionTable(JITMemory& executableMemory)
     // Executable storage may already be RX. Keep relocated, naturally aligned
     // metadata separately so registration never opens code pages for writing.
     const auto* source = static_cast<const std::byte*>(executableMemory.ptr_) + executableMemory.unwindInfoOffset_;
-    auto node = std::make_unique<RegisteredFrame>();
+    auto        node   = std::make_unique<RegisteredFrame>();
     node->frame.assign(source, source + executableMemory.unwindInfoSize_);
     node->start = reinterpret_cast<uintptr_t>(executableMemory.ptr_);
-    node->end = node->start + executableMemory.size_;
+    node->end   = node->start + executableMemory.size_;
     if (!X64DwarfFrame::relocate(node->frame, node->start, executableMemory.size_))
         return false;
     {
@@ -86,7 +86,7 @@ void Os::removeHostJitFunctionTable(JITMemory& executableMemory)
         return;
     {
         const std::scoped_lock lock(frameMutex);
-        RegisteredFrame* next = node->next.load();
+        RegisteredFrame*       next = node->next.load();
         if (node->previous)
             node->previous->next.store(next);
         else

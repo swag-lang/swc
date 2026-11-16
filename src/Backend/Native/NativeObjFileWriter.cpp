@@ -3,10 +3,10 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeObjFileWriter.COFF.h"
 #include "Backend/Native/NativeObjFileWriter.ELF.h"
-#include "Main/FileSystem.h"
 #include "Backend/Native/NativeObjectFormat.h"
 #include "Backend/Runtime.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/FileSystem.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -70,12 +70,12 @@ namespace
             frame.saveRegister(17 + reg, -static_cast<int32_t>(cfaOffset + 256 - reg * 16));
         }
         appendInstruction(code, {0x48, 0x83, 0xe4, 0xf0}); // and rsp, -16
-        appendInstruction(code, {0x48, 0x8b, 0xbd}); // mov rdi, saved slot+1
+        appendInstruction(code, {0x48, 0x8b, 0xbd});       // mov rdi, saved slot+1
         code.appendLe32(savedRegisterOffset(access.slot));
         appendInstruction(code, {0x48, 0x83, 0xef, 1}); // sub rdi, 1
-        appendInstruction(code, {0x48, 0xb8}); // mov rax, host TLS getter
+        appendInstruction(code, {0x48, 0xb8});          // mov rax, host TLS getter
         code.appendLe64(reinterpret_cast<uint64_t>(&Os::tlsGetValue));
-        appendInstruction(code, {0xff, 0xd0}); // call rax
+        appendInstruction(code, {0xff, 0xd0});       // call rax
         appendInstruction(code, {0x48, 0x89, 0x85}); // replace the saved destination
         code.appendLe32(savedRegisterOffset(access.destination));
         for (uint32_t reg = 0; reg < 16; ++reg)
@@ -112,17 +112,17 @@ void* JIT::hostTlsReadAdapter(const X64TlsAccess& access)
 {
     struct Adapter
     {
-        uint32_t destination;
-        uint32_t slot;
+        uint32_t  destination;
+        uint32_t  slot;
         JITMemory memory;
     };
     struct Cache
     {
-        std::mutex mutex;
-        JITMemoryManager manager;
+        std::mutex           mutex;
+        JITMemoryManager     manager;
         std::vector<Adapter> entries;
     };
-    static Cache cache;
+    static Cache           cache;
     const std::scoped_lock lock(cache.mutex);
     for (const Adapter& adapter : cache.entries)
         if (adapter.destination == access.destination && adapter.slot == access.slot)

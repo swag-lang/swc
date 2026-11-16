@@ -1,8 +1,8 @@
 #include "pch.h"
-#include "Backend/Linker/Format.PE.h"
 #include "Backend/Linker/ImageWriter.PE.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Archive.COFF.h"
+#include "Backend/Linker/Format.PE.h"
 #include "Backend/Linker/Writer.PDB.h"
 #include "Main/Version.h"
 #include "Support/Math/Helpers.h"
@@ -924,7 +924,7 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     });
     for (const uint32_t sectionIdx : headerOrder)
     {
-        const OutSection&    section = sections_[sectionIdx];
+        const OutSection& section = sections_[sectionIdx];
         PE::SectionHeader header{};
         std::memcpy(header.Name, section.name.data(), std::min<size_t>(section.name.size(), PE::SIZEOF_SHORT_NAME));
         header.Misc.VirtualSize = section.virtualSize;

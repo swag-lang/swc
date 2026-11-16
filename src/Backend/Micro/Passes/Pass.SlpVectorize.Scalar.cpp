@@ -397,12 +397,12 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
     std::vector<ScalarExitCopy> exitCopies;
     for (const ScalarBlock& block : blocks)
     {
-        FlatKeyMap<MicroReg>                   names;
-        FlatKeyMap<uint32_t>                   lastDefinitions;
-        SmallVector<MicroReg, 8>               definitionOrder;
-        FlatKeySet                             members;
+        FlatKeyMap<MicroReg>     names;
+        FlatKeyMap<uint32_t>     lastDefinitions;
+        SmallVector<MicroReg, 8> definitionOrder;
+        FlatKeySet               members;
         members.reserve(block.instructions.size());
-        bool                                   eligible = true;
+        bool eligible = true;
         for (const MicroInstrRef reference : block.instructions)
         {
             members.insert(reference.get());

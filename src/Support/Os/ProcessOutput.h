@@ -9,7 +9,10 @@ namespace Os
     class ProcessOutput
     {
     public:
-        explicit ProcessOutput(const ProcessRunOptions* options) : options_(options) {}
+        explicit ProcessOutput(const ProcessRunOptions* options) :
+            options_(options)
+        {
+        }
         bool needsPipe() const;
         void append(std::string_view bytes);
         void flush();

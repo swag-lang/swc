@@ -44,7 +44,7 @@ namespace SystemVAbi
             if (into.memory())
                 return true;
             const TypeInfo& type = input.unwrapAliasEnumTypeOrSelf(ctx);
-            const uint64_t size = type.sizeOf(ctx);
+            const uint64_t  size = type.sizeOf(ctx);
             if (!size)
                 return true;
             const uint32_t alignment = std::max(type.alignOf(ctx), 1u);
@@ -102,7 +102,7 @@ namespace SystemVAbi
             if (type.isArray())
             {
                 const TypeInfo& element = ctx.typeMgr().get(type.payloadArrayElemTypeRef());
-                const uint64_t stride = element.sizeOf(ctx);
+                const uint64_t  stride  = element.sizeOf(ctx);
                 if (!stride)
                     return true;
                 for (uint32_t cursor = 0; cursor < size; cursor += static_cast<uint32_t>(stride))
@@ -117,12 +117,12 @@ namespace SystemVAbi
                 uint32_t cursor = 0;
                 for (const TypeRef fieldRef : type.payloadAggregate().types)
                 {
-                    const TypeInfo& field = ctx.typeMgr().get(fieldRef);
-                    const uint64_t fieldSize = field.sizeOf(ctx);
+                    const TypeInfo& field     = ctx.typeMgr().get(fieldRef);
+                    const uint64_t  fieldSize = field.sizeOf(ctx);
                     if (!fieldSize)
                         continue;
                     const uint32_t align = std::max(field.alignOf(ctx), 1u);
-                    cursor = (cursor + align - 1) / align * align;
+                    cursor               = (cursor + align - 1) / align * align;
                     if (!classifyField(ctx, into, field, offset + cursor))
                         return false;
                     cursor += static_cast<uint32_t>(fieldSize);
@@ -149,7 +149,7 @@ namespace SystemVAbi
         if (size > UINT32_MAX)
             return std::nullopt;
         Classification result;
-        result.size = static_cast<uint32_t>(size);
+        result.size      = static_cast<uint32_t>(size);
         result.alignment = std::max(type.alignOf(ctx), 1u);
         if (size > 16)
         {
@@ -171,16 +171,16 @@ namespace SystemVAbi
         if (!type.size)
             return result;
         const uint32_t integers = type.integerRegisters();
-        const uint32_t vectors = type.vectorRegisters();
+        const uint32_t vectors  = type.vectorRegisters();
         // A split aggregate is indivisible: failure in either bank leaves both
         // counters untouched, so later scalar arguments can still use those lanes.
         if (type.memory() || integers_ + integers > 6 || vectors_ + vectors > 8)
         {
             const uint32_t alignment = std::max(type.alignment, 8u);
-            stackAlignment_ = std::max(stackAlignment_, alignment);
-            stackSize_ = (stackSize_ + alignment - 1) / alignment * alignment;
-            result.onStack = true;
-            result.stackOffset = stackSize_;
+            stackAlignment_          = std::max(stackAlignment_, alignment);
+            stackSize_               = (stackSize_ + alignment - 1) / alignment * alignment;
+            result.onStack           = true;
+            result.stackOffset       = stackSize_;
             stackSize_ += (static_cast<uint64_t>(type.size) + 7) / 8 * 8;
             return result;
         }

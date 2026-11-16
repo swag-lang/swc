@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
-#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABICall.SystemV.h"
+#include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
@@ -1447,8 +1447,8 @@ Result CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(CodeGen& codeGen)
     {
         // #run and compiler-only functions execute in the compiler even when its output
         // targets another OS. Their error flag belongs to the host thread's context.
-        const CallConvKind hostKind = CallConv::hostKind();
-        const MicroReg targetReg = codeGen.nextVirtualIntRegister();
+        const CallConvKind hostKind  = CallConv::hostKind();
+        const MicroReg     targetReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(&CompilerInstance::runtimeContextFromTls));
         const auto prepared = ABICall::prepareArgs(builder, hostKind, {});
         ABICall::callReg(builder, hostKind, targetReg, prepared);

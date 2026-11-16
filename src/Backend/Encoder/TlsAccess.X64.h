@@ -7,9 +7,9 @@ SWC_BEGIN_NAMESPACE();
 struct X64TlsAccess
 {
     static constexpr uint32_t K_INSTRUCTION_SIZE = 9;
-    uint32_t codeOffset = 0;
-    uint32_t destination = 0;
-    uint32_t slot = 0;
+    uint32_t                  codeOffset         = 0;
+    uint32_t                  destination        = 0;
+    uint32_t                  slot               = 0;
 
     bool valid(std::span<const std::byte> code) const
     {

@@ -1,7 +1,7 @@
 #pragma once
 #include "Backend/Encoder/Encoder.h"
-#include "Backend/Encoder/Unwind.X64.h"
 #include "Backend/Encoder/TlsAccess.X64.h"
+#include "Backend/Encoder/Unwind.X64.h"
 
 #ifndef IMAGE_REL_AMD64_ADDR64
 #define IMAGE_REL_AMD64_ADDR64 0x0001
@@ -18,7 +18,7 @@ class X64Encoder : public Encoder
 {
 public:
     explicit X64Encoder(TaskContext& ctx);
-    void reset(TaskContext& ctx) override;
+    void                      reset(TaskContext& ctx) override;
     std::vector<X64TlsAccess> releaseTlsAccesses() { return std::move(tlsAccesses_); }
 
     void        buildUnwindInfo(ByteArray& outUnwindInfo) const override;
@@ -136,7 +136,7 @@ protected:
     bool supportsNonDestructiveFloatBinary() const override { return true; }
     bool supportsFusedFloatMultiplyAdd() const override { return true; }
 
-    std::vector<X64TlsAccess> tlsAccesses_;
+    std::vector<X64TlsAccess>  tlsAccesses_;
     std::unique_ptr<X64Unwind> unwind_;
     std::unique_ptr<X64Unwind> hostUnwind_;
     Runtime::TargetOs          unwindTargetOs_;

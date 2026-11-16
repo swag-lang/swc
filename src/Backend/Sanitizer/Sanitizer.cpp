@@ -77,7 +77,7 @@ namespace
                      (found->second.srcViewRef != source.srcViewRef || found->second.tokRef != source.tokRef))
             {
                 found->second = {};
-                changed      = true;
+                changed       = true;
             }
         }
     }
@@ -490,10 +490,10 @@ void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIn
         const uint32_t stateIndex = headStateIndex_[head];
 
         ChainFacts& chain = chains[stateIndex];
-        const auto  stamp    = stateIndex + 1;
+        const auto  stamp = stateIndex + 1;
         // Keep first-use marks distinct from definitions and every other chain's stamp.
-        const auto  useStamp = stamp + K_MAX_INSTRUCTIONS + 1;
-        uint32_t    index    = head;
+        const auto useStamp = stamp + K_MAX_INSTRUCTIONS + 1;
+        uint32_t   index    = head;
         for (;;)
         {
             const MicroInstr&    inst = *context_.instructions->ptr(cfg.instructionRefs()[index]);
@@ -1678,11 +1678,11 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                 if (const auto alias = state.aliasPtrLocations.find(slot); alias != state.aliasPtrLocations.end())
                 {
                     info.hasOriginLocation = true;
-                    info.originLocation = alias->second;
+                    info.originLocation    = alias->second;
                     if (const auto* released = state.findFreedPtrLocation(alias->second))
                     {
                         info.releasedPointer = true;
-                        info.releasedOrigin = *released;
+                        info.releasedOrigin  = *released;
                     }
                 }
 
@@ -2007,15 +2007,15 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                         continue;
 
                     SanitizerLocation fieldLocation;
-                    bool haveLocation = false;
-                    const TypeInfo& paramType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), calleeFn->parameters()[effect.paramIndex]->typeRef());
+                    bool              haveLocation = false;
+                    const TypeInfo&   paramType    = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), calleeFn->parameters()[effect.paramIndex]->typeRef());
                     if (!paramType.isPointerOrReference())
                         continue;
                     const TypeInfo& payloadType = ctx().typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), paramType.payloadTypeRef());
                     if (!payloadType.isStruct())
                         continue;
-                    const SymbolStruct& payloadStruct = payloadType.payloadSymStruct();
-                    const SymbolVariable* field = nullptr;
+                    const SymbolStruct&   payloadStruct = payloadType.payloadSymStruct();
+                    const SymbolVariable* field         = nullptr;
                     for (const SymbolVariable* candidate : payloadStruct.fields())
                     {
                         if (candidate && candidate->name(ctx()) == effect.fieldName)
@@ -2030,16 +2030,16 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     if (argInfo->value.isStackAddr())
                     {
                         fieldLocation.fromSlot = true;
-                        fieldLocation.slot = argInfo->value.stackOffset;
-                        fieldLocation.offset = field->offset();
-                        haveLocation = true;
+                        fieldLocation.slot     = argInfo->value.stackOffset;
+                        fieldLocation.offset   = field->offset();
+                        haveLocation           = true;
                     }
                     else if (argInfo->hasOriginSlot)
                     {
                         fieldLocation.fromSlot = true;
-                        fieldLocation.slot = argInfo->originSlot;
-                        fieldLocation.offset = field->offset();
-                        haveLocation = true;
+                        fieldLocation.slot     = argInfo->originSlot;
+                        fieldLocation.offset   = field->offset();
+                        haveLocation           = true;
                     }
                     else if (argInfo->hasAddressLocation)
                     {
@@ -2096,20 +2096,20 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
                     if (!field)
                         continue;
                     SanitizerLocation fieldLocation;
-                    bool haveLocation = false;
+                    bool              haveLocation = false;
                     if (argInfo->value.isStackAddr())
                     {
                         fieldLocation.fromSlot = true;
-                        fieldLocation.slot = argInfo->value.stackOffset;
-                        fieldLocation.offset = field->offset();
-                        haveLocation = true;
+                        fieldLocation.slot     = argInfo->value.stackOffset;
+                        fieldLocation.offset   = field->offset();
+                        haveLocation           = true;
                     }
                     else if (argInfo->hasOriginSlot)
                     {
                         fieldLocation.fromSlot = true;
-                        fieldLocation.slot = argInfo->originSlot;
-                        fieldLocation.offset = field->offset();
-                        haveLocation = true;
+                        fieldLocation.slot     = argInfo->originSlot;
+                        fieldLocation.offset   = field->offset();
+                        haveLocation           = true;
                     }
                     else if (argInfo->hasAddressLocation)
                     {

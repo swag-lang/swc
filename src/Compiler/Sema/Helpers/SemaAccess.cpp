@@ -5,7 +5,6 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
-#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 

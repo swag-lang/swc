@@ -433,5 +433,4 @@ Utf8 FileSystem::sanitizeFileName(Utf8 value)
     return value;
 }
 
-
 SWC_END_NAMESPACE();

@@ -1338,7 +1338,7 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         if (!castRequest.probing && !castIsAttributeArgument && !dstType.isEnumFlags() &&
             !dstType.payloadSymEnum().isIncomplete())
         {
-            const ConstantValue& castValue = sema.cstMgr().get(underlyingRequest.constantFoldingResult());
+            const ConstantValue&       castValue = sema.cstMgr().get(underlyingRequest.constantFoldingResult());
             std::vector<const Symbol*> enumMembers;
             dstType.payloadSymEnum().getAllSymbols(enumMembers);
 
@@ -1348,8 +1348,8 @@ Result Cast::castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
                 if (!member || member->kind() != SymbolKind::EnumValue)
                     continue;
 
-                const auto* enumMember = static_cast<const SymbolEnumValue*>(member);
-                const ConstantValue& enumValue = sema.cstMgr().get(enumMember->cstRef());
+                const auto*          enumMember = static_cast<const SymbolEnumValue*>(member);
+                const ConstantValue& enumValue  = sema.cstMgr().get(enumMember->cstRef());
                 if (!enumValue.isEnumValue())
                     continue;
 

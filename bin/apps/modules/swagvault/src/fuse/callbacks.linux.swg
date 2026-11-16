@@ -129,6 +129,24 @@ namespace Fuse
         return 0
     }
 
+    func writableParent(owner: *MountedVolume, parent: *Node?)->s32
+    {
+        if not parent do
+            return -Linux.ENOENT
+        if not parent.isDirectory() do
+            return -Linux.ENOTDIR
+        if owner.volume.readOnly do
+            return -Linux.EROFS
+        if parent.attributes & FileAttributeReadOnly do
+            return -Linux.EACCES
+        return 0
+    }
+
+    func writableParentPath(owner: *MountedVolume, path: string)->s32
+    {
+        return writableParent(owner, owner.volume.resolveParent(path).parent)
+    }
+
     func commit(owner: *MountedVolume)->s32
     {
         if not owner.volume.readOnly and owner.volume.dirty
@@ -156,6 +174,9 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let value = catch pathString(path) { return statusFromError(Swag.err) }
+        let parentStatus = writableParentPath(owner, value)
+        if parentStatus do
+            return parentStatus
 
         // Creation projects the requested mode into the documented private owner namespace.
         let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0'u32
@@ -176,6 +197,9 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let value      = catch pathString(path) { return statusFromError(Swag.err) }
+        let parentStatus = writableParentPath(owner, value)
+        if parentStatus do
+            return parentStatus
         let attributes = (permissions & Linux.S_IWUSR) == 0 ? FileAttributeReadOnly : 0'u32
         info.fh = catch owner.volume.createNode(value, false, attributes, "") { return statusFromError(Swag.err) }
         owner.activity.handles += 1
@@ -312,6 +336,9 @@ namespace Fuse
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
         if node.isDirectory() do
             return -Linux.EISDIR
+        let parentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
+        if parentStatus do
+            return parentStatus
         catch owner.volume.deleteNode(node.id) { return statusFromError(Swag.err) }
         return 0
     }
@@ -327,6 +354,9 @@ namespace Fuse
         let node = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
         if not node.isDirectory() do
             return -Linux.ENOTDIR
+        let parentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
+        if parentStatus do
+            return parentStatus
         catch owner.volume.deleteNode(node.id) { return statusFromError(Swag.err) }
         return 0
     }
@@ -343,6 +373,12 @@ namespace Fuse
             return -Linux.EINVAL
         let node     = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
         let value    = catch pathString(destination) { return statusFromError(Swag.err) }
+        let sourceParentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
+        if sourceParentStatus do
+            return sourceParentStatus
+        let destinationParentStatus = writableParentPath(owner, value)
+        if destinationParentStatus do
+            return destinationParentStatus
         let existing = owner.volume.resolve(value)
         if existing
         {

@@ -125,6 +125,7 @@ namespace SemaHelpers
 
     // Strip alias, enum, and reference wrappers to compare the storage a binding exposes.
     TypeRef unwrapBindingType(TaskContext& ctx, TypeRef typeRef);
+    bool    mergeCompatibleFunctionBindingType(TypeRef bindingTypeRef, TypeRef resolvedTypeRef, TypeRef& outBindingTypeRef, TypeRef& compareTypeRef);
     TypeRef ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct);
     TypeRef unwrapAliasRefType(TaskContext& ctx, TypeRef typeRef);
 

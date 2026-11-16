@@ -118,8 +118,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   largest previously used capacity on each rebuild.
 - Follow-up: `SanitizerState::upperRegValues` now uses the existing flat map. Its joins and pruning
   treat each packed-register key independently, and its iteration does not select diagnostic order.
-  DevMode C++ (1,715 tests), safety and sanity suites pass; one initial broad-run safety failure
-  passed when the same stage was replayed in its workspace.
+  DevMode C++ (1,715 tests), safety and sanity suites pass. After one non-reproducing initial
+  broad-run safety failure, the full compiler campaign passed all 69 stages.
 - Next: choose another remaining map, establish its traversal order, and design an order-preserving
   flat representation; leave the kept-table reset tradeoff for measurement.
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no

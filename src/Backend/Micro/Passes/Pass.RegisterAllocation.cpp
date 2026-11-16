@@ -1293,28 +1293,36 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
 
     const auto& vregs         = denseVirtualRegs_.regs();
     const auto  headerLiveRow = liveInVirtualBits_.row(region.header);
-    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    // Enumerating live bits avoids probing every function register; bit order
+    // is dense-register order, so the stable use-count sort keeps its ties.
+    for (size_t wordIndex = 0; wordIndex < headerLiveRow.words.size(); ++wordIndex)
     {
-        if (!headerLiveRow.contains(denseIndex))
-            continue;
+        uint64_t wordBits = headerLiveRow.words[wordIndex];
+        while (wordBits)
+        {
+            const uint32_t denseIndex = static_cast<uint32_t>((headerLiveRow.firstWord + wordIndex) * 64ull + std::countr_zero(wordBits));
+            wordBits &= wordBits - 1ull;
+            if (denseIndex >= vregs.size())
+                continue;
 
-        auto& regState = states_[denseIndex];
-        if (regState.mapped || regState.pinned)
-            continue;
-        // The load below reads the value's home, so the value must have one
-        // it can be trusted to be in: a spill slot every boundary keeps
-        // coherent, or a rematerialization recipe.
-        if (!regState.hasSpill && !regState.rematerializable)
-            continue;
+            auto& regState = states_[denseIndex];
+            if (regState.mapped || regState.pinned)
+                continue;
+            // The load below reads the value's home, so the value must have one
+            // it can be trusted to be in: a spill slot every boundary keeps
+            // coherent, or a rematerialization recipe.
+            if (!regState.hasSpill && !regState.rematerializable)
+                continue;
 
-        const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
-        uint32_t    useCount     = 0;
-        for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
-            ++useCount;
-        if (!useCount)
-            continue;
+            const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+            uint32_t    useCount     = 0;
+            for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
+                ++useCount;
+            if (!useCount)
+                continue;
 
-        preloads.push_back({.denseIndex = denseIndex, .useCount = useCount});
+            preloads.push_back({.denseIndex = denseIndex, .useCount = useCount});
+        }
     }
 
     std::ranges::stable_sort(preloads, [](const PreloadCandidate& a, const PreloadCandidate& b) { return a.useCount > b.useCount; });

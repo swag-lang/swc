@@ -301,7 +301,27 @@ namespace Fuse
             return -Linux.EINVAL
         if node.isDirectory() do
             return -Linux.EISDIR
-        let count = catch owner.volume.writeNode(node.id, cast(u64, offset), Swag.makeSlice(buffer, size), (info.flags & 0x400) != 0, false) { return statusFromError(Swag.err) }
+        let writableStatus = writable(owner, node)
+        if writableStatus do
+            return writableStatus
+        let writeToEnd = (info.flags & 0x400) != 0
+        let writeOffset = writeToEnd ? node.size : cast(u64, offset)
+        if size
+        {
+            if writeOffset > Swag.U64.Max - size do
+                return -Linux.EINVAL
+            let firstBlock = writeOffset / BlockSize
+            let lastBlock  = (writeOffset + size - 1) / BlockSize
+            var needed     = lastBlock - firstBlock + 1
+            if writeOffset + size > node.size and
+               node.size % BlockSize != 0 and
+               node.blockSearch(node.size / BlockSize).found do
+                needed += 1
+            if owner.volume.freeBlockCount() < needed do
+                return -Linux.ENOSPC
+        }
+
+        let count = catch owner.volume.writeNode(node.id, cast(u64, offset), Swag.makeSlice(buffer, size), writeToEnd, false) { return statusFromError(Swag.err) }
         return cast(s32, count)
     }
 

@@ -38,6 +38,12 @@ namespace WinFsp
     func volumeSerialNumber(creationTime: u64)->u32
         => cast(u32, (creationTime & 0xFFFF_FFFF))
 
+    func writableVolume(volume: *Volume)->s32
+    {
+        discard catch volume.requireWritable() { return statusFromError(Swag.err) }
+        return StatusSuccess
+    }
+
     // Describes a node to WinFsp: its sizes, attributes, times, and index number.
     func fillInfo(volume: *Volume, nodeId: u64, output: *FileInfo)->s32
     {
@@ -94,6 +100,9 @@ namespace WinFsp
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         let value = cString(label)
         if value.count > 32 * 4 or not Utf8.isValid(value) do
             return StatusInvalidParameter
@@ -167,6 +176,11 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
         volume.freeNodeBlocks(node)
         node.size = 0
         if replaceAttributes do
@@ -190,6 +204,8 @@ namespace WinFsp
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
+        if writableVolume(volume) != StatusSuccess do
+            return
         if (flags & CleanupDelete) != 0
         {
             discard catch volume.deleteNode(nodeId)
@@ -268,6 +284,11 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
         var writeOffset = writeToEnd ? node.size : offset
         var writeLength = cast(u64, length)
         if constrained
@@ -329,6 +350,9 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         if attributes != Swag.U32.Max
         {
             let isDirectory = node.isDirectory()
@@ -363,6 +387,11 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            return StatusAccessDenied
 
         // Setting the allocation size can only shrink the node down to what it already holds.
         let targetSize = setAllocationSize ? Math.min(newSize, node.size) : newSize
@@ -386,6 +415,9 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if nodeId == 1 do
             return StatusAccessDenied
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         if (node.attributes & FileAttributeReadOnly) != 0 do
             return StatusAccessDenied
         if node.isDirectory() and volume.hasChildren(nodeId) do
@@ -435,6 +467,9 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
+        let writableStatus = writableVolume(volume)
+        if writableStatus != StatusSuccess do
+            return writableStatus
         node.security.resize(securitySize)
         if securitySize do
             Swag.memcpy(node.security.storage(), unwrap security, securitySize)

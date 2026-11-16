@@ -81,13 +81,13 @@ dlg_BtnSave            Enregistrer
 dlg_BtnExport          Exporter
 dlg_BtnMove            Déplacer
 msg_RemoveAssociation  L'association avec l'image sera supprimée.
-msg_DeleteCaptures     Le ou les fichiers de capture seront supprimés.
+msg_DeleteCaptures     Les captures sélectionnées vont dans la corbeille, d'où elles peuvent être restaurées.
 msg_OverwriteLinked    L'image d'origine sera écrasée.
 ui_DoNotAskAgain       Ne plus demander
 ui_DoNotShowResidentAgain Ne plus afficher cet avertissement
 ui_CaptureName         Nom de la capture
 msg_EraseTrash         Toutes les captures de la corbeille seront définitivement effacées.
-msg_EraseSelected      La ou les captures sélectionnées seront définitivement effacées.
+msg_EraseSelected      Les captures sélectionnées seront définitivement effacées.
 msg_FailedDuplicate    Impossible de dupliquer la capture
 msg_FailedLocateCapture Impossible de localiser le fichier de capture
 msg_FailedLocateLinked Impossible de localiser l'image liée
@@ -126,7 +126,6 @@ ui_AimRecord           Enregistrer
 ui_AimReady            Prêt à enregistrer
 hint_AimWindow         maintenir pour viser la fenêtre
 hint_AimAttach         suivre la fenêtre
-hint_AimFormat         changer le format
 msg_FailedCaptureScreen Impossible de capturer l'écran
 msg_FailedRecordScreen L'enregistrement n'a pas pu être écrit
 msg_VideoKeptAfterError Enregistrement arrêté après une erreur ; le fichier vidéo a été conservé

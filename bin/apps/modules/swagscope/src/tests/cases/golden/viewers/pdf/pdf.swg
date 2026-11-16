@@ -40,8 +40,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     assertScopeImageGolden(&image, "viewer.pdf.info-bar")
 }
 
-// A document is paper standing on the ground of the window, its outline in the margin beside the
-// page with the part being read on an Arc rule.
+// A document is paper standing on the ground of the window; its outline opens only on demand.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -72,17 +71,10 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let view = assume cast(*PdfDocument.Panel, window.currentView)
     completeViewerBackgroundLoad(&host, &view.load)
 
-    // The writer of the fixture records no outline: the parts are given as a reader found them.
-    for title, page in ["Introduction", "Results", "Method", "Appendices"] do
-        view.bookmarks.add(Pdf.OutlineEntry{title: title, level: 1, pageIndex: Math.min(page, 1)})
-    view.fillMargin()
     window.applyLayout()
-    view.placeMargin()
     host.settleAnimations(window, 4)
 
-    let margin = unwrap view.margin
-    Swag.require(margin.isLocallyVisible() and margin.titles.count == 4 and margin.active == 0)
-    Swag.require(margin.position.right() <= view.pdfView.pageColumn().x)
+    Swag.require(not window.currentSidePanelHost!.isLocallyVisible())
     var image = host.render(window)
     assertScopeImageGolden(&image, "viewer.pdf.page.paper")
 }

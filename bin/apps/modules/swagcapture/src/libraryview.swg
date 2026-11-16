@@ -51,10 +51,11 @@ enum LibraryItemKind
 }
 
 // The selection and the focus of the grid, by file, so they survive a rebuild of the
-// visible set.
+// visible set. The rebuild runs while previews stream in and looks up every cell, so the
+// files are hashed: a whole selected library must not cost a scan of itself per cell.
 struct LibrarySelection
 {
-    files:   Array'String
+    files:   HashSet'String
     focused: String
 }
 
@@ -73,6 +74,7 @@ struct LibraryItem
     visible:  bool
     filtered: bool
     loaded:   bool
+    sortName: String     // The name a sort by name compares, taken once per sort.
 }
 
 impl LibraryItem
@@ -935,6 +937,9 @@ impl LibraryView
                 .postInvalidateEvent()
         }
 
+        // The last refresh rebuilds the list even when a refresh during the load already took
+        // the last preview: a sort deferred until the end of the load runs there.
+        g_DirtyList   = true
         g_UpdatingLib = false
         .postInvalidateEvent()
     }
@@ -946,6 +951,8 @@ impl LibraryView
         if .items.isEmpty() do
             return
 
+        // The items keep their order in `remaining`, so a capture with nothing to compare
+        // stays where the previous order put it.
         var remaining = .items
         var nitems: Array'*LibraryItem
 
@@ -957,7 +964,7 @@ impl LibraryView
             if not toCompare or toCompare.filtered or toCompare.haar.size == 0
             {
                 toCompare = remaining.front()
-                remaining.removeAt(0)
+                remaining.removeAtOrdered(0)
                 nitems.add(toCompare)
                 continue
             }
@@ -980,12 +987,12 @@ impl LibraryView
             {
                 toCompare = remaining[bestI]
                 nitems.add(toCompare)
-                remaining.removeAt(bestI)
+                remaining.removeAtOrdered(bestI)
             }
             else
             {
                 toCompare = remaining.front()
-                remaining.removeAt(0)
+                remaining.removeAtOrdered(0)
                 nitems.add(toCompare)
             }
         }
@@ -1000,7 +1007,14 @@ impl LibraryView
         // Only the active criterion is read. A comparator runs O(n log n) times per re-sort and
         // the list re-sorts while the previews stream in, so materializing every criterion — two
         // file names, two applications, two window titles — on each comparison was most of the
-        // cost of a re-sort, whichever criterion was actually selected.
+        // cost of a re-sort, whichever criterion was actually selected. A name is built from the
+        // capture, so it is built once per item rather than twice per comparison.
+        if .libWnd.sortMethod == .Name
+        {
+            for it in .items do
+                it.sortName = it.name()
+        }
+
         .items.sort(func|libWnd = me.libWnd|(a, b)
         {
             var value: s32
@@ -1019,16 +1033,16 @@ impl LibraryView
                 value = b.fi.lastWriteTime <=> a.fi.lastWriteTime
 
             case .Name:
-                value = Utf8.compare(a.name(), b.name(), .Latin1NoCase)
+                value = Utf8.compare(a.sortName.toSlice(), b.sortName.toSlice(), .Latin1NoCase)
 
             case .Application:
-                let applicationA = captureA ? captureA.sourceApplication.toString() : ""
-                let applicationB = captureB ? captureB.sourceApplication.toString() : ""
+                let applicationA: const [..] u8 = captureA ? captureA.sourceApplication.toSlice() : ""
+                let applicationB: const [..] u8 = captureB ? captureB.sourceApplication.toSlice() : ""
                 value = Utf8.compare(applicationA, applicationB, .Latin1NoCase)
 
             case .WindowTitle:
-                let windowA = captureA ? captureA.sourceWindowTitle.toString() : ""
-                let windowB = captureB ? captureB.sourceWindowTitle.toString() : ""
+                let windowA: const [..] u8 = captureA ? captureA.sourceWindowTitle.toSlice() : ""
+                let windowB: const [..] u8 = captureB ? captureB.sourceWindowTitle.toSlice() : ""
                 value = Utf8.compare(windowA, windowB, .Latin1NoCase)
 
             case .Dimensions:
@@ -1048,9 +1062,16 @@ impl LibraryView
     }
 
     // Sorts the shown items by the selected criterion, keeping the selection.
+    //
+    // Similarity compares every remaining item with the last one placed, and needs the previews
+    // the loader is still decoding: while it runs, that quadratic pass would be repeated at each
+    // refresh of the list, holding the lock the loader needs, for an order the next preview
+    // changes. The refresh that follows the last preview sorts once.
     mtd sort()
     {
         if .items.isEmpty() do
+            return
+        if .libWnd.sortMethod == .Similar and g_UpdatingLib do
             return
 
         let selection = .rememberSelection()
@@ -1123,12 +1144,19 @@ impl LibraryView
         .invalidate()
     }
 
+    // Scrolls the least that shows the whole focused cell and its ring. A key walking past an edge
+    // of the view moves the grid by the row it entered, and a cell the edge cuts comes into view.
     mtd scrollToFocus()
     {
-        if .focusItem == Swag.U32.Max do
+        if .focusItem >= .items.count do
             return
-        if .items[.focusItem].visible do
-            return
-        .scrollWnd.setScrollPos(0, .items[.focusItem].rect.y - 4)
+        let rect   = .items[.focusItem].rect
+        let pos    = .scrollWnd.scrollPosition()
+        let top    = rect.y - LibraryCellRing
+        let bottom = rect.bottom() + LibraryCellRing
+        if top < pos.y do
+            .scrollWnd.setScrollPos(pos.x, top)
+        elif bottom > pos.y + .position.height do
+            .scrollWnd.setScrollPos(pos.x, bottom - .position.height)
     }
 }

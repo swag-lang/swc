@@ -91,7 +91,7 @@ internal struct InlineChoice
     combo:   *ComboBox
     section: *Section
     row:     u64
-    width:   f32
+    width:   f32     // Width of every segment side by side, with its padding.
 }
 
 // A picture of a strip of the lens under a point: the row of the strip, and the picture, or the
@@ -1220,7 +1220,6 @@ private impl View
             for segmentWidth in widths do
                 width += segmentWidth
             choice.width = width
-            choice.combo.minSize.x = width
 
             let resting = .restingSegment(row.section)
             for itemIndex, entryIndex in row.section.order where entryIndex == resting do
@@ -1254,7 +1253,12 @@ private impl View
             let height  = combo.position.height
             let x       = list.x + metrics.lens_TextInset
             let y       = list.y + row.top - .scroll + (row.height - height) * 0.5
-            let control = Math.Rectangle{x, y, choice.width, height}
+
+            // A row of more choices than the lens is wide stops at its edge, where the combo
+            // gives up its segments for a list that opens rather than running past the lens.
+            let width   = Math.min(choice.width, list.width - 2 * metrics.lens_TextInset)
+            let control = Math.Rectangle{x, y, width, height}
+            combo.minSize.x = width
             if control.y >= list.y and control.bottom() <= list.bottom()
             {
                 combo.setPosition(control)

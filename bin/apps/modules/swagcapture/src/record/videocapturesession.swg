@@ -99,8 +99,10 @@ impl VideoCaptureSession
         result.pacer            = try FramePacer.create(rate, 1_000_000, 90_000)
         // Complete video and sound fragments within about one second so a stopped recording
         // retains a recent playable prefix. The final index makes key-frame seeks direct.
+        // A key picture costs as much as dozens of predicted ones, and on a screen at rest it is
+        // all a recording costs: one every three seconds keeps seeking short and hours small.
         const Mp4Options = Mp4.FragmentedOptions{30, 4 * 1_024 * 1_024, 40, true}
-        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, keyInterval: 30, options: Mp4Options, quantizationQp: quantizationQp, sliceCount: sliceCount)
+        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, keyInterval: 90, options: Mp4Options, quantizationQp: quantizationQp, sliceCount: sliceCount)
         result.audioConfigs.add(audioConfigs)
         result.picture = Image.create(outputWidth, outputHeight, .BGRA8)
         result.scaled = outputWidth != width or outputHeight != height

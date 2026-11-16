@@ -20,6 +20,9 @@ public:
     void restoreState();
     void build(ByteArray& outFrame, uint32_t codeSize) const;
 
+    // Recognizes the compiler's relocation-free, PC-relative CIE record.
+    static bool isObjectCie(std::span<const std::byte> bytes);
+
     // Append one PC-relative CIE/FDE pair without its terminator. The address needs
     // a Rel32 relocation with addend 4 (DWARF measures from the field's first byte).
     // The object writer adds one final zero record after all functions have been appended.
@@ -30,8 +33,8 @@ public:
 
 private:
     ByteArray instructions_;
-    uint32_t codeOffset_ = 0;
-    uint32_t savedStates_ = 0;
+    uint32_t  codeOffset_  = 0;
+    uint32_t  savedStates_ = 0;
 };
 
 SWC_END_NAMESPACE();

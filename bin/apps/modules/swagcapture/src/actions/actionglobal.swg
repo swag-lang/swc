@@ -66,7 +66,7 @@ impl IActionUI for ActionGlobal
             if not main.recentWnd.hubSizeReady() do
                 main.openHubAfterRecentLoad = true
             else do
-                ResidentPanel.open(main, .Hub)
+                ResidentPanel.open(main, .Centered)
 
         case .ShowLibrary:
             main.swapLibraryMode()

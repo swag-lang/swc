@@ -236,8 +236,8 @@ be noticed: if a viewer remembers an animation, it was too much.
 - **Input never waits.** Focus, hit testing and the keyboard reach the final state at once; an
   animation running when the next change arrives retargets from what is on screen. Typing, the
   caret, the selection in a list, the focus ring and an error appear instantly.
-- **Scroll bars rest.** They show while the view scrolls or the pointer is over them, and fade
-  out 600 ms after the last movement.
+- **Scroll bars rest.** Their thin thumb gains contrast while the view scrolls or the pointer is
+  over them, and fades to 30% opacity 600 ms after the last movement. The track remains translucent.
 - **Reduced motion is honoured.** When the system asks for reduced motion, decorative motion
   completes immediately; progress keeps moving.
 
@@ -518,8 +518,9 @@ its failure tone; the status words remain in body ink. Both follow the current p
 - **Notices**: a tinted ground of the tone, an 7 px dot in the tone, bold first phrase, no
   border, no icon tile.
 - **Tooltip**: surface (Papier: ink with paper text), corner 6, 12 px.
-- **Scrollbars**: one thickness, 8 px with a 4 px thumb; they rest invisible and show while the
-  view scrolls or the pointer is over them.
+- **Scrollbars**: a 4 px thumb in an 8 px cell and a 16 px pointer target. The track is a
+  translucent tint (4%, 8% on hover), never an opaque strip over the content. The thumb rests at
+  30% opacity and gains contrast while the view scrolls or the pointer is over it, without growing wider.
 
 ## Property grid
 
@@ -595,8 +596,7 @@ the screen to its work.
 ![Reading](imgs/scope.read.png) ![Video](imgs/scope.video.png)
 
 - Reading: the document alone in a centred column. Markdown has no persistent footer, progress
-  thread or action strip; its current section is marked in the quiet heading margin when the
-  window is wide. `Ctrl Space` opens the lens for file, view and reading actions; `I` opens file
+  thread or action strip. `Ctrl Space` opens the lens for file, view and reading actions; `I` opens file
   and reading details. A quiet outline glyph in the top strip, `Ctrl Shift O` and the lens open
   the full outline on demand. It remains a scrollable list beside the page, without an
   information card.
@@ -642,9 +642,8 @@ the screen to its work.
 - Video: picture edge to edge; on hover a top veil with title, a bottom veil with the timeline
   (Arc progress, white knob, chapter ticks, hover time), time in mono, chips for subtitles,
   audio, speed.
-- Markdown: a reading column, the current section marked in the left margin when the window is
-  wide (active entry with an Arc left rule), and a full outline opened on demand in the opposite
-  margin. No footer or progress thread stays on the page.
+- Markdown: a centred reading column and a full outline opened on demand beside the document.
+  No footer or progress thread stays on the page.
 - Hex: structure as text tabs, an airy grid, Arc selection, Voltage cursor byte, a floating
   inspector with the value under the cursor in large type.
 - Font: a large specimen, the family name, style tabs, a glyph grid with the chosen glyph on the
@@ -688,9 +687,8 @@ the screen to its work.
 - Image: the picture alone, centred on the ground; a mini-bar on movement (previous, next,
   zoom, fit, rotate, adjustments); the reading line gives name, size, format, weight and the
   rank in the folder; the zoom stands at the right of it.
-- PDF: pages on the ground with the paper shadow, the outline in the left margin with the
-  current part on an Arc rule, the position thread at the right, page and zoom in the reading
-  line.
+- PDF: pages on the ground with the paper shadow, the full outline opened on demand, the position
+  thread at the right, page and zoom in the reading line.
 - Sound: the cover, the title large, artist, album and year, then the waveform with what is
   played in Arc and the times in mono; transport on a mini-bar; the format in the reading line.
 
@@ -702,8 +700,8 @@ the screen to its work.
   header with the column name and its inferred type in faint mono; numbers right-aligned in
   mono; hairlines between rows; the chosen row on the Arc ground; a sum of the chosen numeric
   column in the reading line.
-- HTML: the page rendered in a reading column, its address in faint mono above, its outline in
-  the right margin; source and rendering are two views of the lens.
+- HTML: the page rendered in a centred reading column, preserving its authored layout. The full
+  outline opens on demand; source and rendering are two views of the lens.
 
 ![Subtitles](imgs/scope.subtitle.png) ![Binary](imgs/scope.binary.png) ![Text](imgs/scope.text.paper.png)
 
@@ -735,14 +733,15 @@ the screen to its work.
 - Swag Capture is resident: it keeps an icon in the notification area and its window may stay
   hidden. It starts on the hub by default, and the options choose between the hub, the icon
   alone and the editor; activating the icon opens the same thing, the hub standing in for the
-  icon alone. The hub is a floating list in the upper middle of the screen, on a surface of its
-  own: what to capture and what to record under their section labels, with assigned keys, the
+  icon alone. One home opens centered on the screen at startup and beside the pointer on a right
+  click on the icon, on a surface of its own: what to capture and what to record under their
+  section labels, with assigned keys, the
   last captures as one row of pictures that open in the editor, then the editor, the library,
-  the options, the way back behind the icon and the way out. It has no accent: nothing in it acts before a choice. The menu
-  of the icon stands at the pointer and carries every capture command, picture then video, a
-  monitor of its own only when there are several, then the cursor choice and the waits as one
-  row of exclusive choices. While a recording runs, both offer to stop or abandon it instead of
-  starting another capture. Either leaves on a choice, on `Esc`, and when another application
+  the options, the way back behind the icon and the way out. It has no accent: nothing in it acts
+  before a choice. Both placements share every command and recent capture: picture then video, a
+  monitor of its own only when there are several, then one capture-settings row with the cursor
+  toggle and exclusive delay choices, before recent captures. While a recording runs, the home offers to stop or abandon it instead of
+  starting another capture. It leaves on a choice, on `Esc`, and when another application
   takes the desktop; a capture started by its key takes it off the screen first. Leaving the hub
   without a choice, or closing the window, leaves nothing on screen: a small notification above
   the icon says that Swag Capture is still running and how to open it again. It has a close button
@@ -751,7 +750,7 @@ the screen to its work.
 
 ![Resident hub, Encre](imgs/capture.hub.png) ![Hub keyboard selection, Papier](imgs/capture.hub.keyboard.paper.png)
 
-![Resident icon menu, Papier](imgs/capture.resident.menu.paper.png)
+![The same home from the resident icon, French, Papier](imgs/capture.resident.menu.paper.png)
 
 - The capture control starts an image area capture directly, and the adjacent Video action starts
   a video area capture. The chevron groups image targets, video targets and GIF, then offers delay

@@ -56,66 +56,72 @@ impl LibraryWnd
 
     mtd moveSelHome()
     {
-        if .view.items.isEmpty() do
-            return
-        .view.setFocusItem(0)
-        .view.scrollToFocus()
+        if not .view.items.isEmpty() do
+            .focusCell(0)
     }
 
     mtd moveSelEnd()
     {
-        if .view.items.isEmpty() do
-            return
-        .view.setFocusItem(cast(u32, .view.items.count) - 1)
-        .view.scrollToFocus()
+        if not .view.items.isEmpty() do
+            .focusCell(cast(u32, .view.items.count) - 1)
     }
 
+    // The arrows walk the grid from the focused cell. Without one, the first arrow starts the walk
+    // on the first cell, so the keyboard reaches the grid before anything was clicked.
     mtd moveSelLeft()
     {
-        if .view.items.isEmpty() do
+        if .startWalk() do
             return
-        if .view.focusItem == 0 or .view.focusItem == Swag.U32.Max do
-            return
-        .view.focusItem -= 1
-        .view.setFocusItem(.view.focusItem)
-        .view.scrollToFocus()
+        if .view.focusItem > 0 do
+            .focusCell(.view.focusItem - 1)
     }
 
     mtd moveSelRight()
     {
-        if .view.items.isEmpty() do
+        if .startWalk() do
             return
-        if .view.focusItem == .view.items.count - 1 or .view.focusItem == Swag.U32.Max do
-            return
-        .view.focusItem += 1
-        .view.setFocusItem(.view.focusItem)
-        .view.scrollToFocus()
+        if .view.focusItem + 1 < .view.items.count do
+            .focusCell(.view.focusItem + 1)
     }
 
     mtd moveSelTop()
     {
-        if .view.items.isEmpty() do
+        if .startWalk() do
             return
         let n = .view.numImagesPerLine()
-        if .view.focusItem < n or .view.focusItem == Swag.U32.Max do
-            return
-        .view.focusItem -= n
-        .view.setFocusItem(.view.focusItem)
-        .view.scrollToFocus()
+        if .view.focusItem >= n do
+            .focusCell(.view.focusItem - n)
     }
 
+    // A shorter last row has no cell under the focused one: Down lands on its last cell, as the
+    // nearest one below.
     mtd moveSelBottom()
     {
-        if .view.items.isEmpty() do
+        if .startWalk() do
             return
-        let n = .view.numImagesPerLine()
+        let n    = .view.numImagesPerLine()
+        let last = cast(u32, .view.items.count) - 1
+        if .view.focusItem + n <= last do
+            .focusCell(.view.focusItem + n)
+        elif .view.focusItem / n < last / n do
+            .focusCell(last)
+    }
 
-        // Use an addition instead of 'items.count - n' so an unsigned underflow
-        // (when n > items.count) cannot make the guard pass and jump out of range.
-        if .view.focusItem + n >= .view.items.count or .view.focusItem == Swag.U32.Max do
-            return
-        .view.focusItem += n
-        .view.setFocusItem(.view.focusItem)
+    // Focuses the first cell when none is focused, and returns whether it did; an empty grid or
+    // a focus beyond it (for a moment, while the grid is rebuilt) leaves nothing to walk.
+    private mtd startWalk()->bool
+    {
+        if .view.items.isEmpty() do
+            return true
+        if .view.focusItem < .view.items.count do
+            return false
+        .focusCell(0)
+        return true
+    }
+
+    private mtd focusCell(index: u32)
+    {
+        .view.setFocusItem(index)
         .view.scrollToFocus()
     }
 

@@ -47,6 +47,6 @@ private func renderFallbackText(mode: FontRenderMode, explicitFaces: bool)->Imag
         let expected = expect renderFallbackText(mode, true)
         Testing.assertImagesNear(&expected, &actual, "text.fallback.explicit")
         if mode == .Bitmap do
-            Testing.assertImageGolden(&actual, "text.fallback")
+            Testing.assertImageGolden(&actual, "text.fallback", {cpuRendered: true})
     }
 }

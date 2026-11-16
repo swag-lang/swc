@@ -114,8 +114,12 @@ source lines, functions, basic types and recorded stack-home variables. Dedicate
 fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away
 variables and richer debug records remain unsupported. Runtime panic traces resolve function names
 and recorded source locations across executables, static archives and shared libraries without
-`--debug`; stripping `.swagdbg` removes those runtime frame names. Linux executable builds reuse eligible
-self-contained function objects from `<name>.incremental.elfcache` in the work directory. The cache
+`--debug`; stripping `.swagdbg` removes those runtime frame names. Without `--debug`, final ELF
+executables and shared libraries omit `.symtab` and `.strtab`; dynamic symbols, unwind data and
+`.swagdbg` remain available. Finalization also removes unused file space left by merging runtime
+symbol contributions, without moving loaded bytes or virtual addresses.
+Linux executable builds reuse eligible self-contained function objects from
+`<name>.incremental.elfcache` in the work directory. The cache
 checks compiler identity, IR/ABI fingerprints, recorded source coordinates and payload integrity;
 `--rebuild`, `--debug`, tests and compile-time native imports disable it. Publication follows a successful
 link. Executables with static dependencies also retain a checksummed `<name>.relink.elfcache`: when
@@ -135,6 +139,31 @@ SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
   --workspace bin/std --workspace-module pixel --num-cores 3 \
   --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
 ```
+
+To build complete Windows applications from Linux, run a Windows compiler under Wine. Compile-time
+module functions then execute in the same Windows environment as their imported DLLs. The Linux
+compiler's `--os windows` emits PE output, but cannot execute arbitrary Windows foreign calls or load
+Windows modules for compile-time evaluation.
+
+`linux-build.py --target windows` builds the Release Windows compiler with LLVM-MinGW, using the
+same source manifest and three-job limit. It links the C++ runtime into the compiler; only Windows
+system DLLs are needed to run it. Install LLVM-MinGW and Wine outside the checkout, then use:
+
+```sh
+python3 tools/linux-build.py --build-dir /absolute/build --configuration release \
+  --target windows --cxx /absolute/llvm-mingw/bin/x86_64-w64-mingw32-clang++ --jobs 3
+mkdir -p /absolute/build/windows/release/runtime
+cp -a bin/runtime/. /absolute/build/windows/release/runtime/
+SWAG_PATH='Z:\absolute\repo\bin' WindowsSdkDir='Z:\absolute\windows-sdk' \
+  WindowsSDKVersion=10.0.26100.0 wine /absolute/build/windows/release/swc.exe build \
+  --workspace 'Z:\absolute\repo\bin\apps' --workspace-module swagscope \
+  -bc release --num-cores 3 --rebuild
+```
+
+Use the version directory present under the SDK's `Lib` directory. Both `um/x64` and `ucrt/x64`
+import libraries are needed. Wine maps absolute Linux paths through drive `Z:` by default. This
+produces the normal Windows application, including every viewer; Wine is part of the build host,
+not an application dependency. Runtime checks under Wine do not replace tests on a Windows machine.
 
 The OpenGL integration tests need an X11 display, libEGL.so.1, libGL.so.1,
 EGL_EXT_platform_xcb and OpenGL 3.3 compatibility support. They pass with Xvfb and Mesa software
@@ -396,9 +425,9 @@ tools\coverage.bat -DevMode -Suite full
 | `fast` (default) | GPU hosts by default; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
 | `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
 | `stress` | Selected GPU or CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | Complete repository `golden` campaign on the selected renderer | Controlled CI environment, rendering changes and scheduled runs |
-| `parity` | Pixel tests tagged `integration.renderer.opengl`, including CPU/GPU comparisons | GPU machine, renderer changes and scheduled runs |
-| `full` | All standard-module and application tests, including goldens and stress, on the selected renderer | Complete functional/visual pass before integration |
+| `goldens` | Every `golden` test, on the CPU renderer whatever `-Renderer` says, compared exactly | Rendering changes and scheduled runs, on any machine |
+| `parity` | Tests tagged `integration.renderer.opengl`: one scene drawn by the CPU and the GPU renderer, compared with a contrast-following tolerance | GPU machine, renderer changes and scheduled runs |
+| `full` | All standard-module and application tests and stress on the selected renderer, then the goldens on CPU | Complete functional/visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
@@ -411,8 +440,43 @@ keep their explicit launchers; `full` is not the compiler or privileged integrat
 machines without a usable graphics device; direct compiler test commands can set
 `SWAG_TEST_RENDERER=cpu`. GPU uses an invisible drawable and render targets, with no desktop
 presentation. OpenGL must initialize successfully; there is no automatic CPU fallback. Pixel's
-explicit CPU renderer tests continue testing CPU in either environment. Goldens run on the selected
-renderer, so review and update references only after investigating a mismatch.
+explicit CPU renderer tests continue testing CPU in either environment.
+
+Two campaigns own what the screen looks like, and they do not overlap.
+
+**Goldens render on CPU, always.** A PNG golden is a CPU reference: only the CPU renderer draws
+the same pixels on every machine, so a golden is recorded, compared exactly and replaced from a
+CPU render and from nothing else. The launchers select the CPU renderer for every run that selects
+the `golden` tag, whatever `-Renderer` or `SWAG_TEST_RENDERER` says. A mismatch leaves
+`<name>.actual.png` to review and promote with `goldens.bat accept`. A golden test reached by a
+GPU run, such as an unfiltered `std.bat test gui`, is not compared and says so once.
+
+```text
+tools\coverage.bat -DevMode -Suite goldens
+tools\coverage.bat -DevMode -Suite goldens -Workspace std -Module gui -TestFile menu.swg
+```
+
+**Parity compares the renderers.** Tests tagged `integration.renderer.opengl` draw one scene with
+`RenderCpu` and with the GPU renderer and compare the two images through
+`Pixel.Testing.assertRenderersAgree`. That comparison accepts what separates one graphics device
+from another: three levels on every channel anywhere, for rounding in blending, and 35% of the
+contrast around the pixel, for antialiasing and filtering. A flat area therefore only gets the
+rounding slack, while a shape that moved by a pixel, lost a stroke or changed color costs the
+whole contrast and is a difference; rejected pixels count only when they form a shape. A
+difference leaves `<name>.parity.cpu.png` and `<name>.parity.gpu.png` beside the goldens of the
+test. Neither is a reference: a real divergence is fixed in the renderer, the GPU being presumed
+right, and the scene that showed it stays as its regression test.
+
+```text
+tools\coverage.bat -DevMode -Suite parity
+tools\coverage.bat -DevMode -Suite parity -Workspace std -Module pixel -TestFile sampling.ogl.swg
+tools\coverage.bat -Suite parity -Sweep -Workspace apps -Module swagcapture
+```
+
+`-Sweep` is how a divergence is found in a real scene: after the dedicated tests, every golden
+scene is drawn on the GPU and compared with its CPU reference under the same tolerance, without
+recording anything. A scene it reports is not yet a test. Reduce what differs to a small scene in
+a parity test of the module that owns the primitive, watch it fail, fix the renderer, and keep it.
 
 Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
 images and scenes that still exercise every branch and keep all compared content visible.

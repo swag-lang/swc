@@ -326,17 +326,27 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   hexagon search, P-skip, dead-zone quantization with coefficient elimination, in-loop
   deblocking, and edge macroblocks coded like the rest instead of raw. It predicts from the
   decoder's own `Frame`, and FFmpeg rebuilds its reference bit for bit. On three one-second
-  clips of that film (dark, bright, mixed) with eight slices in Release, QP 26 gives 3.5, 4.3
-  and 3.0 Mbit/s at 46.3, 43.7 and 46.0 dB luma PSNR in 16–25 ms per picture, against 18.9,
-  48.1 and 30.0 Mbit/s at 47.4, 44.5 and 46.4 dB before; at the earlier PSNR the stream is four
-  to nine times smaller. QP 18 gives 10.0, 16.1 and 9.2 Mbit/s (49.5, 46.6, 49.1 dB), QP 28
-  2.8, 3.4 and 2.5 Mbit/s (45.4, 42.9, 45.2 dB). x264 at baseline, veryfast and QP 26 reaches
-  3.0, 4.1 and 2.5 Mbit/s at 47.6, 43.9 and 46.4 dB on the same clips: about one decibel and
-  fifteen percent remain.
+  clips of that film (dark, bright, mixed) with eight slices in Release, QP 26 first gave 3.5,
+  4.3 and 3.0 Mbit/s at 46.3, 43.7 and 46.0 dB luma PSNR, against 18.9, 48.1 and 30.0 Mbit/s at
+  47.4, 44.5 and 46.4 dB before. x264 at baseline, veryfast and QP 26 reaches 3.0, 4.1 and
+  2.5 Mbit/s at 47.6, 43.9 and 46.4 dB: at equal PSNR that first coder needed 35% more bits.
+  x264's own statistics showed why: in predicted pictures it codes 11–13% of the macroblocks
+  as Intra_16x16, smooth areas whose light changed, and nearly no inter residual. The intra
+  and inter choices are now made on Hadamard-transformed differences, a predicted picture
+  tries Intra_16x16 against every inter macroblock that is not at rest, and key pictures are
+  coded three steps finer. QP 26 now gives 3.3, 4.6 and 3.0 Mbit/s at 47.8, 44.2 and 46.7 dB,
+  8% above x264 at equal PSNR with eight slices and 4% with four; one slice is level with it.
+  Measured and rejected: skipping every macroblock whose residual at the skip vector quantizes
+  to nothing (7% fewer bits, half a decibel lost, a net loss), a bonus for the skip vector,
+  and pruning the slanted Intra_4x4 modes. A region estimate sampled every fourth row and
+  column misses fine periodic detail. One slice takes about 50 ms on a 2664×1078 picture:
+  the region estimate, the motion search and intra coding are the three largest shares.
 - Next: remeasure the complete 1080p60 and 4K60 capture paths with the new coder, which spends
-  16–28 ms on a 2664×1078 film picture. Close the gap to x264 with rate-distortion mode
-  decisions, 8×8 and 16×8 partitions, and a trellis or adaptive dead zone; CABAC needs the Main
-  profile. Give the exact QP 0 path the same motion search.
+  about 26 ms on a 2664×1078 film picture with eight slices. Slices cost 5% of the stream:
+  code one slice in parallel waves, decisions first and bits after, to drop them. Vectorize the
+  region estimate, the 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
+  partitions, which x264 uses on 2–5% of these macroblocks, and a trellis or adaptive dead
+  zone; CABAC needs the Main profile. Give the exact QP 0 path the same motion search.
   Measure slice-count changes with concurrent screen readback: eight slices improved isolated
   4K P-picture throughput, but a scaled two-screen recording lost 363 slots in one 60-second
   run, while four slices lost none in a subsequent run with varying desktop load.

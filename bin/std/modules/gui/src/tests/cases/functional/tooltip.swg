@@ -149,3 +149,28 @@ var g_LinkText:  String
     Swag.require(second.app.toolTip.current == null)
     Swag.require(second.app.toolTip.pending == null)
 }
+
+// A window destroyed while its tip is still waiting on its delay takes the request with it, and a
+// window destroyed under its visible tip takes the tip: neither outlives the window it annotates.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 200)
+    defer host.shutdown()
+
+    let stop = PushButton.create(&host.root, "Stop", {20, 20, 100, 30})
+    ToolTip.show(stop, stop.localToSurface(Math.Point{10, 10}), "Stop recording")
+    Swag.require(host.app.toolTip.pending != null)
+    stop.destroy()
+    host.pump()
+    Swag.require(host.app.toolTip.pending == null)
+    host.app.toolTip.update(1)
+    Swag.require(host.app.toolTip.current == null)
+
+    let pause = PushButton.create(&host.root, "Pause", {20, 20, 100, 30})
+    ToolTip.show(pause, pause.localToSurface(Math.Point{10, 10}), "Pause recording", 0's)
+    Swag.require(host.app.toolTip.current != null)
+    pause.destroy()
+    host.pump()
+    Swag.require(host.app.toolTip.current == null and host.app.toolTip.currentOwner == null)
+}

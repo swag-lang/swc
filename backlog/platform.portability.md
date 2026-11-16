@@ -473,6 +473,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   differences remain on Mesa software rendering: confirmation focus (8 pixels, maximum channel delta 4), floating sheet (4 pixels,
   delta 3), and property-menu separator endpoint (1 pixel, delta 20). Preserve their strict
   failure status while identifying the geometry, coverage, or driver boundary.
+- Evidence: under Xvfb with the CPU renderer, Swag Scope's functional `viewers/text/text.swg`
+  line-number case and `viewers/odt/content.swg` repeated-table case intermittently never return,
+  about one focused run in six, with the main thread parked in a wait; the same runs pass when
+  repeated. The test executable prints `event=start` for the case and nothing after it.
 - Next: fix remaining failures at their owning boundaries and complete one uninterrupted
   campaign on the synchronized checkout.
   Keep functional, golden and stress coverage, golden expectations and failure status.
@@ -1401,14 +1405,14 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 
 ### platform.portability.101 — Linux has no screen recording or sound capture source
 
-- Evidence: Swag Capture on Linux grabs still pictures through X11 only. The animation recorder
-  grabs each frame through the same `getScreenRectImage`, which on X11 copies the whole area per
-  frame, and its frame and pill, the timeline and the clipboard file list have not been built or
-  run on Linux.
-- Next: build and run the animation recorder on an X11 session first; then add the XDG desktop
-  portal with PipeWire for Wayland screen and window recording, X11 shared-memory grabbing with
-  damage, and PipeWire or PulseAudio capture and monitor sources for std.audio.011 and
-  std.audio.013.
+- Evidence: on an X11 session (Xvfb, Openbox, Picom) Swag Capture records an animation of an
+  area, stops it from its pill, and opens it in the editor with its timeline; the clipboard file
+  list round-trips through an independent client. Each frame is still read from the X11 root,
+  which also records any window over the area, and under software OpenGL the frame grab starves
+  the event loop enough to answer Stop a few seconds late.
+- Next: add the XDG desktop portal with PipeWire for Wayland screen and window recording, X11
+  shared-memory grabbing with damage, and PipeWire or PulseAudio capture and monitor sources for
+  std.audio.011 and std.audio.013.
 - Done when: a Linux session records an animation, then a window with its sound, under X11 and
   under Wayland.
 - Related: platform.portability.097, std.audio.011, std.audio.013, std.gui.063,

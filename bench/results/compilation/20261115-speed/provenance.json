@@ -1,0 +1,11 @@
+{
+  "base_commit": "45356a61c9a74be6bd1f8aa73ccdc8353a225b4c",
+  "source_diff_sha256": "2b291cb347aa9c9d96f1d8c57541fe8e52b6192dab1c31384b77f8cd7b9ef4cf",
+  "binaries": {
+    "/workspace/swc-opt-20261115/baseline/swc": "3960f1df15a97f6228bcbfd3ce48252476af0c14715d8ab971a23439c77917a5",
+    "/workspace/swc-opt-20261115/final/release/swc": "30a176e31e8326f2ca0da9cf1085e767c043037b1a822b6a1e9156c2e9d2207d",
+    "/workspace/swc-opt-20261115/final/devmode/swc.dm": "917cbeeeff62ea5d7464ead27513a70030042af483923d1cb4c6021237a24814"
+  },
+  "native_compiler": "c++ (Debian 14.2.0-19) 14.2.0",
+  "utc_frozen": "2026-11-16 01:54:04 UTC"
+}

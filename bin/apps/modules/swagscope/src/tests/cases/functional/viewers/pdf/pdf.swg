@@ -64,6 +64,7 @@ internal func createPdfFixture()->String
 
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
+    Swag.require(view.children.count == 1 and view.children[0] == cast(*Wnd, view.pdfView))
     assertViewerInfoButton(view.zoomLabel)
     Swag.require(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
     Swag.require(PdfDocument.paperText({842, 595}) == "A4" and PdfDocument.paperText({612, 792}) == "Letter")

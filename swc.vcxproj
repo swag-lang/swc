@@ -923,6 +923,7 @@
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>
         <ClInclude Include="src\Backend\Native\NativeFunctionCache.ELF.h"/>
         <ClInclude Include="src\Backend\Linker\Linker.h"/>
+        <ClInclude Include="src\Backend\Linker\IdenticalContentFold.h"/>
         <ClInclude Include="src\Backend\Linker\Linker.PE.h"/>
         <ClInclude Include="src\Backend\Linker\LinkJob.h"/>
         <ClInclude Include="src\Backend\Linker\LinkImage.h"/>

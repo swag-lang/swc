@@ -8,8 +8,9 @@ struct ImageGoldenOptions
 {
     public
     {
-        maxChannelDelta:    u8      // Maximum absolute difference accepted for each ARGB channel.
-        maxDifferentPixels: u64     // Maximum number of pixels allowed outside the channel tolerance.
+        maxChannelDelta:    u8       // Maximum absolute difference accepted for each ARGB channel.
+        maxDifferentPixels: u64      // Maximum number of pixels allowed outside the channel tolerance.
+        cpuRendered:        bool     // Whether the image comes from the CPU renderer whatever renderer the run selected.
     }
 }
 
@@ -70,7 +71,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     if expected.toString() == text do
         return
 
-    let actual = actualPath(path.toString(), ".txt")
+    let actual = actualPath(path.toString(), ".txt", ".actual.txt")
     writeText(actual.toString(), text)
     reportDiff(name, path.toString(), actual.toString(), expected.toString(), text)
     Swag.check(false, "the text differs from its golden", loc)
@@ -105,22 +106,91 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
     Swag.check(false, "the pixels differ from the expected image", loc)
 }
 
+// Compares what the CPU and a GPU renderer drew from the same scene.
+//
+// `cpu` and `gpu` must be valid images of the same size. This is the comparison of the renderer
+// parity campaign, and it accepts what separates one graphics device from another: each channel
+// may be off by three levels anywhere, for rounding in blending, and by a share of the contrast
+// around the pixel, for antialiasing and filtering. A flat area therefore only gets the rounding
+// slack, while a shape that moved by a pixel, lost a stroke or changed color costs the whole
+// contrast and is a difference. Rejected pixels count only when they form a shape.
+// [[Pixel.Testing.ImageGoldenOptions.maxChannelDelta]] raises the rounding slack and
+// [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] accepts that many pixels of difference.
+//
+// A difference writes `<name>.parity.cpu.png` and `<name>.parity.gpu.png` in the goldens folder
+// of the calling test, reports its first pixel, and fails the test through [[Swag.check]]
+// without stopping it. Neither file is a golden: a real divergence is fixed in the renderer.
+// The check remains active when Pixel is built as a release dependency.
+func assertRenderersAgree(cpu, gpu: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
+{
+    Swag.require(cpu != null and cpu.isValid(), "CPU image needs allocated pixels")
+    Swag.require(gpu != null and gpu.isValid(), "GPU image needs allocated pixels")
+
+    var tolerance = options
+    tolerance.maxChannelDelta = Math.max(tolerance.maxChannelDelta, GpuChannelSlack)
+    let difference = compareGpuImage(cpu, gpu, tolerance)
+    if isWithinTolerance(&difference, tolerance) do
+        return
+
+    let cpuPath = goldenPath(name, ".parity.cpu.png", loc)
+    let gpuPath = goldenPath(name, ".parity.gpu.png", loc)
+    discard writeImage(cpu, cpuPath.toString())
+    discard writeImage(gpu, gpuPath.toString())
+
+    Console.println("[parity] renderers diverge for ", name)
+    Console.println("         cpu    : ", cpuPath)
+    Console.println("         gpu    : ", gpuPath)
+    reportImageDifference(&difference, cpu, gpu)
+    Swag.check(false, "the CPU and GPU renderers diverge", loc)
+}
+
 // Compares owned pixels against the PNG golden named `name`.
 //
-// Goldens live under `src/tests/goldens/<name>.png`. A missing golden is created
-// and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
-// first differing pixel, and fails the test through [[Swag.check]], which lets it compare its other
-// goldens. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
-// raster differences; both limits default to exact comparison.
-// The check remains active when Pixel is built as a release dependency. Goldens are recorded from
-// devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased
-// samples slightly differently: a release build also accepts a channel delta of two and four
-// pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase. GPU-hosted
-// test runs also accept a channel delta of two, with no pixels outside that tolerance.
+// Goldens live under `src/tests/goldens/<name>.png`. A PNG golden is a CPU reference: only
+// [[Pixel.RenderCpu]] produces the same pixels on every machine, so a golden is recorded,
+// compared and replaced from a CPU render and from nothing else. The comparison is exact.
+// A missing golden is created and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes
+// `<name>.actual.png`, reports its first differing pixel, and fails the test through
+// [[Swag.check]], which lets it compare its other goldens.
+//
+// An image is a CPU render when the run selected that renderer (`SWAG_TEST_RENDERER=cpu`, which
+// the launchers set for every golden run) or when
+// [[Pixel.Testing.ImageGoldenOptions.cpuRendered]] says the test rendered it with the CPU
+// backend itself. Any other image comes from a GPU host: it is not compared, and the first one
+// of a run says so. What a GPU draws is checked against the CPU by the renderer parity tests,
+// through [[Pixel.Testing.assertRenderersAgree]].
+//
+// The parity sweep (`SWAG_TEST_PARITY_SWEEP=1`) turns a GPU-hosted golden scene into such a
+// check: the image is compared with the CPU golden under the parity tolerance, and never
+// recorded. It is a way to find a divergence in a real scene, to reduce into a parity test.
+//
+// [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or raster differences; both
+// limits default to exact comparison. The check remains active when Pixel is built as a release
+// dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add
+// into FMA, which rounds antialiased samples slightly differently: a release build also accepts
+// a channel delta of two and four pixels beyond it, for a glyph that crosses into its
+// neighbouring quarter-pixel phase.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)
+    if not options.cpuRendered and Env.variable("SWAG_TEST_RENDERER") != "cpu"
+    {
+        if Env.variable("SWAG_TEST_PARITY_SWEEP") != "1"
+        {
+            reportGpuGoldenSkipped()
+            return
+        }
+
+        let reference = catch Image.load(path.toString())
+        {
+            Console.println("[parity] no CPU golden to sweep ", name, " against")
+            return
+        }
+
+        assertRenderersAgree(&reference, image, name, options, loc)
+        return
+    }
 
     if not File.exists(path)
     {
@@ -144,10 +214,14 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
 
     let tolerance  = releaseGoldenOptions(options)
     let difference = compareImages(&expected, image, tolerance)
-    if isWithinTolerance(&difference, tolerance) do
+    let actual     = actualPath(path.toString(), ".png", ".actual.png")
+    if isWithinTolerance(&difference, tolerance)
+    {
+        // A candidate an earlier run left is stale once the golden matches again.
+        discard catch File.delete(actual)
         return
+    }
 
-    let actual = actualPath(path.toString(), ".png")
     discard writeImage(image, actual.toString())
 
     Console.println("[golden] pixels differ for ", name)
@@ -167,12 +241,27 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
         result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
     }
 
-    // HeadlessHost selects the GPU when the setting is absent as well as when it is explicit.
-    if Env.variable("SWAG_TEST_RENDERER") != "cpu" do
-        result.maxChannelDelta = Math.max(result.maxChannelDelta, 2)
-
     return result
 }
+
+private var g_GpuGoldenSkipReported: bool
+
+// Says once per run that PNG goldens were left alone because a GPU host drew the images.
+private func reportGpuGoldenSkipped()
+{
+    if g_GpuGoldenSkipReported do
+        return
+    g_GpuGoldenSkipReported = true
+    Console.println("[golden] PNG goldens are compared on the CPU renderer only: this run draws on a GPU,")
+    Console.println("         so it leaves them alone. Run golden tests with SWAG_TEST_RENDERER=cpu.")
+}
+
+// Levels each channel of a GPU image may be off by anywhere, for rounding in blending.
+private const GpuChannelSlack = 3'u8
+
+// Share of the contrast around a pixel a GPU image may also be off by, for antialiasing and
+// filtering. A shape moved by one pixel costs the whole contrast, so it stays a difference.
+private const GpuContrastShare = 0.35'f32
 
 private
 {
@@ -231,6 +320,128 @@ private
             result.a = alpha
             return result
         }
+
+        // Reads the pixel at `(x, y)`, clamped to the image the way a border is extended.
+        mtd const at(x, y: s32)->Color
+        {
+            let px  = Math.clamp(x, 0, .image.width - 1)
+            let py  = Math.clamp(y, 0, .image.height - 1)
+            let row = .image.pixels.storage() + cast(u64, .image.height - py - 1) * .image.rowStride
+            return .color(row, px, py)
+        }
+    }
+
+    func channelDelta(expected, actual: Color)->s32
+    {
+        let deltaA = Math.abs(cast(s32, expected.a) - actual.a)
+        let deltaR = Math.abs(cast(s32, expected.r) - actual.r)
+        let deltaG = Math.abs(cast(s32, expected.g) - actual.g)
+        let deltaB = Math.abs(cast(s32, expected.b) - actual.b)
+        return Math.max(deltaA, deltaR, deltaG, deltaB)
+    }
+
+    // Returns the widest channel range of the 3x3 neighbourhood of `(x, y)` across both images.
+    func localContrast(expected, actual: ComparisonPixels, x, y: s32)->s32
+    {
+        var low:  [4] s32 = [255, 255, 255, 255]
+        var high: [4] s32 = [0, 0, 0, 0]
+        for dy in -1 to 1
+        {
+            for dx in -1 to 1
+            {
+                for side in 2
+                {
+                    let color = side == 0 ? expected.at(x + dx, y + dy) : actual.at(x + dx, y + dy)
+                    let channels: [4] s32 = [color.a, color.r, color.g, color.b]
+                    for i in 4
+                    {
+                        low[i]  = Math.min(low[i], channels[i])
+                        high[i] = Math.max(high[i], channels[i])
+                    }
+                }
+            }
+        }
+
+        return Math.max(high[0] - low[0], high[1] - low[1], high[2] - low[2], high[3] - low[3])
+    }
+
+    // Compares what a GPU drew against a CPU reference, the way two graphics devices differ.
+    //
+    // A pixel is accepted while its largest channel difference stays within
+    // `options.maxChannelDelta` plus [[GpuContrastShare]] of the contrast around it. A flat area
+    // therefore only gets the rounding slack, and an edge gets a share of its own contrast. A
+    // rejected pixel counts as a difference when two of its neighbours are rejected too: a real
+    // defect is a shape, while a lone pixel is a corner the two rasterizers closed differently.
+    internal func compareGpuImage(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
+    {
+        var result: #returntype
+        result.sameSize = expected.width == actual.width and expected.height == actual.height
+        if not result.sameSize do
+            return result
+
+        let expectedPixels = ComparisonPixels.create(expected)
+        let actualPixels   = ComparisonPixels.create(actual)
+        let width          = actual.width
+        let height         = actual.height
+
+        // Mark the pixels neither tolerance explains.
+        var rejected: Array'bool
+        rejected.resize(cast(u64, width) * cast(u64, height))
+        var anyRejected = false
+        for y in height
+        {
+            for x in width
+            {
+                let delta = channelDelta(expectedPixels.at(x, y), actualPixels.at(x, y))
+                result.maxChannelDelta = Math.max(result.maxChannelDelta, cast(u8, delta))
+                if delta <= options.maxChannelDelta do
+                    continue
+
+                let contrast = localContrast(expectedPixels, actualPixels, x, y)
+                if cast(f32, delta) <= options.maxChannelDelta + GpuContrastShare * contrast do
+                    continue
+
+                rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] = true
+                anyRejected = true
+            }
+        }
+
+        if not anyRejected do
+            return result
+
+        // Keep the rejected pixels that form a shape.
+        for y in height
+        {
+            for x in width
+            {
+                if not rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] do
+                    continue
+
+                var cluster = 0
+                for ny in Math.max(y - 1, 0) to Math.min(y + 1, height - 1)
+                {
+                    for nx in Math.max(x - 1, 0) to Math.min(x + 1, width - 1)
+                    {
+                        if rejected[cast(u64, ny) * cast(u64, width) + cast(u64, nx)] do
+                            cluster += 1
+                    }
+                }
+
+                if cluster < 3 do
+                    continue
+
+                result.differentPixels += 1
+                if result.differentPixels == 1
+                {
+                    result.firstX        = x
+                    result.firstY        = y
+                    result.firstExpected = expectedPixels.at(x, y)
+                    result.firstActual   = actualPixels.at(x, y)
+                }
+            }
+        }
+
+        return result
     }
 
     internal func compareImages(expected, actual: const *Image, options: ImageGoldenOptions)->ImageDifference
@@ -382,12 +593,12 @@ private
         return Path.combine(folder.toString(), file.toString())
     }
 
-    func actualPath(path, extension: string)->String
+    // Replaces the `extension` of a golden path with the `suffix` of what a run produced instead.
+    func actualPath(path, extension, suffix: string)->String
     {
         var result = String.from(path)
         result.removeBack(extension.count)
-        result += ".actual"
-        result += extension
+        result += suffix
         return result
     }
 

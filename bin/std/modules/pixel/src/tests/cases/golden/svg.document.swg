@@ -40,5 +40,5 @@ using Swag, Core
     expect renderer.draw(&painter)
 
     let image = renderer.readRenderTarget(&target, 0, 0, 120, 72)
-    Testing.assertImageGolden(&image, "svg.document.paint")
+    Testing.assertImageGolden(&image, "svg.document.paint", {cpuRendered: true})
 }

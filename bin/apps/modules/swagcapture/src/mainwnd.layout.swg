@@ -726,6 +726,8 @@ impl MainWnd
             if timeline.isPlaying() do
                 timeline.stop()
             timeline.panel.hide()
+            if .toast != null do
+                .toast.keepAbove(0)
             return
         }
 
@@ -739,6 +741,10 @@ impl MainWnd
         timeline.panel.setPosition({left, bottom - TimelineHeight, width, TimelineHeight})
         timeline.panel.show()
         timeline.invalidate()
+
+        // A confirmation stands above the timeline rather than over its track.
+        if .toast != null do
+            .toast.keepAbove(timeline.panel.surfaceRect().y - .surfaceRect().y)
     }
 
     // Reserves the first part of the hint line for the two readings and puts each menu anchor
@@ -930,10 +936,12 @@ impl MainWnd
             .addCommand(func()->string => strings().lens_Application, ActionGlobal.ShowHub, inMenu: false)
         }
 
+        // The appearance button answers About in the lens, as in every application; the command
+        // keeps its place in the command menu only.
         .appearanceButton.addToLens(.lens)
         with .lens
         {
-            .addCommand(func()->string => strings().lens_Application, ActionAbout.About, menuSection: 2)
+            .addCommand(func()->string => strings().lens_Application, ActionAbout.About, menuSection: 2, inLens: false)
             .addCommand(func()->string => strings().lens_Application, ActionGlobal.Exit, menuSection: 3)
         }
     }
@@ -1083,6 +1091,10 @@ impl MainWnd
                 else do
                     main.editorOptions.language = .English
                 main.saveAppState()
+
+                // The inspector title, the hint line and the commands of the strip are written
+                // from the state of the editor: write them again in the new language now.
+                main.updateState()
             }
 
             .sigAboutRequested += func|main = me|(_)

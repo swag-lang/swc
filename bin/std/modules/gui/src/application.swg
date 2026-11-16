@@ -610,6 +610,7 @@ private impl Application
     internal mtd unregisterWnd(wnd: *Wnd)
     {
         .animator.cancelTarget(wnd)
+        .toolTip.forget(wnd)
 
         if wnd == .mouseEnterWnd or wnd.isOwnerOf(.mouseEnterWnd) do
             .mouseEnterWnd = null

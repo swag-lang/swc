@@ -1266,11 +1266,11 @@ impl View
     mtd columnGeometry()->{x: f32, width: f32} => .documentGeometry()
 
     // Returns the share of the document above the bottom of the view, from 0 at the top to 1
-    // at the end, as a reading progress shows it.
+    // at the end, as a reading progress shows it. A document that fits the view is at its end.
     mtd readingProgress()->f32
     {
-        let extent = Math.max(.scroll.scrollSize.y - .scroll.clientRect().height, 1)
-        return Math.clamp(.scroll.scrollPosition().y / extent, 0, 1)
+        let extent = .scroll.scrollSize.y - .scroll.clientRect().height
+        return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
     }
 
     // Returns the source byte offset of the block nearest the top reading inset, or `U64.Max`
@@ -1757,7 +1757,17 @@ impl View
     // own viewport, without laying out preceding blocks. Text is prepared for the next paint;
     // images may finish asynchronously. True means the destination was shown or queued.
     // In-memory views return false if the offset does not identify a heading.
-    mtd revealHeading(offset: u64)->bool
+    mtd revealHeading(offset: u64)->bool => .revealExact(offset, headingOnly: true)
+
+    // Brings the block that starts at a source byte offset to the top reading inset without a search mark.
+    //
+    // Use an offset [[Gui.Markdown.View.readingOffset]] returned for the same unchanged source,
+    // to return to a place the reader left. A distant file-backed block starts its own viewport
+    // as a heading does in [[Gui.Markdown.View.revealHeading]]. True means the destination was
+    // shown or queued; in-memory views return false if no laid-out block starts at the offset.
+    mtd revealBlock(offset: u64)->bool => .revealExact(offset, headingOnly: false)
+
+    private mtd revealExact(offset: u64, headingOnly: bool)->bool
     {
         .clearSearchHighlight()
         .waitingScroll = false
@@ -1767,8 +1777,7 @@ impl View
         .scroll.setScrollPos(.scroll.scrollPosition())
         for block in .blocks where .retainedBlocks.isEmpty() and
                                    block.sourceOffset == offset and
-                                   block.kind >= .Heading1 and
-                                   block.kind <= .Heading6
+                                   (not headingOnly or (block.kind >= .Heading1 and block.kind <= .Heading6))
         {
             if .hasUnloadedSource() and block.wnd.position.y - .documentStyle.topInset + .scroll.paddedClientRect().height > .contentHeight do
                 break

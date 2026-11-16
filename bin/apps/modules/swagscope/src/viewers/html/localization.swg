@@ -5,13 +5,15 @@ using Core, Gui
 
 // Visible strings of the HTML viewer.
 //
-// The summary is the format's standard name alone; this viewer reports no encoding or other
-// property beside it, so the zoom tooltip is the only sentence it writes.
+// The summary is the format's standard name alone; the encoding and what decided it are readings
+// of the information sheet.
 struct Texts
 {
-    ui_OnThisPage: string = "On This Page"     // Section label of the outline in the right margin of a page.
-    ui_ZoomMenu:   string = "Zoom…"            // Tooltip of the zoom value menu.
-    ui_Details:    string = "HTML"             // Summary the host shows beside the file size.
+    ui_ZoomMenu:         string = "Zoom…"                       // Tooltip of the zoom value menu.
+    ui_Details:          string = "HTML"                        // Summary the host shows beside the file size.
+    ui_EncodingMarked:   string = "byte-order mark"             // After the encoding name: a byte-order mark opening the file decided it.
+    ui_EncodingDeclared: string = "declared by the page"        // After the encoding name: a charset label in the page decided it.
+    ui_EncodingDetected: string = "detected from the bytes"     // After the encoding name: no mark or label, the bytes decided it.
 }
 
 private const FrenchStringsName = "lang/fr/scope.html.tweak"

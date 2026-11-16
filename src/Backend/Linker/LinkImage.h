@@ -47,7 +47,7 @@ struct LinkReloc
 };
 
 #if !SWC_DEBUG_MODE
-static_assert(sizeof(void*) != 8 || sizeof(LinkReloc) == 48);
+static_assert(sizeof(void*) != 8 || sizeof(LinkReloc) == sizeof(Utf8) + 16);
 #endif
 
 struct LinkSection

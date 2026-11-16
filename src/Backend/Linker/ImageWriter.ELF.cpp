@@ -1,11 +1,15 @@
 #include "pch.h"
 #include "Backend/Linker/ImageWriter.ELF.h"
+#include "Backend/Debug/SymbolTable.h"
+#include "Backend/Encoder/Frame.DWARF.X64.h"
 #include "Backend/Linker/Archive.h"
+#include "Backend/Linker/IdenticalContentFold.h"
+#include "Backend/Linker/LinkJob.h"
 #include "Backend/Linker/ObjectWriter.ELF.h"
 #include "Backend/Linker/Reader.ELF.h"
-#include "Backend/Linker/LinkJob.h"
 #include "Backend/RuntimeName.h"
 #include "Main/FileSystem.h"
+#include "Support/Math/Hash.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 
@@ -13,72 +17,152 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_PAGE = 4096;
-    constexpr size_t K_NO_TARGET = SIZE_MAX;
+    constexpr uint64_t K_PAGE      = 4096;
+    constexpr size_t   K_NO_TARGET = SIZE_MAX;
 
     struct OutputSection
     {
         std::string name;
-        uint32_t type = ELF::SHT_PROGBITS;
-        uint32_t link = 0;
-        uint32_t info = 0;
-        uint64_t flags = 0;
-        uint64_t align = 1;
-        uint64_t entrySize = 0;
-        uint64_t size = 0;
-        uint64_t offset = 0;
-        uint64_t address = 0;
-        ByteArray bytes;
-        uint32_t nameOffset = 0;
+        uint32_t    type      = ELF::SHT_PROGBITS;
+        uint32_t    link      = 0;
+        uint32_t    info      = 0;
+        uint64_t    flags     = 0;
+        uint64_t    align     = 1;
+        uint64_t    entrySize = 0;
+        uint64_t    size      = 0;
+        uint64_t    offset    = 0;
+        uint64_t    address   = 0;
+        ByteArray   bytes;
+        uint32_t    nameOffset = 0;
     };
 
     struct SymbolReference
     {
-        ELF::File* file = nullptr;
-        size_t index = 0;
+        ELF::File*         file  = nullptr;
+        size_t             index = 0;
         const ELF::Symbol& symbol() const { return file->symbols[index]; }
     };
 
     struct Target
     {
-        std::string name;
+        std::string     name;
         SymbolReference reference;
-        size_t section = 0;
-        uint64_t offset = 0;
-        uint64_t size = 0;
-        uint32_t dynamicIndex = 0;
-        uint32_t nameOffset = 0;
-        uint32_t staticNameOffset = 0;
-        uint16_t version = 1;
-        uint8_t info = 0x10, visibility = 0;
-        bool absolute = false;
-        bool imported = false;
-        bool weak = false;
-        bool copy = false;
-        bool used = false;
-        bool exported = false;
-        size_t got = K_NO_TARGET;
-        size_t plt = K_NO_TARGET;
+        size_t          section          = 0;
+        uint64_t        offset           = 0;
+        uint64_t        size             = 0;
+        uint32_t        dynamicIndex     = 0;
+        uint32_t        nameOffset       = 0;
+        uint32_t        staticNameOffset = 0;
+        uint16_t        version          = 1;
+        uint8_t         info = 0x10, visibility = 0;
+        bool            absolute = false;
+        bool            imported = false;
+        bool            weak     = false;
+        bool            copy     = false;
+        bool            used     = false;
+        bool            exported = false;
+        size_t          got      = K_NO_TARGET;
+        size_t          plt      = K_NO_TARGET;
     };
 
     struct InputArchive
     {
-        Archive archive;
+        Archive            archive;
         std::set<uint32_t> extracted;
     };
 
     struct DynamicRelocation
     {
         uint64_t address = 0;
-        uint32_t symbol = 0;
-        uint32_t type = 0;
-        int64_t addend = 0;
+        uint32_t symbol  = 0;
+        uint32_t type    = 0;
+        int64_t  addend  = 0;
     };
+
+    struct ElfContentCandidate
+    {
+        ELF::File*                          file   = nullptr;
+        const ELF::Symbol*                  symbol = nullptr;
+        std::array<ELF::Section*, 2>        sections{};
+        uint32_t                            sectionCount  = 1;
+        bool                                normalizeSelf = false;
+        std::vector<const ELF::Relocation*> relocations;
+    };
+
+    std::pair<bool, std::string_view> contentRelocationTarget(const ElfContentCandidate& candidate, const ELF::Relocation& relocation, const std::unordered_map<std::string_view, std::string_view>& aliases)
+    {
+        std::string_view name = candidate.file->symbols[relocation.symbol].name;
+        if (candidate.normalizeSelf && name == candidate.symbol->name)
+            return {true, {}};
+        for (;;)
+        {
+            const auto found = aliases.find(name);
+            if (found == aliases.end())
+                return {false, name};
+            name = found->second;
+        }
+    }
+
+    uint32_t contentHash(const ElfContentCandidate& candidate, const std::unordered_map<std::string_view, std::string_view>& aliases)
+    {
+        uint32_t hash = 0;
+        for (uint32_t index = 0; index < candidate.sectionCount; ++index)
+        {
+            const ELF::Section& input = *candidate.sections[index];
+            hash                      = Math::hashCombine(hash, Math::hash(input.name));
+            hash                      = Math::hashCombine(hash, input.flags);
+            hash                      = Math::hashCombine(hash, input.type);
+            hash                      = Math::hashCombine(hash, input.align);
+            hash                      = Math::hashCombine(hash, input.size);
+            if (input.type != ELF::SHT_NOBITS)
+                hash = Math::hash(candidate.file->bytes.span().subspan(input.offset, input.size), hash);
+        }
+        for (const ELF::Relocation* relocation : candidate.relocations)
+        {
+            hash              = Math::hashCombine(hash, Math::hash(candidate.file->sections[relocation->section].name));
+            hash              = Math::hashCombine(hash, relocation->offset);
+            hash              = Math::hashCombine(hash, relocation->type);
+            hash              = Math::hashCombine(hash, static_cast<uint64_t>(relocation->addend));
+            const auto target = contentRelocationTarget(candidate, *relocation, aliases);
+            hash              = Math::hashCombine(hash, target.first);
+            hash              = Math::hashCombine(hash, Math::hash(target.second));
+        }
+        return hash;
+    }
+
+    bool sameContent(const ElfContentCandidate& left, const ElfContentCandidate& right, const std::unordered_map<std::string_view, std::string_view>& aliases)
+    {
+        if (left.sectionCount != right.sectionCount || left.relocations.size() != right.relocations.size())
+            return false;
+        for (uint32_t index = 0; index < left.sectionCount; ++index)
+        {
+            const ELF::Section& lhs = *left.sections[index];
+            const ELF::Section& rhs = *right.sections[index];
+            if (lhs.name != rhs.name || lhs.flags != rhs.flags || lhs.type != rhs.type || lhs.align != rhs.align || lhs.size != rhs.size)
+                return false;
+            if (lhs.type != ELF::SHT_NOBITS && !std::ranges::equal(left.file->bytes.span().subspan(lhs.offset, lhs.size), right.file->bytes.span().subspan(rhs.offset, rhs.size)))
+                return false;
+        }
+        for (size_t entry = 0; entry < left.relocations.size(); ++entry)
+        {
+            const ELF::Relocation& a = *left.relocations[entry];
+            const ELF::Relocation& b = *right.relocations[entry];
+            if (left.file->sections[a.section].name != right.file->sections[b.section].name || a.offset != b.offset || a.type != b.type || a.addend != b.addend ||
+                contentRelocationTarget(left, a, aliases) != contentRelocationTarget(right, b, aliases))
+                return false;
+        }
+        return true;
+    }
 
     class ElfImageLink
     {
     public:
-        ElfImageLink(Utf8& error, const LinkJob& job) : error_(&error), job_(&job), shared_(job.output == LinkJob::Output::SharedLibrary) {}
+        ElfImageLink(Utf8& error, const LinkJob& job) :
+            error_(&error),
+            job_(&job),
+            shared_(job.output == LinkJob::Output::SharedLibrary)
+        {
+        }
         bool run(ByteArray& bytes);
 
     private:
@@ -87,50 +171,62 @@ namespace
             *error_ = reason;
             return false;
         }
-        bool readObject(std::span<const std::byte> bytes, const Utf8& name);
-        bool loadLibrary(const fs::path& name, const fs::path& relative = {}, bool direct = true);
-        bool loadScript(const fs::path& path, std::span<const std::byte> bytes, bool direct);
+        bool     readObject(std::span<const std::byte> bytes, const Utf8& name);
+        bool     loadLibrary(const fs::path& name, const fs::path& relative = {}, bool direct = true);
+        bool     loadScript(const fs::path& path, std::span<const std::byte> bytes, bool direct);
         fs::path findLibrary(const fs::path& name, const fs::path& relative) const;
-        bool extractArchives();
-        bool mergeObjects();
-        bool mergeSection(ELF::File& file, ELF::Section& input);
-        bool resolveTargets();
-        bool prepareDynamic();
-        bool layout();
-        bool relocate();
-        bool emit(ByteArray& bytes);
-        bool buildUnwindHeader();
-        bool finishDynamic();
-        size_t section(std::string_view name, uint32_t type, uint64_t flags, uint64_t align = 1);
-        size_t addTarget(const std::string& name, const SymbolReference& reference, bool imported);
+        bool     extractArchives();
+        void     foldReadOnlyData();
+        void     foldFunctions();
+        bool     mergeObjects();
+        bool     mergeSection(ELF::File& file, ELF::Section& input);
+        bool     mergeUnwindSection(ELF::File& file, ELF::Section& input);
+        bool     resolveTargets();
+        bool     prepareDynamic();
+        bool     layout();
+        bool     relocate();
+        bool     emit(ByteArray& bytes);
+        bool     buildUnwindHeader();
+        bool     finishDynamic();
+        size_t   section(std::string_view name, uint32_t type, uint64_t flags, uint64_t align = 1);
+        size_t   addTarget(const std::string& name, const SymbolReference& reference, bool imported);
         uint64_t address(const Target& target) const;
         uint32_t dynamicString(std::string_view name);
-        void dynamicEntry(uint64_t tag, uint64_t value);
-        void appendDynamicRelocation(uint64_t address, uint32_t type, const Target& target, int64_t addend = 0);
-        bool addBootstrap();
+        void     dynamicEntry(uint64_t tag, uint64_t value);
+        void     appendDynamicRelocation(uint64_t address, uint32_t type, const Target& target, int64_t addend = 0);
+        bool     addBootstrap();
 
-        Utf8* error_;
-        const LinkJob* job_;
-        bool shared_;
-        uint64_t base_ = 0, page_ = K_PAGE, fileEnd_ = 0;
-        std::vector<fs::path> search_;
-        std::set<fs::path> loaded_;
-        std::vector<std::unique_ptr<ELF::File>> objects_, libraries_;
-        std::vector<std::unique_ptr<InputArchive>> archives_;
-        std::map<std::string, SymbolReference> definitions_, imports_;
-        std::map<std::string, size_t> globals_;
-        std::vector<Target> targets_;
-        std::vector<OutputSection> sections_{1};
-        std::vector<std::string> needed_;
-        std::vector<uint32_t> neededOffsets_;
+        Utf8*                                                   error_;
+        const LinkJob*                                          job_;
+        bool                                                    shared_;
+        uint64_t                                                base_ = 0, page_ = K_PAGE, fileEnd_ = 0;
+        std::vector<fs::path>                                   search_;
+        std::set<fs::path>                                      loaded_;
+        std::vector<std::unique_ptr<ELF::File>>                 objects_, libraries_;
+        std::vector<std::unique_ptr<InputArchive>>              archives_;
+        std::map<std::string, SymbolReference>                  definitions_, imports_;
+        std::unordered_map<ELF::Section*, ELF::Section*>        foldedSections_;
+        std::unordered_set<ELF::Section*>                       discardedSections_;
+        std::unordered_map<std::string_view, std::string_view>  contentAliases_;
+        std::vector<std::pair<size_t, uint64_t>>                frameOffsets_;
+        std::unordered_map<size_t, uint64_t>                    sharedCieOffsets_;
+        std::unordered_map<const ELF::Relocation*, uint64_t>    unwindRelocationOffsets_;
+        std::map<std::string, size_t>                           globals_;
+        std::vector<Target>                                     targets_;
+        std::vector<OutputSection>                              sections_{1};
+        std::vector<std::string>                                needed_;
+        std::vector<uint32_t>                                   neededOffsets_;
         std::map<std::pair<std::string, std::string>, uint16_t> versions_;
-        std::vector<DynamicRelocation> dynamicRelocations_;
-        ByteArray bootstrap_;
-        size_t dynstr_ = 0, dynsym_ = 0, hash_ = 0, versym_ = 0, verneed_ = 0, rela_ = 0, got_ = 0, plt_ = 0, dynamic_ = 0, unwind_ = 0, interp_ = 0;
-        size_t symtab_ = 0, strtab_ = 0, shstrtab_ = 0;
-        size_t dynamicCount_ = 0, relocationCount_ = 0;
-        uint32_t sonameOffset_ = 0, runpathOffset_ = 0;
-        struct Segment { uint64_t begin = 0, end = 0, memoryEnd = 0; } segments_[4];
+        std::vector<DynamicRelocation>                          dynamicRelocations_;
+        ByteArray                                               bootstrap_;
+        size_t                                                  dynstr_ = 0, dynsym_ = 0, hash_ = 0, versym_ = 0, verneed_ = 0, rela_ = 0, got_ = 0, plt_ = 0, dynamic_ = 0, unwind_ = 0, interp_ = 0;
+        size_t                                                  symtab_ = 0, strtab_ = 0, shstrtab_ = 0;
+        size_t                                                  dynamicCount_ = 0, relocationCount_ = 0;
+        uint32_t                                                sonameOffset_ = 0, runpathOffset_ = 0;
+        struct Segment
+        {
+            uint64_t begin = 0, end = 0, memoryEnd = 0;
+        } segments_[4];
     };
 
     uint64_t alignTo(const uint64_t value, const uint64_t alignment)
@@ -473,11 +569,14 @@ namespace
             return fail(std::format("{}: ELF link inputs do not yet support static TLS sections", file.name));
         if (input.size > UINT32_MAX || input.align > UINT32_MAX)
             return fail(std::format("{}: ELF section exceeds the image size limit", file.name));
-        const char* arrayName = input.type == ELF::SHT_INIT_ARRAY ? ".init_array" : input.type == ELF::SHT_FINI_ARRAY ? ".fini_array" : ".preinit_array";
-        const uint64_t flags = array ? ELF::SHF_ALLOC | ELF::SHF_WRITE : input.flags & (ELF::SHF_ALLOC | ELF::SHF_WRITE | ELF::SHF_EXEC);
+        const char*    arrayName = input.type == ELF::SHT_INIT_ARRAY ? ".init_array" : input.type == ELF::SHT_FINI_ARRAY ? ".fini_array"
+                                                                                                                         : ".preinit_array";
+        const uint64_t flags     = array ? ELF::SHF_ALLOC | ELF::SHF_WRITE : input.flags & (ELF::SHF_ALLOC | ELF::SHF_WRITE | ELF::SHF_EXEC);
         const uint64_t alignment = array ? std::max<uint64_t>(8, input.align) : input.align;
-        input.output = section(array ? std::string_view(arrayName) : std::string_view(input.name), input.type, flags, alignment);
-        OutputSection& output = sections_[input.output];
+        input.output             = section(array ? std::string_view(arrayName) : std::string_view(input.name), input.type, flags, alignment);
+        OutputSection& output    = sections_[input.output];
+        if (input.name == ".eh_frame")
+            return mergeUnwindSection(file, input);
         if (array)
         {
             if (input.entrySize != 8 || input.size % 8 || !(input.flags & ELF::SHF_ALLOC))
@@ -487,7 +586,7 @@ namespace
             output.entrySize = 8;
         }
         input.contribution = alignTo(output.size, alignment);
-        output.size = input.contribution + input.size;
+        output.size        = input.contribution + input.size;
         if (output.size > UINT32_MAX)
             return fail("ELF output section exceeds the image size limit");
         if (input.type != ELF::SHT_NOBITS)
@@ -498,13 +597,331 @@ namespace
         return true;
     }
 
+    bool ElfImageLink::mergeUnwindSection(ELF::File& file, ELF::Section& input)
+    {
+        if (input.type != ELF::SHT_PROGBITS)
+            return fail(std::format("{}: unwind records need file bytes", file.name));
+        struct Record
+        {
+            uint64_t offset = 0;
+            uint32_t size   = 0;
+            bool     cie    = false;
+        };
+        std::vector<Record>                                  records;
+        bool                                                 native = input.align == 8 && input.flags == ELF::SHF_ALLOC;
+        std::unordered_map<uint64_t, const ELF::Relocation*> addresses;
+        for (uint64_t offset = 0; offset + 4 <= input.size;)
+        {
+            const uint32_t length = file.bytes.readLe32(input.offset + offset);
+            if (!length)
+                break;
+            if (length < 4 || length > input.size - offset - 4)
+                return fail(std::format("{}: unwind record extends beyond its section", file.name));
+            const bool cie = file.bytes.readLe32(input.offset + offset + 4) == 0;
+            if (cie)
+                native &= X64DwarfFrame::isObjectCie(file.bytes.span().subspan(input.offset + offset, length + 4));
+            else
+            {
+                if (length < 12)
+                    return fail("ELF unwind FDE has no complete code address");
+                native &= !records.empty() && records.back().cie && records.back().offset + 24 == offset &&
+                          file.bytes.readLe32(input.offset + offset + 4) == 28 && (length + 4) % 8 == 0;
+                addresses.emplace(offset + 8, nullptr);
+            }
+            records.push_back({offset, length + 4, cie});
+            offset += 4 + length;
+        }
+        for (const ELF::Symbol& symbol : file.symbols)
+            if (symbol.section && symbol.section < file.sections.size() && &file.sections[symbol.section] == &input)
+                native = false;
+        for (const ELF::Relocation& relocation : file.relocations)
+        {
+            if (&file.sections[relocation.section] != &input)
+                continue;
+            const auto address = addresses.find(relocation.offset);
+            if (relocation.type != ELF::R_PC32 || address == addresses.end() || address->second)
+                native = false;
+            else
+                address->second = &relocation;
+        }
+        native &= !addresses.empty() && std::ranges::all_of(addresses, [](const auto& address) { return address.second != nullptr; });
+        OutputSection& output = sections_[input.output];
+        if (!native)
+        {
+            input.contribution = alignTo(output.size, input.align);
+            output.size        = input.contribution + input.size;
+            if (output.size > UINT32_MAX)
+                return fail("ELF output section exceeds the image size limit");
+            output.bytes.resize(input.contribution);
+            output.bytes.append(file.bytes.span().subspan(input.offset, input.size));
+            for (const Record& record : records)
+                if (!record.cie)
+                    frameOffsets_.emplace_back(input.output, input.contribution + record.offset);
+            return true;
+        }
+        auto cie = sharedCieOffsets_.find(input.output);
+        if (cie == sharedCieOffsets_.end())
+        {
+            output.bytes.align(8);
+            cie = sharedCieOffsets_.emplace(input.output, output.bytes.size()).first;
+            output.bytes.append(file.bytes.span().subspan(input.offset + records.front().offset, 24));
+        }
+        input.contribution = 0;
+        for (const Record& record : records)
+        {
+            if (record.cie)
+                continue;
+            output.bytes.align(8);
+            const uint64_t offset = output.bytes.size();
+            if (offset > UINT32_MAX - record.size)
+                return fail("ELF output section exceeds the image size limit");
+            output.bytes.append(file.bytes.span().subspan(input.offset + record.offset, record.size));
+            output.bytes.writeLe32(offset + 4, static_cast<uint32_t>(offset + 4 - cie->second));
+            unwindRelocationOffsets_.emplace(addresses.at(record.offset + 8), offset + 8);
+            frameOffsets_.emplace_back(input.output, offset);
+        }
+        output.size = output.bytes.size();
+        return true;
+    }
+
+    void ElfImageLink::foldReadOnlyData()
+    {
+        // Shared objects retain independently interposable definitions. Executables
+        // may pool compiler-owned immutable allocations after archive extraction.
+        if (shared_)
+            return;
+        std::vector<ElfContentCandidate> candidates;
+        for (const auto& file : objects_)
+        {
+            ElfContentCandidate candidate;
+            candidate.file          = file.get();
+            candidate.normalizeSelf = true;
+            bool eligible  = true;
+            for (ELF::Section& input : file->sections)
+            {
+                if (!(input.flags & ELF::SHF_ALLOC) || !input.size)
+                    continue;
+                const bool readOnly = input.name == ".rdata" || input.name == ".rbss" || input.name == ".data.rel.ro";
+                if (candidate.sections[0] || !readOnly || (input.flags & (ELF::SHF_EXEC | ELF::SHF_TLS)) ||
+                    ((input.flags & ELF::SHF_WRITE) && input.name != ".data.rel.ro") ||
+                    (input.type != ELF::SHT_PROGBITS && input.type != ELF::SHT_NOBITS))
+                {
+                    eligible = false;
+                    break;
+                }
+                candidate.sections[0] = &input;
+            }
+            if (!eligible || !candidate.sections[0])
+                continue;
+            for (const ELF::Symbol& symbol : file->symbols)
+            {
+                if (!symbol.section || symbol.section >= file->sections.size() || !(file->sections[symbol.section].flags & ELF::SHF_ALLOC))
+                    continue;
+                if (candidate.symbol || &file->sections[symbol.section] != candidate.sections[0] || symbol.value ||
+                    symbol.binding() != 1 || !symbol.name.starts_with("__swc_rdata_"))
+                {
+                    eligible = false;
+                    break;
+                }
+                candidate.symbol = &symbol;
+            }
+            if (!eligible || !candidate.symbol)
+                continue;
+            for (const ELF::Relocation& relocation : file->relocations)
+            {
+                if (&file->sections[relocation.section] != candidate.sections[0])
+                    continue;
+                const ELF::Symbol& target = file->symbols[relocation.symbol];
+                if (!target.binding() || target.name.empty() || candidate.sections[0]->type == ELF::SHT_NOBITS)
+                {
+                    eligible = false;
+                    break;
+                }
+                candidate.relocations.push_back(&relocation);
+            }
+            if (eligible)
+                candidates.push_back(std::move(candidate));
+        }
+        std::unordered_map<std::string_view, size_t> byName;
+        std::vector<size_t>                          canonical(candidates.size());
+        for (size_t index = 0; index < candidates.size(); ++index)
+        {
+            byName.emplace(candidates[index].symbol->name, index);
+            canonical[index] = index;
+        }
+        std::vector<std::vector<size_t>> readers(candidates.size());
+        for (size_t index = 0; index < candidates.size(); ++index)
+            for (const ELF::Relocation* relocation : candidates[index].relocations)
+            {
+                const auto target = byName.find(candidates[index].file->symbols[relocation->symbol].name);
+                if (target != byName.end())
+                    readers[target->second].push_back(index);
+            }
+        const auto hash = [&](const size_t index) {
+            return contentHash(candidates[index], contentAliases_);
+        };
+        const auto equal = [&](const size_t index, const size_t other) {
+            return sameContent(candidates[index], candidates[other], contentAliases_);
+        };
+        foldIdenticalContentGraph(readers, hash, equal, [&](const size_t index, const size_t survivor) {
+            canonical[index] = survivor;
+            contentAliases_.emplace(candidates[index].symbol->name, candidates[survivor].symbol->name);
+        });
+        for (size_t index = 0; index < candidates.size(); ++index)
+        {
+            if (canonical[index] == index)
+                continue;
+            size_t survivor = canonical[index];
+            while (canonical[survivor] != survivor)
+                survivor = canonical[survivor];
+            foldedSections_.emplace(candidates[index].sections[0], candidates[survivor].sections[0]);
+        }
+        // Apply relocations once per surviving allocation. Symbol definitions in a
+        // folded input keep their names and resolve to the survivor's contribution.
+        for (const auto& file : objects_)
+            std::erase_if(file->relocations, [&](const ELF::Relocation& relocation) { return foldedSections_.contains(&file->sections[relocation.section]); });
+    }
+
+    void ElfImageLink::foldFunctions()
+    {
+        if (shared_)
+            return;
+        std::vector<ElfContentCandidate> candidates;
+        for (const auto& file : objects_)
+        {
+            ElfContentCandidate candidate;
+            candidate.file          = file.get();
+            candidate.normalizeSelf = true;
+            bool eligible           = true;
+            for (ELF::Section& input : file->sections)
+            {
+                if (!(input.flags & ELF::SHF_ALLOC) || !input.size)
+                    continue;
+                if (input.name == ".text" && !candidate.sections[0] && input.type == ELF::SHT_PROGBITS && !(input.flags & (ELF::SHF_WRITE | ELF::SHF_TLS)))
+                    candidate.sections[0] = &input;
+                else if (input.name == ".eh_frame" && !candidate.sections[1] && input.type == ELF::SHT_PROGBITS && !(input.flags & (ELF::SHF_WRITE | ELF::SHF_EXEC | ELF::SHF_TLS)))
+                    candidate.sections[1] = &input;
+                else
+                {
+                    eligible = false;
+                    break;
+                }
+            }
+            if (!eligible || !candidate.sections[0])
+                continue;
+            candidate.sectionCount = candidate.sections[1] ? 2 : 1;
+            for (const ELF::Symbol& symbol : file->symbols)
+            {
+                if (!symbol.section || !symbol.binding())
+                    continue;
+                if (symbol.section >= file->sections.size() || &file->sections[symbol.section] != candidate.sections[0] || symbol.value || symbol.binding() != 1 ||
+                    !symbol.name.starts_with("__swc_fn_") || candidate.symbol)
+                {
+                    eligible = false;
+                    break;
+                }
+                candidate.symbol = &symbol;
+            }
+            if (!eligible || !candidate.symbol)
+                continue;
+            for (const ELF::Relocation& relocation : file->relocations)
+            {
+                const ELF::Section* source = &file->sections[relocation.section];
+                if (source != candidate.sections[0] && source != candidate.sections[1])
+                    continue;
+                const ELF::Symbol& target = file->symbols[relocation.symbol];
+                if (!target.binding() || target.name.empty())
+                {
+                    eligible = false;
+                    break;
+                }
+                candidate.relocations.push_back(&relocation);
+            }
+            if (eligible)
+                candidates.push_back(std::move(candidate));
+        }
+        std::unordered_map<std::string_view, size_t> byName;
+        for (size_t index = 0; index < candidates.size(); ++index)
+            byName.emplace(candidates[index].symbol->name, index);
+        std::vector<bool> observed(candidates.size());
+        for (const auto& file : objects_)
+            for (const ELF::Relocation& relocation : file->relocations)
+            {
+                const auto target = byName.find(file->symbols[relocation.symbol].name);
+                if (target == byName.end())
+                    continue;
+                const ELF::Section& source = file->sections[relocation.section];
+                if (source.name == ".eh_frame" || source.name == SymbolTable::IMAGE_SECTION || source.name == SymbolTable::OBJECT_SECTION || source.name.starts_with(".debug"))
+                    continue;
+                const bool directCall = source.name == ".text" && (relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32) && relocation.offset > 0 &&
+                                        relocation.offset <= source.size && file->bytes.span()[source.offset + relocation.offset - 1] == std::byte{0xe8};
+                if (!directCall)
+                    observed[target->second] = true;
+            }
+        for (const auto& library : libraries_)
+            for (const ELF::Symbol& symbol : library->symbols)
+                if (!symbol.section && symbol.binding())
+                    if (const auto target = byName.find(symbol.name); target != byName.end())
+                        observed[target->second] = true;
+        std::vector<size_t> order;
+        order.reserve(candidates.size());
+        for (const bool addressObserved : {true, false})
+            for (size_t index = 0; index < candidates.size(); ++index)
+                if (observed[index] == addressObserved)
+                    order.push_back(index);
+        for (size_t index = 0; index < order.size(); ++index)
+            byName[candidates[order[index]].symbol->name] = index;
+        std::vector<std::vector<size_t>> readers(candidates.size());
+        std::vector<size_t>              canonical(candidates.size());
+        for (size_t index = 0; index < order.size(); ++index)
+        {
+            canonical[index]      = index;
+            const auto& candidate = candidates[order[index]];
+            for (const ELF::Relocation* relocation : candidate.relocations)
+            {
+                const auto target = byName.find(candidate.file->symbols[relocation->symbol].name);
+                if (target != byName.end())
+                    readers[target->second].push_back(index);
+            }
+        }
+        const auto hash = [&](const size_t index) {
+            return contentHash(candidates[order[index]], contentAliases_);
+        };
+        const auto equal = [&](const size_t index, const size_t other) {
+            return !observed[order[index]] && sameContent(candidates[order[index]], candidates[order[other]], contentAliases_);
+        };
+        foldIdenticalContentGraph(readers, hash, equal, [&](const size_t index, const size_t survivor) {
+            canonical[index] = survivor;
+            contentAliases_.emplace(candidates[order[index]].symbol->name, candidates[order[survivor]].symbol->name);
+        });
+        for (size_t index = 0; index < order.size(); ++index)
+        {
+            if (canonical[index] == index)
+                continue;
+            size_t survivor = canonical[index];
+            while (canonical[survivor] != survivor)
+                survivor = canonical[survivor];
+            auto& candidate = candidates[order[index]];
+            foldedSections_.emplace(candidate.sections[0], candidates[order[survivor]].sections[0]);
+            // Keep only the survivor's unwind and source records, so one address
+            // cannot select conflicting frame descriptions or stack-trace names.
+            for (ELF::Section& input : candidate.file->sections)
+                if (&input != candidate.sections[0])
+                    discardedSections_.insert(&input);
+            candidate.file->relocations.clear();
+            for (ELF::Symbol& symbol : candidate.file->symbols)
+                if (symbol.section && symbol.section < candidate.file->sections.size() && &candidate.file->sections[symbol.section] != candidate.sections[0])
+                    symbol = {};
+        }
+    }
+
     bool ElfImageLink::mergeObjects()
     {
         struct ArrayContribution
         {
-            ELF::File* file;
+            ELF::File*    file;
             ELF::Section* input;
-            uint32_t priority = 65535;
+            uint32_t      priority = 65535;
         };
         std::vector<ArrayContribution> arrays;
         for (const auto& file : objects_)
@@ -512,6 +929,8 @@ namespace
             for (size_t index = 1; index < file->sections.size(); ++index)
             {
                 ELF::Section& input = file->sections[index];
+                if (foldedSections_.contains(&input) || discardedSections_.contains(&input))
+                    continue;
                 if (input.type < ELF::SHT_INIT_ARRAY || input.type > ELF::SHT_PREINIT_ARRAY)
                 {
                     if (!mergeSection(*file, input))
@@ -519,12 +938,12 @@ namespace
                     continue;
                 }
                 ArrayContribution contribution{file.get(), &input};
-                const size_t suffix = input.name.rfind('.');
+                const size_t      suffix = input.name.rfind('.');
                 if (suffix != std::string::npos && suffix > 0)
                 {
-                    const char* begin = input.name.data() + suffix + 1;
-                    const char* end = input.name.data() + input.name.size();
-                    const auto parsed = std::from_chars(begin, end, contribution.priority);
+                    const char* begin  = input.name.data() + suffix + 1;
+                    const char* end    = input.name.data() + input.name.size();
+                    const auto  parsed = std::from_chars(begin, end, contribution.priority);
                     if (parsed.ec != std::errc{} || parsed.ptr != end || contribution.priority > 65535)
                         return fail(std::format("{}: ELF constructor priority needs an integer from 0 to 65535", file->name));
                 }
@@ -537,6 +956,16 @@ namespace
         for (const ArrayContribution& contribution : arrays)
             if (!mergeSection(*contribution.file, *contribution.input))
                 return false;
+        for (const auto& [input, survivor] : foldedSections_)
+        {
+            input->output       = survivor->output;
+            input->contribution = survivor->contribution;
+        }
+        for (const auto& [index, _] : sharedCieOffsets_)
+        {
+            sections_[index].bytes.appendLe32(0);
+            sections_[index].size = sections_[index].bytes.size();
+        }
         return true;
     }
 
@@ -689,14 +1118,14 @@ namespace
 
     bool ElfImageLink::prepareDynamic()
     {
-        dynstr_ = section(".dynstr", ELF::SHT_STRTAB, ELF::SHF_ALLOC);
-        dynsym_ = section(".dynsym", ELF::SHT_DYNSYM, ELF::SHF_ALLOC, 8);
-        hash_ = section(".hash", 5, ELF::SHF_ALLOC, 8);
-        versym_ = section(".gnu.version", 0x6fffffff, ELF::SHF_ALLOC, 2);
+        dynstr_  = section(".dynstr", ELF::SHT_STRTAB, ELF::SHF_ALLOC);
+        dynsym_  = section(".dynsym", ELF::SHT_DYNSYM, ELF::SHF_ALLOC, 8);
+        hash_    = section(".hash", 5, ELF::SHF_ALLOC, 8);
+        versym_  = section(".gnu.version", 0x6fffffff, ELF::SHF_ALLOC, 2);
         verneed_ = section(".gnu.version_r", 0x6ffffffe, ELF::SHF_ALLOC, 8);
-        rela_ = section(".rela.dyn", ELF::SHT_RELA, ELF::SHF_ALLOC, 8);
+        rela_    = section(".rela.dyn", ELF::SHT_RELA, ELF::SHF_ALLOC, 8);
         dynamic_ = section(".dynamic", ELF::SHT_DYNAMIC, ELF::SHF_ALLOC | ELF::SHF_WRITE, 8);
-        unwind_ = section(".eh_frame_hdr", ELF::SHT_PROGBITS, ELF::SHF_ALLOC, 4);
+        unwind_  = section(".eh_frame_hdr", ELF::SHT_PROGBITS, ELF::SHF_ALLOC, 4);
         sections_[dynstr_].bytes.pushBack(std::byte{0});
         dynamicCount_ = 1;
         for (Target& target : targets_)
@@ -726,7 +1155,7 @@ namespace
                 }
             }
             target.dynamicIndex = static_cast<uint32_t>(dynamicCount_++);
-            target.nameOffset = dynamicString(target.name);
+            target.nameOffset   = dynamicString(target.name);
         }
         if (dynamicCount_ > UINT32_MAX || versions_.size() >= 0x7ffe)
             return fail("ELF dynamic symbols exceed the supported index range");
@@ -756,23 +1185,23 @@ namespace
                 bytes.appendLe32(index + 1 == provider->second.size() ? 0 : 16);
             }
         }
-        sections_[verneed_].info = static_cast<uint32_t>(providers.size());
-        sections_[verneed_].link = static_cast<uint32_t>(dynstr_);
-        sections_[versym_].link = static_cast<uint32_t>(dynsym_);
-        sections_[versym_].entrySize = 2;
-        sections_[dynsym_].link = static_cast<uint32_t>(dynstr_);
-        sections_[dynsym_].info = 1;
-        sections_[dynsym_].entrySize = 24;
-        sections_[hash_].link = static_cast<uint32_t>(dynsym_);
-        sections_[hash_].entrySize = 4;
-        sections_[rela_].link = static_cast<uint32_t>(dynsym_);
-        sections_[rela_].entrySize = 24;
-        sections_[dynamic_].link = static_cast<uint32_t>(dynstr_);
+        sections_[verneed_].info      = static_cast<uint32_t>(providers.size());
+        sections_[verneed_].link      = static_cast<uint32_t>(dynstr_);
+        sections_[versym_].link       = static_cast<uint32_t>(dynsym_);
+        sections_[versym_].entrySize  = 2;
+        sections_[dynsym_].link       = static_cast<uint32_t>(dynstr_);
+        sections_[dynsym_].info       = 1;
+        sections_[dynsym_].entrySize  = 24;
+        sections_[hash_].link         = static_cast<uint32_t>(dynsym_);
+        sections_[hash_].entrySize    = 4;
+        sections_[rela_].link         = static_cast<uint32_t>(dynsym_);
+        sections_[rela_].entrySize    = 24;
+        sections_[dynamic_].link      = static_cast<uint32_t>(dynstr_);
         sections_[dynamic_].entrySize = 16;
         sections_[dynsym_].bytes.resize(dynamicCount_ * 24);
         sections_[versym_].bytes.resize(dynamicCount_ * 2);
         const uint32_t bucketCount = std::max<uint32_t>(1, static_cast<uint32_t>(dynamicCount_ / 4));
-        ByteArray& hashes = sections_[hash_].bytes;
+        ByteArray&     hashes      = sections_[hash_].bytes;
         hashes.resize(8 + (bucketCount + dynamicCount_) * 4);
         hashes.writeLe32(0, bucketCount);
         hashes.writeLe32(4, static_cast<uint32_t>(dynamicCount_));
@@ -780,7 +1209,7 @@ namespace
         {
             if (!target.dynamicIndex)
                 continue;
-            const uint32_t bucket = ELF::hash(target.name) % bucketCount;
+            const uint32_t bucket   = ELF::hash(target.name) % bucketCount;
             const uint32_t previous = hashes.readLe32(8 + bucket * 4);
             hashes.writeLe32(8 + (bucketCount + target.dynamicIndex) * 4, previous);
             hashes.writeLe32(8 + bucket * 4, target.dynamicIndex);
@@ -793,7 +1222,6 @@ namespace
             if (target.copy)
                 ++relocationCount_;
         }
-        size_t frameCount = 0;
         for (const auto& file : objects_)
         {
             for (const ELF::Relocation& relocation : file->relocations)
@@ -801,32 +1229,16 @@ namespace
                 const ELF::Section& source = file->sections[relocation.section];
                 if (relocation.type == ELF::R_ABS64 && source.output && (source.flags & ELF::SHF_ALLOC))
                 {
-                    const Target& target = targets_[file->symbols[relocation.symbol].target];
-                    const bool pltAddress = !shared_ && target.imported && target.plt != K_NO_TARGET &&
-                                            !(sections_[source.output].flags & ELF::SHF_WRITE);
+                    const Target& target     = targets_[file->symbols[relocation.symbol].target];
+                    const bool    pltAddress = !shared_ && target.imported && target.plt != K_NO_TARGET &&
+                                               !(sections_[source.output].flags & ELF::SHF_WRITE);
                     if (!target.absolute && (shared_ || (target.imported && !target.copy && !pltAddress)))
                         ++relocationCount_;
                 }
             }
-            for (const ELF::Section& source : file->sections)
-            {
-                if (source.name != ".eh_frame")
-                    continue;
-                for (uint64_t offset = 0; offset + 4 <= source.size;)
-                {
-                    const uint32_t length = file->bytes.readLe32(source.offset + offset);
-                    if (!length)
-                        break;
-                    if (length < 4 || length > source.size - offset - 4)
-                        return fail(std::format("{}: unwind record extends beyond its section", file->name));
-                    if (file->bytes.readLe32(source.offset + offset + 4))
-                        ++frameCount;
-                    offset += 4 + length;
-                }
-            }
         }
         sections_[rela_].bytes.resize(relocationCount_ * 24);
-        sections_[unwind_].bytes.resize(12 + frameCount * 8);
+        sections_[unwind_].bytes.resize(12 + frameOffsets_.size() * 8);
         // Reserve exactly the entries emitted by finishDynamic, before assigning addresses.
         size_t entries = 15 + needed_.size();
         runpathOffset_ = dynamicString("$ORIGIN");
@@ -845,25 +1257,28 @@ namespace
 
     bool ElfImageLink::layout()
     {
-        symtab_ = section(".symtab", ELF::SHT_SYMTAB, 0, 8);
-        strtab_ = section(".strtab", ELF::SHT_STRTAB, 0);
-        shstrtab_ = section(".shstrtab", ELF::SHT_STRTAB, 0);
-        sections_[strtab_].bytes.pushBack(std::byte{0});
-        size_t staticCount = 1;
-        uint32_t localCount = 1;
-        for (Target& target : targets_)
+        if (!job_->elfStripSymbols)
         {
-            if (target.name.empty() && !target.section && !target.absolute)
-                continue;
-            target.staticNameOffset = appendString(sections_[strtab_].bytes, target.name);
-            ++staticCount;
-            if (!(target.info >> 4))
-                ++localCount;
+            symtab_ = section(".symtab", ELF::SHT_SYMTAB, 0, 8);
+            strtab_ = section(".strtab", ELF::SHT_STRTAB, 0);
+            sections_[strtab_].bytes.pushBack(std::byte{0});
+            size_t   staticCount = 1;
+            uint32_t localCount  = 1;
+            for (Target& target : targets_)
+            {
+                if (target.name.empty() && !target.section && !target.absolute)
+                    continue;
+                target.staticNameOffset = appendString(sections_[strtab_].bytes, target.name);
+                ++staticCount;
+                if (!(target.info >> 4))
+                    ++localCount;
+            }
+            sections_[symtab_].bytes.resize(staticCount * 24);
+            sections_[symtab_].entrySize = 24;
+            sections_[symtab_].link      = static_cast<uint32_t>(strtab_);
+            sections_[symtab_].info      = localCount;
         }
-        sections_[symtab_].bytes.resize(staticCount * 24);
-        sections_[symtab_].entrySize = 24;
-        sections_[symtab_].link = static_cast<uint32_t>(strtab_);
-        sections_[symtab_].info = localCount;
+        shstrtab_ = section(".shstrtab", ELF::SHT_STRTAB, 0);
         sections_[shstrtab_].bytes.pushBack(std::byte{0});
         for (size_t index = 1; index < sections_.size(); ++index)
             sections_[index].nameOffset = appendString(sections_[shstrtab_].bytes, sections_[index].name);
@@ -874,7 +1289,7 @@ namespace
             if (output.flags & ELF::SHF_ALLOC)
                 page_ = std::max(page_, output.align);
         }
-        base_ = shared_ ? 0 : alignTo(0x400000, page_);
+        base_           = shared_ ? 0 : alignTo(0x400000, page_);
         uint64_t cursor = 64 + (shared_ ? 9 : 10) * 56;
         for (size_t group = 0; group < 4; ++group)
         {
@@ -888,13 +1303,14 @@ namespace
                     OutputSection& output = sections_[index];
                     if (!(output.flags & ELF::SHF_ALLOC) || (output.type == ELF::SHT_NOBITS) != uninitialized)
                         continue;
-                    const bool writable = (output.flags & ELF::SHF_WRITE) != 0;
-                    const bool relro = output.name == ".dynamic" || output.name == ".got" || output.name.starts_with(".data.rel.ro") || output.type == ELF::SHT_INIT_ARRAY || output.type == ELF::SHT_FINI_ARRAY || output.type == ELF::SHT_PREINIT_ARRAY;
-                    const size_t selected = output.flags & ELF::SHF_EXEC ? 1 : writable ? (relro ? 2 : 3) : 0;
+                    const bool   writable = (output.flags & ELF::SHF_WRITE) != 0;
+                    const bool   relro    = output.name == ".dynamic" || output.name == ".got" || output.name.starts_with(".data.rel.ro") || output.type == ELF::SHT_INIT_ARRAY || output.type == ELF::SHT_FINI_ARRAY || output.type == ELF::SHT_PREINIT_ARRAY;
+                    const size_t selected = output.flags & ELF::SHF_EXEC ? 1 : writable ? (relro ? 2 : 3)
+                                                                                        : 0;
                     if (selected != group)
                         continue;
-                    cursor = alignTo(cursor, output.align);
-                    output.offset = cursor;
+                    cursor         = alignTo(cursor, output.align);
+                    output.offset  = cursor;
                     output.address = base_ + cursor;
                     cursor += output.size;
                     if (!uninitialized)
@@ -904,7 +1320,7 @@ namespace
             if (group == 2)
                 cursor = alignTo(cursor, page_);
             segments_[group].memoryEnd = cursor;
-            segments_[group].end = std::max(segments_[group].end, segments_[group].begin);
+            segments_[group].end       = std::max(segments_[group].end, segments_[group].begin);
             if (group != 3)
                 segments_[group].end = cursor;
         }
@@ -914,8 +1330,8 @@ namespace
             OutputSection& output = sections_[index];
             if (output.flags & ELF::SHF_ALLOC)
                 continue;
-            cursor = alignTo(cursor, output.align);
-            output.offset = cursor;
+            cursor         = alignTo(cursor, output.align);
+            output.offset  = cursor;
             output.address = 0;
             cursor += output.size;
         }
@@ -946,9 +1362,9 @@ namespace
             }
             if (target.plt != K_NO_TARGET)
             {
-                ByteArray& code = sections_[plt_].bytes;
-                code[target.plt] = std::byte{0xff};
-                code[target.plt + 1] = std::byte{0x25};
+                ByteArray& code            = sections_[plt_].bytes;
+                code[target.plt]           = std::byte{0xff};
+                code[target.plt + 1]       = std::byte{0x25};
                 const int64_t displacement = static_cast<int64_t>(sections_[got_].address + target.got) - static_cast<int64_t>(sections_[plt_].address + target.plt + 6);
                 if (displacement < INT32_MIN || displacement > INT32_MAX)
                     return fail("ELF import trampoline exceeds its signed 32-bit displacement range");
@@ -965,13 +1381,16 @@ namespace
                 if (!source.output || !relocation.type)
                     continue;
                 OutputSection& output = sections_[source.output];
-                const Target& target = targets_[file->symbols[relocation.symbol].target];
-                const uint64_t offset = source.contribution + relocation.offset;
+                const Target&  target = targets_[file->symbols[relocation.symbol].target];
+                uint64_t       offset = source.contribution + relocation.offset;
+                if (source.name == ".eh_frame")
+                    if (const auto remapped = unwindRelocationOffsets_.find(&relocation); remapped != unwindRelocationOffsets_.end())
+                        offset = remapped->second;
                 const uint64_t location = output.address + offset;
-                uint64_t value = address(target);
-                const bool got = relocation.type == ELF::R_GOTPCREL || relocation.type == ELF::R_GOTPCRELX || relocation.type == ELF::R_REX_GOTPCRELX;
-                const bool relative = relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32 || relocation.type == ELF::R_PC64 || got;
-                const bool full = relocation.type == ELF::R_ABS64 || relocation.type == ELF::R_PC64;
+                uint64_t       value    = address(target);
+                const bool     got      = relocation.type == ELF::R_GOTPCREL || relocation.type == ELF::R_GOTPCRELX || relocation.type == ELF::R_REX_GOTPCRELX;
+                const bool     relative = relocation.type == ELF::R_PC32 || relocation.type == ELF::R_PLT32 || relocation.type == ELF::R_PC64 || got;
+                const bool     full     = relocation.type == ELF::R_ABS64 || relocation.type == ELF::R_PC64;
                 if (relative && !got && target.imported && !target.copy && target.plt == K_NO_TARGET)
                     return fail(std::format("{}: imported symbol '{}' needs a PLT-compatible relocation", file->name, target.name));
                 if (!relative && relocation.type != ELF::R_ABS64 && relocation.type != ELF::R_32 && relocation.type != ELF::R_32S)
@@ -1035,38 +1454,20 @@ namespace
     bool ElfImageLink::buildUnwindHeader()
     {
         std::vector<std::pair<uint64_t, uint64_t>> frames;
-        uint64_t frameSection = 0;
-        for (const auto& file : objects_)
+        uint64_t                                   frameSection = 0;
+        for (const auto& [index, offset] : frameOffsets_)
         {
-            for (const ELF::Section& input : file->sections)
-            {
-                if (input.name != ".eh_frame" || !input.output)
-                    continue;
-                const OutputSection& output = sections_[input.output];
-                frameSection = output.address;
-                for (uint64_t offset = 0; offset + 4 <= input.size;)
-                {
-                    const uint32_t length = file->bytes.readLe32(input.offset + offset);
-                    if (!length)
-                        break;
-                    if (file->bytes.readLe32(input.offset + offset + 4))
-                    {
-                        if (length < 12)
-                            return fail("ELF unwind FDE has no complete code address");
-                        const uint64_t start = input.contribution + offset;
-                        const int32_t displacement = std::bit_cast<int32_t>(output.bytes.readLe32(start + 8));
-                        const uint64_t pc = output.address + start + 8 + static_cast<uint64_t>(displacement);
-                        frames.emplace_back(pc, output.address + start);
-                    }
-                    offset += 4 + length;
-                }
-            }
+            const OutputSection& output = sections_[index];
+            frameSection                = output.address;
+            const int32_t  displacement = std::bit_cast<int32_t>(output.bytes.readLe32(offset + 8));
+            const uint64_t pc           = output.address + offset + 8 + static_cast<uint64_t>(displacement);
+            frames.emplace_back(pc, output.address + offset);
         }
         std::ranges::sort(frames);
         ByteArray bytes;
         bytes.pushBack(std::byte{1});
         bytes.pushBack(std::byte{0x1b}); // PC-relative signed 32-bit .eh_frame pointer.
-        bytes.pushBack(std::byte{3}); // Unsigned 32-bit FDE count.
+        bytes.pushBack(std::byte{3});    // Unsigned 32-bit FDE count.
         bytes.pushBack(std::byte{0x3b}); // Header-relative signed 32-bit table entries.
         const uint64_t base = sections_[unwind_].address;
         bytes.appendLe32(static_cast<uint32_t>(frameSection ? frameSection - (base + 4) : 0));
@@ -1093,8 +1494,8 @@ namespace
         {
             if (!target.dynamicIndex)
                 continue;
-            ByteArray& symbols = sections_[dynsym_].bytes;
-            const uint64_t entry = uint64_t{target.dynamicIndex} * 24;
+            ByteArray&     symbols = sections_[dynsym_].bytes;
+            const uint64_t entry   = uint64_t{target.dynamicIndex} * 24;
             symbols.writeLe32(entry, target.nameOffset);
             symbols[entry + 4] = static_cast<std::byte>(target.info);
             symbols[entry + 5] = static_cast<std::byte>(target.visibility);
@@ -1130,10 +1531,10 @@ namespace
         dynamicEntry(8, sections_[rela_].size);
         dynamicEntry(9, 24);
         dynamicEntry(3, sections_[got_].address);
-        dynamicEntry(24, 0); // DT_BIND_NOW: Swag also carries arguments in R10/R11.
+        dynamicEntry(24, 0);                     // DT_BIND_NOW: Swag also carries arguments in R10/R11.
         dynamicEntry(30, shared_ ? 0x0a : 0x08); // DF_SYMBOLIC | DF_BIND_NOW.
-        dynamicEntry(0x6ffffffb, 1); // DF_1_NOW
-        dynamicEntry(shared_ ? 16 : 21, 0); // DT_SYMBOLIC or the loader's DT_DEBUG slot.
+        dynamicEntry(0x6ffffffb, 1);             // DF_1_NOW
+        dynamicEntry(shared_ ? 16 : 21, 0);      // DT_SYMBOLIC or the loader's DT_DEBUG slot.
         dynamicEntry(29, runpathOffset_);
         if (!versions_.empty())
         {
@@ -1143,18 +1544,25 @@ namespace
         }
         for (const OutputSection& output : sections_)
         {
-            const uint64_t tag = output.type == ELF::SHT_INIT_ARRAY ? 25 : output.type == ELF::SHT_FINI_ARRAY ? 26 : output.type == ELF::SHT_PREINIT_ARRAY ? 32 : 0;
+            const uint64_t tag = output.type == ELF::SHT_INIT_ARRAY ? 25 : output.type == ELF::SHT_FINI_ARRAY  ? 26
+                                                                       : output.type == ELF::SHT_PREINIT_ARRAY ? 32
+                                                                                                               : 0;
             if (tag)
             {
                 dynamicEntry(tag, output.address);
-                dynamicEntry(tag == 25 ? 27 : tag == 26 ? 28 : 33, output.size);
+                dynamicEntry(tag == 25 ? 27 : tag == 26 ? 28
+                                                        : 33,
+                             output.size);
             }
         }
         dynamicEntry(0, 0);
         if (dynamic.size() != sections_[dynamic_].size)
             return fail("ELF dynamic table planning disagrees with the final entry count");
+        if (!symtab_)
+            return buildUnwindHeader();
+
         ByteArray& symbols = sections_[symtab_].bytes;
-        size_t index = 1;
+        size_t     index   = 1;
         for (const bool local : {true, false})
         {
             for (const Target& target : targets_)
@@ -1264,8 +1672,8 @@ namespace
             std::string_view paths = value->view();
             while (!paths.empty())
             {
-                const size_t separator = paths.find(':');
-                const std::string_view path = paths.substr(0, separator);
+                const size_t           separator = paths.find(':');
+                const std::string_view path      = paths.substr(0, separator);
                 if (!path.empty())
                     search_.emplace_back(path);
                 if (separator == std::string_view::npos)
@@ -1291,7 +1699,11 @@ namespace
         for (const fs::path& library : job_->elfLibraries)
             if (!loadLibrary(library))
                 return false;
-        if (!extractArchives() || !mergeObjects() || !resolveTargets() || !prepareDynamic() || !layout() || !relocate() || !finishDynamic())
+        if (!extractArchives())
+            return false;
+        foldReadOnlyData();
+        foldFunctions();
+        if (!mergeObjects() || !resolveTargets() || !prepareDynamic() || !layout() || !relocate() || !finishDynamic())
             return false;
         return emit(bytes);
     }

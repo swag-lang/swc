@@ -199,8 +199,10 @@ struct CaptureFileModel
 // and where it came from.
 struct Capture
 {
+    // The sizes the resize and expand boxes accept. The largest is the largest texture side current
+    // graphics cards take, past the grab of a desktop across several monitors.
     const MinSize = 16
-    const MaxSize = 4096
+    const MaxSize = 16384
     width, height:       s32
     backImg:             Image
     widthOrg, heightOrg: s32
@@ -250,6 +252,9 @@ struct Capture
         // schema and a save would not preserve everything it held.
         loadIssues: u32
 
+        // Loaded for the library: its metadata and its preview, without its pictures.
+        previewOnly: bool
+
         // Encoded SCC thumbnail retained by the library until a visible cell needs pixels.
         previewBytes: Array'u8
 
@@ -291,6 +296,15 @@ struct Capture
         inPlacePosY: f32
 
         haar: ImageStatistics.HaarFeatures
+
+        // Every change of the background or its original raises the revision. A save records
+        // the chunks it wrote for one revision, so the next save after a form edit copies those
+        // stored bytes from the file instead of copying and deflating the same pixels again.
+        backRevision:      u64
+        savedBackRevision: u64
+        savedBackKnown:    bool
+        savedBackChunk:    Guid128     // Null when the saved revision has no background.
+        savedOrigChunk:    Guid128     // Null when the saved revision has no original.
     }
 }
 
@@ -351,6 +365,9 @@ struct CaptureSaveJob
     modelBytes: Array'u8     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
     backImg:    Image        // Owned pixel copies, because a later crop or flatten must not race the encoder.
     backOrig:   Image
+    backChunk:  Guid128      // Identifiers of the background chunks, chosen with the snapshot.
+    origChunk:  Guid128
+    reuseBack:  bool         // Copy those chunks from the current file instead of encoding the images.
     preview:    Image
     failed:     bool     // Set by the worker when producing or replacing the file failed.
 }
@@ -369,6 +386,7 @@ struct CaptureMetadataJob
     hasTags:     bool
     hasFavorite: bool
     hasRating:   bool
+    unlink:      bool
     error:       Swag.Error
 }
 
@@ -684,6 +702,14 @@ impl CaptureClipboardForms
 
 impl Capture
 {
+    // Marks the background or its original as changed: the texture is uploaded again and the
+    // next save encodes the pixels instead of reusing the chunks of an earlier save.
+    mtd backgroundChanged()
+    {
+        .dirtyBackImg = true
+        .backRevision += 1
+    }
+
     // Records the source of a screen capture. The native backend supplies as much window
     // identity as Windows allows; empty values deliberately mean "not available".
     mtd setScreenSource(application, executable, windowTitle, windowClass: String)

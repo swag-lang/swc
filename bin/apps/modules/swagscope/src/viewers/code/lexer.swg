@@ -881,7 +881,17 @@ private impl GenericLexer
                     seek += 1
                 }
 
-                paintRange(line, first, seek, .String)
+                var style = Style.String
+                if .language == .Json and quote == '"'
+                {
+                    var next = seek
+                    while next < length and Unicode.isSpace(line.runeAt(next)) do
+                        next += 1
+                    if next < length and line.runeAt(next) == ':' do
+                        style = .Type
+                }
+
+                paintRange(line, first, seek, style)
                 continue
             }
 

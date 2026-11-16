@@ -275,3 +275,22 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     f.main.lastCapture = "ActionCapture.Screen7"
     Swag.require(f.main.lastCaptureCommand() == ActionCapture.Area)
 }
+
+// A zone resized or moved after its selection is pinned where it stands now, at its new size:
+// the pin follows the zone, not the rectangle first drawn on the desktop.
+#test
+{
+    g_DesktopX = -1920
+    g_DesktopY = 0
+    defer g_DesktopX = 0
+    g_StartGrabX, g_StartGrabY = 10
+    g_EndGrabX = 110
+    g_EndGrabY = 70
+
+    var capture: Capture
+    capture.backImagePos = {-30, -40}
+    capture.width        = 160
+    capture.height       = 90
+    let zone = capture.zoneScreenRect()
+    Swag.require(zone == Math.Rectangle{-1890, 40, 160, 90})
+}

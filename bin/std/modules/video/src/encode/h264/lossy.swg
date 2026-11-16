@@ -1,5 +1,5 @@
 //! Format: H.264/AVC constrained-baseline quantized picture coding.
-//! Supported: Progressive 8-bit 4:2:0 I and P pictures, quarter-sample 16x16 motion, P-skip, Intra_16x16 and Intra_4x4 prediction, and CAVLC residuals at a fixed QP of 1 through 51.
+//! Supported: Progressive 8-bit 4:2:0 I and P pictures, quarter-sample 16x16 motion, P-skip, Intra_16x16 and Intra_4x4 prediction in both, and CAVLC residuals at a fixed QP of 1 through 51, key pictures three steps finer.
 //! Not supported: Macroblock partitions, several references, B pictures, CABAC, the 8x8 transform, and rate control.
 //! Role: This file codes the pictures of a quantized encoder against its own decoded reference.
 //
@@ -30,6 +30,18 @@ const LossyRunScore: [16] u8 = [3, 2, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 // Largest whole-sample excursion of a motion vector around its macroblock.
 const LossySearchRange = 64's32
+
+// Quantizer steps a key picture is coded finer than the pictures predicted from it.
+const LossyKeyQpGain = 3's32
+
+// Bits an intra macroblock of a predicted picture is taken to cost above an inter one.
+const LossyIntraBits = 12'u32
+
+// Bits sixteen Intra_4x4 blocks are taken to cost above one Intra_16x16 prediction.
+const LossySmallBlocksBits = 12'u32
+
+// Transformed distance under which the Intra_16x16 prediction of a predicted picture is kept untried against Intra_4x4.
+const LossySmoothCost = 512'u32
 
 // Width of the regions whose overall translation is estimated before their macroblocks are searched.
 const LossyRegionWidth = 256'u64
@@ -82,7 +94,8 @@ struct LossyCoder
     mbHeight:      u32
     width:         s32
     height:        s32
-    qp:            u32
+    baseQp:        u32             // Quantizer of predicted pictures.
+    qp:            u32             // Quantizer of the picture being coded.
     lambda:        s32
 }
 
@@ -94,8 +107,8 @@ impl LossyCoder
         .height   = height
         .mbWidth  = mbWidth
         .mbHeight = mbHeight
-        .qp       = qp
-        .lambda   = Math.max(1, cast(s32, Math.round(Math.pow(2.0, (cast(f64, qp) - 12) / 6))))
+        .baseQp   = qp
+        .setPictureQp(qp)
         for &frame in .frames do
             frame.prepare(cast(s32, mbWidth), cast(s32, mbHeight), 1)
 
@@ -113,6 +126,13 @@ impl LossyCoder
         .chromaNonZero.resize(count * 8)
         for code in 48'u64 do
             .intraCbpCode[GolombToIntraCbp[code]] = cast(u8, code)
+    }
+
+    // Sets the quantizer of the next picture and the weight of a bit against a unit of distance.
+    mtd setPictureQp(qp: u32)
+    {
+        .qp     = qp
+        .lambda = Math.max(1, cast(s32, Math.round(Math.pow(2.0, (cast(f64, qp) - 12) / 6))))
     }
 
     mtd current()->*Frame   => &.frames[.currentIndex]
@@ -167,6 +187,10 @@ impl LossyCoder
     mtd encodeFrame(frame: const *Nv12Frame, key: bool, frameNumber, sliceCount: u32, packet: *Array'u8)
     {
         .loadSource(frame)
+
+        // Everything until the next key picture is predicted from this one, and what does not
+        // move keeps its precision for nothing: a key picture is worth a finer quantizer.
+        .setPictureQp(key ? cast(u32, Math.max(cast(s32, .baseQp) - LossyKeyQpGain, 1)) : .baseQp)
         for &mb in .mbs
         {
             mb.mvX   = 0
@@ -388,6 +412,42 @@ func lossyQuantize4x4(coefficients: const [*] s32, first: u64, qp: u32, rounding
     return count
 }
 
+// Returns the largest sum of absolute differences of a 4x4 block whose every coefficient is sure
+// to quantize to zero. A coefficient is a sum of the differences weighted by one, two or four
+// according to its position, so it cannot exceed that weight times their absolute sum.
+func lossyZeroBound(qp: u32, rounding: s64)->u32
+{
+    let qmod   = cast(u64, qp % 6)
+    let qbits  = 15 + qp / 6
+    let limit  = (1's64 << qbits) - ((rounding << qbits) >> 16) - 1
+    var bound  = Swag.S64.Max
+    for class in 3'u64 do
+        bound = Math.min(bound, limit / (cast(s64, LossyQuantFactor[qmod, class]) << class))
+    return cast(u32, Math.max(bound, 0))
+}
+
+// Sum of the differences of a 4x4 block, which is its first coefficient, and of their absolute values.
+#[Swag.Inline]
+func lossySums4(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, sum: *s32)->u32
+{
+    var total    = 0's32
+    var absolute = 0'u32
+    for row in 4'u64
+    {
+        let pa = a + row * aStride
+        let pb = b + row * bStride
+        for column in 4'u64
+        {
+            let delta = cast(s32, pa[column]) - cast(s32, pb[column])
+            total    += delta
+            absolute += cast(u32, Math.abs(delta))
+        }
+    }
+
+    sum[] = total
+    return absolute
+}
+
 // Rounding of intra and inter levels: a third and a sixth of a quantization step.
 const LossyIntraRounding = 21_845's64
 const LossyInterRounding = 10_923's64
@@ -427,11 +487,23 @@ impl LossyCoder
         let source = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
         var scaled: [256] s16
         var scores: [4] u32
+        let quiet  = lossyZeroBound(.qp, rounding)
 
         for block in 16'u64
         {
             let bx = block & 3
             let by = block >> 2
+
+            // Most blocks of a well predicted picture differ too little to leave a single level:
+            // their transform is not worth computing.
+            var first: s32
+            if lossySums4(source + by * 4 * .lumaStride() + bx * 4, .lumaStride(), pixels + by * 4 * stride + bx * 4, stride, &first) <= quiet
+            {
+                residual.lumaCount[block] = 0
+                Memory.clear(residual.luma.buffer + block * 16, 16 * #sizeof(s16))
+                continue
+            }
+
             var coefficients: [16] s32
             lossyForward4x4(source + by * 4 * .lumaStride() + bx * 4, .lumaStride(), pixels + by * 4 * stride + bx * 4, stride, coefficients.buffer)
             let levels = residual.luma.buffer + block * 16
@@ -537,6 +609,7 @@ impl LossyCoder
         var scaled: [128] s16
         var anyDc   = false
         var anyAc   = false
+        let quiet   = lossyZeroBound(qpc, rounding)
 
         for plane in 2'u32
         {
@@ -548,11 +621,18 @@ impl LossyCoder
             {
                 let bx = block & 1
                 let by = block >> 1
+                let at     = plane64 * 4 + block
+                let levels = residual.chromaAc.buffer + at * 16
+                if lossySums4(source + by * 4 * .chromaStride() + bx * 4, .chromaStride(), pixels + by * 4 * stride + bx * 4, stride, &rawDc[block]) <= quiet
+                {
+                    residual.chromaCount[at] = 0
+                    Memory.clear(levels, 16 * #sizeof(s16))
+                    continue
+                }
+
                 var coefficients: [16] s32
                 lossyForward4x4(source + by * 4 * .chromaStride() + bx * 4, .chromaStride(), pixels + by * 4 * stride + bx * 4, stride, coefficients.buffer)
                 rawDc[block] = coefficients[0]
-                let at     = plane64 * 4 + block
-                let levels = residual.chromaAc.buffer + at * 16
                 levels[0] = 0
                 residual.chromaCount[at] = cast(u8, lossyQuantize4x4(coefficients.buffer, 1, qpc, rounding, levels, scaled.buffer + at * 16))
                 if residual.chromaCount[at] do
@@ -832,6 +912,85 @@ func lossySad16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, ro
     return sum
 }
 
+// Sum of the absolute Hadamard coefficients of the difference of two 16x16 blocks, halved. It
+// follows the bits a residual costs once transformed far closer than a plain difference does: a
+// shift of brightness lands in one coefficient per block, and noise spreads over all of them.
+func lossySatd16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->u32
+{
+    let ones: Simd.S16x8 = Simd.splat(1's16)
+    let alternate = cast(Simd.S16x8, [1's16, -1, 1, -1, 1, -1, 1, -1])
+    var sum = 0'u32
+    for band in 4'u64
+    {
+        // Four rows of differences, eight columns to a vector: the vertical half of the
+        // transform is plain lane arithmetic.
+        var delta: [8] Simd.S16x8
+        for row in 4'u64
+        {
+            let va = Simd.load(a + (band * 4 + row) * aStride)
+            let vb = Simd.load(b + (band * 4 + row) * bStride)
+            delta[row]     = cast #bit(Simd.S16x8, Simd.widenLow(va)) - cast #bit(Simd.S16x8, Simd.widenLow(vb))
+            delta[4 + row] = cast #bit(Simd.S16x8, Simd.widenHigh(va)) - cast #bit(Simd.S16x8, Simd.widenHigh(vb))
+        }
+
+        for half in 2'u64
+        {
+            let s0 = delta[half * 4] + delta[half * 4 + 1]
+            let s1 = delta[half * 4] - delta[half * 4 + 1]
+            let s2 = delta[half * 4 + 2] + delta[half * 4 + 3]
+            let s3 = delta[half * 4 + 2] - delta[half * 4 + 3]
+            let lines: [4] Simd.S16x8 = [s0 + s2, s1 + s3, s0 - s2, s1 - s3]
+            for line in 4'u64
+            {
+                // The horizontal half: pair sums and pair differences, then |x + y| + |x - y|,
+                // which is twice the larger of |x| and |y|.
+                var pairs: [8] s32
+                Simd.store(pairs.buffer, Simd.mulAddPairs(lines[line], ones))
+                Simd.store(pairs.buffer + 4, Simd.mulAddPairs(lines[line], alternate))
+                for pair in 4'u64 do
+                    sum += cast(u32, Math.max(Math.abs(pairs[pair * 2]), Math.abs(pairs[pair * 2 + 1])))
+            }
+        }
+    }
+
+    return sum
+}
+
+// Sum of the absolute Hadamard coefficients of the difference of two 4x4 blocks, halved.
+func lossySatd4(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->u32
+{
+    var rows: [16] s32
+    for row in 4'u64
+    {
+        let pa = a + row * aStride
+        let pb = b + row * bStride
+        let d0 = cast(s32, pa[0]) - cast(s32, pb[0])
+        let d1 = cast(s32, pa[1]) - cast(s32, pb[1])
+        let d2 = cast(s32, pa[2]) - cast(s32, pb[2])
+        let d3 = cast(s32, pa[3]) - cast(s32, pb[3])
+        let s0 = d0 + d1
+        let s1 = d0 - d1
+        let s2 = d2 + d3
+        let s3 = d2 - d3
+        rows[row * 4]     = s0 + s2
+        rows[row * 4 + 1] = s1 + s3
+        rows[row * 4 + 2] = s0 - s2
+        rows[row * 4 + 3] = s1 - s3
+    }
+
+    var sum = 0'u32
+    for column in 4'u64
+    {
+        let s0 = rows[column] + rows[4 + column]
+        let s1 = rows[column] - rows[4 + column]
+        let s2 = rows[8 + column] + rows[12 + column]
+        let s3 = rows[8 + column] - rows[12 + column]
+        sum += cast(u32, Math.abs(s0 + s2) + Math.abs(s1 + s3) + Math.abs(s0 - s2) + Math.abs(s1 - s3))
+    }
+
+    return sum / 2
+}
+
 // Sum of absolute differences of a block narrower than a vector.
 func lossySadSmall(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, width, rows: u64)->u32
 {
@@ -850,7 +1009,7 @@ func lossySadSmall(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64,
 impl LossyCoder
 {
     // Predicts the luma of a macroblock in each Intra_16x16 mode its neighbours allow and leaves
-    // the closest in the current picture. Returns its distance to the source.
+    // the closest in the current picture. Returns its transformed distance to the source.
     mtd predictLuma16(mbX, mbY, firstRow: u32, bestMode: *u32)->u32
     {
         let frame   = .current()
@@ -868,7 +1027,7 @@ impl LossyCoder
                 continue
             intraPredict16x16(mode, pixels, frame.strideLuma, hasLeft, hasTop)
             last = mode
-            let distance = lossySad16(source, .lumaStride(), pixels, frame.strideLuma, 16)
+            let distance = lossySatd16(source, .lumaStride(), pixels, frame.strideLuma)
             if distance < best
             {
                 best       = distance
@@ -933,7 +1092,8 @@ impl LossyCoder
     }
 
     // Codes the luma of a macroblock as sixteen Intra_4x4 blocks, each predicted from the samples
-    // already decoded around it. Returns the summed distance of the predictions, mode bits included.
+    // already decoded around it. Returns the summed transformed distance of the predictions, mode
+    // bits included.
     mtd codeLuma4(mbX, mbY, firstRow: u32, residual: *LossyResidual)->u32
     {
         let frame  = .current()
@@ -978,7 +1138,7 @@ impl LossyCoder
                     continue
                 intraPredict4x4(mode, pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
                 last = mode
-                let distance = lossySadSmall(from, .lumaStride(), pixels, stride, 4, 4) + cast(u32, .lambda) * (mode == expected ? 1 : 4)
+                let distance = lossySatd4(from, .lumaStride(), pixels, stride) + cast(u32, .lambda) * (mode == expected ? 1 : 4)
                 if distance < best
                 {
                     best     = distance
@@ -1007,34 +1167,41 @@ impl LossyCoder
     }
 
     // Codes one macroblock without the reference picture, as Intra_4x4 or Intra_16x16 whichever
-    // predicts it closer. `inP` says the macroblock stands in a P slice.
-    mtd encodeIntraMb(bits: *EncoderBits, mbX, mbY, firstRow: u32, inP: bool)
+    // predicts it closer. `inP` says the macroblock stands in a P slice. With `known`, the best
+    // Intra_16x16 prediction already stands in the picture, in `knownMode` at `knownCost`.
+    mtd encodeIntraMb(bits: *EncoderBits, mbX, mbY, firstRow: u32, inP: bool, known = false, knownMode = 0'u32, knownCost = 0'u32)
     {
         let frame  = .current()
         let pixels = frame.pixLuma(cast(s32, mbX) * 16, cast(s32, mbY) * 16)
         let mb     = &.mbs[.mbIndex(mbX, mbY)]
         var residual: LossyResidual
 
-        // Sixteen small predictions follow detail a single one cannot; they are coded first, and
-        // kept unless the whole-block prediction comes as close for fewer mode bits.
-        let cost4 = .codeLuma4(mbX, mbY, firstRow, &residual)
-        var saved: [256] u8
-        for row in 16'u64 do
-            Memory.copy(saved.buffer + row * 16, pixels + row * frame.strideLuma, 16)
+        // The whole-block prediction is measured first, unless the caller already left the best
+        // one in the picture with its mode and distance.
+        var mode16 = knownMode
+        var cost16 = knownCost
+        if not known do
+            cost16 = .predictLuma16(mbX, mbY, firstRow, &mode16)
+        cost16 += cast(u32, .lambda) * 2
 
-        var mode16 = Intra16Dc
-        let cost16 = .predictLuma16(mbX, mbY, firstRow, &mode16) + cast(u32, .lambda) * 2
-        let use16  = cost16 <= cost4
+        // In a predicted picture an intra macroblock is nearly always a smooth area, which one
+        // prediction fits: the sixteen small ones are not even tried when it already comes close.
+        var use16 = inP and cost16 < LossySmoothCost
+        if not use16
+        {
+            // Sixteen small predictions follow detail a single one cannot; they are kept unless
+            // the whole-block prediction comes as close for fewer mode bits.
+            let cost4 = .codeLuma4(mbX, mbY, firstRow, &residual) + cast(u32, .lambda) * LossySmallBlocksBits
+            use16 = cost16 <= cost4
+            if use16 do
+                intraPredict16x16(mode16, pixels, frame.strideLuma, mbX > 0, mbY > firstRow)
+        }
+
         if use16
         {
             for &mode in mb.modes do
                 mode[] = cast(u8, IntraDc)
             .codeLuma16(mbX, mbY, &residual)
-        }
-        else
-        {
-            for row in 16'u64 do
-                Memory.copy(pixels + row * frame.strideLuma, saved.buffer + row * 16, 16)
         }
 
         let chromaMode = .predictChroma(mbX, mbY, firstRow)
@@ -1085,6 +1252,7 @@ impl LossyCoder
 // ---------------------------------------------------------------------------------------------
 // Inter prediction
 // ---------------------------------------------------------------------------------------------
+
 
 // A motion vector in quarter samples.
 struct LossyVector
@@ -1276,8 +1444,10 @@ impl LossyCoder
         var columnsBefore: Array's32
         columns.resize(cast(u64, width * cellsY))
         columnsBefore.resize(cast(u64, (width + 2 * range) * cellsY))
-        for row in rows
+        for sample in rows / 4
         {
+            // One row in four tells the columns apart as well as all of them.
+            let row = sample * 4
             if top + row + bestY < 0 or top + row + bestY >= height do
                 continue
             let cell       = row / Cell
@@ -1453,9 +1623,9 @@ impl LossyCoder
             best = moved
         }
 
-        // Each refinement halves its step: whole, half, then quarter samples. Whole samples cost
-        // nothing to read, so all eight neighbours are tried; fractional ones are interpolated,
-        // and the four along the axes find nearly all of what the diagonals would.
+        // Each refinement halves its step: whole, half, then quarter samples. All eight neighbours
+        // are tried down to half samples; at quarter samples the four along the axes find nearly
+        // all of what the diagonals would, for half the interpolations.
         const Around: [8, 2] s32 = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, -1], [-1, 1], [1, 1]]
         for step in [4's32, 2, 1]
         {
@@ -1463,7 +1633,7 @@ impl LossyCoder
             if step < 4 and cost < quiet do
                 break
             let centre = best
-            for point in (step == 4 ? 8'u64 : 4'u64)
+            for point in (step == 1 ? 4'u64 : 8'u64)
             {
                 let vector = .clampVector(mbX, mbY, {centre.x + Around[point, 0] * step, centre.y + Around[point, 1] * step})
                 if vector.x == centre.x and vector.y == centre.y do
@@ -1565,17 +1735,23 @@ impl LossyCoder
         {
             vector = .searchMotion(mbX, mbY, firstRow, predicted, skip, region, &cost)
 
-            // Motion that leaves the block far from its source is worth comparing with no
-            // reference at all: a cut or an uncovered area predicts better from its neighbours.
-            if cost > 16 * 16 * 3
+            // What the reference predicts is compared with what the neighbours do, both as the
+            // transform will see them. A cut or an uncovered area has no reference to speak of,
+            // and a smooth area whose light changed costs one coefficient predicted from its
+            // neighbours, where its difference to the reference costs one in every block.
+            if cost >= cast(u32, 96 + .lambda * 24)
             {
+                var moved: [256] u8
+                let source    = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
+                mcLuma(moved.buffer, 16, .reference(), 0, cast(s32, mbX) * 16 + (vector.x >> 2), cast(s32, mbY) * 16 + (vector.y >> 2), vector.x & 3, vector.y & 3, 16, 16)
+                let inter     = lossySatd16(source, .lumaStride(), moved.buffer, 16) + .vectorCost(vector, predicted)
                 var mode16 = Intra16Dc
-                let intra  = .predictLuma16(mbX, mbY, firstRow, &mode16) + cast(u32, .lambda) * 8
-                if intra < cost
+                let intra  = .predictLuma16(mbX, mbY, firstRow, &mode16) + cast(u32, .lambda) * LossyIntraBits
+                if intra < inter
                 {
                     bits.unsigned(skipRun[])
                     skipRun[] = 0
-                    .encodeIntraMb(bits, mbX, mbY, firstRow, true)
+                    .encodeIntraMb(bits, mbX, mbY, firstRow, true, true, mode16, intra - cast(u32, .lambda) * LossyIntraBits)
                     return
                 }
             }

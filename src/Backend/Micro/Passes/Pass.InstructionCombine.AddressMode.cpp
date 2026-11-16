@@ -375,6 +375,71 @@ namespace InstructionCombine
             return true;
         }
 
+        // Strength reduction can already have turned x * 2 into an LEA.
+        // Absorb the following add without extending the critical path, including
+        // 32-bit wrapping arithmetic whose result remains narrowed by the LEA.
+        bool tryFoldDoubledIndexAdd(Context& ctx, const MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            for (uint32_t side = 0; side < 2; ++side)
+            {
+                const MicroReg scaled = ops[side].reg;
+                const MicroReg base   = ops[1 - side].reg;
+                auto           def    = ctx.ssa->reachingDef(scaled, ref);
+                MicroInstrRef  copyRef;
+                if (def.valid() && !def.isPhi && def.inst && def.inst->op == MicroInstrOpcode::LoadRegReg)
+                {
+                    const auto* copy = def.inst->ops(*ctx.operands);
+                    if (!copy || copy[2].opBits != bits || !copy[1].reg.isVirtualInt() || ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                        continue;
+                    copyRef = def.instRef;
+                    if (!ctx.ssa->sameValueAt(copy[1].reg, copyRef, ref))
+                        continue;
+                    def = ctx.ssa->reachingDef(copy[1].reg, copyRef);
+                }
+                if (!def.valid() || def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadAddrAmcRegMem || ctx.ssa->transitiveInstructionUseCount(def.valueId, 2) != 1)
+                    continue;
+                const auto* address = def.inst->ops(*ctx.operands);
+                if (!address || address[3].opBits != bits || address[4].opBits != MicroOpBits::B64 || address[5].valueU64 != 1 || address[6].valueU64 ||
+                    address[1].reg != address[2].reg || !address[1].reg.isVirtualInt() || address[1].reg == ops[0].reg ||
+                    !ctx.ssa->sameValueAt(address[1].reg, def.instRef, ref))
+                    continue;
+                // Keep the source live only across the optional copy, never
+                // across unrelated work, calls or control-flow boundaries.
+                auto next = MicroStorage::Iterator{ctx.storage, def.instRef};
+                ++next;
+                while (next.current.isValid() && next->op == MicroInstrOpcode::Nop)
+                    ++next;
+                if (copyRef.isValid() && next.current == copyRef)
+                {
+                    ++next;
+                    while (next.current.isValid() && next->op == MicroInstrOpcode::Nop)
+                        ++next;
+                }
+                if (next.current != ref)
+                    continue;
+                if (!ctx.areCpuFlagsDeadAfter(ref))
+                    return false;
+                if (!ctx.claimAll({ref, def.instRef, copyRef.isValid() ? copyRef : ref}))
+                    continue;
+                MicroInstrOperand combined[8] = {};
+                combined[0]                   = ops[0];
+                combined[1].reg               = base;
+                combined[2]                   = address[1];
+                combined[3].opBits            = bits;
+                combined[4].opBits            = MicroOpBits::B64;
+                combined[5].valueU64          = 2;
+                ctx.emitRewrite(ref, MicroInstrOpcode::LoadAddrAmcRegMem, combined, true);
+                ctx.emitErase(def.instRef);
+                if (copyRef.isValid())
+                    ctx.emitErase(copyRef);
+                return true;
+            }
+            return false;
+        }
+
         struct ScaledIndex
         {
             MicroReg      indexReg;
@@ -443,12 +508,17 @@ namespace InstructionCombine
             return false;
 
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[2].opBits != MicroOpBits::B64 || ops[3].microOp != MicroOp::Add)
+        if (!ops || ops[3].microOp != MicroOp::Add)
             return false;
 
         const MicroReg dst = ops[0].reg;
         const MicroReg src = ops[1].reg;
         if (!dst.isVirtualInt() || !src.isVirtualInt() || dst == src)
+            return false;
+
+        if (tryFoldDoubledIndexAdd(ctx, ref, ops))
+            return true;
+        if (ops[2].opBits != MicroOpBits::B64)
             return false;
 
         // Either operand can be the scaled one; the other is the base.
@@ -1337,15 +1407,15 @@ namespace InstructionCombine
 
         const bool isArithmeticOrBitwise = updateOp == MicroOp::Add || updateOp == MicroOp::Subtract ||
                                            updateOp == MicroOp::And || updateOp == MicroOp::Or || updateOp == MicroOp::Xor;
-        const bool immediateUpdate = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
-                                     useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
-                                     ((isShiftOrRotate && useOps[4].valueU64 <= 0x7F) ||
-                                      (isArithmeticOrBitwise && fitsMemoryImmediate(useOps[4].valueU64)));
-        const bool immediateStore = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
-                                    !useOps[3].hasWideImmediateValue() &&
-                                    (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));
-        const bool immediateCompare = useInst->op == MicroInstrOpcode::CmpMemImm && useOps[2].valueU64 == 0 &&
-                                      !useOps[3].hasWideImmediateValue() && fitsMemoryImmediate(useOps[3].valueU64);
+        const bool immediateUpdate       = useInst->op == MicroInstrOpcode::OpBinaryMemImm &&
+                                           useOps[3].valueU64 == 0 && !useOps[4].hasWideImmediateValue() &&
+                                           ((isShiftOrRotate && useOps[4].valueU64 <= 0x7F) ||
+                                            (isArithmeticOrBitwise && fitsMemoryImmediate(useOps[4].valueU64)));
+        const bool immediateStore        = useInst->op == MicroInstrOpcode::LoadMemImm && useOps[2].valueU64 == 0 &&
+                                           !useOps[3].hasWideImmediateValue() &&
+                                           (useOps[1].opBits != MicroOpBits::B64 || fitsMemoryImmediate(useOps[3].valueU64));
+        const bool immediateCompare      = useInst->op == MicroInstrOpcode::CmpMemImm && useOps[2].valueU64 == 0 &&
+                                           !useOps[3].hasWideImmediateValue() && fitsMemoryImmediate(useOps[3].valueU64);
         // A B64 store with a larger immediate expands into two memory writes;
         // one RIP displacement cannot represent both of their destinations.
         if (!regUpdate && !regCompare && !immediateUpdate && !immediateStore && !immediateCompare)

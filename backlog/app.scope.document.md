@@ -20,29 +20,29 @@ integration around those engines.
 - Done when: representative freely licensed RTF documents retain their reading order and common
   visual structure, unsupported content remains explicit, and all decoding remains native Swag.
 
-### app.scope.document.001 — The full Markdown outline lacks reading-position tracking and history
+### app.scope.document.001 — The full Markdown outline reads the whole source and has no breadcrumb
 
-- Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets
-  and reveals them through `Markdown.View.revealHeading`. Filtering and keyboard navigation use
-  source offsets. The full outline still keeps the last chosen row rather than following reading
-  position; it has no breadcrumb path or navigation history, and its worker reads the complete
-  source.
-- Next: build a bounded heading index and synchronize the full outline with the document's
-  current block; retain source offsets as identity and add bounded back/forward history.
-- Done when: the visible section updates the full outline's selected heading/breadcrumb,
-  and back/forward restores a reading location without retaining the whole source.
+- Evidence: `DocumentOutline` lists Markdown headings with depth and source offsets, marks the
+  heading being read from the reader's first move on, and keeps the mark through its filter. Choosing a
+  heading records the place left in `Viewer.History`; Alt+arrows and the lens return through
+  `Markdown.View.revealBlock`. The outline worker still reads the complete source, a rendered
+  link is not a recorded jump, and no breadcrumb names the enclosing sections.
+- Next: build a bounded heading index instead of reading the whole file, then show the path of
+  enclosing headings for the marked one.
+- Done when: the outline of a very large document appears without retaining its whole source,
+  and the visible section's enclosing headings are readable beside it.
 - Related: std.gui.markdown.005, app.scope.viewers.003
 
-### app.scope.document.013 — PDF bookmark navigation has no back/forward history
+### app.scope.document.013 — PDF page links do not join the back/forward history
 
-- Evidence: `PdfDocument.Panel` fills the shared `DocumentOutline` from `Pdf.Reader.loadOutline`
-  and navigates through `PdfView.showPosition`. The shared panel provides text filtering, but
-  the PDF adapter retains no back/forward state. Page-link annotations are not exposed by the
-  engine (std.gui.pdf.017).
-- Next: add bounded page/position/zoom history to the existing bookmark panel,
-  then route supported page links through the same navigation contract when the engine exposes them.
-- Done when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
-  and zoom, and supported local links share the same behavior while invalid targets remain visible.
+- Evidence: bookmark, margin and typed-page jumps record their place in `Viewer.History` and
+  Alt+arrows or the lens restore its page point and zoom. Page-link annotations are not exposed
+  by the engine (std.gui.pdf.017), so a link inside a page cannot be followed or returned from,
+  and a search reveal is not recorded as a jump.
+- Next: when the engine exposes link annotations, route supported page links through
+  `PdfDocument.Panel.showBookmark`'s navigation contract and name an unresolved target in place.
+- Done when: supported local links share the bookmark history behavior while invalid targets
+  remain visible.
 - Related: std.gui.pdf.017
 
 ### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
@@ -93,15 +93,16 @@ integration around those engines.
   synchronize in either direction, search results map across modes, and large files stay streamed.
 - Related: std.gui.markdown.005
 
-### app.scope.document.005 — HTML encoding decisions have no inspection or override controls
+### app.scope.document.005 — HTML encoding decisions have no override or conflict warnings
 
-- Evidence: `HtmlView.detectDocumentEncoding` honors a BOM, scans early charset labels, and falls
-  back to `Text.detectEncoding`, but the viewer exposes no detected encoding, decision source,
-  manual override, or byte mapping for decoding failures.
-- Next: expose the detected encoding and its provenance, then add an override using the text
-  viewer's supported encoding choices and explicit restart behavior.
-- Done when: the reader can inspect the chosen encoding, late or conflicting declarations
-  warn, invalid bytes remain traceable, and an override re-renders safely.
+- Evidence: the information sheet names the encoding in force and what decided it (byte-order
+  mark, declared label, or the bytes) from `HtmlView.encoding` and `encodingSource`. There is no
+  manual override, no warning for a late or conflicting declaration, and no byte mapping for
+  decoding failures.
+- Next: add an override using the text viewer's supported encoding choices with explicit restart
+  behavior, then report a declaration that arrives after the probe or contradicts a mark.
+- Done when: late or conflicting declarations warn, invalid bytes remain traceable, and an
+  override re-renders safely.
 - Related: app.scope.text.004
 
 ### app.scope.document.007 — HTML source and rendered views have no shared position or split layout
@@ -403,3 +404,16 @@ integration around those engines.
 - Done when: genuine LibreOffice files retain common authored layout and components; notes
   can be inspected separately; unsupported content remains explicit; navigation stays responsive
   and cancellation/package budgets hold on large and damaged documents.
+
+### app.scope.document.033 — A just-opened document marks no heading in its outline
+
+- Evidence: `DocumentOutline.markReading` follows the Markdown, HTML and PDF reading position
+  from the reader's first move on. At open nothing is marked: the headings arrive from a worker
+  at no fixed moment relative to the first layout, and marking then would change every outline
+  picture, which only the reference GPU renderer can record. EPUB contents are addressed by
+  chapter and fragment and are not followed at all.
+- Next: mark once both the headings and the first layout exist, record the outline goldens again
+  on the reference renderer, then map an EPUB reading position to its contents entry.
+- Done when: an outline opened on a document shows the heading in view before any scroll, in
+  every reader that has one, with its pictures recorded.
+- Related: app.scope.document.001, app.scope.document.021

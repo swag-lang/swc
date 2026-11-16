@@ -106,6 +106,14 @@ impl HeadlessFixture
         .main.createLens()
     }
 
+    // Waits for the picture Save as Image encodes and writes on a worker, then lands its outcome.
+    mtd waitImageWrite()
+    {
+        if .main.imageWriteJob do
+            .main.imageWriteJob.task.wait()
+        .gui.pump()
+    }
+
     mtd setupLibraryWnd()->*LibraryWnd
     {
         .main.libWnd      = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
@@ -468,12 +476,20 @@ func testFramePicture(seed: u8, squareX: s32)->Image
     return result
 }
 
-// Opens the resident panel of `kind` on a surface of its own, fitted to its list, as the
+// Reports whether the resident home lists the command `id`.
+func testPanelOffers(panel: *ResidentPanel, id: WndId)->bool
+{
+    for item in panel.menu.items where item and not item.separator and not item.label and item.id == id do
+        return true
+    return false
+}
+
+// Opens the resident home at `placement` on a surface of its own, fitted to its list, as the
 // application does; without the watch that would act on a choice by itself.
-func testOpenResidentPanel(host: *Gui.Testing.HeadlessHost, main: *MainWnd, kind: ResidentPanelKind)->*ResidentPanel
+func testOpenResidentPanel(host: *Gui.Testing.HeadlessHost, main: *MainWnd, placement: ResidentPanelPlacement)->*ResidentPanel
 {
     let surface = expect host.app.createSurface(0, 0, 300, 300, .ToolWindow | .TopMost)
-    let panel   = ResidentPanel.create(surface.wnd, main, kind)
+    let panel   = ResidentPanel.create(surface.wnd, main, placement)
     panel.floating = true
 
     // A short list is smaller than the default minimum size of a surface.

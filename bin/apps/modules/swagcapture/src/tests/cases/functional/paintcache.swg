@@ -257,3 +257,60 @@ func testPopulate(capture: *Capture)
     let inside = exported.pixelColor(120, 80)
     Swag.require(inside.b > 90 and inside.r > 90 and inside.g < 40)
 }
+
+// Moving a selection re-renders the image forms that moved, whose pixels come from the
+// background under them, and keeps the retained rendering of an effect left in place: the
+// background it shows did not change.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+    let still = testAddImage(f.capture, 200, 150, 80, 60)
+    still.kind = .Blur
+    let moved = testAddImage(f.capture, 20, 20, 60, 40)
+    moved.kind = .Pixelate
+    discard testAddShape(f.capture, 120, 20, 50, 30)
+    discard f.gui.render(f.main)
+
+    let stillCache = unwrap f.capture.findFormCache(still)
+    let movedCache = unwrap f.capture.findFormCache(moved)
+    Swag.require(not stillCache.dirty and not movedCache.dirty)
+
+    f.capture.selection.add(1)
+    f.capture.selection.add(2)
+    with let undo = f.capture.newUndo(.OffsetSelection)
+    {
+        .newPosX = 10
+        .newPosY = 5
+    }
+    f.capture.pushUndo(undo)
+    Swag.require(movedCache.dirty and not stillCache.dirty)
+}
+
+// A new picture of the same shape replaces the background texture in place, as each frame of
+// an animation does, and the forms that bake the background still see that it changed.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+    discard f.gui.render(f.main)
+    let handle = f.capture.backTexture.handle
+    let serial = f.capture.serialBackTexture
+
+    f.capture.backImg.fill(Argb.Red)
+    f.capture.dirtyBackImg = true
+    var shown = f.gui.render(f.main)
+    Swag.require(f.capture.backTexture.handle == handle and f.capture.serialBackTexture == serial + 1)
+
+    let rect = f.editView.getCaptureRect()
+    let center = f.editView.localToSurface(Math.Point{rect.x + rect.width * 0.5, rect.y + rect.height * 0.5})
+    let color = shown.pixelColor(cast(s32, center.x), cast(s32, center.y))
+    Swag.require(color.r > 200 and color.g < 60 and color.b < 60)
+
+    f.capture.backImg = Image.create(200, 100, .BGRA8)
+    f.capture.dirtyBackImg = true
+    discard f.gui.render(f.main)
+    Swag.require(f.capture.backTexture.width == 200 and f.capture.serialBackTexture == serial + 2)
+}

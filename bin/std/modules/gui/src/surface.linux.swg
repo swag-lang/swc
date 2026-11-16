@@ -327,8 +327,12 @@ impl Surface
 
     private mtd applyNativeSizeHints(context: *LinuxDesktop.Context)
     {
+        // The position was asked for (USPosition and PPosition), so a window manager puts the
+        // surface there, a dialog over its owner, rather than wherever its own placement would.
         var hints: [18]u32
-        hints[0] = (1 << 4) | (1 << 5)
+        hints[0] = (1 << 0) | (1 << 2) | (1 << 4) | (1 << 5)
+        hints[1] = cast #bit(u32, cast(s32, .position.x))
+        hints[2] = cast #bit(u32, cast(s32, .position.y))
         let fixed = not .flags.has(.Resizable)
         hints[5] = cast(u32, fixed ? .position.width : Math.max(1, .minSize.x * .dpiScale))
         hints[6] = cast(u32, fixed ? .position.height : Math.max(1, .minSize.y * .dpiScale))
@@ -655,8 +659,11 @@ impl Surface
             return
         }
 
+        // The size limits and the place are set after creation, once the application knows
+        // them: the window manager reads them again before the window appears.
         let context    = expect LinuxDesktop.ensure()
         let connection = unwrap context.connection
+        .applyNativeSizeHints(context)
         expect LinuxDesktop.check(context, context.xcb_map_window_checked(connection, .windowId))
 
         let curFocus = .wnd.view.focusedWindow()

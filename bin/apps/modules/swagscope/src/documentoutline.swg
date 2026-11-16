@@ -58,6 +58,8 @@ struct DocumentOutline
     markdownFile: String
     filter:       String
     loaded:       bool
+    marking:      bool     // Whether the selection is being moved to follow the reading, not by the reader.
+    reading:      u64 = Swag.U64.Max     // Target last given to `markReading`, marked again when the rows change.
     headings:     Array'DocumentHeading
     sigSelected:  SigArray'func||(*Wnd, u64)
     sigPublished: SigArray'func||(*DocumentOutline)     // Emitted after the headings listed changed.
@@ -147,8 +149,10 @@ impl DocumentOutline
             .updateFlags(.HotTrack | .Ellipsis)
             .sigSelectionChanged += func|panel = result|(list)
             {
+                if panel.marking do
+                    return
                 if let line = list.selectedLine() do
-                    panel.sigSelected.call(panel, cast(u64, line.userData0) - 1)
+                    panel.sigSelected.call(panel, targetOf(line))
             }
         }
 
@@ -182,19 +186,25 @@ impl DocumentOutline
         .list.clear()
     }
 
+    // Returns the row under a surface point, or `U64.Max` outside the listed headings.
+    private mtd rowAt(surfacePos: Math.Point)->u64
+    {
+        let view  = .list.listView
+        let local = view.surfaceToLocal(surfacePos)
+        if local.x < 0 or
+           local.x >= view.clientRect().width or
+           local.y < 0 or
+           local.y >= view.clientRect().height do
+            return Swag.U64.Max
+        let row = cast(u64, (local.y + .list.scrollWnd.scrollPosition().y) / .list.lineHeight())
+        return row < .rows.count ? row : Swag.U64.Max
+    }
+
     // Uses the full heading as a tooltip when its row is shortened to fit the panel.
     private mtd updateHeadingTooltip(surfacePos: Math.Point)
     {
-        let local = .list.listView.surfaceToLocal(surfacePos)
-        if local.y < 0 or local.y >= .list.listView.clientRect().height
-        {
-            .list.listView.toolTip = ""
-            return
-        }
-
-        let y     = local.y + .list.scrollWnd.scrollPosition().y
-        let index = cast(u32, y / .list.lineHeight())
-        .list.listView.toolTip = index < .rowTitles.count ? .rowTitles[index].toString() : ""
+        let row = .rowAt(surfacePos)
+        .list.listView.toolTip = row < .rowTitles.count ? .rowTitles[row].toString() : ""
     }
 
     // Keeps a quiet outline on the document's local palette, independently of application panels.
@@ -299,6 +309,9 @@ impl DocumentOutline
         for heading in .headings where .filter.isEmpty() or
                                        heading.title.indexOf(filter, comparisonType: .Latin1NoCase) != Swag.U64.Max do
             .add(heading.title, heading.level, heading.sourceOffset)
+
+        // The rows are new: the heading being read is found among them again.
+        .markReading(.reading)
     }
 
     mtd refresh()
@@ -324,6 +337,53 @@ impl DocumentOutline
         .applyLayout()
     }
 
+    // Returns the target a row was added with; it is stored plus one, see `add`.
+    private func targetOf(line: *ListLine)->u64 => cast(u64, line.userData0) - 1
+
+    // Returns the target of the heading selected in the list, or `U64.Max` without one.
+    mtd markedTarget()->u64
+    {
+        let line = .list.selectedLine()
+        return line ? targetOf(line) : Swag.U64.Max
+    }
+
+    // Marks the heading being read: the last one listed at or before `target`, or none when the
+    // reader is above the first. Nothing is emitted, since the document is already there.
+    //
+    // At the end of a document, `atEnd`, every later heading is on screen with no room to rise to
+    // the top, so a later heading the reader chose there stays marked.
+    mtd markReading(target: u64, atEnd = false)
+    {
+        if target == Swag.U64.Max do
+            return
+        .reading = target
+        let marked = .markedTarget()
+        if atEnd and marked != Swag.U64.Max and marked >= target do
+            return
+
+        var row       = Swag.U64.Max
+        var rowTarget = Swag.U64.Max
+        for line, index in .rows where targetOf(line) <= target
+        {
+            row       = index
+            rowTarget = targetOf(line)
+        }
+
+        if rowTarget == marked do
+            return
+
+        .marking = true
+        defer .marking = false
+        if row == Swag.U64.Max
+        {
+            .list.unselectAll()
+            return
+        }
+
+        .list.selectLine(cast(u32, row))
+        .list.ensureVisibleLine(cast(u32, row))
+    }
+
     mtd bindHtml(view: *HtmlView)
     {
         let headings = view.headings()
@@ -337,6 +397,12 @@ impl DocumentOutline
         .sigSelected += func|view|(_, offset)
         {
             discard view.revealFileOffset(offset, "")
+        }
+
+        // The heading being read follows the page from the reader's first move on.
+        view.sigScrolled += func|panel = me, view|(_)
+        {
+            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
         }
     }
 
@@ -359,6 +425,12 @@ impl DocumentOutline
         .sigSelected += func|view|(_, offset)
         {
             discard view.revealHeading(offset)
+        }
+
+        // The heading being read follows the document from the reader's first move on.
+        view.sigScrolled += func|panel = me, view|(_)
+        {
+            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
         }
     }
 

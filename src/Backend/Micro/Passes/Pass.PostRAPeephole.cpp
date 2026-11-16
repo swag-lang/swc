@@ -760,6 +760,7 @@ namespace
         std::vector<uint8_t>       reachesRead;
         std::vector<uint8_t>       seen;
         std::vector<uint32_t>      pending;
+        std::optional<MicroPassHelpers::MicroDomTree> dominators;
         uint8_t                    seenStamp = 0;
         const auto nextSeenStamp = [&] {
             seenStamp = static_cast<uint8_t>(seenStamp + 1);
@@ -946,28 +947,15 @@ namespace
                 // The target must dominate its only reader, even through the
                 // loop back edge. Otherwise delaying the write leaves a path
                 // that can observe an older slot value.
-                pending.assign(1, 0);
+                // Every candidate reads the same immutable graph. Build its dominance
+                // intervals once instead of walking from the entry for each target.
+                if (!dominators)
+                    dominators = MicroPassHelpers::computeInstructionDominators(cfg, 0);
+                // An entry-unreachable reader also passed the old path-exclusion proof.
+                if (dominators->reachable(reloadIndex) && !dominators->dominates(labelIndex, reloadIndex))
+                    continue;
                 if (seen.empty())
                     seen.assign(refs.size(), 0);
-                const uint8_t dominatesStamp = nextSeenStamp();
-                bool dominates = true;
-                while (!pending.empty() && dominates)
-                {
-                    const uint32_t index = pending.back();
-                    pending.pop_back();
-                    if (index == labelIndex || seen[index] == dominatesStamp)
-                        continue;
-                    seen[index] = dominatesStamp;
-                    if (index == reloadIndex)
-                    {
-                        dominates = false;
-                        break;
-                    }
-                    for (const uint32_t successor : cfg.successors(index))
-                        pending.push_back(successor);
-                }
-                if (!dominates)
-                    continue;
 
                 // A matching offset names the same slot only when the stack
                 // pointer has the same value at the moved store and the read.

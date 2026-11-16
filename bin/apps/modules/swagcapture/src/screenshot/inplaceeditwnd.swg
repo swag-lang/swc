@@ -58,6 +58,7 @@ struct InPlaceEditWnd
         editWnd:  *EditWnd
         bar:      *MiniBar
         hintLine: *HintLine
+        hintArea: *CaptureHints
     }
 
     capture:          *Capture?
@@ -339,8 +340,10 @@ impl InPlaceEditWnd
             .bar.addItem(rate)
         }
         .bar.addSeparator()
-        if g_CaptureMedia == .Animation do
+        if g_CaptureMedia == .Animation
+        {
             .bar.addItem(createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimNoSound, false, enabled: false))
+        }
         else
         {
             .bar.addItem(createQualityOption(.bar, options))
@@ -398,12 +401,15 @@ impl InPlaceEditWnd
                 .pictureMode = .editMode
             .editMode = .Select
         }
-        else do
+        else
+        {
             .editMode = .pictureMode
+        }
+
         .fillBar()
         .updateKindButton()
         .configureMainWindowEditMode()
-        .hintLine.destroy()
+        .hintArea.destroy()
         .createHintLine()
         .placeBar()
         .editWnd.editView.invalidate()
@@ -417,7 +423,7 @@ impl InPlaceEditWnd
 
         let capture = unwrap .capture
         setCursorIn(&capture.backImg, shown)
-        capture.dirtyBackImg = true
+        capture.backgroundChanged()
         .editWnd.editView.invalidate()
     }
 
@@ -431,7 +437,8 @@ impl InPlaceEditWnd
     mtd createHintLine()
     {
         let texts = appStrings()
-        with .hintLine = HintLine.create(.editWnd.editView)
+        .hintArea = CaptureHints.create(.editWnd.editView, .source)
+        with .hintLine = .hintArea.line
         {
             if g_CaptureMedia != .Picture
             {
@@ -445,7 +452,6 @@ impl InPlaceEditWnd
                 .addHint(Input.formatKeyShortcut(.Control, .S), texts.hint_Save)
             }
 
-            .addHint(strings().key_Tab, kindName(nextCaptureMedia(g_CaptureMedia)))
             .addHint(strings().key_Escape, texts.hint_Cancel)
         }
     }
@@ -494,10 +500,12 @@ impl InPlaceEditWnd
     // Pins the zone with what is drawn on it on the screen, where it was taken, and closes.
     mtd pin()
     {
+        // The zone may have been moved or resized since it was selected: the pin takes its
+        // place and size now, as the image it shows does.
         let capture = unwrap .capture
-        let grab    = getGrabRect()
+        let zone    = capture.zoneScreenRect()
         capture.cropToGrab()
-        PinnedCapture.open(capture.toImage(), Math.Rectangle{g_DesktopX + grab.x, g_DesktopY + grab.y, grab.width, grab.height})
+        PinnedCapture.open(capture.toImage(), zone)
         g_Main?.confirm(appStrings().msg_Pinned)
         exitWithResult(false)
     }
@@ -618,6 +626,7 @@ impl InPlaceEditWnd
         let view = .editWnd.editView
         if not view.capture do
             return
+        .hintArea.placeAt(view.capture.zoneScreenRect().center())
         var room = .barRoom
         room.intersect(view.clientRect())
         .placeKindButton()
@@ -718,7 +727,6 @@ impl IWnd for InPlaceEditWnd
         case evt.key == .Return and evt.modifiers == .None and recording:   .record()
         case evt.key == .Return and evt.modifiers == .None:                 .copy()
         case evt.key == .S and evt.modifiers == .Control and not recording: .save()
-        case evt.key == .Tab and evt.modifiers == .None:                    .setMedia(nextCaptureMedia(g_CaptureMedia))
         default: return
         }
 
@@ -731,6 +739,11 @@ impl IWnd for InPlaceEditWnd
 impl Capture
 {
     // Crops the capture to the area the in-place editor shows, and makes it an ordinary capture.
+    // Returns where the zone of an in-place capture stands on the screen, in physical pixels,
+    // as it stands now: its selection may have been moved or resized since it was drawn.
+    mtd const zoneScreenRect()->Math.Rectangle
+        => desktopToScreenRect({-.backImagePos.x, -.backImagePos.y, cast(f32, .width), cast(f32, .height)})
+
     mtd cropToGrab()
     {
         .backImg.crop(Math.Rectangle{-.backImagePos.x, -.backImagePos.y, .width, .height})
@@ -742,7 +755,7 @@ impl Capture
         .backImagePos        = {}
         .gizmo.sigHasChanged = null
         .inPlaceEdit         = false
-        .dirtyBackImg        = true
+        .backgroundChanged()
         .selection.clear()
     }
 }

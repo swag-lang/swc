@@ -21,9 +21,11 @@ using Core, Gui, Pixel
     Swag.require(main.residentPanel == null)
     discard Win32.SendMessageW(handle, Win32.WM_USER, 0, iconId | Win32.WM_CONTEXTMENU)
     Swag.require(main.residentPanel == null)
-    journey.waitFor("tray menu", func|main|()->bool => main.residentPanel != null)
+    journey.waitFor("home at pointer", func|main|()->bool => main.residentPanel != null)
     let menu = unwrap main.residentPanel
-    Swag.require(menu.kind == .Menu)
+    Swag.require(menu.placement == .AtPointer)
+    Swag.require(testPanelOffers(menu, ActionGlobal.ShowLibrary))
+    Swag.require(not testPanelOffers(menu, ActionGlobal.ShowHub))
     var watch: Time.Stopwatch
     watch.start()
     while watch.elapsedMilliseconds() < 120
@@ -40,7 +42,7 @@ using Core, Gui, Pixel
     Swag.require(main.residentPanel == null)
     journey.waitFor("tray hub", func|main|()->bool => main.residentPanel != null)
     let hub = main.residentPanel
-    Swag.require(hub.kind == .Hub)
+    Swag.require(hub.placement == .Centered)
     watch.start()
     while watch.elapsedMilliseconds() < 120
     {
@@ -106,6 +108,8 @@ using Core, Gui, Pixel
     surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
     surface.hide()
 
+    main.editorOptions.showResidentNotice = false
+
     // An icon in the closed overflow area first exposes the chevron's bounds. Open it only
     // when needed: clicking the chevron again would close a flyout left open by another test.
     if not Gui.Testing.isTrayIconInOverflow(surface)
@@ -125,28 +129,38 @@ using Core, Gui, Pixel
     watch.start()
     while main.residentPanel == null and watch.elapsedMilliseconds() < 3000 do
         journey.app.runFrame()
-    Swag.require(main.residentPanel != null, "the desktop right-click must open the tray menu")
+    Swag.require(main.residentPanel != null, "the desktop right-click must open the home")
     let menu = main.residentPanel
-    Swag.require(menu.kind == .Menu)
+    Swag.require(menu.placement == .AtPointer)
     watch.start()
     while watch.elapsedMilliseconds() < 180
     {
         journey.app.runFrame()
         Swag.require(main.residentPanel == menu, "the desktop tray menu must stay open")
     }
-    // The real keyboard route selects the first menu command and opens the hub.
+    // Cursor and delay share one row and keep the pointer home open while they are chosen.
     scope
     {
         var input = Gui.Testing.DesktopInput.create(journey.app, unwrap menu.surface)
-        input.shortcut(.Down, .None)
-        input.shortcut(.Return, .None)
+        let choices = assume cast(*StackLayoutCtrl, menu.menu.children[0])
+        let cursor = assume cast(*IconButton, choices.children[0])
+        let previousCursor = main.captureOptions.captureCursor
+        input.click(cursor)
+        journey.waitFor("cursor toggle", func|main, previousCursor|()->bool =>
+            main.captureOptions.captureCursor != previousCursor)
+        let delay = assume cast(*IconButton, choices.children[3])
+        input.click(delay)
+        journey.waitFor("capture delay", func|main|()->bool => main.captureOptions.delay == 5)
+        Swag.require(main.residentPanel == menu and cursor.isChecked != previousCursor)
+
+        // The same home owns Escape when opened as a pointer menu.
+        input.shortcut(.Escape, .None)
     }
     watch.start()
-    while (main.residentPanel == null or main.residentPanel.kind != .Hub) and watch.elapsedMilliseconds() < 3000 do
+    while main.residentPanel != null and watch.elapsedMilliseconds() < 3000 do
         journey.app.runFrame()
-    Swag.require(main.residentPanel != null and main.residentPanel.kind == .Hub,
-                 "the desktop keyboard must choose the tray menu command")
-    main.residentPanel.close()
+    Swag.require(main.residentPanel == null and surface.isHidden,
+                 "Escape must dismiss the home without opening the editor")
     journey.app.runFrame()
 
     Gui.Testing.clickTrayIcon(journey.app, surface, .Left, 2)
@@ -154,7 +168,7 @@ using Core, Gui, Pixel
     while main.residentPanel == null and watch.elapsedMilliseconds() < 3000 do
         journey.app.runFrame()
     Swag.require(main.residentPanel != null, "the desktop double-click must open the hub")
-    Swag.require(main.residentPanel.kind == .Hub)
+    Swag.require(main.residentPanel.placement == .Centered)
     watch.start()
     while watch.elapsedMilliseconds() < 180
     {

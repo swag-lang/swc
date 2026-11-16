@@ -398,6 +398,39 @@ using Swag, Core
     Swag.require(Math.abs(shape.rotate) < 0.001)
 }
 
+// A press turns into a drag after the same travel on screen at every zoom: a few image pixels
+// are a long way at a high zoom, and less than a jitter of the hand at a low one.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.main.editMode = .Shape
+
+    f.editView.setZoom(4)
+    f.dragImage({100, 100}, {101.25, 100})
+    Swag.require(f.capture.forms.count == 1)
+    f.capture.undo()
+    Swag.require(f.capture.forms.count == 0)
+
+    f.editView.setZoom(0.5)
+    f.dragImage({100, 100}, {104, 100})
+    Swag.require(f.capture.forms.count == 0)
+
+    let image = testAddImage(f.capture, 40, 50, 80, 60)
+    image.kind  = .Image
+    image.image = Image.create(20, 20, .BGRA8)
+    f.capture.selection.add(0)
+
+    f.editView.setZoom(4)
+    f.dragImage({60, 70}, {61.25, 70})
+    Gui.Testing.assertRect(image.IForm.boundRect(), 41, 50, 80, 60)
+
+    f.editView.setZoom(0.5)
+    f.dragImage({70, 80}, {74, 80})
+    Gui.Testing.assertRect(image.IForm.boundRect(), 41, 50, 80, 60)
+}
+
 // A free image can be switched into inside-edit mode by double-clicking, then
 // its inner placement rectangle is resized through the same gizmo event path.
 #test
@@ -518,4 +551,33 @@ using Swag, Core
     // Back in its middle, they go again.
     moveTo(&f, Math.Point{picture.horzCenter(), picture.vertCenter()})
     Swag.require(not f.editView.showsCaptureHandles())
+}
+
+// A body drag repaints the region the selection leaves and enters, not the whole editor: a
+// form far from the moved one is not drawn again on each move of the pointer.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.editView.setZoom(1)
+    f.main.editMode = .Shape
+    discard testAddShape(f.capture, 20, 20, 40, 30)
+    discard testAddShape(f.capture, 330, 240, 50, 40)
+    f.capture.hasChanged()
+
+    let surface = unwrap f.editView.surface
+    f.gui.mouseDown(f.imagePoint({40, 35}))
+    f.gui.moveMouse(f.imagePoint({50, 40}))
+    Swag.require(f.capture.mouseMode == .Moving)
+
+    Gui.Testing.clearPendingRepaint(surface)
+    f.gui.moveMouse(f.imagePoint({60, 45}))
+    let far = f.imagePoint({330, 240})
+    let repaint = Gui.Testing.pendingRepaint(surface)
+    Swag.require(repaint.dirty)
+    Swag.require(repaint.rect.right() < far.x or repaint.rect.bottom() < far.y)
+
+    f.gui.mouseUp(f.imagePoint({60, 45}))
+    Gui.Testing.assertRect(f.capture.forms[0].boundRect(), 40, 30, 40, 30)
 }

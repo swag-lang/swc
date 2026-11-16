@@ -2019,6 +2019,84 @@ SWC_TEST_BEGIN(InstCombine_MultiplyAddress_ImmediateMagnitude)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(InstCombine_DoubledIndexAddUsesOneAddressAtEitherWidth)
+{
+    constexpr MicroReg memory  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg addend  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg doubled = MicroReg::virtualIntReg(4);
+    constexpr MicroReg copied  = MicroReg::virtualIntReg(5);
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+        for (const bool reverse : {false, true})
+            for (const bool copy : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                builder.emitLoadRegMem(index, memory, 0, bits);
+                builder.emitLoadRegMem(addend, memory, 8, bits);
+                builder.emitLoadMemReg(memory, 40, addend, bits);
+                builder.emitLoadAddressAmcRegMem(doubled, bits, index, index, 1, 0, MicroOpBits::B64);
+                if (copy)
+                    builder.emitLoadRegReg(copied, doubled, bits);
+                const MicroReg scaled = copy ? copied : doubled;
+                const MicroReg dst    = reverse ? addend : scaled;
+                builder.emitOpBinaryRegReg(dst, reverse ? scaled : addend, MicroOp::Add, bits);
+                builder.emitLoadMemReg(memory, 16, dst, bits);
+                builder.emitRet();
+                SWC_RESULT(runInstCombinePass(builder));
+                SWC_RESULT(runInstCombinePass(builder));
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAddrAmcRegMem) != 1 || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg))
+                {
+                    std::println(stderr, "[doubled add] width={} reverse={} copy={}", getNumBits(bits), reverse, copy);
+                    builder.printInstructions();
+                    return Result::Error;
+                }
+                for (const MicroInstr& inst : builder.instructions().view())
+                {
+                    if (inst.op != MicroInstrOpcode::LoadAddrAmcRegMem)
+                        continue;
+                    const auto* address = inst.ops(builder.operands());
+                    if (address[1].reg != addend || address[2].reg != index || address[3].opBits != bits || address[5].valueU64 != 2)
+                        return Result::Error;
+                }
+            }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_DoubledIndexAddPreservesOtherReadersWidthsAndFlags)
+{
+    constexpr MicroReg memory  = MicroReg::virtualIntReg(1);
+    constexpr MicroReg index   = MicroReg::virtualIntReg(2);
+    constexpr MicroReg addend  = MicroReg::virtualIntReg(3);
+    constexpr MicroReg doubled = MicroReg::virtualIntReg(4);
+    for (uint32_t scenario = 0; scenario < 5; ++scenario)
+    {
+        MicroBuilder        builder(ctx);
+        const MicroLabelRef exit = builder.createLabel();
+        builder.emitLoadRegMem(index, memory, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(addend, memory, 8, MicroOpBits::B64);
+        builder.emitLoadMemReg(memory, 40, addend, MicroOpBits::B64);
+        builder.emitLoadAddressAmcRegMem(doubled, scenario == 2 ? MicroOpBits::B32 : MicroOpBits::B64, index, index, 1, scenario == 3 ? 1 : 0, MicroOpBits::B64);
+        if (scenario == 0)
+            builder.emitLoadMemReg(memory, 24, doubled, MicroOpBits::B64);
+        if (scenario == 1)
+            builder.emitLoadRegMem(index, memory, 32, MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(doubled, addend, MicroOp::Add, MicroOpBits::B64);
+        if (scenario == 4)
+            builder.emitJumpToLabel(MicroCond::Overflow, MicroOpBits::B32, exit);
+        builder.emitLoadMemReg(memory, 16, doubled, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        builder.emitRet();
+        SWC_RESULT(runInstCombinePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 1)
+        {
+            std::println(stderr, "[doubled add] rejected scenario={}", scenario);
+            builder.printInstructions();
+            return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(InstCombine_MultiplyAdd_BecomesTwoAddresses)
 {
     constexpr MicroReg base    = MicroReg::virtualIntReg(1);

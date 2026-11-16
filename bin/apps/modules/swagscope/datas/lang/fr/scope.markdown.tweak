@@ -17,3 +17,6 @@ ui_OneWord  1 mot
 ui_Words    % mots
 ui_OneCharacter 1 caractère
 ui_Characters   % caractères
+
+ui_Back     Retour dans le document
+ui_Forward  Avancer dans le document

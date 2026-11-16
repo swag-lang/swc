@@ -406,3 +406,46 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     tags.pictureExtension = ".jpg"
     Swag.require(not Sound.embeddedSleeve(&tags).isValid())
 }
+
+// The thumbnail of a recording that embeds its sleeve is that sleeve, fitted to the size asked for,
+// rather than a waveform.
+#test
+{
+    let png = expect File.readAllBytes(scopeTestDataPath("title.png"))
+    var frame: Array'u8
+    frame.add(0'u8)
+    for byte in "image/png" do
+        frame.add(byte)
+    frame.add(0'u8)
+    frame.add(3'u8)
+    frame.add(0'u8)
+    for byte in png do
+        frame.add(byte)
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    for byte in [3'u8, 0, 0] do
+        file.add(byte)
+    let size = frame.count + 10
+    for shift in [21'u64, 14, 7, 0] do
+        file.add(cast(u8, (size >> shift) & 0x7F))
+    for byte in "APIC" do
+        file.add(byte)
+    for shift in [24'u64, 16, 8, 0] do
+        file.add(cast(u8, (frame.count >> shift) & 0xFF))
+    file.add(0'u8)
+    file.add(0'u8)
+    for byte in frame do
+        file.add(byte)
+
+    let fileName = Gui.Testing.tempFilePath("scope-sound-sleeve-", ".mp3")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, file.toSlice())
+
+    let plugin = Sound.viewerPlugin()
+    let image  = expect plugin.thumbnail!(fileName, 96)
+
+    // The 5000 × 367 banner keeps its shape; a waveform would be half as tall as it is wide.
+    Swag.require(image.isValid() and image.width == 96 and image.height == 7)
+}

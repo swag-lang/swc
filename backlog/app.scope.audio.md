@@ -81,7 +81,8 @@ the professional listening and inspection surface; decoder and output-engine wor
   writes the title, artist, album and year of ID3v2 and FLAC tags, and shows the picture they
   embed (the front cover first) as the sleeve, ahead of one stored beside the file. Track/disc,
   comments, Ogg and MP4 tags, codec profile/bitrate, container, delay, padding, ReplayGain/R128,
-  and custom tags are not inspectable, and the explorer thumbnail still ignores the embedded art.
+  and custom tags are not inspectable. The explorer thumbnail shows the embedded picture too,
+  after a sleeve stored in the folder.
 - Next: define an audio metadata model separate from decoded samples and surface it through app.scope.viewers.006.
 - Done when: original tag keys/values and normalized common fields coexist, artwork is bounded
   and opens in Image, technical stream facts include provenance, suspicious or malformed metadata

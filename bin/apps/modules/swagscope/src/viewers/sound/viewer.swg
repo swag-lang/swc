@@ -26,9 +26,15 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// Draws a bounded waveform from the same PCM decoder and reducer as the sound viewer.
+// Returns the sleeve the recording embeds, fitted within `maxSide`, or else draws a bounded
+// waveform from the same PCM decoder and reducer as the sound viewer.
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
 {
+    var tags   = SoundTags.read(fileName, withPicture: true)
+    var sleeve = embeddedSleeve(&tags, cast(s32, maxSide))
+    if sleeve.isValid() do
+        return sleeve
+
     let sound  = try SoundFile.load(fileName, preloadData: false)
     let width  = cast(s32, Math.max(Math.min(maxSide, 256'u32), 64'u32))
     let height = width / 2
@@ -1129,10 +1135,10 @@ func createViewer(host: Viewer.Host)
     host.setLifecycle(lifecycle)
 }
 
-// Brings `image` down to twice the side of the cover, which is all the page ever draws of it.
-private func fitSleeve(image: *Image)
+// Brings `image` down to `side`, by default twice the side of the cover, which is all the page
+// ever draws of it.
+private func fitSleeve(image: *Image, side = cast(s32, CoverSize * 2))
 {
-    let side    = cast(s32, CoverSize * 2)
     let largest = Math.max(image.width, image.height)
     if largest <= side do
         return
@@ -1141,15 +1147,16 @@ private func fitSleeve(image: *Image)
 }
 
 // Returns the sleeve the recording's own tags embed, decoded and fitted, or an invalid image when
-// they embed none or it does not decode. The encoded picture is released either way.
-func embeddedSleeve(tags: *SoundTags)->Image
+// they embed none or it does not decode. The encoded picture is released either way. `side`
+// bounds the result, by default to what the page draws.
+func embeddedSleeve(tags: *SoundTags, side = cast(s32, CoverSize * 2))->Image
 {
     var result: Image
     if not tags.picture.isEmpty()
     {
         result = catch Image.decode(tags.pictureExtension.toString(), tags.picture.toSlice())
         if result.isValid() do
-            fitSleeve(&result)
+            fitSleeve(&result, side)
     }
 
     tags.picture.clear()

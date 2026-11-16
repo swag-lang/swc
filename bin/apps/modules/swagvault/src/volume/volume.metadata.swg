@@ -268,6 +268,8 @@ impl Volume
         try .requireWritable()
         if not .dirty do
             return
+        if .sequence >= Swag.U64.Max - 1 do
+            fail volumeError(.DiskFull)
 
         var previousPages: Array'u64
         previousPages.add(.metadataPages.toSlice())
@@ -289,7 +291,11 @@ impl Volume
         var image = .serializeNodes()
         defer Core.Crypto.secureClear(image.toSlice())
         let imageSize = image.count
-        let pageCount = (imageSize + BlockSize - 1) / BlockSize
+        var pageCount = imageSize / BlockSize
+        if imageSize % BlockSize do
+            pageCount += 1
+        if pageCount > Swag.U64.Max / BlockSize do
+            fail volumeError(.DiskFull)
         image.resize(pageCount * BlockSize)
 
         // The pages are allocated before anything is released, so a checkpoint
@@ -512,6 +518,8 @@ impl Volume
             return try .checkpoint()
         if .sequence - .checkpointAt >= JournalCapacity do
             return try .checkpoint()
+        if .sequence >= Swag.U64.Max - 1 do
+            fail volumeError(.DiskFull)
 
         var upserted: Array'(*Node)
         upserted.reserve(.touched.count)

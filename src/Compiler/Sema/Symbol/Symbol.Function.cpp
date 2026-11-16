@@ -1530,18 +1530,12 @@ const SymbolFunction* SymbolFunction::genericRootOrSelf() const noexcept
 
 SymbolFunction* SymbolFunction::genericRootSym() noexcept
 {
-    if (const auto* data = genericData())
-        return data->rootSym;
-
-    return nullptr;
+    return SymbolGenericData::rootSym(genericData());
 }
 
 const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 {
-    if (const auto* data = genericData())
-        return data->rootSym;
-
-    return nullptr;
+    return SymbolGenericData::rootSym(genericData());
 }
 
 const SymbolImpl* SymbolFunction::declImplContext() const noexcept

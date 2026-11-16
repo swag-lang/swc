@@ -1724,18 +1724,12 @@ const SymbolStruct* SymbolStruct::genericRootOrSelf() const noexcept
 
 SymbolStruct* SymbolStruct::genericRootSym() noexcept
 {
-    if (const auto* data = genericData())
-        return data->rootSym;
-
-    return nullptr;
+    return SymbolGenericData::rootSym(genericData());
 }
 
 const SymbolStruct* SymbolStruct::genericRootSym() const noexcept
 {
-    if (const auto* data = genericData())
-        return data->rootSym;
-
-    return nullptr;
+    return SymbolGenericData::rootSym(genericData());
 }
 
 SymbolStruct::GenericData* SymbolStruct::genericData() const noexcept

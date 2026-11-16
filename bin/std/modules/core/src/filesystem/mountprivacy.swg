@@ -66,6 +66,7 @@ internal func mountPrivacyChannel(root: string)->String
         identity += 0'u8
         identity += Env.sandboxRoot()
     }
+
     let digest = Hash.Sha256.compute(cast(const [..] u8, identity.toString()))
     var result = String.from("Swag.MountPrivacy.1.")
     for word in digest do
@@ -76,6 +77,7 @@ internal func mountPrivacyChannel(root: string)->String
 impl MountPrivacy
 {
     // Follows filesystem aliases, then finds a publication on the path or one of its parents.
+    //
     // Known Swag Vault filesystems without a readable publication are conservatively private.
     // A path that cannot be resolved and has no recognized mount returns an empty policy.
     func query(path: string)->MountPrivacy
@@ -112,6 +114,7 @@ impl MountPrivacy
     }
 
     // Refreshes without filesystem access. Returns whether the identity or policy changed.
+    //
     // Retains the final state after unmount, preventing late saves from losing provenance.
     mtd refresh()->bool
     {
@@ -151,6 +154,7 @@ impl MountPrivacy
 impl MountPrivacyPublisher
 {
     // Publishes `privateMode` for an existing mount root. Fails if its channel is already owned.
+    //
     // The publication starts private until its initial state has been committed atomically.
     mtd open(root: string, privateMode = true) fail
     {

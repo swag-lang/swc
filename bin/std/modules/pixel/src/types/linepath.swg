@@ -1022,7 +1022,7 @@ impl LinePath
     mtd flattenArc(pos, p1, p2: Vector2, tolerance: f32)
     {
         let angleSpan = p1.y - p1.x
-        let radius    = Math.max(p2.x, p2.y)     // Use the larger radius component
+        let radius    = Math.max(Math.abs(p2.x), Math.abs(p2.y))     // Use the larger radius magnitude
 
         // Calculate required number of segments analytically
         let numSegments = calculateFlattenArcSegments(angleSpan, radius, tolerance)

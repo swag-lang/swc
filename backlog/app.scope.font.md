@@ -43,15 +43,17 @@ remains in [std.truetype.md](std.truetype.md).
   original text-to-glyph mapping remains inspectable.
 - Related: std.truetype.003, std.truetype.009, std.truetype.008
 
-### app.scope.font.002 — The character map cannot search or jump to a glyph
+### app.scope.font.002 — The character map cannot search glyph names, IDs, blocks or scripts
 
 - Evidence: navigation pages 192 mapped Unicode scalars with previous/next, and the clickable range
-  readout jumps to several common Unicode blocks. There is no arbitrary Go To by Unicode,
-  character, glyph name, glyph ID, block/script name, or text search.
-- Next: build a bounded searchable cmap/glyph index and extend the range control with arbitrary Go
-  To input.
-- Done when: `U+`, literal character, decimal/hex glyph ID, glyph name, Unicode block, and script
-  queries reveal a cell; unmapped versus absent results are distinguished; and back/forward works.
+  readout jumps to several common Unicode blocks. A character typed into the lens, or its `U+`
+  code point, shows its page with the cell marked, and one the face does not map is named so.
+  There is no Go To by glyph name, glyph ID, block or script name, no text search over names, and
+  a lens jump does not join a back/forward history.
+- Next: build a bounded searchable cmap/glyph index (post and CFF names, glyph IDs) and answer
+  glyph-name, `#`-prefixed glyph ID and block or script queries in the same lens rows.
+- Done when: glyph name, decimal/hex glyph ID, Unicode block, and script queries reveal a cell;
+  unmapped versus absent results are distinguished; and back/forward works.
 
 ### app.scope.font.003 — Unicode coverage and missing-glyph analysis are absent
 

@@ -144,6 +144,7 @@ struct DocumentView
     pageStart:  u32
     pageEnd:    u32
     hasNext:    bool
+    shown:      rune     // Character the reader asked to see, marked in its cell; zero for none.
 }
 
 private impl DocumentView
@@ -306,7 +307,7 @@ private impl DocumentView
 
                 let cell = &.cells[index]
                 let box  = Math.Rectangle{.layout.gridLeft + cast(f32, column) * (CellWidth + CellGap), top, CellWidth, .layout.cellHeight}
-                painter.fillRoundRect(box, corner, corner, colors.wnd_Bk)
+                painter.fillRoundRect(box, corner, corner, cell.character == .shown ? colors.listItem_SelectedBk : colors.wnd_Bk)
 
                 let codeTop   = box.bottom() - CellPadding - .fontCode.height
                 let codeWidth = Painter.measureString(cell.code, .fontCode).width
@@ -554,6 +555,27 @@ impl DocumentView
             .pageIndex = index
         .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
+    }
+
+    // Shows the page holding `character` and marks its cell in the middle of the view. A character
+    // the face does not map shows nothing new.
+    mtd showCharacter(character: rune)
+    {
+        let face = .face
+        if not face or not Utf8.isValidRune(character) or not face.hasChar(character) do
+            return
+        .goToCharacterPage(cast(u32, character))
+        .shown = character
+
+        for cell, index in .cells where cell.character == character
+        {
+            let pitch = .layout.cellHeight + CellGap
+            let top   = .layout.gridTop + cast(f32, index / .layout.columns) * pitch
+            .scroll.setScrollPos(0, top - Math.max(.clientRect().height - .layout.cellHeight, 0) * 0.5)
+            break
+        }
+
+        .invalidate()
     }
 
     // Brings the character-map caption to the top of the viewport, which is where a reader who just

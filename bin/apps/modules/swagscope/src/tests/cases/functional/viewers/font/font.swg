@@ -70,3 +70,48 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.require(not view.failureReason.isEmpty())
 }
+
+// A character typed into the lens, or its `U+` code point, is a row that shows its cell marked
+// in the character map; one the face does not map is named so and cannot be chosen.
+#test
+{
+    Swag.require(Typeface.queriedCharacter("Ω") == 'Ω' and Typeface.queriedCharacter(" u+3a9 ") == 'Ω')
+    Swag.require(Typeface.queriedCharacter("U+20AC") == '€' and Typeface.queriedCharacter("U+") == 0)
+    Swag.require(Typeface.queriedCharacter("U+D800") == 0 and Typeface.queriedCharacter("U+110000") == 0)
+    Swag.require(Typeface.queriedCharacter("ab") == 0 and Typeface.queriedCharacter("") == 0)
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fontFixturePath(), false)
+    let view   = assume cast(*Typeface.Panel, window.instances[window.activeChoiceIndex].view)
+    completeViewerBackgroundLoad(&host, &view.load)
+
+    func lensRow(host: *Testing.HeadlessHost, window: *ViewerWindow, query: string)->*Lens.Entry?
+    {
+        window.lens.open(query)
+        host.finishAnimations()
+        for section in window.lens.results.sections
+        {
+            for &entry in section!.entries where Utf8.startsWith(entry.title.toSlice(), "Show U+") do
+                return entry
+        }
+
+        Swag.require(false, query)
+        return null
+    }
+
+    let row = unwrap lensRow(&host, window, "U+03A9")
+    Swag.require(row.title == Format.toString(Typeface.texts().ui_ShowCharacter, "U+03A9 Ω") and not row.disabled)
+    row.run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.document.shown == 'Ω' and
+                 view.document.pageStart <= 0x3A9 and
+                 view.document.pageEnd >= 0x3A9)
+    let top = view.document.scroll.scrollPosition().y
+    Swag.require(view.document.layout.gridTop < top + view.document.clientRect().height)
+
+    let none = unwrap lensRow(&host, window, "U+1F600")
+    Swag.require(none.disabled and none.detail == Typeface.texts().ui_NotInFont)
+    window.lens.close()
+    host.finishAnimations()
+}

@@ -21,6 +21,8 @@ struct Texts
     ui_Glyphs:            string = "Glyphs"
     ui_CharacterMap:      string = "Character Map"
     ui_NoCharacters:      string = "No mapped characters"
+    ui_ShowCharacter:     string = "Show % in the Character Map"     // Lens row going to the cell of the character typed, or of its U+ code point.
+    ui_NotInFont:         string = "Not in this font"     // Faint reading of a typed character the face does not map.
     ui_Regular:           string = "Regular"
     ui_Metrics:           string = "% · % glyphs · % UPM"
     ui_DetailsSingle:     string = "% · % · % glyphs · % UPM"

@@ -92,6 +92,33 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     return result
 }
 
+// Returns the character `query` names, or zero when it names none: one character typed as itself,
+// or a Unicode code point written `U+` and its hexadecimal digits.
+func queriedCharacter(query: string)->rune
+{
+    let text = Latin1.trim(query)
+    if not text.count do
+        return 0
+
+    let {c, eat} = Utf8.decodeRune(text)
+    if eat == text.count do
+        return c == ' ' ? 0 : c
+    if text.count < 3 or text.count > 8 or (text[0] != 'U'u8 and text[0] != 'u'u8) or text[1] != '+'u8 do
+        return 0
+
+    var code = 0'u32
+    for index in 2 until text.count
+    {
+        let digit = hexDigitValue(text[index])
+        if digit >= 16 do
+            return 0
+        code = code * 16 + digit
+    }
+
+    let result = cast(rune, code)
+    return Utf8.isValidRune(result) ? result : 0
+}
+
 // The font viewer: a specimen of the face, a sample field, and the glyph pages browsed from the
 // command bar.
 struct Panel
@@ -180,6 +207,26 @@ private impl Panel
                     },
                     disabled: not .nextButton.isEnabled(),
                     shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+
+        // A typed character, or its code point after `U+`, is a cell of the map to go to.
+        let character = queriedCharacter(entries.query)
+        if character and not .load.isPending() and .document != null
+        {
+            let code       = Format.toString("U+%{X04} %", cast(u32, character), character)
+            let mapped     = .document.face and .document.face.hasChar(character)
+            with let entry = entries.add(Format.toString(strings.ui_ShowCharacter, code),
+                                         .GoTo,
+                                         func|view = me, character|()
+                                         {
+                                             view.document.showCharacter(character)
+                                             view.refreshPageCommands()
+                                         },
+                                         disabled: not mapped)
+            {
+                if not mapped do
+                    .detail = strings.ui_NotInFont
+            }
+        }
 
         const Ranges: [5] u32 = [0x20, 0xA0, 0x370, 0x400, 0x2000]
         let names = [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]

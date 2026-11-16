@@ -30,6 +30,25 @@ consumer migration stay in [std.core.md](std.core.md), general memory-safety pre
 
 ## Entries
 
+### language.parallelism.013 — A wait on Linux can stay asleep after the work it waits for ended
+
+- Evidence: Swag Capture test files (`functional/files.swg`, `functional/libfeatures.swg`, and a
+  whole Swag Capture run) stall now and then with every thread idle: one file that takes 20 s
+  ran 9 minutes, another 15 s file was still running after 5 minutes, and a full run hit the
+  900 s limit. Each time, attaching GDB to the stalled test program let it finish at once, with
+  every test passing. The main thread was blocked in the runtime's own `futex` call (the
+  `syscall` of `__hostConditionWait` or of the runtime lock), four threads were waiting in glibc
+  `pthread` futexes and three more in the runtime `syscall`. A ptrace attach interrupts each wait
+  with `EINTR`; `__hostConditionWait` then waits again on the sequence it read and returns at
+  once if that sequence moved. So the sequence a sleeper waited on had changed without waking
+  it, or a sleeping worker missed work that was queued.
+- Next: build the stalled test program with `--debug` to symbolize the threads, and log the
+  sequence values of `Scheduler.ready` and `Scheduler.finished` around `ready.wake()` (one waiter)
+  and the parked observers when the stall occurs.
+- Done when: the waiter that misses its wake is identified and fixed, and the Swag Capture
+  `functional/libfeatures.swg` file passes fifty runs in a row on Linux without a stall.
+- Related: app.capture.041
+
 ### language.parallelism.008 — A parallel loop cannot combine per-partition results
 
 - Evidence: every partition of a `parallel for` receives the same captures. A loop that computes

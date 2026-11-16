@@ -194,8 +194,9 @@ and its goldens hold the measurable part. Implementation notes:
   mono at the right, a `✓` is Arc, and a separator is one hairline inset 10. A menu opened from
   an icon button joins it (see
   [design-swag-identity](../design-swag-identity/SKILL.md#join-an-icon-menu-to-its-button)).
-- **Scroll bars** are `scrollBar_Size` thick. They rest invisible and show while the view scrolls
-  or the pointer is over them, then fade after `motion_ScrollRest`.
+- **Scroll bars** keep a 4 px thumb in an 8 px cell, with a 16 px pointer target. Their track is a
+  translucent tint (4%, 8% on hover), so the content beneath stays visible. The thumb rests at 30%
+  opacity, gains contrast during scrolling or hover without growing wider, and fades after `motion_ScrollRest`.
 - **Tooltips** use the `tip` tone: the surface on Encre, ink with paper text on Papier.
 - **Colour pickers** use swatches on the chip corner with a ring around the chosen one, and show
   the exact value in mono.

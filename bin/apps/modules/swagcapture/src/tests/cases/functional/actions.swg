@@ -166,6 +166,73 @@ using Swag, Core
     Swag.require(clipEvt.checked == f.main.editorOptions.clipToSelection)
 }
 
+// The zoom commands and the Control wheel step through fixed levels, through 100%, at the same
+// pace at every scale. From a fit between two levels they go to the nearer level their way.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width  = 400
+    f.capture.height = 300
+
+    f.editView.setZoom(0.34)
+    f.main.sendCommandEvent(ActionZoom.ZoomIn)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 0.5, 0.001))
+    f.main.sendCommandEvent(ActionZoom.ZoomIn)
+    f.main.sendCommandEvent(ActionZoom.ZoomIn)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1, 0.001))
+    f.editView.setZoom(0.34)
+    f.main.sendCommandEvent(ActionZoom.ZoomOut)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 0.33, 0.001))
+    f.editView.setZoom(4)
+    f.main.sendCommandEvent(ActionZoom.ZoomIn)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 6, 0.001))
+
+    f.editView.setZoom(1)
+    let pointer = f.editView.localToSurface(Math.Point{100, 100})
+    f.gui.mouseWheel(pointer, 1, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1.5, 0.001))
+    f.gui.mouseWheel(pointer, -1, .Control)
+    f.gui.mouseWheel(pointer, -1, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 0.67, 0.001))
+
+    // A walk from the smallest level to the largest one stops at every level once.
+    f.editView.setZoom(EditView.MinZoom)
+    var steps = 0
+    while f.editView.canZoomIn() and steps < 100
+    {
+        f.main.sendCommandEvent(ActionZoom.ZoomIn)
+        steps += 1
+    }
+    Swag.require(steps == EditView.ZoomStops.count - 1)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, EditView.MaxZoom, 0.001))
+}
+
+// The zoom answers the keys of the main row as well as those of the keypad.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testRegisterHeadlessActions(f.main)
+    f.main.registerShortcuts()
+    f.capture.width  = 400
+    f.capture.height = 300
+    f.editView.setFocus()
+
+    f.editView.setZoom(1)
+    f.gui.keyPress(.OemPlus, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1.5, 0.001))
+    f.gui.keyPress(.OemMinus, .Control)
+    f.gui.keyPress(.OemMinus, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 0.67, 0.001))
+    f.gui.keyPress(.D0, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1, 0.001))
+    f.gui.keyPress(.Add, .Control)
+    Swag.require(Math.isEqualEpsilon(f.editView.zoom, 1.5, 0.001))
+}
+
 // Zoom actions expose disabled state at clamps and execute without paint.
 #test
 {

@@ -20,7 +20,7 @@ using Core, Gui, Pixel
 
     var exported = Path.combine(journey.root, "review.png")
     main.doSaveAsImage(exported)
-    journey.waitFor("PNG exported", func|&exported|()->bool => File.exists(exported))
+    journey.waitFor("PNG exported", func|main, &exported|()->bool => main.imageWriteJob == null and File.exists(exported))
     let image = expect Image.load(exported)
     Swag.require(image.width == 96 and image.height == 64)
     Swag.require(not image.metadata.isEmpty())

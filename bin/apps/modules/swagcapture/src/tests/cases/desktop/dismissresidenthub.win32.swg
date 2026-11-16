@@ -16,7 +16,7 @@ using Core, Gui, Pixel, Win32
     var journey: CaptureJourney
     journey.setup()
     journey.surface.hide()
-    let panel = unwrap ResidentPanel.open(journey.main, .Hub)
+    let panel = unwrap ResidentPanel.open(journey.main, .Centered)
     let panelHandle = panel.surface!.win32Handle()
     Swag.require(panelHandle != null)
     var hubInput = Gui.Testing.DesktopInput.create(journey.app, panel.surface)

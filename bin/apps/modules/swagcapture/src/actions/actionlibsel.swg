@@ -40,8 +40,12 @@ impl IActionUI for ActionLibSel
 
         switch cxt.id
         {
-        case .Left, .Up, .Right, .Down,
-             .Home, .End, .Open, .Delete:
+        // The arrows start a walk on the first capture when none is chosen.
+        case .Left, .Up, .Right, .Down, .Home, .End:
+            evt.updatedFields |= .Disabled
+            evt.disabled      = libWnd.view.items.isEmpty()
+
+        case .Open, .Delete:
             evt.updatedFields |= .Disabled
             evt.disabled      = not hasSel
 

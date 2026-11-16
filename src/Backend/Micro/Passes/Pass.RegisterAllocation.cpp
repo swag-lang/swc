@@ -140,15 +140,16 @@ namespace
         return false;
     }
 
-    void appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
+    bool appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
     {
         for (const auto existing : indices)
         {
             if (existing == value)
-                return;
+                return false;
         }
 
         indices.push_back(value);
+        return true;
     }
 
     void appendUniquePosition(std::vector<uint32_t>& positions, const uint32_t instructionIndex)
@@ -987,8 +988,9 @@ bool MicroRegisterAllocationPass::globalRangesOverlap(const uint32_t denseIndex,
 
 void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const uint32_t lo, const uint32_t hi, const uint32_t ownerDense)
 {
-    const uint32_t denseIndex = denseGlobalPhysRegs_.ensure(physReg);
-    if (denseIndex >= globalRangesByPhysDense_.size())
+    bool           inserted = false;
+    const uint32_t denseIndex = denseGlobalPhysRegs_.ensure(physReg, &inserted);
+    if (inserted)
         globalRangesByPhysDense_.resize(denseIndex + 1);
 
     auto&       ranges = globalRangesByPhysDense_[denseIndex];
@@ -1029,16 +1031,18 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
     if (!hasControlFlow_ || !instructionCount_ || !functionHasLoop_)
         return;
 
-    auto& isLabelAt           = loopRegionIsLabelAt_;
+    auto& labelIndices        = loopRegionLabelIndices_;
     auto& jumpsToOwnNextLabel = loopRegionJumpsToOwnNextLabel_;
-    // The instruction walk assigns both flags before any region reads them.
-    isLabelAt.resize(instructionCount_);
+    // The instruction walk records labels in source order and assigns the jump flags before any
+    // region reads either table.
+    labelIndices.clear();
     jumpsToOwnNextLabel.resize(instructionCount_);
     {
         uint32_t idx = 0;
         for (auto it = instructions_->view().begin(), endIt = instructions_->view().end(); it != endIt && idx < instructionCount_; ++it, ++idx)
         {
-            isLabelAt[idx] = it->op == MicroInstrOpcode::Label;
+            if (it->op == MicroInstrOpcode::Label)
+                labelIndices.push_back(idx);
 
             // A jump to the next label lands after anything inserted before
             // that label, so it cannot enter through the reservation fill.
@@ -1065,9 +1069,10 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         SWC_ASSERT(idx == instructionCount_);
     }
 
-    for (uint32_t header = 0; header < instructionCount_; ++header)
+    for (size_t headerLabelIndex = 0; headerLabelIndex < labelIndices.size(); ++headerLabelIndex)
     {
-        if (!isLabelAt[header] || predecessors_[header].empty())
+        const uint32_t header = labelIndices[headerLabelIndex];
+        if (predecessors_[header].empty())
             continue;
 
         uint32_t tail        = 0;
@@ -1092,10 +1097,11 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         SWC_ASSERT(tail < instructionCount_);
 
         bool sealed = true;
-        for (uint32_t inner = header + 1; inner <= tail && sealed; ++inner)
+        for (size_t innerLabelIndex = headerLabelIndex + 1;
+             innerLabelIndex < labelIndices.size() && labelIndices[innerLabelIndex] <= tail && sealed;
+             ++innerLabelIndex)
         {
-            if (!isLabelAt[inner])
-                continue;
+            const uint32_t inner = labelIndices[innerLabelIndex];
             for (const uint32_t pred : predecessors_[inner])
                 sealed = sealed && pred >= header && pred <= tail;
         }
@@ -1209,27 +1215,71 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
         const size_t cap         = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
                                             : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
         size_t       mappedCount = forFloat ? mappedFloatRegs : mappedIntRegs;
+        const bool cacheUseCounts = mappedCount > cap && mappedCount - cap > 1;
+        SmallVector<std::pair<uint32_t, uint32_t>, 32> useCounts;
+        if (cacheUseCounts)
+        {
+            // The mapped list is bounded by the physical-register pool. When
+            // more than one value must be shed, count each loop's uses once;
+            // dropping a value below mirrors unmapVirtReg's swap-with-last so
+            // equal-use ties keep the same selection order.
+            for (const uint32_t denseIndex : mappedVirtualIndices_)
+            {
+                uint32_t useCount = 0;
+                if (states_[denseIndex].phys.isFloat() == forFloat)
+                {
+                    const auto& positions = usePositionsByDenseVirtual_[denseIndex];
+                    for (auto it = std::ranges::lower_bound(positions, region.header); it != positions.end() && *it <= region.tail; ++it)
+                        ++useCount;
+                }
+                useCounts.emplace_back(denseIndex, useCount);
+            }
+        }
         while (mappedCount > cap)
         {
             uint32_t worstDense = std::numeric_limits<uint32_t>::max();
             uint32_t worstUses  = std::numeric_limits<uint32_t>::max();
-            for (const uint32_t denseIndex : mappedVirtualIndices_)
+            if (cacheUseCounts)
             {
-                if (states_[denseIndex].phys.isFloat() != forFloat)
-                    continue;
-                const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
-                uint32_t    useCount     = 0;
-                for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
-                    ++useCount;
-                if (useCount < worstUses)
+                for (const auto& [denseIndex, useCount] : useCounts)
                 {
-                    worstUses  = useCount;
-                    worstDense = denseIndex;
+                    if (states_[denseIndex].phys.isFloat() != forFloat)
+                        continue;
+                    if (useCount < worstUses)
+                    {
+                        worstUses  = useCount;
+                        worstDense = denseIndex;
+                    }
+                }
+            }
+            else
+            {
+                for (const uint32_t denseIndex : mappedVirtualIndices_)
+                {
+                    if (states_[denseIndex].phys.isFloat() != forFloat)
+                        continue;
+                    const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+                    uint32_t    useCount     = 0;
+                    for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
+                        ++useCount;
+                    if (useCount < worstUses)
+                    {
+                        worstUses  = useCount;
+                        worstDense = denseIndex;
+                    }
                 }
             }
             if (worstDense == std::numeric_limits<uint32_t>::max())
                 break;
+            const uint32_t removedIndex = states_[worstDense].mappedListIndex;
             dropMappedVirtualNoStore(worstDense);
+            if (cacheUseCounts)
+            {
+                SWC_ASSERT(removedIndex < useCounts.size());
+                if (removedIndex + 1 < useCounts.size())
+                    useCounts[removedIndex] = useCounts.back();
+                useCounts.pop_back();
+            }
             --mappedCount;
         }
     }
@@ -1247,28 +1297,36 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
 
     const auto& vregs         = denseVirtualRegs_.regs();
     const auto  headerLiveRow = liveInVirtualBits_.row(region.header);
-    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    // Enumerating live bits avoids probing every function register; bit order
+    // is dense-register order, so the stable use-count sort keeps its ties.
+    for (size_t wordIndex = 0; wordIndex < headerLiveRow.words.size(); ++wordIndex)
     {
-        if (!headerLiveRow.contains(denseIndex))
-            continue;
+        uint64_t wordBits = headerLiveRow.words[wordIndex];
+        while (wordBits)
+        {
+            const uint32_t denseIndex = static_cast<uint32_t>((headerLiveRow.firstWord + wordIndex) * 64ull + std::countr_zero(wordBits));
+            wordBits &= wordBits - 1ull;
+            if (denseIndex >= vregs.size())
+                continue;
 
-        auto& regState = states_[denseIndex];
-        if (regState.mapped || regState.pinned)
-            continue;
-        // The load below reads the value's home, so the value must have one
-        // it can be trusted to be in: a spill slot every boundary keeps
-        // coherent, or a rematerialization recipe.
-        if (!regState.hasSpill && !regState.rematerializable)
-            continue;
+            auto& regState = states_[denseIndex];
+            if (regState.mapped || regState.pinned)
+                continue;
+            // The load below reads the value's home, so the value must have one
+            // it can be trusted to be in: a spill slot every boundary keeps
+            // coherent, or a rematerialization recipe.
+            if (!regState.hasSpill && !regState.rematerializable)
+                continue;
 
-        const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
-        uint32_t    useCount     = 0;
-        for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
-            ++useCount;
-        if (!useCount)
-            continue;
+            const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+            uint32_t    useCount     = 0;
+            for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
+                ++useCount;
+            if (!useCount)
+                continue;
 
-        preloads.push_back({.denseIndex = denseIndex, .useCount = useCount});
+            preloads.push_back({.denseIndex = denseIndex, .useCount = useCount});
+        }
     }
 
     std::ranges::stable_sort(preloads, [](const PreloadCandidate& a, const PreloadCandidate& b) { return a.useCount > b.useCount; });
@@ -1728,6 +1786,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
         // registers first, so it does not force a prologue push.
         const SmallVector<MicroReg>& persistentPool = isFloat ? freeFloatPersistent_ : freeIntPersistent_;
         const SmallVector<MicroReg>& transientPool  = isFloat ? freeFloatTransient_ : freeIntTransient_;
+        const uint32_t               minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
 
         MicroReg picked           = MicroReg::invalid();
         bool     pickedPersistent = false;
@@ -1756,8 +1815,41 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
             const SmallVector<MicroReg>& pool             = preferPersistent == (pass == 0) ? persistentPool : transientPool;
             const bool                   poolIsPersistent = &pool == &persistentPool;
+            if (pool.empty())
+                continue;
             if (isFloat && (poolIsPersistent ? !persistentHeadroom : !transientHeadroom))
                 continue;
+
+            // This function-wide floor is independent of the candidate
+            // register. Compute it once per pool instead of rescanning all
+            // prior reservations for every register in that pool.
+            uint32_t distinctClass      = 0;
+            uint32_t distinctPersistent = 0;
+            for (const MicroReg used : context_->globalReservedRegs)
+            {
+                // Only registers offered by these pools count toward the
+                // local allocator's supply floor; the dedicated stack-base
+                // register is intentionally outside that supply.
+                if (used.isFloat() != isFloat || !isPoolRegister(used))
+                    continue;
+                ++distinctClass;
+                if (isPersistentPhysReg(used))
+                    ++distinctPersistent;
+            }
+
+            bool functionFloorAllowsUnreservedReg = true;
+            if (isFloat)
+            {
+                const uint32_t distinctTransient = distinctClass - std::min(distinctClass, distinctPersistent);
+                functionFloorAllowsUnreservedReg = poolIsPersistent ? distinctPersistent < persistentBudget : distinctTransient < transientBudget;
+            }
+            else
+            {
+                functionFloorAllowsUnreservedReg = distinctClass < static_cast<uint32_t>(total - minFreeClass);
+            }
+            if (hasCalls && poolIsPersistent)
+                functionFloorAllowsUnreservedReg = functionFloorAllowsUnreservedReg && totalPersistent > minFreePersistent &&
+                                                   distinctPersistent < static_cast<uint32_t>(totalPersistent - minFreePersistent);
 
             for (const MicroReg reg : pool)
             {
@@ -1830,7 +1922,6 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     continue;
 
                 const bool     isPersistent      = poolIsPersistent;
-                const uint32_t minFreePersistent = isFloat ? K_MIN_FREE_PERSISTENT_FLOAT : K_MIN_FREE_PERSISTENT_INT;
                 if (hasCalls && isPersistent && totalPersistent <= minFreePersistent)
                     continue;
 
@@ -1857,43 +1948,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                 const bool carriesRanges = regDense != MicroDenseRegIndex::K_INVALID_INDEX &&
                                            regDense < globalRangesByPhysDense_.size() &&
                                            !globalRangesByPhysDense_[regDense].empty();
-                if (!carriesRanges)
-                {
-                    uint32_t distinctClass      = 0;
-                    uint32_t distinctPersistent = 0;
-                    for (const MicroReg used : context_->globalReservedRegs)
-                    {
-                        if (used.isFloat() != isFloat)
-                            continue;
-                        // Only registers the pools actually offer count against these floors:
-                        // the floors exist to keep the local allocator supplied, and the local
-                        // allocator draws from the pools. The local-stack-base register is
-                        // reserved outside both of them, so counting it charged the class for a
-                        // carrier it never had - one of the four callee-saved hulls a function
-                        // with calls is allowed, spent on nothing.
-                        if (!isPoolRegister(used))
-                            continue;
-                        ++distinctClass;
-                        if (isPersistentPhysReg(used))
-                            ++distinctPersistent;
-                    }
-
-                    // The function-wide floor mirrors the per-index one: per
-                    // pool for floats, per class for ints.
-                    if (isFloat)
-                    {
-                        const uint32_t distinctTransient = distinctClass - std::min(distinctClass, distinctPersistent);
-                        if (isPersistent ? distinctPersistent >= persistentBudget : distinctTransient >= transientBudget)
-                            continue;
-                    }
-                    else if (distinctClass >= static_cast<uint32_t>(total - minFreeClass))
-                    {
-                        continue;
-                    }
-                    if (hasCalls && isPersistent &&
-                        distinctPersistent >= static_cast<uint32_t>(totalPersistent - minFreePersistent))
-                        continue;
-                }
+                if (!carriesRanges && !functionFloorAllowsUnreservedReg)
+                    continue;
 
                 picked           = reg;
                 pickedPersistent = poolIsPersistent;
@@ -1959,39 +2015,40 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
 
     const auto& vregs = denseVirtualRegs_.regs();
 
-    SmallVector<uint32_t> loopHeaders;
-    for (uint32_t s = 0; s < instructionCount_; ++s)
+    // Mark loop-carried values by visiting only live bits in loop-header rows.
+    // The old register-by-header probe repeated one bit test for every pair.
+    bool hasLoopHeader = false;
+    for (uint32_t header = 0; header < instructionCount_; ++header)
     {
-        const auto& predecessors = predecessors_[s];
-        if (!predecessors.empty() && predecessors.back() >= s)
-            loopHeaders.push_back(s);
-    }
-    if (loopHeaders.empty())
-        return;
-
-    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
-    {
-        const MicroReg vreg = vregs[denseIndex];
-
-        auto& regState = states_[denseIndex];
-        if (regState.pinned)
+        const auto& predecessors = predecessors_[header];
+        if (predecessors.empty() || predecessors.back() < header)
             continue;
+        hasLoopHeader = true;
 
-        bool loopCarried = false;
-        for (const uint32_t header : loopHeaders)
+        const auto row = liveInVirtualBits_.row(header);
+        for (size_t wordIndex = 0; wordIndex < row.words.size(); ++wordIndex)
         {
-            const auto liveRow = liveInVirtualBits_.row(header);
-            if (liveRow.contains(denseIndex))
+            uint64_t wordBits = row.words[wordIndex];
+            while (wordBits)
             {
-                loopCarried = true;
-                break;
+                const uint32_t denseIndex = static_cast<uint32_t>((row.firstWord + wordIndex) * 64ull + std::countr_zero(wordBits));
+                wordBits &= wordBits - 1ull;
+                if (denseIndex < vregs.size() && !states_[denseIndex].pinned)
+                    states_[denseIndex].loopCarriedHome = true;
             }
         }
-        if (!loopCarried)
+    }
+    if (!hasLoopHeader)
+        return;
+
+    // Keep spill-slot assignment in dense-register order, as before.
+    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    {
+        auto& regState = states_[denseIndex];
+        if (!regState.loopCarriedHome)
             continue;
 
-        regState.loopCarriedHome = true;
-        ensureSpillSlot(regState, vreg.isVirtualFloat());
+        ensureSpillSlot(regState, vregs[denseIndex].isVirtualFloat());
     }
 }
 
@@ -2149,13 +2206,22 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Include stack/frame roles even when they are outside the allocatable pools.
     denseConcreteRegs_.reserve(conv_->intRegs.size() + conv_->floatRegs.size() + 2);
 
+    // Populate per-register positions while each instruction's unique dense
+    // indices are already being collected. A second instruction pass would
+    // only revisit these same use/def lists to build the position tables.
+    for (auto& positions : usePositionsByDenseVirtual_)
+        positions.clear();
+    for (auto& positions : concreteTouchPositionsByDenseIndex_)
+        positions.clear();
+    definitionCounts_.clear();
+    states_.clear();
+
     // clearState destroyed the previous per-instruction lists, so these new
     // entries are empty and need no per-instruction clearing below.
     useVirtualIndices_.resize(instructionCount_);
     defVirtualIndices_.resize(instructionCount_);
     useConcreteIndices_.resize(instructionCount_);
     defConcreteIndices_.resize(instructionCount_);
-    SmallVector<uint32_t> wideInstructionPositions;
 
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
@@ -2168,13 +2234,25 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                usesV.addUnique(regIndex);
+                bool           inserted = false;
+                const uint32_t regIndex  = denseVirtualRegs_.ensure(reg, &inserted);
+                if (inserted)
+                {
+                    usePositionsByDenseVirtual_.resize(regIndex + 1);
+                    definitionCounts_.resize(regIndex + 1, 0);
+                    states_.resize(regIndex + 1);
+                }
+                if (usesV.addUnique(regIndex))
+                    usePositionsByDenseVirtual_[regIndex].push_back(idx);
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                appendUniqueDenseIndex(usesC, regIndex);
+                bool           inserted = false;
+                const uint32_t regIndex  = denseConcreteRegs_.ensure(reg, &inserted);
+                if (inserted)
+                    concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
+                if (appendUniqueDenseIndex(usesC, regIndex))
+                    appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
             }
         }
 
@@ -2182,13 +2260,25 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                defsV.addUnique(regIndex);
+                bool           inserted = false;
+                const uint32_t regIndex  = denseVirtualRegs_.ensure(reg, &inserted);
+                if (inserted)
+                {
+                    usePositionsByDenseVirtual_.resize(regIndex + 1);
+                    definitionCounts_.resize(regIndex + 1, 0);
+                    states_.resize(regIndex + 1);
+                }
+                if (defsV.addUnique(regIndex))
+                    ++definitionCounts_[regIndex];
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                appendUniqueDenseIndex(defsC, regIndex);
+                bool           inserted = false;
+                const uint32_t regIndex  = denseConcreteRegs_.ensure(reg, &inserted);
+                if (inserted)
+                    concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
+                if (appendUniqueDenseIndex(defsC, regIndex))
+                    appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
             }
         }
 
@@ -2200,7 +2290,16 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         const MicroInstrDef& info            = MicroInstr::info(inst->op);
         const bool           hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) || (info.opBitsMask && inst->has128BitOperands(inst->ops(*operands_)));
         if (hasWideOperands)
-            wideInstructionPositions.push_back(idx);
+        {
+            // Packed inputs and wide definitions extend a virtual register's spill slot.
+            if (inst->packedFloatInputBits(inst->ops(*operands_)) == MicroOpBits::B128)
+            {
+                for (const uint32_t denseIndex : usesV)
+                    states_[denseIndex].wideFloat = true;
+            }
+            for (const uint32_t denseIndex : defsV)
+                states_[denseIndex].wideFloat = true;
+        }
     }
 
     const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();
@@ -2208,61 +2307,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     const auto&    virtualRegs       = denseVirtualRegs_.regs();
     const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
-    states_.clear();
-    states_.resize(virtualRegs.size());
-    usePositionsByDenseVirtual_.resize(virtualRegs.size());
-    concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
-    // Retain inner capacities, but do not clear lists that resize just destroyed.
-    // Runs without virtual registers never reach or query these buffers.
-    for (auto& positions : usePositionsByDenseVirtual_)
-        positions.clear();
-    for (auto& positions : concreteTouchPositionsByDenseIndex_)
-        positions.clear();
-    definitionCounts_.assign(virtualRegs.size(), 0);
-
-    // Packed construction can consume scalar inputs. Keep those spill slots at
-    // eight bytes unless another reader or definition needs the upper half.
-    // Definitions stay wide even when they alias a narrow input: the same
-    // virtual register must hold the instruction's complete result afterwards.
-    for (const uint32_t wideScanIndex : wideInstructionPositions)
-    {
-        const MicroInstr* inst = instructions_->ptr(instructionRefs[wideScanIndex]);
-        if (inst->packedFloatInputBits(inst->ops(*operands_)) == MicroOpBits::B128)
-        {
-            for (const uint32_t denseIndex : useVirtualIndices_[wideScanIndex])
-                states_[denseIndex].wideFloat = true;
-        }
-        for (const uint32_t denseIndex : defVirtualIndices_[wideScanIndex])
-            states_[denseIndex].wideFloat = true;
-    }
-
-    // Each instruction's use lists are unique; a definition can repeat a use.
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-    {
-        for (const uint32_t denseIndex : useVirtualIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
-            usePositionsByDenseVirtual_[denseIndex].push_back(idx);
-        }
-
-        for (const uint32_t denseIndex : defVirtualIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < definitionCounts_.size());
-            definitionCounts_[denseIndex]++;
-        }
-
-        for (const uint32_t denseIndex : useConcreteIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
-            concreteTouchPositionsByDenseIndex_[denseIndex].push_back(idx);
-        }
-
-        for (const uint32_t denseIndex : defConcreteIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
-            appendUniquePosition(concreteTouchPositionsByDenseIndex_[denseIndex], idx);
-        }
-    }
+    // Each new dense index already grows its side table in insertion order.
+    // Only the empty concrete case needs to discard a prior function's lists.
+    if (concreteRegs.empty())
+        concreteTouchPositionsByDenseIndex_.clear();
 
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);

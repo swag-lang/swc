@@ -4,6 +4,17 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.115 — Diagnose repeated single-use test category attributes
+
+- Evidence: adjacent `#[Swag.TestTag("golden")]` and
+  `#[Swag.TestTag("capture.resident.home")]` on a `#test` compile without a diagnostic, but
+  selecting the second category executes no tests. `Swag.TestTag` declares one category and
+  does not carry `Swag.AttrMulti`.
+- Next: reduce the repeated attributes to a standalone semantic fixture and trace attribute
+  multiplicity validation together with the category passed to `Swag.__runTest`.
+- Done when: repeating a single-use attribute gives a located diagnostic, while attributes
+  marked `Swag.AttrMulti` retain their supported repeated values.
+
 ### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
 
 - Evidence: the Linux Release compiler reports that `state` may refer to released memory at
@@ -116,8 +127,11 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   grouping now uses one composite-key first-index table and a source-ordered list of instruction refs,
   instead of nested maps and per-location vectors. A worker-kept `FlatKeyMap` also clears its
   largest previously used capacity on each rebuild.
-- Next: choose one of the remaining node maps, establish its traversal order, and design an
-  order-preserving flat representation; leave the kept-table reset tradeoff for measurement.
+- Rejected for now: embedding `upperRegValues` in `SanitizerFlatMap` passed the compiler suites but
+  adds 16 bytes to every `SanitizerState`, including empty maps. Without occupancy evidence, fewer
+  node allocations do not prove that the larger, more frequently copied state is a net saving.
+- Next: choose another remaining map, establish its traversal order, and design an order-preserving
+  flat representation; leave the kept-table reset tradeoff for measurement.
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no
   lower-work representation preserves its traversal contract.
 
@@ -707,3 +721,18 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   exact failure, then inspect runtime cloning, symbol publication and native lowering there.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
+
+### compiler.core.112 — A positional struct literal rejects the same identifier given twice
+
+- Evidence: with `struct Point { x, y: f32 }`, `func take(p: Point)->f32` and
+  `const Margin = 12.0'f32`, `take({Margin, Margin})` fails semantic checking with
+  `record construction already initializes field 'Margin'`, a field `Point` does not have.
+  `take({Margin, Margin + 0})` and `take(Point{Margin, Margin})` compile. The check lives in
+  `SemaHelpers::finalizeAggregateStruct`: a literal made only of identifiers is named from them
+  as a record before its destination type is known, so two positional values spelled alike
+  collide. `Gui.PdfView.readingPosition` spells `Math.Point{PageMargin, PageMargin}` for it.
+- Next: decide the duplicate once the destination is known: keep the error when the repeated
+  name is a field of the target or the literal has no target, and treat the identifiers as
+  positional values otherwise; add `sema` cases for both outcomes.
+- Done when: `take({Margin, Margin})` compiles and fills both fields, a repeated field shorthand
+  is still rejected with a diagnostic naming a field the type has, and both are suite tests.

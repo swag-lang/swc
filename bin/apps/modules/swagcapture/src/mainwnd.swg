@@ -140,7 +140,7 @@ struct MainWnd
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
 
-    // The hub or the menu of the notification-area icon, while one is on screen.
+    // The resident home, centered or opened beside the pointer.
     residentPanel: *ResidentPanel?
     residentNotice: *TrayNotice?
     openHubAfterRecentLoad: bool
@@ -297,11 +297,11 @@ impl IWnd for MainWnd
         // starting on nothing.
         case .TrayIcon:
             if evt.trayAction == .ContextMenu do
-                ResidentPanel.open(me, .Menu)
+                ResidentPanel.open(me, .AtPointer)
             elif evt.trayAction == .Activate and .editorOptions.startup == .Editor do
                 .showWindow()
             elif evt.trayAction == .Activate do
-                ResidentPanel.open(me, .Hub)
+                ResidentPanel.open(me, .Centered)
 
         case .CustomMessage:
             if evt.messageId == OpenImageMessage and Clipboard.hasString() do
@@ -632,13 +632,15 @@ impl MainWnd
         capture.editView = .editWnd.editView
         if not linked and not capture.isTimed()
         {
-            .startLibraryImageWrite(capture, destination)
+            .startImageWrite(capture, destination)
             return
         }
         .saveLoadedAsImage(capture, destination, linked)
     }
 
-    private mtd startLibraryImageWrite(capture: *Capture, destination: String)
+    // Composes `capture` here, where its forms can use the renderer, then encodes and writes
+    // the picture to `destination` on a worker.
+    internal mtd startImageWrite(capture: *Capture, destination: String)
     {
         var image = capture.toImage()
         if not image.isValid()
@@ -796,9 +798,9 @@ impl MainWnd
     }
 
     // All library metadata writes share the automatic save's single file-writer lane.
-    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
+    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false)
     {
-        if title == null and not tags and not favorite and not rating do
+        if title == null and not tags and not favorite and not rating and not unlink do
             return
         let job = Memory.new'CaptureMetadataJob()
         job.owner = me
@@ -823,6 +825,7 @@ impl MainWnd
             job.rating = rating[]
             job.hasRating = true
         }
+        job.unlink = unlink
         g_CaptureSaves.adoptMetadata(job)
         if not .metadataTimer do
             .metadataTimer = .addTimer(30'ms)
@@ -836,7 +839,7 @@ impl MainWnd
             let tags: const *Array'String? = job.hasTags ? &job.tags : null
             let favorite: const *bool? = job.hasFavorite ? &job.favorite : null
             let rating: const *u8? = job.hasRating ? &job.rating : null
-            catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating) as job.error
+            catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating, job.unlink) as job.error
         })
     }
 
@@ -1285,15 +1288,15 @@ impl MainWnd
         discard menu.doModal(button, autoDestroy: true)
     }
 
-    // Ends `menu` with the waits before a capture, as one centred row of exclusive choices.
+    // Ends `menu` with capture delays and an optional cursor toggle on the same centered row.
     //
     // A wait typed in the options that is none of the choices is named above them. The choices
     // post their command to this window, whatever surface the menu stands on.
-    mtd addDelayChoices(menu: *MenuCtrl)
+    mtd addDelayChoices(menu: *MenuCtrl, includeCursor = false)
     {
         let main         = me
         let currentDelay = main.captureOptions.delay
-        var isPreset = false
+        var isPreset     = false
         for choice in CaptureDelays where choice.seconds == currentDelay do
             isPreset = true
         if not isPreset do
@@ -1306,6 +1309,26 @@ impl MainWnd
             .spacing         = metrics.menuPopup_SpaceLines
         }
 
+        if includeCursor
+        {
+            with let cursor = IconButton.create(delayChoices,
+                                                main.icon(.Select, metrics.menuPopup_IconSize),
+                                                {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
+                                                flags: .Toggle)
+            {
+                .preferredSize.x = 0
+                .padding         = metrics.btnIcon_Padding * 0.5
+                .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+                .setText(appStrings().ui_AimCursor)
+                .setTextPosition(.Right)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .setChecked(main.captureOptions.captureCursor)
+                .toolTip = appStrings().act_CaptureCursor
+                .sigCheckedChanged += func|main|(_) { main.postCommandEvent(ActionCapture.CaptureCursor) }
+            }
+        }
+
         for choice in CaptureDelays
         {
             var glyph = CaptureIcons.Capture
@@ -1315,6 +1338,7 @@ impl MainWnd
             case 5:  glyph = .Delay5
             case 10: glyph = .Delay10
             }
+
             with let delayButton = IconButton.create(delayChoices,
                                                      main.icon(glyph, metrics.menuPopup_IconSize),
                                                      {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
@@ -1336,12 +1360,14 @@ impl MainWnd
                 let selected = assume cast(*IconButton, wnd)
                 for child in toolbar.children
                 {
-                    if child is IconButton as other do
+                    if child is IconButton as other where other.flags.has(.Radio) do
                         other.setChecked(other == selected)
                 }
+
                 main.postCommandEvent(id)
             }
         }
+
         menu.addWidget(delayChoices, fullWidth: true)
     }
 
@@ -1706,6 +1732,11 @@ impl MainWnd
         .registerKeyShortcut(.Control, .Add, ActionZoom.ZoomIn)
         .registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
         .registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
+
+        // A laptop has no keypad: the zoom also answers the keys of the main row.
+        .registerKeyShortcut(.Control, .OemPlus, ActionZoom.ZoomIn)
+        .registerKeyShortcut(.Control, .OemMinus, ActionZoom.ZoomOut)
+        .registerKeyShortcut(.Control, .D0, ActionZoom.Zoom1)
 
         // Each tool answers a letter, the one the dock and the lens name: inside a field the
         // letter is typed, so a field keeps it.

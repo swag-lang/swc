@@ -621,14 +621,3 @@ preview. Validate requested settings against the capabilities supplied by platfo
   Linux, a thread message on Windows), then wait for input, a posted event or the next timer.
 - Done when: an idle application blocks until input, a posted event or a timer, with a test that a
   worker's posted event is still delivered promptly.
-
-### std.gui.066 — The keypad Enter closes a box the lens opened on X11
-
-- Evidence: in Swag Capture on an X11 session, choosing Options in the lens with the keypad Enter
-  opens the options box and closes it at once; the main Enter key keeps it open, and About
-  chosen with the keypad Enter stays open. Both keys reach the lens as `Input.Key.Return`, so
-  the difference lies in what follows the press, such as a character or a release delivered to
-  the new box.
-- Next: log the key and character events an X11 keypad Enter produces through the lens and the
-  options box, and find which one activates its default button.
-- Done when: a box opened from the lens with the keypad Enter stays open, with an XTEST test.

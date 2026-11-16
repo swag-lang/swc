@@ -97,8 +97,7 @@ var g_CursorBare:      Image     // The desktop under the patch, without the cur
 var g_CursorBareRect:  Math.Rectangle     // The part of the patch inside the desktop.
 var g_CursorTexture:   Texture
 
-// What the next capture keeps of the aimed area: the command that opens the overlay chooses it,
-// and `Tab` changes it before the capture is taken.
+// What the next capture keeps of the aimed area, chosen by the command opening the overlay.
 var g_CaptureMedia: CaptureMedia
 
 // Each interactive selection starts empty; the previous coordinates remain available until

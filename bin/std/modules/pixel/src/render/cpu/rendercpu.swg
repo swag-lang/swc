@@ -360,11 +360,17 @@ private impl RenderCpu
 
     func edge(a, b, p: Vector2)->f32 => Math.mulAdd(-(b.y - a.y), p.x - a.x, (b.x - a.x) * (p.y - a.y))
 
+    // Says whether the edge from `a` to `b` owns the pixel centres lying exactly on it.
+    //
+    // A left edge does, and of the two horizontal edges the lower one does. That is the fill rule
+    // of a GPU seen from this top-down surface: OpenGL applies its top-left rule in a window
+    // whose rows run upward, so the edge it calls the top one is the lower one here. A one-pixel
+    // rule drawn on a whole coordinate therefore lands on the same row on both renderers.
     func isTopLeft(a, b: Vector2)->bool
     {
         let dx = b.x - a.x
         let dy = b.y - a.y
-        return dy < 0 or (dy == 0 and dx > 0)
+        return dy < 0 or (dy == 0 and dx < 0)
     }
 
     // Preserve the rounded f32 edge value at the classification boundary. Auto-inlining this
@@ -802,8 +808,8 @@ private impl RenderCpu
             vv = Math.saturate(vv)
         }
 
-        let x = Math.clamp(cast(s32, Math.floor(uu * image.width)), 0, image.width - 1)
-        let y = Math.clamp(cast(s32, Math.floor((1.0 - vv) * image.height)), 0, image.height - 1)
+        let x = Math.clamp(nearestTexel(uu * image.width), 0, image.width - 1)
+        let y = Math.clamp(nearestTexel((1.0 - vv) * image.height), 0, image.height - 1)
         if image.pixelFormat == .BGRA8 do
             return fetchBgra8(image, x, y)
         return readPixel(image, x, y)
@@ -858,6 +864,25 @@ private impl RenderCpu
         return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
+    // Returns the texel a nearest sampler picks for `coordinate`, in texels.
+    //
+    // The coordinate is first snapped to the 1/256 grid a GPU carries it on. A pixel centre that
+    // maps exactly onto a texel boundary then falls on the same side on every row; left to the
+    // rounding of the interpolation, each pixel would pick its own side and tear the edge.
+    #[Swag.Inline]
+    func nearestTexel(coordinate: f32)->s32
+    {
+        return cast(s32, Math.floor(Math.round(coordinate * 256.0) / 256.0))
+    }
+
+    // Reads the texel of a top-down byte plane nearest to the normalized coordinates.
+    func fetchPlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32)->f32
+    {
+        let x = Math.clamp(nearestTexel(u * width), 0, width - 1)
+        let y = Math.clamp(nearestTexel((1.0 - v) * height), 0, height - 1)
+        return cast(f32, plane.storage()[cast(u64, (y * width + x))])
+    }
+
     // Samples a top-down byte plane at the normalized coordinates used by a GPU texture.
     func samplePlanarPlane(plane: const *Array'u8, width, height: s32, u, v: f32)->f32
     {
@@ -879,10 +904,19 @@ private impl RenderCpu
         return top + (bot - top) * ty
     }
 
-    // Filters all source planes at the draw coordinate and applies the color matrix afterward.
-    func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32)->Color
+    // Samples all source planes at the draw coordinate and applies the color matrix afterward.
+    //
+    // Pixel mode reads the nearest luma sample and still filters the two chroma planes: the
+    // sampling mode of a brush governs its own texture, which is the luma plane, while the chroma
+    // planes are half-size companions that are always interpolated up to it.
+    func samplePlanar(texture: const *CpuPlanarTexture, u, v: f32, mode: InterpolationMode)->Color
     {
-        let y       = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+        var y = 0.0'f32
+        if mode == .Pixel do
+            y = RenderCpu.fetchPlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+        else do
+            y = RenderCpu.samplePlanarPlane(&texture.luma, texture.width, texture.height, u, v)
+
         let d       = RenderCpu.samplePlanarPlane(&texture.chromaB, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
         let e       = RenderCpu.samplePlanarPlane(&texture.chromaR, texture.chromaWidth, texture.chromaHeight, u, v) - 128.0
         let factors = yuvConversionFactors(texture.matrix, texture.studioRange)
@@ -911,8 +945,8 @@ private impl RenderCpu
 
         if p.interpolationMode == .Pixel and contentScale == 1
         {
-            let x = Math.clamp(cast(s32, Math.floor(px + 0.5)), minX, maxX)
-            let y = Math.clamp(cast(s32, Math.floor(py + 0.5)), minY, maxY)
+            let x = Math.clamp(nearestTexel(px + 0.5), minX, maxX)
+            let y = Math.clamp(nearestTexel(py + 0.5), minY, maxY)
 
             // The presentation blit runs through here for every surface pixel.
             if image.pixelFormat == .BGRA8 do
@@ -1204,7 +1238,7 @@ private impl RenderCpu
                     let ty   = (paintPos.y - p.boundRect.y) / dstH
                     let u    = p.textureRect.x + tx * (p.textureRect.z - p.textureRect.x)
                     let v    = 1.0 - (p.textureRect.y + ty * (p.textureRect.w - p.textureRect.y))
-                    return RenderCpu.samplePlanar(batch.paintPlanar, u, v)
+                    return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode)
                 }
 
                 return sampleSubRect(image, paintPos, &.paint, .contentScale)
@@ -1228,7 +1262,7 @@ private impl RenderCpu
             }
 
             if batch.paintPlanar do
-                return RenderCpu.samplePlanar(batch.paintPlanar, u, v)
+                return RenderCpu.samplePlanar(batch.paintPlanar, u, v, p.interpolationMode)
 
             if .program == CpuProgram_Blur do
                 return .sampleBlur(batch, image, u, v)
@@ -1573,9 +1607,11 @@ private impl RenderCpu
         var result = batch.solidPaint ? vertexColor : Color.multiply(vertexColor, .samplePaintBatch(batch, paintPos))
         if .program == CpuProgram_Font
         {
+            // With no atlas bound the font program covers the whole primitive, the way a white
+            // texture does: a text decoration is drawn between two glyph runs in that state.
             let atlas = batch.atlas
             if not atlas do
-                return Color.fromArgb(Argb.Zero)
+                return result
 
             // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
             // lookup table replaces the per-pixel pow with the factor it would have computed.
@@ -1591,7 +1627,7 @@ private impl RenderCpu
         {
             let atlas = batch.atlas
             if not atlas do
-                return Color.fromArgb(Argb.Zero)
+                return result
             result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy, atlas)
         }
         elif .program == CpuProgram_Default
@@ -1932,8 +1968,8 @@ private impl RenderCpu
                         let px = cast(f32, texMinX) + tx * spanX - 0.5
                         let py = cast(f32, texMinY) + ty * spanY - 0.5
 
-                        let texelX = Math.clamp(Math.clamp(cast(s32, Math.floor(px + 0.5)), texMinX, texMaxX), 0, lastTexelX)
-                        let texelY = Math.clamp(Math.clamp(cast(s32, Math.floor(py + 0.5)), texMinY, texMaxY), 0, lastTexelY)
+                        let texelX = Math.clamp(Math.clamp(nearestTexel(px + 0.5), texMinX, texMaxX), 0, lastTexelX)
+                        let texelY = Math.clamp(Math.clamp(nearestTexel(py + 0.5), texMinY, texMaxY), 0, lastTexelY)
                         let texel  = texels + cast(u64, texelX) * texelBytes + cast(u64, (lastTexelY - texelY)) * texelRow
 
                         let pixel = rowPixels + cast(u64, x) * 4

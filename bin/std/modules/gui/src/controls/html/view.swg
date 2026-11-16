@@ -25,6 +25,10 @@ private const HtmlVirtualWindowSize      = 192 * 1024'u64
 private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
 private const HtmlStreamLookAhead        = 6.0
 
+// The air a revealed node keeps above it. The text being read is the first one below that
+// line, so the heading a reveal brought into view is the one read, not the lines left above it.
+internal const HtmlRevealClearance = 24.0'f32
+
 // Source bytes inspected before the first parse to decide how the file spells its characters.
 private const HtmlCharsetProbeSize = 4 * 1024'u64
 
@@ -120,6 +124,14 @@ private struct HtmlRegionScrollState
     top:  f32
 }
 
+// Names what decided the encoding an HTML document is read with.
+enum HtmlEncodingSource
+{
+    Content           // The bytes themselves, read by [[Core.Text.detectEncoding]].
+    ByteOrderMark     // A byte-order mark opening the file.
+    Declaration       // A `charset` label declared in the head of the document.
+}
+
 // Handles a link activation in an HTML view; true consumes it, false permits default navigation.
 alias HtmlLinkHandler = func||(*HtmlView, string)->bool
 
@@ -150,6 +162,7 @@ struct HtmlView
         sigLinkActivated:   SigArray'func||(*Wnd, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
         sigLoadFailed:      SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
         sigDocumentChanged: SigArray'func||(*Wnd)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
+        sigScrolled:        SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
 
         // Handles a clicked link before built-in fragment or local-file navigation.
         //
@@ -160,8 +173,10 @@ struct HtmlView
 
         readonly
         {
-            documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
-            failureReason: String        // File-loading explanation, or empty while loading remains valid.
+            documentStyle:  HtmlStyle              // Typography a document inherits before its own CSS applies.
+            failureReason:  String                 // File-loading explanation, or empty while loading remains valid.
+            encoding:       Text.Encoding          // Encoding the bytes of a file are read with; in-memory source is UTF-8.
+            encodingSource: HtmlEncodingSource     // What decided `encoding` for the file being shown.
         }
     }
 
@@ -188,7 +203,6 @@ struct HtmlView
 
         stream:      File.FileStream
         fileName:    String
-        encoding:    Text.Encoding
         fileSize:    u64
         bytesRead:   u64
         sourceDone:  bool
@@ -519,11 +533,17 @@ internal impl HtmlView
                             codeEnd != Swag.U64.Max and
                             Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
 
-        .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + ("</head>").count])
-        if bodyEnd != Swag.U64.Max do
-            .virtualPrefix += probe.toString()[bodyStart to bodyEnd]
-        else do
+        // A valid page can omit both head tags. Keep its complete opening markup so every
+        // resident window inherits the same styles, metadata and body attributes.
+        if bodyEnd != Swag.U64.Max
+        {
+            .virtualPrefix = String.from(probe.toString()[0 to bodyEnd])
+        }
+        else
+        {
+            .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + ("</head>").count])
             .virtualPrefix += "<body>"
+        }
 
         if sourceListing
         {
@@ -661,15 +681,20 @@ internal impl HtmlView
 
         var result       = Text.detectEncoding(probe.toSlice())
         var contentStart = 0'u64
+        .encodingSource = .Content
         if Text.hasBom(probe.toSlice(), result)
         {
-            contentStart = Text.bomLength(result)
+            contentStart    = Text.bomLength(result)
+            .encodingSource = .ByteOrderMark
         }
         else
         {
             let declared = htmlDeclaredEncoding(cast(string, probe.toSlice()))
-            if declared.matched do
+            if declared.matched
+            {
                 result = declared.encoding
+                .encodingSource = .Declaration
+            }
         }
 
         // A stream that cannot rewind cannot stream the document; the next read reports that
@@ -927,7 +952,7 @@ internal impl HtmlView
             break
         }
 
-        var clearance = 24.0'f32
+        var clearance = HtmlRevealClearance
         if useScrollMargin
         {
             let target = .layout.constBox(box)
@@ -1430,6 +1455,7 @@ internal impl HtmlView
 
         result.scroll.sigScrollPositionChanged += func|target = result|(_, oldPosition, newPosition)
         {
+            target.sigScrolled.call(target)
             if target.virtualRepositioning do
                 return
             if target.virtualSource and

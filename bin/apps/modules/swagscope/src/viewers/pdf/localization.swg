@@ -16,9 +16,10 @@ struct Texts
     ui_ZoomMenu:   string = "Zoom…"                             // Tooltip of the zoom value menu.
     ui_GoToPage:   string = "Go to Page"                        // Title and tooltip of direct page navigation.
     ui_PageRange:  string = "Page number from 1 to %."          // Direct page navigation prompt.
+    ui_Back:       string = "Back in Document"                  // Lens action that returns to the place the last jump left.
+    ui_Forward:    string = "Forward in Document"               // Lens action that undoes the last return.
     ui_Continuous: string = "Continuous"                        // Layout action that scrolls every page in one column.
     ui_SinglePage: string = "Single Page"                       // Layout action that shows one page at a time.
-    ui_Contents:   string = "Contents"                          // Section label of the outline standing in the margin beside the page.
     ui_OnePage:    string = "1 page"                            // Length of a one-page document.
     ui_Pages:      string = "% pages"                           // Length of a longer document.
     err_NoPage:    string = "PDF document contains no page"     // Diagnostic of a document with nothing to show.

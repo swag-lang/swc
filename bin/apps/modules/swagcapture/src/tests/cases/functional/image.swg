@@ -87,6 +87,28 @@ using Swag, Core
     Swag.require(f.capture.height == 20)
 }
 
+// With the ratio kept, the resize box gives the other side the nearest whole size.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 300
+    f.capture.height  = 200
+    f.capture.backImg = Gui.Testing.indexedImage(300, 200)
+
+    let keepRatio = g_KeepRatio
+    defer g_KeepRatio = keepRatio
+    g_KeepRatio = true
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    f.gui.withModalEdit("Width", "100")
+    f.main.sendCommandEvent(ActionImage.ResizeImage)
+    f.gui.pump()
+
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.capture.width == 100 and f.capture.height == 67)
+}
+
 // Dialog-backed image actions can now run through a real headless modal surface.
 // The frame callback supplies the dialog result deterministically; no OS dialog or
 // filesystem interaction is involved.
@@ -185,6 +207,67 @@ using Swag, Core
     Swag.require(f.capture.height == 20)
 }
 
+// A grab across two 2560-wide monitors is 5120 wide, and the canvas of such a capture still
+// expands.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 5120
+    f.capture.height  = 1440
+    f.capture.backImg = Image.create(5120, 1440, .BGRA8)
+
+    let resizeMode = g_ResizeMode
+    defer g_ResizeMode = resizeMode
+    g_ResizeMode = 1
+    f.gui.app.sigFrame += func|host = &f.gui|(_)
+    {
+        g_Width  = 5160
+        g_Height = 1440
+        discard host.clickModalButton(Dialog.BtnOk)
+    }
+
+    f.main.sendCommandEvent(ActionImage.ExpandCapture)
+    f.gui.pump()
+    Swag.require(f.capture.width == 5160 and f.capture.height == 1440)
+}
+
+// Centred, an expansion by an odd number of pixels gives the odd one to the right and the bottom:
+// the image and the canvas take exactly the size asked for.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 30
+    f.capture.height  = 20
+    f.capture.backImg = Gui.Testing.indexedImage(30, 20)
+
+    let split = anchorSplit(11, 1)
+    Swag.require(split.before == 5 and split.after == 6)
+    let shrink = anchorSplit(-7, 1)
+    Swag.require(shrink.before + shrink.after == -7)
+
+    let resizeMode = g_ResizeMode
+    defer g_ResizeMode = resizeMode
+    g_ResizeMode = 5
+    f.gui.app.sigFrame += func|host = &f.gui|(_)
+    {
+        g_Width  = 41
+        g_Height = 27
+        discard host.clickModalButton(Dialog.BtnOk)
+    }
+
+    f.main.sendCommandEvent(ActionImage.ExpandImage)
+    f.gui.pump()
+    Swag.require(f.capture.backImg.width == 41 and f.capture.backImg.height == 27)
+
+    f.main.sendCommandEvent(ActionImage.ExpandCapture)
+    f.gui.pump()
+    Swag.require(f.capture.width == 41 and f.capture.height == 27)
+}
+
 // Trim Capture finds the opaque pixels of the image: the canvas shrinks to the box they cover, and
 // a part of the image outside the canvas does not count.
 #test
@@ -238,4 +321,33 @@ using Swag, Core
     Gui.Testing.assertRect(inside.IForm.boundRect(), 10, 15, 30, 25)
     Swag.require(f.capture.backImg.width == 100)
     Swag.require(f.capture.backImg.height == 80)
+}
+
+// Trimming keeps the part of a form the canvas shows when the form crosses an edge, and a form
+// wholly outside, which it removes, widens nothing.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 400
+    f.capture.height  = 300
+    f.capture.backImg = Image.create(400, 300, .BGRA8)
+    f.capture.backImg.fill(Argb.Zero)
+
+    let across = testAddShape(f.capture, -20, 50, 100, 40)
+    let inside = testAddShape(f.capture, 200, 100, 50, 50)
+    discard testAddShape(f.capture, 300, -100, 20, 20)
+
+    f.main.sendCommandEvent(ActionImage.TrimCapture)
+    Swag.require(f.capture.forms.count == 2)
+    Swag.require(f.capture.width == 250)
+    Swag.require(f.capture.height == 100)
+    Gui.Testing.assertRect(across.IForm.boundRect(), -20, 0, 100, 40)
+    Gui.Testing.assertRect(inside.IForm.boundRect(), 200, 50, 50, 50)
+    Swag.require(f.capture.backImg.width == 250 and f.capture.backImg.height == 100)
+
+    f.capture.undo()
+    Swag.require(f.capture.forms.count == 3)
+    Swag.require(f.capture.width == 400 and f.capture.height == 300)
 }

@@ -31,7 +31,7 @@ using Core, Gui, Pixel, Win32
     Swag.require(peerProcessId == peer.processId, "the external window belongs to another process")
 
     journey.surface.hide()
-    let panel = unwrap ResidentPanel.open(journey.main, .Hub)
+    let panel = unwrap ResidentPanel.open(journey.main, .Centered)
     var input = Gui.Testing.DesktopInput.create(journey.app, unwrap panel.surface)
     watch.restart()
     while watch.elapsedMilliseconds() < 120 do

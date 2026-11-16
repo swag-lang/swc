@@ -52,21 +52,12 @@ func assertScopeImageGolden(image: const *Pixel.Image, name: string)
     Pixel.Testing.assertImageGolden(image, name)
 }
 
-// A few full-size film captures retain a visible CPU/GPU filter difference. GPU references are
-// the default; CPU hosts use a reviewed reference for those named cases, while small parity tests
-// keep the actual renderer difference bounded.
+// Film captures share the one CPU reference every other golden has. A GPU host scales the frame
+// through its own filter, so what it draws is compared against that reference, never recorded
+// beside it.
 func assertVideoRendererGolden(image: const *Pixel.Image, name: string, options: Pixel.Testing.ImageGoldenOptions = {})
 {
-    let cpuSpecific = Env.variable("SWAG_TEST_RENDERER") == "cpu" and
-                      (name == "viewer.video.ink" or
-                       name == "viewer.video.timeline.endpoints.encre" or
-                       name == "viewer.video.subtitle.outline" or
-                       name == "viewer.video.subtitle.shadow" or
-                       name == "viewer.video.options" or
-                       name == "viewer.video.options.speed" or
-                       name == "viewer.video.hover.ink" or
-                       name == "viewer.video.muted.ink")
-    Pixel.Testing.assertImageGolden(image, cpuSpecific ? Format.toString("%.cpu", name) : name, options)
+    Pixel.Testing.assertImageGolden(image, name, options)
 }
 
 // Verifies that an information-band control keeps its breathing room outside its own frame.

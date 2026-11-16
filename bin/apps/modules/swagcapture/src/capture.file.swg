@@ -269,6 +269,10 @@ impl Capture
     // copied because a later crop or flatten may replace them while a job still encodes.
     private mtd snapshotSave(target: string = "", duplicate = false)->*CaptureSaveJob fail
     {
+        // A library preview holds no pixels: written as a document, it would erase its picture.
+        if .previewOnly do
+            fail Core.Errors.BadParameterError{"a capture loaded as a preview cannot be saved"}
+
         var metadata     = .libraryMetadata()
         var model        = .fileModel()
         if duplicate
@@ -293,13 +297,63 @@ impl Capture
         job.preview                 = .preview
 
         // The frames of a timed capture stay in their own file, which a save never rewrites.
-        if not .isTimed()
+        if .isTimed() do
+            return job
+
+        // An unchanged background is copied from the file as stored. Only the automatic or
+        // explicit save of this document reuses it: the save lane writes that file in order.
+        if target.count == 0 and not duplicate and .savedBackgroundStored()
         {
-            job.backImg  = .backImg
-            job.backOrig = .backImgOriginal
+            job.backChunk = .savedBackChunk
+            job.origChunk = .savedOrigChunk
+            job.reuseBack = true
+            return job
+        }
+
+        job.backImg  = .backImg
+        job.backOrig = .backImgOriginal
+        if .backImg.isValid() do
+            job.backChunk = Guid128.random()
+        if .backImgOriginal.isValid() do
+            job.origChunk = Guid128.random()
+        if target.count == 0 and not duplicate
+        {
+            .savedBackKnown    = true
+            .savedBackRevision = .backRevision
+            .savedBackChunk    = job.backChunk
+            .savedOrigChunk    = job.origChunk
         }
 
         return job
+    }
+
+    // Returns whether the file still holds the chunks the last save wrote for the current
+    // background. A failed or overtaken save, or a file replaced outside the application,
+    // leaves other chunks there, and the pixels are then encoded again.
+    private mtd savedBackgroundStored()->bool
+    {
+        if not .savedBackKnown or .savedBackRevision != .backRevision do
+            return false
+        if .backImg.isValid() == .savedBackChunk.isNull() or .backImgOriginal.isValid() == .savedOrigChunk.isNull() do
+            return false
+
+        var reader: Scc.Reader
+        catch reader.initialize(.file) do
+            return false
+        defer reader.close()
+        if reader.kind() != containerKind() do
+            return false
+        return storedChunkIs(&reader, .savedBackChunk, backgroundRole()) and
+               storedChunkIs(&reader, .savedOrigChunk, originalRole())
+    }
+
+    // Whether a null `id` is absent, or the chunk `id` exists with `role`.
+    private func storedChunkIs(reader: *Scc.Reader, id: Guid128, role: Guid128)->bool
+    {
+        if id.isNull() do
+            return true
+        let info = reader.findChunk(id)
+        return info != null and info.roleId == role
     }
 
     // Freezes the active editor state for a duplicate without saving or changing the original.
@@ -325,16 +379,36 @@ impl Capture
         let modelId        = try writer.addChunk(job.modelBytes.toSlice(), {typeId: typeTagBin, roleId: roleModel, codecId: codecDeflate, flags: .Required | .Metadata})
 
         var variants: Array'Guid128
-        if job.backImg.isValid()
+        if job.reuseBack
         {
-            var bytes = try encodeValue(&job.backImg)
-            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleBackground, codecId: codecDeflate, flags: .Required}))
+            // The file is replaced only by `saveAtomic` below, so the stored bytes are read
+            // first and the reader is closed before the new container lands.
+            var reader: Scc.Reader
+            try reader.initialize(job.file)
+            defer reader.close()
+            for id in [job.backChunk, job.origChunk] where not id.isNull()
+            {
+                let info = reader.findChunk(id)
+                if not info do
+                    fail Core.Errors.InvalidFormatError{"Capture background chunk is missing"}
+                let stored = try reader.readStoredChunk(id)
+                try writer.addStoredChunk(stored.toSlice(), info)
+                variants.add(id)
+            }
         }
-
-        if job.backOrig.isValid()
+        else
         {
-            var bytes = try encodeValue(&job.backOrig)
-            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleOriginal, codecId: codecDeflate}))
+            if job.backImg.isValid()
+            {
+                var bytes = try encodeValue(&job.backImg)
+                variants.add(try writer.addChunk(bytes.toSlice(), {id: job.backChunk, typeId: typeTagBin, roleId: roleBackground, codecId: codecDeflate, flags: .Required}))
+            }
+
+            if job.backOrig.isValid()
+            {
+                var bytes = try encodeValue(&job.backOrig)
+                variants.add(try writer.addChunk(bytes.toSlice(), {id: job.origChunk, typeId: typeTagBin, roleId: roleOriginal, codecId: codecDeflate}))
+            }
         }
 
         if job.preview.isValid()
@@ -357,12 +431,13 @@ impl Capture
     // Changes library metadata without decoding or recompressing the background, original or
     // preview images. The model chunk is rewritten so older readers see the same values as the
     // manifest; every other stored chunk keeps its exact bytes and identifier.
-    func updateFileMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null) fail
+    // `unlink` removes the link to an external image.
+    func updateFileMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false) fail
     {
-        if title == null and not tags and not favorite and not rating do
+        if title == null and not tags and not favorite and not rating and not unlink do
             return
 
-        try rewriteFileMetadata(file, file, title, tags, favorite, rating, false)
+        try rewriteFileMetadata(file, file, title, tags, favorite, rating, false, unlink)
     }
 
     // Duplicates a document with a fresh container identity, keeping encoded images and media
@@ -378,7 +453,7 @@ impl Capture
             if File.exists(media) do
                 try File.duplicate(mediaPathOf(target, kind), media)
         }
-        try rewriteFileMetadata(source, target, null, null, null, null, true)
+        try rewriteFileMetadata(source, target, null, null, null, null, true, true)
     }
 
     // Writes a duplicate of a live, possibly unsaved editor snapshot on a worker.
@@ -397,7 +472,7 @@ impl Capture
         try writeScc(snapshot)
     }
 
-    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool) fail
+    private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool, unlink: bool) fail
     {
 
         var reader: Scc.Reader
@@ -427,7 +502,7 @@ impl Capture
             model.favorite = favorite[]
         if rating do
             model.rating = rating[]
-        if duplicate
+        if unlink
         {
             model.linkedImage.clear()
             model.linkedUpToDate = true
@@ -457,7 +532,7 @@ impl Capture
                 entry.tags = tags[]
         }
 
-        if favorite or rating or duplicate
+        if favorite or rating or unlink
         {
             var metadataDecoder: Decoder'Read.TagBin
             let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
@@ -469,7 +544,7 @@ impl Capture
                 metadata.favorite = favorite[]
             if rating do
                 metadata.rating = rating[]
-            if duplicate
+            if unlink
             {
                 metadata.linkedImage.clear()
                 metadata.linkedUpToDate = true
@@ -571,6 +646,17 @@ impl Capture
                                       imageDiag.unknownTypes +
                                       imageDiag.corruptPayloads
             }
+
+            // Pixels read without loss are those of the file, so a save that comes before any
+            // background change copies the stored chunks instead of encoding them again.
+            if capture.loadIssues == 0
+            {
+                capture.savedBackKnown = true
+                if background do
+                    capture.savedBackChunk = background.id
+                if original do
+                    capture.savedOrigChunk = original.id
+            }
         }
 
         let previewInfo = reader.findRole(previewRole())
@@ -583,7 +669,8 @@ impl Capture
                 capture.preview = try Image.decode("preview.png", imageBytes.toSlice())
         }
 
-        capture.file = file
+        capture.file        = file
+        capture.previewOnly = preview
         for itf in capture.forms do
             itf.setup(capture)
         reader.close()

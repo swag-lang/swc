@@ -486,9 +486,15 @@ private impl RenderOgl
             glPixelStorei(GL_UNPACK_SKIP_PIXELS, previousSkipPixels)
         }
 
+        // A pattern is authored from its top row down, and a texture is stored from its bottom
+        // row up like every image this renderer uploads: hand the rows over in that order, or a
+        // forward diagonal is drawn backward.
         var arr: [64] u32
-        for p, i in datas do
-            arr[i] = p ? 0xFFFFFFFF : 0
+        for y in h
+        {
+            for x in w do
+                arr[cast(u64, ((h - y - 1) * w + x))] = datas[cast(u64, (y * w + x))] ? 0xFFFFFFFF : 0
+        }
 
         var result: GLuint
         glGenTextures(1, &result)

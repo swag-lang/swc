@@ -418,3 +418,24 @@ ships; history lives in Git, not here.
 - Related: std.pixel.008, std.pixel.009
 
 ---
+
+### std.pixel.038 — The parity sweep still reports ten application scenes
+
+- Evidence: `tools/coverage.bat -Suite parity -Sweep -Workspace apps` draws the golden scenes on
+  the GPU against their CPU references and still reports ten of them. `imageset-real-review`
+  differs by five to twelve levels over the textured parts of an animated picture shown after
+  its frame index went to the last frame and back to the first; a still photograph reduced or
+  enlarged in linear mode agrees on both renderers, so the lead is the texture update of a
+  frame, not the filter. `viewer.information.movie.encre` (one row of a video frame),
+  `viewer.video.options*`, `home.*`, `menus.home.clear`, `viewer.comic.page` and
+  `viewer.odt.reading.encre` differ along one row or column of a picture: a pixel centre that
+  maps exactly onto a texel boundary in pixel mode, a tie OpenGL leaves to the implementation.
+  `tasks.frame.fr.papier` keeps 53 pixels not yet looked at.
+- Next: for `imageset-real-review`, draw one texture, update it with a second image and back,
+  on both renderers in a Pixel parity scene. For the ties, decide whether the comparison should
+  recognise a one-texel choice along a picture edge, or the views should avoid sizes that put a
+  pixel centre on a texel boundary.
+- Done when: the sweep reports nothing on the three applications, and each divergence it showed
+  is held by a dedicated parity scene or by a stated rule of the comparison.
+
+---

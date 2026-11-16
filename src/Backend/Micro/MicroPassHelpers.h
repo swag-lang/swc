@@ -195,18 +195,7 @@ namespace MicroPassHelpers
 
     inline bool isVariableScalarShiftOp(MicroOp op)
     {
-        switch (op)
-        {
-            case MicroOp::ShiftLeft:
-            case MicroOp::ShiftArithmeticLeft:
-            case MicroOp::ShiftRight:
-            case MicroOp::ShiftArithmeticRight:
-            case MicroOp::RotateLeft:
-            case MicroOp::RotateRight:
-                return true;
-            default:
-                return false;
-        }
+        return isScalarShiftOp(op);
     }
 
     inline uint64_t extendImmediateBits(uint64_t value, MicroOpBits srcBits, MicroOpBits dstBits, bool isSigned)

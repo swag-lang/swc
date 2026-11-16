@@ -365,16 +365,6 @@ namespace
         return value.as64();
     }
 
-    bool isShiftImmediateOp(MicroOp op)
-    {
-        return op == MicroOp::RotateLeft ||
-               op == MicroOp::RotateRight ||
-               op == MicroOp::ShiftArithmeticLeft ||
-               op == MicroOp::ShiftArithmeticRight ||
-               op == MicroOp::ShiftLeft ||
-               op == MicroOp::ShiftRight;
-    }
-
     bool requiresRegImmRewrite(MicroOp op)
     {
         return op == MicroOp::DivideUnsigned ||
@@ -1313,7 +1303,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         const MicroOp op = ops[3].microOp;
 
-        if (isShiftImmediateOp(op))
+        if (isScalarShiftOp(op))
         {
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[1].reg != rcxReg)
@@ -1403,7 +1393,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
         if (requireStandardIntOpBits(outIssue, ops[4].opBits, 4))
             return true;
         SWC_ASSERT(supportsOpBinaryMemReg(ops[7].microOp));
-        if (isShiftImmediateOp(ops[7].microOp))
+        if (isScalarShiftOp(ops[7].microOp))
         {
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[2].reg != rcxReg)
@@ -1426,7 +1416,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
     {
         if (requireStandardIntOpBits(outIssue, ops[2].opBits, 2))
             return true;
-        const bool shiftImmediate = isShiftImmediateOp(ops[7].microOp);
+        const bool shiftImmediate = isScalarShiftOp(ops[7].microOp);
         if (!supportsOpBinaryMemImm(ops[7].microOp) ||
             (shiftImmediate ? ops[6].hasWideImmediateValue() || ops[6].valueU64 > 0x7F : !immediateFitsOperand(ops[6], ops[2].opBits)))
         {
@@ -1450,7 +1440,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (isShiftImmediateOp(op))
+        if (isScalarShiftOp(op))
         {
             const MicroReg rcxReg = x64RegToMicroReg(X64Reg::Rcx);
             if (ops[1].reg != rcxReg)
@@ -1565,7 +1555,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (isShiftImmediateOp(ops[2].microOp))
+        if (isScalarShiftOp(ops[2].microOp))
         {
             const bool immediateIsWide = ops[3].hasWideImmediateValue();
             if ((!immediateIsWide && ops[3].valueU64 <= 0x7F) ||
@@ -1617,7 +1607,7 @@ bool X64Encoder::queryConformanceIssue(MicroConformanceIssue& outIssue, const Mi
             return true;
         }
 
-        if (isShiftImmediateOp(ops[2].microOp))
+        if (isScalarShiftOp(ops[2].microOp))
         {
             const bool immediateIsWide = ops[4].hasWideImmediateValue();
             if ((!immediateIsWide && ops[4].valueU64 <= 0x7F) ||
@@ -2205,7 +2195,7 @@ namespace
             default: SWC_UNREACHABLE();
         }
 
-        const bool isShift = isShiftImmediateOp(op);
+        const bool isShift = isScalarShiftOp(op);
 
         // OpCode
         MicroOpBits immBits = MicroOpBits::B8;

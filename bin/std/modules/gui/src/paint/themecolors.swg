@@ -547,6 +547,10 @@ impl ThemeColors
     // reads at about a sixth of its strength, present but out of the way.
     private const LensDimAlpha = 0xD6'u8
 
+    // Scroll tracks tint the content beneath them rather than replacing it with a themed strip.
+    private const ScrollTrackAlpha    = 0x0A'u8
+    private const ScrollTrackHotAlpha = 0x14'u8
+
     // How much of the shadow a floating surface casts on a dark ground. Darkness laid on near-black
     // reads as a hole rather than as air, so there the surface parts from the work mostly by its
     // lighter fill and its hairline, and the shadow only softens the edge.
@@ -1080,9 +1084,9 @@ impl ThemeColors
 
         // A scroll bar is furniture: a thin thumb of a stronger grey, on a raised track only while
         // the reader engages with it.
-        .scrollBar_Bk         = .transparent
-        .scrollBar_HotBk      = p.raised
-        .scrollBar_DisabledBk = .transparent
+        .scrollBar_Bk         = p.raised.withAlpha(ScrollTrackAlpha)
+        .scrollBar_HotBk      = p.raised.withAlpha(ScrollTrackHotAlpha)
+        .scrollBar_DisabledBk = p.raised.withAlpha(ScrollTrackAlpha)
         .scrollBar_Box        = strongLine
         .scrollBar_HotBox     = p.faintText
         .scrollBar_PressedBox = p.softText

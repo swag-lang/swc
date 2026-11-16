@@ -221,8 +221,8 @@ private
                             url_Text             0xFF4183C4
                             url_HotText          0xFF2B6DA8
                             richColor1           0xFF777777
-                            scrollBar_Bk         0xFFFFFFFF
-                            scrollBar_HotBk      0xFFF5F5F5
+                            scrollBar_Bk         0x0AFFFFFF
+                            scrollBar_HotBk      0x14F5F5F5
                             scrollBar_Box        0xFFC5C5C5
                             scrollBar_HotBox     0xFFA5A5A5
                             scrollBar_PressedBox 0xFF888888"""
@@ -237,8 +237,8 @@ private
                                url_Text             0xFF065588
                                url_HotText          0xFF043A5D
                                richColor1           0xFFBABABA
-                               scrollBar_Bk         0xFFF3F2EE
-                               scrollBar_HotBk      0xFFE8E6E0
+                               scrollBar_Bk         0x0AF3F2EE
+                               scrollBar_HotBk      0x14E8E6E0
                                scrollBar_Box        0xFFBAB6AE
                                scrollBar_HotBox     0xFF8F8980
                                scrollBar_PressedBox 0xFF6F6961"""
@@ -253,8 +253,8 @@ private
                            url_Text             0xFF6DC1E7
                            url_HotText          0xFFA3D5FE
                            richColor1           0xFFDEDEDE
-                           scrollBar_Bk         0xFF363B40
-                           scrollBar_HotBk      0xFF3D4349
+                           scrollBar_Bk         0x0A363B40
+                           scrollBar_HotBk      0x143D4349
                            scrollBar_Box        0xFF596169
                            scrollBar_HotBox     0xFF707A84
                            scrollBar_PressedBox 0xFF89949F"""
@@ -269,8 +269,8 @@ private
                             url_Text             0xFF463F5C
                             url_HotText          0xFF6A6086
                             richColor1           0xFF7A7A7A
-                            scrollBar_Bk         0xFFFFFFFF
-                            scrollBar_HotBk      0xFFF4F4F4
+                            scrollBar_Bk         0x0AFFFFFF
+                            scrollBar_HotBk      0x14F4F4F4
                             scrollBar_Box        0xFFC6C6C6
                             scrollBar_HotBox     0xFFA6A6A6
                             scrollBar_PressedBox 0xFF8A8A8A"""
@@ -285,8 +285,8 @@ private
                             url_Text             0xFF2484C1
                             url_HotText          0xFF17618F
                             richColor1           0xFF777777
-                            scrollBar_Bk         0xFFFEFEFE
-                            scrollBar_HotBk      0xFFF3F3F3
+                            scrollBar_Bk         0x0AFEFEFE
+                            scrollBar_HotBk      0x14F3F3F3
                             scrollBar_Box        0xFFC8C8C8
                             scrollBar_HotBox     0xFFA8A8A8
                             scrollBar_PressedBox 0xFF8B8B8B"""

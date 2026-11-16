@@ -19,7 +19,7 @@ struct CoffInputReloc
     Utf8     symbolName;
 };
 
-static_assert(sizeof(void*) != 8 || sizeof(CoffInputReloc) == 40);
+static_assert(sizeof(void*) != 8 || sizeof(CoffInputReloc) == sizeof(Utf8) + 8);
 
 struct CoffInputSection
 {

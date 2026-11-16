@@ -1,4 +1,4 @@
-"""Build the Linux compiler from the shared Visual Studio source manifest with GNU Make."""
+"""Build the compiler on Linux from the shared Visual Studio source manifest with GNU Make."""
 
 import argparse
 import os
@@ -27,7 +27,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--build-dir', type=Path, required=True, help='external build directory; retains incremental objects')
     parser.add_argument('--configuration', choices=('devmode', 'release'), default='devmode')
-    parser.add_argument('--cxx', default='c++', help='GCC 14 or later with C++23 library support')
+    parser.add_argument('--target', choices=('linux', 'windows'), default='linux', help='compiler executable OS; Windows needs LLVM-MinGW and release')
+    parser.add_argument('--cxx', default='c++', help='GCC 14+ for Linux, LLVM-MinGW x86_64-w64-mingw32-clang++ for Windows')
     parser.add_argument('--jobs', type=int, choices=range(1, 4), default=3)
     parser.add_argument('--keep-going', action='store_true', help='compile independent sources after an error; the build still fails')
     parser.add_argument('--skip-machine-load-admission', action='store_true',
@@ -35,8 +36,14 @@ def main():
     args = parser.parse_args()
     if sys.platform != 'linux' or platform.machine() != 'x86_64':
         parser.error('the compiler host must be Linux x86-64')
+    windows = args.target == 'windows'
+    if windows and (args.configuration != 'release' or args.cxx == 'c++'):
+        parser.error('--target windows needs --configuration release and --cxx pointing to LLVM-MinGW x86_64-w64-mingw32-clang++')
     root = Path(__file__).resolve().parent.parent
-    build = args.build_dir.resolve() / args.configuration
+    build = args.build_dir.resolve()
+    if windows:
+        build /= 'windows'
+    build /= args.configuration
     if build.is_relative_to(root):
         parser.error('--build-dir must be outside the checkout')
     build.mkdir(parents=True, exist_ok=True)
@@ -50,25 +57,33 @@ def main():
         if not path:
             continue
         path = Path(path.replace('\\', '/'))
-        if path.name == 'pch.cpp' or (path.parent == Path('src/Support/Os') and path.name.endswith('.Windows.cpp')):
+        if path.name == 'pch.cpp':
+            continue
+        if windows:
+            if path.is_relative_to('src/Unittest'):
+                continue
+        elif path.parent == Path('src/Support/Os') and path.name.endswith('.Windows.cpp'):
             continue
         sources.add(root / path)
-    sources.update((root / 'src/Support/Os').glob('*.Linux.cpp'))
+    if not windows:
+        sources.update((root / 'src/Support/Os').glob('*.Linux.cpp'))
     sources = sorted(sources)
 
     # Aggregate members omitted in C++ initializers are intentionally value-initialized.
     # GCC's -Wmissing-field-initializers is noisy for that convention in this codebase.
     flags = ['-std=c++23', '-O2', '-g1', '-DNDEBUG', '-pthread', '-march=x86-64-v3',
-             '-Wall', '-Wextra', '-Wno-missing-field-initializers', '-fmax-errors=5', '-I', str(root / 'src'),
+             '-Wall', '-Wextra', '-Wno-missing-field-initializers', '-ferror-limit=5' if windows else '-fmax-errors=5', '-I', str(root / 'src'),
              '-I', str(root / 'src/Support/Memory/mimalloc/include')]
     if args.configuration == 'devmode':
         flags.append('-DSWC_DEV_MODE=1')
+    if windows:
+        flags += ['-fms-extensions', '-Wno-ignored-attributes', '-Wno-unknown-pragmas', '-Wno-ignored-pragmas']
     command = [args.cxx, *flags]
     stamp = build / 'build-command.txt'
     write_changed(stamp, shlex.join(command) + '\n')
     pch = build / 'pch.h'
     write_changed(pch, f'#include "{root / "src/pch.h"}"\n')
-    binary = build / ('swc.dm' if args.configuration == 'devmode' else 'swc')
+    binary = build / (('swc.dm' if args.configuration == 'devmode' else 'swc') + ('.exe' if windows else ''))
     objects = [build / source.relative_to(root).with_suffix('.o') for source in sources]
     for obj in objects:
         obj.parent.mkdir(parents=True, exist_ok=True)
@@ -79,14 +94,16 @@ def main():
         uses_pch = source.name not in ('HostCpuGuard.cpp', 'Mimalloc.cpp')
         dependencies = [source, stamp, *([str(pch) + '.gch'] if uses_pch else [])]
         # Mimalloc's own diagnostics are scoped to its amalgamated translation unit.
-        vendor_flags = ['-Wno-cpp', '-Wno-stringop-overflow'] if source.name == 'Mimalloc.cpp' else []
-        compile_command = [*command, *vendor_flags, *(['-include', str(pch)] if uses_pch else []),
+        vendor_flags = ['-Wno-cpp', *([] if windows else ['-Wno-stringop-overflow'])] if source.name == 'Mimalloc.cpp' else []
+        pch_flags = ['-include-pch', str(pch) + '.gch'] if windows else ['-include', str(pch)]
+        compile_command = [*command, *vendor_flags, *(pch_flags if uses_pch else []),
                            '-MMD', '-MP', '-c', str(source), '-o', str(obj)]
         rules += [f'{make_path(obj)}: ' + ' '.join(map(make_path, dependencies)),
                   '\t@' + recipe(['echo', f'CXX {source.relative_to(root)}']),
                   '\t@' + recipe(compile_command), '']
+    link_flags = ['-static', '-Wl,--stack,8388608', '-lpsapi', '-lrstrtmgr', '-ldbghelp', '-ladvapi32', '-luser32', '-lole32'] if windows else ['-rdynamic', '-ldl']
     rules += [f'{make_path(binary)}: ' + ' '.join(map(make_path, objects)),
-              '\t' + recipe([args.cxx, *map(str, objects), '-pthread', '-rdynamic', '-ldl', '-o', str(binary)]), '',
+              '\t' + recipe([args.cxx, *map(str, objects), '-pthread', *link_flags, '-o', str(binary)]), '',
               '-include ' + ' '.join(make_path(obj.with_suffix('.d')) for obj in objects)]
     makefile = build / 'Makefile'
     write_changed(makefile, '\n'.join(rules) + '\n')
@@ -107,5 +124,5 @@ if __name__ == '__main__':
     except subprocess.CalledProcessError as error:
         raise SystemExit(error.returncode)
     except (OSError, ET.ParseError) as error:
-        print(f'cannot build Linux compiler: {error}', file=sys.stderr)
+        print(f'cannot build compiler on Linux: {error}', file=sys.stderr)
         raise SystemExit(1)

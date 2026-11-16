@@ -6,15 +6,18 @@
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/Encoder/Frame.DWARF.X64.h"
 #include "Backend/Linker/Archive.COFF.h"
-#include "Backend/Linker/ObjectWriter.ELF.h"
 #include "Backend/Linker/ImageWriter.ELF.h"
-#include "Backend/Linker/Reader.ELF.h"
 #include "Backend/Linker/LinkJob.h"
+#include "Backend/Linker/Linker.PE.h"
+#include "Backend/Linker/ObjectWriter.ELF.h"
+#include "Backend/Linker/Reader.COFF.h"
+#include "Backend/Linker/Reader.ELF.h"
+#include "Backend/Linker/SymbolTable.ELF.h"
 #include "Backend/RuntimeName.h"
 #include "Main/ExitCodes.h"
 #include "Main/FileSystem.h"
-#include "Support/Os/Os.h"
 #include "Support/Core/ByteView.h"
+#include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 #include "Unittest/Native/NativeTestBytes.h"
@@ -45,6 +48,98 @@ namespace
         bytes[77] = static_cast<std::byte>(PE::SYM_CLASS_EXTERNAL);
         bytes.writeLe32(79, 4);
         return bytes;
+    }
+
+    CoffObject makeReadOnlyAllocation(const std::string_view name, const uint64_t value, const Utf8& target = {})
+    {
+        CoffObject       object;
+        CoffInputSection section;
+        section.name            = ".rdata";
+        section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_ALIGN_8BYTES;
+        section.bytes.appendLe64(0);
+        section.bytes.appendLe64(value);
+        if (!target.empty())
+            section.relocs.push_back({.offset = 0, .type = PE::REL_AMD64_ADDR64, .symbolName = target});
+        object.sections.push_back(std::move(section));
+        object.definedSymbols.push_back({.name = Utf8(name)});
+        return object;
+    }
+
+    // The production reader accepts link inputs, while these tests inspect ET_EXEC.
+    std::optional<ELF::Section> elfImageSection(const ByteArray& bytes, const std::string_view wanted)
+    {
+        if (!bytes.containsRange(0, 64))
+            return {};
+        const uint64_t headers    = bytes.readLe64(40);
+        const uint16_t count      = bytes.readLe16(60);
+        const uint16_t namesIndex = bytes.readLe16(62);
+        if (namesIndex >= count || !bytes.containsRange(headers, uint64_t{count} * 64))
+            return {};
+        const uint64_t namesHeader = headers + uint64_t{namesIndex} * 64;
+        const uint64_t strings     = bytes.readLe64(namesHeader + 24);
+        const uint64_t stringsSize = bytes.readLe64(namesHeader + 32);
+        if (!bytes.containsRange(strings, stringsSize))
+            return {};
+        for (uint16_t index = 1; index < count; ++index)
+        {
+            const uint64_t header     = headers + uint64_t{index} * 64;
+            const uint32_t nameOffset = bytes.readLe32(header);
+            if (nameOffset >= stringsSize)
+                return {};
+            const auto* name = reinterpret_cast<const char*>(bytes.data() + strings + nameOffset);
+            const auto* end  = static_cast<const char*>(std::memchr(name, 0, stringsSize - nameOffset));
+            if (!end)
+                return {};
+            if (std::string_view(name, end) == wanted)
+                return ELF::Section{.type = bytes.readLe32(header + 4), .link = bytes.readLe32(header + 40), .address = bytes.readLe64(header + 16), .offset = bytes.readLe64(header + 24), .size = bytes.readLe64(header + 32)};
+        }
+        return {};
+    }
+
+    bool readElfImageSymbols(std::map<std::string, ELF::Symbol>& symbols, const ByteArray& bytes)
+    {
+        symbols.clear();
+        const auto table = elfImageSection(bytes, ".symtab");
+        if (!table || table->size % 24 || !bytes.containsRange(table->offset, table->size))
+            return false;
+        const uint64_t headers = bytes.readLe64(40);
+        if (table->link >= bytes.readLe16(60))
+            return false;
+        const uint64_t namesHeader = headers + uint64_t{table->link} * 64;
+        const uint64_t names       = bytes.readLe64(namesHeader + 24);
+        const uint64_t namesSize   = bytes.readLe64(namesHeader + 32);
+        if (!bytes.containsRange(names, namesSize))
+            return false;
+        for (uint64_t entry = table->offset + 24; entry < table->offset + table->size; entry += 24)
+        {
+            const uint32_t offset = bytes.readLe32(entry);
+            if (offset >= namesSize)
+                return false;
+            const auto* name = reinterpret_cast<const char*>(bytes.data() + names + offset);
+            const auto* end  = static_cast<const char*>(std::memchr(name, 0, namesSize - offset));
+            if (!end)
+                return false;
+            symbols.emplace(std::string(name, end), ELF::Symbol{.section = bytes.readLe16(entry + 6), .value = bytes.readLe64(entry + 8)});
+        }
+        return true;
+    }
+
+    CoffObject makeFoldableFunction(const std::string_view name, const Utf8& target = {})
+    {
+        CoffObject       object;
+        CoffInputSection code;
+        code.name            = ".text";
+        code.characteristics = PE::SCN_CNT_CODE | PE::SCN_MEM_READ | PE::SCN_MEM_EXECUTE | PE::SCN_ALIGN_16BYTES;
+        if (target.empty())
+            NativeTest::emit(code.bytes, {0xb8, 42, 0, 0, 0, 0xc3});
+        else
+        {
+            NativeTest::emit(code.bytes, {0xe8, 0, 0, 0, 0, 0xc3});
+            code.relocs.push_back({.offset = 1, .type = PE::REL_AMD64_REL32, .symbolName = target});
+        }
+        object.sections.push_back(std::move(code));
+        object.definedSymbols.push_back({.name = Utf8(name)});
+        return object;
     }
 
     bool matchesArchiveHeader(const ByteArray& bytes, const size_t offset, const std::string_view name, const uint32_t dataSize)
@@ -92,7 +187,7 @@ namespace
         for (const std::string_view module : modules)
         {
             std::error_code error;
-            const fs::path moduleDirectory = destination / "modules" / module;
+            const fs::path  moduleDirectory = destination / "modules" / module;
             fs::create_directories(moduleDirectory, error);
             if (error)
                 return Result::Error;
@@ -771,6 +866,202 @@ func(T) accumulate(value: T)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PeLinker_FoldsReadOnlyDependenciesRegardlessOfDiscoveryOrder)
+{
+    constexpr size_t depth = 32;
+    for (const bool reverse : {false, true})
+    {
+        std::vector<CoffObject> objects;
+        for (size_t level = 0; level < depth; ++level)
+        {
+            for (const char branch : {'a', 'b'})
+            {
+                const Utf8 name   = std::format("__swc_rdata_{}{}", branch, level);
+                const Utf8 target = level + 1 < depth ? Utf8(std::format("__swc_rdata_{}{}", branch, level + 1)) : Utf8{};
+                objects.push_back(makeReadOnlyAllocation(name, level, target));
+            }
+        }
+        if (reverse)
+            std::ranges::reverse(objects);
+        std::unordered_map<Utf8, Utf8> aliases;
+        PELinker::foldReadOnlyData(objects, aliases);
+        if (aliases.size() != depth || objects.size() != depth * 2 ||
+            std::ranges::count_if(objects, [](const CoffObject& object) { return !object.sections.empty(); }) != depth)
+            return Result::Error;
+        for (size_t level = 0; level < depth; ++level)
+        {
+            const Utf8 a     = std::format("__swc_rdata_a{}", level);
+            const Utf8 b     = std::format("__swc_rdata_b{}", level);
+            const auto first = aliases.find(a), second = aliases.find(b);
+            if ((first == aliases.end()) == (second == aliases.end()))
+                return Result::Error;
+            const Utf8& target = first == aliases.end() ? second->second : first->second;
+            if (target != (first == aliases.end() ? a : b) || aliases.contains(target))
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_ReadOnlyAliasesResolveToFinalSurvivors)
+{
+    std::vector<CoffObject> objects = {
+        makeReadOnlyAllocation("__swc_rdata_wrapper_a", 20, "__swc_rdata_parent_alias"),
+        makeReadOnlyAllocation("__swc_rdata_wrapper_b", 20, "__swc_rdata_parent_b"),
+        makeReadOnlyAllocation("__swc_rdata_parent_a", 10, "__swc_rdata_leaf_a"),
+        makeReadOnlyAllocation("__swc_rdata_parent_alias", 10, "__swc_rdata_leaf_a"),
+        makeReadOnlyAllocation("__swc_rdata_parent_b", 10, "__swc_rdata_leaf_b"),
+        makeReadOnlyAllocation("__swc_rdata_leaf_b", 1),
+        makeReadOnlyAllocation("__swc_rdata_leaf_a", 1),
+    };
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldReadOnlyData(objects, aliases);
+    if (aliases.size() != 4 || aliases.at("__swc_rdata_parent_a") != "__swc_rdata_parent_b" ||
+        aliases.at("__swc_rdata_parent_alias") != "__swc_rdata_parent_b" || aliases.at("__swc_rdata_wrapper_a") != "__swc_rdata_wrapper_b")
+        return Result::Error;
+    for (const auto& [_, target] : aliases)
+        if (aliases.contains(target))
+            return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_PreservesDistinctDataAndRelocationSemantics)
+{
+    std::vector<CoffObject> objects;
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_base", 42));
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_value", 43));
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_aligned", 42));
+    objects.back().sections[0].characteristics ^= PE::SCN_ALIGN_8BYTES | PE::SCN_ALIGN_16BYTES;
+    for (const char suffix : {'a', 'b'})
+    {
+        objects.push_back(makeReadOnlyAllocation(std::format("__swc_rdata_write{}", suffix), 42));
+        objects.back().sections[0].characteristics |= PE::SCN_MEM_WRITE;
+        objects.push_back(makeReadOnlyAllocation(std::format("public{}", suffix), 42));
+        objects.push_back(makeReadOnlyAllocation(std::format("__swc_rdata_extra{}", suffix), 42));
+        objects.back().definedSymbols.push_back({.name = std::format("interior{}", suffix), .value = 8});
+    }
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_first", 42, "external_a"));
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_second", 42, "external_b"));
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_addend", 42, "external_a"));
+    objects.back().sections[0].bytes.writeLe64(0, 8);
+    objects.push_back(makeReadOnlyAllocation("__swc_rdata_kind", 42, "external_a"));
+    objects.back().sections[0].relocs[0].type = PE::REL_AMD64_ADDR32NB;
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldReadOnlyData(objects, aliases);
+    if (!aliases.empty() || std::ranges::any_of(objects, [](const CoffObject& object) { return object.sections.empty(); }))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_FoldsReadOnlyZeroFillAndItsReaders)
+{
+    std::vector<CoffObject> objects;
+    for (const auto name : {"__swc_rdata_zero_a", "__swc_rdata_zero_b", "__swc_rdata_mutable_a", "__swc_rdata_mutable_b", "__swc_rdata_smaller", "__swc_rdata_aligned"})
+    {
+        CoffObject       object;
+        CoffInputSection section;
+        section.name            = ".rbss";
+        section.isBss           = true;
+        section.bssSize         = 64;
+        section.characteristics = PE::SCN_CNT_UNINITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_ALIGN_8BYTES;
+        object.sections.push_back(std::move(section));
+        object.definedSymbols.push_back({.name = name});
+        objects.push_back(std::move(object));
+    }
+    objects[2].sections[0].characteristics |= PE::SCN_MEM_WRITE;
+    objects[3].sections[0].characteristics |= PE::SCN_MEM_WRITE;
+    objects[4].sections[0].bssSize = 32;
+    objects[5].sections[0].characteristics ^= PE::SCN_ALIGN_8BYTES | PE::SCN_ALIGN_16BYTES;
+    objects.insert(objects.begin(), makeReadOnlyAllocation("__swc_rdata_parent_b", 1, "__swc_rdata_zero_b"));
+    objects.insert(objects.begin(), makeReadOnlyAllocation("__swc_rdata_parent_a", 1, "__swc_rdata_zero_a"));
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldReadOnlyData(objects, aliases);
+    if (aliases.size() != 2 || aliases.at("__swc_rdata_zero_b") != "__swc_rdata_zero_a")
+        return Result::Error;
+    for (size_t i = 4; i < objects.size(); ++i)
+        if (objects[i].sections.empty())
+            return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_FoldsSelfReferencesWithoutConflatingDistinctCycles)
+{
+    std::vector<CoffObject> objects = {
+        makeReadOnlyAllocation("__swc_rdata_self_a", 1, "__swc_rdata_self_a"),
+        makeReadOnlyAllocation("__swc_rdata_self_b", 1, "__swc_rdata_self_b"),
+        makeReadOnlyAllocation("__swc_rdata_self_c", 1, "__swc_rdata_self_c"),
+        makeReadOnlyAllocation("__swc_rdata_cycle_a", 2, "__swc_rdata_cycle_b"),
+        makeReadOnlyAllocation("__swc_rdata_cycle_b", 2, "__swc_rdata_cycle_a"),
+    };
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldReadOnlyData(objects, aliases);
+    if (aliases.size() != 2 || objects[3].sections.empty() || objects[4].sections.empty())
+        return Result::Error;
+    for (const auto& [_, target] : aliases)
+        if (aliases.contains(target))
+            return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_FunctionGraphsKeepObservedAddressesDistinct)
+{
+    std::vector<CoffObject> objects = {
+        makeFoldableFunction("__swc_fn_caller_a", "__swc_fn_observed_a"),
+        makeFoldableFunction("__swc_fn_caller_b", "__swc_fn_observed_b"),
+        makeFoldableFunction("__swc_fn_unobserved"),
+        makeFoldableFunction("__swc_fn_observed_a"),
+        makeFoldableFunction("__swc_fn_observed_b"),
+    };
+    LinkImage   image;
+    LinkSection data;
+    data.name = ".rdata";
+    data.bytes.resize(16);
+    data.relocs = {{.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = "__swc_fn_observed_a"}, {.offset = 8, .kind = LinkRelocKind::Abs64, .symbolName = "__swc_fn_observed_b"}};
+    image.sections.push_back(std::move(data));
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldIdenticalFunctionsForTest(objects, aliases, image);
+    if (objects.size() != 4 || aliases.size() != 1 || !aliases.contains("__swc_fn_unobserved") || aliases.contains("__swc_fn_observed_a") || aliases.contains("__swc_fn_observed_b"))
+        return Result::Error;
+    if (aliases.at("__swc_fn_unobserved") != "__swc_fn_observed_a" && aliases.at("__swc_fn_unobserved") != "__swc_fn_observed_b")
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_FunctionSelfKeysCannotCollideWithForeignSymbols)
+{
+    std::vector<CoffObject> objects = {
+        makeFoldableFunction("__swc_fn_recursive", "__swc_fn_recursive"),
+        makeFoldableFunction("__swc_fn_foreign", "$self"),
+    };
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldIdenticalFunctionsForTest(objects, aliases, {});
+    if (objects.size() != 2 || !aliases.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeLinker_FunctionGraphsKeepOtherStorageAndPublicDefinitions)
+{
+    std::vector<CoffObject> objects = {
+        makeFoldableFunction("__swc_fn_mutable"),
+        makeFoldableFunction("__swc_fn_multiple_definitions"),
+        makeFoldableFunction("external_function"),
+        makeFoldableFunction("__swc_fn_plain"),
+    };
+    CoffInputSection data;
+    data.name            = ".data";
+    data.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_MEM_WRITE;
+    data.bytes.appendLe64(1);
+    objects[0].sections.push_back(std::move(data));
+    objects[0].definedSymbols.push_back({.name = "mutable", .sectionIndex = 1});
+    objects[1].definedSymbols.push_back({.name = "inner_entry", .value = 1});
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldIdenticalFunctionsForTest(objects, aliases, {});
+    if (objects.size() != 4 || !aliases.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ELFImage_WritesProtectedSegmentsAndRejectsUnresolvedInputs)
 {
     LinkImage image;
@@ -824,6 +1115,426 @@ SWC_TEST_BEGIN(ELFImage_WritesProtectedSegmentsAndRejectsUnresolvedInputs)
         return Result::Error;
     job.archiveMembers[0].bytes.writeLe64(40, UINT64_MAX);
     if (buildElfImage(bytes, error, job) || !bytes.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ELFImage_StripsStaticSymbolsWithoutChangingLoadedBytes)
+{
+    LinkImage   image;
+    LinkSection code;
+    code.name  = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0xb8, 42, 0, 0, 0, 0xc3});
+    image.sections.push_back(std::move(code));
+    image.symbols.push_back({.name = "answer"});
+    const SymbolTable::Entry entry{.symbolName = "answer", .name = "Answer", .file = "answer.swg", .line = 3, .size = 6};
+    ELFSymbolTable::appendObject(image, std::span(&entry, 1));
+
+    LinkJob job;
+    job.output     = LinkJob::Output::SharedLibrary;
+    job.outputPath = "symbols.so";
+    job.archiveMembers.resize(1);
+    Diagnostic diagnostic;
+    if (!buildElfObject(job.archiveMembers[0].bytes, diagnostic, image))
+        return Result::Error;
+
+    ByteArray original, stripped;
+    Utf8      error;
+    if (!buildElfImage(original, error, job) || !ELFSymbolTable::finalizeImage(original, error))
+        return Result::Error;
+    job.elfStripSymbols = true;
+    if (!buildElfImage(stripped, error, job) || !ELFSymbolTable::finalizeImage(stripped, error) || stripped.size() >= original.size())
+        return Result::Error;
+
+    ELF::File before, after;
+    if (!before.read(error, original.span()) || !after.read(error, stripped.span()))
+        return Result::Error;
+    if (std::ranges::none_of(before.sections, [](const ELF::Section& section) { return section.type == ELF::SHT_SYMTAB; }) ||
+        std::ranges::any_of(after.sections, [](const ELF::Section& section) { return section.type == ELF::SHT_SYMTAB || section.name == ".strtab"; }))
+        return Result::Error;
+
+    // Dynamic exports, unwind data and runtime frame names survive independently of .symtab.
+    for (const ELF::Section& section : before.sections)
+    {
+        if (!(section.flags & ELF::SHF_ALLOC) && section.name != SymbolTable::IMAGE_SECTION)
+            continue;
+        const auto retained = std::ranges::find(after.sections, section.name, &ELF::Section::name);
+        if (retained == after.sections.end() || retained->address != section.address || retained->size != section.size || retained->flags != section.flags)
+            return Result::Error;
+        if (section.type != ELF::SHT_NOBITS && !std::ranges::equal(original.span().subspan(section.offset, section.size), stripped.span().subspan(retained->offset, retained->size)))
+            return Result::Error;
+    }
+    const uint64_t programs    = original.readLe64(32);
+    const uint64_t programSize = uint64_t{original.readLe16(54)} * original.readLe16(56);
+    if (stripped.readLe64(32) != programs || !std::ranges::equal(original.span().subspan(programs, programSize), stripped.span().subspan(programs, programSize)))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsPrivateImmutableGraphsAfterTheirTargets)
+{
+    LinkJob job;
+    job.outputPath   = "folded";
+    job.elfLibraries = {"c"};
+    Diagnostic diagnostic;
+    const auto appendObject = [&](const LinkImage& image) {
+        LinkArchiveMember member;
+        if (!buildElfObject(member.bytes, diagnostic, image))
+            return false;
+        job.archiveMembers.push_back(std::move(member));
+        return true;
+    };
+    LinkImage   main;
+    LinkSection code;
+    code.name  = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0x31, 0xc0, 0xc3});
+    main.sections.push_back(std::move(code));
+    main.symbols.push_back({.name = "main"});
+    if (!appendObject(main))
+        return Result::Error;
+    for (const size_t index : {size_t{0}, size_t{1}, size_t{2}, size_t{3}, size_t{4}, size_t{5}, size_t{6}, size_t{7}, size_t{8}})
+    {
+        LinkImage   image;
+        LinkSection data;
+        data.name  = index < 4 ? ".rdata" : ".rbss";
+        data.flags = LinkSectionFlagsE::Read;
+        data.align = index == 7 ? 16 : 8;
+        if (index < 4)
+        {
+            data.bytes.appendLe64(index < 2 ? 0 : 42);
+            if (index < 2)
+                data.relocs.push_back({.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = index ? "__swc_rdata_leaf_b" : "__swc_rdata_leaf_a"});
+        }
+        else
+        {
+            data.flags.add(LinkSectionFlagsE::Uninit);
+            data.bssSize = index == 6 ? 32 : 64;
+        }
+        if (index == 5)
+            data.flags.add(LinkSectionFlagsE::Write);
+        image.sections.push_back(std::move(data));
+        const Utf8 name = index < 2 ? (index ? "__swc_rdata_reader_b" : "__swc_rdata_reader_a") : index < 4 ? (index == 3 ? "__swc_rdata_leaf_b" : "__swc_rdata_leaf_a")
+                                                                                                            : Utf8{std::format("__swc_rdata_zero_{}", index)};
+        image.symbols.push_back({.name = name});
+        if (!appendObject(image))
+            return Result::Error;
+    }
+    // Zero-filled and initialized definitions of different sizes/alignment, and
+    // writable definitions, must not acquire another allocation's storage.
+    ByteArray bytes;
+    Utf8      error;
+    if (!buildElfImage(bytes, error, job))
+    {
+        std::println(stderr, "[ELF constant fold] {}", error);
+        return Result::Error;
+    }
+    const LinkerTestDirectory directory("internal_elf_fold");
+    SWC_RESULT(directory.write("folded", {reinterpret_cast<const char*>(bytes.data()), bytes.size()}));
+    const uint64_t                     headers = bytes.readLe64(40);
+    std::map<std::string, ELF::Symbol> symbols;
+    if (!readElfImageSymbols(symbols, bytes))
+        return Result::Error;
+    const auto symbol = [&](const std::string_view name) -> const ELF::Symbol* {
+        const auto found = symbols.find(std::string(name));
+        return found == symbols.end() ? nullptr : &found->second;
+    };
+    const auto* readerA = symbol("__swc_rdata_reader_a");
+    const auto* readerB = symbol("__swc_rdata_reader_b");
+    const auto* leafA   = symbol("__swc_rdata_leaf_a");
+    const auto* leafB   = symbol("__swc_rdata_leaf_b");
+    if (!readerA || !readerB || !leafA || !leafB || readerA->value != readerB->value || leafA->value != leafB->value || readerA->value == leafA->value)
+    {
+        for (const auto& [name, value] : symbols)
+            std::println(stderr, "[ELF constant fold] {} = {} (section {})", name, value.value, value.section);
+        return Result::Error;
+    }
+    const uint64_t data = headers + uint64_t{readerA->section} * 64;
+    if (bytes.readLe64(bytes.readLe64(data + 24) + readerA->value - bytes.readLe64(data + 16)) != leafA->value)
+        return Result::Error;
+    for (size_t left = 4; left < 8; ++left)
+        for (size_t right = left + 1; right < 8; ++right)
+        {
+            const auto* a = symbol(std::format("__swc_rdata_zero_{}", left));
+            const auto* b = symbol(std::format("__swc_rdata_zero_{}", right));
+            if (!a || !b || a->value == b->value)
+                return Result::Error;
+        }
+    const auto* zeroA = symbol("__swc_rdata_zero_4");
+    const auto* zeroB = symbol("__swc_rdata_zero_8");
+    if (!zeroA || !zeroB || zeroA->value != zeroB->value)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsSelfReferentialConstantsWithoutConflatingForeignNamesOrCycles)
+{
+    LinkJob job;
+    job.outputPath   = "folded_self";
+    job.elfLibraries = {"c"};
+    Diagnostic diagnostic;
+    const auto appendObject = [&](const LinkImage& image) {
+        LinkArchiveMember member;
+        if (!buildElfObject(member.bytes, diagnostic, image))
+            return false;
+        job.archiveMembers.push_back(std::move(member));
+        return true;
+    };
+    LinkImage   main;
+    LinkSection code;
+    code.name  = ".text";
+    code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(code.bytes, {0x31, 0xc0, 0xc3});
+    main.sections.push_back(std::move(code));
+    main.symbols.push_back({.name = "main"});
+    if (!appendObject(main))
+        return Result::Error;
+    const std::array<std::pair<const char*, const char*>, 8> definitions = {{
+        {"__swc_rdata_self_a", "__swc_rdata_self_a"},
+        {"__swc_rdata_self_b", "__swc_rdata_self_b"},
+        {"__swc_rdata_foreign", "$self"},
+        {"$self", "$self"},
+        {"__swc_rdata_cycle_a", "__swc_rdata_cycle_b"},
+        {"__swc_rdata_cycle_b", "__swc_rdata_cycle_a"},
+        {"__swc_rdata_cycle_c", "__swc_rdata_cycle_d"},
+        {"__swc_rdata_cycle_d", "__swc_rdata_cycle_c"},
+    }};
+    for (const auto& [name, target] : definitions)
+    {
+        LinkImage   image;
+        LinkSection data;
+        data.name  = ".rdata";
+        data.flags = LinkSectionFlagsE::Read;
+        data.align = 8;
+        data.bytes.appendLe64(0);
+        data.relocs.push_back({.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = target});
+        image.sections.push_back(std::move(data));
+        image.symbols.push_back({.name = name});
+        if (!appendObject(image))
+            return Result::Error;
+    }
+    ByteArray bytes;
+    Utf8      error;
+    if (!buildElfImage(bytes, error, job))
+        return Result::Error;
+    std::map<std::string, ELF::Symbol> symbols;
+    if (!readElfImageSymbols(symbols, bytes))
+        return Result::Error;
+    const auto address = [&](const char* name) {
+        return symbols.at(name).value;
+    };
+    if (address("__swc_rdata_self_a") != address("__swc_rdata_self_b") ||
+        address("__swc_rdata_self_a") == address("__swc_rdata_foreign"))
+        return Result::Error;
+    for (size_t left = 4; left < definitions.size(); ++left)
+        for (size_t right = left + 1; right < definitions.size(); ++right)
+            if (address(definitions[left].first) == address(definitions[right].first))
+                return Result::Error;
+    const uint64_t headers = bytes.readLe64(40);
+    for (const auto& [name, target] : definitions)
+    {
+        const auto&    symbol  = symbols.at(name);
+        const uint64_t section = headers + uint64_t{symbol.section} * 64;
+        const uint64_t offset  = bytes.readLe64(section + 24) + symbol.value - bytes.readLe64(section + 16);
+        if (bytes.readLe64(offset) != address(target))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsCallGraphsWithTheirUnwindAndRuntimeNames)
+{
+    constexpr size_t depth = 16;
+    LinkJob          job;
+    job.outputPath   = "folded-functions";
+    job.elfLibraries = {"c"};
+    Diagnostic diagnostic;
+    const auto append = [&](const LinkImage& image) {
+        LinkArchiveMember object;
+        if (!buildElfObject(object.bytes, diagnostic, image))
+            return false;
+        job.archiveMembers.push_back(std::move(object));
+        return true;
+    };
+    LinkImage   main;
+    LinkSection entry;
+    entry.name  = ".text";
+    entry.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+    NativeTest::emit(entry.bytes, {0x31, 0xc0, 0xc3});
+    main.sections.push_back(std::move(entry));
+    main.symbols.push_back({.name = "main"});
+    if (!append(main))
+        return Result::Error;
+    for (size_t level = 0; level < depth; ++level)
+        for (const char branch : {'a', 'b'})
+        {
+            LinkImage   image;
+            LinkSection code;
+            code.name  = ".text";
+            code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+            if (level + 1 < depth)
+            {
+                NativeTest::emit(code.bytes, {0xe8, 0, 0, 0, 0, 0xc3});
+                code.relocs.push_back({.offset = 1, .kind = LinkRelocKind::Rel32, .symbolName = std::format("__swc_fn_{}{}", branch, level + 1)});
+            }
+            else
+                NativeTest::emit(code.bytes, {0xb8, 42, 0, 0, 0, 0xc3});
+            const Utf8 name{std::format("__swc_fn_{}{}", branch, level)};
+            image.sections.push_back(std::move(code));
+            image.symbols.push_back({.name = name});
+            X64DwarfFrame frame;
+            ByteArray     frameBytes;
+            frame.build(frameBytes, 6);
+            LinkSection unwind;
+            unwind.name            = ".eh_frame";
+            unwind.flags           = LinkSectionFlagsE::Read;
+            unwind.align           = 8;
+            uint32_t addressOffset = 0;
+            if (!X64DwarfFrame::appendObjectFrame(unwind.bytes, addressOffset, frameBytes, 6))
+                return Result::Error;
+            unwind.bytes.appendLe32(0);
+            unwind.relocs.push_back({.offset = addressOffset, .kind = LinkRelocKind::Rel32, .symbolName = name, .addend = 4});
+            image.sections.push_back(std::move(unwind));
+            const SymbolTable::Entry source{.symbolName = name, .name = name, .file = "folded.swg", .line = 1, .size = 6};
+            ELFSymbolTable::appendObject(image, std::span(&source, 1));
+            if (!append(image))
+                return Result::Error;
+        }
+    ByteArray bytes;
+    Utf8      error;
+    if (!buildElfImage(bytes, error, job) || !ELFSymbolTable::finalizeImage(bytes, error))
+    {
+        std::println(stderr, "[ELF function fold] {}", error);
+        return Result::Error;
+    }
+    std::map<std::string, ELF::Symbol> symbols;
+    if (!readElfImageSymbols(symbols, bytes))
+        return Result::Error;
+    for (size_t level = 0; level < depth; ++level)
+    {
+        const auto a = symbols.find(std::format("__swc_fn_a{}", level));
+        const auto b = symbols.find(std::format("__swc_fn_b{}", level));
+        if (a == symbols.end() || b == symbols.end() || a->second.value != b->second.value)
+            return Result::Error;
+        if (level + 1 == depth)
+            continue;
+        const auto child = symbols.find(std::format("__swc_fn_a{}", level + 1));
+        const auto text  = elfImageSection(bytes, ".text");
+        if (child == symbols.end() || !text || a->second.value + 5 + static_cast<int32_t>(bytes.readLe32(text->offset + a->second.value - text->address + 1)) != child->second.value)
+            return Result::Error;
+    }
+    const auto names  = elfImageSection(bytes, SymbolTable::IMAGE_SECTION);
+    const auto unwind = elfImageSection(bytes, ".eh_frame_hdr");
+    if (!names || !unwind || bytes.readLe32(names->offset + 8) != depth || bytes.readLe32(unwind->offset + 8) != depth)
+        return Result::Error;
+    const auto rules = elfImageSection(bytes, ".eh_frame");
+    if (!rules)
+        return Result::Error;
+    uint32_t cieCount = 0, frameCount = 0;
+    for (uint64_t offset = 0; offset + 4 <= rules->size;)
+    {
+        const uint32_t length = bytes.readLe32(rules->offset + offset);
+        if (!length)
+            break;
+        const uint32_t cie = bytes.readLe32(rules->offset + offset + 4);
+        if (!cie)
+            ++cieCount;
+        else
+        {
+            if (offset + 4 != cie)
+                return Result::Error;
+            ++frameCount;
+        }
+        offset += length + 4;
+    }
+    if (cieCount != 1 || frameCount != depth)
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FunctionFoldingPreservesAddressesStorageAndUnwindRules)
+{
+    LinkJob job;
+    job.outputPath   = "observed-functions";
+    job.elfLibraries = {"c"};
+    Diagnostic diagnostic;
+    const auto append = [&](const LinkImage& image) {
+        LinkArchiveMember object;
+        if (!buildElfObject(object.bytes, diagnostic, image))
+            return false;
+        job.archiveMembers.push_back(std::move(object));
+        return true;
+    };
+    for (const auto name : {"main", "__swc_fn_observed_a", "__swc_fn_observed_b", "__swc_fn_unobserved", "__swc_fn_mutable", "__swc_fn_public", "__swc_fn_rules_a", "__swc_fn_rules_b", "__swc_fn_recursive", "__swc_fn_foreign", "$self"})
+    {
+        LinkImage   image;
+        LinkSection code;
+        code.name  = ".text";
+        code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+        const std::string_view function(name);
+        if (function == "__swc_fn_recursive" || function == "__swc_fn_foreign")
+        {
+            NativeTest::emit(code.bytes, {0xe8, 0, 0, 0, 0, 0xc3});
+            code.relocs.push_back({.offset = 1, .kind = LinkRelocKind::Rel32, .symbolName = function == "__swc_fn_recursive" ? name : "$self"});
+        }
+        else
+            NativeTest::emit(code.bytes, {0xb8, function.starts_with("__swc_fn_rules") ? 99 : 42, 0, 0, 0, 0xc3});
+        image.sections.push_back(std::move(code));
+        image.symbols.push_back({.name = name});
+        if (function == "main" || function == "__swc_fn_mutable")
+        {
+            LinkSection data;
+            data.name  = ".data";
+            data.flags = LinkSectionFlagsE::Read | LinkSectionFlagsE::Write;
+            data.bytes.resize(16);
+            if (function == "main")
+                data.relocs = {{.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = "__swc_fn_observed_a"}, {.offset = 8, .kind = LinkRelocKind::Abs64, .symbolName = "__swc_fn_observed_b"}};
+            image.sections.push_back(std::move(data));
+        }
+        if (function == "__swc_fn_public")
+            image.symbols.push_back({.name = "public_entry"});
+        if (function.starts_with("__swc_fn_rules"))
+        {
+            X64DwarfFrame frame;
+            if (function == "__swc_fn_rules_b")
+            {
+                frame.rememberState();
+                frame.restoreState();
+            }
+            ByteArray frameBytes;
+            frame.build(frameBytes, 6);
+            LinkSection unwind;
+            unwind.name            = ".eh_frame";
+            unwind.flags           = LinkSectionFlagsE::Read;
+            unwind.align           = 8;
+            uint32_t addressOffset = 0;
+            if (!X64DwarfFrame::appendObjectFrame(unwind.bytes, addressOffset, frameBytes, 6))
+                return Result::Error;
+            unwind.bytes.appendLe32(0);
+            unwind.relocs.push_back({.offset = addressOffset, .kind = LinkRelocKind::Rel32, .symbolName = name, .addend = 4});
+            image.sections.push_back(std::move(unwind));
+        }
+        if (!append(image))
+            return Result::Error;
+    }
+    ByteArray bytes;
+    Utf8      error;
+    if (!buildElfImage(bytes, error, job))
+        return Result::Error;
+    std::map<std::string, ELF::Symbol> symbols;
+    if (!readElfImageSymbols(symbols, bytes))
+        return Result::Error;
+    const auto address = [&](const char* name) {
+        return symbols.at(name).value;
+    };
+    const uint64_t first = address("__swc_fn_observed_a"), second = address("__swc_fn_observed_b");
+    if (first == second || (address("__swc_fn_unobserved") != first && address("__swc_fn_unobserved") != second))
+        return Result::Error;
+    for (const auto name : {"__swc_fn_mutable", "__swc_fn_public"})
+        if (address(name) == first || address(name) == second)
+            return Result::Error;
+    if (address("__swc_fn_rules_a") == address("__swc_fn_rules_b") || address("__swc_fn_recursive") == address("__swc_fn_foreign"))
         return Result::Error;
 }
 SWC_TEST_END()

@@ -114,8 +114,12 @@ source lines, functions, basic types and recorded stack-home variables. Dedicate
 fixtures pass readelf/addr2line checks, and GDB stepping and variable inspection work. Optimized-away
 variables and richer debug records remain unsupported. Runtime panic traces resolve function names
 and recorded source locations across executables, static archives and shared libraries without
-`--debug`; stripping `.swagdbg` removes those runtime frame names. Linux executable builds reuse eligible
-self-contained function objects from `<name>.incremental.elfcache` in the work directory. The cache
+`--debug`; stripping `.swagdbg` removes those runtime frame names. Without `--debug`, final ELF
+executables and shared libraries omit `.symtab` and `.strtab`; dynamic symbols, unwind data and
+`.swagdbg` remain available. Finalization also removes unused file space left by merging runtime
+symbol contributions, without moving loaded bytes or virtual addresses.
+Linux executable builds reuse eligible self-contained function objects from
+`<name>.incremental.elfcache` in the work directory. The cache
 checks compiler identity, IR/ABI fingerprints, recorded source coordinates and payload integrity;
 `--rebuild`, `--debug`, tests and compile-time native imports disable it. Publication follows a successful
 link. Executables with static dependencies also retain a checksummed `<name>.relink.elfcache`: when
@@ -135,6 +139,31 @@ SWAG_PATH="$PWD/bin" /absolute/build/devmode/swc.dm test \
   --workspace bin/std --workspace-module pixel --num-cores 3 \
   --artifact-kind executable --no-test-jit --test-tag integration.renderer.opengl
 ```
+
+To build complete Windows applications from Linux, run a Windows compiler under Wine. Compile-time
+module functions then execute in the same Windows environment as their imported DLLs. The Linux
+compiler's `--os windows` emits PE output, but cannot execute arbitrary Windows foreign calls or load
+Windows modules for compile-time evaluation.
+
+`linux-build.py --target windows` builds the Release Windows compiler with LLVM-MinGW, using the
+same source manifest and three-job limit. It links the C++ runtime into the compiler; only Windows
+system DLLs are needed to run it. Install LLVM-MinGW and Wine outside the checkout, then use:
+
+```sh
+python3 tools/linux-build.py --build-dir /absolute/build --configuration release \
+  --target windows --cxx /absolute/llvm-mingw/bin/x86_64-w64-mingw32-clang++ --jobs 3
+mkdir -p /absolute/build/windows/release/runtime
+cp -a bin/runtime/. /absolute/build/windows/release/runtime/
+SWAG_PATH='Z:\absolute\repo\bin' WindowsSdkDir='Z:\absolute\windows-sdk' \
+  WindowsSDKVersion=10.0.26100.0 wine /absolute/build/windows/release/swc.exe build \
+  --workspace 'Z:\absolute\repo\bin\apps' --workspace-module swagscope \
+  -bc release --num-cores 3 --rebuild
+```
+
+Use the version directory present under the SDK's `Lib` directory. Both `um/x64` and `ucrt/x64`
+import libraries are needed. Wine maps absolute Linux paths through drive `Z:` by default. This
+produces the normal Windows application, including every viewer; Wine is part of the build host,
+not an application dependency. Runtime checks under Wine do not replace tests on a Windows machine.
 
 The OpenGL integration tests need an X11 display, libEGL.so.1, libGL.so.1,
 EGL_EXT_platform_xcb and OpenGL 3.3 compatibility support. They pass with Xvfb and Mesa software

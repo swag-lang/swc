@@ -1,0 +1,218 @@
+{
+  "workload": "3,000 full RV40 I/P/B frames, memory-backed Reader, 300 forward passes with backward seek to the first I frame; checked identical luma checksum 307092",
+  "compiler": "90ea4a03360a53d9d0c076968db5ba63524432769c39ece4a8ea596bdade9fa9",
+  "cpu_affinity": [
+    0
+  ],
+  "warmup_rounds": 2,
+  "rounds": 20,
+  "median_before_ns": 796272404.5,
+  "median_after_ns": 795161505.0,
+  "median_paired_ratio": 1.000700300067041,
+  "min_ratio": 0.9165698633420353,
+  "max_ratio": 1.0552907628830477,
+  "samples": [
+    {
+      "round": 0,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 806975389,
+      "before": 784269189
+    },
+    {
+      "round": 1,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 788972175,
+      "after": 793617904
+    },
+    {
+      "round": 2,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 795789660,
+      "after": 832151950
+    },
+    {
+      "round": 3,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 779043814,
+      "after": 779350042
+    },
+    {
+      "round": 4,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 780901417,
+      "after": 792450648
+    },
+    {
+      "round": 5,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 806613409,
+      "before": 784492481
+    },
+    {
+      "round": 6,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 777373453,
+      "before": 779948793
+    },
+    {
+      "round": 7,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 813868830,
+      "before": 795957760
+    },
+    {
+      "round": 8,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 803995507,
+      "before": 825342194
+    },
+    {
+      "round": 9,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 808576776,
+      "before": 851274116
+    },
+    {
+      "round": 10,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 809409002,
+      "before": 790608642
+    },
+    {
+      "round": 11,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 796587049,
+      "after": 797389625
+    },
+    {
+      "round": 12,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 830550304,
+      "after": 792320487
+    },
+    {
+      "round": 13,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 787551268,
+      "after": 775128018
+    },
+    {
+      "round": 14,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 843363476,
+      "before": 799176403
+    },
+    {
+      "round": 15,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 851950966,
+      "before": 860773172
+    },
+    {
+      "round": 16,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 776574064,
+      "before": 775506343
+    },
+    {
+      "round": 17,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 807034829,
+      "after": 781916033
+    },
+    {
+      "round": 18,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 774956571,
+      "before": 813632410
+    },
+    {
+      "round": 19,
+      "order": [
+        "before",
+        "after"
+      ],
+      "before": 785887889,
+      "after": 792933385
+    },
+    {
+      "round": 20,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 786346695,
+      "before": 857923358
+    },
+    {
+      "round": 21,
+      "order": [
+        "after",
+        "before"
+      ],
+      "after": 813349631,
+      "before": 807367773
+    }
+  ],
+  "artifacts": {
+    "before": "ad89219a3817756a4c5a15b1789463bccb618034123768261dedc9b5310a4475",
+    "after": "f5ad5f19ca26aaf45146d14c0fcb1480da3871126b75ee051d51dd2095f54a26"
+  }
+}

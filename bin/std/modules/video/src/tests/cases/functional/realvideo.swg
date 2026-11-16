@@ -54,12 +54,27 @@ func realVideoCompare(name: string)
 #test { realVideoCompare("rv40-legacy-clock") }
 #test { realVideoCompare("rv40-slices") }
 
+// Every table edge preserves either its target row or its decoded leaf value.
+#test
+{
+    Swag.require(#sizeof(RealVideo.CodeTree) * 2 == #sizeof(RealVideo.CodeTree32))
+    for original, index in RealVideo.CodeTree32
+    {
+        let encoded = cast(s32, RealVideo.CodeTree[index])
+        if original < 0 do
+            Swag.require(encoded >= 0xF000 and (encoded ^ 0xFFFF) == -original - 1)
+        else do
+            Swag.require(encoded < 0xF000 and encoded * 2 == original)
+    }
+}
+
 // A late RealVideo clock correction must not renumber a picture the caller already received.
 #test
 {
     var stream: RealVideo.Stream
     stream.frames.add([SampleEntry{0, 1, 0, true}, SampleEntry{1, 1, 80, false}])
     stream.rebuildOrder()
+
     // Model the stream after ranks 0 and 1 were returned from the two-sample window.
     stream.nextRank       = 2
     stream.emitRank       = 2

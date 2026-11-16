@@ -3,8 +3,10 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/Linker/Linker.h"
 #include "Backend/Linker/ImageWriter.PE.h"
+#include "Backend/Linker/Linker.PE.h"
+#include "Backend/Linker/Linker.h"
+#include "Backend/Linker/Reader.COFF.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Diagnostic.h"
@@ -196,6 +198,142 @@ SWC_TEST_BEGIN(PeWriter_ImportTablesPreserveGroupedSlots)
         if (static_cast<int64_t>(text.rva) + textOffset + 6 + displacement != static_cast<int64_t>(idata.rva) + iatOffset)
             return Result::Error;
         textOffset += 16;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeWriter_FoldsCallGraphsAfterTheirCalleesAndResolvesEveryCall)
+{
+    constexpr size_t        depth = 48;
+    std::vector<CoffObject> objects;
+    for (size_t level = 0; level < depth; ++level)
+        for (const char branch : {'a', 'b'})
+        {
+            CoffObject       object;
+            CoffInputSection code;
+            code.name            = ".text";
+            code.characteristics = PE::SCN_CNT_CODE | PE::SCN_MEM_READ | PE::SCN_MEM_EXECUTE | PE::SCN_ALIGN_16BYTES;
+            if (level + 1 < depth)
+            {
+                NativeTest::emit(code.bytes, {0xe8, 0, 0, 0, 0, 0xc3});
+                code.relocs.push_back({.offset = 1, .type = PE::REL_AMD64_REL32, .symbolName = std::format("__swc_fn_{}{}", branch, level + 1)});
+            }
+            else
+                NativeTest::emit(code.bytes, {0xb8, 42, 0, 0, 0, 0xc3});
+            object.sections.push_back(std::move(code));
+            object.definedSymbols.push_back({.name = std::format("__swc_fn_{}{}", branch, level)});
+            objects.push_back(std::move(object));
+        }
+    LinkImage image;
+    image.entrySymbol = "__swc_fn_a0";
+    image.imageBase   = 0x140000000;
+    std::unordered_map<Utf8, Utf8> aliases;
+    PELinker::foldIdenticalFunctionsForTest(objects, aliases, image);
+    if (objects.size() != depth || aliases.size() != depth)
+        return Result::Error;
+    Diagnostic diagnostic;
+    if (!mergeCoffObjectsIntoImage(image, diagnostic, std::move(objects)))
+        return Result::Error;
+    for (const auto& [name, target] : aliases)
+    {
+        if (aliases.contains(target))
+            return Result::Error;
+        const auto found = std::ranges::find(image.symbols, target, &LinkSymbol::name);
+        if (found == image.symbols.end())
+            return Result::Error;
+        image.symbols.push_back({.name = name, .sectionIndex = found->sectionIndex, .value = found->value});
+    }
+    PEWriter      writer;
+    ByteArray     bytes, pdb;
+    LinkDebugInfo debug;
+    if (!writer.writeImage(bytes, pdb, diagnostic, image, debug, {}))
+        return Result::Error;
+    PeSectionView code;
+    if (!findPeSection(code, bytes, ".text") || code.virtualSize != (depth - 1) * 16 + 6)
+        return Result::Error;
+    for (size_t level = 0; level < depth; ++level)
+    {
+        const auto a = std::ranges::find(image.symbols, Utf8{std::format("__swc_fn_a{}", level)}, &LinkSymbol::name);
+        const auto b = std::ranges::find(image.symbols, Utf8{std::format("__swc_fn_b{}", level)}, &LinkSymbol::name);
+        if (a == image.symbols.end() || b == image.symbols.end() || a->value != b->value)
+            return Result::Error;
+        if (level + 1 == depth)
+            continue;
+        const auto child = std::ranges::find(image.symbols, Utf8{std::format("__swc_fn_a{}", level + 1)}, &LinkSymbol::name);
+        if (child == image.symbols.end() || a->value + 5 + static_cast<int32_t>(bytes.readLe32(code.rawOffset + a->value + 1)) != child->value)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PeWriter_FoldedReadOnlyGraphsKeepCodeAndResolveAliases)
+{
+    std::vector<CoffObject> objects;
+    constexpr size_t        depth = 32;
+    for (size_t level = 0; level < depth; ++level)
+    {
+        for (const char branch : {'a', 'b'})
+        {
+            CoffObject       object;
+            CoffInputSection section;
+            section.name            = ".rdata";
+            section.characteristics = PE::SCN_CNT_INITIALIZED_DATA | PE::SCN_MEM_READ | PE::SCN_ALIGN_8BYTES;
+            section.bytes.resize(256);
+            section.bytes.writeLe64(8, level);
+            if (level + 1 < depth)
+                section.relocs.push_back({.offset = 0, .type = PE::REL_AMD64_ADDR64, .symbolName = std::format("__swc_rdata_{}{}", branch, level + 1)});
+            object.sections.push_back(std::move(section));
+            object.definedSymbols.push_back({.name = std::format("__swc_rdata_{}{}", branch, level)});
+            objects.push_back(std::move(object));
+        }
+    }
+
+    std::array<ByteArray, 2> binaries;
+    for (size_t pass = 0; pass < binaries.size(); ++pass)
+    {
+        std::vector<CoffObject>        inputs = objects;
+        std::unordered_map<Utf8, Utf8> aliases;
+        if (pass)
+            PELinker::foldReadOnlyData(inputs, aliases);
+        LinkImage image;
+        image.entrySymbol = "entry";
+        image.imageBase   = 0x140000000;
+        LinkSection code;
+        code.name  = ".text";
+        code.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Read | LinkSectionFlagsE::Execute;
+        NativeTest::emit(code.bytes, {0xb8, 42, 0, 0, 0, 0xc3});
+        image.sections.push_back(std::move(code));
+        image.symbols.push_back({.name = "entry"});
+        Diagnostic diagnostic;
+        if (!mergeCoffObjectsIntoImage(image, diagnostic, std::move(inputs)))
+            return Result::Error;
+        for (const auto& [name, target] : aliases)
+        {
+            const auto found = std::ranges::find(image.symbols, target, &LinkSymbol::name);
+            if (found == image.symbols.end())
+                return Result::Error;
+            image.symbols.push_back({.name = name, .sectionIndex = found->sectionIndex, .value = found->value});
+        }
+        PEWriter      writer;
+        ByteArray     pdb;
+        LinkDebugInfo debug;
+        if (!writer.writeImage(binaries[pass], pdb, diagnostic, image, debug, {}))
+            return Result::Error;
+    }
+
+    PeSectionView originalCode, foldedCode, originalData, foldedData;
+    if (!findPeSection(originalCode, binaries[0], ".text") || !findPeSection(foldedCode, binaries[1], ".text") ||
+        !findPeSection(originalData, binaries[0], ".rdata") || !findPeSection(foldedData, binaries[1], ".rdata"))
+        return Result::Error;
+    if (binaries[1].size() >= binaries[0].size() || originalData.virtualSize != depth * 512 || foldedData.virtualSize != depth * 256 ||
+        originalCode.rva != foldedCode.rva || originalCode.rawSize != foldedCode.rawSize ||
+        !std::ranges::equal(binaries[0].span().subspan(originalCode.rawOffset, originalCode.rawSize), binaries[1].span().subspan(foldedCode.rawOffset, foldedCode.rawSize)))
+        return Result::Error;
+    for (size_t level = 0; level + 1 < depth; ++level)
+    {
+        const uint64_t expected = uint64_t{0x140000000} + foldedData.rva + (level + 1) * 256;
+        if (binaries[1].readLe64(foldedData.rawOffset + level * 256) != expected)
+            return Result::Error;
     }
 }
 SWC_TEST_END()

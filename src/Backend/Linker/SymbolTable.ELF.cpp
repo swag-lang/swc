@@ -111,6 +111,65 @@ namespace
         return true;
     }
 
+    void compactTable(ByteArray& image, const TableSection& section, const uint64_t tableSize)
+    {
+        const uint64_t end         = section.offset + section.size;
+        const uint64_t headers     = image.readLe64(40);
+        const uint64_t headerSize  = uint64_t{image.readLe16(60)} * K_ELF_SECTION_SIZE;
+        const uint64_t programs    = image.readLe64(32);
+        const uint64_t programSize = uint64_t{image.readLe16(56)} * K_ELF_PROGRAM_SIZE;
+        if (section.offset < K_ELF_HEADER_SIZE || (headers < end && headers + headerSize > section.offset) ||
+            (programs < end && programs + programSize > section.offset))
+            return;
+
+        // Only compact an unmapped tail. Loaded bytes and all virtual addresses stay put,
+        // including when another linker laid out the input image differently.
+        for (uint32_t index = 0; index < image.readLe16(56); ++index)
+        {
+            const uint64_t header = programs + index * K_ELF_PROGRAM_SIZE;
+            const uint64_t offset = image.readLe64(header + 8);
+            const uint64_t size   = image.readLe64(header + 32);
+            if (offset >= section.offset || size > section.offset - offset)
+                return;
+        }
+
+        uint64_t alignment = alignof(uint64_t);
+        for (uint32_t index = 1; index < image.readLe16(60); ++index)
+        {
+            const uint64_t header = headers + index * K_ELF_SECTION_SIZE;
+            const uint64_t offset = image.readLe64(header + 24);
+            const uint64_t size   = image.readLe64(header + 32);
+            if (header == section.header || image.readLe32(header + 4) == 8) // SHT_NOBITS
+                continue;
+            if (!image.containsRange(offset, size) || (offset < end && offset + size > section.offset))
+                return;
+            if (offset >= end)
+            {
+                const uint64_t required = std::max<uint64_t>(1, image.readLe64(header + 48));
+                if (!std::has_single_bit(required))
+                    return;
+                alignment = std::max(alignment, required);
+            }
+        }
+
+        const uint64_t removed = (section.size - tableSize) & ~(alignment - 1);
+        if (!removed)
+            return;
+        std::memmove(image.data() + end - removed, image.data() + end, image.size() - end);
+        image.resize(image.size() - removed);
+        const uint64_t newHeaders = headers >= end ? headers - removed : headers;
+        image.writeLe64(40, newHeaders);
+        if (programs >= end)
+            image.writeLe64(32, programs - removed);
+        for (uint32_t index = 1; index < image.readLe16(60); ++index)
+        {
+            const uint64_t header = newHeaders + index * K_ELF_SECTION_SIZE;
+            const uint64_t offset = image.readLe64(header + 24);
+            if (offset >= end)
+                image.writeLe64(header + 24, offset - removed);
+        }
+    }
+
     bool readString(Utf8& out, const ByteArray& image, uint64_t contribution, uint64_t size, uint32_t strings, uint32_t offset)
     {
         if (!offset)
@@ -237,6 +296,7 @@ bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError)
     std::fill_n(image.data() + section.offset, section.size, std::byte{0});
     std::memcpy(image.data() + section.offset, table.data(), table.size());
     image.writeLe64(section.header + 32, table.size());
+    compactTable(image, section, table.size());
     return true;
 }
 

@@ -1,6 +1,6 @@
 // @LICENCE: LGPL-2.1-or-later
 // @ORIGIN: FFmpeg n7.1, libavcodec/rv34.c and rv40.c
-// @MODIFIED: 2026-10-27, bounded Swag bit reader and RV40 slice header parsing.
+// @MODIFIED: 2026-11-15, bounded reader with compact RV40 decoding-tree indices.
 // @NOTICE: THIRDPARTY.md#ffmpeg-realvideo-decoder
 #global namespace RealVideo
 #global internal
@@ -46,9 +46,9 @@ impl Bits
         for 24
         {
             let branch = cast(s32, .read(1))
-            node = CodeTree[node + branch]
-            if node < 0 do
-                return -node - 1
+            node = cast(s32, CodeTree[node * 2 + branch])
+            if node >= 0xF000 do
+                return node ^ 0xFFFF
             if not node or .broken do
                 break
         }

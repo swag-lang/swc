@@ -855,6 +855,9 @@ new language syntax.
 - Next: remove a store fully overwritten before any load, call, or escape of the same base address,
   whatever that base is, or skip the clear when the literal names every field and the type has no
   padding.
+- Validation: include the native Scope video consumer after complete dependency rebuilds. A
+  full-coverage literal prototype passed the language suites but did not establish a reliable
+  asynchronous-consumer comparison; isolate that behavior before enabling clear removal.
 - Done when: the literal above and a local of the return type filled field by field write each
   byte of the slot once.
 

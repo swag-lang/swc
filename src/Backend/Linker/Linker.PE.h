@@ -22,6 +22,14 @@ public:
     Result prepareLink(LinkJob& outJob) override;
     Result tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) override;
 
+    // Fold compiler-owned immutable allocations after archive extraction. Keep object indices
+    // stable for function candidates; discarded objects become empty and aliases name survivors.
+    static void foldReadOnlyData(std::vector<CoffObject>& objects, std::unordered_map<Utf8, Utf8>& outAliases);
+
+#if SWC_HAS_UNITTEST
+    static void foldIdenticalFunctionsForTest(std::vector<CoffObject>& objects, std::unordered_map<Utf8, Utf8>& outAliases, const LinkImage& image);
+#endif
+
 private:
     Result buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const;
     Result buildNativeImage(LinkImage& image) const;

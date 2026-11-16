@@ -988,8 +988,9 @@ bool MicroRegisterAllocationPass::globalRangesOverlap(const uint32_t denseIndex,
 
 void MicroRegisterAllocationPass::addGlobalRange(const MicroReg physReg, const uint32_t lo, const uint32_t hi, const uint32_t ownerDense)
 {
-    const uint32_t denseIndex = denseGlobalPhysRegs_.ensure(physReg);
-    if (denseIndex >= globalRangesByPhysDense_.size())
+    bool           inserted = false;
+    const uint32_t denseIndex = denseGlobalPhysRegs_.ensure(physReg, &inserted);
+    if (inserted)
         globalRangesByPhysDense_.resize(denseIndex + 1);
 
     auto&       ranges = globalRangesByPhysDense_[denseIndex];

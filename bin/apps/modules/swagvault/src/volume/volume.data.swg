@@ -293,6 +293,8 @@ impl Volume
         let node = unwrap .nodeById(nodeId)
         if node.isDirectory() do
             fail volumeError(.IsDirectory)
+        if (node.attributes & FileAttributeReadOnly) != 0 do
+            fail volumeError(.AccessDenied)
         let oldSize = node.size
         if newSize > oldSize do
             try .zeroOldTail(nodeId, oldSize, newSize)

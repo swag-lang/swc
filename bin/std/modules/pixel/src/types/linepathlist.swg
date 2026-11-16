@@ -301,9 +301,8 @@ impl LinePathList
         }
 
         .clear()
-        .paths     = #move newList.paths
-        .minBounds = newList.minBounds
-        .maxBounds = newList.maxBounds
+        .paths = #move newList.paths
+        .refreshBounds()
     }
 
     // Moves the paths of `solved` over, each outer contour followed by its own holes.

@@ -5,73 +5,82 @@ $scratch = Join-Path $scratchBase ('swag coverage ' + [Guid]::NewGuid().ToString
 $oldLog = $env:SWAG_COVERAGE_LOG
 $oldFailure = $env:SWAG_COVERAGE_FAILURE
 $oldRenderer = $env:SWAG_TEST_RENDERER
+
+function Invoke-Launcher([string[]] $Options, [int] $ExpectedExit = 0) {
+    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
+    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'tools\coverage.ps1') @Options | Out-Null
+    if ($LASTEXITCODE -ne $ExpectedExit) { throw "coverage $Options exited $LASTEXITCODE, expected $ExpectedExit." }
+    return ,@(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
+}
+
+function Assert-Calls([string[]] $Calls, [string[]] $Prefixes, [string] $What) {
+    if ($Calls.Count -ne $Prefixes.Count) { throw "$What dispatched $($Calls.Count) commands: $Calls" }
+    for ($index = 0; $index -lt $Prefixes.Count; $index++) {
+        if (!$Calls[$index].StartsWith($Prefixes[$index])) { throw "$What ran '$($Calls[$index])', expected '$($Prefixes[$index])'." }
+        if (!$Calls[$index].Contains('--num-cores 3')) { throw "$What lost the worker bound: $($Calls[$index])" }
+    }
+}
+
 try {
-    $null = New-Item -ItemType Directory -Path $scratch
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '..\coverage.ps1') -Destination $scratch
+    $tools = Join-Path $scratch 'tools'
+    $null = New-Item -ItemType Directory -Path $tools
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot '..\coverage.ps1') -Destination $tools
     foreach ($tool in @('std', 'apps', 'goldens')) {
         @"
 @echo off
 echo $tool^|%SWAG_TEST_RENDERER%^|%* >>"%SWAG_COVERAGE_LOG%"
-if "%SWAG_COVERAGE_FAILURE%"=="$tool" if defined SWAG_COVERAGE_SOURCE echo source:  %SWAG_COVERAGE_SOURCE%
 if "%SWAG_COVERAGE_FAILURE%"=="$tool" exit /b 7
 exit /b 0
-"@ | Set-Content -LiteralPath (Join-Path $scratch "$tool.bat")
+"@ | Set-Content -LiteralPath (Join-Path $tools "$tool.bat")
     }
+
+    # One module owns renderer parity tests, another owns goldens, a third owns neither.
+    $fixtures = @{
+        'std\modules\pixel\src\tests\cases\integration\parity.ogl.swg' = '#[Swag.TestTag("integration.renderer.opengl")]'
+        'std\modules\core\src\tests\cases\functional\text.swg'         = '#test {}'
+        'apps\modules\swagscope\src\tests\cases\golden\explorer.swg'   = '#[Swag.TestTag("golden")]'
+    }
+    foreach ($fixture in $fixtures.GetEnumerator()) {
+        $path = Join-Path $scratch (Join-Path 'bin' $fixture.Key)
+        $null = New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force
+        Set-Content -LiteralPath $path -Value $fixture.Value -Encoding Ascii
+    }
+
     $env:SWAG_COVERAGE_LOG = Join-Path $scratch 'calls.txt'
     $env:SWAG_COVERAGE_FAILURE = $null
     $env:SWAG_TEST_RENDERER = 'original'
-    foreach ($suite in @('fast', 'gpu', 'full', 'goldens', 'parity')) {
-        Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
-        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Suite $suite | Out-Null
-        if ($LASTEXITCODE) { throw "Suite $suite failed." }
-        $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
-        $expectedCount = if ($suite -in @('goldens', 'parity')) { 1 } else { 2 }
-        if ($calls.Count -ne $expectedCount) { throw "Suite $suite dispatched $($calls.Count) commands." }
-        $renderer = 'gpu'
-        foreach ($call in $calls) {
-            if (!$call.Contains("|$renderer|dm test") -or !$call.Contains('--num-cores 3')) { throw "Wrong environment or compiler: $call" }
-            if (($suite -in @('fast', 'gpu')) -ne $call.Contains('--test-tag !golden')) { throw "Wrong fast filter: $call" }
-        }
-        if ($suite -eq 'parity' -and !$calls[0].Contains('pixel --test-tag integration.renderer.opengl')) { throw 'Parity selection changed.' }
-        if ($suite -eq 'goldens' -and !$calls[0].StartsWith('goldens|')) { throw 'Golden campaign was narrowed.' }
-    }
-    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Renderer cpu | Out-Null
-    if ($LASTEXITCODE) { throw 'The explicit CPU campaign failed.' }
-    $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
-    if ($calls.Count -ne 2 -or @($calls | Where-Object { !$_.StartsWith('std|cpu|') -and !$_.StartsWith('apps|cpu|') }).Count) {
-        throw 'The explicit CPU campaign did not select CPU hosts for every workspace.'
-    }
-    $env:SWAG_COVERAGE_FAILURE = 'std'
-    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -Suite fast | Out-Null
-    if ($LASTEXITCODE -ne 1) { throw 'A failed workspace was hidden.' }
-    if (!(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_.StartsWith('apps|') })) { throw 'A failure prevented the remaining workspace from running.' }
-    if ($env:SWAG_TEST_RENDERER -ne 'original') { throw 'Renderer selection escaped the launcher.' }
 
-    # A golden the GPU run reports is rendered again on CPU, and only its own test source.
-    $env:SWAG_COVERAGE_FAILURE = 'goldens'
-    $env:SWAG_COVERAGE_SOURCE = 'C:\checkout\bin\std\modules\gui\src\tests\cases\golden\menu.swg:12:5'
-    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Suite goldens | Out-Null
-    if ($LASTEXITCODE -ne 1) { throw 'A failed golden campaign was hidden.' }
-    $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
-    if ($calls.Count -ne 2 -or !$calls[0].StartsWith('goldens|gpu|')) { throw "The golden campaign did not confirm its failure: $calls" }
-    if (!$calls[1].StartsWith('std|cpu|dm test gui --test-tag golden --test-file golden\menu.swg ')) { throw "Wrong CPU confirmation: $($calls[1])" }
-    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -DevMode -Suite goldens -Renderer cpu | Out-Null
-    if (@(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ }).Count -ne 1) { throw 'A CPU golden campaign confirmed itself.' }
-    $env:SWAG_COVERAGE_SOURCE = $null
-    $env:SWAG_COVERAGE_FAILURE = 'apps'
-    Set-Content -LiteralPath $env:SWAG_COVERAGE_LOG -Value ''
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scratch 'coverage.ps1') -Suite goldens -Workspace apps -Module swagscope -TestFile explorer.swg | Out-Null
-    $calls = @(Get-Content -LiteralPath $env:SWAG_COVERAGE_LOG | Where-Object { $_ })
-    if ($calls.Count -ne 1 -or !$calls[0].StartsWith('apps|gpu|test swagscope --test-tag golden --test-file explorer.swg ')) { throw "Wrong focused golden campaign: $calls" }
-    Write-Output 'Coverage runner: suite selection, golden confirmation, failure propagation and environment isolation passed.'
+    foreach ($suite in @('fast', 'gpu')) {
+        $calls = Invoke-Launcher @('-DevMode', '-Suite', $suite)
+        Assert-Calls $calls @('std|gpu|dm test --test-tag !golden --test-tag !stress', 'apps|gpu|dm test --test-tag !golden --test-tag !stress') "Suite $suite"
+    }
+
+    # Goldens render on CPU whatever the caller selected, and a full pass runs them apart.
+    Assert-Calls (Invoke-Launcher @('-DevMode', '-Suite', 'goldens')) @('goldens|cpu|dm test') 'The golden campaign'
+    Assert-Calls (Invoke-Launcher @('-DevMode', '-Suite', 'full')) @('std|gpu|dm test --test-tag !golden ', 'apps|gpu|dm test --test-tag !golden ', 'goldens|cpu|dm test') 'The full pass'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps')) @('apps|cpu|test swagscope --test-tag golden ') 'The workspace golden campaign'
+    Assert-Calls (Invoke-Launcher @('-Suite', 'goldens', '-Workspace', 'apps', '-Module', 'swagscope', '-TestFile', 'explorer.swg')) @('apps|cpu|test swagscope --test-tag golden --test-file explorer.swg ') 'The focused golden campaign'
+
+    # Parity runs on a GPU, in the modules that own renderer comparison tests.
+    Assert-Calls (Invoke-Launcher @('-DevMode', '-Suite', 'parity')) @('std|gpu|dm test pixel --test-tag integration.renderer.opengl ') 'The parity campaign'
+    $null = Invoke-Launcher @('-Suite', 'parity', '-Renderer', 'cpu') 1
+
+    # The sweep draws the golden scenes on the GPU after the dedicated tests, and only for parity.
+    Assert-Calls (Invoke-Launcher @('-Suite', 'parity', '-Sweep', '-Workspace', 'apps')) @('apps|gpu|test swagscope --test-tag golden ') 'The parity sweep'
+    $null = Invoke-Launcher @('-Suite', 'goldens', '-Sweep') 1
+    if ($env:SWAG_TEST_PARITY_SWEEP) { throw 'The sweep selection escaped the launcher.' }
+
+    $calls = Invoke-Launcher @('-DevMode', '-Renderer', 'cpu')
+    Assert-Calls $calls @('std|cpu|dm test', 'apps|cpu|dm test') 'The explicit CPU campaign'
+
+    $env:SWAG_COVERAGE_FAILURE = 'std'
+    $calls = Invoke-Launcher @('-Suite', 'fast') 1
+    if (!($calls | Where-Object { $_.StartsWith('apps|') })) { throw 'A failure prevented the remaining workspace from running.' }
+    if ($env:SWAG_TEST_RENDERER -ne 'original') { throw 'Renderer selection escaped the launcher.' }
+    Write-Output 'Coverage runner: suite selection, CPU goldens, parity discovery, failure propagation and environment isolation passed.'
 } finally {
     $env:SWAG_COVERAGE_LOG = $oldLog
     $env:SWAG_COVERAGE_FAILURE = $oldFailure
-    $env:SWAG_COVERAGE_SOURCE = $null
     $env:SWAG_TEST_RENDERER = $oldRenderer
     $resolved = [IO.Path]::GetFullPath($scratch)
     if (!$resolved.StartsWith($scratchBase, [StringComparison]::OrdinalIgnoreCase)) { throw 'Scratch path escaped the temporary directory.' }

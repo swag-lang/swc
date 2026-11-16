@@ -425,9 +425,9 @@ tools\coverage.bat -DevMode -Suite full
 | `fast` (default) | GPU hosts by default; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
 | `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
 | `stress` | Selected GPU or CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | `golden` campaign against the CPU references: tolerant GPU pass, then CPU confirmation of each difference | Rendering changes and scheduled runs; `-Renderer cpu` for the exact pass |
-| `parity` | Pixel tests tagged `integration.renderer.opengl`, including CPU/GPU comparisons | GPU machine, renderer changes and scheduled runs |
-| `full` | All standard-module and application tests, including goldens and stress, on the selected renderer | Complete functional/visual pass before integration |
+| `goldens` | Every `golden` test, on the CPU renderer whatever `-Renderer` says, compared exactly | Rendering changes and scheduled runs, on any machine |
+| `parity` | Tests tagged `integration.renderer.opengl`: one scene drawn by the CPU and the GPU renderer, compared with a contrast-following tolerance | GPU machine, renderer changes and scheduled runs |
+| `full` | All standard-module and application tests and stress on the selected renderer, then the goldens on CPU | Complete functional/visual pass before integration |
 
 `-Workspace std|apps -Module <name>` and `-TestFile <substring>` focus the functional suites.
 `-Configuration devmode|release|release-safe` selects the program preset; goldens are recorded in devmode.
@@ -442,35 +442,41 @@ machines without a usable graphics device; direct compiler test commands can set
 presentation. OpenGL must initialize successfully; there is no automatic CPU fallback. Pixel's
 explicit CPU renderer tests continue testing CPU in either environment.
 
-A PNG golden is a CPU reference: only the CPU renderer draws the same pixels on every machine, so
-only a CPU render records a golden or writes the `<name>.actual.png` that `goldens.bat accept`
-promotes. The golden campaign still runs on the GPU, because it is several times faster, and
-works in three steps:
+Two campaigns own what the screen looks like, and they do not overlap.
 
-1. **GPU pass.** Each image is compared with its reference the way two graphics devices differ:
-   every channel may be off by three levels anywhere, for rounding in blending, and by 35% of
-   the contrast around the pixel, for antialiasing and filtering. A flat area therefore only gets
-   the rounding slack, while a shape that moved by a pixel, lost a stroke or changed color costs
-   the whole contrast and is a difference. Rejected pixels count only when they form a shape. A
-   difference leaves `<name>.actual.gpu.png`, a diagnostic nothing promotes; a missing golden
-   fails without recording.
-2. **CPU confirmation.** `coverage.bat -Suite goldens` runs the test sources that differed again
-   on CPU, and only those.
-3. **Verdict.** A CPU render that differs too moved the reference: it leaves `<name>.actual.png`
-   to review and accept. A CPU render that still matches leaves the GPU alone at fault: the two
-   renderers disagree, the GPU is presumed right, and the CPU renderer is brought to it before
-   the reference is recorded again.
+**Goldens render on CPU, always.** A PNG golden is a CPU reference: only the CPU renderer draws
+the same pixels on every machine, so a golden is recorded, compared exactly and replaced from a
+CPU render and from nothing else. The launchers select the CPU renderer for every run that selects
+the `golden` tag, whatever `-Renderer` or `SWAG_TEST_RENDERER` says. A mismatch leaves
+`<name>.actual.png` to review and promote with `goldens.bat accept`. A golden test reached by a
+GPU run, such as an unfiltered `std.bat test gui`, is not compared and says so once.
 
 ```text
 tools\coverage.bat -DevMode -Suite goldens
 tools\coverage.bat -DevMode -Suite goldens -Workspace std -Module gui -TestFile menu.swg
-tools\coverage.bat -DevMode -Suite goldens -Renderer cpu
 ```
 
-`-Renderer cpu` compares exactly and is the complete, slower check of every reference; it is also
-the way to record on a machine without a graphics device. A direct compiler test command selects
-it with `SWAG_TEST_RENDERER=cpu`. No test declares a golden for one renderer: a difference that
-remains between the two is fixed, or bounded by an `ImageGoldenOptions` tolerance the test states.
+**Parity compares the renderers.** Tests tagged `integration.renderer.opengl` draw one scene with
+`RenderCpu` and with the GPU renderer and compare the two images through
+`Pixel.Testing.assertRenderersAgree`. That comparison accepts what separates one graphics device
+from another: three levels on every channel anywhere, for rounding in blending, and 35% of the
+contrast around the pixel, for antialiasing and filtering. A flat area therefore only gets the
+rounding slack, while a shape that moved by a pixel, lost a stroke or changed color costs the
+whole contrast and is a difference; rejected pixels count only when they form a shape. A
+difference leaves `<name>.parity.cpu.png` and `<name>.parity.gpu.png` beside the goldens of the
+test. Neither is a reference: a real divergence is fixed in the renderer, the GPU being presumed
+right, and the scene that showed it stays as its regression test.
+
+```text
+tools\coverage.bat -DevMode -Suite parity
+tools\coverage.bat -DevMode -Suite parity -Workspace std -Module pixel -TestFile sampling.ogl.swg
+tools\coverage.bat -Suite parity -Sweep -Workspace apps -Module swagcapture
+```
+
+`-Sweep` is how a divergence is found in a real scene: after the dedicated tests, every golden
+scene is drawn on the GPU and compared with its CPU reference under the same tolerance, without
+recording anything. A scene it reports is not yet a test. Reduce what differs to a small scene in
+a parity test of the module that owns the primitive, watch it fail, fix the renderer, and keep it.
 
 Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
 images and scenes that still exercise every branch and keep all compared content visible.
@@ -553,7 +559,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
 | `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
 | `goldens.bat [dm] test [options...]` | Run tests tagged `golden` |
-| `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and CPU-rendered `.actual.png` under `bin/`; a GPU `.actual.gpu.png` is never promoted |
+| `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
 | `bench.bat [options...]` | Run the Python benchmark campaign |
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |

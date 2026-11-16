@@ -419,25 +419,22 @@ ships; history lives in Git, not here.
 
 ---
 
-### std.pixel.038 — The CPU renderer diverges from the GPU on fifty-one application goldens
+### std.pixel.038 — The parity sweep still reports renderer divergences in application scenes
 
-- Evidence: the golden campaign compares a GPU image with a tolerance that follows local
-  contrast, then renders each difference again on CPU. GUI and Vault pass on the GPU against
-  their CPU references. Capture keeps 19 and Scope 32 differences whose CPU render still matches
-  the reference, so the two renderers disagree there, each with a `<name>.actual.gpu.png` beside
-  its golden: scaled video frames (`viewer.video.*`, `menus.video.*`), scaled pictures
-  (`imageset-real-review`, `viewer.comic.page`, `viewer.image.transformed.paper`, `home.*`,
-  `menus.image.*`, Capture `area*`, `recent.bar`), spreadsheet cell fills (`viewer.xlsx.*`, a
-  flat fifteen levels apart), hatched and thin-stroked marks (Capture `presets*`,
-  `edit.callout`, `edit.shape.presets.paper`, `edit.arrow.paper`, `status.*`, `editor.menu.*`,
-  `inspector.time`, `tasks.frame.fr.papier`), the strikeout of `viewer.markdown.document`, and
-  `viewer.midi.vertical-zoom`, `viewer.odt.reading.encre`, `viewer.information.movie.encre`.
-  Some of these goldens also carry uncommitted source changes and were left as recorded.
-- Next: take one family at a time, starting with the picture and video scaling filter, find where
-  `RenderCpu` samples or covers differently from OpenGL, bring it to the GPU result, and record
-  the references again from CPU. Run the campaign on a second graphics device to check that
-  three levels and 35% of the local contrast hold beyond this machine.
-- Done when: `tools/coverage.bat -Suite goldens` passes on the GPU for every module, on more than
-  one graphics device, with every PNG golden recorded from a CPU render.
+- Evidence: goldens are CPU references compared on CPU only, and the parity campaign compares
+  the two renderers on dedicated scenes. `tools/coverage.bat -Suite parity -Sweep -Workspace apps`
+  draws the golden scenes on the GPU and still reports about forty of them, in families:
+  spreadsheet cell fills a flat fifteen levels apart (`viewer.xlsx.*`); one small hatched or
+  thin-stroked mark shared by `recent.bar`, `status.*`, `editor.menu.*` and `tasks.frame.fr.papier`
+  (160 pixels each), and the callout and shape marks of `presets*`, `edit.callout`,
+  `edit.shape.presets.paper`; pictures in `menus.image.*` (676 pixels each),
+  `imageset-real-review`, `viewer.image.transformed.paper`, `home.*` and Capture `area*`; the
+  strikeout of `viewer.markdown.document`; and `viewer.midi.vertical-zoom`,
+  `viewer.information.movie.encre`, `viewer.video.options*` (22 pixels).
+- Next: reduce one family at a time to a scene in a Pixel parity test, starting with the
+  spreadsheet fill and the hatched mark because each explains several scenes at once; watch the
+  scene fail, bring `RenderCpu` to the GPU result, keep the scene, and record the goldens it moves.
+- Done when: the sweep reports nothing on the three applications, and each divergence it showed
+  is held by a dedicated parity scene.
 
 ---

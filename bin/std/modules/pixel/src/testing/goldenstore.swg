@@ -106,55 +106,94 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
     Swag.check(false, "the pixels differ from the expected image", loc)
 }
 
+// Compares what the CPU and a GPU renderer drew from the same scene.
+//
+// `cpu` and `gpu` must be valid images of the same size. This is the comparison of the renderer
+// parity campaign, and it accepts what separates one graphics device from another: each channel
+// may be off by three levels anywhere, for rounding in blending, and by a share of the contrast
+// around the pixel, for antialiasing and filtering. A flat area therefore only gets the rounding
+// slack, while a shape that moved by a pixel, lost a stroke or changed color costs the whole
+// contrast and is a difference. Rejected pixels count only when they form a shape.
+// [[Pixel.Testing.ImageGoldenOptions.maxChannelDelta]] raises the rounding slack and
+// [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] accepts that many pixels of difference.
+//
+// A difference writes `<name>.parity.cpu.png` and `<name>.parity.gpu.png` in the goldens folder
+// of the calling test, reports its first pixel, and fails the test through [[Swag.check]]
+// without stopping it. Neither file is a golden: a real divergence is fixed in the renderer.
+// The check remains active when Pixel is built as a release dependency.
+func assertRenderersAgree(cpu, gpu: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
+{
+    Swag.require(cpu != null and cpu.isValid(), "CPU image needs allocated pixels")
+    Swag.require(gpu != null and gpu.isValid(), "GPU image needs allocated pixels")
+
+    var tolerance = options
+    tolerance.maxChannelDelta = Math.max(tolerance.maxChannelDelta, GpuChannelSlack)
+    let difference = compareGpuImage(cpu, gpu, tolerance)
+    if isWithinTolerance(&difference, tolerance) do
+        return
+
+    let cpuPath = goldenPath(name, ".parity.cpu.png", loc)
+    let gpuPath = goldenPath(name, ".parity.gpu.png", loc)
+    discard writeImage(cpu, cpuPath.toString())
+    discard writeImage(gpu, gpuPath.toString())
+
+    Console.println("[parity] renderers diverge for ", name)
+    Console.println("         cpu    : ", cpuPath)
+    Console.println("         gpu    : ", gpuPath)
+    reportImageDifference(&difference, cpu, gpu)
+    Swag.check(false, "the CPU and GPU renderers diverge", loc)
+}
+
 // Compares owned pixels against the PNG golden named `name`.
 //
 // Goldens live under `src/tests/goldens/<name>.png`. A PNG golden is a CPU reference: only
-// [[Pixel.RenderCpu]] produces the same pixels on every machine, so only an image it rendered
-// may record or replace one. An image is a reference when the run selected the CPU renderer
-// (`SWAG_TEST_RENDERER=cpu`) or when [[Pixel.Testing.ImageGoldenOptions.cpuRendered]] says the
-// test rendered it with the CPU backend itself.
+// [[Pixel.RenderCpu]] produces the same pixels on every machine, so a golden is recorded,
+// compared and replaced from a CPU render and from nothing else. The comparison is exact.
+// A missing golden is created and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes
+// `<name>.actual.png`, reports its first differing pixel, and fails the test through
+// [[Swag.check]], which lets it compare its other goldens.
 //
-// A reference image is compared exactly. A missing golden is created and passes, like
-// [[Pixel.Testing.assertGolden]], and a mismatch writes `<name>.actual.png`, the file
-// `tools/goldens.bat accept` promotes.
+// An image is a CPU render when the run selected that renderer (`SWAG_TEST_RENDERER=cpu`, which
+// the launchers set for every golden run) or when
+// [[Pixel.Testing.ImageGoldenOptions.cpuRendered]] says the test rendered it with the CPU
+// backend itself. Any other image comes from a GPU host: it is not compared, and the first one
+// of a run says so. What a GPU draws is checked against the CPU by the renderer parity tests,
+// through [[Pixel.Testing.assertRenderersAgree]].
 //
-// A GPU image, which a hosted run produces by default, is only compared, and the way two
-// graphics devices differ: each channel may be off by a few levels anywhere, for rounding in
-// blending, and by a share of the contrast around the pixel, for antialiasing and filtering.
-// A shape that moved by a pixel, lost a stroke or changed color exceeds both and is a
-// difference; so does a missing golden, which a GPU never records. A difference writes
-// `<name>.actual.gpu.png`, a diagnostic of what that machine drew which nothing promotes, and
-// asks for the CPU render of the same test. That render settles it: if it differs too, the
-// reference moved and its `.actual.png` is the candidate; if it matches, the two renderers
-// disagree, which the CPU run reports when it finds the diagnostic still there.
+// The parity sweep (`SWAG_TEST_PARITY_SWEEP=1`) turns a GPU-hosted golden scene into such a
+// check: the image is compared with the CPU golden under the parity tolerance, and never
+// recorded. It is a way to find a divergence in a real scene, to reduce into a parity test.
 //
-// Either mismatch reports its first differing pixel and fails the test through [[Swag.check]],
-// which lets it compare its other goldens. A comparison that passes removes the pending file
-// an earlier run left for the same renderer.
-//
-// [[Pixel.Testing.ImageGoldenOptions]] widens either comparison; both limits default to exact
-// for a reference image. The check remains active when Pixel is built as a release dependency.
-// Goldens are recorded from devmode, and the release preset contracts multiply-add into FMA,
-// which rounds antialiased samples slightly differently: a release build also accepts a channel
-// delta of two and four pixels beyond it, for a glyph that crosses into its neighbouring
-// quarter-pixel phase.
+// [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or raster differences; both
+// limits default to exact comparison. The check remains active when Pixel is built as a release
+// dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add
+// into FMA, which rounds antialiased samples slightly differently: a release build also accepts
+// a channel delta of two and four pixels beyond it, for a glyph that crosses into its
+// neighbouring quarter-pixel phase.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
-    let path      = goldenPath(name, ".png", loc)
-    let reference = isReferenceImage(options)
-
-    if not File.exists(path)
+    let path = goldenPath(name, ".png", loc)
+    if not options.cpuRendered and Env.variable("SWAG_TEST_RENDERER") != "cpu"
     {
-        if not reference
+        if Env.variable("SWAG_TEST_PARITY_SWEEP") != "1"
         {
-            Console.println("[golden] missing ", name, " -- a GPU run cannot record it")
-            Console.println("         ", path)
-            reportCpuRecording()
-            Swag.check(false, "the golden is missing and only a CPU render can record it", loc)
+            reportGpuGoldenSkipped()
             return
         }
 
+        let reference = catch Image.load(path.toString())
+        {
+            Console.println("[parity] no CPU golden to sweep ", name, " against")
+            return
+        }
+
+        assertRenderersAgree(&reference, image, name, options, loc)
+        return
+    }
+
+    if not File.exists(path)
+    {
         if not writeImage(image, path.toString())
         {
             Swag.check(false, "the golden cannot be recorded", loc)
@@ -173,60 +212,27 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    let tolerance  = goldenTolerance(options, reference)
-    let difference = reference ? compareImages(&expected, image, tolerance) : compareGpuImage(&expected, image, tolerance)
-
-    // Only a reference image leaves a file that can be promoted. What a GPU drew is kept under a
-    // name the promotion ignores, so it can be looked at but never becomes the golden.
-    let cpuActual = actualPath(path.toString(), ".png", ".actual.png")
-    let gpuActual = actualPath(path.toString(), ".png", ".actual.gpu.png")
-    let actual    = reference ? cpuActual : gpuActual
-
+    let tolerance  = releaseGoldenOptions(options)
+    let difference = compareImages(&expected, image, tolerance)
+    let actual     = actualPath(path.toString(), ".png", ".actual.png")
     if isWithinTolerance(&difference, tolerance)
     {
+        // A candidate an earlier run left is stale once the golden matches again.
         discard catch File.delete(actual)
-
-        // The reference stands and a GPU still drew something else: the renderers disagree.
-        if reference and File.exists(gpuActual)
-        {
-            Console.println("[golden] renderers diverge for ", name, " -- the CPU render matches its golden")
-            Console.println("         gpu    : ", gpuActual)
-            Console.println("         the GPU is presumed right: bring the CPU renderer to it, then record again")
-        }
-
         return
     }
 
     discard writeImage(image, actual.toString())
-    if reference
-    {
-        Console.println("[golden] pixels differ for ", name)
-        Console.println("         golden : ", path)
-        Console.println("         actual : ", actual)
-        reportImageDifference(&difference, &expected, image)
-        Swag.check(false, "the pixels differ from the golden", loc)
-        return
-    }
 
-    Console.println("[golden] GPU pixels differ from the CPU golden for ", name)
+    Console.println("[golden] pixels differ for ", name)
     Console.println("         golden : ", path)
-    Console.println("         gpu    : ", actual)
+    Console.println("         actual : ", actual)
     reportImageDifference(&difference, &expected, image)
-    reportCpuRecording()
-    Swag.check(false, "the GPU pixels differ from the CPU golden", loc)
+    Swag.check(false, "the pixels differ from the golden", loc)
 }
 
-// Says whether an image compared under `options` comes from the CPU renderer.
-//
-// A headless GUI host selects the GPU when the setting is absent as well as when it is explicit,
-// so only an explicit CPU selection makes a hosted image a reference.
-private func isReferenceImage(options: ImageGoldenOptions)->bool
-{
-    return options.cpuRendered or Env.variable("SWAG_TEST_RENDERER") == "cpu"
-}
-
-// Widens `options` by what separates the compared image from a golden recorded on CPU in devmode.
-private func goldenTolerance(options: ImageGoldenOptions, reference: bool)->ImageGoldenOptions
+// Widens `options` by the rounding a release build may add to a golden recorded from devmode.
+private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions
 {
     var result = options
     #static if #cfg == "release"
@@ -235,17 +241,19 @@ private func goldenTolerance(options: ImageGoldenOptions, reference: bool)->Imag
         result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
     }
 
-    if not reference do
-        result.maxChannelDelta = Math.max(result.maxChannelDelta, GpuChannelSlack)
-
     return result
 }
 
-// Names the run that tells a moved reference from a renderer divergence.
-private func reportCpuRecording()
+private var g_GpuGoldenSkipReported: bool
+
+// Says once per run that PNG goldens were left alone because a GPU host drew the images.
+private func reportGpuGoldenSkipped()
 {
-    Console.println("         render the same test on CPU to settle it: run it again with")
-    Console.println("         SWAG_TEST_RENDERER=cpu, or let 'coverage.bat -Suite goldens' do it")
+    if g_GpuGoldenSkipReported do
+        return
+    g_GpuGoldenSkipReported = true
+    Console.println("[golden] PNG goldens are compared on the CPU renderer only: this run draws on a GPU,")
+    Console.println("         so it leaves them alone. Run golden tests with SWAG_TEST_RENDERER=cpu.")
 }
 
 // Levels each channel of a GPU image may be off by anywhere, for rounding in blending.

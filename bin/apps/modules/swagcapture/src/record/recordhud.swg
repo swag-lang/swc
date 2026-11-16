@@ -163,7 +163,7 @@ impl RecordHud
     }
 
     // Places the pill beside the frame, or inside the monitor when the frame fills it.
-    private func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
+    func placement(recorder: *Recorder, frame: Math.Rectangle, scale: f32)->Math.Rectangle
     {
         let preparing    = recorder.state == .Preparing
         let logicalWidth = widthFor(recorder.limit, recorder.readoutLabel(), preparing,
@@ -200,8 +200,16 @@ impl RecordHud
         let barScale     = recorder.screenSelection ? monitor.scaleFactor : scale
         let width        = Math.ceil(logicalWidth * barScale)
         let height       = Math.ceil(logicalHeight * barScale)
-        let gap          = Math.ceil(RecordHudGap * barScale)
+        var gap          = Math.ceil(RecordHudGap * barScale)
         let workArea     = monitor.physicalWorkArea
+
+        // An X11 root capture records whatever covers the area, the shadow of the pill included,
+        // so a pill whose shadow margin reached into the area had to be unmapped for every frame:
+        // it flickered and lost the clicks meant for Stop. Its margin stays outside the frame.
+        #static if #os == Swag.TargetOs.Linux
+        {
+            gap = Math.max(gap, Math.ceil(g_App.theme.floatingShadowMargin() * barScale))
+        }
 
         if otherScreen
         {

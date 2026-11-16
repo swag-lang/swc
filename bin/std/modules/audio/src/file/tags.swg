@@ -1,7 +1,7 @@
 //! Format: Descriptive tags of sound files.
-//! Supported: ID3v2.2, v2.3, and v2.4 text frames at the head of an MP3 file, and the Vorbis comment block of a FLAC file.
-//! Not supported: ID3v1 trailers, unsynchronised ID3 tags, Ogg and MP4 comments, pictures, and writing tags.
-//! Role: This file owns reading the title, artist, album artist, album, and year a sound file declares.
+//! Supported: ID3v2.2, v2.3, and v2.4 text and picture frames at the head of an MP3 file, and the Vorbis comment and picture blocks of a FLAC file.
+//! Not supported: ID3v1 trailers, unsynchronised ID3 tags, Ogg and MP4 comments, linked pictures, and writing tags.
+//! Role: This file owns reading the title, artist, album artist, album, year and embedded picture a sound file declares.
 //
 #global public
 
@@ -19,7 +19,15 @@ struct SoundTags
         album:       String     // Collection the recording belongs to.
         year:        String     // Year of the recording or its release, as the file spells it.
         albumArtist: String     // Performer credited to the album, when the tag names one.
+
+        // Encoded bytes of the picture the file embeds, its front cover when it names one, and
+        // the extension of their format (`.jpg`, `.png`, `.gif`, `.bmp` or `.webp`). Read only
+        // when asked for; empty when the file embeds none in a format named here.
+        picture: Array'u8
+        pictureExtension: String
     }
+
+    pictureKind: u8     // Picture type the tag gives `picture`; 3 is the front cover.
 }
 
 private const Id3HeaderSize = 10'u64
@@ -35,12 +43,13 @@ impl SoundTags
                                  .albumArtist.isEmpty()
 
     // Reads the tags of `fileName`: the ID3v2 tag that opens an MP3 file, or the Vorbis comment
-    // block of a FLAC file.
+    // block of a FLAC file. With `withPicture`, the picture the file embeds is read too; a
+    // listing that only names recordings leaves it out, as it can weigh megabytes.
     //
     // Tags only describe a recording, so a file without them, a format this reader does not
     // know, a tag larger than 16 MiB, or one that does not decode all give empty tags rather
     // than an error.
-    func read(fileName: string)->SoundTags
+    func read(fileName: string, withPicture = false)->SoundTags
     {
         var result: #returntype
         var file = catch File.openReadLive(fileName) { return result }
@@ -58,7 +67,7 @@ impl SoundTags
             var tag: Array'u8
             tag.resize(size)
             if catch file.readExactAt(0, tag.toSlice()) do
-                result.decodeId3(tag.toSlice())
+                result.decodeId3(tag.toSlice(), withPicture)
             return result
         }
 
@@ -75,15 +84,23 @@ impl SoundTags
                 let last   = (block[0] & 0x80) != 0
                 let kind   = block[0] & 0x7F
                 let length = (cast(u64, block[1]) << 16) | (cast(u64, block[2]) << 8) | cast(u64, block[3])
+                if (kind == 4 or (kind == 6 and withPicture)) and length > TagSizeLimit do
+                    break
                 if kind == 4
                 {
-                    if length > TagSizeLimit do
-                        break
                     var comment: Array'u8
                     comment.resize(length)
                     if catch file.readExactAt(offset + 4, comment.toSlice()) do
                         result.decodeVorbisComment(comment.toSlice())
-                    break
+                    if not withPicture do
+                        break
+                }
+                elif kind == 6 and withPicture
+                {
+                    var picture: Array'u8
+                    picture.resize(length)
+                    if catch file.readExactAt(offset + 4, picture.toSlice()) do
+                        result.decodeFlacPicture(picture.toSlice())
                 }
 
                 if last do
@@ -98,8 +115,9 @@ impl SoundTags
 
 internal impl SoundTags
 {
-    // Reads the text frames of a complete ID3v2 tag, header included.
-    mtd decodeId3(tag: const [..] u8)
+    // Reads the text frames of a complete ID3v2 tag, header included, and its picture frames
+    // with `withPicture`.
+    mtd decodeId3(tag: const [..] u8, withPicture = false)
     {
         if tag.count < Id3HeaderSize do
             return
@@ -152,15 +170,114 @@ internal impl SoundTags
             let text = tag[body until body + size]
             switch id
             {
-            case "TIT2", "TT2":         .title = textFrame(text)
-            case "TPE1", "TP1":         .artist = textFrame(text)
-            case "TPE2", "TP2":         .albumArtist = textFrame(text)
-            case "TALB", "TAL":         .album = textFrame(text)
-            case "TYER", "TDRC", "TYE": .year = yearOf(textFrame(text))
+            case "TIT2", "TT2":
+                .title = textFrame(text)
+
+            case "TPE1", "TP1":
+                .artist = textFrame(text)
+
+            case "TPE2", "TP2":
+                .albumArtist = textFrame(text)
+
+            case "TALB", "TAL":
+                .album = textFrame(text)
+
+            case "TYER", "TDRC", "TYE":
+                .year = yearOf(textFrame(text))
+
+            case "APIC", "PIC":
+                if withPicture do
+                    .decodeId3Picture(text, version == 2)
             }
 
             offset = body + size
         }
+    }
+
+    // Reads one ID3 picture frame: its text encoding, the format (a MIME type, or three letters in
+    // ID3v2.2), the picture type, a description, then the picture.
+    mtd decodeId3Picture(frame: const [..] u8, threeLetterFormat: bool)
+    {
+        if frame.count < 2 do
+            return
+        let encoding = frame[0]
+        var at       = 1'u64
+        if threeLetterFormat
+        {
+            at += 3
+        }
+        else
+        {
+            while at < frame.count and frame[at] != 0 do
+                at += 1
+            at += 1
+        }
+
+        if at >= frame.count do
+            return
+        let kind = frame[at]
+        at += 1
+
+        // The description ends with one zero byte, or with a zero unit in UTF-16.
+        if encoding == 1 or encoding == 2
+        {
+            while at + 1 < frame.count and (frame[at] != 0 or frame[at + 1] != 0) do
+                at += 2
+            at += 2
+        }
+        else
+        {
+            while at < frame.count and frame[at] != 0 do
+                at += 1
+            at += 1
+        }
+
+        if at < frame.count do
+            .offerPicture(kind, frame[at to])
+    }
+
+    // Reads a FLAC picture block: big-endian picture type, MIME type, description, four
+    // dimensions, then the picture.
+    mtd decodeFlacPicture(block: const [..] u8)
+    {
+        if block.count < 8 do
+            return
+        let kind = bigEndian(block[0 until 4])
+        var at   = 4'u64
+        for 2
+        {
+            if at + 4 > block.count do
+                return
+            let length = bigEndian(block[at until at + 4])
+            at += 4
+            if length > block.count - at do
+                return
+            at += length
+        }
+
+        if at + 20 > block.count do
+            return
+        at += 16
+        let length = bigEndian(block[at until at + 4])
+        at += 4
+        if length > block.count - at do
+            return
+        .offerPicture(cast(u8, Math.min(kind, 255)), block[at until at + length])
+    }
+
+    // Keeps `bytes` as the picture when none is kept yet, or when it is the front cover and the
+    // kept one is not. A picture in a format not named here is left out.
+    mtd offerPicture(kind: u8, bytes: const [..] u8)
+    {
+        let extension = pictureExtensionOf(bytes)
+        if not extension.count do
+            return
+        if not .picture.isEmpty() and (.pictureKind == 3 or kind != 3) do
+            return
+        .picture.clear()
+        .picture.add(bytes)
+        .pictureExtension = extension
+        .pictureKind      = kind
     }
 
     // Reads the title, artist, album artist, album, and date fields of a Vorbis comment block.
@@ -266,6 +383,35 @@ private func textFrame(frame: const [..] u8)->String
     }
 
     return String.from(Latin1.trim(result.toString()))
+}
+
+// Returns the file extension of the image format `bytes` start with, or an empty string. The
+// signature decides rather than the declared MIME type, which taggers often get wrong.
+private func pictureExtensionOf(bytes: const [..] u8)->string
+{
+    if bytes.count >= 3 and bytes[0] == 0xFF and bytes[1] == 0xD8 and bytes[2] == 0xFF do
+        return ".jpg"
+    if bytes.count >= 8 and
+       bytes[0] == 0x89 and
+       bytes[1] == 'P' and
+       bytes[2] == 'N' and
+       bytes[3] == 'G' do
+        return ".png"
+    if bytes.count >= 4 and bytes[0] == 'G' and bytes[1] == 'I' and bytes[2] == 'F' and bytes[3] == '8' do
+        return ".gif"
+    if bytes.count >= 12 and
+       bytes[0] == 'R' and
+       bytes[1] == 'I' and
+       bytes[2] == 'F' and
+       bytes[3] == 'F' and
+       bytes[8] == 'W' and
+       bytes[9] == 'E' and
+       bytes[10] == 'B' and
+       bytes[11] == 'P' do
+        return ".webp"
+    if bytes.count >= 2 and bytes[0] == 'B' and bytes[1] == 'M' do
+        return ".bmp"
+    return ""
 }
 
 // Returns the year a date field starts with, or the whole field when it does not start with one.

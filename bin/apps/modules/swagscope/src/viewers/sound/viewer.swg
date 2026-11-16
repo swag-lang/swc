@@ -1083,8 +1083,10 @@ impl Panel
         {
             // The tags are read beside the sound, and the GUI thread reads neither until the
             // task has finished.
-            view.tags       = SoundTags.read(view.openFileName)
-            view.coverImage = localSleeve(view.openFileName)
+            view.tags       = SoundTags.read(view.openFileName, withPicture: true)
+            view.coverImage = embeddedSleeve(&view.tags)
+            if not view.coverImage.isValid() do
+                view.coverImage = localSleeve(view.openFileName)
             return try SoundFile.load(view.openFileName, preloadData: false)
         },
                                result.taskNotifier(&result.openTask))
@@ -1127,10 +1129,36 @@ func createViewer(host: Viewer.Host)
     host.setLifecycle(lifecycle)
 }
 
+// Brings `image` down to twice the side of the cover, which is all the page ever draws of it.
+private func fitSleeve(image: *Image)
+{
+    let side    = cast(s32, CoverSize * 2)
+    let largest = Math.max(image.width, image.height)
+    if largest <= side do
+        return
+    let scale = cast(f32, side) / cast(f32, largest)
+    image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)), Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
+}
+
+// Returns the sleeve the recording's own tags embed, decoded and fitted, or an invalid image when
+// they embed none or it does not decode. The encoded picture is released either way.
+func embeddedSleeve(tags: *SoundTags)->Image
+{
+    var result: Image
+    if not tags.picture.isEmpty()
+    {
+        result = catch Image.decode(tags.pictureExtension.toString(), tags.picture.toSlice())
+        if result.isValid() do
+            fitSleeve(&result)
+    }
+
+    tags.picture.clear()
+    return result
+}
+
 // Returns the sleeve stored beside `fileName` — `cover`, `folder` or `front`, in JPEG or PNG —
-// decoded and brought down to twice the side of the cover, or an invalid image when there is none.
-//
-// The sleeve is read from the folder only: the tags carry no picture yet.
+// decoded and fitted, or an invalid image when there is none. A sleeve the recording embeds
+// comes first; this one is shared by the folder.
 func localSleeve(fileName: string)->Image
 {
     const MaxBytes = 16'u64 * 1024 * 1024
@@ -1143,15 +1171,8 @@ func localSleeve(fileName: string)->Image
         let info = catch File.info(candidate)
         if info.size > MaxBytes do
             continue
-        var image   = catch Image.load(candidate) { continue }
-        let side    = cast(s32, CoverSize * 2)
-        let largest = Math.max(image.width, image.height)
-        if largest > side
-        {
-            let scale = cast(f32, side) / cast(f32, largest)
-            image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)), Math.max(1, cast(s32, cast(f32, image.height) * scale)), .Bilinear)
-        }
-
+        var image = catch Image.load(candidate) { continue }
+        fitSleeve(&image)
         return image
     }
 

@@ -375,7 +375,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     defer discard catch File.delete(fileName)
     Swag.require(not Sound.localSleeve(fileName).isValid())
 
-    let sleeve = Path.combine(folder, "cover.png")
+    let sleeve  = Path.combine(folder, "cover.png")
     let picture = expect File.readAllBytes(scopeTestDataPath("title.png"))
     expect File.writeAllBytes(sleeve, picture.toSlice())
     defer discard catch File.delete(sleeve)
@@ -388,4 +388,21 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     let view   = assume cast(*Sound.Panel, result.view)
     waitForSoundOpen(&host, view)
     Swag.require(view.opened and view.cover.isValid() and not view.coverImage.isValid())
+}
+
+// A sleeve the recording embeds in its tags is decoded and fitted like one beside it, and its
+// encoded bytes are let go; one that does not decode gives no cover.
+#test
+{
+    var tags: SoundTags
+    tags.picture = expect File.readAllBytes(scopeTestDataPath("title.png"))
+    tags.pictureExtension = ".png"
+    let image = Sound.embeddedSleeve(&tags)
+    Swag.require(image.isValid() and Math.max(image.width, image.height) <= cast(s32, Sound.CoverSize * 2))
+    Swag.require(tags.picture.isEmpty())
+
+    tags.picture.add(0xFF'u8)
+    tags.picture.add(0xD8'u8)
+    tags.pictureExtension = ".jpg"
+    Swag.require(not Sound.embeddedSleeve(&tags).isValid())
 }

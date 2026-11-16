@@ -601,3 +601,44 @@ internal func writeSampleFile()->String
     Swag.require(Clipboard.getString().length == Hex.CopyLimit)
     Swag.require(grid.doc.window.count <= Hex.WindowSize)
 }
+
+// The lens offers the commands of the context menu, with their shortcuts, and they act on the
+// bytes as the menu does.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("viewer-hex-lens-", ".bin")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, "ABCD")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view = hexTestViewer(&host, fileName, 900, 560)
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+
+    func run(results: *Lens.Results, title: string)
+    {
+        for &entry in results.sections[0]!.entries where entry.title == title
+        {
+            Swag.require(not entry.disabled)
+            entry.run!()
+            return
+        }
+
+        Swag.require(false, title)
+    }
+
+    var goTo = 0
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_GoTo do
+        goTo += entry.detail == Input.formatKeyShortcut(.Control, .G) ? 1 : 0
+    Swag.require(goTo == 1)
+
+    run(&results, Hex.texts().ui_SelectAll)
+    Swag.require(view.grid.selectionStart() == 0 and view.grid.selectionLength() == 4)
+    run(&results, Hex.texts().ui_CopyText)
+    Swag.require(Clipboard.getString() == "ABCD")
+    run(&results, Hex.texts().ui_CopyBytes)
+    Swag.require(Clipboard.getString() == "41 42 43 44")
+}

@@ -324,6 +324,15 @@ impl Panel
     // Gives the lens the options and the zoom of the byte view.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // The commands of the context menu, so none of them needs a right click.
+        let strings = texts()
+        let bounded = .grid.selectionLength() > CopyLimit
+        let limit   = StrConv.toDisplaySize(CopyLimit)
+        entries.add(strings.ui_GoTo, .GoTo, func|view = me|() { view.grid.promptGoToOffset() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .G))
+        entries.add(bounded ? Format.toString(strings.ui_CopyBytesMax, limit) : String.from(strings.ui_CopyBytes), .Copy, func|view = me|() { view.grid.copySelection(.Bytes) }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .C))
+        entries.add(bounded ? Format.toString(strings.ui_CopyTextMax, limit) : String.from(strings.ui_CopyText), .Copy, func|view = me|() { view.grid.copySelection(.Text) }, disabled: not .grid.doc.fileSize)
+        entries.add(bounded ? Format.toString(strings.ui_CopyDumpMax, limit) : String.from(strings.ui_CopyDump), .Copy, func|view = me|() { view.grid.copySelection(.Dump) }, disabled: not .grid.doc.fileSize)
+        entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .A))
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
 

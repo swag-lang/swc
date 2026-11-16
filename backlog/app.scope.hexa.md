@@ -20,9 +20,9 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 - Evidence: the visible command group exposes row width, value width, representation, byte
   order, and the analysis action. Go To, copy-as-bytes, copy-as-text, copy-as-dump, and
-  select-all are reachable only through the context menu. Pattern search is discoverable through
-  the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A), and Go To (Ctrl+G)
-  have keyboard shortcuts.
+  select-all are in the context menu and the lens, with their shortcuts. Pattern search is
+  discoverable through the shared search field, and only byte copy (Ctrl+C), select-all (Ctrl+A),
+  and Go To (Ctrl+G) have keyboard shortcuts.
 - Next: rank the frequent commands, give each one action identity and shortcut metadata, then expose
   the dominant Go To and copy actions directly in the viewer band.
 - Done when: Go To, bookmark, compare, copy forms, row layout, endian, inspector,

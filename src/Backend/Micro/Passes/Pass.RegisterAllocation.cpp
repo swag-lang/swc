@@ -4236,6 +4236,9 @@ void MicroRegisterAllocationPass::rewriteInstructions()
         for (const auto& requestInfo : allocRequests)
         {
             AllocRequest request = requestInfo;
+            const bool     isDeadIndirectCallTarget = it->op == MicroInstrOpcode::CallIndirect &&
+                                                      instOps && instOps[0].reg == request.virtKey &&
+                                                      request.isUse && !request.isDef && !isLiveOut(request.denseIndex, stamp);
 
             const bool defOnlyCopyFromConcrete = request.isDef &&
                                                  !request.isUse &&
@@ -4301,6 +4304,16 @@ void MicroRegisterAllocationPass::rewriteInstructions()
                 for (const MicroReg key : mentionedConcreteRegs)
                 {
                     if (!request.virtKey.isSameClass(key))
+                        continue;
+
+                    const uint32_t concreteDense = denseConcreteRegs_.find(key);
+                    const bool     isCallClobberOnly = isDeadIndirectCallTarget &&
+                                                       std::ranges::find(defConcreteIndices_[idx], concreteDense) != defConcreteIndices_[idx].end() &&
+                                                       std::ranges::find(useConcreteIndices_[idx], concreteDense) == useConcreteIndices_[idx].end();
+                    // The call reads its target before clobbering caller-saved registers. A target
+                    // that dies here can use a clobbered register, provided it is not a concrete
+                    // argument register used by the same call.
+                    if (isCallClobberOnly)
                         continue;
 
                     appendUniqueReg(forbiddenPhysRegs, key);

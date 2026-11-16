@@ -401,6 +401,19 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and a chapter number go to that chapter of the spine.
+        if entries.results.prefix == .Line
+        {
+            let typed = Latin1.trim(entries.query.toString())
+            for c in typed where not Latin1.isDigit(c) do
+                return
+            let chapter = catch StrConv.toU64(typed) { return; }
+            if not chapter or chapter > .book.chapters.count do
+                return
+            entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
+            return
+        }
+
         entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
         entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))

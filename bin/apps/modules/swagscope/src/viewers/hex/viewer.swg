@@ -324,6 +324,19 @@ impl Panel
     // Gives the lens the options and the zoom of the byte view.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and an offset, in the grammar of Go to Offset, go there.
+        if entries.results.prefix == .Line
+        {
+            let target = parseFileOffset(entries.query.toString(), .grid.caret, .grid.doc.fileSize)
+            if target != Swag.U64.Max
+            {
+                let value = formatDigits(target, .grid.offsetDigits)
+                entries.add(Viewer.jumpRowText(appStrings().lens_GoToOffset, value.toString(), entries.query.toString()), .GoTo, func|view = me, target|() { view.grid.moveCaret(target, false, center: true) })
+            }
+
+            return
+        }
+
         // The commands of the context menu, so none of them needs a right click.
         let strings = texts()
         let bounded = .grid.selectionLength() > CopyLimit

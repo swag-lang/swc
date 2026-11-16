@@ -74,6 +74,17 @@ impl LensEntries
     }
 }
 
+// Returns the words of a lens row made from `title`, a format with one `%`, and `value`, the place
+// it goes to, followed by `typed` when it spells that place otherwise, so the row answers the
+// query it came from.
+func jumpRowText(title: string, value: string, typed: string)->String
+{
+    let query = Latin1.trim(typed)
+    if Utf8.compare(query, value, .Latin1NoCase) == 0 do
+        return Format.toString(title, value)
+    return Format.toString(title, Format.toString("% (%)", value, query))
+}
+
 // The zoom commands every reading viewer offers in the lens.
 enum ZoomCommand
 {

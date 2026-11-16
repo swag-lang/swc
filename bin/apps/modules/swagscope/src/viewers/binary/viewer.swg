@@ -1076,6 +1076,19 @@ impl Panel
     // Gives the lens the way back and forward through the report.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and an offset, in the grammar of Go to Offset, select the row that covers it.
+        if entries.results.prefix == .Line
+        {
+            let target = parseFileOffset(entries.query.toString(), .selectedOffset(), .doc.image.fileSize)
+            if target != Swag.U64.Max
+            {
+                let value = Format.toString("%{X}", target)
+                entries.add(Viewer.jumpRowText(appStrings().lens_GoToOffset, value.toString(), entries.query.toString()), .GoTo, func|view = me, target|() { discard view.revealOffset(target) })
+            }
+
+            return
+        }
+
         let strings = texts()
         if .hasPage
         {

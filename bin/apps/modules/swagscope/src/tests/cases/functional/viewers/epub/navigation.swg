@@ -157,3 +157,26 @@ using Core, Gui, Gui.Testing, Viewers
     let navigation = expect Epub.Navigation.parse(source, "OPS/toc.ncx", true)
     Swag.require(navigation.entries.count == 1 and navigation.entries[0].title == "Chapter")
 }
+
+// A colon and a chapter number in the lens turn to that chapter; one past the last offers nothing.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    window.lens.open(":2")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1)
+
+    window.lens.open(":3")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
+}

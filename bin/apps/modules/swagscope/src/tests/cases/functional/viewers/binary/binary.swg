@@ -962,3 +962,25 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     Swag.require(not Utf8.contains(doc.report.summary.toSlice(), ".S.e"))
     Swag.require(rowValue(&doc.report, Binary.texts().font_Family) == "Segoe UI")
 }
+
+// A colon and an offset in the lens select the report row that covers it.
+#test
+{
+    let bytes    = buildPeFixture()
+    let fileName = writeFixture("pe_lens_offset", bytes.toSlice())
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "binary")
+    let view = assume cast(*Binary.Panel, window.currentView)
+
+    window.lens.open(Format.toString(":%{X}", FixtureTextAt).toString())
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.list.selectedLine() != null)
+    view.copySelectedLine()
+    Swag.require(Utf8.contains(Clipboard.getString().toSlice(), ".text"))
+}

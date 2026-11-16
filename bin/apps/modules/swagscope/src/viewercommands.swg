@@ -89,7 +89,11 @@ const LensFilesAlone  = 64'u64
 // The most lines of the open file the lens shows for a query, and the most of the file it reads
 // to find them.
 const LensLinesShown = 8'u64
-const LensFileLimit  = 8 * 1024 * 1024'u64
+
+// The viewers whose own lens source answers `:`, each with the positions it reads: rows, cells,
+// pages, instants, offsets or chapters. Text, code and Markdown are answered here, by their lines.
+const ViewersAnsweringPositions: [10] string = ["table", "xlsx", "ods", "pdf", "comic", "video", "sound", "hex", "binary", "epub"]
+const LensFileLimit = 8 * 1024 * 1024'u64
 
 impl ViewerWindow
 {
@@ -354,14 +358,7 @@ impl ViewerWindow
         if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
             return
         let key = .choices[.activeChoiceIndex].key
-        if (key == "table" or
-            key == "xlsx" or
-            key == "ods" or
-            key == "pdf" or
-            key == "comic" or
-            key == "video" or
-            key == "sound") and
-           results.prefix == .Line
+        if results.prefix == .Line and Slice.contains(ViewersAnsweringPositions, key.toString())
         {
             .describeViewerCommands(results)
             return

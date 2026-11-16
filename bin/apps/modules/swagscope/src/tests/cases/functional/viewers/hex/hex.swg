@@ -642,3 +642,25 @@ internal func writeSampleFile()->String
     run(&results, Hex.texts().ui_CopyBytes)
     Swag.require(Clipboard.getString() == "41 42 43 44")
 }
+
+// A colon and an offset in the lens, in the grammar of Go to Offset, move the caret there.
+#test
+{
+    let fileName = writeStreamedFile(4096)
+    defer discard catch File.delete(fileName)
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex do
+        window.selectViewer(cast(u32, index))
+    completeQueuedViewerFile(&host, window)
+    let view = assume cast(*Hex.Panel, window.currentView)
+
+    window.lens.open(":1f0")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(Utf8.contains(section.entries[0].title.toString(), "000001F0"), section.entries[0].title.toString())
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.grid.caret == 0x1F0)
+}

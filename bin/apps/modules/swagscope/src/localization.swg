@@ -233,6 +233,8 @@ struct AppStrings
     lens_InFile:          string = "In This File"              // Lens section listing the lines of the open file that hold the query.
     lens_GoToLine:        string = "Go to Line %"              // Lens row going to the line typed after a colon.
     lens_GoToPage:        string = "Go to Page %"              // Lens row going to the page typed after a colon.
+    lens_GoToOffset:      string = "Go to Offset %"            // Lens row going to the byte offset typed after a colon.
+    lens_GoToChapter:     string = "Go to Chapter %"           // Lens row going to the chapter typed after a colon.
     lens_GoToTime:        string = "Go to %"                   // Lens row moving playback to the instant typed after a colon.
     cmd_Open:             string = "Open…"                     // Command choosing a file to open.
     cmd_OpenChosen:       string = "Open"                      // Command opening the item chosen in the explored folder.

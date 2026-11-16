@@ -130,6 +130,15 @@ impl ConstReversedList
 
 impl List
 {
+    private mtd createNode(value: #fwd T)->*ListEntry
+    {
+        var entry = ListEntry'T{prev: null, next: null, value: #fwd value}
+        let node  = cast(*ListEntry'T, Memory.alloc(#sizeof(ListEntry'T), alignment: #alignof(ListEntry'T)))
+        node[]    = #relocate entry
+        Swag.postMove(node, 1)
+        return node
+    }
+
     // Returns the number of elements in the list.
     #[Swag.Inline]
     mtd const opCount()->u64 => .count
@@ -249,8 +258,7 @@ impl List
     #[Discardable]
     mtd addFront(value: #fwd T)->*ListEntry
     {
-        let n = Memory.new'ListEntry()
-        n.value = #fwd value
+        let n = .createNode(#fwd value)
         .count  += 1
 
         if .head
@@ -272,8 +280,7 @@ impl List
     #[Discardable]
     mtd addBack(value: #fwd T)->*ListEntry
     {
-        let n = Memory.new'ListEntry()
-        n.value = #fwd value
+        let n = .createNode(#fwd value)
         .count  += 1
 
         if .tail
@@ -295,8 +302,7 @@ impl List
     #[Discardable]
     mtd insertBefore(node: *ListEntry, value: #fwd T)->*ListEntry
     {
-        let n = Memory.new'ListEntry()
-        n.value = #fwd value
+        let n = .createNode(#fwd value)
         .count  += 1
 
         n.next = node
@@ -315,8 +321,7 @@ impl List
     #[Discardable]
     mtd insertAfter(node: *ListEntry, value: #fwd T)->*ListEntry
     {
-        let n = Memory.new'ListEntry()
-        n.value = #fwd value
+        let n = .createNode(#fwd value)
         .count  += 1
 
         n.prev = node

@@ -120,10 +120,17 @@ namespace Fuse
         return 0
     }
 
+    func writableVolume(owner: *MountedVolume)->s32
+    {
+        discard catch owner.volume.requireWritable() { return statusFromError(Swag.err) }
+        return 0
+    }
+
     func writable(owner: *MountedVolume, node: *Node)->s32
     {
-        if owner.volume.readOnly do
-            return -Linux.EROFS
+        let volumeStatus = writableVolume(owner)
+        if volumeStatus do
+            return volumeStatus
         if node.attributes & FileAttributeReadOnly do
             return -Linux.EACCES
         return 0
@@ -135,8 +142,9 @@ namespace Fuse
             return -Linux.ENOENT
         if not parent.isDirectory() do
             return -Linux.ENOTDIR
-        if owner.volume.readOnly do
-            return -Linux.EROFS
+        let volumeStatus = writableVolume(owner)
+        if volumeStatus do
+            return volumeStatus
         if parent.attributes & FileAttributeReadOnly do
             return -Linux.EACCES
         return 0
@@ -449,7 +457,7 @@ namespace Fuse
         output.f_bfree   = owner.volume.freeBytes() / BlockSize
         output.f_bavail  = output.f_bfree
         output.f_namemax = Math.min(MaximumNameSize, 1024'u64)
-        output.f_flag    = owner.volume.readOnly ? 1 : 0
+        output.f_flag    = (owner.volume.readOnly or owner.volume.file.protectionTriggered) ? 1 : 0
         return 0
     }
 
@@ -483,8 +491,9 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if owner.volume.readOnly do
-            return -Linux.EROFS
+        let volumeStatus = writableVolume(owner)
+        if volumeStatus do
+            return volumeStatus
 
         // Only the persisted Windows read-only bit can change. Other POSIX bits are unsupported.
         if (permissions & 0xFFF & ~Linux.S_IWUSR) != (mode(node) & 0xFFF & ~Linux.S_IWUSR) do
@@ -507,8 +516,9 @@ namespace Fuse
         owner.volume.accessLock.lockShared()
         defer owner.volume.accessLock.unlockShared()
         discard catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if owner.volume.readOnly do
-            return -Linux.EROFS
+        let volumeStatus = writableVolume(owner)
+        if volumeStatus do
+            return volumeStatus
         if (uid != Swag.U32.Max and uid != owner.uid) or (gid != Swag.U32.Max and gid != owner.gid) do
             return -Linux.EPERM
         return 0
@@ -523,8 +533,9 @@ namespace Fuse
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
         let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
-        if owner.volume.readOnly do
-            return -Linux.EROFS
+        let volumeStatus = writableVolume(owner)
+        if volumeStatus do
+            return volumeStatus
         let now        = volumeTimeNow()
         let accessTime = times ? catch volumeTime(times[0], node.lastAccessTime) { return statusFromError(Swag.err) } : now
         let writeTime  = times ? catch volumeTime(times[1], node.lastWriteTime) { return statusFromError(Swag.err) } : now

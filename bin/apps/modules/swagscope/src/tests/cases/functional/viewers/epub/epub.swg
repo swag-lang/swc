@@ -18,7 +18,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.epub"), true)
-    let view = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.book.chapters.count == 2 and view.chapter == 0)
     Swag.require(view.view != null and view.contents.count == 2)
     view.turn(1)
@@ -50,4 +50,20 @@ using Core, Gui, Gui.Testing, Viewers
     var loadError: Swag.Error
     discard catch Epub.Book.load(scopeTestDataPath("viewer.damaged.epub")) as loadError
     Swag.require(loadError.value() is Errors.InvalidFormatError)
+}
+
+// The Explorer preview of a book is the cover its package names, decoded from the archive and
+// fitted; a book that names no cover has none to give.
+#test
+{
+    let cover = expect Epub.loadCover(scopeTestDataPath("viewer.christmas-carol.epub"))
+    Swag.require(Utf8.endsWith(cover.path.toString(), "_cover.jpg") and cover.bytes.count > 0)
+
+    let plugin = Epub.viewerPlugin()
+    let image  = expect plugin.thumbnail!(scopeTestDataPath("viewer.christmas-carol.epub"), 128)
+    Swag.require(image.isValid() and Math.max(image.width, image.height) == 128 and image.height > image.width)
+
+    let none = expect Epub.loadCover(scopeTestDataPath("viewer.epub"))
+    Swag.require(none.bytes.isEmpty() and none.path.isEmpty())
+    Swag.require(not (expect plugin.thumbnail(scopeTestDataPath("viewer.epub"), 128)).isValid())
 }

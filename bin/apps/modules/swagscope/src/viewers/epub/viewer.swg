@@ -16,10 +16,41 @@ func viewerPlugin()->Viewer.Plugin
         .iconIndex    = cast(s32, ViewerIcons.Epub)
         .create       = &createViewer
         .smokeFixture = "viewer.epub"
+        .thumbnail    = &loadThumbnail
         .addSelectors(".epub")
     }
 
     return result
+}
+
+// The cover the package names supplies the Explorer preview, read without extracting the book. A
+// book that names none answers an empty image and keeps the shared preview.
+private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    let cover = try loadCover(fileName)
+    if cover.bytes.isEmpty() do
+        return {}
+    if Path.lowercaseExtension(cover.path) == ".svg"
+    {
+        let drawing = try Svg.Drawing.parse(cast(string, cover.bytes.toSlice()))
+        let largest = Math.max(drawing.width, drawing.height, 1)
+        let scale   = Math.min(cast(f32, maxSide) / largest, 1)
+        return drawing.rasterize(cast(s32, Math.max(Math.round(drawing.width * scale), 1)),
+                                 cast(s32, Math.max(Math.round(drawing.height * scale), 1)),
+                                 2)
+    }
+
+    var image   = try Image.decode(cover.path, cover.bytes.toSlice())
+    let largest = Math.max(image.width, image.height)
+    if largest > maxSide
+    {
+        let scale = cast(f32, maxSide) / cast(f32, largest)
+        image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
+                     Math.max(1, cast(s32, cast(f32, image.height) * scale)),
+                     .Bilinear)
+    }
+
+    return image
 }
 
 enum ReadingColumn { Compact, Comfortable, Wide }

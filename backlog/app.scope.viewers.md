@@ -33,12 +33,14 @@ viewer packages, helper binaries, or network service required to open supported 
 
 ### app.scope.viewers.015 — Explorer thumbnails do not yet reflect every reader
 
-- Evidence: Image, Video, Comic, PDF and Sound can supply content thumbnails. Text, Code,
-  Markdown, HTML, RTF, Subtitle and Table still show a bounded source sample; Archive, Binary,
-  DOCX, ODT, ODS, ODP, EPUB, Font, Hex, MIDI, PPTX and XLSX show neutral file facts. The old fallback's byte map
+- Evidence: Image, Video, Comic, PDF, Sound (the sleeve its tags embed, else its waveform) and
+  EPUB (the cover its package names) can supply content thumbnails; a plugin decoder answering an
+  empty image keeps the shared preview. Text, Code, Markdown, HTML, RTF, Subtitle and Table still
+  show a bounded source sample; Archive, Binary, DOCX, ODT, ODS, ODP, EPUB without a cover, Font,
+  Hex, MIDI, PPTX and XLSX show neutral file facts. The old fallback's byte map
   was misleading for binary documents and is no longer used.
 - Next: give each remaining visual reader a bounded thumbnail callback using its own decoded
-  model: EPUB cover or first spine page, Office first page/slide/sheet, font specimen, MIDI score
+  model: EPUB first spine page when no cover is named, Office first page/slide/sheet, font specimen, MIDI score
   or timeline, and parsed HTML/RTF/Markdown/Table content. Keep archive and hexadecimal previews
   explicitly neutral when no single rendered page represents the file.
 - Done when: every registered viewer either supplies a representative content image through its

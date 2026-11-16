@@ -53,7 +53,9 @@ func renderThumbnail(registry: const *ViewerPluginRegistry,
     let knownPlugin = registry.namePlugin(path, &pluginIndex)
     if knownPlugin and registry.plugins[pluginIndex].thumbnail
     {
-        return try registry.plugins[pluginIndex].thumbnail!(path, ThumbnailMaxSize)
+        let image = try registry.plugins[pluginIndex].thumbnail!(path, ThumbnailMaxSize)
+        if image.isValid() do
+            return image
     }
 
     let viewerName = knownPlugin ? registry.plugins[pluginIndex].staticName : "File"

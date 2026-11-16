@@ -369,8 +369,7 @@ private impl Header
 
 impl Header
 {
-    // Shows a sort direction for one logical column.
-    // Returns the room under the titles for their details: none when no column has one.
+    // Returns the height reserved under titles when any column has a detail, or zero otherwise.
     mtd const detailBand()->f32
     {
         for item in .items where item and not item.detail.isEmpty() do
@@ -388,6 +387,11 @@ impl Header
         .parent?.applyLayout()
     }
 
+    // Shows `direction` on the existing logical column `column`.
+    //
+    // The column is zero-based and `direction` must be `Ascending` or `Descending`. Panics when
+    // the column does not exist or the direction is `None`; use [[Gui.Header.clearSortIndicator]]
+    // to remove the current marker.
     mtd setSortIndicator(column: u32, direction: HeaderSortDirection)
     {
         Swag.assert(column < .items.count)

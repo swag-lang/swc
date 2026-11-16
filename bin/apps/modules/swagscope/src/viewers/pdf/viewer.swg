@@ -57,6 +57,7 @@ struct ViewerContent
     page:    Pdf.Page
     facts:   DocumentFacts
     outline: Array'Pdf.OutlineEntry
+    labels:  Array'String     // Page labels the document gives, or empty when it gives none.
 }
 
 private func loadViewerContent(fileName: string)->ViewerContent fail
@@ -64,6 +65,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     var result: #returntype
     result.reader  = #move try Pdf.Reader.open(fileName)
     result.outline = result.reader.loadOutline()
+    result.labels  = result.reader.loadPageLabels()
     if not result.reader.pageCount() do
         fail Errors.InvalidFormatError{texts().err_NoPage}
     result.page = #move try result.reader.loadPage(0)
@@ -142,6 +144,7 @@ struct Panel
     failureReason: String
     outline:       *DocumentOutline?
     bookmarks:     Array'Pdf.OutlineEntry
+    pageLabels:    Array'String     // Labels the document gives its pages, one per page, or empty.
     history:       Viewer.History'PdfReadingPosition
 
     late
@@ -194,7 +197,8 @@ private impl IWnd for Panel
 
         .pdfView.exchangeDocument(&content.reader, &content.page)
         .history.clear()
-        .bookmarks = #move content.outline
+        .bookmarks  = #move content.outline
+        .pageLabels = #move content.labels
         .publishBookmarks()
 
         .facts   = #move content.facts
@@ -286,7 +290,7 @@ private impl Panel
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
-        .pageLabel.setText(Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount()))
+        .pageLabel.setText(.pageReadout())
     }
 
     mtd refreshZoom()
@@ -294,8 +298,42 @@ private impl Panel
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
     }
 
+    // Returns the label the document gives page `index`, or an empty string when it is only its
+    // position: no labels, or a label that is the page number itself.
+    internal mtd pageLabelOf(index: u64)->string
+    {
+        if index >= .pageLabels.count do
+            return ""
+        let label = .pageLabels[index].toString()
+        return label == Format.toString("%", index + 1).toString() ? "" : label
+    }
+
+    // Returns the page readout: the position among the pages, after the page's own label when the
+    // document gives one and it fits the readout, as `iv (4/120)`.
+    internal mtd pageReadout()->String
+    {
+        const LabelledLimit = 13'u64
+        let position = Format.toString("%/%", Math.min(.pdfView.pageIndex + 1, .pdfView.pageCount()), .pdfView.pageCount())
+        let label    = .pageLabelOf(.pdfView.pageIndex)
+        if label.count and label.count + position.length + 3 <= LabelledLimit do
+            return Format.toString("% (%)", label, position)
+        return Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount())
+    }
+
+    // Moves to the page `text` names: its position, counted from one, or else the label the
+    // document gives it, compared without case.
     internal mtd goToTypedPage(text: string)->bool
     {
+        let typed = Latin1.trim(text)
+        for label, index in .pageLabels where typed.count and
+                                              not Latin1.isDigit(typed[0]) and
+                                              Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0
+        {
+            .history.visit(.pdfView.readingPosition())
+            .pdfView.showPage(index)
+            return true
+        }
+
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(text))
         catch { parsed = try StrConv.parseU64(text) } as parseErrorOutcome
@@ -407,6 +445,13 @@ private impl Panel
         options.title   = texts().ui_GoToPage
         options.message = Format.toString(texts().ui_PageRange, .pdfView.pageCount()).toString()
         options.text    = Format.toString("%", .pdfView.pageIndex + 1).toString()
+        let label = .pageLabelOf(.pdfView.pageIndex)
+        if label.count
+        {
+            options.message = Format.toString(texts().ui_PageRangeLabels, .pdfView.pageCount(), label).toString()
+            options.text    = label
+        }
+
         let dialog = EditDlg.createSingleLine(.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return

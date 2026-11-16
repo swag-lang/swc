@@ -338,15 +338,15 @@ integration around those engines.
   to the requesting node.
 - Related: std.gui.html.019
 
-### app.scope.document.012 — PDF page navigation has no thumbnails or page-label lookup
+### app.scope.document.012 — PDF page navigation has no thumbnails
 
-- Evidence: the information group provides previous/next and a clickable `current / total`
-  readout with validated numeric page entry. There is no thumbnail strip, page-label lookup, or
-  overview suitable for a long document.
-- Next: render cancellable low-resolution thumbnails through a bounded cache and extend the page
-  address control with PDF page labels.
-- Done when: thumbnails prioritize the visible neighborhood, direct numeric and page-label
-  jumps validate input, the current page is selected, and thousand-page documents stay responsive.
+- Evidence: the information group provides previous/next and a clickable readout that names the
+  page by the label the document gives it (`/PageLabels`) beside its position, and the page dialog
+  accepts a position or a label. There is no thumbnail strip or overview suitable for a long
+  document.
+- Next: render cancellable low-resolution thumbnails through a bounded cache.
+- Done when: thumbnails prioritize the visible neighborhood, the current page is selected, and
+  thousand-page documents stay responsive.
 - Related: std.gui.pdf.018
 
 ### app.scope.document.015 — PDF pages cannot be rotated or viewed with box and geometry overlays

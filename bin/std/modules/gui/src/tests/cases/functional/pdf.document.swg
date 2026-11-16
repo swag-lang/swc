@@ -475,3 +475,26 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
     // The second triangle leaves its clip on every side, so the clip stays.
     Swag.require(paths[1].itemClip().clipped)
 }
+
+// Page labels number each range in its own style from its own start, after its prefix; a page
+// before the first range keeps its position.
+#test
+{
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pdf-labels-%{X016}.pdf", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [1 << /S /r >> 3 << /S /D /P (A-) >> 5 << /S /A /St 27 >> 6 << /P (Cover) >>] >> >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 7 /Kids [3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R 3 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 40 30] /Resources << >> >>")
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    var reader = expect Reader.open(fileName)
+    let labels = reader.loadPageLabels()
+    Swag.require(labels.count == reader.pageCount() and labels.count == 7)
+    Swag.require(labels[0] == "1" and labels[1] == "i" and labels[2] == "ii")
+    Swag.require(labels[3] == "A-1" and labels[4] == "A-2" and labels[5] == "AA" and labels[6] == "Cover")
+    Swag.require(Pdf.pageNumberText("R", 1994) == "MCMXCIV" and Pdf.pageNumberText("a", 53) == "aaa")
+}

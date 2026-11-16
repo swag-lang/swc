@@ -17,6 +17,7 @@ Some redistributions are documented closer to the files they cover:
 - `std/modules/audio/src/codec/opus/THIRDPARTY.md`: libopus SILK and CELT tables.
 - `std/modules/audio/src/codec/vorbis/THIRDPARTY.md`: the libvorbis floor 1 inverse decibel table.
 - `std/modules/gui/src/theme/THIRDPARTY.md`: GUI fonts.
+- `std/modules/gui/src/testing/fonts/THIRDPARTY.md`: fallback font subsets of the headless test host.
 - `std/modules/gui/src/tests/datas/THIRDPARTY.md`: HTML and PDF test fixtures.
 - `std/modules/pixel/src/tests/datas/THIRDPARTY.md`: SVG Web Platform Tests fixtures.
 - `std/modules/video/src/tests/datas/THIRDPARTY.md`: video test fixtures.

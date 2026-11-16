@@ -3,7 +3,7 @@
 
 using Swag, Core
 
-// The only faces a headless host falls back to: see `fonts/README.md`.
+// The only faces a headless host falls back to: see `fonts/THIRDPARTY.md`.
 private const FallbackCjk   = #include("fonts/fallback-cjk.otf")
 private const FallbackEmoji = #include("fonts/fallback-emoji.ttf")
 

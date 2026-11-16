@@ -69,6 +69,11 @@ enum BorderPos
 // stroke.
 struct Pen
 {
+    internal
+    {
+        dashStartHalf: bool     // A promoted built-in dash keeps its open-path half-segment start.
+    }
+
     public
     {
         size:  f32 = 1     // Stroke width, in pixels.

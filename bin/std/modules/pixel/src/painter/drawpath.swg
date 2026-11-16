@@ -693,7 +693,7 @@ impl Painter
         cxt.patternIndex        = 0
         cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
         cxt.remainingPatternLen *= cxt.pen.size
-        if not cxt.path.isClosed and cxt.pen.dashStyle != .Pattern do
+        if not cxt.path.isClosed and (cxt.pen.dashStyle != .Pattern or cxt.pen.dashStartHalf) do
             cxt.remainingPatternLen *= 0.5
 
         if cxt.pen.dashOffset
@@ -1072,6 +1072,7 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
     var result = pen
     result.size = 1 / deviceScale
     result.brush.multiplyOpacity(pen.size * deviceScale)
+    result.dashStartHalf = false
 
     // Dash lengths are stroke-width multiples, so widening the pen must not lengthen them.
     if result.dashStyle != .None
@@ -1093,6 +1094,7 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
         else
         {
             result.pattern.clear()
+            result.dashStartHalf = true
             switch result.dashStyle
             {
             case .Dot:

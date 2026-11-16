@@ -1710,16 +1710,12 @@ bool SymbolStruct::sameGenericFamily(const SymbolStruct& other) const noexcept
 
 SymbolStruct* SymbolStruct::genericRootOrSelf() noexcept
 {
-    SymbolStruct* root = genericRootSym();
-    SWC_ASSERT(root != nullptr || !isGenericInstance());
-    return root ? root : this;
+    return SymbolGenericData::rootOrSelf(this, genericRootSym());
 }
 
 const SymbolStruct* SymbolStruct::genericRootOrSelf() const noexcept
 {
-    const SymbolStruct* root = genericRootSym();
-    SWC_ASSERT(root != nullptr || !isGenericInstance());
-    return root ? root : this;
+    return SymbolGenericData::rootOrSelf(this, genericRootSym());
 }
 
 SymbolStruct* SymbolStruct::genericRootSym() noexcept

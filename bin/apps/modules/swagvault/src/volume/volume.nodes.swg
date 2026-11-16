@@ -95,6 +95,10 @@ impl Volume
     mtd createNodePending(path: string, directory: bool, attributes: u32, security: const [..] u8)->u64 fail
     {
         try .requireWritable()
+        if not .nextNodeId do
+            fail volumeError(.Corrupted)
+        if .nodes.count >= MaximumNodeCount or .nextNodeId == Swag.U64.Max do
+            fail volumeError(.DiskFull)
         let {parent, name} = .resolveParent(path)
         if parent == null or not parent.isDirectory() do
             fail volumeError(.NotFound)
@@ -186,11 +190,18 @@ impl Volume
         if sourceIsDirectory
         {
             var ancestor = destinationParentId
+            var remaining = .nodes.count
             while ancestor != RootNodeId
             {
                 if ancestor == id do
                     fail volumeError(.InvalidInput)
-                ancestor = .nodeById(ancestor)!.parentId
+                if not remaining do
+                    fail volumeError(.Corrupted)
+                remaining -= 1
+                let ancestorNode = .nodeById(ancestor)
+                if not ancestorNode do
+                    fail volumeError(.Corrupted)
+                ancestor = ancestorNode.parentId
             }
         }
 

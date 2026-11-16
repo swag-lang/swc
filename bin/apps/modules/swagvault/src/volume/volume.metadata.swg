@@ -147,7 +147,21 @@ impl Volume
         .dirty = false
         try .replayJournal()
 
-        if .nodeById(RootNodeId) == null do
+        let root = .nodeById(RootNodeId)
+        if not root or not root.isDirectory() or root.parentId != RootNodeId do
+            fail volumeError(.Corrupted)
+        var maximumNodeId = 0'u64
+        for node in .nodes
+        {
+            maximumNodeId = Math.max(maximumNodeId, node.id)
+            if node.id != RootNodeId
+            {
+                let parent = .nodeById(node.parentId)
+                if not parent or not parent.isDirectory() do
+                    fail volumeError(.Corrupted)
+            }
+        }
+        if not .nextNodeId or .nextNodeId <= maximumNodeId do
             fail volumeError(.Corrupted)
         try .rebuildFreeList()
     }
@@ -601,6 +615,8 @@ impl Volume
             let index = .nodeIndex(node.id)
             if index != Swag.U64.Max do
                 .removeNodeAt(index)
+            elif .nodes.count >= MaximumNodeCount do
+                fail volumeError(.Corrupted)
 
             var copy   = node[]
             let target = .nodes.count

@@ -612,3 +612,15 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Next: Run the portable Capture desktop plan on an isolated X11 server and verify the XTEST click, drag, undo and redo.
 - Done when: `drawandundo.swg` passes on Linux through XTEST, including the click, drag, undo and redo.
 - Evidence: the Linux test previously compiled, then SIGSEGV occurred in `XGetInputFocus` inside `DesktopInput.openNative`. All seven Xlib/XTest function-pointer aliases now declare the C calling convention; the focused GUI module test compiles and passes. The live XTEST plan remains unverified here because this host has no `DISPLAY` or Xvfb.
+
+### std.gui.065 — The event loop wakes sixty times a second while idle
+
+- Evidence: `nativeFrameWaitMicroseconds` waits at most 16 ms even when no surface is dirty, no
+  animation runs and no timer is due, because an event posted from a worker has no way to wake
+  the loop. Each idle frame still polls the keyboard (`Keyboard.update` on X11: four requests and
+  a pass over every key and keycode). An idle Swag Capture window under Xvfb costs about 6 % of a
+  core once pointer buttons stopped rebuilding the keyboard state.
+- Next: give `postEvent` from another thread a wake (an eventfd polled beside the X connection on
+  Linux, a thread message on Windows), then wait for input, a posted event or the next timer.
+- Done when: an idle application blocks until input, a posted event or a timer, with a test that a
+  worker's posted event is still delivered promptly.

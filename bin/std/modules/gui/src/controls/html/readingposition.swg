@@ -44,19 +44,13 @@ impl HtmlView
         return true
     }
 
-    // Captures the first visible text passage independently of its current pixel position.
-    //
-    // The result owns no resources. Empty/image-only documents and virtual source windows return
-    // an invalid position. Fixed/sticky content and independent scroll regions are excluded.
-    // Streaming documents can capture text that has already been laid out.
-    // The document origin is retained exactly, including leading margins.
-    mtd const readingPosition()->HtmlReadingPosition
+    // Captures the first text line reaching below `line`, a document coordinate inside the view.
+    private mtd const firstTextBelow(line: f32)->HtmlReadingPosition
     {
         var result: HtmlReadingPosition
         if .virtualSource do
             return result
-        let top    = .scroll.scrollPosition().y
-        let bottom = top + .scroll.view.paddedClientRect().height
+        let bottom = .scroll.scrollPosition().y + .scroll.view.paddedClientRect().height
         var best   = Swag.F32.Inf
         var left   = Swag.F32.Inf
         for box, index in .layout.boxes
@@ -74,7 +68,7 @@ impl HtmlView
                 if node.kind != .Text or not .layout.constStyle(item.style).visible do
                     continue
                 let height = Math.max(item.ascent + item.descent, 1)
-                if item.y + height <= top or item.y >= bottom do
+                if item.y + height <= line or item.y >= bottom do
                     continue
                 if item.y > best or (item.y == best and item.x >= left) do
                     continue
@@ -82,13 +76,45 @@ impl HtmlView
                 left                = item.x
                 result.sourceOffset = node.sourceOffset
                 result.textOffset   = item.sourceStart
-                result.lineFraction = Math.clamp((top - item.y) / height, 0, 1)
+                result.lineFraction = Math.clamp((line - item.y) / height, 0, 1)
                 result.hasValue     = true
-                result.atStart      = top <= 0
+                result.atStart      = line <= 0
             }
         }
 
         return result
+    }
+
+    // Captures the first visible text passage independently of its current pixel position.
+    //
+    // The result owns no resources. Empty/image-only documents and virtual source windows return
+    // an invalid position. Fixed/sticky content and independent scroll regions are excluded.
+    // Streaming documents can capture text that has already been laid out.
+    // The document origin is retained exactly, including leading margins.
+    mtd const readingPosition()->HtmlReadingPosition => .firstTextBelow(.scroll.scrollPosition().y)
+
+    // Returns the source byte offset of the text being read, or `U64.Max` when there is none.
+    //
+    // It is the first text below the air a reveal keeps above its destination, so the heading
+    // [[Gui.HtmlView.revealFileOffset]] or a fragment brought into view is the one being read:
+    // the last one of [[Gui.HtmlView.headings]] at or before the offset. The offset addresses the
+    // current source like a heading's. When no text reaches below that air, the first visible
+    // text answers; the offset is unavailable wherever [[Gui.HtmlView.readingPosition]] is invalid.
+    mtd const readingOffset()->u64
+    {
+        let top     = .scroll.scrollPosition().y
+        var reading = .firstTextBelow(top + HtmlRevealClearance)
+        if not reading.hasValue do
+            reading = .firstTextBelow(top)
+        return reading.hasValue ? reading.sourceOffset : Swag.U64.Max
+    }
+
+    // Returns the share of the document above the top of the view, from 0 at the top to 1 once
+    // the end is on screen, as a reading progress shows it.
+    mtd const readingProgress()->f32
+    {
+        let extent = .scroll.scrollSize.y - .scroll.clientRect().height
+        return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
     }
 
     // Restores a captured text passage in the currently laid-out, unchanged HTML source.

@@ -45,15 +45,14 @@ enum PdfZoomMode
 // [[Gui.PdfView.restoreReadingPosition]]. It holds no view or document pointers and may outlive
 // the view. It names a place in the same unchanged document only; it is not a persistent
 // serialization format. A default value has no location.
-#[Swag.Opaque]
 struct PdfReadingPosition
 {
-    internal
+    public
     {
-        pageIndex: u64         = Swag.U64.Max
-        point:     Math.Point
-        zoomMode:  PdfZoomMode = .FitPage
-        zoom:      f32         = 1
+        pageIndex: u64         = Swag.U64.Max     // Zero-based page, or `Swag.U64.Max` when there is no place.
+        point:     Math.Point                     // Point of that page at the viewport's top-left corner, in displayed page points as [[Gui.Pdf.OutlineEntry.position]].
+        zoomMode:  PdfZoomMode = .FitPage         // What the page was scaled to.
+        zoom:      f32         = 1                // Scale in force when `zoomMode` is [[Gui.PdfZoomMode.Free]].
     }
 }
 
@@ -136,6 +135,7 @@ struct PdfView
         sigPageChanged: SigArray'func||(*Wnd)             // Emitted after the page the viewport shows changes.
         sigZoomChanged: SigArray'func||(*Wnd)             // Emitted after the effective zoom changes.
         sigRenderError: SigArray'func||(*Wnd, string)     // Emitted when a page cannot be decoded or painted.
+        sigScrolled:    SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
 
         readonly
         {
@@ -1290,6 +1290,7 @@ impl PdfView
         {
             target.updateCurrentPage()
             target.canvas.invalidate()
+            target.sigScrolled.call(target)
         }
 
         return result
@@ -1459,6 +1460,18 @@ impl PdfView
         result.zoomMode  = .zoomMode
         result.zoom      = .zoom
         return result
+    }
+
+    // Returns the share of the laid-out document above the top of the view, from 0 at the top
+    // to 1 once its end is on screen, as a reading progress shows it.
+    //
+    // With one page shown at a time the laid-out document is that page.
+    mtd const readingProgress()->f32
+    {
+        if not .hasDocument do
+            return 0
+        let extent = .contentSize().y - .viewportSize().y
+        return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
     }
 
     // Returns to a captured place at the scale it was read at.

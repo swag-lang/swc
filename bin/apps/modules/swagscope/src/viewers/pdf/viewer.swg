@@ -195,13 +195,7 @@ private impl IWnd for Panel
         .pdfView.exchangeDocument(&content.reader, &content.page)
         .history.clear()
         .bookmarks = #move content.outline
-        if .outline
-        {
-            .outline.clear()
-            for entry, index in .bookmarks do
-                .outline.add(entry.title, entry.level, index)
-            .outline.refresh()
-        }
+        .publishBookmarks()
 
         .facts   = #move content.facts
         .details = detailsText(&.facts)
@@ -290,6 +284,41 @@ private impl Panel
         .history.visit(.pdfView.readingPosition())
         .pdfView.showPage(parsed.value - 1)
         return true
+    }
+
+    // Lists the bookmarks in the outline, each addressed by its index, so the outline can filter
+    // them and find them again.
+    mtd publishBookmarks()
+    {
+        if not .outline do
+            return
+        var headings: Array'DocumentHeading
+        for entry, index in .bookmarks do
+            headings.add(DocumentHeading{entry.title, entry.level, index})
+        .outline.publish(headings.toSlice())
+    }
+
+    // Marks in the outline the bookmark being read: the last one at or before the point standing
+    // at the top of the view. At the end of the document a later bookmark cannot rise to the top,
+    // so one the reader chose there stays marked.
+    internal mtd followReading()
+    {
+        if not .outline do
+            return
+        let place = .pdfView.readingPosition()
+        if not place.isValid() do
+            return
+
+        // A bookmark's point is brought to the top of the view within a rounding of the scroll.
+        const Slack = 1.0
+        var reading = Swag.U64.Max
+        for entry, index in .bookmarks where entry.pageIndex < place.pageIndex or
+                                             (entry.pageIndex == place.pageIndex and entry.position.y <= place.point.y + Slack) do
+            reading = index
+        if reading == Swag.U64.Max do
+            return
+
+        .outline.markReading(reading, atEnd: .pdfView.readingProgress() >= 1)
     }
 
     // Shows the place a bookmark names, remembering the one the reader leaves. A bookmark that
@@ -480,6 +509,11 @@ private impl Panel
             .sigZoomChanged += func|view = me|(_)
             {
                 view.refreshZoom()
+            }
+
+            .sigScrolled += func|view = me|(_)
+            {
+                view.followReading()
             }
 
             .sigRenderError += func|view = me|(_, message)

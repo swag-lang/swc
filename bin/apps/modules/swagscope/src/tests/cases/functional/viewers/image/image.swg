@@ -323,3 +323,26 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         }
     }
 }
+
+// The pointer over a picture reads the pixel it stands on, and its color, after the summary;
+// leaving the picture gives the summary back.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.png"), true)
+    let view   = assume cast(*Picture.Panel, window.instances[window.activeChoiceIndex].view)
+    let center = view.imageView.surfaceRect().center()
+    let pixel  = view.imageView.pixelAt(view.imageView.surfaceToLocal(center))
+    Swag.require(pixel.inside)
+
+    host.moveMouse(center)
+    let details = String.from(window.instances[window.activeChoiceIndex].details)
+    let color   = unwrap view.imageView.picture()
+    let stored  = color.pixelColor(pixel.x, pixel.y)
+    Swag.require(Utf8.startsWith(details.toSlice(), view.details.toString()), details)
+    Swag.require(Utf8.contains(details.toSlice(), Format.toString(Picture.texts().ui_ProbePixel, pixel.x, pixel.y).toString()), details)
+    Swag.require(Utf8.contains(details.toSlice(), Format.toString("#%{X02}%{X02}%{X02}", stored.r, stored.g, stored.b).toString()), details)
+
+    host.moveMouse(Math.Point{2, 2})
+    Swag.require(window.instances[window.activeChoiceIndex].details == view.details)
+}

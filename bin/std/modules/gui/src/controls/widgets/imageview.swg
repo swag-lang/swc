@@ -445,6 +445,56 @@ impl ImageView
         return image.isValid() ? image : null
     }
 
+    // Returns the pixel of the content drawn under `local`, a point in the view's own
+    // coordinates, through the zoom, the pan, the rotation and the mirror the view shows.
+    //
+    // The coordinates count the content's own pixels from its top-left corner, before any view
+    // transform: the samples of a bitmap, or the units of a drawing. `inside` is false where the
+    // point falls beside the content or the view holds none.
+    mtd const pixelAt(local: Math.Point)->{ x: s32, y: s32, inside: bool }
+    {
+        var result: #returntype
+        if not .hasContent() do
+            return result
+
+        let content = .contentRect()
+        let scale   = .effectiveZoom()
+        if scale <= 0 do
+            return result
+
+        // Undo the rotation, then the mirror, about the centre of the content, in source units.
+        var dx = (local.x - content.horzCenter()) / scale
+        var dy = (local.y - content.vertCenter()) / scale
+        for .rotationQuarterTurns % 4
+        {
+            let x = dx
+            dx = dy
+            dy = -x
+        }
+
+        if .isMirrored do
+            dx = -dx
+
+        let source = .sourceSize()
+        var x      = dx + cast(f32, source.width) * 0.5
+        var y      = dy + cast(f32, source.height) * 0.5
+        if x < 0 or y < 0 or x >= cast(f32, source.width) or y >= cast(f32, source.height) do
+            return result
+
+        // A picture shown at another shape than its samples maps back onto them.
+        let image = .currentImage()
+        if image.isValid() and (image.width != source.width or image.height != source.height)
+        {
+            x = x * cast(f32, image.width) / cast(f32, source.width)
+            y = y * cast(f32, image.height) / cast(f32, source.height)
+        }
+
+        result.x      = cast(s32, Math.floor(x))
+        result.y      = cast(s32, Math.floor(y))
+        result.inside = true
+        return result
+    }
+
     // Takes an image's pixel storage and fits it to the viewport.
     //
     // `image` is left empty after a successful upload; on GPU allocation failure both values

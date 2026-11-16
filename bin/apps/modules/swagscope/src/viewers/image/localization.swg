@@ -31,6 +31,11 @@ struct Texts
     ui_DetailsMovie:  string = "% × % px · %"
     ui_DetailsStill:  string = "% × % px · % bit"
     ui_DetailsVector: string = "% × % · vector"
+
+    // Reading of the point under the pointer, after the summary: its pixel, counted from the
+    // top-left corner of the picture as stored, then its color and its opacity.
+    ui_ProbePixel: string = "x %, y %"
+    ui_ProbeAlpha: string = "opacity %%"     // The value, then the percent sign.
 }
 
 private const FrenchStringsName = "lang/fr/scope.image.tweak"

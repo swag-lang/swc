@@ -19,3 +19,5 @@ word_Frame     image
 word_Frames    images
 
 ui_DetailsVector % × % · vectoriel
+ui_ProbePixel    x %, y %
+ui_ProbeAlpha    opacité %%

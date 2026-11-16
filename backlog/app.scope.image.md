@@ -107,12 +107,15 @@ render primitives remain in [std.pixel.md](std.pixel.md).
   damage is marked without discarding valid regions.
 - Related: app.scope.viewers.004, std.pixel.image.038, std.pixel.image.039
 
-### app.scope.image.001 — The image has no pixel probe or measurement tools
+### app.scope.image.001 — The pixel probe cannot be copied, stepped or measured with
 
-- Evidence: zoom and pan never expose image coordinates, RGBA/channel values, premultiplied versus
-  straight color, palette index, physical resolution, or distance/angle between points.
-- Next: add a pointer/caret pixel inspector over decoded image coordinates, followed by a
-  non-destructive line/rectangle measurement overlay.
+- Evidence: the pointer over a picture reads its pixel (counted in the stored picture through
+  zoom, pan, rotation and mirror, `ImageView.pixelAt`) and its straight 8-bit color and opacity
+  into the information band. Stored channel depth, premultiplied versus straight values, palette
+  index, physical resolution, keyboard stepping between pixels, copy, and distance or angle between
+  points are absent.
+- Next: let the keyboard move a probe one pixel at a time at high zoom and copy its reading, then
+  add a non-destructive line/rectangle measurement overlay.
 - Done when: coordinates and exact stored/converted channel values are copyable, alpha and
   out-of-bounds states are explicit, keyboard movement reaches individual pixels at high zoom, and
   distance/size can be reported in pixels and physical units when resolution metadata exists.

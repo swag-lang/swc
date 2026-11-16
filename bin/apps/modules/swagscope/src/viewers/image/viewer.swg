@@ -737,11 +737,54 @@ private impl Panel
         .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
     }
 
+    // Returns the reading of the content under `local`, a point of the picture view: the pixel
+    // and, for a bitmap, its color and opacity; or an empty string beside the picture.
+    mtd probeText(local: Math.Point)->String
+    {
+        var result: String
+        let pixel = .imageView.pixelAt(local)
+        if not pixel.inside do
+            return result
+
+        result = Format.toString(texts().ui_ProbePixel, pixel.x, pixel.y)
+        let picture = .imageView.picture()
+        if picture
+        {
+            let color = picture.pixelColor(pixel.x, pixel.y)
+            result += Format.toString(" · #%{X02}%{X02}%{X02}", color.r, color.g, color.b)
+            if color.a != 255 do
+                result += Format.toString(" · %", Format.toString(texts().ui_ProbeAlpha, cast(u32, Math.round(cast(f32, color.a) * 100 / 255)), "%"))
+        }
+
+        return result
+    }
+
+    // Shows the reading of the point under the pointer after the summary, or the summary alone.
+    mtd showProbe(local: Math.Point)
+    {
+        let probe = .probeText(local)
+        .services.showDetails(me, probe.isEmpty() ? .details : Format.toString("% · %", .details, probe))
+    }
+
     // Creates the picture view and keeps the zoom readout and the frame transport in step with it.
+    // The pointer over the picture reads the pixel it stands on into the summary.
     mtd createImageView()
     {
         with .imageView = ImageView.create(me)
         {
+            .hookOnEvent = func|view = me|(imageView, evt)->bool
+            {
+                if evt is MouseEvent as mouse
+                {
+                    if mouse.kind == .Move do
+                        view.showProbe(imageView.surfaceToLocal(mouse.surfacePos))
+                    elif mouse.kind == .Leave do
+                        view.services.showDetails(view, view.details)
+                }
+
+                return false
+            }
+
             .dockStyle = .Center
             .setAllPaddings(.themeMetrics().floating_Inset)     // A fitted picture keeps the air of the window around it.
             .sigZoomChanged += func|view = me|(_)

@@ -250,7 +250,7 @@ namespace PostRaPeephole
             const MicroInstrDef& info = MicroInstr::info(previous->op);
             if (previous->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                instructionActuallyDefinesCpuFlags(*previous, previousOperands))
+                MicroPassHelpers::instructionActuallyDefinesCpuFlags(*previous, previousOperands))
                 return false;
 
             if (regTouch(ctx, *previous, cmp[0].reg).def ||
@@ -312,7 +312,7 @@ namespace PostRaPeephole
             if (identical)
                 continue;
             const auto& info = MicroInstr::info(source->op);
-            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*source, ops) ||
+            if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) || MicroPassHelpers::instructionActuallyDefinesCpuFlags(*source, ops) ||
                 regTouch(ctx, *source, compared[0].reg).def || (registerPair && regTouch(ctx, *source, compared[1].reg).def))
                 return false;
             const auto predecessors = cfg.predecessors(index);
@@ -427,7 +427,7 @@ namespace PostRaPeephole
 
             const MicroInstrFlags flags = MicroInstr::info(current->op).flags;
             if (flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction) ||
-                flags.has(MicroInstrFlagsE::IsCallInstruction) || instructionActuallyDefinesCpuFlags(*current, currentOps))
+                flags.has(MicroInstrFlagsE::IsCallInstruction) || MicroPassHelpers::instructionActuallyDefinesCpuFlags(*current, currentOps))
                 return false;
             if (regTouch(ctx, *current, carry).any())
                 return false;
@@ -1033,7 +1033,7 @@ namespace PostRaPeephole
                 if (isTriviallyErasableNoEffect(*scanInst, scanOps))
                     continue;
 
-                if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+                if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*scanInst, scanOps))
                 {
                     MicroCond cond;
                     MicroCond signCond;
@@ -1838,7 +1838,7 @@ namespace PostRaPeephole
         const MicroInstrRef clearRef = ctx.previousRef(cmpRef);
         const MicroInstr*   clear    = ctx.instruction(clearRef);
         if (!set || !cmp || !clear || set->op != MicroInstrOpcode::SetCondReg ||
-            clear->op != MicroInstrOpcode::ClearReg || !instructionActuallyDefinesCpuFlags(*cmp, cmp->ops(*ctx.operands)))
+            clear->op != MicroInstrOpcode::ClearReg || !MicroPassHelpers::instructionActuallyDefinesCpuFlags(*cmp, cmp->ops(*ctx.operands)))
             return false;
         const auto* setOps   = set->ops(*ctx.operands);
         const auto* clearOps = clear->ops(*ctx.operands);
@@ -2362,7 +2362,7 @@ namespace PostRaPeephole
                 return false;
         }
         if (initialOps[0].reg != result ||
-            instructionActuallyUsesCpuFlags(*initial, initialOps) || instructionActuallyDefinesCpuFlags(*initial, initialOps))
+            MicroPassHelpers::instructionActuallyUsesCpuFlags(*initial, initialOps) || MicroPassHelpers::instructionActuallyDefinesCpuFlags(*initial, initialOps))
             return false;
 
         const MicroInstrRef orRef  = ctx.previousRef(initialRef);
@@ -3054,7 +3054,7 @@ namespace PostRaPeephole
             if (isTriviallyErasableNoEffect(*scanInst, scanOps))
                 continue;
 
-            if (instructionActuallyUsesCpuFlags(*scanInst, scanOps))
+            if (MicroPassHelpers::instructionActuallyUsesCpuFlags(*scanInst, scanOps))
             {
                 if (isRedundantFallthroughJumpToNextLabel(ctx, scanRef, *scanInst, scanOps))
                     continue;

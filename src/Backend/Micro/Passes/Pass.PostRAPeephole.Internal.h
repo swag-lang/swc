@@ -98,8 +98,6 @@ namespace PostRaPeephole
     using PatternRegistry = MicroPeephole::PatternRegistry<PatternFn>;
 
     bool isTriviallyErasableNoEffect(const MicroInstr& inst, const MicroInstrOperand* ops);
-    bool instructionActuallyUsesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
-    bool instructionActuallyDefinesCpuFlags(const MicroInstr& inst, const MicroInstrOperand* ops);
     bool isRedundantFallthroughJumpToNextLabel(const Context& ctx, MicroInstrRef ref, const MicroInstr& inst, const MicroInstrOperand* ops);
 
     bool tryEraseTrivial(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);

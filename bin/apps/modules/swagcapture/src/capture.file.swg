@@ -14,6 +14,17 @@ impl Capture
         return Path.fileNameWithoutExtension(.file) orelse ""
     }
 
+    // Returns the name a rename starts from: the one the capture is shown under, or nothing when
+    // that is only the generated name of its library file.
+    mtd const editableName()->String
+    {
+        var result    = .displayName()
+        let generated = Path.fileNameWithoutExtension(.file) orelse ""
+        if result == generated do
+            result.clear()
+        return result
+    }
+
     // Marks the capture as modified and out of step with its linked image, and refreshes the
     // editor and the recent strip, except during an interactive drag.
     mtd hasChanged()

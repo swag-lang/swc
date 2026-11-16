@@ -1072,4 +1072,9 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     capture.sourceApplication.clear()
     capture.linkedImage.clear()
     Swag.require(capture.displayName() == "11_15_2026_22_22_15")
+
+    // A rename starts from the name shown, but not from a generated library file name.
+    Swag.require(capture.editableName().isEmpty())
+    capture.linkedImage = Path.combine(Env.sandboxRoot(), "pictures", "release notes.png")
+    Swag.require(capture.editableName() == "release notes")
 }

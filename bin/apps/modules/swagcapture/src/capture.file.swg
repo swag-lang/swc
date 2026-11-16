@@ -293,13 +293,63 @@ impl Capture
         job.preview                 = .preview
 
         // The frames of a timed capture stay in their own file, which a save never rewrites.
-        if not .isTimed()
+        if .isTimed() do
+            return job
+
+        // An unchanged background is copied from the file as stored. Only the automatic or
+        // explicit save of this document reuses it: the save lane writes that file in order.
+        if target.count == 0 and not duplicate and .savedBackgroundStored()
         {
-            job.backImg  = .backImg
-            job.backOrig = .backImgOriginal
+            job.backChunk = .savedBackChunk
+            job.origChunk = .savedOrigChunk
+            job.reuseBack = true
+            return job
+        }
+
+        job.backImg  = .backImg
+        job.backOrig = .backImgOriginal
+        if .backImg.isValid() do
+            job.backChunk = Guid128.random()
+        if .backImgOriginal.isValid() do
+            job.origChunk = Guid128.random()
+        if target.count == 0 and not duplicate
+        {
+            .savedBackKnown    = true
+            .savedBackRevision = .backRevision
+            .savedBackChunk    = job.backChunk
+            .savedOrigChunk    = job.origChunk
         }
 
         return job
+    }
+
+    // Returns whether the file still holds the chunks the last save wrote for the current
+    // background. A failed or overtaken save, or a file replaced outside the application,
+    // leaves other chunks there, and the pixels are then encoded again.
+    private mtd savedBackgroundStored()->bool
+    {
+        if not .savedBackKnown or .savedBackRevision != .backRevision do
+            return false
+        if .backImg.isValid() == .savedBackChunk.isNull() or .backImgOriginal.isValid() == .savedOrigChunk.isNull() do
+            return false
+
+        var reader: Scc.Reader
+        catch reader.initialize(.file) do
+            return false
+        defer reader.close()
+        if reader.kind() != containerKind() do
+            return false
+        return storedChunkIs(&reader, .savedBackChunk, backgroundRole()) and
+               storedChunkIs(&reader, .savedOrigChunk, originalRole())
+    }
+
+    // Whether a null `id` is absent, or the chunk `id` exists with `role`.
+    private func storedChunkIs(reader: *Scc.Reader, id: Guid128, role: Guid128)->bool
+    {
+        if id.isNull() do
+            return true
+        let info = reader.findChunk(id)
+        return info != null and info.roleId == role
     }
 
     // Freezes the active editor state for a duplicate without saving or changing the original.
@@ -325,16 +375,36 @@ impl Capture
         let modelId        = try writer.addChunk(job.modelBytes.toSlice(), {typeId: typeTagBin, roleId: roleModel, codecId: codecDeflate, flags: .Required | .Metadata})
 
         var variants: Array'Guid128
-        if job.backImg.isValid()
+        if job.reuseBack
         {
-            var bytes = try encodeValue(&job.backImg)
-            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleBackground, codecId: codecDeflate, flags: .Required}))
+            // The file is replaced only by `saveAtomic` below, so the stored bytes are read
+            // first and the reader is closed before the new container lands.
+            var reader: Scc.Reader
+            try reader.initialize(job.file)
+            defer reader.close()
+            for id in [job.backChunk, job.origChunk] where not id.isNull()
+            {
+                let info = reader.findChunk(id)
+                if not info do
+                    fail Core.Errors.InvalidFormatError{"Capture background chunk is missing"}
+                let stored = try reader.readStoredChunk(id)
+                try writer.addStoredChunk(stored.toSlice(), info)
+                variants.add(id)
+            }
         }
-
-        if job.backOrig.isValid()
+        else
         {
-            var bytes = try encodeValue(&job.backOrig)
-            variants.add(try writer.addChunk(bytes.toSlice(), {typeId: typeTagBin, roleId: roleOriginal, codecId: codecDeflate}))
+            if job.backImg.isValid()
+            {
+                var bytes = try encodeValue(&job.backImg)
+                variants.add(try writer.addChunk(bytes.toSlice(), {id: job.backChunk, typeId: typeTagBin, roleId: roleBackground, codecId: codecDeflate, flags: .Required}))
+            }
+
+            if job.backOrig.isValid()
+            {
+                var bytes = try encodeValue(&job.backOrig)
+                variants.add(try writer.addChunk(bytes.toSlice(), {id: job.origChunk, typeId: typeTagBin, roleId: roleOriginal, codecId: codecDeflate}))
+            }
         }
 
         if job.preview.isValid()
@@ -570,6 +640,17 @@ impl Capture
                                       imageDiag.droppedStreamFields +
                                       imageDiag.unknownTypes +
                                       imageDiag.corruptPayloads
+            }
+
+            // Pixels read without loss are those of the file, so a save that comes before any
+            // background change copies the stored chunks instead of encoding them again.
+            if capture.loadIssues == 0
+            {
+                capture.savedBackKnown = true
+                if background do
+                    capture.savedBackChunk = background.id
+                if original do
+                    capture.savedOrigChunk = original.id
             }
         }
 

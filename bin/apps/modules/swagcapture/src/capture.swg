@@ -291,6 +291,15 @@ struct Capture
         inPlacePosY: f32
 
         haar: ImageStatistics.HaarFeatures
+
+        // Every change of the background or its original raises the revision. A save records
+        // the chunks it wrote for one revision, so the next save after a form edit copies those
+        // stored bytes from the file instead of copying and deflating the same pixels again.
+        backRevision:      u64
+        savedBackRevision: u64
+        savedBackKnown:    bool
+        savedBackChunk:    Guid128     // Null when the saved revision has no background.
+        savedOrigChunk:    Guid128     // Null when the saved revision has no original.
     }
 }
 
@@ -351,6 +360,9 @@ struct CaptureSaveJob
     modelBytes: Array'u8     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
     backImg:    Image        // Owned pixel copies, because a later crop or flatten must not race the encoder.
     backOrig:   Image
+    backChunk:  Guid128      // Identifiers of the background chunks, chosen with the snapshot.
+    origChunk:  Guid128
+    reuseBack:  bool         // Copy those chunks from the current file instead of encoding the images.
     preview:    Image
     failed:     bool     // Set by the worker when producing or replacing the file failed.
 }
@@ -684,6 +696,14 @@ impl CaptureClipboardForms
 
 impl Capture
 {
+    // Marks the background or its original as changed: the texture is uploaded again and the
+    // next save encodes the pixels instead of reusing the chunks of an earlier save.
+    mtd backgroundChanged()
+    {
+        .dirtyBackImg = true
+        .backRevision += 1
+    }
+
     // Records the source of a screen capture. The native backend supplies as much window
     // identity as Windows allows; empty values deliberately mean "not available".
     mtd setScreenSource(application, executable, windowTitle, windowClass: String)

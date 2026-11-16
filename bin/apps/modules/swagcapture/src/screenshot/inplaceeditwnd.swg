@@ -417,7 +417,7 @@ impl InPlaceEditWnd
 
         let capture = unwrap .capture
         setCursorIn(&capture.backImg, shown)
-        capture.dirtyBackImg = true
+        capture.backgroundChanged()
         .editWnd.editView.invalidate()
     }
 
@@ -749,7 +749,7 @@ impl Capture
         .backImagePos        = {}
         .gizmo.sigHasChanged = null
         .inPlaceEdit         = false
-        .dirtyBackImg        = true
+        .backgroundChanged()
         .selection.clear()
     }
 }

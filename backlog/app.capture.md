@@ -103,19 +103,6 @@ whole recording loaded at once.
   and any new encoding round-trips with compatibility tests for existing deflate files.
 - Related: app.capture.021
 
-### app.capture.040 — Automatic saves encode an unchanged background again
-
-- Evidence: `snapshotSave` copies `backImg` and `backImgOriginal` on the interface thread and
-  `writeScc` deflates both on every save, about a second after each burst of edits, even when only
-  forms changed. A 4K capture copies and deflates about 66 MB per save. The background is also
-  replaced through direct assignments in many places, so a revision counter that one of them
-  forgets would save a stale picture.
-- Next: give `Capture` one owner for background changes (a setter that bumps a revision), migrate
-  every assignment to it, then reuse the encoded chunks of an unchanged revision in `writeScc`.
-- Done when: a save after a form edit neither copies nor deflates the background, with a test that
-  a background change after an earlier save is still written.
-- Related: app.capture.021, app.capture.025
-
 ### app.capture.041 — The video playback test is unstable on Linux
 
 - Evidence: under Xvfb with Mesa software rendering, `functional/videoplayback.swg` fails with

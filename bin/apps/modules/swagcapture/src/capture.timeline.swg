@@ -349,8 +349,8 @@ impl Capture
             .backImg = picture[]
         }
         .playbackPlanar = false
-        .playhead     = frame
-        .dirtyBackImg = true
+        .playhead       = frame
+        .backgroundChanged()
         .editView?.invalidate()
     }
 
@@ -367,7 +367,7 @@ impl Capture
         try .frames!.readVideoPlanesInto(&.playbackPlanes, frame)
         .playbackPlanar = true
         .playhead       = frame
-        .dirtyBackImg   = true
+        .backgroundChanged()
         .editView?.invalidate()
     }
 
@@ -379,7 +379,7 @@ impl Capture
         planes[] = #move spare
         .playbackPlanar = true
         .playhead       = frame
-        .dirtyBackImg   = true
+        .backgroundChanged()
         .editView?.invalidate()
     }
 

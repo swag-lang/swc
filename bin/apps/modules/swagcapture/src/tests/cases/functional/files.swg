@@ -1078,3 +1078,136 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     capture.linkedImage = Path.combine(Env.sandboxRoot(), "pictures", "release notes.png")
     Swag.require(capture.editableName() == "release notes")
 }
+
+// The chunk identifiers stored in a capture file. A copied chunk keeps its identifier and an
+// encoded one gets a new one, so two saves share exactly the chunks the second one copied.
+func testStoredChunkIds(path: String)->Array'Guid128
+{
+    var reader: Scc.Reader
+    expect reader.initialize(path)
+    defer reader.close()
+    var result: #returntype
+    for chunk in reader.chunks() do
+        result.add(chunk.id)
+    return result
+}
+
+func testSharedChunks(first, second: Array'Guid128)->u32
+{
+    var result: u32
+    for id in first where second.contains(id) do
+        result += 1
+    return result
+}
+
+// An automatic save after an edit that leaves the background alone copies the stored
+// background and original instead of encoding the pixels again.
+#test
+{
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 40
+    capture.height, capture.heightOrg = 30
+    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    capture.backImgOriginal           = Gui.Testing.indexedImage(40, 30)
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+    let first = testStoredChunkIds(path)
+
+    capture.title   = "Renamed"
+    capture.changed = true
+    expect capture.scheduleSave()
+    Swag.require(g_CaptureSaves.flush().isEmpty())
+
+    Swag.require(testSharedChunks(first, testStoredChunkIds(path)) == 2)
+    let loaded = expect Capture.load(path)
+    defer Memory.delete(loaded)
+    Swag.require(loaded.title == "Renamed")
+    Swag.require(testSamePixels(&loaded.backImg, &capture.backImg))
+    Swag.require(testSamePixels(&loaded.backImgOriginal, &capture.backImgOriginal))
+}
+
+// A background command after a save is written by the next save, and so is its undo.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 30
+    f.capture.height  = 20
+    f.capture.backImg = Gui.Testing.indexedImage(30, 20)
+    let path = testPrepareSavedCapture(f.capture)
+    defer discard catch File.delete(path)
+    let first = testStoredChunkIds(path)
+
+    f.main.sendCommandEvent(ActionImage.RotateImageRight)
+    f.capture.changed = true
+    expect f.capture.save()
+    Swag.require(testSharedChunks(first, testStoredChunkIds(path)) == 0)
+    let rotated = expect Capture.load(path)
+    defer Memory.delete(rotated)
+    Swag.require(rotated.backImg.width == 20)
+    Swag.require(testSamePixels(&rotated.backImg, &f.capture.backImg))
+    Swag.require(testSamePixels(&rotated.backImgOriginal, &f.capture.backImgOriginal))
+
+    f.capture.undo()
+    f.capture.changed = true
+    expect f.capture.save()
+    let restored = expect Capture.load(path)
+    defer Memory.delete(restored)
+    Swag.require(restored.backImg.width == 30)
+    Swag.require(testSamePixels(&restored.backImg, &f.capture.backImg))
+}
+
+// A file replaced outside the editor no longer holds the chunks of the last save, so the next
+// save encodes the live background instead of copying someone else's.
+#test
+{
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 36
+    capture.height, capture.heightOrg = 24
+    capture.backImg                   = Gui.Testing.indexedImage(36, 24)
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+
+    let other = Memory.new'Capture()
+    defer Memory.delete(other)
+    other.width, other.widthOrg   = 24
+    other.height, other.heightOrg = 36
+    other.backImg                 = Gui.Testing.indexedImage(24, 36)
+    let otherPath = testPrepareSavedCapture(other)
+    defer discard catch File.delete(otherPath)
+    expect File.delete(path)
+    expect File.duplicate(path, otherPath)
+
+    capture.title   = "Kept"
+    capture.changed = true
+    expect capture.save()
+    let loaded = expect Capture.load(path)
+    defer Memory.delete(loaded)
+    Swag.require(testSamePixels(&loaded.backImg, &capture.backImg))
+}
+
+// A capture opened from its file copies the stored background on its first save.
+#test
+{
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 28
+    capture.height, capture.heightOrg = 18
+    capture.backImg                   = Gui.Testing.indexedImage(28, 18)
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+    let first = testStoredChunkIds(path)
+
+    let opened = expect Capture.load(path)
+    defer Memory.delete(opened)
+    opened.title   = "Opened"
+    opened.changed = true
+    expect opened.save()
+    Swag.require(testSharedChunks(first, testStoredChunkIds(path)) == 1)
+    let loaded = expect Capture.load(path)
+    defer Memory.delete(loaded)
+    Swag.require(testSamePixels(&loaded.backImg, &capture.backImg))
+}

@@ -99,7 +99,9 @@ impl Volume
             fail volumeError(.Corrupted)
         .containerSize = storedSize
 
-        let expectedPages = (.metadataSize + BlockSize - 1) / BlockSize
+        var expectedPages = .metadataSize / BlockSize
+        if .metadataSize % BlockSize do
+            expectedPages += 1
         if expectedPages > .blockCount do
             fail volumeError(.Corrupted)
 

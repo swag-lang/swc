@@ -521,11 +521,21 @@ impl Capture
                 .serialBackTexture += 1
             }
 
-            // Re-upload the texture after a background edit.
+            // Re-upload the texture after a background edit. Pixels of the same shape replace
+            // the old ones in place: animation playback changes them on every frame.
             if .backTexture.isValid() and .dirtyBackImg
             {
-                renderer.removeTexture(&.backTexture)
-                .backTexture       = renderer.addImage(.backImg)
+                let texture = .backTexture
+                let reused  = texture.width == .backImg.width and
+                              texture.height == .backImg.height and
+                              texture.pixelFormat == .backImg.pixelFormat and
+                              renderer.updateTexture(texture, cast(const *u8, unwrap .backImg.pixels.buffer))
+                if not reused
+                {
+                    renderer.removeTexture(&.backTexture)
+                    .backTexture = renderer.addImage(.backImg)
+                }
+
                 .dirtyBackImg      = false
                 .serialBackTexture += 1
             }
@@ -566,7 +576,8 @@ impl Capture
     // move a whole selection rather than one form: repaint the union of where the
     // content stood (`oldRect`) and where it stands now (`newRect`), both in capture
     // coordinates. Falls back to a full repaint while snap guides are (or just were)
-    // visible, since those lines span the whole capture.
+    // visible, since those lines span the whole capture, and while the selection is part
+    // of a group, whose dashed box reaches members that did not move.
     mtd invalidateMovedRegion(oldRect, newRect: Math.Rectangle)
     {
         let view = .editView
@@ -575,7 +586,7 @@ impl Capture
 
         let snapNow = .snapX != -1 or .snapY != -1
         defer me.prevSnapActive = snapNow
-        if snapNow or .prevSnapActive
+        if snapNow or .prevSnapActive or .selectionSplitsGroup()
         {
             view.invalidate()
             return
@@ -595,6 +606,24 @@ impl Capture
         local.offset(.paintRect.x, .paintRect.y)
         local.inflate(56, 56)
         view.invalidateRect(local)
+    }
+
+    // Whether a group with a selected member also has a member left out of the selection.
+    mtd selectionSplitsGroup()->bool
+    {
+        var groups: Array'u64
+        for s in .selection
+        {
+            let g = formOuterGroup(.forms[s])
+            if g != 0 and not groups.contains(g) do
+                groups.add(g)
+        }
+
+        if groups.isEmpty() do
+            return false
+        for f, i in .forms where groups.contains(formOuterGroup(f)) and not .selection.contains(i) do
+            return true
+        return false
     }
 
     // Draws a dashed box around every group with a selected member.

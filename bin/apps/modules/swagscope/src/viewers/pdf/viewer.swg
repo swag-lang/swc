@@ -142,8 +142,7 @@ struct Panel
     failureReason: String
     outline:       *DocumentOutline?
     bookmarks:     Array'Pdf.OutlineEntry
-    margin:        *OutlineMargin?
-    marginParts:   Array'u64     // Indices of the bookmarks the margin lists.
+    history:       Viewer.History'PdfReadingPosition
 
     late
     {
@@ -163,12 +162,6 @@ private impl IWnd for Panel
     {
         if evt.kind == .LanguageChanged
         {
-            if .margin
-            {
-                .margin.label = texts().ui_Contents
-                .margin.invalidate()
-            }
-
             .previousButton.toolTip = appStrings().ui_PreviousPage
             .nextButton.toolTip     = appStrings().ui_NextPage
             .pageLabel.toolTip      = texts().ui_GoToPage
@@ -200,27 +193,16 @@ private impl IWnd for Panel
         }
 
         .pdfView.exchangeDocument(&content.reader, &content.page)
+        .history.clear()
         .bookmarks = #move content.outline
-        if .outline
-        {
-            .outline.clear()
-            for entry, index in .bookmarks do
-                .outline.add(entry.title, entry.level, index)
-            .outline.refresh()
-        }
+        .publishBookmarks()
 
         .facts   = #move content.facts
         .details = detailsText(&.facts)
         .applyLayout()
-        .fillMargin()
         .refreshNavigation()
         .services.showDetails(me, .details)
         .services.loadingChanged(me)
-    }
-
-    mtd impl onResizeEvent(_: *ResizeEvent)
-    {
-        .placeMargin()
     }
 
     mtd impl onKeyEvent(evt: *KeyEvent)
@@ -230,6 +212,9 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
+        if .handleHistoryKey(evt) do
+            return
 
         switch evt.key
         {
@@ -272,50 +257,16 @@ private impl Panel
 
     mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect(PdfTextMatch{match.major, match.offset, match.length}, result)
 
-    // Lists the parts of the first two levels of the outline in the left margin.
-    internal mtd fillMargin()
-    {
-        if .margin == null do
-            return
-        .marginParts.clear()
-        .margin.titles.clear()
-        for entry, index in .bookmarks where entry.level <= 2 and entry.pageIndex != Swag.U64.Max
-        {
-            .marginParts.add(index)
-            .margin.titles.add(entry.title)
-        }
-
-        .placeMargin()
-    }
-
-    // Stands the outline in the margin left of the page, the part being read on its Arc rule, when
-    // the margin has the room.
-    internal mtd placeMargin()
-    {
-        if .margin == null do
-            return
-        var active = Swag.U64.Max
-        for index, row in .marginParts where .bookmarks[index].pageIndex <= .pdfView.pageIndex do
-            active = row
-        .margin.setActive(active)
-
-        const Inset = 24.0
-        let column = .pdfView.pageColumn()
-        .margin.place(Inset, Inset, column.x - 2 * Inset)
-    }
-
     mtd refreshNavigation()
     {
         .previousButton.enable(.pdfView.pageIndex > 0)
         .nextButton.enable(.pdfView.pageIndex + 1 < .pdfView.pageCount())
         .pageLabel.setText(Viewer.pageText(.pdfView.pageIndex, .pdfView.pageCount()))
-        .placeMargin()
     }
 
     mtd refreshZoom()
     {
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
-        .placeMargin()
     }
 
     internal mtd goToTypedPage(text: string)->bool
@@ -330,17 +281,92 @@ private impl Panel
            not parsed.value or
            parsed.value > .pdfView.pageCount() do
             return false
+        .history.visit(.pdfView.readingPosition())
         .pdfView.showPage(parsed.value - 1)
         return true
     }
 
+    // Lists the bookmarks in the outline, each addressed by its index, so the outline can filter
+    // them and find them again.
+    mtd publishBookmarks()
+    {
+        if not .outline do
+            return
+        var headings: Array'DocumentHeading
+        for entry, index in .bookmarks do
+            headings.add(DocumentHeading{entry.title, entry.level, index})
+        .outline.publish(headings.toSlice())
+    }
+
+    // Marks in the outline the bookmark being read: the last one at or before the point standing
+    // at the top of the view. At the end of the document a later bookmark cannot rise to the top,
+    // so one the reader chose there stays marked.
+    internal mtd followReading()
+    {
+        if not .outline do
+            return
+        let place = .pdfView.readingPosition()
+        if not place.isValid() do
+            return
+
+        // A bookmark's point is brought to the top of the view within a rounding of the scroll.
+        const Slack = 1.0
+        var reading = Swag.U64.Max
+        for entry, index in .bookmarks where entry.pageIndex < place.pageIndex or
+                                             (entry.pageIndex == place.pageIndex and entry.position.y <= place.point.y + Slack) do
+            reading = index
+        if reading == Swag.U64.Max do
+            return
+
+        .outline.markReading(reading, atEnd: .pdfView.readingProgress() >= 1)
+    }
+
+    // Shows the place a bookmark names, remembering the one the reader leaves. A bookmark that
+    // only groups others, or whose destination the document does not resolve, moves nothing.
+    internal mtd showBookmark(index: u64)
+    {
+        if index >= .bookmarks.count do
+            return
+        let entry = &.bookmarks[index]
+        if entry.pageIndex >= .pdfView.pageCount() do
+            return
+        .history.visit(.pdfView.readingPosition())
+        .pdfView.showPosition(entry.pageIndex, entry.position)
+    }
+
+    // Returns to the place the last jump left, at the zoom it was read at.
+    internal mtd goBack()
+    {
+        if .history.canGoBack() do
+            discard .pdfView.restoreReadingPosition(.history.back(.pdfView.readingPosition()))
+    }
+
+    // Undoes the last return.
+    internal mtd goForward()
+    {
+        if .history.canGoForward() do
+            discard .pdfView.restoreReadingPosition(.history.forward(.pdfView.readingPosition()))
+    }
+
+    mtd handleHistoryKey(evt: const *KeyEvent)->bool
+    {
+        let direction = Viewer.historyKeyDirection(evt)
+        if direction < 0 do
+            .goBack()
+        elif direction > 0 do
+            .goForward()
+        return direction != 0
+    }
+
     // Gives the lens the pages and the zoom of the document.
-    mtd describeLens(entries: *Viewer.LensEntries)
+    internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
         entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
+        entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(strings.ui_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(strings.ui_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
@@ -412,6 +438,8 @@ private impl Panel
         {
             if evt is KeyEvent as key
             {
+                if view.handleHistoryKey(key) do
+                    return true
                 let direction = Viewer.pageKeyDirection(key)
                 if direction < 0 do
                     view.pdfView.previousPage()
@@ -421,20 +449,6 @@ private impl Panel
             }
 
             return false
-        }
-
-        // The outline stands in the margin beside the page; choosing a part shows it.
-        with result.margin = OutlineMargin.create(result, "scope.pdf.margin")
-        {
-            .label     = texts().ui_Contents
-            .sigChosen += func|view = result|(_, row)
-            {
-                if row < view.marginParts.count
-                {
-                    let entry = &view.bookmarks[view.marginParts[row]]
-                    view.pdfView.showPosition(entry.pageIndex, entry.position)
-                }
-            }
         }
 
         result.applyLayout()
@@ -497,6 +511,11 @@ private impl Panel
                 view.refreshZoom()
             }
 
+            .sigScrolled += func|view = me|(_)
+            {
+                view.followReading()
+            }
+
             .sigRenderError += func|view = me|(_, message)
             {
                 view.services.failed(view, message)
@@ -538,14 +557,7 @@ func createViewer(host: Viewer.Host)
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
-    view.outline.sigSelected += func|view|(_, index)
-    {
-        if index < view.bookmarks.count
-        {
-            let entry = &view.bookmarks[index]
-            view.pdfView.showPosition(entry.pageIndex, entry.position)
-        }
-    }
+    view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
 
     // PDF text lives compressed inside the file, so the viewer extracts every page's text and
     // hands the host stable logical matches for counting and bidirectional navigation, a page at

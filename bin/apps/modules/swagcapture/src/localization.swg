@@ -96,9 +96,9 @@ struct AppStrings
     dlg_BtnExport:                string = "Export"
     dlg_BtnMove:                  string = "Move"
     msg_RemoveAssociation:        string = "This will remove the image association."
-    msg_DeleteCaptures:           string = "This will delete the capture file(s)."
+    msg_DeleteCaptures:           string = "The selected captures move to the recycle bin, where they can be restored."
     msg_EraseTrash:               string = "This will permanently erase every capture in the recycle bin."
-    msg_EraseSelected:            string = "This will permanently erase the selected capture(s)."
+    msg_EraseSelected:            string = "The selected captures will be permanently erased."
     msg_OverwriteLinked:          string = "This will overwrite the original image."     // Confirmation before updating a linked image.
     ui_DoNotAskAgain:             string = "Do not ask again"                            // Option of a confirmation that turns it off.
     ui_DoNotShowResidentAgain:    string = "Do not show this reminder again"             // Choice in the resident notification.
@@ -158,7 +158,6 @@ struct AppStrings
     ui_AimReady:                  string = "Ready to Record"     // The live-area preparation is waiting for Record.
     hint_AimWindow:               string = "hold for window"     // W temporarily aims at the window under the pointer.
     hint_AimAttach:               string = "follow window"       // A opts a drawn area into following its window.
-    hint_AimFormat:               string = "change format"       // Tab cycles Picture, GIF and Video.
     msg_FailedCaptureScreen:      string = "Failed to capture the screen"
     msg_FailedRecordScreen:       string = "The recording could not be written"
     msg_VideoKeptAfterError:      string = "Recording stopped after an error; the video file was kept"

@@ -622,3 +622,38 @@ using Swag, Core
     Swag.require(quick.allPresets == null)
     Swag.require(quick.layout.hasFocus() and quick.rowCells()[quick.keyCell].isMore)
 }
+
+// The live style chip follows a property edit, which refreshes the row through its check states:
+// a model edited until it equals a preset loses its unsaved chip instead of showing two checked
+// chips, and an edit away from every preset brings the chip back.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    let quick = QuickWnd.create(f.main, f.main)
+    quick.setDefault()
+    f.main.editMode = .Arrow
+    quick.setPosition(Math.Rectangle{0, 0, 6 * QuickChipWidth, QuickChipHeight})
+
+    func checkedCount(quick: *QuickWnd)->u64
+    {
+        var result = 0'u64
+        for cell in quick.rowCells() where cell.isChecked do
+            result += 1
+        return result
+    }
+
+    f.main.mdlFormArrow.borderColor = Argb.Magenta
+    quick.updateQuickStyles(forceRebuild: true)
+    Swag.require(quick.rowCells()[0].isTransient and checkedCount(quick) == 1)
+
+    f.main.mdlFormArrow.borderColor = quick.qsArrow.forms[0].borderColor
+    Swag.require(quick.qsArrow.forms[0].isSame(&f.main.mdlFormArrow))
+    quick.updateSelection()
+    Swag.require(not quick.rowCells()[0].isTransient and checkedCount(quick) == 1)
+
+    f.main.mdlFormArrow.borderColor = Argb.Magenta
+    quick.updateSelection()
+    Swag.require(quick.rowCells()[0].isTransient and checkedCount(quick) == 1)
+}

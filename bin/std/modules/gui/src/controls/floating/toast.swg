@@ -61,6 +61,7 @@ struct Toast
     hovered:    bool               // Whether the pointer is over the pill.
     hotAction:  bool               // Whether the pointer is over the action.
     actionRect: Math.Rectangle     // Where the action stands, in local coordinates.
+    barTop:     f32                // Top of a bar floating at the foot of the parent, or zero.
 }
 
 impl IWnd for Toast
@@ -241,7 +242,9 @@ private impl Toast
         }
 
         let x = Math.round(bounds.horzCenter() - width * 0.5)
-        let y = bounds.bottom() - metrics.toast_Bottom - metrics.toast_Height
+        var y = bounds.bottom() - metrics.toast_Bottom - metrics.toast_Height
+        if .barTop > 0 do
+            y = Math.min(y, .barTop - metrics.floating_Inset - metrics.toast_Height)
         .setPosition(Math.Rectangle{x, y, width, metrics.toast_Height})
     }
 }
@@ -284,6 +287,18 @@ impl Toast
         .invalidate()
         if not .hovered do
             .startTimer()
+    }
+
+    // Keeps the pill above a bar the application floats at the foot of the parent, whose top is
+    // `top` in the parent's coordinates, such as the timeline of a recording; zero gives the pill
+    // its place above the hint line back.
+    mtd keepAbove(top: f32)
+    {
+        if .barTop == top do
+            return
+        .barTop = top
+        if .isLocallyVisible() do
+            .place()
     }
 
     // Takes the toast away now, with the floating departure.

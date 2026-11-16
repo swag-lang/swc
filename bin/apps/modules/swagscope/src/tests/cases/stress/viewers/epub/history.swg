@@ -12,18 +12,18 @@ using Core, Gui, Viewers
     let panel  = assume cast(*Epub.Panel, window.currentView)
     for index in 160 do
         panel.showChapter(0, index % 2 == 0 ? "passage" : "")
-    Swag.require(panel.backVisits.count == 128 and panel.forwardVisits.isEmpty())
+    Swag.require(panel.history.backVisits.count == 128 and panel.history.forwardVisits.isEmpty())
     var oversized: String
     for 4097 do
         oversized += "x"
     panel.showChapter(1, oversized)
-    Swag.require(panel.chapter == 0 and panel.backVisits.count == 128)
+    Swag.require(panel.chapter == 0 and panel.history.backVisits.count == 128)
     for 128 do
         panel.goBack()
-    Swag.require(panel.backVisits.isEmpty() and panel.forwardVisits.count == 128)
+    Swag.require(panel.history.backVisits.isEmpty() and panel.history.forwardVisits.count == 128)
     panel.goBack()
-    Swag.require(panel.forwardVisits.count == 128)
+    Swag.require(panel.history.forwardVisits.count == 128)
     for 128 do
         panel.goForward()
-    Swag.require(panel.backVisits.count == 128 and panel.forwardVisits.isEmpty())
+    Swag.require(panel.history.backVisits.count == 128 and panel.history.forwardVisits.isEmpty())
 }

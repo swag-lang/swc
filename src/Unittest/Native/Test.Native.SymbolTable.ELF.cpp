@@ -70,10 +70,12 @@ SWC_TEST_BEGIN(ElfSymbolTable_MergesExecutableAndSharedContributions)
 {
     for (const uint64_t base : {uint64_t{0}, uint64_t{0x400000}})
     {
-        ByteArray    bytes        = makeSymbolImage(base);
-        const size_t headers      = bytes.readLe64(40);
-        const size_t originalSize = bytes.readLe64(headers + 160);
-        Utf8         error;
+        ByteArray       bytes            = makeSymbolImage(base);
+        const size_t    headers          = bytes.readLe64(40);
+        const size_t    originalSize     = bytes.readLe64(headers + 160);
+        const size_t    originalFileSize = bytes.size();
+        const ByteArray loadedBytes(bytes.begin() + 64, bytes.begin() + TABLE_OFFSET);
+        Utf8            error;
         if (!ELFSymbolTable::finalizeImage(bytes, error) || !error.empty())
             return Result::Error;
         if (bytes.readLe32(TABLE_OFFSET + 4) != SymbolTable::VERSION_PLAIN || bytes.readLe32(TABLE_OFFSET + 8) != 2 ||
@@ -85,13 +87,54 @@ SWC_TEST_BEGIN(ElfSymbolTable_MergesExecutableAndSharedContributions)
         const auto file = reinterpret_cast<const char*>(bytes.data() + TABLE_OFFSET + bytes.readLe32(TABLE_OFFSET + 48));
         if (std::string_view(name) != "First" || std::string_view(file) != "second.swg")
             return Result::Error;
-        const size_t finalSize = bytes.readLe64(headers + 160);
-        if (finalSize >= originalSize)
+        const size_t finalSize = bytes.readLe64(bytes.readLe64(40) + 160);
+        if (finalSize >= originalSize || bytes.size() >= originalFileSize ||
+            !std::ranges::equal(loadedBytes.span(), bytes.span().subspan(64, TABLE_OFFSET - 64)))
             return Result::Error;
-        for (size_t offset = finalSize; offset < originalSize; ++offset)
-            if (bytes[TABLE_OFFSET + offset] != std::byte{0})
-                return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ElfSymbolTable_CompactionPreservesFollowingSectionAlignment)
+{
+    ByteArray       bytes      = makeSymbolImage(0x400000);
+    const uint64_t  oldHeaders = bytes.readLe64(40);
+    const ByteArray headers(bytes.begin() + oldHeaders, bytes.end());
+    bytes.resize(oldHeaders);
+    bytes.align(16);
+    const uint64_t             trailer = bytes.size();
+    constexpr std::string_view marker  = "unaltered trailer";
+    bytes.append(marker);
+    bytes.align(8);
+    const uint64_t newHeaders = bytes.size();
+    bytes.append(headers);
+    bytes.resize(bytes.size() + 64);
+    bytes.writeLe64(40, newHeaders);
+    bytes.writeLe16(60, 4);
+    bytes.writeLe32(newHeaders + 3 * 64 + 4, 1);
+    bytes.writeLe64(newHeaders + 3 * 64 + 24, trailer);
+    bytes.writeLe64(newHeaders + 3 * 64 + 32, marker.size());
+    bytes.writeLe64(newHeaders + 3 * 64 + 48, 16);
+    const size_t originalSize = bytes.size();
+    Utf8         error;
+    if (!ELFSymbolTable::finalizeImage(bytes, error) || !error.empty() || bytes.size() >= originalSize || (originalSize - bytes.size()) % 16)
+        return Result::Error;
+    const uint64_t offset = bytes.readLe64(bytes.readLe64(40) + 3 * 64 + 24);
+    if (offset % 16 || offset >= trailer || !std::ranges::equal(bytes.span().subspan(offset, marker.size()), std::as_bytes(std::span(marker))))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ElfSymbolTable_KeepsMappedFileRangesInPlace)
+{
+    ByteArray      bytes   = makeSymbolImage(0x400000);
+    const uint64_t headers = bytes.readLe64(40);
+    // Some external layouts include non-allocated metadata in a file-backed segment.
+    bytes.writeLe64(96, headers);
+    const size_t originalSize = bytes.size();
+    Utf8         error;
+    if (!ELFSymbolTable::finalizeImage(bytes, error) || !error.empty() || bytes.size() != originalSize || bytes.readLe64(40) != headers || bytes.readLe64(96) != headers)
+        return Result::Error;
 }
 SWC_TEST_END()
 

@@ -4,7 +4,7 @@
 using Swag, Core
 
 // The area overlay of the charter: the desktop dimmed but the chosen zone, a 1 px Voltage edge,
-// what is kept and the size in a mono chip with the key changing it, and the pixel loupe by the
+// what is kept and the size in a mono chip, and the pixel loupe by the
 // pointer. The keys stand on floating ground over the frozen desktop.
 #[Swag.TestTag("golden")]
 #test

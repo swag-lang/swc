@@ -73,6 +73,16 @@ func readSelectionPeer(mode: string)
     Clipboard.setString(large.toString())
     readSelectionPeer("read-large")
 
+    // Files travel as a text/uri-list another client reads, every byte outside the unreserved
+    // set percent-encoded, and come back as the same paths.
+    var paths: Array'String
+    paths.add("/tmp/swag capture/demo réglages.gif")
+    paths.add("/tmp/second.gif")
+    Clipboard.setFiles(paths.toSlice())
+    readSelectionPeer("read-files")
+    let files = Clipboard.getFiles()
+    Swag.require(files.count == 2 and files[0] == paths[0] and files[1] == paths[1])
+
     var image = Image.create(3, 2, .BGRA8)
     image.clear()
     Clipboard.addImage(image)

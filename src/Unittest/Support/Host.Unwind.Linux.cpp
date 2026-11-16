@@ -1,8 +1,8 @@
 #include "pch.h"
 #include "Backend/Encoder/Frame.DWARF.X64.h"
 #include "Backend/JIT/JITMemoryManager.h"
-#include "Support/Os/Os.h"
 #include "Support/Os/Os.Exception.Linux.h"
+#include "Support/Os/Os.h"
 #include "Unittest/Support/Host.Tests.Linux.h"
 #include <signal.h>
 #include <sys/resource.h>
@@ -17,11 +17,13 @@ namespace swc::LinuxHostTests
 {
     namespace
     {
-        struct UnwindMarker {};
-        thread_local uint32_t destroyed = 0;
+        struct UnwindMarker
+        {
+        };
+        thread_local uint32_t                  destroyed = 0;
         thread_local std::array<uintptr_t, 32> captured{};
-        thread_local uint32_t capturedCount = 0;
-        volatile sig_atomic_t previouslyHandled = 0;
+        thread_local uint32_t                  capturedCount     = 0;
+        volatile sig_atomic_t                  previouslyHandled = 0;
 
         void previousSignalHandler(int, siginfo_t*, void*)
         {
@@ -44,7 +46,7 @@ namespace swc::LinuxHostTests
                 {
                     struct sigaction action{};
                     action.sa_sigaction = previousSignalHandler;
-                    action.sa_flags = SA_SIGINFO | SA_RESETHAND;
+                    action.sa_flags     = SA_SIGINFO | SA_RESETHAND;
                     sigemptyset(&action.sa_mask);
                     if (sigaction(SIGILL, &action, nullptr) != 0)
                         _exit(76);
@@ -105,7 +107,7 @@ namespace swc::LinuxHostTests
             // code, with a live native C++ cleanup between it and the boundary.
             const uint8_t code[] = {0x31, 0xc0, 0x89, 0x00, 0xc3};
             X64DwarfFrame rules;
-            ByteArray frame;
+            ByteArray     frame;
             rules.build(frame, sizeof(code));
             JITMemory memory;
             manager.allocateWithCodeSize(memory, sizeof(code) + frame.size(), sizeof(code));
@@ -128,7 +130,7 @@ namespace swc::LinuxHostTests
                     if (exception.signal != SIGSEGV || exception.instructionAddress != expected || exception.faultAddress != 0 ||
                         exception.registers[16] != expected || !exception.frameCount || exception.frames[0] != expected)
                         _exit(82);
-                    uint32_t decodedSignal = 0;
+                    uint32_t    decodedSignal  = 0;
                     const void* decodedAddress = nullptr;
                     Os::decodeHostException(decodedSignal, decodedAddress, &exception);
                     if (decodedSignal != SIGSEGV || reinterpret_cast<uintptr_t>(decodedAddress) != expected)
@@ -165,11 +167,11 @@ namespace swc::LinuxHostTests
         void verifyConcurrentFrameRemoval(JITMemoryManager& manager)
         {
             X64DwarfFrame rules;
-            ByteArray frame;
+            ByteArray     frame;
             rules.build(frame, 1);
-            std::atomic<bool> scanning = true;
-            std::atomic<uint32_t> scans = 0;
-            std::thread reader([&] {
+            std::atomic<bool>     scanning = true;
+            std::atomic<uint32_t> scans    = 0;
+            std::thread           reader([&] {
                 while (scanning.load(std::memory_order_relaxed))
                 {
                     Os::isRegisteredJitCode(UINTPTR_MAX);
@@ -255,9 +257,9 @@ namespace swc::LinuxHostTests
             captured.fill(0);
             capturedCount = 0;
             reinterpret_cast<void (*)(void (*)())>(memory.entryPoint())(captureFromGeneratedCode);
-            const uintptr_t start = reinterpret_cast<uintptr_t>(memory.entryPoint());
-            bool foundJit = false;
-            bool foundCaller = false;
+            const uintptr_t start       = reinterpret_cast<uintptr_t>(memory.entryPoint());
+            bool            foundJit    = false;
+            bool            foundCaller = false;
             for (uint32_t i = 0; i < capturedCount; ++i)
             {
                 const bool inJit = captured[i] >= start && captured[i] < start + code.size();
@@ -267,7 +269,7 @@ namespace swc::LinuxHostTests
             }
             require(foundJit && foundCaller, "native backtrace stopped at a generated frame");
 
-            destroyed = 0;
+            destroyed   = 0;
             bool caught = false;
             try
             {
@@ -280,7 +282,7 @@ namespace swc::LinuxHostTests
             }
             require(caught && destroyed == 1, "C++ exception crossing generated code skipped a destructor");
 
-            void* entry = memory.entryPoint();
+            void*     entry = memory.entryPoint();
             JITMemory moved(std::move(memory));
             memory.reset();
             require(hasRegisteredFrame(entry), "move construction deregistered the live frame");
@@ -297,7 +299,7 @@ namespace swc::LinuxHostTests
     {
         verifyPreviousSignalHandler();
         JITMemoryManager manager;
-        X64DwarfFrame rules;
+        X64DwarfFrame    rules;
         // sub rsp,8; call rdi; add rsp,8; ret
         const std::array<uint8_t, 11> frameless = {0x48, 0x83, 0xec, 8, 0xff, 0xd7, 0x48, 0x83, 0xc4, 8, 0xc3};
         rules.advance(4);
@@ -322,7 +324,7 @@ namespace swc::LinuxHostTests
 
         // Exercise a long location delta and a multibyte ULEB stack offset.
         std::vector<uint8_t> large(128, 0x90);
-        const uint8_t body[] = {0x48, 0x81, 0xec, 8, 2, 0, 0, 0xff, 0xd7, 0x48, 0x81, 0xc4, 8, 2, 0, 0, 0xc3};
+        const uint8_t        body[] = {0x48, 0x81, 0xec, 8, 2, 0, 0, 0xff, 0xd7, 0x48, 0x81, 0xc4, 8, 2, 0, 0, 0xc3};
         large.insert(large.end(), std::begin(body), std::end(body));
         rules.reset();
         rules.advance(135);
@@ -330,6 +332,20 @@ namespace swc::LinuxHostTests
         rules.advance(144);
         rules.defineCfa(7, 8);
         verifyGeneratedFrame(manager, large, rules);
+
+        // Exercise both boundaries of the compact one- and two-byte location
+        // operands through the host unwinder, including C++ exception cleanup.
+        for (const uint32_t padding : {59u, 60u, 251u, 252u, 65531u, 65532u})
+        {
+            std::vector<uint8_t> boundary(padding, 0x90);
+            boundary.insert(boundary.end(), frameless.begin(), frameless.end());
+            rules.reset();
+            rules.advance(padding + 4);
+            rules.defineCfa(7, 16);
+            rules.advance(padding + 10);
+            rules.defineCfa(7, 8);
+            verifyGeneratedFrame(manager, boundary, rules);
+        }
 
         // A second return path must recover the body's CFA after the first
         // epilogue. Non-null callback addresses always take that second path.

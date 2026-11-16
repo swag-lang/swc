@@ -745,6 +745,14 @@ internal func testSetupInPlace(host: *Gui.Testing.HeadlessHost, dark: bool)->*In
     capture.backImagePos = {-580, -180}
     host.runFrames(1)
     Swag.require(editor.bar.position.right() <= 888)
+
+    // The shortcuts follow the zone's monitor rather than the whole virtual desktop.
+    editor.source.monitors.clear()
+    testAddMonitorAt(editor.source, {0, 0, 512, 640})
+    testAddMonitorAt(editor.source, {512, 0, 512, 480})
+    host.runFrames(1)
+    let hints = editor.hintLine.surfaceRect()
+    Swag.require(hints.x >= 512 and hints.right() <= 1024 and hints.bottom() <= 480)
 }
 
 // Something that must not leave the screen is hidden in place, before the copy: the bar has a
@@ -1536,10 +1544,12 @@ internal func testFindColorPopover(wnd: *Gui.Wnd)->*ColorPopover?
     }
     Swag.require(editor.source.captureOptions.recordRate == rate)
 
-    // Video leaves the frozen editor; the live preparation owns its sound choices.
+    // Tab leaves the chosen capture kind unchanged; video is an explicit choice.
     var key = Gui.KeyEvent{kind: .Pressed, key: .Tab}
     g_Exit, g_GrabDone = false
     editor.sendEvent(&key)
+    Swag.require(g_CaptureMedia == .Animation and not g_Exit and not g_GrabDone)
+    editor.setMedia(.Video)
     Swag.require(g_CaptureMedia == .Video and g_Exit and g_GrabDone)
 
     // In an animation, Enter starts the recording of the zone.
@@ -1720,4 +1730,78 @@ internal func testClickViewCorner(host: *Gui.Testing.HeadlessHost, main: *MainWn
     var pt   = Math.Point{rect.x + 8, rect.y + 8}
     view.surface!.surfaceToScreen(&pt)
     host.click(pt)
+}
+
+// A long name for the last capture, as recording the active window or one screen with its size
+// gives in French, still leaves the title its room at the minimum width: Video and the library
+// keep their glyphs and give up their words to their tips, and the save control then does, while
+// Capture keeps its whole name.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false, caption: true)
+    defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    let strip = main.taskStrip
+    for language in [Gui.ReferenceLanguage, "fr"]
+    {
+        expect main.appearanceButton.setAppearanceLanguage(language)
+        for last in [ActionCapture.Area, ActionCapture.RecordActiveWindow, ActionCapture.screenId(0), ActionCapture.FullScreen, ActionCapture.Area]
+        {
+            main.lastCapture = last
+            main.updateState()
+            host.finishAnimations()
+            main.applyLayout()
+
+            let capture  = assume cast(*IconButton, strip.leading.children[0])
+            let leading  = testRectInFrame(&host.surfaceWnd, strip.leading)
+            let trailing = testRectInFrame(&host.surfaceWnd, strip.trailing)
+            let title    = host.surfaceWnd.captionContentRect()
+            Swag.require(capture.name.text == main.sendComputeCommandStateEvent(main.lastCaptureCommand()).name)
+            Swag.require(not capture.flags.has(.IconOnly))
+            Swag.require(title.x >= leading.right() and title.right() <= trailing.x and title.width > 0)
+
+            // The title is centred on the window: what it shows is twice its nearer side.
+            let center = host.surfaceWnd.clientRect().horzCenter()
+            Swag.require(2 * Math.min(center - title.x, title.right() - center) >= TaskStripTitleRoom - 1)
+            Swag.require(capture.position.width >= Math.floor(capture.itf.measureContent({}).x))
+            if strip.libraryButton.flags.has(.IconOnly) do
+                Swag.require(strip.libraryButton.toolTip == appStrings().act_Library)
+            for bar in [strip.leading, strip.trailing]
+            {
+                for child in bar.children
+                {
+                    Swag.require(child.position.x >= 0)
+                    Swag.require(child.position.width >= Math.floor(child.itf.measureContent({}).x))
+                    Swag.require(child.position.right() <= bar.clientRect().right() + 0.5)
+                }
+            }
+        }
+    }
+
+    // A short name gives the words back.
+    main.lastCapture = ActionCapture.Area
+    expect main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    main.updateState()
+    main.applyLayout()
+    Swag.require(not strip.videoButton.flags.has(.IconOnly) and not strip.libraryButton.flags.has(.IconOnly))
+}
+
+// A change of language reaches every text of the editor at once, without waiting for another
+// state change: the inspector title, the capture control of the strip, and the hint line.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: true, text: false, caption: true)
+    defer discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+    main.editMode = .Shape
+    main.updateState()
+
+    for language in ["fr", Gui.ReferenceLanguage]
+    {
+        expect main.appearanceButton.setAppearanceLanguage(language, notify: true)
+        let capture = assume cast(*IconButton, main.taskStrip.leading.children[0])
+        Swag.require(main.inspector.title == appStrings().act_Shape)
+        Swag.require(main.inspector.detail == appStrings().ui_NextObjects)
+        Swag.require(capture.name.text == appStrings().act_CaptureArea)
+    }
 }

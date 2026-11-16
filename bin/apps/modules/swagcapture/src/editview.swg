@@ -83,7 +83,12 @@ impl IWnd for EditView
 
         if .capture.mouse(me, evt)
         {
-            .invalidate()
+            // A step of a body drag or a create drag repaints only the region it changed
+            // (Capture.invalidateMovedRegion): a full repaint here would draw every form on
+            // each move of the pointer.
+            let mode = .capture.mouseMode
+            if evt.kind != .Move or (mode != .Moving and mode != .Creating) do
+                .invalidate()
             evt.accepted = true
             .setFocus()
 
@@ -98,8 +103,7 @@ impl IWnd for EditView
             if evt.modifiers & .Control
             {
                 evt.accepted = true
-                let z = .zoom + (evt.delta.y > 0 ? 0.1 : -0.1)
-                .setZoom(z, true)
+                .setZoom(zoomStep(.zoom, up: evt.delta.y > 0), true)
             }
         }
     }
@@ -327,6 +331,31 @@ impl EditView
     const MinZoom = 0.1
     const MaxZoom = 10.0
 
+    // The levels the zoom commands and the Control wheel step through: about a third apart at
+    // every scale, and through 100% so the actual size is always within reach.
+    const ZoomStops: [15] f32 = [0.1, 0.15, 0.2, 0.25, 0.33, 0.5, 0.67, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0]
+
+    // Returns the stop after `zoom` towards larger levels with `up`, towards smaller ones without;
+    // a zoom between two stops, as a fit leaves it, goes to the nearer stop in that direction.
+    func zoomStep(zoom: f32, up: bool)->f32
+    {
+        if up
+        {
+            for stop in ZoomStops where stop > zoom * 1.001 do
+                return stop
+            return cast(f32, MaxZoom)
+        }
+
+        for i in ZoomStops.count
+        {
+            let stop = ZoomStops[ZoomStops.count - 1 - i]
+            if stop < zoom * 0.999 do
+                return stop
+        }
+
+        return cast(f32, MinZoom)
+    }
+
     // Locks the view onto the desktop underneath, at one capture texel per device pixel.
     //
     // The in-place overlay draws the captured desktop back over the real one, so its zoom is
@@ -403,12 +432,12 @@ impl EditView
 
     mtd zoomIn()
     {
-        .setZoom(.zoom + 0.1)
+        .setZoom(zoomStep(.zoom, up: true))
     }
 
     mtd zoomOut()
     {
-        .setZoom(.zoom - 0.1)
+        .setZoom(zoomStep(.zoom, up: false))
     }
 
     // Zooms so the whole capture fits in the view, never past 100% unless `canZoom`.

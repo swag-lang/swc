@@ -9,12 +9,12 @@
 #include "Support/Os/ProcessOutput.h"
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
-#include <RestartManager.h>
 #include <dbghelp.h>
 #include <psapi.h>
+#include <restartmanager.h>
 
-#pragma comment(lib, "Psapi.lib")
-#pragma comment(lib, "Rstrtmgr.lib")
+#pragma comment(lib, "psapi.lib")
+#pragma comment(lib, "rstrtmgr.lib")
 
 SWC_BEGIN_NAMESPACE();
 

@@ -31,13 +31,6 @@ struct ReadingVisit
     fragment: String
 }
 
-private func pushVisit(stack: *Array'ReadingVisit, visit: ReadingVisit)
-{
-    if stack.count >= 128 do
-        stack.removeAtOrdered(0)
-    stack.add(visit)
-}
-
 // Owns book navigation while the HTML control streams the selected chapter and its resources.
 struct Panel
 {
@@ -51,8 +44,7 @@ struct Panel
     contents:        Array'NavigationEntry
     zoomPercent:     u32 = 100
     readingColumn:   ReadingColumn = .Comfortable
-    backVisits:      Array'ReadingVisit
-    forwardVisits:   Array'ReadingVisit
+    history:         Viewer.History'ReadingVisit
     pendingPosition: HtmlReadingPosition
     fragment:        String
 
@@ -189,11 +181,8 @@ private impl Panel
             let previous = .currentVisit()
             if .view.navigateToFragment(Format.toString("#%", fragment))
             {
-                if remember
-                {
-                    pushVisit(&.backVisits, previous)
-                    .forwardVisits.clear()
-                }
+                if remember do
+                    .history.visit(previous)
 
                 .fragment        = fragment
                 .pendingPosition = {}
@@ -202,11 +191,8 @@ private impl Panel
             return
         }
 
-        if remember and .view and .chapter < .book.chapters.count
-        {
-            pushVisit(&.backVisits, .currentVisit())
-            .forwardVisits.clear()
-        }
+        if remember and .view and .chapter < .book.chapters.count do
+            .history.visit(.currentVisit())
 
         .pendingPosition = {}
         .fragment        = fragment
@@ -291,34 +277,24 @@ private impl Panel
 
     internal mtd goBack()
     {
-        if .backVisits.isEmpty() do
-            return
-        let visit = .backVisits.popBack()
-        pushVisit(&.forwardVisits, .currentVisit())
-        .restoreVisit(visit)
+        if .history.canGoBack() do
+            .restoreVisit(.history.back(.currentVisit()))
     }
 
     internal mtd goForward()
     {
-        if .forwardVisits.isEmpty() do
-            return
-        let visit = .forwardVisits.popBack()
-        pushVisit(&.backVisits, .currentVisit())
-        .restoreVisit(visit)
+        if .history.canGoForward() do
+            .restoreVisit(.history.forward(.currentVisit()))
     }
 
     mtd handleHistoryKey(evt: const *KeyEvent)->bool
     {
-        if evt.kind != .Pressed or evt.modifiers != .Alt do
-            return false
-        switch evt.key
-        {
-        case .Left:  .goBack()
-        case .Right: .goForward()
-        default:     return false
-        }
-
-        return true
+        let direction = Viewer.historyKeyDirection(evt)
+        if direction < 0 do
+            .goBack()
+        elif direction > 0 do
+            .goForward()
+        return direction != 0
     }
 
     mtd applyReadingStyle()
@@ -347,8 +323,8 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: .backVisits.isEmpty(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
-        entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: .forwardVisits.isEmpty(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
+        entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })

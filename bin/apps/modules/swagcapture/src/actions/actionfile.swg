@@ -207,14 +207,8 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case .UnlinkImage:
-            if MessageDlg.confirm(unwrap main.surface, appStrings().msg_RemoveAssociation) == Dialog.BtnYes
-            {
-                capture.linkedImage.clear()
-                capture.changed        = true
-                capture.linkedUpToDate = false
-                main.saveCapture(capture)
-                main.recentWnd.updateRecent()
-            }
+            if MessageDlg.confirm(unwrap main.surface, appStrings().msg_RemoveAssociation) == Dialog.BtnYes do
+                main.unlinkImage(capture)
 
         case .UpdateLinkedImage:
             updateLinkedImage(main, capture)
@@ -239,11 +233,12 @@ impl IActionUI for ActionFile
             // Snapshot the values now: `capture` may be a library preview that the modal
             // loop could invalidate, but the file path and current title stay valid.
             let file = capture.file.toString()
+            let name = capture.editableName()
 
             var editOptions: EditDlgOptions
             editOptions.title   = appStrings().dlg_TitleRenameCapture
             editOptions.message = appStrings().ui_CaptureName
-            editOptions.text    = capture.title
+            editOptions.text    = name
             let dialog = EditDlg.createSingleLine(unwrap main.surface, editOptions)
             if dialog.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dialog.text())
@@ -321,6 +316,13 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 
         if MessageDlg.confirm(unwrap main.surface, message, options: options) != Dialog.BtnYes do
             return
+    }
+
+    // The library holds only the preview of the capture: the export loads the whole capture first.
+    if capture.previewOnly
+    {
+        main.doSaveAsImage(capture.linkedImage, linked: true)
+        return
     }
 
     Cursor.activateWait()
@@ -486,13 +488,55 @@ impl MainWnd
             return
         }
 
-        capture.changed        = true
-        capture.linkedUpToDate = true
+        // Writing the linked image brings the capture in step with it. An export to another file
+        // leaves a stale linked image stale.
+        if Path.equals(nameFile, capture.linkedImage)
+        {
+            capture.changed        = true
+            capture.linkedUpToDate = true
+
+            // The library writes from its own copy of the capture. The editor's copy of the same
+            // file takes the link, or its next save would drop it; edits it has not saved yet are
+            // not in the image.
+            let editCapture = .editWnd.getCapture()
+            if editCapture and editCapture != capture and editCapture.file == capture.file
+            {
+                editCapture.linkedImage    = capture.linkedImage
+                editCapture.linkedUpToDate = not editCapture.changed
+            }
+        }
+
         .saveCapture(capture)
         if .recentWnd != null do
             .recentWnd.updateRecent()
 
         .confirmSaved(nameFile)
+    }
+
+    // Removes the link of `capture` to its image. The editor's copy of the same file takes the
+    // change when it holds one. A capture the library shows is only its preview, so otherwise the
+    // link leaves the model of its file and the stored pictures stay as they are.
+    mtd unlinkImage(capture: *Capture)
+    {
+        capture.linkedImage.clear()
+        let editCapture = .editWnd.getCapture()
+        if editCapture and editCapture.file == capture.file
+        {
+            editCapture.linkedImage.clear()
+            editCapture.changed        = true
+            editCapture.linkedUpToDate = false
+            .saveCapture(editCapture)
+        }
+        else
+        {
+            capture.linkedUpToDate = true
+            .queueCaptureMetadata(capture.file, unlink: true)
+        }
+
+        if .recentWnd != null do
+            .recentWnd.updateRecent()
+        if .libraryMode do
+            .libWnd.view.invalidate()
     }
 
     // Says that `nameFile` was saved, with a way to show it in the file explorer.
@@ -629,6 +673,16 @@ impl MainWnd
             }
 
             .confirmSaved(fileName)
+            return
+        }
+
+        // An export to another file than the linked image changes nothing the capture records:
+        // its picture is encoded and written on a worker. The in-place editor closes once it has
+        // saved, and keeps the write with it.
+        if not linked and not .inPlaceEdit and not Path.equals(fileName, capture.linkedImage)
+        {
+            .saveCapture(capture)
+            .startImageWrite(capture, fileName)
             return
         }
 

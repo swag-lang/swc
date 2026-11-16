@@ -122,3 +122,56 @@ using Core, Pixel
     view.showPosition(1, {24, 400})
     Swag.require(view.pageIndex == 1 and view.scroll.scrollPosition().y >= 390)
 }
+
+// The first visible text names where the reader is: the heading being read is the last one at
+// or before it, and the view says when it moved and when its end is on screen.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var source: String = "<html><body><h1>Guide</h1><p>Opening words.</p>"
+    for section in 6
+    {
+        source += Format.toString("<h2>Section %</h2>", section)
+        for 12 do
+            source += "<p>A paragraph that gives the section some height on the page.</p>"
+    }
+
+    source += "</body></html>"
+    let view = HtmlView.createText(&host.root, source.toString())
+    view.resize(640, 360)
+    view.applyLayout()
+    let headings = view.headings()
+    Swag.require(headings.count == 7)
+
+    var moves = 0
+    view.sigScrolled += func|&moves|(_) { moves += 1 }
+
+    // At the top, the first text belongs to the title and to no later section.
+    let top = view.readingOffset()
+    Swag.require(top != Swag.U64.Max and top >= headings[0].sourceOffset and top < headings[1].sourceOffset)
+    Swag.require(view.readingProgress() == 0 and moves == 0)
+
+    // Revealing a section puts its own heading first on screen.
+    Swag.require(view.revealFileOffset(headings[3].sourceOffset, ""))
+    let reading = view.readingOffset()
+    Swag.require(moves > 0)
+    Swag.require(reading >= headings[3].sourceOffset and reading < headings[4].sourceOffset)
+    let progress = view.readingProgress()
+    Swag.require(progress > 0 and progress < 1)
+
+    view.scroll.setScrollPos(0, view.scroll.scrollSize.y)
+    Swag.require(view.readingProgress() == 1)
+    Swag.require(view.readingOffset() >= headings[5].sourceOffset)
+
+    // A page shown whole is at its end, and a page without text has no reading offset.
+    let short = HtmlView.createText(&host.root, "<html><body><p>One line.</p></body></html>")
+    short.resize(640, 360)
+    short.applyLayout()
+    Swag.require(short.readingProgress() == 1)
+    Swag.require(short.readingOffset() != Swag.U64.Max)
+    let empty = HtmlView.createText(&host.root, "<html><body></body></html>")
+    empty.resize(640, 360)
+    empty.applyLayout()
+    Swag.require(empty.readingOffset() == Swag.U64.Max)
+}

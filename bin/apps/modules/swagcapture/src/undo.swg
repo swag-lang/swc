@@ -163,7 +163,8 @@ impl Undo
     //
     // Pure translations, reorderings, and grouping keep their pixels. Everything that
     // changes what a form paints re-renders it — and the image forms bake the capture
-    // pixels under them, so a move or a background change re-renders those too.
+    // pixels under them, so a move re-renders those it moved, and a background change
+    // re-renders them all.
     mtd invalidateFormCaches()
     {
         let capture = unwrap .capture
@@ -178,7 +179,10 @@ impl Undo
 
         case .OffsetSelection, .AlignLeft, .AlignCenter,
              .AlignRight, .AlignTop, .AlignMiddle, .AlignBottom:
-            capture.invalidateImageFormCaches()
+            foreachSelected'FormImage(capture, .selection)
+            {
+                capture.invalidateFormCache(itf)
+            }
 
         case .SetTypedValue, .SetFormFromModel, .SetText, .SetFont,
              .SetFontStyle, .SetImageInside, .ResetRotation:
@@ -433,7 +437,7 @@ impl Undo
                 .backImg       = .backImgOriginal
                 .width         = .widthOrg
                 .height        = .heightOrg
-                .dirtyBackImg  = true
+                .backgroundChanged()
                 .backImagePos.clear()
                 .selection.clear()
                 .forms.clear()
@@ -448,7 +452,7 @@ impl Undo
                 // here keeps toImage(onlySel) and removeSelection consistent on every replay.
                 .selection    = me.selection
                 .backImg      = .toImage(onlySel: true)
-                .dirtyBackImg = true
+                .backgroundChanged()
                 .backImagePos.clear()
             }
 
@@ -459,7 +463,7 @@ impl Undo
             {
                 .backImg       = .toImage()
                 me.toFreeForms = .forms
-                .dirtyBackImg  = true
+                .backgroundChanged()
                 .backImagePos.clear()
                 .selection.clear()
                 .forms.clear()
@@ -469,7 +473,7 @@ impl Undo
         case .SetImage:
             capture.backImg      = .newImg
             capture.backImagePos = .newImagePos
-            capture.dirtyBackImg = true
+            capture.backgroundChanged()
 
         case .SetImageInside:
             foreachSelected'FormImage(capture, .selection)
@@ -709,7 +713,7 @@ impl Undo
                 .backImg      = me.oldImg
                 .forms        = me.oldForms
                 .backImagePos = me.oldImagePos
-                .dirtyBackImg = true
+                .backgroundChanged()
                 .selection.clear()
                 .selectionHasChanged()
             }
@@ -721,7 +725,7 @@ impl Undo
                 .backImg      = me.oldImg
                 .backImagePos = me.oldImagePos
                 .forms        = me.oldForms
-                .dirtyBackImg = true
+                .backgroundChanged()
                 .selection.clear()
                 .selectionHasChanged()
             }
@@ -729,7 +733,7 @@ impl Undo
         case .SetImage:
             capture.backImg      = .oldImg
             capture.backImagePos = .oldImagePos
-            capture.dirtyBackImg = true
+            capture.backgroundChanged()
 
         case .SetImageInside:
             foreachSelected'FormImage(capture, .selection)

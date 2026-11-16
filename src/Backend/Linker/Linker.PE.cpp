@@ -1,18 +1,19 @@
 #include "pch.h"
-#include "Backend/Linker/Format.PE.h"
 #include "Backend/Linker/Linker.PE.h"
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Debug/DebugPath.h"
 #include "Backend/Debug/DebugRecordCollector.h"
 #include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/Archive.COFF.h"
-#include "Backend/Linker/Reader.COFF.h"
+#include "Backend/Linker/Format.PE.h"
+#include "Backend/Linker/IdenticalContentFold.h"
 #include "Backend/Linker/LinkDebugMerge.CodeView.h"
+#include "Backend/Linker/Reader.COFF.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
-#include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeImageBuilder.h"
+#include "Backend/Native/NativeNames.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
@@ -112,6 +113,7 @@ namespace
         outFunctionCandidate          = {};
         uint32_t textSectionIndex     = INVALID_REF;
         bool     ambiguousTextSection = false;
+        bool     hasOtherStorage      = false;
         for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
         {
             const CoffInputSection& section = object.sections[sectionIndex];
@@ -125,6 +127,8 @@ namespace
 
             if (isLinkerMetadataSection(section.name))
                 continue;
+            if (section.name != ".text" && section.name != ".pdata" && section.name != ".xdata" && (!section.bytes.empty() || section.isBss))
+                hasOtherStorage = true;
 
             for (const CoffInputReloc& reloc : section.relocs)
             {
@@ -133,13 +137,18 @@ namespace
             }
         }
 
-        if (ambiguousTextSection || textSectionIndex == INVALID_REF)
+        if (ambiguousTextSection || hasOtherStorage || textSectionIndex == INVALID_REF)
             return;
 
         for (const CoffInputSymbol& symbol : object.definedSymbols)
         {
-            if (symbol.sectionIndex != textSectionIndex || symbol.value != 0)
+            if (symbol.sectionIndex != textSectionIndex)
                 continue;
+            if (symbol.value != 0 || !symbol.name.view().starts_with("__swc_fn_"))
+            {
+                outFunctionCandidate = {};
+                return;
+            }
             if (!outFunctionCandidate.symbolName.empty())
             {
                 outFunctionCandidate = {};
@@ -153,9 +162,8 @@ namespace
 
     struct ReadOnlyDataFoldCandidate
     {
-        size_t   objectIndex     = 0;
-        uint32_t sectionIndex    = 0;
-        uint32_t characteristics = 0;
+        size_t   objectIndex  = 0;
+        uint32_t sectionIndex = 0;
 
         Utf8 symbolName;
     };
@@ -166,11 +174,6 @@ namespace
         Utf8 canonicalName;
     };
 
-    struct FunctionFoldGroup
-    {
-        std::vector<size_t> members;
-    };
-
     bool tryGetFoldableReadOnlyData(uint32_t& outSectionIndex, Utf8& outSymbolName, const CoffObject& object)
     {
         outSectionIndex = INVALID_REF;
@@ -178,10 +181,12 @@ namespace
 
         for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
         {
-            const CoffInputSection& section = object.sections[sectionIndex];
-            if (section.name == ".rdata" && !section.bytes.empty())
+            const CoffInputSection& section     = object.sections[sectionIndex];
+            const bool              initialized = section.name == ".rdata" && !section.bytes.empty();
+            const bool              zeroFilled  = section.name == ".rbss" && section.isBss && section.bssSize && section.bytes.empty() && section.relocs.empty();
+            if (initialized || zeroFilled)
             {
-                if (outSectionIndex != INVALID_REF)
+                if (outSectionIndex != INVALID_REF || (section.characteristics & (PE::SCN_MEM_WRITE | PE::SCN_MEM_EXECUTE)))
                     return false;
 
                 outSectionIndex = sectionIndex;
@@ -197,9 +202,9 @@ namespace
 
         for (const CoffInputSymbol& symbol : object.definedSymbols)
         {
-            if (symbol.sectionIndex != outSectionIndex || symbol.value != 0 || !symbol.name.view().starts_with("__swc_rdata_"))
+            if (isLinkerMetadataSection(object.sections[symbol.sectionIndex].name))
                 continue;
-            if (!outSymbolName.empty())
+            if (symbol.sectionIndex != outSectionIndex || symbol.value != 0 || !symbol.name.view().starts_with("__swc_rdata_") || !outSymbolName.empty())
                 return false;
 
             outSymbolName = symbol.name;
@@ -245,23 +250,38 @@ namespace
         appendLinkSymbolAliases(image, symbolIndices, additionalAliases);
     }
 
-    std::string_view canonicalRelocationTarget(const Utf8& target, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    const Utf8* findCanonicalSymbolAlias(const Utf8& target, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    {
+        const Utf8* canonical = &target;
+        for (;;)
+        {
+            const auto it = knownAliases.find(*canonical);
+            if (it == knownAliases.end())
+                return canonical == &target ? nullptr : canonical;
+            canonical = &it->second;
+        }
+    }
+
+    std::pair<bool, std::string_view> canonicalRelocationTarget(const Utf8& target, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
     {
         if (target == selfSymbol)
-            return "$self";
+            return {true, {}};
 
-        const auto it = knownAliases.find(target);
-        return it == knownAliases.end() ? target.view() : it->second.view();
+        const Utf8* canonical = findCanonicalSymbolAlias(target, knownAliases);
+        return {false, canonical ? canonical->view() : target.view()};
     }
 
     uint32_t readOnlyDataFoldHash(const CoffInputSection& section, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
     {
         uint32_t hash = Math::hash(section.bytes.span(), section.characteristics);
+        hash          = Math::hashCombine(hash, section.bssSize);
         for (const CoffInputReloc& relocation : section.relocs)
         {
-            hash = Math::hashCombine(hash, relocation.offset);
-            hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
-            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases)));
+            hash              = Math::hashCombine(hash, relocation.offset);
+            hash              = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
+            const auto target = canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases);
+            hash              = Math::hashCombine(hash, target.first);
+            hash              = Math::hashCombine(hash, Math::hash(target.second));
         }
 
         return hash;
@@ -269,7 +289,7 @@ namespace
 
     bool sameFoldableReadOnlyData(const CoffInputSection& lhs, const Utf8& lhsSymbol, const CoffInputSection& rhs, const Utf8& rhsSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
     {
-        if (lhs.characteristics != rhs.characteristics || lhs.bytes != rhs.bytes || lhs.relocs.size() != rhs.relocs.size())
+        if (lhs.characteristics != rhs.characteristics || lhs.isBss != rhs.isBss || lhs.bssSize != rhs.bssSize || lhs.bytes != rhs.bytes || lhs.relocs.size() != rhs.relocs.size())
             return false;
 
         for (size_t i = 0; i < lhs.relocs.size(); ++i)
@@ -291,9 +311,11 @@ namespace
         uint32_t                hash = Math::hash(text.bytes.span(), text.characteristics);
         for (const CoffInputReloc& relocation : text.relocs)
         {
-            hash = Math::hashCombine(hash, relocation.offset);
-            hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
-            hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, candidate.symbolName, knownAliases)));
+            hash              = Math::hashCombine(hash, relocation.offset);
+            hash              = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
+            const auto target = canonicalRelocationTarget(relocation.symbolName, candidate.symbolName, knownAliases);
+            hash              = Math::hashCombine(hash, target.first);
+            hash              = Math::hashCombine(hash, Math::hash(target.second));
         }
 
         return hash;
@@ -375,49 +397,44 @@ namespace
         if (const auto it = candidateBySymbol.find(image.entrySymbol); it != candidateBySymbol.end())
             addressObserved[it->second] = true;
 
-        std::unordered_map<uint32_t, std::vector<FunctionFoldGroup>> groupsByHash;
-        for (size_t i = 0; i < candidates.size(); ++i)
+        // Address-observed functions may supply canonical code, but never lose
+        // their own addresses. Seed their keys before unobserved functions.
+        std::vector<size_t> order;
+        order.reserve(candidates.size());
+        for (const bool observed : {true, false})
+            for (size_t index = 0; index < candidates.size(); ++index)
+                if (addressObserved[index] == observed)
+                    order.push_back(index);
+        for (size_t index = 0; index < order.size(); ++index)
+            candidateBySymbol[candidates[order[index]].symbolName.view()] = index;
+        std::vector<std::vector<size_t>> readers(candidates.size());
+        for (size_t index = 0; index < order.size(); ++index)
         {
-            const uint32_t hash   = functionFoldHash(candidates[i], objects, knownAliases);
-            auto&          groups = groupsByHash[hash];
-
-            const auto equivalent = std::ranges::find_if(groups, [&](const FunctionFoldGroup& group) { return sameFoldableFunction(candidates[i], candidates[group.members.front()], objects, knownAliases); });
-
-            if (equivalent == groups.end())
+            const auto& candidate = candidates[order[index]];
+            for (const auto& relocation : objects[candidate.objectIndex].sections[candidate.sectionIndex].relocs)
             {
-                groups.push_back({.members = {i}});
-                continue;
-            }
-
-            equivalent->members.push_back(i);
-        }
-
-        for (const auto& [_, groups] : groupsByHash)
-        {
-            for (const FunctionFoldGroup& group : groups)
-            {
-                if (group.members.size() < 2)
-                    continue;
-
-                size_t canonicalIndex = group.members.front();
-                for (const size_t memberIndex : group.members)
-                {
-                    if (addressObserved[memberIndex])
-                    {
-                        canonicalIndex = memberIndex;
-                        break;
-                    }
-                }
-
-                for (const size_t memberIndex : group.members)
-                {
-                    if (memberIndex == canonicalIndex || addressObserved[memberIndex])
-                        continue;
-
-                    outAliases.push_back({.name = candidates[memberIndex].symbolName, .canonicalName = candidates[canonicalIndex].symbolName});
-                }
+                const auto target = candidateBySymbol.find(relocation.symbolName.view());
+                if (target != candidateBySymbol.end())
+                    readers[target->second].push_back(index);
             }
         }
+        auto       aliases = knownAliases;
+        const auto hash    = [&](const size_t index) {
+            return functionFoldHash(candidates[order[index]], objects, aliases);
+        };
+        const auto equal = [&](const size_t index, const size_t other) {
+            return !addressObserved[order[index]] && sameFoldableFunction(candidates[order[index]], candidates[order[other]], objects, aliases);
+        };
+        const auto fold = [&](const size_t index, const size_t canonical) {
+            const auto& candidate = candidates[order[index]];
+            const auto& survivor  = candidates[order[canonical]];
+            aliases.emplace(candidate.symbolName, survivor.symbolName);
+            outAliases.push_back({.name = candidate.symbolName, .canonicalName = survivor.symbolName});
+        };
+        foldIdenticalContentGraph(readers, hash, equal, fold);
+        for (auto& alias : outAliases)
+            if (const Utf8* canonical = findCanonicalSymbolAlias(alias.canonicalName, aliases))
+                alias.canonicalName = *canonical;
 
         if (outAliases.empty())
             return;
@@ -737,6 +754,84 @@ Result PELinker::appendIncrementalFunctionArchive(std::vector<Archive>& outArchi
     return Result::Continue;
 }
 
+void PELinker::foldReadOnlyData(std::vector<CoffObject>& objects, std::unordered_map<Utf8, Utf8>& outAliases)
+{
+    SWC_ASSERT(outAliases.empty());
+    std::vector<ReadOnlyDataFoldCandidate> candidates;
+    for (size_t index = 0; index < objects.size(); ++index)
+    {
+        uint32_t sectionIndex;
+        Utf8     symbolName;
+        if (tryGetFoldableReadOnlyData(sectionIndex, symbolName, objects[index]))
+            candidates.push_back({.objectIndex = index, .sectionIndex = sectionIndex, .symbolName = std::move(symbolName)});
+    }
+    if (candidates.size() < 2)
+        return;
+
+    // A constant's key changes when one of its relocation targets folds. Revisit only
+    // those readers, rather than rescanning every allocation for each metadata depth.
+    std::unordered_map<std::string_view, size_t> candidateByName;
+    candidateByName.reserve(candidates.size());
+    for (size_t index = 0; index < candidates.size(); ++index)
+        candidateByName.emplace(candidates[index].symbolName.view(), index);
+    std::vector<std::vector<size_t>> readers(candidates.size());
+    for (size_t index = 0; index < candidates.size(); ++index)
+    {
+        const auto& candidate = candidates[index];
+        for (const auto& relocation : objects[candidate.objectIndex].sections[candidate.sectionIndex].relocs)
+        {
+            const auto target = candidateByName.find(relocation.symbolName.view());
+            if (target != candidateByName.end())
+                readers[target->second].push_back(index);
+        }
+    }
+    const auto hash = [&](const size_t index) {
+        const auto& candidate = candidates[index];
+        return readOnlyDataFoldHash(objects[candidate.objectIndex].sections[candidate.sectionIndex], candidate.symbolName, outAliases);
+    };
+    const auto equal = [&](const size_t index, const size_t other) {
+        const auto& candidate = candidates[index];
+        const auto& canonical = candidates[other];
+        return sameFoldableReadOnlyData(objects[candidate.objectIndex].sections[candidate.sectionIndex], candidate.symbolName, objects[canonical.objectIndex].sections[canonical.sectionIndex], canonical.symbolName, outAliases);
+    };
+    const auto fold = [&](const size_t index, const size_t canonical) {
+        outAliases.emplace(candidates[index].symbolName, candidates[canonical].symbolName);
+        objects[candidates[index].objectIndex] = {};
+    };
+    foldIdenticalContentGraph(readers, hash, equal, fold);
+
+    // Alias insertion order no longer matters when every name points straight at a survivor.
+    for (auto& [_, target] : outAliases)
+    {
+        const Utf8* canonical = findCanonicalSymbolAlias(target, outAliases);
+        if (canonical)
+            target = *canonical;
+    }
+}
+
+#if SWC_HAS_UNITTEST
+void PELinker::foldIdenticalFunctionsForTest(std::vector<CoffObject>& objects, std::unordered_map<Utf8, Utf8>& outAliases, const LinkImage& image)
+{
+    DefinedNames                       defined;
+    std::unordered_set<Utf8>           undefined;
+    std::vector<FunctionFoldCandidate> candidates;
+    for (size_t index = 0; index < objects.size(); ++index)
+    {
+        FunctionFoldCandidate candidate;
+        collectUndefinedAndFunctionCandidate(undefined, objects[index], defined, candidate);
+        if (candidate.symbolName.empty())
+            continue;
+        candidate.objectIndex = index;
+        candidates.push_back(std::move(candidate));
+    }
+    std::vector<LinkSymbolAlias>         aliases;
+    std::unordered_set<std::string_view> folded;
+    foldIdenticalArchiveFunctions(objects, candidates, image, {}, aliases, folded);
+    for (const auto& alias : aliases)
+        outAliases.emplace(alias.name, alias.canonicalName);
+}
+#endif
+
 Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& ioSymbols, std::vector<Archive>& archives) const
 {
     // A member's debug records follow its code into the image. An archive built without debug
@@ -758,9 +853,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     std::vector<CoffObject>            pulledObjects;
     std::vector<FunctionFoldCandidate> functionCandidates;
 
-    std::unordered_map<uint32_t, std::vector<ReadOnlyDataFoldCandidate>> readOnlyDataByHash;
-    std::vector<LinkSymbolAlias>                                         readOnlyDataAliases;
-    std::unordered_map<Utf8, Utf8>                                       readOnlyDataAliasMap;
+    std::unordered_map<Utf8, Utf8> readOnlyDataAliasMap;
 
     std::vector worklist(undefined.begin(), undefined.end());
 
@@ -811,34 +904,6 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 if (!imported.contains(u))
                     worklist.push_back(u);
 
-            uint32_t rdataSectionIndex = INVALID_REF;
-            Utf8     rdataSymbolName;
-            if (tryGetFoldableReadOnlyData(rdataSectionIndex, rdataSymbolName, pulled))
-            {
-                const CoffInputSection& rdata      = pulled.sections[rdataSectionIndex];
-                const uint32_t          hash       = readOnlyDataFoldHash(rdata, rdataSymbolName, readOnlyDataAliasMap);
-                auto&                   candidates = readOnlyDataByHash[hash];
-
-                const auto duplicate = std::ranges::find_if(candidates, [&](const ReadOnlyDataFoldCandidate& candidate) {
-                    const CoffInputSection& canonical = pulledObjects[candidate.objectIndex].sections[candidate.sectionIndex];
-                    return sameFoldableReadOnlyData(rdata, rdataSymbolName, canonical, candidate.symbolName, readOnlyDataAliasMap);
-                });
-
-                if (duplicate != candidates.end())
-                {
-                    readOnlyDataAliasMap.emplace(rdataSymbolName, duplicate->symbolName);
-                    readOnlyDataAliases.push_back({.name = std::move(rdataSymbolName), .canonicalName = duplicate->symbolName});
-                    break;
-                }
-
-                candidates.push_back({
-                    .objectIndex     = pulledObjects.size(),
-                    .sectionIndex    = rdataSectionIndex,
-                    .characteristics = rdata.characteristics,
-                    .symbolName      = std::move(rdataSymbolName),
-                });
-            }
-
             // An object another toolchain wrote can carry CodeView the merger does not read. Its code
             // still links, and only its debug information stays behind.
             if (debugMerger)
@@ -854,6 +919,13 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
             break;
         }
     }
+
+    foldReadOnlyData(pulledObjects, readOnlyDataAliasMap);
+    std::vector<LinkSymbolAlias> readOnlyDataAliases;
+    readOnlyDataAliases.reserve(readOnlyDataAliasMap.size());
+    for (const auto& [name, target] : readOnlyDataAliasMap)
+        readOnlyDataAliases.push_back({.name = name, .canonicalName = target});
+    std::ranges::sort(readOnlyDataAliases, {}, &LinkSymbolAlias::name);
 
     Diagnostic                           diag;
     std::vector<LinkSymbolAlias>         functionAliases;

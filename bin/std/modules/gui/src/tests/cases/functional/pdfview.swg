@@ -360,6 +360,92 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(view.pageCount() == 0 and view.contentSize() == Math.Point{})
 }
 
+// A reading position names a place on a page and the scale it was read at: restoring it after
+// the reader moved, zoomed, or changed the page layout lands on the same point of the same page.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+
+    let view = PdfView.create(&host.root)
+    Swag.require(not view.readingPosition().isValid())
+    Swag.require(not view.restoreReadingPosition(view.readingPosition()))
+    view.resize(640, 420)
+    view.applyLayout()
+    expect view.open(fileName.toString())
+
+    // A free zoom keeps its scale and the point at the reading corner.
+    var moves = 0
+    view.sigScrolled += func|&moves|(_) { moves += 1 }
+    view.setZoom(3)
+    view.showPosition(1, {40, 60})
+    let scrolled = view.scroll.scrollPosition()
+    let place    = view.readingPosition()
+    Swag.require(place.isValid() and moves > 0)
+    Swag.require(place.pageIndex == 1 and place.zoomMode == .Free and place.zoom == 3)
+    Swag.require(Math.abs(place.point.x - 40) < 1 and Math.abs(place.point.y - 60) < 1)
+
+    view.zoomToFit()
+    view.showPage(0)
+    Swag.require(view.restoreReadingPosition(place))
+    Swag.require(view.zoomMode == .Free and view.effectiveZoom() == 3)
+    Swag.require(Math.abs(view.scroll.scrollPosition().x - scrolled.x) < 1)
+    Swag.require(Math.abs(view.scroll.scrollPosition().y - scrolled.y) < 1)
+
+    // The same place is found again when one page is shown at a time.
+    view.setPageLayout(.Single)
+    view.showPage(0)
+    Swag.require(view.restoreReadingPosition(place) and view.pageIndex == 1)
+    Swag.require(view.readingPosition().isValid())
+    view.setPageLayout(.Continuous)
+
+    // A fitted place restores its fit, not the scale the viewport gave it then.
+    view.zoomToFitWidth()
+    view.showPage(1)
+    let fitted = view.readingPosition()
+    view.setZoom(2)
+    view.showPage(0)
+    Swag.require(view.restoreReadingPosition(fitted))
+    Swag.require(view.zoomMode == .FitWidth and view.pageIndex == 1)
+
+    // A place belongs to its document: one naming a page the next document lacks is refused.
+    view.close()
+    Swag.require(not view.restoreReadingPosition(place))
+}
+
+// The reading progress runs from the top of the column to the moment its end is on screen, and
+// a document shown whole is at its end.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+
+    let view = PdfView.create(&host.root)
+    Swag.require(view.readingProgress() == 0)
+    view.resize(640, 420)
+    view.applyLayout()
+    expect view.open(fileName.toString())
+
+    view.setZoom(3)
+    view.showPage(0)
+    Swag.require(view.readingProgress() == 0)
+    view.showPosition(0, {0, 110})
+    let midway = view.readingProgress()
+    Swag.require(midway > 0 and midway < 1)
+    view.showPosition(1, {0, 220})
+    Swag.require(view.readingProgress() == 1)
+
+    // Both pages fit the view at this scale: there is nothing left below.
+    view.setZoom(0.5)
+    Swag.require(view.readingProgress() == 1)
+}
+
 // The text index reads a page the way a reader does: lines top to bottom, words separated by
 // their gaps, positions and rectangles answering in page space.
 #test

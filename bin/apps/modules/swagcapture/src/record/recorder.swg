@@ -235,7 +235,10 @@ impl Recorder
         let maxSide = Math.max(cast(s32, recorder.area.width), cast(s32, recorder.area.height))
         // Downscaled desktops need CPU time for native readback and reduction as well.
         let sliceLimit = maxSide > 4096 ? 4'u32 : 8'u32
-        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), sliceLimit, rows)
+
+        // Nothing is predicted across a slice, so each one costs the bits of a row of macroblocks
+        // coded blind: a slice keeps at least sixteen rows to spread that over.
+        let slices = Math.min(Math.max(Swag.workerCount(), 1'u32), sliceLimit, Math.max(rows / 16, 1'u32))
         recorder.video = try VideoCaptureSession.create(fileToDiscard, recorder.area,
                                                         try FrameRate.create(VideoCaptureFramesPerSecond, 1),
                                                         options.captureCursor, configs.toSlice(),

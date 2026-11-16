@@ -87,3 +87,27 @@ using Swag, Core, Gui
     Swag.require(preview.isValid())
     Swag.require(hud.stopButton.isLocallyVisible() and not hud.pauseButton.isEnabled())
 }
+
+// On X11 the shadow margin of the recording pill stays clear of the recorded area: a root capture
+// records whatever covers the area, and would otherwise hide the pill for every frame.
+#test
+{
+    #static if #os == Swag.TargetOs.Linux
+    {
+        var f: HeadlessFixture
+        f.setup(480, 120)
+        defer f.shutdown()
+
+        let recorder = Memory.new'Recorder()
+        defer Memory.delete(recorder)
+        recorder.main  = f.main
+        recorder.state = .Recording
+        recorder.area  = {200, 150, 400, 250}
+
+        let side  = Math.ceil(RecordFrameGap) + Math.ceil(RecordFrameWidth)
+        var frame = recorder.area
+        frame.inflate(side)
+        let place = RecordHud.placement(recorder, frame, 1)
+        Swag.require(not place.intersects(recorder.area))
+    }
+}

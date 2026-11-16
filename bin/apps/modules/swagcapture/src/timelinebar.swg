@@ -40,6 +40,9 @@ struct TimelineBar
     dragFromEnd:     u64
     viewStart:       u64     // First time visible on the track.
     zoom:            f32 = 1 // One shows the whole recording.
+    readingFont:     *Font?     // The font and duration `readingWidth` was measured for.
+    readingDuration: u64
+    readingWidth:    f32
     viewCapture:     *Capture?
     thumbReader:     *TimedReader?
     thumbTextures:   [TimelineThumbnails] Texture
@@ -810,12 +813,21 @@ impl TimelineBar
         let capture = .capture()
         if capture and capture.frames
         {
+            // The longest reading changes only with the duration and the font. The track is
+            // asked for several times per painted frame, so it is not rebuilt and measured each time.
             let duration = capture.timeline.duration
-            var longest  = Capture.clockText(duration, tenths: true)
-            longest += " / "
-            longest += Capture.clockText(duration)
             let font     = .theme().createDefaultFontFs(.themeMetrics().defaultFontSize - 1)
-            textWidth = Math.max(textWidth, Painter.measureString(longest, font).width + TimelinePadding)
+            if font != .readingFont or duration != .readingDuration
+            {
+                var longest = Capture.clockText(duration, tenths: true)
+                longest += " / "
+                longest += Capture.clockText(duration)
+                .readingWidth    = Painter.measureString(longest, font).width + TimelinePadding
+                .readingFont     = font
+                .readingDuration = duration
+            }
+
+            textWidth = Math.max(textWidth, .readingWidth)
         }
         let left = TimelinePadding + TimelineButton + TimelinePadding + textWidth
         return {left, client.y, Math.max(client.width - left - TimelinePadding - 6, 0), client.height}

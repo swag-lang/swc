@@ -32,8 +32,7 @@ impl Capture
     mtd copyVideo() fail
     {
         let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "Swag Capture")
-        if not Directory.exists(folder) do
-            try Directory.create(folder)
+        try Directory.create(folder, recurse: true)
 
         let name = Format.toString("%-%.mp4",
                                    Path.fileNameWithoutExtension(.file) orelse "video",

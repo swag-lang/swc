@@ -79,16 +79,22 @@ namespace
         return Result::Error;
     }
 
-    void addSymMap(MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchPriority& priority)
+    // Preserve first-discovery order in the context vectors; this set only
+    // indexes membership while collecting one lookup.
+    struct SymMapLookup
+    {
+        MatchContext*               context;
+        PointerSet<const SymbolMap> visited;
+    };
+
+    void addSymMap(SymMapLookup& lookup, const SymbolMap* symMap, const MatchPriority& priority)
     {
         SWC_ASSERT(symMap != nullptr);
 
-        for (const SymbolMap* existing : lookUpCxt.symMaps)
-        {
-            if (existing == symMap)
-                return;
-        }
+        if (!lookup.visited.insert(symMap))
+            return;
 
+        MatchContext& lookUpCxt = *lookup.context;
         lookUpCxt.symMaps.push_back(symMap);
         lookUpCxt.symMapPriorities.push_back(priority);
 
@@ -96,20 +102,20 @@ namespace
         {
             symMap->cast<SymbolStruct>().forEachImpl([&](const SymbolImpl* impl) {
                 if (impl && !impl->isIgnored())
-                    addSymMap(lookUpCxt, impl, priority);
+                    addSymMap(lookup, impl, priority);
             });
         }
         else if (symMap->isEnum())
         {
-            symMap->cast<SymbolEnum>().forEachImpl([&](const SymbolImpl* impl) { addSymMap(lookUpCxt, impl, priority); });
+            symMap->cast<SymbolEnum>().forEachImpl([&](const SymbolImpl* impl) { addSymMap(lookup, impl, priority); });
         }
         else if (symMap->isImpl())
         {
             const auto& implSym = symMap->cast<SymbolImpl>();
             if (implSym.isForStruct())
-                addSymMap(lookUpCxt, implSym.symStruct(), priority);
+                addSymMap(lookup, implSym.symStruct(), priority);
             else
-                addSymMap(lookUpCxt, implSym.symEnum(), priority);
+                addSymMap(lookup, implSym.symEnum(), priority);
         }
     }
 
@@ -148,7 +154,7 @@ namespace
         lookUpCxt.replaceWithSingleSymbol(own);
     }
 
-    void addPersistedUsingSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolMap* symMap, const MatchPriority& priority)
+    void addPersistedUsingSymMaps(Sema& sema, SymMapLookup& lookup, const SymbolMap* symMap, const MatchPriority& priority)
     {
         if (!symMap)
             return;
@@ -159,7 +165,7 @@ namespace
         for (const SymbolMap* usingSymMap : usingSymMaps)
         {
             const MatchPriority usingPriority{.scopeDepth = priority.scopeDepth, .visibility = VisibilityTier::UsingDirective};
-            addSymMap(lookUpCxt, usingSymMap, usingPriority);
+            addSymMap(lookup, usingSymMap, usingPriority);
         }
     }
 
@@ -183,14 +189,14 @@ namespace
         return current;
     }
 
-    void addNamespacePathSymMap(Sema& sema, MatchContext& lookUpCxt, const SymbolMap* root, const MatchPriority& priority)
+    void addNamespacePathSymMap(Sema& sema, SymMapLookup& lookup, const SymbolMap* root, const MatchPriority& priority)
     {
         const SymbolMap* symMap = followNamespacePath(root, sema.frame().nsPath());
         if (!symMap)
             return;
 
-        addSymMap(lookUpCxt, symMap, priority);
-        addPersistedUsingSymMaps(sema, lookUpCxt, symMap, priority);
+        addSymMap(lookup, symMap, priority);
+        addPersistedUsingSymMaps(sema, lookup, symMap, priority);
     }
 
     const SymbolMap* importedApiModuleRoot(Sema& sema, const SymbolMap* importRoot)
@@ -208,8 +214,9 @@ namespace
 
     // Most structs have no using field. Avoid walking fields or filling the visited set
     // until there is a using target to follow.
-    Result addUsingMemberSymMaps(Sema& sema, MatchContext& lookUpCxt, const SymbolStruct& symStruct, PointerSet<const SymbolStruct>& visited)
+    Result addUsingMemberSymMaps(Sema& sema, SymMapLookup& lookup, const SymbolStruct& symStruct, PointerSet<const SymbolStruct>& visited)
     {
+        MatchContext& lookUpCxt = *lookup.context;
         if (!symStruct.mayHaveUsingField())
             return Result::Continue;
 
@@ -227,19 +234,19 @@ namespace
 
             constexpr MatchPriority priority{.scopeDepth = 0, .visibility = VisibilityTier::UsingDirective};
 
-            addSymMap(lookUpCxt, target, priority);
+            addSymMap(lookup, target, priority);
 
             if (visited.empty())
                 visited.insert(&symStruct);
 
             if (visited.insert(target))
-                SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, *target, visited));
+                SWC_RESULT(addUsingMemberSymMaps(sema, lookup, *target, visited));
         }
 
         return Result::Continue;
     }
 
-    void addBindingTypeSymMaps(Sema& sema, MatchContext& lookUpCxt, uint16_t& scopeDepth)
+    void addBindingTypeSymMaps(Sema& sema, SymMapLookup& lookup, uint16_t& scopeDepth)
     {
         for (const TypeRef typeRef : std::ranges::reverse_view(sema.frame().bindingTypes()))
         {
@@ -255,7 +262,7 @@ namespace
                 continue;
 
             const MatchPriority priority{.scopeDepth = scopeDepth++, .visibility = VisibilityTier::LocalScope};
-            addSymMap(lookUpCxt, &typeInfo.payloadSymEnum(), priority);
+            addSymMap(lookup, &typeInfo.payloadSymEnum(), priority);
         }
     }
 
@@ -265,6 +272,7 @@ namespace
     {
         lookUpCxt.symMaps.clear();
         lookUpCxt.symMapPriorities.clear();
+        SymMapLookup lookup{.context = &lookUpCxt};
 
         // A hinted map defines a precise lookup at the highest priority.
         if (lookUpCxt.symMapHint)
@@ -279,12 +287,12 @@ namespace
                 if (const SymbolImpl* symImpl = sema.frame().currentImpl())
                 {
                     if (symImpl->isForStruct() && symImpl->symStruct() == &structSym && symImpl->idRef() != structSym.idRef())
-                        addSymMap(lookUpCxt, symImpl->asSymMap(), priority);
+                        addSymMap(lookup, symImpl->asSymMap(), priority);
                 }
             }
 
-            addSymMap(lookUpCxt, lookUpCxt.symMapHint, priority);
-            addPersistedUsingSymMaps(sema, lookUpCxt, lookUpCxt.symMapHint, priority);
+            addSymMap(lookup, lookUpCxt.symMapHint, priority);
+            addPersistedUsingSymMaps(sema, lookup, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct() && !lookUpCxt.skipUsingFieldMembers)
@@ -292,7 +300,7 @@ namespace
                 const auto& structSym = lookUpCxt.symMapHint->cast<SymbolStruct>();
 
                 PointerSet<const SymbolStruct> visited;
-                SWC_RESULT(addUsingMemberSymMaps(sema, lookUpCxt, structSym, visited));
+                SWC_RESULT(addUsingMemberSymMaps(sema, lookup, structSym, visited));
             }
 
             return Result::Continue;
@@ -310,8 +318,8 @@ namespace
                 if (const SymbolMap* symMap = scope->symMap())
                 {
                     const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::LocalScope};
-                    addSymMap(lookUpCxt, symMap, priority);
-                    addPersistedUsingSymMaps(sema, lookUpCxt, symMap, priority);
+                    addSymMap(lookup, symMap, priority);
+                    addPersistedUsingSymMaps(sema, lookup, symMap, priority);
                 }
             }
 
@@ -331,14 +339,14 @@ namespace
             for (const SymbolMap* usingSymMap : scope->usingSymMaps())
             {
                 const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::UsingDirective};
-                addSymMap(lookUpCxt, usingSymMap, priority);
+                addSymMap(lookup, usingSymMap, priority);
             }
 
             scope = scope->lookupParent();
             ++scopeDepth;
         }
 
-        addBindingTypeSymMaps(sema, lookUpCxt, scopeDepth);
+        addBindingTypeSymMaps(sema, lookup, scopeDepth);
 
         // Injected caller code can retain its original source view while being resolved
         // in the macro's AST. Its file-private symbols belong to that source file.
@@ -357,13 +365,13 @@ namespace
         const bool atNamespaceRoot = sema.frame().nsPath().empty();
 
         const MatchPriority filePathPriority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::FileNamespace};
-        addNamespacePathSymMap(sema, lookUpCxt, fileNamespace, filePathPriority);
+        addNamespacePathSymMap(sema, lookup, fileNamespace, filePathPriority);
 
         if (!atNamespaceRoot)
         {
             const MatchPriority fileRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::FileNamespace};
-            addSymMap(lookUpCxt, fileNamespace, fileRootPriority);
-            addPersistedUsingSymMaps(sema, lookUpCxt, fileNamespace, fileRootPriority);
+            addSymMap(lookup, fileNamespace, fileRootPriority);
+            addPersistedUsingSymMaps(sema, lookup, fileNamespace, fileRootPriority);
         }
 
         // Imported modules keep their namespace hierarchy under the import root.
@@ -374,28 +382,28 @@ namespace
             importRoot = nullptr;
 
         const MatchPriority modulePathPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::ModuleNamespace};
-        addNamespacePathSymMap(sema, lookUpCxt, &sema.moduleNamespace(), modulePathPriority);
+        addNamespacePathSymMap(sema, lookup, &sema.moduleNamespace(), modulePathPriority);
         if (importRoot)
-            addNamespacePathSymMap(sema, lookUpCxt, importRoot, modulePathPriority);
+            addNamespacePathSymMap(sema, lookup, importRoot, modulePathPriority);
 
         uint16_t moduleRootDepth = static_cast<uint16_t>(scopeDepth + 2);
         if (const SymbolMap* importedModuleRoot = importedApiModuleRoot(sema, importRoot))
         {
             const MatchPriority importedModuleRootPriority{.scopeDepth = moduleRootDepth++, .visibility = VisibilityTier::ModuleNamespace};
-            addSymMap(lookUpCxt, importedModuleRoot, importedModuleRootPriority);
-            addPersistedUsingSymMaps(sema, lookUpCxt, importedModuleRoot, importedModuleRootPriority);
+            addSymMap(lookup, importedModuleRoot, importedModuleRootPriority);
+            addPersistedUsingSymMaps(sema, lookup, importedModuleRoot, importedModuleRootPriority);
         }
 
         if (!atNamespaceRoot)
         {
             const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
-            addSymMap(lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
-            addPersistedUsingSymMaps(sema, lookUpCxt, &sema.moduleNamespace(), moduleRootPriority);
+            addSymMap(lookup, &sema.moduleNamespace(), moduleRootPriority);
+            addPersistedUsingSymMaps(sema, lookup, &sema.moduleNamespace(), moduleRootPriority);
 
             // Expose imported module namespaces as siblings without importRoot's persisted usings.
             // Those combine all imported files and could shadow names with unrelated symbols.
             if (importRoot)
-                addSymMap(lookUpCxt, importRoot, moduleRootPriority);
+                addSymMap(lookup, importRoot, moduleRootPriority);
         }
 
         addCurrentModuleNamespaceSymbol(sema, lookUpCxt, static_cast<uint16_t>(moduleRootDepth + 1));

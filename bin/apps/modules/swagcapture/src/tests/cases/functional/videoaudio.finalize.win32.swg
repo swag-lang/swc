@@ -44,14 +44,15 @@ using Core, Pixel, Video, Audio
     Swag.require(index.entryCount() == 1)
 }
 
-// Capture groups about one second of pictures per recoverable fragment and publishes seek points.
+// Capture groups about one second of pictures per recoverable fragment and publishes a seek
+// point for each key picture, one every three seconds.
 #test
 {
     let path = Gui.Testing.tempFilePath("capture-video-index-", ".mp4")
     defer discard catch File.delete(path)
     var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16},
                                                     expect FrameRate.create(30, 1), false)
-    for frame in 61'u64 do
+    for frame in 181'u64 do
         discard expect session.captureAt(frame * 33_334)
     expect session.end()
 
@@ -70,12 +71,12 @@ using Core, Pixel, Video, Audio
         }
         frameCount += 1
     }
-    Swag.require(frameCount == 61 and fragmentCount == 3)
+    Swag.require(frameCount == 181 and fragmentCount == 7)
 
     var index = expect Mp4.FragmentedIndex.open(path)
     Swag.require(index.entryCount() == 3)
     for point in 3'u32 do
-        Swag.require((expect index.point(point)).decodeTime == cast(u64, point) * 90_000)
+        Swag.require((expect index.point(point)).decodeTime == cast(u64, point) * 270_000)
     var reader = expect Video.Reader.open(path)
-    Swag.require(reader.frameCount() == 61)
+    Swag.require(reader.frameCount() == 181)
 }

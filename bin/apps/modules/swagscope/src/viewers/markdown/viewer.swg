@@ -221,8 +221,8 @@ private
                             url_Text             0xFF4183C4
                             url_HotText          0xFF2B6DA8
                             richColor1           0xFF777777
-                            scrollBar_Bk         0xFFFFFFFF
-                            scrollBar_HotBk      0xFFF5F5F5
+                            scrollBar_Bk         0x0AFFFFFF
+                            scrollBar_HotBk      0x14F5F5F5
                             scrollBar_Box        0xFFC5C5C5
                             scrollBar_HotBox     0xFFA5A5A5
                             scrollBar_PressedBox 0xFF888888"""
@@ -237,8 +237,8 @@ private
                                url_Text             0xFF065588
                                url_HotText          0xFF043A5D
                                richColor1           0xFFBABABA
-                               scrollBar_Bk         0xFFF3F2EE
-                               scrollBar_HotBk      0xFFE8E6E0
+                               scrollBar_Bk         0x0AF3F2EE
+                               scrollBar_HotBk      0x14E8E6E0
                                scrollBar_Box        0xFFBAB6AE
                                scrollBar_HotBox     0xFF8F8980
                                scrollBar_PressedBox 0xFF6F6961"""
@@ -253,8 +253,8 @@ private
                            url_Text             0xFF6DC1E7
                            url_HotText          0xFFA3D5FE
                            richColor1           0xFFDEDEDE
-                           scrollBar_Bk         0xFF363B40
-                           scrollBar_HotBk      0xFF3D4349
+                           scrollBar_Bk         0x0A363B40
+                           scrollBar_HotBk      0x143D4349
                            scrollBar_Box        0xFF596169
                            scrollBar_HotBox     0xFF707A84
                            scrollBar_PressedBox 0xFF89949F"""
@@ -269,8 +269,8 @@ private
                             url_Text             0xFF463F5C
                             url_HotText          0xFF6A6086
                             richColor1           0xFF7A7A7A
-                            scrollBar_Bk         0xFFFFFFFF
-                            scrollBar_HotBk      0xFFF4F4F4
+                            scrollBar_Bk         0x0AFFFFFF
+                            scrollBar_HotBk      0x14F4F4F4
                             scrollBar_Box        0xFFC6C6C6
                             scrollBar_HotBox     0xFFA6A6A6
                             scrollBar_PressedBox 0xFF8A8A8A"""
@@ -285,8 +285,8 @@ private
                             url_Text             0xFF2484C1
                             url_HotText          0xFF17618F
                             richColor1           0xFF777777
-                            scrollBar_Bk         0xFFFEFEFE
-                            scrollBar_HotBk      0xFFF3F3F3
+                            scrollBar_Bk         0x0AFEFEFE
+                            scrollBar_HotBk      0x14F3F3F3
                             scrollBar_Box        0xFFC8C8C8
                             scrollBar_HotBox     0xFFA8A8A8
                             scrollBar_PressedBox 0xFF8B8B8B"""
@@ -386,6 +386,7 @@ struct ZoomButton
     hasStatistics:  bool
     services:       Viewer.HostServices
     outline:        *DocumentOutline?
+    history:        Viewer.History'u64     // Source offsets the reader left by choosing a heading.
 }
 
 impl IWnd for ZoomButton
@@ -438,6 +439,43 @@ impl ZoomButton
 
         // The window saves preferences on navigation and close, outside wheel handling.
         g_ViewerSettings.zoomPercent = bounded
+    }
+
+    // Returns the source offset of the block being read; the start of the document until one is laid out.
+    mtd readingPlace()->u64
+    {
+        let offset = .view.readingOffset()
+        return offset == Swag.U64.Max ? 0 : offset
+    }
+
+    // Remembers the place the reader is about to leave for a heading.
+    mtd rememberPlace()
+    {
+        .history.visit(.readingPlace())
+    }
+
+    // Returns to the place the last chosen heading left.
+    mtd goBack()
+    {
+        if .history.canGoBack() do
+            discard .view.revealBlock(.history.back(.readingPlace()))
+    }
+
+    // Undoes the last return.
+    mtd goForward()
+    {
+        if .history.canGoForward() do
+            discard .view.revealBlock(.history.forward(.readingPlace()))
+    }
+
+    mtd handleHistoryKey(evt: const *KeyEvent)->bool
+    {
+        let direction = Viewer.historyKeyDirection(evt)
+        if direction < 0 do
+            .goBack()
+        elif direction > 0 do
+            .goForward()
+        return direction != 0
     }
 
     // The zoom menu opens from the same readout whether reached by pointer or lens.
@@ -577,6 +615,9 @@ func createViewer(host: Viewer.Host)
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {
         .outline = DocumentOutline.create(host, floatingSurface: false)
+
+        // Subscribed before the outline reveals its heading, so the place kept is the one left.
+        .outline.sigSelected += func|zoomButton|(_, _) { zoomButton.rememberPlace() }
         .outline.bindMarkdown(view, host.fileName())
         .outline.startMarkdown()
     }
@@ -592,6 +633,8 @@ func createViewer(host: Viewer.Host)
         entries.addZoom(.Out, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Out, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Reset, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Reset, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|zoomButton|() { zoomButton.showZoomMenu() })
+        entries.add(texts().ui_Back, .ChevronLeft, func|zoomButton|() { zoomButton.goBack() }, disabled: not zoomButton.history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(texts().ui_Forward, .ChevronRight, func|zoomButton|() { zoomButton.goForward() }, disabled: not zoomButton.history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(appStrings().cmd_Options, .Settings, func|view, zoomButton, optionsButton|() { showOptions(optionsButton, view, zoomButton) })
     })
 
@@ -601,6 +644,9 @@ func createViewer(host: Viewer.Host)
         {
         case KeyEvent as key where Viewer.isZoomKey(key):
             zoomButton.applyZoom(Viewer.zoomAfterKey(key, zoomButton.zoomPercent))
+            return true
+
+        case KeyEvent as key where zoomButton.handleHistoryKey(key):
             return true
 
         case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):

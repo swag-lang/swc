@@ -16,7 +16,7 @@ internal func __bootstrapRoundedSize(size: u64, alignment: u32)->u64
 
     let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(BootstrapAllocationHeader)))
     let alignment64        = cast(u64, effectiveAlignment)
-    var overhead           = BootstrapAllocationHeaderSize
+    var overhead: u64      = BootstrapAllocationHeaderSize
     if cast(u64, effectiveAlignment) <= AllocatorHostCommitGranularity
     {
         // Host reservations start on a commit-granularity boundary, so alignments up to

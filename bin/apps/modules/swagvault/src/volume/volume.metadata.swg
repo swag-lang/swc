@@ -210,7 +210,7 @@ impl Volume
                    not mapping.count or
                    mapping.count > .blockCount - mapping.physical do
                     fail volumeError(.Corrupted)
-                for physical in mapping.physical until mapping.physical + mapping.count do
+                for physical in mapping.physical until mapping.physical + mapping.count
                 {
                     if used.get(physical) do
                         fail volumeError(.Corrupted)

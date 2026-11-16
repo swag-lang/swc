@@ -78,6 +78,7 @@ DevMode and memory evidence above. It makes no timing, CPU or memory claims.
 | Mark loop-carried registers from live bits | Testing every virtual register against every loop header | Visit only set bits in header liveness rows, mark each qualifying state once, then allocate spill slots in the original dense-register order. | DevMode build; 1,715 C++ tests and full native suite passed. |
 | Fuse loop-header discovery with live-bit marking | A temporary list of loop-header indices and its later readback | Headers are still visited in instruction order and each matching live row is marked once; the no-header path still returns before spill-slot allocation. | DevMode build; 1,715 C++ tests, full native suite (3/3 stages), and full compiler campaign (69/69 stages) passed. |
 | Build loop preload candidates from live bits | Testing every dense virtual register at each loop header to select only live candidates | Set-bit iteration visits candidates in ascending dense-index order, preserving the stable use-count sort and its tie order. | DevMode build; 1,715 C++ tests, full native suite (3/3 stages), full compiler campaign (69/69 stages), and all twelve static Micro task checksums matched. |
+| Cache loop back-edge ranges during copy coalescing | Rescanning all predecessor lists up to every integer copy candidate inside a loop | Back-edges are appended incrementally in CFG order; strict shorter-span replacement still selects the same innermost range and preserves ties. The cache is built only when this query is first needed. | DevMode build; full compiler campaign (69/69 stages, including 1,832 C++ tests and native), all twelve static Micro task checksums matched, and task-owned listings unchanged. |
 
 Rejected experiment: storing `upperRegValues` directly in `SanitizerFlatMap`
 passed DevMode C++, safety, sanity and a 69-stage compiler campaign, but grew
@@ -104,7 +105,10 @@ the full compiler campaign (69/69 stages), and the twelve-task static Micro
 comparison with identical checksums. Listing differences included reordered
 duplicate `AtomicValue` clone bodies and synthetic `__run_expr` addresses; all
 task-owned function listings were unchanged, and a same-binary control
-reproduced the runtime/synthetic variations. The retained changes reduce
-repeated scans, size comparisons, table growth checks, and temporary header
-storage by construction. Their net speed and memory effects remain for the
-dedicated benchmark campaign to measure.
+reproduced the runtime/synthetic variations. The subsequent back-edge cache
+passed the full compiler campaign too (69/69 stages, including 1,832 C++ tests
+and native), with all twelve checksums matching and every task-owned listing
+unchanged. The retained changes reduce repeated scans, size comparisons,
+table growth checks, and temporary header storage by construction. Their net
+speed and memory effects remain for the dedicated benchmark campaign to
+measure.

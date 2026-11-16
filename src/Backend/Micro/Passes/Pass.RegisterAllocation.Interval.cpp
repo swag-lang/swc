@@ -2334,6 +2334,11 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         return idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
     };
 
+    // Only integer copies inside loops need this query. Keep back-edges in CFG
+    // order so equal-span ties retain the original earliest-header choice.
+    SmallVector<std::pair<uint32_t, uint32_t>, 8> backEdgeRanges;
+    uint32_t                                       nextBackEdgeHeader = 0;
+
     // Inside a loop, the source of a joined copy must die in the loop: outside
     // it, the joined value then lives exactly where the destination did, and
     // the walk sees the destination's interval there unchanged. A source that
@@ -2342,22 +2347,29 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
     // at the definition it spilled from before.
     const auto sourceStaysInCopyLoop = [&](const uint32_t copyIdx, const uint32_t src) {
         SWC_ASSERT(copyIdx < predecessors_.size());
-        uint32_t head   = 0;
-        uint32_t tail   = 0;
-        bool     inLoop = false;
-        for (uint32_t s = 0; s <= copyIdx; ++s)
+        while (nextBackEdgeHeader <= copyIdx)
         {
+            const uint32_t s = nextBackEdgeHeader++;
             for (const uint32_t p : predecessors_[s])
             {
                 SWC_ASSERT(p < instructionCount_);
-                if (p < copyIdx)
-                    continue;
-                if (!inLoop || p - s < tail - head)
-                {
-                    head   = s;
-                    tail   = p;
-                    inLoop = true;
-                }
+                if (p >= s)
+                    backEdgeRanges.emplace_back(s, p);
+            }
+        }
+
+        uint32_t head   = 0;
+        uint32_t tail   = 0;
+        bool     inLoop = false;
+        for (const auto& [s, p] : backEdgeRanges)
+        {
+            if (p < copyIdx)
+                continue;
+            if (!inLoop || p - s < tail - head)
+            {
+                head   = s;
+                tail   = p;
+                inLoop = true;
             }
         }
         if (!inLoop)

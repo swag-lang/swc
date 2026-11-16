@@ -494,6 +494,16 @@ impl MainWnd
         {
             capture.changed        = true
             capture.linkedUpToDate = true
+
+            // The library writes from its own copy of the capture. The editor's copy of the same
+            // file takes the link, or its next save would drop it; edits it has not saved yet are
+            // not in the image.
+            let editCapture = .editWnd.getCapture()
+            if editCapture and editCapture != capture and editCapture.file == capture.file
+            {
+                editCapture.linkedImage    = capture.linkedImage
+                editCapture.linkedUpToDate = not editCapture.changed
+            }
         }
 
         .saveCapture(capture)

@@ -478,6 +478,12 @@ scene is drawn on the GPU and compared with its CPU reference under the same tol
 recording anything. A scene it reports is not yet a test. Reduce what differs to a small scene in
 a parity test of the module that owns the primitive, watch it fail, fix the renderer, and keep it.
 
+The sweep also accepts a boundary between two areas that sits exactly one pixel off. A picture
+drawn in pixel mode shows that where a pixel centre maps onto a texel boundary, a tie OpenGL
+leaves to the implementation, and a real layout cannot avoid such sizes. The price is a blind
+spot: the sweep does not see a filled shape whose edge moved by one pixel. A dedicated parity
+scene keeps the strict comparison and is built to contain no tie, with odd picture sizes.
+
 Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
 images and scenes that still exercise every branch and keep all compared content visible.
 Reserve large images for explicit dimension, tiling, DPI, memory-budget and stress boundaries;

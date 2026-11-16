@@ -187,3 +187,38 @@ func gpuDifferences(reference, drawn: const *Image)->u64
     let resized = Image.create(16, 24, .RGBA8)
     Swag.require(not Testing.compareGpuImage(&reference, &resized, {}).sameSize)
 }
+
+// Where a pixel centre meets a texel boundary each renderer picks a side, which moves one
+// boundary by one pixel. The comparison accepts that when asked to, and nothing more: a boundary
+// two pixels off and a missing rule are still differences.
+#test
+{
+    let reference = paintGpuScene()
+    func differences(reference, drawn: const *Image, acceptEdgeChoice: bool)->u64
+    {
+        return Testing.compareGpuImage(reference, drawn, {maxChannelDelta: 3, acceptEdgeChoice: acceptEdgeChoice}).differentPixels
+    }
+
+    // The box reaches one row lower.
+    var grown = paintGpuScene()
+    for x in 8 until 20 do
+        setGray(&grown, x, 14, 200)
+    Swag.require(differences(&reference, &grown, false) != 0)
+    Swag.require(differences(&reference, &grown, true) == 0)
+
+    // The box reaches two rows lower.
+    var overgrown = paintGpuScene()
+    for x in 8 until 20
+    {
+        setGray(&overgrown, x, 14, 200)
+        setGray(&overgrown, x, 15, 200)
+    }
+
+    Swag.require(differences(&reference, &overgrown, true) != 0)
+
+    // A one-pixel rule is added to the reference, then lost by the drawn image.
+    var ruled = paintGpuScene()
+    for x in 4 until 28 do
+        setGray(&ruled, x, 22, 160)
+    Swag.require(differences(&ruled, &reference, true) != 0)
+}

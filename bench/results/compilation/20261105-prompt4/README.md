@@ -59,3 +59,24 @@ At the latest compiler-validation checkpoint, DevMode passed all 1,678 C++ tests
 with one warning; 114 filesystem tests were skipped by the default suite
 configuration. The changes are structural; no speed or memory improvement is
 claimed without a benchmark.
+
+## Follow-up checkpoint, 2026-11-16
+
+This follow-up continues the register-allocation work using the retained
+DevMode and memory evidence above. It makes no timing, CPU or memory claims.
+
+| Retained change | Compiler work removed | Equivalence argument | Validation |
+| --- | --- | --- | --- |
+| Build register position lists during dense-index collection | A second pass over each instruction's already-collected unique use/def indices | Each position is appended when its per-instruction dense index is first inserted; source instruction order is unchanged. | DevMode build; C++ suite passed. |
+| Mark wide register requirements during indexing | A temporary list of wide instructions and its later instruction lookup/rescan | The same instruction flags the same unique virtual registers while its use/def lists are available. | DevMode build; C++ suite passed. |
+| Report dense-index insertion directly | Re-reading the register table size and comparing it with the returned index at each insertion site | `ensure` sets the result only in its new-entry branch; the dense index and insertion behavior are unchanged. | DevMode build; C++ suite passed. |
+| Grow sink counters on dense-index insertion | A register-table size comparison for each sink use/definition | The counter table is cleared with the index and grows once for each newly assigned dense index. | DevMode build; C++ suite passed. |
+| Grow sanitizer stamps on dense-index insertion | A stamp-vector size comparison for each sanitizer use/definition | Both structures start empty in `computeChainLiveness`; new dense indices are sequential and each appends exactly one stamp slot. | DevMode build; C++ suite and sanity suite passed. |
+| Grow global range lists on dense-index insertion | A range-table size comparison for each global range insertion | `clearState` clears the dense index and range table together; each newly assigned dense index gets one range list. | DevMode build; C++ suite and focused native register-pressure stages passed. |
+
+At this checkpoint DevMode passed 1,715 C++ tests. The broad compiler suite
+passed 69/69 stages before the final three insertion-driven table-growth edits;
+the latest targeted native run passed all 3 stages, including its two owning
+error suites. The changes reduce repeated scans, size comparisons and table
+growth checks by construction. Their net speed and memory effects remain for
+the dedicated benchmark campaign to measure.

@@ -78,6 +78,13 @@ private func contourContainsContour(outer, inner: const *Polygon)->bool
     return outer.contains(inner.pointAt(0)[])
 }
 
+private func contourBoundsArea(polygon: const *Polygon)->f64
+{
+    let width  = cast(f64, polygon.maxBounds.x) - cast(f64, polygon.minBounds.x)
+    let height = cast(f64, polygon.maxBounds.y) - cast(f64, polygon.minBounds.y)
+    return width * height
+}
+
 private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 {
     for p in pathList.paths where not p.polygon.isSimple do
@@ -323,31 +330,35 @@ impl LinePathList
     {
         var claimed: Array'bool
         claimed.resize(solved.paths.count)
+        var parentOuter: Array'u64
+        parentOuter.resize(solved.paths.count)
+        for i in parentOuter.count do
+            parentOuter[i] = Swag.U64.Max
+
+        // The contours do not cross, so containing outers are nested. The smallest bounds area
+        // therefore identifies the immediate parent for each hole.
+        for hole, holeIndex in solved.paths where not hole.polygon.isClockwise
+        {
+            var smallestArea = Swag.F64.Max
+            for outer, outerIndex in solved.paths where outer.polygon.isClockwise
+            {
+                if not contourContainsContour(&outer.polygon, &hole.polygon) do
+                    continue
+                let area = contourBoundsArea(&outer.polygon)
+                if area < smallestArea
+                {
+                    smallestArea          = area
+                    parentOuter[holeIndex] = outerIndex
+                }
+            }
+        }
 
         for outer, outerIndex in solved.paths where outer.polygon.isClockwise
         {
             .paths.add(outer)
-            for hole, index in solved.paths where not hole.polygon.isClockwise and not claimed[index]
+            for hole, index in solved.paths
+                where not hole.polygon.isClockwise and not claimed[index] and parentOuter[index] == outerIndex
             {
-                if not contourContainsContour(&outer.polygon, &hole.polygon) do
-                    continue
-
-                // An island can contain another hole inside this outer contour. Give that hole
-                // to the innermost containing outer, so each region's holes follow its parent.
-                var belongsToNestedOuter = false
-                for nested, nestedIndex in solved.paths
-                    where nestedIndex != outerIndex and nested.polygon.isClockwise
-                {
-                    if contourContainsContour(&outer.polygon, &nested.polygon) and
-                       contourContainsContour(&nested.polygon, &hole.polygon)
-                    {
-                        belongsToNestedOuter = true
-                        break
-                    }
-                }
-                if belongsToNestedOuter do
-                    continue
-
                 claimed[index] = true
                 .paths.add(hole)
             }

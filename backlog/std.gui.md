@@ -598,13 +598,16 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Done when: the same functional selections demonstrate the benefit of reuse, with CPU/GPU
   parity, multi-host teardown and cross-test resource/state isolation covered.
 
-### std.gui.063 — The Linux clipboard file list has never been compiled
+### std.gui.063 — Copied files have not been pasted into a Linux file manager
 
-- Evidence: `Clipboard.setFiles` and `Clipboard.getFiles` are tested on Windows and in the sandbox
-  store; their Linux implementation (`text/uri-list`) was written without a Linux build.
-- Next: build the gui module and its clipboard test on Linux, and copy a file to a Linux file
-  manager.
-- Done when: the clipboard test passes on Linux and a copied file pastes into a file manager.
+- Evidence: the Linux `text/uri-list` of `Clipboard.setFiles` builds, and the isolated X11
+  clipboard integration test reads it from an independent client and back through
+  `Clipboard.getFiles`. GNOME Files pastes copied files from `x-special/gnome-copied-files`
+  (`copy` then one URI per line), which the clipboard does not offer, and may take a bare URI list
+  as text.
+- Next: copy a capture from Swag Capture and paste it in GNOME Files and Dolphin; offer
+  `x-special/gnome-copied-files` beside `text/uri-list` if GNOME pastes text.
+- Done when: a file copied by Swag Capture pastes as a file in GNOME Files and Dolphin.
 - Related: platform.portability.101
 
 ### std.gui.064 — Make Linux desktop input focus setup runnable

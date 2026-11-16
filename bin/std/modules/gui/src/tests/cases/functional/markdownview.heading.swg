@@ -111,3 +111,29 @@ using Swag, Core
     Swag.require(not view.revealHeading(offset))
     Swag.require(not view.revealBlock(offset + 3))
 }
+
+// The reading progress reaches 1 when the end of the document is on screen, which a document
+// that fits the view is from the start.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let short = Markdown.View.createText(&host.root, "# Title\n\nOne paragraph.\n")
+    short.resize(640, 360)
+    short.applyLayout()
+    discard host.render(short)
+    Swag.require(short.readingProgress() == 1)
+
+    var source: String = "# Title\n\n"
+    for 80 do
+        source += "A paragraph that gives the document some height.\n\n"
+    let long = Markdown.View.createText(&host.root, source.toString())
+    long.resize(640, 360)
+    long.applyLayout()
+    for 256 where long.isLoading() do
+        host.fireTimers()
+    discard host.render(long)
+    Swag.require(long.readingProgress() == 0)
+    long.scroll.setScrollPos(0, long.scroll.scrollSize.y)
+    Swag.require(long.readingProgress() == 1)
+}

@@ -25,6 +25,10 @@ private const HtmlVirtualWindowSize      = 192 * 1024'u64
 private const HtmlVirtualLookBehind      = HtmlVirtualWindowSize / 2
 private const HtmlStreamLookAhead        = 6.0
 
+// The air a revealed node keeps above it. The text being read is the first one below that
+// line, so the heading a reveal brought into view is the one read, not the lines left above it.
+internal const HtmlRevealClearance = 24.0'f32
+
 // Source bytes inspected before the first parse to decide how the file spells its characters.
 private const HtmlCharsetProbeSize = 4 * 1024'u64
 
@@ -158,6 +162,7 @@ struct HtmlView
         sigLinkActivated:   SigArray'func||(*Wnd, string)     // Emitted when an activated link cannot be followed as a local document or fragment.
         sigLoadFailed:      SigArray'func||(*Wnd, string)     // Emitted with the exact reason when progressive file loading stops.
         sigDocumentChanged: SigArray'func||(*Wnd)             // Emitted after document content or layout is rebuilt; heading snapshots may be refreshed here.
+        sigScrolled:        SigArray'func||(*Wnd)             // Emitted after the document moved under the view.
 
         // Handles a clicked link before built-in fragment or local-file navigation.
         //
@@ -947,7 +952,7 @@ internal impl HtmlView
             break
         }
 
-        var clearance = 24.0'f32
+        var clearance = HtmlRevealClearance
         if useScrollMargin
         {
             let target = .layout.constBox(box)
@@ -1450,6 +1455,7 @@ internal impl HtmlView
 
         result.scroll.sigScrollPositionChanged += func|target = result|(_, oldPosition, newPosition)
         {
+            target.sigScrolled.call(target)
             if target.virtualRepositioning do
                 return
             if target.virtualSource and

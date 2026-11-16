@@ -162,3 +162,38 @@ func settle(host: *HeadlessHost, view: *Markdown.View)
     Swag.require(MarkdownText.texts().ui_Back == "Retour dans le document")
     Swag.require(MarkdownText.texts().ui_Forward == "Avancer dans le document")
 }
+
+// A press on the heading already marked still returns to it, and a press on another one goes
+// there: following the reading never makes the outline deaf to the reader.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-markdown-press-", ".md")
+    defer discard catch File.delete(fileName)
+    let offsets = writeSections(fileName)
+
+    var host: HeadlessHost
+    let document = openOutlined(&host, fileName)
+    let outline  = document.outline
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    document.window.applyLayout()
+
+    Swag.require(document.view.revealHeading(offsets[5]))
+    settle(&host, document.view)
+    Swag.require(outline.markedTarget() == offsets[5])
+
+    var chosen = 0
+    outline.sigSelected += func|&chosen|(_, _) { chosen += 1 }
+    let list   = outline.list
+    let rowTop = func|list|(row: f32)->Math.Point => list.listView.localToSurface(Math.Point{24, list.lineHeight() * (row + 0.5) - list.scrollWnd.scrollPosition().y})
+
+    host.click(rowTop(5))
+    settle(&host, document.view)
+    Swag.require(chosen == 1 and outline.markedTarget() == offsets[5])
+    Swag.require(document.zoom.history.canGoBack())
+
+    host.click(rowTop(7))
+    settle(&host, document.view)
+    Swag.require(chosen == 2 and document.view.readingOffset() == offsets[7])
+    Swag.require(outline.markedTarget() == offsets[7])
+}

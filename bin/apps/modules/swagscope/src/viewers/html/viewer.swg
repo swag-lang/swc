@@ -43,6 +43,7 @@ struct Panel
     }
 
     zoomPercent: u32 = 100
+    outline:     *DocumentOutline?
 }
 
 // The fallback reading measure for a page without its own CSS width.
@@ -184,7 +185,8 @@ func createViewer(host: Viewer.Host)
     result.applyLayout()
     result.setZoom(g_ZoomPercent)
     host.attachView(result)
-    DocumentOutline.create(host).bindHtml(result.view)
+    result.outline = DocumentOutline.create(host)
+    result.outline.bindHtml(result.view)
     host.setDetails(texts().ui_Details)
     host.setInformation(func|result|(sheet) { result.describeInformation(sheet) })
 

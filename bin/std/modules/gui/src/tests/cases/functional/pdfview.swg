@@ -378,11 +378,15 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(fileName.toString())
 
     // A free zoom keeps its scale and the point at the reading corner.
+    var moves = 0
+    view.sigScrolled += func|&moves|(_) { moves += 1 }
     view.setZoom(3)
     view.showPosition(1, {40, 60})
     let scrolled = view.scroll.scrollPosition()
     let place    = view.readingPosition()
-    Swag.require(place.isValid())
+    Swag.require(place.isValid() and moves > 0)
+    Swag.require(place.pageIndex == 1 and place.zoomMode == .Free and place.zoom == 3)
+    Swag.require(Math.abs(place.point.x - 40) < 1 and Math.abs(place.point.y - 60) < 1)
 
     view.zoomToFit()
     view.showPage(0)
@@ -410,6 +414,36 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // A place belongs to its document: one naming a page the next document lacks is refused.
     view.close()
     Swag.require(not view.restoreReadingPosition(place))
+}
+
+// The reading progress runs from the top of the column to the moment its end is on screen, and
+// a document shown whole is at its end.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 450)
+
+    let view = PdfView.create(&host.root)
+    Swag.require(view.readingProgress() == 0)
+    view.resize(640, 420)
+    view.applyLayout()
+    expect view.open(fileName.toString())
+
+    view.setZoom(3)
+    view.showPage(0)
+    Swag.require(view.readingProgress() == 0)
+    view.showPosition(0, {0, 110})
+    let midway = view.readingProgress()
+    Swag.require(midway > 0 and midway < 1)
+    view.showPosition(1, {0, 220})
+    Swag.require(view.readingProgress() == 1)
+
+    // Both pages fit the view at this scale: there is nothing left below.
+    view.setZoom(0.5)
+    Swag.require(view.readingProgress() == 1)
 }
 
 // The text index reads a page the way a reader does: lines top to bottom, words separated by

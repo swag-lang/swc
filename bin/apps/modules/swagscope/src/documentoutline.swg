@@ -186,19 +186,25 @@ impl DocumentOutline
         .list.clear()
     }
 
+    // Returns the row under a surface point, or `U64.Max` outside the listed headings.
+    private mtd rowAt(surfacePos: Math.Point)->u64
+    {
+        let view  = .list.listView
+        let local = view.surfaceToLocal(surfacePos)
+        if local.x < 0 or
+           local.x >= view.clientRect().width or
+           local.y < 0 or
+           local.y >= view.clientRect().height do
+            return Swag.U64.Max
+        let row = cast(u64, (local.y + .list.scrollWnd.scrollPosition().y) / .list.lineHeight())
+        return row < .rows.count ? row : Swag.U64.Max
+    }
+
     // Uses the full heading as a tooltip when its row is shortened to fit the panel.
     private mtd updateHeadingTooltip(surfacePos: Math.Point)
     {
-        let local = .list.listView.surfaceToLocal(surfacePos)
-        if local.y < 0 or local.y >= .list.listView.clientRect().height
-        {
-            .list.listView.toolTip = ""
-            return
-        }
-
-        let y     = local.y + .list.scrollWnd.scrollPosition().y
-        let index = cast(u32, y / .list.lineHeight())
-        .list.listView.toolTip = index < .rowTitles.count ? .rowTitles[index].toString() : ""
+        let row = .rowAt(surfacePos)
+        .list.listView.toolTip = row < .rowTitles.count ? .rowTitles[row].toString() : ""
     }
 
     // Keeps a quiet outline on the document's local palette, independently of application panels.
@@ -391,6 +397,12 @@ impl DocumentOutline
         .sigSelected += func|view|(_, offset)
         {
             discard view.revealFileOffset(offset, "")
+        }
+
+        // The heading being read follows the page from the reader's first move on.
+        view.sigScrolled += func|panel = me, view|(_)
+        {
+            panel.markReading(view.readingOffset(), atEnd: view.readingProgress() >= 1)
         }
     }
 

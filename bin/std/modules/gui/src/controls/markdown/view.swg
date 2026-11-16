@@ -1266,11 +1266,11 @@ impl View
     mtd columnGeometry()->{x: f32, width: f32} => .documentGeometry()
 
     // Returns the share of the document above the bottom of the view, from 0 at the top to 1
-    // at the end, as a reading progress shows it.
+    // at the end, as a reading progress shows it. A document that fits the view is at its end.
     mtd readingProgress()->f32
     {
-        let extent = Math.max(.scroll.scrollSize.y - .scroll.clientRect().height, 1)
-        return Math.clamp(.scroll.scrollPosition().y / extent, 0, 1)
+        let extent = .scroll.scrollSize.y - .scroll.clientRect().height
+        return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
     }
 
     // Returns the source byte offset of the block nearest the top reading inset, or `U64.Max`

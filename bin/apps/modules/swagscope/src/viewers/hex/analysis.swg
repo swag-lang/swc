@@ -50,6 +50,29 @@ struct AnalysisResult
     stringsTruncated: bool     // Whether more runs were found than `strings` keeps.
     cancelled:        bool
     failureReason:    String     // Empty unless the file could not be read.
+    hasDigests:       bool       // Whether every byte of the range was read, so the digests below cover it.
+    crc32:            u32        // CRC-32 of the range, as ZIP and PNG compute it.
+    sha256:           Hash.Sha256.Digest     // SHA-256 of the range.
+}
+
+impl AnalysisResult
+{
+    // Returns the CRC-32 of the range in hexadecimal, as checksum tools print it.
+    mtd const crc32Text()->String => Format.toString("%{X08}", .crc32)
+
+    // Returns the SHA-256 of the range in lowercase hexadecimal, as checksum tools print it.
+    mtd const sha256Text()->String
+    {
+        const Digits = "0123456789abcdef"
+        var result: String
+        for word in .sha256
+        {
+            for shift in 8 do
+                result.append(cast(rune, Digits[(word >> (28 - shift * 4)) & 0xF]))
+        }
+
+        return result
+    }
 }
 
 // Readable run being accumulated in one encoding, flushed when a byte breaks it.
@@ -197,6 +220,8 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
     var previous:    u8
     var hasPrevious: bool
     var bytes:       Array'u8
+    var crc:         Hash.Crc32
+    var sha:         Hash.Sha256
     var remaining = range.length
     while remaining
     {
@@ -221,6 +246,8 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         }
 
         bytes.resize(count)
+        crc.update(bytes.toSlice())
+        sha.update(bytes.toSlice())
         for value in bytes
         {
             let offset = range.offset + result.scanned
@@ -243,6 +270,13 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
     }
 
     result.finishScan(&ascii, &little, &big)
+    if result.scanned == range.length and not result.cancelled and result.failureReason.isEmpty()
+    {
+        result.hasDigests = true
+        result.crc32      = crc.value()
+        result.sha256     = sha.finalize()
+    }
+
     return result
 }
 

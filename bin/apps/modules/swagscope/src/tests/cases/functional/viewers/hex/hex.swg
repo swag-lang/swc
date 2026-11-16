@@ -204,7 +204,40 @@ internal func writeSampleFile()->String
         return Hex.analyzeRange(path, Viewers.Hex.AnalysisRange{0, count})
     })
     let stopped = expect stopper.take()
-    Swag.require(stopped.cancelled and not stopped.scanned)
+    Swag.require(stopped.cancelled and not stopped.scanned and not stopped.hasDigests)
+}
+
+// An analysis read in full gives the CRC-32 and SHA-256 of exactly its range, as checksum tools
+// print them; the lens copies each whole.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-hex-digests-", ".bin")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "xabcx")
+
+    let result = Hex.analyzeRange(fileName, Viewers.Hex.AnalysisRange{1, 3})
+    Swag.require(result.hasDigests and result.scanned == 3)
+    Swag.require(result.crc32Text() == "352441C2")
+    Swag.require(result.sha256Text() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let view      = hexTestViewer(&host, fileName, 900, 560)
+    var published = result
+    view.analysisView.publish(&published)
+    Swag.require(view.analysisView.digestsLabel.isLocallyVisible())
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Hexadecimal", host.theme)
+    view.describeLens(&entries)
+    var copied = 0
+    for &entry in results.sections[0]!.entries where entry.title == Hex.texts().ui_AnalysisCopySha256
+    {
+        entry.run!()
+        copied += 1
+    }
+
+    Swag.require(copied == 1 and Clipboard.getString() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
 }
 
 // Caret movement, selection, and the row width the window fits.

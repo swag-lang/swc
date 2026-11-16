@@ -37,6 +37,9 @@ ui_AnalysisProgress     Analyse · %{f1}%%
 ui_AnalysisCancelled    Arrêt après %
 ui_AnalysisMetrics      Entropie %{f2}/8 · zéro %{f1}%% · imprimable %{f1}%%
 ui_AnalysisNoBytes      Aucun octet analysé
+ui_AnalysisDigests      CRC-32 % · SHA-256 %
+ui_AnalysisCopyCrc32    Copier le CRC-32 des octets analysés
+ui_AnalysisCopySha256   Copier le SHA-256 des octets analysés
 ui_AnalysisByteHint     Survolez la carte pour voir le compte exact
 ui_AnalysisByte         Octet %{X02} · % occurrences · %{f2}%%
 ui_AnalysisByteOnce     Octet %{X02} · 1 occurrence · %{f2}%%

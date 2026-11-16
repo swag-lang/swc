@@ -47,6 +47,9 @@ struct Texts
     ui_AnalysisCancelled:      string = "Stopped after %"                                                                                     // Cancelled partial analysis.
     ui_AnalysisMetrics:        string = "Entropy %{f2}/8 · zero %{f1}%% · printable %{f1}%%"                                                  // Compact byte-distribution metrics.
     ui_AnalysisNoBytes:        string = "No bytes were analyzed"                                                                              // Empty analysis result.
+    ui_AnalysisDigests:        string = "CRC-32 % · SHA-256 %"                                                                                // Checksums of the analyzed bytes, read in full.
+    ui_AnalysisCopyCrc32:      string = "Copy CRC-32 of the Analyzed Bytes"                                                                   // Lens action copying the checksum of the last complete analysis.
+    ui_AnalysisCopySha256:     string = "Copy SHA-256 of the Analyzed Bytes"                                                                  // Lens action copying the digest of the last complete analysis.
     ui_AnalysisByteHint:       string = "Point at the byte map to inspect an exact count"                                                     // Histogram interaction hint.
     ui_AnalysisByte:           string = "Byte %{X02} · % occurrences · %{f2}%%"                                                               // Exact count under the histogram pointer.
     ui_AnalysisByteOnce:       string = "Byte %{X02} · 1 occurrence · %{f2}%%"                                                                // The same, for a byte seen once.

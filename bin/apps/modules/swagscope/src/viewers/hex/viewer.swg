@@ -326,6 +326,16 @@ impl Panel
     {
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+
+        // The checksums of the last analysis read in full, each copied whole with its own row.
+        let result = &.analysisView.result
+        if result.hasDigests
+        {
+            let crc = entries.add(texts().ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.crc32Text().toString()) })
+            if crc do
+                crc.detail = result.crc32Text()
+            entries.add(texts().ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha256Text().toString()) })
+        }
     }
 
     mtd showOptions()
@@ -661,7 +671,6 @@ impl Panel
         result.load.start(host.fileName(), &loadDocument, result)
         return result
     }
-
 
     // Creates the analysis side panel, and wires the host toggle that opens it.
     private mtd createAnalysisPanel(host: Viewer.Host)

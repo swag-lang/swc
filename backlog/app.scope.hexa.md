@@ -212,12 +212,14 @@ are what separate that capable grid from a professional binary-analysis viewer.
   or the complete collection.
 - Related: app.scope.hexa.001, app.scope.hexa.011
 
-### app.scope.hexa.017 — The viewer cannot calculate checksums or hashes
+### app.scope.hexa.017 — Checksums stop at CRC-32 and SHA-256 of an analyzed range
 
-- Evidence: neither the whole file nor a selected range can be verified from the hexadecimal
-  surface, although checksum comparison is a routine integrity and reverse-engineering operation.
-- Next: add a cancellable streamed digest job over an explicit byte range and present one result at
-  a time before building a multi-algorithm panel.
+- Evidence: an analysis read in full (selection, or the whole file) computes the CRC-32 and the
+  SHA-256 of its range in the same streamed, cancellable pass, shows them in the analysis panel,
+  and offers each to the lens for copying. CRC-64, MD5, SHA-1, SHA-512 and BLAKE2 are absent, a
+  digest cannot be asked for without the rest of the analysis, and the copy omits the range.
+- Next: let the panel choose the algorithms it computes, and copy a result with its algorithm and
+  range.
 - Done when: checksum, CRC32/CRC64, MD5, SHA-1, SHA-256/SHA-512, and BLAKE2 can run over file or
   selection with progress and cancellation, never make the range resident, and copy a result with
   its algorithm and range.

@@ -579,7 +579,10 @@ namespace Fuse
             var child = owner.volume.firstChild(node.id)
             while child
             {
-                if child.id + 2 > cookie and (not next or child.id < next.id) do
+                if child.id > cast(u64, Swag.S64.Max) - 2 do
+                    return -Linux.EOVERFLOW
+                let childCookie = child.id + 2
+                if childCookie > cookie and (not next or child.id < next.id) do
                     next = child
                 child = owner.volume.nextSibling(child.id)
             }
@@ -587,8 +590,6 @@ namespace Fuse
             if not next do
                 break
             cookie = next.id + 2
-            if cookie > cast(u64, Swag.S64.Max) do
-                return -Linux.EOVERFLOW
             discard fillStat(owner, next, &attributes)
             if fill(buffer, unwrap next.name.buffer, &attributes, cast(s64, cookie), 0) != 0 do
                 break

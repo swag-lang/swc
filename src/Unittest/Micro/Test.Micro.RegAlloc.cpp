@@ -1827,6 +1827,48 @@ namespace
 
         return Result::Continue;
     }
+
+    Result runManySameValueCopies(TaskContext& ctx)
+    {
+        constexpr uint32_t candidateCount = 9;
+        for (const auto callConvKind : testedCallConvs())
+        {
+            const CallConv& conv = CallConv::get(callConvKind);
+            MicroBuilder    builder(ctx);
+            builder.setBackendBuildCfg({.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2});
+
+            for (uint32_t index = 0; index < candidateCount; ++index)
+            {
+                const MicroReg     source    = MicroReg::virtualIntReg(9300 + index * 2);
+                const MicroReg     copy      = MicroReg::virtualIntReg(9301 + index * 2);
+                const MicroLabelRef skipLabel = builder.createLabel();
+                const int64_t      baseOffset = 8 + static_cast<int64_t>(index) * 32;
+
+                builder.emitLoadRegMem(source, conv.stackPointer, baseOffset, MicroOpBits::B64);
+                builder.emitLoadRegReg(copy, source, MicroOpBits::B64);
+                builder.emitCmpRegImm(source, ApInt(index + 1, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
+                builder.emitLoadMemReg(conv.stackPointer, baseOffset + 8, copy, MicroOpBits::B64);
+                builder.placeLabel(skipLabel);
+                builder.emitLoadMemReg(conv.stackPointer, baseOffset + 16, source, MicroOpBits::B64);
+                builder.emitLoadMemReg(conv.stackPointer, baseOffset + 16, copy, MicroOpBits::B64);
+            }
+            builder.emitRet();
+
+            MicroRegisterAllocationPass regAllocPass;
+            MicroPassManager            passes;
+            passes.addStartPass(regAllocPass);
+            MicroPassContext passCtx;
+            passCtx.callConvKind = callConvKind;
+            SWC_RESULT(builder.runPasses(passes, nullptr, passCtx));
+            SWC_RESULT(Backend::Unittest::assertNoVirtualRegs(builder));
+            SWC_RESULT(verifyCallConvConformity(builder, conv));
+            if (!passCtx.intervalAllocated || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegReg))
+                return Result::Error;
+        }
+
+        return Result::Continue;
+    }
 }
 
 SWC_TEST_BEGIN(RegAlloc_JoinsCopyHoldingTheSourceValue)
@@ -1838,6 +1880,12 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(RegAlloc_KeepsCopyApartFromRedefinedSource)
 {
     SWC_RESULT(runSameValueCopy(ctx, true));
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(RegAlloc_IndexesManySameValueCopyPairs)
+{
+    SWC_RESULT(runManySameValueCopies(ctx));
 }
 SWC_TEST_END()
 

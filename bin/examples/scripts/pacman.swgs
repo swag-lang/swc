@@ -549,10 +549,12 @@ impl Ghost
      */
     mtd aiFrightened()
     {
+        const Directions: [4] Direction = [.UP, .RIGHT, .DOWN, .LEFT]
+
         for
         {
             // Choose random direction from UP, RIGHT, DOWN or LEFT
-            let newDir = cast(Direction, ((Random.shared().nextU32() % cast(u32, Direction.LEFT)) + 1))
+            let newDir = Directions[Random.shared().nextU32(0, Directions.count)]
 
             // Ensure random direction is traversible
             if not isImpassible(.getNextTile(newDir))

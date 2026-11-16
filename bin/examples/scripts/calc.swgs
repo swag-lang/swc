@@ -67,7 +67,7 @@ func createBtn(str: string, x, y: s32)
     scope
     {
         let btn = PushButton.create(layout, str)
-        btn.sigPressed += func(btn) { validateOp(btn.name.raw) }
+        btn.sigPressed += func(btn) { validateOp(btn.name.text) }
         btn.style.setFont(g_FontBtn, .Regular)
         layout.setCell(btn, x, y)
 

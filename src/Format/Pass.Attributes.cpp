@@ -9,6 +9,7 @@ namespace
 {
     using FormatPassUtil::INVALID_PIECE;
     using FormatPassUtil::PieceRange;
+    using FormatPassUtil::SegmentSnapshot;
 
     // Sorts the attributes inside a single `#[A, B, C]` list alphabetically.
     void sortAttributeArgumentsIn(FormatModel& model, const uint32_t openPiece)
@@ -79,25 +80,12 @@ namespace
         // Keep separators at their positional boundaries while moving complete
         // token sequences. Attribute names can contain different piece counts,
         // so the destination comma indices can move after sorting.
-        struct SegmentSnapshot
-        {
-            std::vector<FormatPiece> pieces;
-            std::vector<FormatGap>   innerGaps;
-        };
-
         std::vector<SegmentSnapshot> snapshots(segments.size());
         std::vector<FormatGap>       leadingGaps(segments.size());
         for (size_t s = 0; s < segments.size(); ++s)
         {
             const PieceRange& range = segments[s];
-            leadingGaps[s]          = model.gapBefore(range.first);
-
-            for (uint32_t i = range.first; i <= range.last; ++i)
-            {
-                snapshots[s].pieces.push_back(model.piece(i));
-                if (i != range.first)
-                    snapshots[s].innerGaps.push_back(model.gapBefore(i));
-            }
+            FormatPassUtil::snapshotSegment(model, range, snapshots[s], leadingGaps[s]);
         }
 
         std::vector<FormatPiece> separatorPieces;

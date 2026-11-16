@@ -239,6 +239,7 @@ explore_Length % h %
 explore_Sources Sources
 lens_InFile Dans ce fichier
 lens_GoToLine Aller à la ligne %
+lens_GoToPage Aller à la page %
 explore_Album Album
 explore_Tracks % titres
 explore_Play Lire

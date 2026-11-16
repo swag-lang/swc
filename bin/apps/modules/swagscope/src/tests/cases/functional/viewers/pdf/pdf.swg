@@ -214,6 +214,19 @@ internal func createPdfFixture()->String
     Swag.require(view.goToTypedPage("cover") and view.pdfView.pageIndex == 6)
     Swag.require(view.goToTypedPage("4") and view.pdfView.pageIndex == 3)
     Swag.require(not view.goToTypedPage("xiv"))
+
+    // The lens answers `:` with a page, named by its label and its position.
+    var windowHost: HeadlessHost
+    let window = framedViewerWindow(&windowHost, fileName, false)
+    let shown  = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+    window.lens.open(":ii")
+    windowHost.finishAnimations()
+    let row = (unwrap window.lens.results.sections[0]).entries[0]
+    Swag.require(row.title == Format.toString(appStrings().lens_GoToPage, "ii (3)"))
+    row.run!()
+    window.lens.close()
+    windowHost.finishAnimations()
+    Swag.require(shown.pdfView.pageIndex == 2)
 }
 
 // The lens selects the text of the page in view and copies a selection, as the page's context

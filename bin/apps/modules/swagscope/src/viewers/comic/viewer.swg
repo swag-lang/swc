@@ -341,6 +341,21 @@ private impl Panel
 
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and a page number go to that page.
+        if entries.results.prefix == .Line
+        {
+            let typed = Latin1.trim(entries.query.toString())
+            let page  = catch StrConv.toU64(typed) { return; }
+            for c in typed where not Latin1.isDigit(c) do
+                return
+            if not page or page > .book.pages.count do
+                return
+            let entry = entries.add(Format.toString(appStrings().lens_GoToPage, page), .GoTo, func|view = me, page|() { view.showPage(page - 1) })
+            if entry do
+                entry.lead = Format.toString("%", page)
+            return
+        }
+
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.None, .Left))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts().ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
@@ -372,6 +387,7 @@ private impl Panel
         {
             .sigPressed += func|view = result|(_) { view.promptGoToPage() }
         }
+
         with result.nextButton = Viewer.createPageStep(info, 1)
         {
             .dockStyle       = .Left

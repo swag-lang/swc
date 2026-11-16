@@ -7,7 +7,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let fileName = scopeTestDataPath("viewer.comic.cbz")
-    let book = expect Comic.Book.load(fileName)
+    let book     = expect Comic.Book.load(fileName)
     Swag.require(book.pages.count == 2)
     Swag.require(book.archive.entries[book.pages[0]].path == "2.png")
     Swag.require(book.archive.entries[book.pages[1]].path == "10.png")
@@ -21,7 +21,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
-    let view = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.book.pages.count == 2 and view.activePage == 0)
     Swag.require(not view.status.isVisible())
     Swag.require(Path.lowercaseExtension(view.previewFile) == ".png", view.previewFile)
@@ -34,7 +34,6 @@ using Core, Gui, Gui.Testing, Viewers
     host.pump()
     Swag.require(not view.status.isVisible())
     Swag.require(view.pageLabel.name.text == "2 / 2")
-
 }
 
 // The page readout accepts a one-based page number and rejects values outside the book.
@@ -42,7 +41,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
-    let view = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.goToTypedPage("0") == false)
     Swag.require(view.goToTypedPage("3") == false)
     Swag.require(view.goToTypedPage("page") == false)
@@ -58,7 +57,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
-    let view = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
 
     view.rightToLeft = true
     var nextPage = KeyEvent{kind: .Pressed, key: .Left}
@@ -86,7 +85,7 @@ using Core, Gui, Gui.Testing, Viewers
 #test
 {
     let fileName = scopeTestDataPath("viewer.peppercarrot.ep01.cbz")
-    let book = expect Comic.Book.load(fileName)
+    let book     = expect Comic.Book.load(fileName)
     Swag.require(book.pages.count == 3)
     Swag.require(book.archive.entries[book.pages[0]].path == "01.jpg")
     Swag.require(book.archive.entries[book.pages[2]].path == "03.jpg")
@@ -102,8 +101,8 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     let fileName = scopeTestDataPath("viewer.peppercarrot.ep36.cbz")
-    let window = framedViewerWindow(&host, fileName, false)
-    let view = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    let window   = framedViewerWindow(&host, fileName, false)
+    let view     = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.book.pages.count == 15 and view.activePage == 0)
     Swag.require(view.book.archive.entries[view.book.pages[0]].path == "01.jpg")
     Swag.require(view.book.archive.entries[view.book.pages[14]].path == "15.jpg")
@@ -112,4 +111,26 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.drainWork()
     host.pump()
     Swag.require(view.activePage == 14 and view.pageLabel.text() == "15 / 15")
+}
+
+// A colon and a page number in the lens turn to that page; a page past the last offers nothing.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.comic.cbz"), false)
+    let view   = assume cast(*Comic.Panel, window.instances[window.activeChoiceIndex].view)
+    window.lens.open(":2")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToPage, 2))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(view.activePage == 1 or view.pendingPage == 1)
+
+    window.lens.open(":3")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
 }

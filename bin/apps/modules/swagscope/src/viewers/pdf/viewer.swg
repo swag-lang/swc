@@ -324,29 +324,35 @@ private impl Panel
     // document gives it, compared without case.
     internal mtd goToTypedPage(text: string)->bool
     {
+        let index = .typedPageIndex(text)
+        if index == Swag.U64.Max do
+            return false
+        .history.visit(.pdfView.readingPosition())
+        .pdfView.showPage(index)
+        return true
+    }
+
+    // Returns the index of the page `text` names, its position counted from one or else the label
+    // the document gives it, compared without case; `U64.Max` when it names none.
+    internal mtd typedPageIndex(text: string)->u64
+    {
         let typed = Latin1.trim(text)
         for label, index in .pageLabels where typed.count and
                                               not Latin1.isDigit(typed[0]) and
-                                              Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0
-        {
-            .history.visit(.pdfView.readingPosition())
-            .pdfView.showPage(index)
-            return true
-        }
+                                              Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do
+            return index
 
         var parseErrorOutcome: Swag.Error
-        var parsed: #decltype(expect StrConv.parseU64(text))
-        catch { parsed = try StrConv.parseU64(text) } as parseErrorOutcome
+        var parsed: #decltype(expect StrConv.parseU64(typed))
+        catch { parsed = try StrConv.parseU64(typed) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or
-           parsed.eat != text.count or
+           parsed.eat != typed.count or
            parsed.ovf or
            not parsed.value or
            parsed.value > .pdfView.pageCount() do
-            return false
-        .history.visit(.pdfView.readingPosition())
-        .pdfView.showPage(parsed.value - 1)
-        return true
+            return Swag.U64.Max
+        return parsed.value - 1
     }
 
     // Lists the bookmarks in the outline, each addressed by its index, so the outline can filter
@@ -424,6 +430,24 @@ private impl Panel
     // Gives the lens the pages and the zoom of the document.
     internal mtd describeLens(entries: *Viewer.LensEntries)
     {
+        // `:` and a page, by its position or its label, go to that page.
+        if entries.results.prefix == .Line
+        {
+            let index = .typedPageIndex(entries.query.toString())
+            if index == Swag.U64.Max do
+                return
+            let label = .pageLabelOf(index)
+            let named = label.count ? Format.toString("% (%)", label, index + 1) : Format.toString("%", index + 1)
+            let entry = entries.add(Format.toString(appStrings().lens_GoToPage, named), .GoTo, func|view = me, index|()
+            {
+                view.history.visit(view.pdfView.readingPosition())
+                view.pdfView.showPage(index)
+            })
+            if entry do
+                entry.lead = named
+            return
+        }
+
         let strings = texts()
         entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))

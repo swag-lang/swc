@@ -92,13 +92,14 @@ private:
             return values_[0];
         }
 
-        void addUnique(uint32_t value)
+        bool addUnique(uint32_t value)
         {
             for (const uint32_t existing : *this)
                 if (existing == value)
-                    return;
+                    return false;
             SWC_ASSERT(count_ < values_.size());
             values_[count_++] = value;
+            return true;
         }
 
     private:

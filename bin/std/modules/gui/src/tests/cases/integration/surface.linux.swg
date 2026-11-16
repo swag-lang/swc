@@ -231,3 +231,18 @@ struct NativeInputProbe
     Swag.require(probe.shiftA == 1 and probe.controlA == 1 and probe.characters == 1 and probe.character == 'A',
                 Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
 }
+
+// A pointer grab the server refuses, as it does for a window it does not show yet, leaves the
+// capture to the application rather than stopping it.
+#[Swag.TestTag("integration.desktop")]
+#test
+{
+    Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1", "native GUI integration requires an isolated X11 server")
+    var app: Application
+    let surface = expect app.createSurface(40, 40, 200, 120, surfaceId: "linux-native-grab")
+    let view    = surface.wnd.view
+    view.captureMouse()
+    Swag.require(view.mouseCapture() == view)
+    view.releaseMouse()
+    Swag.require(view.mouseCapture() == null)
+}

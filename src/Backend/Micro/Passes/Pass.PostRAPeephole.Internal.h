@@ -16,18 +16,7 @@ namespace PostRaPeephole
 {
     using MicroOptimizationLimits::PostRAPeepholeLiveness::K_MAX_LIVENESS_WINDOW;
 
-    struct Action
-    {
-        // Indexed address forms carry eight operands.
-        static constexpr uint8_t K_MAX_OPS = 8;
-
-        MicroInstrRef     ref            = MicroInstrRef::invalid();
-        MicroInstrOpcode  newOp          = MicroInstrOpcode::Nop;
-        uint8_t           numOps         = 0;
-        MicroInstrOperand ops[K_MAX_OPS] = {};
-        bool              erase          = false;
-        bool              allocOps       = false;
-    };
+    using Action = MicroPeephole::Action;
 
     struct Context : MicroPeephole::RewriteQueue<Action>
     {

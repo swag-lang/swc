@@ -6,15 +6,17 @@ using Core, Core.Math, Pixel.Clipper
 func addOffsetRect(list: *Pixel.LinePathList, serial: s32, x, y: f32)
 {
     let path = list.newPath()
-    path.serial = serial
     path.setRect(x, y, 20, 12)
+    path.serial = serial
 }
 
-func assertOffsetCleanPreservesPathIdentity()
+// Assign group identities after construction, then retain them through offset and cleanup.
+#test
 {
     var paths: Pixel.LinePathList
     addOffsetRect(&paths, 10, 0, 0)
     addOffsetRect(&paths, 20, 100, 0)
+    Swag.require(paths.paths[0].serial == 10 and paths.paths[1].serial == 20)
 
     paths.flatten(.Normal)
     paths.offset(2)
@@ -24,11 +26,10 @@ func assertOffsetCleanPreservesPathIdentity()
     Swag.require(paths.paths[1].serial == 20)
     Swag.require(not paths.paths[0].polygon.points.isEmpty())
     Swag.require(not paths.paths[1].polygon.points.isEmpty())
-}
 
-#test
-{
-    assertOffsetCleanPreservesPathIdentity()
+    paths.clean()
+    Swag.require(paths.paths.count == 2)
+    Swag.require(paths.paths[0].serial == 10 and paths.paths[1].serial == 20)
 }
 
 // A regular polygon of `sides` corners on a circle of radius `radius`, centred on the origin.

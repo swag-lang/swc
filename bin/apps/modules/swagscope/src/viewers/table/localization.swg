@@ -18,6 +18,8 @@ struct Texts
     ui_KindDecimal:     string = "decimal"
     ui_KindDate:        string = "date"
     ui_RowAt:           string = "row %"
+    ui_CopyRows:        string = "Copy Rows"       // Lens command copying the selected rows, or the focused one, as tab-separated text.
+    ui_CopyRowsNames:   string = "Copy Rows with Column Names"     // The same, after a line of column names.
     ui_GoToRow:         string = "Go to Row %"     // Lens row moving the table to the row typed after a colon, as the row readout counts it.
     err_TooLarge:       string = "the tabular viewer accepts files up to 32 MiB"
     err_TooManyColumns: string = "the tabular viewer accepts up to 256 columns"

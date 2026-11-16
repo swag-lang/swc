@@ -15,4 +15,6 @@ ui_KindInteger     entier
 ui_KindDecimal     décimal
 ui_KindDate        date
 ui_RowAt           ligne %
+ui_CopyRows        Copier les lignes
+ui_CopyRowsNames   Copier les lignes avec les noms de colonnes
 ui_GoToRow         Aller à la ligne %

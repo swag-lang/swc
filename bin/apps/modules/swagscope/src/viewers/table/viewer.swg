@@ -671,9 +671,37 @@ private impl Panel
 
     // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
     // them: complete cell values separated by tabs, one row per line, in the order shown.
-    internal mtd selectionText()->String
+    // Returns the selected rows, or the focused one, as tab-separated text in the order on screen,
+    // after the column names with `withNames`. A value holding a tab, a line break or a quote is
+    // quoted, its quotes doubled, as spreadsheets read tab-separated text back.
+    internal mtd selectionText(withNames = false)->String
     {
+        func quoted(value: string)->String
+        {
+            var needed = false
+            for c in value where c == '\t' or c == '\n' or c == '\r' or c == '"' do
+                needed = true
+            if not needed do
+                return String.from(value)
+
+            var escaped = String.from(value)
+            escaped.replace('"', "\"\"")
+            return Format.toString("\"%\"", escaped)
+        }
+
         var result: #returntype
+        if withNames
+        {
+            for name, column in .document.columns
+            {
+                if column do
+                    result += "\t"
+                result += quoted(name.toString())
+            }
+
+            result += "\n"
+        }
+
         let anySelected = .hasSelection()
         for line in .document.rows.count
         {
@@ -685,7 +713,7 @@ private impl Panel
             {
                 if column do
                     result += "\t"
-                result += cell.toString()
+                result += quoted(cell.toString())
             }
 
             result += "\n"
@@ -951,11 +979,18 @@ impl Panel
     }
 
     // Answers `:` and a number in the lens with that row of the table, counted as the row readout
-    // counts it: from one, in the order on screen.
+    // counts it: from one, in the order on screen. Any other query is answered with the copy
+    // commands.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
-        if entries.results.prefix != .Line do
+        if entries.results.prefix != .Line
+        {
+            let empty = not .document.rows.count
+            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.addString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
+            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.addString(view.selectionText(withNames: true)) }, disabled: empty)
             return
+        }
+
         let query = Latin1.trim(entries.query.toString())
         if not query.count do
             return

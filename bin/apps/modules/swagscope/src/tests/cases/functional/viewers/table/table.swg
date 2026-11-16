@@ -240,3 +240,26 @@ using Core, Pixel, Gui, Viewers
     window.lens.close()
     host.finishAnimations()
 }
+
+// Copied rows read back as the same values: a value holding a tab, a line break or a quote is
+// quoted, its quotes doubled, and the lens copies with or without the column names.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-table-copy-", ".csv")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "name,note\nplain,été\n\"two\nlines\",\"say \"\"hi\"\"\"\n")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    let view   = assume cast(*Table.Panel, window.instances[window.activeChoiceIndex].view)
+    view.revealLine(1)
+    Swag.require(view.selectionText() == "\"two\nlines\"\t\"say \"\"hi\"\"\"\n")
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Table", host.theme)
+    view.revealLine(0)
+    view.describeLens(&entries)
+    for &entry in results.sections[0]!.entries where entry.title == Table.texts().ui_CopyRowsNames do
+        entry.run!()
+    Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n")
+}

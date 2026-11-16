@@ -239,7 +239,9 @@ impl Volume
     // Releases, at the next commit, the blocks of a node past `newSize`.
     mtd trimNode(node: *Node, newSize: u64)
     {
-        let keepBlocks = (newSize + BlockSize - 1) / BlockSize
+        var keepBlocks = newSize / BlockSize
+        if newSize % BlockSize do
+            keepBlocks += 1
         for index in reversed(node.blocks.count)
         {
             let mapping = node.blocks[index]
@@ -278,7 +280,7 @@ impl Volume
         defer Core.Crypto.secureClear(block)
         let mapping = node.blocks[search.index]
         try .readPhysical(mapping.physical + logical - mapping.logical, block)
-        let end = Math.min(newSize, (logical + 1) * BlockSize)
+        let end = oldSize + Math.min(newSize - oldSize, BlockSize - oldSize % BlockSize)
         Swag.memset(&block[oldSize % BlockSize], 0, end - oldSize)
         try .writeBlock(nodeId, logical, block)
     }

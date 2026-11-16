@@ -44,11 +44,19 @@ namespace WinFsp
         let node = volume.nodeById(nodeId)
         if not node do
             return StatusObjectNameNotFound
+        var allocationSize = node.size / BlockSize * BlockSize
+        if node.size % BlockSize
+        {
+            if allocationSize > Swag.U64.Max - BlockSize do
+                allocationSize = Swag.U64.Max
+            else do
+                allocationSize += BlockSize
+        }
         with output
         {
             // Windows reports the space a file occupies, so a file always
             // rounds up to whole blocks and a directory occupies none.
-            .allocationSize = node.isDirectory() ? 0 : (node.size + BlockSize - 1) / BlockSize * BlockSize
+            .allocationSize = node.isDirectory() ? 0 : allocationSize
             .fileAttributes = node.attributes
             .fileSize       = node.size
             .creationTime   = node.creationTime

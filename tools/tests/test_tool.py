@@ -98,6 +98,18 @@ class ToolTests(unittest.TestCase):
             self.assertFalse(any(arg.startswith('--build-cfg') or arg == '-bc' for arg in command))
             self.assertEqual(command[-2:], ['--num-cores', '1'])
 
+    def test_cpp_rebuild_options_apply_only_to_swag_stages(self):
+        for windows in (False, True):
+            for flag in ('--rebuild', '--rebuild-module', '--rebuild=true', '--rebuild-module=false'):
+                self.invoke(['tests', 'dm', '-bc', 'release', flag, '--num-cores', '1'], windows=windows)
+                cpp = self.stages[0].command
+                source = next(stage.command for stage in self.stages if stage.name == 'lexer')
+                self.assertNotIn(flag, cpp)
+                self.assertIn(flag, source)
+                self.assertEqual(cpp[-2:], ['--num-cores', '1'])
+                self.invoke(['unittests', 'dm', 'cpp', flag], windows=windows)
+                self.assertNotIn(flag, self.stages[0].command)
+
     def test_native_diagnostic_fixtures_require_native_execution(self):
         self.invoke(['unittests', 'native', '--no-test-native'])
         self.assertEqual([stage.name for stage in self.stages], ['native'])

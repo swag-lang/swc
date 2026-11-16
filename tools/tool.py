@@ -78,6 +78,7 @@ def module_names(workspace):
 
 def cpp_stage(compiler, options, full=True):
     options = without_options(options, ('-bc', '--build-cfg'))
+    options = [option for option in options if option.split('=', 1)[0] not in ('--rebuild', '--rebuild-module')]
     return Stage('cpp', [str(compiler), 'unittest', *(['--dev-full'] if full else []), '--num-cores', '3', *options])
 
 

@@ -108,7 +108,9 @@ whole recording loaded at once.
 - Evidence: under Xvfb with Mesa software rendering, `functional/videoplayback.swg` fails with
   "video prefetch did not finish" in about one run of three, and one run of the same file did not
   end within ten minutes, before and after the current changes alike. The decoder of the timeline
-  must ready four pictures of a ten-picture 64×48 recording within two seconds.
+  must ready four pictures of a ten-picture 64×48 recording within two seconds. Run alone, the
+  file passed four runs in a row; in a full Swag Capture run it failed with the same message, and
+  a failed check there stops the remaining tests of the run.
 - Next: log the decoder worker's wake, reader open and decode of each picture during a failing
   run, and find whether the worker starts late, waits on the wrong event or decodes slowly.
 - Done when: the file passes twenty runs in a row on Linux without a hang.

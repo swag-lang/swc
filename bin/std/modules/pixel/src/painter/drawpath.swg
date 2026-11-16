@@ -56,6 +56,16 @@ struct Context
 
 impl Context
 {
+    // Effective length of one pattern element in path units. Blank scaling participates in the
+    // period and offset as well as in the segment walk, so every phase uses the same lengths.
+    mtd patternLength(index: s32)->f32
+    {
+        var result = Math.max(.pattern[index], 0.01) * .pen.size
+        if index & 1 do
+            result *= Math.max(.pen.dashBlankScale, 0)
+        return result
+    }
+
     // The stroke's own half-width normal, recovered from the one a border pass widened.
     //
     // A cap is shaped from the stroke it terminates and is then pushed out, so it is measured
@@ -677,8 +687,7 @@ impl Painter
 
         cxt.patternTotalLen = 0
         for i in cxt.patternCount do
-            cxt.patternTotalLen += Math.max(cxt.pattern[i], 0.01)
-        cxt.patternTotalLen *= cxt.pen.size
+            cxt.patternTotalLen += cxt.patternLength(i)
 
         let repeatCount = cast(s32, (cxt.path.polygon.perimeter / cxt.patternTotalLen))
         cxt.error = cxt.path.polygon.perimeter - (repeatCount * cxt.patternTotalLen)
@@ -691,8 +700,7 @@ impl Painter
         // First pattern. We start at half the size of the first pattern, in order to not
         // finish on a blank, but with half the size of the first pattern also.
         cxt.patternIndex        = 0
-        cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
-        cxt.remainingPatternLen *= cxt.pen.size
+        cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
         if not cxt.path.isClosed and (cxt.pen.dashStyle != .Pattern or cxt.pen.dashStartHalf) do
             cxt.remainingPatternLen *= 0.5
 
@@ -710,7 +718,7 @@ impl Painter
             {
                 phase -= cxt.remainingPatternLen
                 cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
-                cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01) * cxt.pen.size
+                cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
             }
 
             cxt.remainingPatternLen -= phase
@@ -745,9 +753,6 @@ impl Painter
                 lengthInPattern += addBlank
             }
 
-            if blankPatternIdx do
-                lengthInPattern *= cxt.pen.dashBlankScale
-
             // The current remaining length in the current segment is greater
             // than what's left in the current pattern. We draw to cover the
             // current pattern, and change the pattern to be the next
@@ -769,8 +774,7 @@ impl Painter
                 remainingSegLen         -= lengthInPattern
                 cxt.patternIndex        = (cxt.patternIndex + 1) % cxt.patternCount
                 blankPatternIdx         = blankPatternIdx ? false : true
-                cxt.remainingPatternLen = Math.max(cxt.pattern[cxt.patternIndex], 0.01)
-                cxt.remainingPatternLen *= cxt.pen.size
+                cxt.remainingPatternLen = cxt.patternLength(cxt.patternIndex)
                 continue
             }
 

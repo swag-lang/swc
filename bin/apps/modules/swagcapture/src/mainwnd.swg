@@ -796,9 +796,9 @@ impl MainWnd
     }
 
     // All library metadata writes share the automatic save's single file-writer lane.
-    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null)
+    mtd queueCaptureMetadata(file: String, title: string? = null, tags: const *Array'String? = null, favorite: const *bool? = null, rating: const *u8? = null, unlink = false)
     {
-        if title == null and not tags and not favorite and not rating do
+        if title == null and not tags and not favorite and not rating and not unlink do
             return
         let job = Memory.new'CaptureMetadataJob()
         job.owner = me
@@ -823,6 +823,7 @@ impl MainWnd
             job.rating = rating[]
             job.hasRating = true
         }
+        job.unlink = unlink
         g_CaptureSaves.adoptMetadata(job)
         if not .metadataTimer do
             .metadataTimer = .addTimer(30'ms)
@@ -836,7 +837,7 @@ impl MainWnd
             let tags: const *Array'String? = job.hasTags ? &job.tags : null
             let favorite: const *bool? = job.hasFavorite ? &job.favorite : null
             let rating: const *u8? = job.hasRating ? &job.rating : null
-            catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating) as job.error
+            catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating, job.unlink) as job.error
         })
     }
 

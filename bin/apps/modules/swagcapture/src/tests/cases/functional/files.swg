@@ -1343,3 +1343,128 @@ func testOpensCapture(path: String)->bool
     Swag.require(recent.recentView.selected == Swag.U64.Max)
     Swag.require(f.main.editWnd.getCapture() == f.capture)
 }
+
+// In the library, the chosen capture holds only its metadata and its preview. Unlinking its image
+// changes the link in its file and keeps the picture.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+    let lib = f.setupLibraryWnd()
+
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 40
+    capture.height, capture.heightOrg = 30
+    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    capture.preview                   = Gui.Testing.indexedImage(32, 24)
+    capture.linkedImage               = Gui.Testing.tempFilePath("linked-", ".png")
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+
+    let item = testAddLibraryItem(lib.view, path, 1, 1)
+    Memory.delete(item.capture)
+    item.capture       = expect Capture.load(path, preview: true)
+    lib.view.focusItem = 0
+    f.main.libraryMode = true
+
+    f.gui.clickModalButtonWhenShown(Dialog.BtnYes)
+    f.main.sendCommandEvent(ActionFile.UnlinkImage)
+    f.gui.pump()
+    Swag.require(g_CaptureSaves.flush().isEmpty())
+
+    let saved = expect Capture.load(path)
+    defer Memory.delete(saved)
+    Swag.require(saved.linkedImage.isEmpty())
+    Swag.require(testSamePixels(&saved.backImg, &capture.backImg))
+}
+
+// Updating the linked image of a capture chosen in the library writes the whole picture, read
+// from its file, and the file keeps its picture.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+    let lib = f.setupLibraryWnd()
+
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 40
+    capture.height, capture.heightOrg = 30
+    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    capture.preview                   = Gui.Testing.indexedImage(32, 24)
+    capture.linkedImage               = Gui.Testing.tempFilePath("linked-", ".png")
+    capture.linkedUpToDate            = false
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+    defer discard catch File.delete(capture.linkedImage)
+
+    let item = testAddLibraryItem(lib.view, path, 1, 1)
+    Memory.delete(item.capture)
+    item.capture       = expect Capture.load(path, preview: true)
+    lib.view.focusItem = 0
+    f.main.libraryMode = true
+
+    let confirm = f.main.editorOptions.confirmLinkedOverwrite
+    defer f.main.editorOptions.confirmLinkedOverwrite = confirm
+    f.main.editorOptions.confirmLinkedOverwrite = false
+    f.main.sendCommandEvent(ActionFile.UpdateLinkedImage)
+    Swag.require(f.main.exportJob != null)
+    f.main.exportJob.task.wait()
+    f.gui.pump()
+    Swag.require(f.main.exportJob == null)
+    Swag.require(g_CaptureSaves.flush().isEmpty())
+
+    let written = expect Image.load(capture.linkedImage)
+    Swag.require(written.width == 40 and written.height == 30)
+    let saved = expect Capture.load(path)
+    defer Memory.delete(saved)
+    Swag.require(saved.linkedUpToDate)
+    Swag.require(testSamePixels(&saved.backImg, &capture.backImg))
+}
+
+// Saving a capture as a linked image from the library, while the editor holds the same capture,
+// gives the editor's copy the link, and the editor's next save keeps it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+    testPrepareRecentLibrary(f.main)
+    let lib = f.setupLibraryWnd()
+
+    f.capture.width, f.capture.widthOrg   = 40
+    f.capture.height, f.capture.heightOrg = 30
+    f.capture.backImg                     = Gui.Testing.indexedImage(40, 30)
+    let path = testPrepareSavedCapture(f.capture)
+    defer discard catch File.delete(path)
+    let linked = Gui.Testing.tempFilePath("linked-", ".png")
+    defer discard catch File.delete(linked)
+
+    let item = testAddLibraryItem(lib.view, path, 1, 1)
+    Memory.delete(item.capture)
+    item.capture       = expect Capture.load(path, preview: true)
+    lib.view.focusItem = 0
+    f.main.libraryMode = true
+
+    f.main.doSaveAsImage(linked, linked: true)
+    Swag.require(f.main.exportJob != null)
+    f.main.exportJob.task.wait()
+    f.gui.pump()
+    Swag.require(File.exists(linked))
+    Swag.require(f.capture.linkedImage == linked and f.capture.linkedUpToDate)
+
+    f.capture.title   = "Edited"
+    f.capture.changed = true
+    expect f.capture.save()
+    let saved = expect Capture.load(path)
+    defer Memory.delete(saved)
+    Swag.require(saved.linkedImage == linked)
+}

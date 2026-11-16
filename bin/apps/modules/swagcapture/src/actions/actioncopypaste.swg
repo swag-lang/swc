@@ -39,7 +39,9 @@ impl IActionUI for ActionCopyPaste
 
         case .Paste:
             evt.updatedFields |= .Disabled | .Name | .Icon
-            if not capture
+
+            // The library shows captures, not one to paste into.
+            if not capture or main.libraryMode
             {
                 evt.disabled = true
             }
@@ -125,6 +127,10 @@ impl IActionUI for ActionCopyPaste
 
         case .PasteImageInside:
             capture.pasteImageInside()
+
+        // The library holds only the preview of a capture: its copy reads the whole capture first.
+        case .CopyAsImage where main.libraryMode:
+            main.copyLibraryImage(capture.file)
 
         case .CopyAsImage:
             catch capture.copyAll()

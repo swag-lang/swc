@@ -1074,11 +1074,46 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
     result.brush.multiplyOpacity(pen.size * deviceScale)
 
     // Dash lengths are stroke-width multiples, so widening the pen must not lengthen them.
-    if result.dashStyle == .Pattern
+    if result.dashStyle != .None
     {
         let ratio = pen.size / result.size
-        for &value in result.pattern do
-            value[] *= ratio
+        if result.dashStyle == .Pattern
+        {
+            if result.pattern.isEmpty()
+            {
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+            }
+            else
+            {
+                for &value in result.pattern do
+                    value[] *= ratio
+            }
+        }
+        else
+        {
+            result.pattern.clear()
+            switch result.dashStyle
+            {
+            case .Dot:
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+
+            case .Dash:
+                result.pattern.add(2 * ratio)
+                result.pattern.add(ratio)
+
+            case .DashDot:
+                result.pattern.add(2 * ratio)
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+                result.pattern.add(ratio)
+
+            case .None, .Pattern:
+                break
+            }
+            result.dashStyle = .Pattern
+        }
     }
 
     return result

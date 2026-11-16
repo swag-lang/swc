@@ -64,6 +64,8 @@ claimed without a benchmark.
 
 This follow-up continues the register-allocation work using the retained
 DevMode and memory evidence above. It makes no timing, CPU or memory claims.
+The static Micro comparison builds each task once and checks its listing and
+checksum; it does not record elapsed time.
 
 | Retained change | Compiler work removed | Equivalence argument | Validation |
 | --- | --- | --- | --- |

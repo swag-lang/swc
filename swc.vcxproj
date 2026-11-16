@@ -798,6 +798,7 @@
         <ClInclude Include="src\Support\Core\DataSegment.h"/>
         <ClInclude Include="src\Support\Core\FlatTable.h"/>
         <ClInclude Include="src\Support\Core\Flags.h"/>
+        <ClInclude Include="src\Support\Core\KindCast.h"/>
         <ClInclude Include="src\Support\Core\Result.h"/>
         <ClInclude Include="src\Support\Core\PagedStore.h"/>
         <ClInclude Include="src\Support\Core\PointerSet.h"/>

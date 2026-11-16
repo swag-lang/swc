@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Main/TaskContext.h"
+#include "Support/Core/KindCast.h"
 #include "Support/Core/Result.h"
 #include "Support/Report/Assert.h"
 
@@ -147,16 +148,10 @@ public:
     }
 
     template<typename T>
-    const T* safeCast() const
-    {
-        return kind_ == T::K ? static_cast<const T*>(this) : nullptr;
-    }
+    const T* safeCast() const { return KindCast::safeCast<T>(this, kind_); }
 
     template<typename T>
-    T* safeCast()
-    {
-        return kind_ == T::K ? static_cast<T*>(this) : nullptr;
-    }
+    T* safeCast() { return KindCast::safeCast<T>(this, kind_); }
 
 private:
     TaskContext ctx_;

@@ -651,8 +651,13 @@ SWC_TEST_BEGIN(MicroDenseRegIndex_ReusesMixedDirectAndSparseRegisters)
                 return Result::Error;
 
         for (uint32_t i = 0; i < regs.size(); ++i)
-            if (index.ensure(regs[i]) != i || index.ensure(regs[i]) != i)
+        {
+            bool inserted = false;
+            if (index.ensure(regs[i], &inserted) != i || !inserted)
                 return Result::Error;
+            if (index.ensure(regs[i], &inserted) != i || inserted)
+                return Result::Error;
+        }
 
         // Force the fallback to grow, then verify direct and sparse lookups
         // still share one insertion order across repeated clear/reserve cycles.

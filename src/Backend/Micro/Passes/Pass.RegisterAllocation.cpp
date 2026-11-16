@@ -2178,9 +2178,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t registerCount = static_cast<uint32_t>(denseVirtualRegs_.regs().size());
-                const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                if (regIndex == registerCount)
+                bool           inserted = false;
+                const uint32_t regIndex  = denseVirtualRegs_.ensure(reg, &inserted);
+                if (inserted)
                 {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
                     definitionCounts_.resize(regIndex + 1, 0);
@@ -2191,9 +2191,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t registerCount = static_cast<uint32_t>(denseConcreteRegs_.regs().size());
-                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                if (regIndex == registerCount)
+                bool           inserted = false;
+                const uint32_t regIndex  = denseConcreteRegs_.ensure(reg, &inserted);
+                if (inserted)
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(usesC, regIndex))
                     appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
@@ -2204,9 +2204,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
-                const uint32_t registerCount = static_cast<uint32_t>(denseVirtualRegs_.regs().size());
-                const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                if (regIndex == registerCount)
+                bool           inserted = false;
+                const uint32_t regIndex  = denseVirtualRegs_.ensure(reg, &inserted);
+                if (inserted)
                 {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
                     definitionCounts_.resize(regIndex + 1, 0);
@@ -2217,9 +2217,9 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             }
             else if (reg.isInt() || reg.isFloat())
             {
-                const uint32_t registerCount = static_cast<uint32_t>(denseConcreteRegs_.regs().size());
-                const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                if (regIndex == registerCount)
+                bool           inserted = false;
+                const uint32_t regIndex  = denseConcreteRegs_.ensure(reg, &inserted);
+                if (inserted)
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(defsC, regIndex))
                     appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);

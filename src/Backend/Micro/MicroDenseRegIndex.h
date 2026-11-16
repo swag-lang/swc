@@ -32,26 +32,38 @@ public:
         regs_.reserve(regCountHint);
     }
 
-    uint32_t ensure(const MicroReg reg)
+    uint32_t ensure(const MicroReg reg, bool* outInserted = nullptr)
     {
         if (uint32_t* directIndex = directIndexSlot(reg))
         {
             if (*directIndex != K_INVALID_INDEX)
+            {
+                if (outInserted)
+                    *outInserted = false;
                 return *directIndex;
+            }
 
             const uint32_t newIndex = static_cast<uint32_t>(regs_.size());
             *directIndex            = newIndex;
             regs_.push_back(reg);
+            if (outInserted)
+                *outInserted = true;
             return newIndex;
         }
 
         if (!regToIndex_)
             regToIndex_.emplace();
         if (const uint32_t* found = regToIndex_->find(reg.packed))
+        {
+            if (outInserted)
+                *outInserted = false;
             return *found;
+        }
         const uint32_t newIndex = static_cast<uint32_t>(regs_.size());
         regToIndex_->getOrInsert(reg.packed) = newIndex;
         regs_.push_back(reg);
+        if (outInserted)
+            *outInserted = true;
         return newIndex;
     }
 

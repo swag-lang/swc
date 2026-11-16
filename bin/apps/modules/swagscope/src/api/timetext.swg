@@ -24,14 +24,7 @@ func durationText(seconds: f64)->String => wholeTimeText(cast(u64, Math.max(Math
 
 // Returns the words of a lens row going to `seconds`, typed as `typed`: the instant as the clock
 // spells it, then what was typed when it spells it otherwise, so the row answers the query.
-func timeJumpText(seconds: f64, typed: string)->String
-{
-    let instant = timeText(seconds)
-    let query   = Latin1.trim(typed)
-    if query == instant.toString() do
-        return Format.toString(appStrings().lens_GoToTime, instant)
-    return Format.toString(appStrings().lens_GoToTime, Format.toString("% (%)", instant, query))
-}
+func timeJumpText(seconds: f64, typed: string)->String => jumpRowText(appStrings().lens_GoToTime, timeText(seconds).toString(), typed)
 
 // Formats the current and total positions of a media transport.
 func timeRangeText(current, duration: f64)->String => Format.toString("% / %", timeText(current), durationText(duration))

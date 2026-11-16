@@ -138,10 +138,22 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel == menu, "the desktop tray menu must stay open")
     }
-    // The same home owns Escape when opened as a pointer menu.
+    // Cursor and delay share one row and keep the pointer home open while they are chosen.
     scope
     {
         var input = Gui.Testing.DesktopInput.create(journey.app, unwrap menu.surface)
+        let choices = assume cast(*StackLayoutCtrl, menu.menu.children[0])
+        let cursor = assume cast(*IconButton, choices.children[0])
+        let previousCursor = main.captureOptions.captureCursor
+        input.click(cursor)
+        journey.waitFor("cursor toggle", func|main, previousCursor|()->bool =>
+            main.captureOptions.captureCursor != previousCursor)
+        let delay = assume cast(*IconButton, choices.children[3])
+        input.click(delay)
+        journey.waitFor("capture delay", func|main|()->bool => main.captureOptions.delay == 5)
+        Swag.require(main.residentPanel == menu and cursor.isChecked != previousCursor)
+
+        // The same home owns Escape when opened as a pointer menu.
         input.shortcut(.Escape, .None)
     }
     watch.start()

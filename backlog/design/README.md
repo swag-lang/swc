@@ -739,8 +739,8 @@ the screen to its work.
   last captures as one row of pictures that open in the editor, then the editor, the library,
   the options, the way back behind the icon and the way out. It has no accent: nothing in it acts
   before a choice. Both placements share every command and recent capture: picture then video, a
-  monitor of its own only when there are several, the cursor choice and the waits as one
-  row of exclusive choices. While a recording runs, the home offers to stop or abandon it instead of
+  monitor of its own only when there are several, then one capture-settings row with the cursor
+  toggle and exclusive delay choices, before recent captures. While a recording runs, the home offers to stop or abandon it instead of
   starting another capture. It leaves on a choice, on `Esc`, and when another application
   takes the desktop; a capture started by its key takes it off the screen first. Leaving the hub
   without a choice, or closing the window, leaves nothing on screen: a small notification above

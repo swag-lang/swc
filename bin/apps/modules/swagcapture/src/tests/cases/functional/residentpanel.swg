@@ -25,11 +25,16 @@ using Swag, Core, Gui
         Swag.require(centered.listSize == pointer.listSize)
         Swag.require(centered.menu.items.count == pointer.menu.items.count)
         Swag.require(centered.recents != null and pointer.recents != null)
+        var optionsSeen = false
         for item, index in centered.menu.items
         {
             let other = unwrap pointer.menu.items[index]
             Swag.require(item!.id == other.id and item.name.text == other.name.text)
             Swag.require(item.checked == other.checked and item.disabled == other.disabled)
+            if item.label and item.name.text == appStrings().ui_MenuCaptureSetup do
+                optionsSeen = true
+            if item.label and item.name.text == appStrings().lens_Recent do
+                Swag.require(optionsSeen)
         }
         Testing.assertContentFits(centered)
         Testing.assertContentFits(pointer)
@@ -156,7 +161,7 @@ using Swag, Core, Gui
     for id in [ActionGlobal.ShowLibrary, ActionGlobal.ShowEditor, ActionCapture.Area, ActionCapture.LastArea,
                ActionCapture.FullScreen, ActionCapture.ActiveWnd, ActionCapture.RecordVideo,
                ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.Record,
-               ActionCapture.CaptureCursor, ActionOptions.Options, ActionGlobal.Exit] do
+               ActionOptions.Options, ActionGlobal.Exit] do
         Swag.require(testPanelOffers(panel, id), id)
     for item in panel.menu.items where item and item.id == ActionCapture.RecordVideo do
         Swag.require(item.rightName.text == Input.formatKeyShortcut(.CtrlShift, .F10))
@@ -168,14 +173,19 @@ using Swag, Core, Gui
     // The waits stand in the menu as one row of choices.
     Swag.require(panel.menu.children.count == 1)
     let delays = assume cast(*StackLayoutCtrl, panel.menu.children[0])
-    Swag.require(delays.children.count == CaptureDelays.count)
-    var delayHeading = false
+    Swag.require(delays.children.count == CaptureDelays.count + 1)
+    var recordingHeading, optionsHeading: bool
     for item in panel.menu.items
     {
-        if item!.label and item.name.text == appStrings().act_DelayBefore do
-            delayHeading = true
+        if item!.label and item.name.text == appStrings().ui_HubRecord do
+            recordingHeading = true
+        if item.label and item.name.text == appStrings().ui_MenuCaptureSetup
+        {
+            Swag.require(recordingHeading)
+            optionsHeading = true
+        }
         if item.id == null and not item.separator and not item.label and not item.disabled do
-            Swag.require(delayHeading)
+            Swag.require(optionsHeading)
     }
 
     // With a second monitor, each one can be captured and recorded. Opening a panel takes the
@@ -210,21 +220,33 @@ using Swag, Core, Gui
         let surface = unwrap panel.surface
         surface.show()
         let choices = assume cast(*StackLayoutCtrl, panel.menu.children[0])
-        Swag.require(choices.children.count == CaptureDelays.count)
+        Swag.require(choices.children.count == CaptureDelays.count + 1)
         Swag.require(testPanelOffers(panel, ActionCapture.Area))
         Testing.assertContentFits(panel)
 
+        let cursor = assume cast(*IconButton, choices.children[0])
+        let previousCursor = main.captureOptions.captureCursor
+        Swag.require(cursor.flags.has(.Toggle) and cursor.name.text == appStrings().ui_AimCursor)
+        host.clickWnd(cursor)
+        host.pump()
+        Swag.require(main.captureOptions.captureCursor != previousCursor and cursor.isChecked != previousCursor)
+        Swag.require(cursor.name.text == appStrings().ui_AimCursor)
+        Swag.require(main.residentPanel == panel and not panel.menu.isModalEnded())
+
         for choice, index in CaptureDelays
         {
-            let button = assume cast(*IconButton, choices.children[index])
+            let button = assume cast(*IconButton, choices.children[index + 1])
             let bounds = button.surfaceRect()
             Swag.require(bounds.x >= 0 and bounds.right() <= surface.position.width / surface.dpiScale)
+            Swag.require(button.position.height == cursor.position.height)
+            Swag.require(Math.abs(button.position.vertCenter() - cursor.position.vertCenter()) <= 0.5)
             host.clickWnd(button)
             host.pump()
             Swag.require(main.captureOptions.delay == choice.seconds)
             Swag.require(main.residentPanel == panel and not panel.menu.isModalEnded())
-            for child, other in choices.children do
-                Swag.require((assume cast(*IconButton, child)).isChecked == (other == index))
+            Swag.require(cursor.isChecked != previousCursor)
+            for child, other in choices.children where other > 0 do
+                Swag.require((assume cast(*IconButton, child)).isChecked == (other == index + 1))
         }
 
         panel.close()

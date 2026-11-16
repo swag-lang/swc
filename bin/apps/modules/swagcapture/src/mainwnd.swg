@@ -1285,15 +1285,15 @@ impl MainWnd
         discard menu.doModal(button, autoDestroy: true)
     }
 
-    // Ends `menu` with the waits before a capture, as one centred row of exclusive choices.
+    // Ends `menu` with capture delays and an optional cursor toggle on the same centered row.
     //
     // A wait typed in the options that is none of the choices is named above them. The choices
     // post their command to this window, whatever surface the menu stands on.
-    mtd addDelayChoices(menu: *MenuCtrl)
+    mtd addDelayChoices(menu: *MenuCtrl, includeCursor = false)
     {
         let main         = me
         let currentDelay = main.captureOptions.delay
-        var isPreset = false
+        var isPreset     = false
         for choice in CaptureDelays where choice.seconds == currentDelay do
             isPreset = true
         if not isPreset do
@@ -1306,6 +1306,26 @@ impl MainWnd
             .spacing         = metrics.menuPopup_SpaceLines
         }
 
+        if includeCursor
+        {
+            with let cursor = IconButton.create(delayChoices,
+                                                main.icon(.Select, metrics.menuPopup_IconSize),
+                                                {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
+                                                flags: .Toggle)
+            {
+                .preferredSize.x = 0
+                .padding         = metrics.btnIcon_Padding * 0.5
+                .setIconSize(metrics.menuPopup_IconSize, metrics.menuPopup_IconSize)
+                .setText(appStrings().ui_AimCursor)
+                .setTextPosition(.Right)
+                .setForm(.RoundedRectangle)
+                .setCheckIndicator(.Frame)
+                .setChecked(main.captureOptions.captureCursor)
+                .toolTip = appStrings().act_CaptureCursor
+                .sigCheckedChanged += func|main|(_) { main.postCommandEvent(ActionCapture.CaptureCursor) }
+            }
+        }
+
         for choice in CaptureDelays
         {
             var glyph = CaptureIcons.Capture
@@ -1315,6 +1335,7 @@ impl MainWnd
             case 5:  glyph = .Delay5
             case 10: glyph = .Delay10
             }
+
             with let delayButton = IconButton.create(delayChoices,
                                                      main.icon(glyph, metrics.menuPopup_IconSize),
                                                      {0, 0, 0, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines * 0.75},
@@ -1336,12 +1357,14 @@ impl MainWnd
                 let selected = assume cast(*IconButton, wnd)
                 for child in toolbar.children
                 {
-                    if child is IconButton as other do
+                    if child is IconButton as other where other.flags.has(.Radio) do
                         other.setChecked(other == selected)
                 }
+
                 main.postCommandEvent(id)
             }
         }
+
         menu.addWidget(delayChoices, fullWidth: true)
     }
 

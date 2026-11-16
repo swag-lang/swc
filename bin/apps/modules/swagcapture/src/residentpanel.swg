@@ -396,8 +396,8 @@ impl ResidentPanel
 
     private mtd addHubItems()
     {
-        let texts = appStrings()
-        let main = .main
+        let texts   = appStrings()
+        let main    = .main
         let screens = main.monitors.count > 1 ? main.monitors.count : 0
         with .menu
         {
@@ -408,14 +408,6 @@ impl ResidentPanel
             .addItem(ActionCapture.LastArea)
             for index in screens do
                 .addItem(ActionCapture.screenId(index))
-            .addItem(ActionCapture.CaptureCursor)
-            .addLabel(texts.act_DelayBefore)
-        }
-
-        .main.addDelayChoices(.menu)
-
-        with .menu
-        {
             .addLabel(texts.ui_HubRecord)
             .addItem(ActionCapture.RecordVideo)
             .addItem(ActionCapture.RecordScreen)
@@ -423,7 +415,10 @@ impl ResidentPanel
             .addItem(ActionCapture.Record)
             for index in screens do
                 .addItem(ActionCapture.recordScreenId(index))
+            .addLabel(texts.ui_MenuCaptureSetup)
         }
+
+        .main.addDelayChoices(.menu, includeCursor: true)
 
         if HubRecents.available(.main)
         {

@@ -21,8 +21,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   `0xC0000005` after rebuilding the Pixel dependency. The read address was
   `0xFFFFFFFFFFFFFFFF`, `rcx` contained `0xDFDFDFDFDFDFDFDF`, and the faulting DevMode RVA was
   `0xCA7DBA`; the exception report contained no current source span or resolved stack symbols.
-- Next: retain the matching compiler and PDB on recurrence, resolve the faulting stack, and
-  identify which compiler-owned object was read after release before reducing the import path.
+- Next: retain the matching compiler and COFF objects on recurrence, resolve the faulting
+  stack against those exact artifacts, and identify which compiler-owned object was read after
+  release before reducing the import path.
 - Done when: a reduced workspace regression protects the corrected lifetime and the application
   compiles repeatedly with parallel workers and retained dependencies.
 

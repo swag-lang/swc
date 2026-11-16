@@ -3,6 +3,17 @@
 
 using Swag
 
+// TypeInfo carries an element's size but not its alignment. For a complete object type, the
+// alignment is a power of two no greater than its size, so the next power of two is a safe
+// allocation alignment upper bound for runtime-only array operations.
+private func runtimeTypeAlignment(size: u32)->u32
+{
+    var result = 1'u32
+    while result < size and result <= Swag.U32.Max / 2 do
+        result *= 2
+    return result
+}
+
 // Returns whether `t` is an instance of [[Core.Array]].
 func isDynamicArray(t: typeinfo?)->bool
 {
@@ -108,7 +119,7 @@ func swapRuntimeValues(basePointer: *void?, valueType: typeinfo?, indexA, indexB
     let rightValue = base + indexB * valueBytes
 
     let allocator = Swag.getContext().allocator
-    let temporary = cast([*] u8, Memory.alloc(valueBytes, allocator))
+    let temporary = cast([*] u8, Memory.alloc(valueBytes, allocator, runtimeTypeAlignment(valueType.sizeof)))
     defer Memory.free(temporary, valueBytes, allocator)
 
     Memory.copy(temporary, leftValue, valueBytes)
@@ -150,7 +161,9 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         let oldBuffer   = arrayView.buffer
         let oldCapacity = arrayView.capacity
         let newCapacity = Math.max(arrayView.count + 1, arrayView.capacity * 2)
-        let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * elementBytes, arrayView.allocator))
+        let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * elementBytes,
+                                                   arrayView.allocator,
+                                                   runtimeTypeAlignment(elementBytes)))
         Memory.clear(newBuffer, newCapacity * elementBytes)
 
         if arrayView.count do

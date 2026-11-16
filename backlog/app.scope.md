@@ -186,8 +186,9 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   absolute path of the checkout. `explorer.details.paper` and its French twin, like
   `dialogs.folder.selection.fr.encre` and `dialogs.folder.dates.encre.hidpi` in `gui`, show a
   `C:/Perso/...` fixture path whose first segment reads `C:/` on Windows and `C:` on Linux.
-  `about` records a box 14 pixels taller on Linux, and `viewer.information.fullscreen.papier`
-  comes out in the dark palette there.
+  `about` records a box 14 pixels taller on Linux, `viewer.information.fullscreen.papier` comes
+  out in the dark palette there, and `viewer.html.centered.encre` reads a file size one byte
+  apart. They are the only seven Swag Scope goldens that do not compare exactly on Linux.
 - Next: show a path relative to the test's own root in the two information goldens, feed the
   path bar a host-neutral fixture path, then find what sizes the About box and which palette the
   full-screen information case follows.

@@ -478,12 +478,10 @@ by portable modules and products. The earlier entries prepare and enforce the sa
   complete run, each passing when run again on its own. The test executable prints `event=start`
   for the case and nothing after it. A case that panics can leave the run waiting the same way
   until its timeout.
-- Evidence: with the GPU renderer the goldens compare cleanly under Mesa: all of Pixel's and
-  all but six of Gui's pass, the six being single-pixel contour differences and a `C:/` fixture
-  path. With `SWAG_TEST_RENDERER=cpu` nearly every golden fails: that comparison is exact, and
-  the CPU pictures sit one or two levels from the recorded ones, which is the tolerance the GPU
-  comparison allows. Swag Capture and Swag Vault goldens still differ where the product itself
-  does on Linux: an unavailable-shortcuts notice, sound capture, and Windows drive paths.
+- Evidence: as CPU references, the goldens compare exactly on Linux: all 93 of Pixel's, all of
+  Gui's but two `C:/` fixture-path pictures, and all of Swag Scope's but the seven of
+  app.scope.013. Swag Capture's and Swag Vault's still differ where the product itself does on
+  Linux: an unavailable-shortcuts notice, sound capture, and Windows drive paths.
 - Next: fix remaining failures at their owning boundaries and complete one uninterrupted
   campaign on the synchronized checkout.
   Keep functional, golden and stress coverage, golden expectations and failure status.

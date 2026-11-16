@@ -83,6 +83,26 @@ private func pitchName(key: u8)->String
     return result
 }
 
+// Names the General MIDI percussion sound a key plays on the tenth channel, or returns an empty
+// string for a key the standard leaves unassigned. The names are the standard's own, as a drum
+// map in any sequencer spells them.
+func percussionName(key: u8)->string
+{
+    const FirstKey = 35'u8
+    const Names: [47] string = [
+        "Acoustic Bass Drum", "Bass Drum 1", "Side Stick", "Acoustic Snare", "Hand Clap",
+        "Electric Snare", "Low Floor Tom", "Closed Hi-Hat", "High Floor Tom", "Pedal Hi-Hat",
+        "Low Tom", "Open Hi-Hat", "Low-Mid Tom", "Hi-Mid Tom", "Crash Cymbal 1", "High Tom",
+        "Ride Cymbal 1", "Chinese Cymbal", "Ride Bell", "Tambourine", "Splash Cymbal", "Cowbell",
+        "Crash Cymbal 2", "Vibraslap", "Ride Cymbal 2", "Hi Bongo", "Low Bongo", "Mute Hi Conga",
+        "Open Hi Conga", "Low Conga", "High Timbale", "Low Timbale", "High Agogo", "Low Agogo",
+        "Cabasa", "Maracas", "Short Whistle", "Long Whistle", "Short Guiro", "Long Guiro", "Claves",
+        "Hi Wood Block", "Low Wood Block", "Mute Cuica", "Open Cuica", "Mute Triangle", "Open Triangle"]
+    if key < FirstKey or key >= FirstKey + Names.count do
+        return ""
+    return Names[key - FirstKey]
+}
+
 private func isBlackKey(key: u8)->bool
 {
     let note = key % 12
@@ -235,6 +255,21 @@ impl RollView
         return pitchName(key)
     }
 
+    // Reports whether every note the roll shows is a percussion hit, so its keys name drums rather
+    // than pitches. A selected drum track does; all tracks do only when the piece holds nothing else.
+    mtd showsPercussion()->bool
+    {
+        var hits = false
+        for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
+        {
+            if not note.isHit() do
+                return false
+            hits = true
+        }
+
+        return hits
+    }
+
     mtd applyZoom(value: f32)
     {
         .fit  = false
@@ -376,6 +411,15 @@ impl RollView
 
         painter.drawLine(plotLeft, plotBottom, plotRight, plotBottom, colors.line, 1)
 
+        .paintBeats(painter, .plotTop, plotBottom, false)
+    }
+
+    // Paints the numbered beat lines from `top` to `bottom`, with their numbers when `numbered`.
+    // The beats are thinned until two numbers stand far enough apart to read.
+    mtd paintBeats(painter: *Painter, top, bottom: f32, numbered: bool)
+    {
+        let colors    = .themeColors()
+        let plotLeft  = .keyboardWidth + ContentInset
         let beatWidth = .pixelsPerTick * cast(f32, .beatTicks)
         var stride    = 1'u64
         while beatWidth * cast(f32, stride) < 72 do
@@ -387,11 +431,23 @@ impl RollView
         while beat < Math.min(lastBeat, maxBeat + 1)
         {
             let x = plotLeft + cast(f32, beat * .beatTicks) * .pixelsPerTick
-            painter.drawLine(x, HeaderHeight, x, plotBottom, colors.line, 1)
-            let label = Format.toString("%", beat + 1)
-            painter.drawString(x + 5, HeaderHeight + 6, label, .codeFont, colors.label_TextFaint)
+            painter.drawLine(x, top, x, bottom, colors.line, 1)
+            if numbered do
+                painter.drawString(x + 5, top + 6, Format.toString("%", beat + 1), .codeFont, colors.label_TextFaint)
             beat += stride
         }
+    }
+
+    // Paints the band under the header that names the roll and numbers the beats. It stays at the
+    // top of the view as the keys scroll under it, as the header does.
+    mtd paintAxis(painter: *Painter)
+    {
+        let colors = .themeColors()
+        let top    = .scrollPos.y + HeaderHeight
+        painter.fillRect(.scrollPos.x, top, .clientRect().width, AxisHeight, colors.view_Bk)
+        .paintBeats(painter, top, top + AxisHeight, true)
+        painter.fillRect(.scrollPos.x, top, .keyboardWidth + ContentInset, AxisHeight, colors.view_Bk)
+        painter.drawString(.scrollPos.x + ContentInset, top + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
     }
 
     // Paints the visible notes of the selected track, or of every track, shading each track
@@ -420,13 +476,15 @@ impl RollView
     }
 
     // Paints the keyboard column pinned to the left of the scrolled view, shading black keys and
-    // labelling each C when rows are tall enough.
+    // labelling each C when rows are tall enough. Over drums, every row tall enough for a line of
+    // text names the sound its key plays, cut to the keyboard's width.
     mtd paintKeyboard(painter: *Painter)
     {
-        let colors = .themeColors()
-        let left   = .scrollPos.x
+        let colors     = .themeColors()
+        let left       = .scrollPos.x
+        let percussion = .showsPercussion()
+        let drumFont   = .theme().createDefaultFont(11)
         painter.fillRect(left, .scrollPos.y + HeaderHeight, .keyboardWidth + ContentInset, .clientRect().height - HeaderHeight, colors.view_Bk)
-        painter.drawString(left + ContentInset, .scrollPos.y + HeaderHeight + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
 
         for row in .keyCount()
         {
@@ -435,11 +493,24 @@ impl RollView
             if isBlackKey(key) do
                 painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, colors.edit_Bk)
             painter.drawLine(left + ContentInset, y, left + ContentInset + .keyboardWidth, y, colors.line, 1)
+            let labelTop = y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0)
+            if percussion
+            {
+                let name = percussionName(key)
+                if name.count and .rowHeight >= drumFont.height
+                {
+                    let label = Painter.elideString(name, drumFont, .keyboardWidth - 12, .deviceScale())
+                    painter.drawString(left + ContentInset + 6, y + Math.max((.rowHeight - drumFont.height) * 0.5, 0), label, drumFont, colors.label_TextLight)
+                }
+
+                continue
+            }
+
             let showLabel = .pitchLabelMode == .MidiNumber ? .rowHeight >= 14 : key % 12 == 0 and .rowHeight >= 7
             if showLabel
             {
                 let label = .pitchLabel(key)
-                painter.drawString(left + ContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label, .codeFont, colors.label_TextLight)
+                painter.drawString(left + ContentInset + 8, labelTop, label, .codeFont, colors.label_TextLight)
             }
         }
 
@@ -550,6 +621,7 @@ impl IWnd for RollView
         }
 
         .paintKeyboard(painter)
+        .paintAxis(painter)
         .paintHeader(painter)
     }
 }

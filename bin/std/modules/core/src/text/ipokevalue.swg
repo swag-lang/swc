@@ -6,6 +6,7 @@ namespace StrConv
     interface IPokeValue
     {
         // Parses the value from the start of `buf` into the receiver and returns the rest of `buf`.
+        // When parsing array elements, implementations must consume input on each call.
         mtd poke(buf: string)->string fail
     }
 }

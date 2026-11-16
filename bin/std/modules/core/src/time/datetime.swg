@@ -22,8 +22,7 @@ enum DayOfWeek
 }
 
 internal const DayOfWeekValues: [7] DayOfWeek = [
-    .Sunday, .Monday, .Tuesday, .Wednesday, .Thursday, .Friday, .Saturday,
-]
+    .Sunday, .Monday, .Tuesday, .Wednesday, .Thursday, .Friday, .Saturday]
 
 // Selects the text layout [[Core.Time.DateTime.toString]] produces.
 enum DateTimeFormat
@@ -161,6 +160,8 @@ impl DateTime
     }
 
     // Returns the English name of `month`, numbered from 1 to 12.
+    //
+    // Panics when `month` is outside that range.
     func monthName(month: u16)->string
     {
         Swag.assert(month >= 1 and month <= 12)
@@ -227,11 +228,14 @@ impl DateTime
 
     // Parses a date, optionally followed by a time, at the start of `str` and returns it with the number of bytes consumed.
     //
-    // The date is either `YYYY-MM-DD` or `DAYOFWEEK MONTH DAY YYYY` with English names, and the
-    // time, after one space, is `HH:MM`, optionally followed by `:SS` and `.ZZZ`. These are the
-    // layouts [[Core.Time.DateTime.toString]] writes. With `checkDate`, the day of the week
-    // must match the date and every component must be in range. Fails with a
-    // [[Core.Errors.SyntaxError]] otherwise.
+    // The date is either `YYYY-MM-DD` or `DAYOFWEEK MONTH DAY YYYY` with English names. An
+    // optional time follows after one space as `HH:MM`, optionally with `:SS` and a fractional
+    // part. One or more fractional digits may follow the minutes or seconds; the first three are
+    // used as milliseconds, fewer digits are padded with zeroes, and extras are consumed but
+    // ignored. These are the layouts [[Core.Time.DateTime.toString]] writes with three digits.
+    // `eat` gives the number of input bytes consumed, leaving any suffix unparsed. With
+    // `checkDate`, the weekday must match the date and every component must be in range. Fails
+    // with a [[Core.Errors.SyntaxError]] otherwise.
     func parse(str: string, checkDate = true)->{ value: DateTime, eat: u32 } fail
     {
         var result: #returntype
@@ -345,7 +349,10 @@ impl DateTime
         return result
     }
 
-    // Returns this value as text in the layout `fmt` selects.
+    // Formats this value using the layout `fmt` selects.
+    //
+    // The named `Date`, `DateTime`, and `DateTimeMs` layouts require a valid calendar date and
+    // panic otherwise. Numeric layouts format the stored components without validating them.
     mtd const toString(fmt = DateTimeFormat.DateTime)->String
     {
         switch #complete fmt

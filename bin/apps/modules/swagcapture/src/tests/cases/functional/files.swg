@@ -1211,3 +1211,103 @@ func testSharedChunks(first, second: Array'Guid128)->u32
     defer Memory.delete(loaded)
     Swag.require(testSamePixels(&loaded.backImg, &capture.backImg))
 }
+
+// Whether `path` opens as a capture.
+func testOpensCapture(path: String)->bool
+{
+    var loaded:  *Capture? = null
+    var outcome: Swag.Error
+    catch { loaded = try Capture.load(path) } as outcome
+    if loaded do
+        Memory.delete(loaded)
+    return outcome.value() == null
+}
+
+// A capture file cut short fails to open, wherever the cut falls, instead of opening with a
+// missing or wrong picture.
+#test
+{
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 40
+    capture.height, capture.heightOrg = 30
+    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+    Swag.require(testOpensCapture(path))
+
+    let bytes   = expect File.readAllBytes(path)
+    let damaged = testTempCapturePath()
+    defer discard catch File.delete(damaged)
+    for cut in [0'u64, 16, bytes.count / 4, bytes.count / 2, bytes.count - 1]
+    {
+        discard expect File.writeAllBytes(damaged, Swag.makeSlice(bytes.buffer, cut))
+        Swag.require(not testOpensCapture(damaged))
+    }
+}
+
+// One byte changed inside the stored background makes the capture fail to open instead of
+// showing a wrong picture.
+#test
+{
+    let capture = Memory.new'Capture()
+    defer Memory.delete(capture)
+    capture.width, capture.widthOrg   = 40
+    capture.height, capture.heightOrg = 30
+    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    let path = testPrepareSavedCapture(capture)
+    defer discard catch File.delete(path)
+
+    // The background is the largest chunk of a capture without an original.
+    var offset, size: u64
+    var reader: Scc.Reader
+    expect reader.initialize(path)
+    for chunk in reader.chunks() where chunk.storedSize > size
+    {
+        offset = chunk.offset
+        size   = chunk.storedSize
+    }
+    reader.close()
+
+    var bytes = expect File.readAllBytes(path)
+    bytes[offset + size / 2] ^= 0x5A
+    let damaged = testTempCapturePath()
+    defer discard catch File.delete(damaged)
+    discard expect File.writeAllBytes(damaged, bytes.toSlice())
+    Swag.require(not testOpensCapture(damaged))
+}
+
+// Choosing a damaged capture in the recent strip says it could not be opened, and the editor
+// keeps the capture it shows.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testPrepareRecentLibrary(f.main)
+
+    let capture = Memory.new'Capture()
+    capture.width, capture.widthOrg   = 41
+    capture.height, capture.heightOrg = 29
+    capture.backImg                   = Gui.Testing.indexedImage(41, 29)
+    capture.preview                   = Gui.Testing.indexedImage(32, 20)
+    let path = testPrepareSavedCapture(capture)
+    defer
+    {
+        discard catch File.delete(path)
+        Memory.delete(capture)
+    }
+    let bytes = expect File.readAllBytes(path)
+    discard expect File.writeAllBytes(path, Swag.makeSlice(bytes.buffer, bytes.count / 2))
+
+    let recent = f.main.recentWnd
+    recent.addRecent(path, capture.preview)
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    recent.recentView.requestSelect(0)
+    recent.loadJob!.task.wait()
+    f.gui.pump()
+
+    Swag.require(f.gui.autoHandled)
+    Swag.require(recent.recentView.selected == Swag.U64.Max)
+    Swag.require(f.main.editWnd.getCapture() == f.capture)
+}

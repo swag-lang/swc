@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/DwarfEncoding.h"
 #include "Backend/Encoder/Frame.DWARF.X64.h"
 #include "Support/Report/Assert.h"
 
@@ -25,15 +26,6 @@ namespace
         return frame.readLe64(K_CODE_SIZE_OFFSET) == codeSize && frame[K_CODE_SIZE_OFFSET + 8] == std::byte{0};
     }
 
-    void appendUleb(ByteArray& bytes, uint32_t value)
-    {
-        do
-        {
-            const uint8_t part = value & 0x7f;
-            value >>= 7;
-            bytes.pushBack(std::byte{static_cast<uint8_t>(part | (value ? 0x80 : 0))});
-        } while (value);
-    }
 }
 
 uint32_t X64DwarfFrame::registerNumber(const MicroReg reg)
@@ -69,23 +61,23 @@ void X64DwarfFrame::advance(const uint32_t codeOffset)
 void X64DwarfFrame::defineCfa(const uint32_t reg, const uint32_t offset)
 {
     instructions_.pushBack(std::byte{0x0c}); // DW_CFA_def_cfa
-    appendUleb(instructions_, reg);
-    appendUleb(instructions_, offset);
+    Dwarf::appendUnsignedLeb128(instructions_, reg);
+    Dwarf::appendUnsignedLeb128(instructions_, offset);
 }
 
 void X64DwarfFrame::saveRegister(const uint32_t reg, const int32_t cfaOffset)
 {
     SWC_ASSERT(cfaOffset <= 0 && cfaOffset % 8 == 0);
     instructions_.pushBack(std::byte{0x05}); // DW_CFA_offset_extended
-    appendUleb(instructions_, reg);
-    appendUleb(instructions_, static_cast<uint32_t>(-static_cast<int64_t>(cfaOffset) / 8));
+    Dwarf::appendUnsignedLeb128(instructions_, reg);
+    Dwarf::appendUnsignedLeb128(instructions_, static_cast<uint32_t>(-static_cast<int64_t>(cfaOffset) / 8));
 }
 
 void X64DwarfFrame::restoreRegister(const uint32_t reg)
 {
     // Same-value is explicit: the CIE has no saved-register rules beyond RIP.
     instructions_.pushBack(std::byte{0x08}); // DW_CFA_same_value
-    appendUleb(instructions_, reg);
+    Dwarf::appendUnsignedLeb128(instructions_, reg);
 }
 
 void X64DwarfFrame::rememberState()

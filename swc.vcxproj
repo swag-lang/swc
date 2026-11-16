@@ -747,6 +747,7 @@
         <ClInclude Include="src\Backend\Debug\DebugPath.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.CodeView.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.DWARF.h"/>
+        <ClInclude Include="src\Backend\DwarfEncoding.h"/>
         <ClInclude Include="src\Backend\Debug\DebugRecordCollector.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.h"/>
         <ClInclude Include="src\Backend\Encoder\Encoder.X64.h"/>

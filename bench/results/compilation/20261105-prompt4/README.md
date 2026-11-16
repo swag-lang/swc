@@ -78,6 +78,10 @@ DevMode and memory evidence above. It makes no timing, CPU or memory claims.
 At this checkpoint DevMode passed 1,715 C++ tests. The broad compiler suite
 passed 69/69 stages before the final three insertion-driven table-growth edits;
 the latest targeted native run passed all 3 stages, including its two owning
-error suites. The changes reduce repeated scans, size comparisons and table
-growth checks by construction. Their net speed and memory effects remain for
-the dedicated benchmark campaign to measure.
+error suites. A later full compiler run passed its first 8/69 stages and then
+reported one `safety` failure on `cwe416_use_after_free.swg`; rerunning the same
+safety command in that workspace passed all 165 tests, as did a fresh isolated
+safety run with `--rebuild`. This interruption remains recorded rather than
+being reported as a complete green campaign. The changes reduce repeated scans,
+size comparisons and table growth checks by construction. Their net speed and
+memory effects remain for the dedicated benchmark campaign to measure.

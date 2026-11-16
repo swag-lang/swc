@@ -1025,6 +1025,11 @@ impl LinePath
         let angleSpan = p1.y - p1.x
         let radius    = Math.max(Math.abs(p2.x), Math.abs(p2.y))     // Use the larger radius magnitude
 
+        // `arcTo` joins the current point to the arc's start with a straight segment. Add that
+        // point before sampling the arc; otherwise the first chord cuts directly to an interior
+        // sample and skips the authored join.
+        .flattenLine(arcPoint(pos, p2, p1.x))
+
         // Calculate required number of segments analytically
         let numSegments = calculateFlattenArcSegments(angleSpan, radius, tolerance)
 

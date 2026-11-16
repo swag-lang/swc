@@ -183,8 +183,11 @@ impl Volume
         let {parent, name} = .resolveParent(newPath)
         if parent == null or not parent.isDirectory() or not name.count do
             fail volumeError(.NotFound)
+        let source = .nodeById(id)
+        if not source do
+            fail volumeError(.NotFound)
         let destinationParentId = parent.id
-        let sourceIsDirectory   = .nodeById(id)!.isDirectory()
+        let sourceIsDirectory   = source.isDirectory()
 
         // Reject a cycle before replacing anything: a failed move must leave both names intact.
         if sourceIsDirectory

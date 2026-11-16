@@ -87,7 +87,8 @@ enum PropertiesKind
     Condensed     // Uses a compact classic grid with thin rows and controls.
     Panel         // Uses full-width self-labelled controls and separator categories.
 }
-const PropertiesKindValues: [4] PropertiesKind = [.List, .Grid, .Condensed, .Panel]
+
+internal const PropertiesKindValues: [4] PropertiesKind = [.List, .Grid, .Condensed, .Panel]
 
 // Height of the inner value editors in condensed mode, so they fit the thin rows.
 internal const PropCondensedControlHeight = 20'f32
@@ -462,6 +463,7 @@ impl Properties
             .wndFlags            |= .NoFocusRing
             .scrollWnd           = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
+
             // Property editors keep a fixed trailing safe edge beside the
             // overlaid bar, so their width never follows scroll visibility.
             .scrollWnd.updateFlags(.TransparentBars)
@@ -533,7 +535,7 @@ impl Properties
         Swag.assert(left >= 0 and right >= 0)
         if .leftMargin == left and .rightMargin == right do
             return
-        .leftMargin = left
+        .leftMargin  = left
         .rightMargin = right
         .updateStates()
     }

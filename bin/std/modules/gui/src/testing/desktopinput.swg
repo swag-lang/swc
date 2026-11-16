@@ -14,10 +14,10 @@ using Core
 struct DesktopInput
 {
     using native: NativeDesktopInput
-    app: *Application
-    surface: *Surface
-    savedCursor: Math.Point
-    started: bool
+    app:          *Application
+    surface:      *Surface
+    savedCursor:  Math.Point
+    started:      bool
 }
 
 impl DesktopInput
@@ -35,6 +35,7 @@ impl DesktopInput
         return result
     }
 
+    // Releases held native inputs and restores the saved pointer when this value leaves scope.
     mtd opDrop()
     {
         if not .started do
@@ -73,11 +74,13 @@ impl DesktopInput
         {
             .app.runFrame()
             let rect = target.surfaceRect()
-            if rect == previous and not rect.isEmpty() and
-               not target.wndFlags.has(.Hidden) and not target.wndFlags.has(.Disabled)
+            if rect == previous and
+               not rect.isEmpty() and
+               not target.wndFlags.has(.Hidden) and
+               not target.wndFlags.has(.Disabled)
             {
                 let center = Math.Point{target.position.width * 0.5, target.position.height * 0.5}
-                let point = target.localToSurface(center)
+                let point  = target.localToSurface(center)
                 var screen = point
                 .surface.surfaceToScreen(&screen)
                 .sendNativeMotion(screen)
@@ -89,10 +92,12 @@ impl DesktopInput
                     break
                 }
             }
+
             if watch.elapsedMilliseconds() > 3000 do
                 Swag.require(false, "desktop click target did not become stable and actionable")
             previous = rect
         }
+
         .sendNativeButton(true)
         .app.runFrame()
         .sendNativeButton(false)
@@ -133,16 +138,19 @@ impl DesktopInput
             .sendNativeModifier(.Control, true)
             .app.runFrame()
         }
+
         if modifiers & .Shift
         {
             .sendNativeModifier(.Shift, true)
             .app.runFrame()
         }
+
         if modifiers & .Alt
         {
             .sendNativeModifier(.Alt, true)
             .app.runFrame()
         }
+
         .sendNativeKey(key, true)
         .app.runFrame()
         .sendNativeKey(key, false)
@@ -152,11 +160,13 @@ impl DesktopInput
             .sendNativeModifier(.Alt, false)
             .app.runFrame()
         }
+
         if modifiers & .Shift
         {
             .sendNativeModifier(.Shift, false)
             .app.runFrame()
         }
+
         if modifiers & .Control
         {
             .sendNativeModifier(.Control, false)

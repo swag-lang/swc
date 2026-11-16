@@ -58,10 +58,8 @@ struct ListItem
         horzAlign = StringHorzAlignment.Left     // Cell content alignment.
         mono:       bool       // Whether the cell is a measure — a date, a size — set in the fixed-width face.
 
-        // Characters of the label a search found, by byte offset and count, laid on the highlight
-        // ground; a zero count marks none.
-        matchStart: u32
-        matchCount: u32
+        matchStart: u32     // Byte offset of the first highlighted label byte.
+        matchCount: u32     // Number of label bytes to highlight; zero means none.
     }
 }
 

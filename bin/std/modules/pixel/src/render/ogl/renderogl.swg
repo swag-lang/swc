@@ -53,9 +53,10 @@ const FontGamma = 1.0'f32 / 0.75
 // The value must remain twice the font atlas spread.
 const MsdfRange = 16.0'f32
 
-// Last mip level of a distance-field atlas: a level averages blocks of 2^level texels, and glyphs
-// sit on cells of the 8-texel spread (`RefEmSpread`), so level 3 is the last one whose blocks stay
-// inside one glyph.
+// Last mip level of a distance-field atlas.
+//
+// A level averages blocks of 2^level texels. Glyphs occupy cells of the 8-texel spread
+// (`RefEmSpread`), so level 3 is the last whose blocks stay inside one glyph.
 const FontAtlasMaxLevel: GLint = 3
 
 #[Swag.Strict]

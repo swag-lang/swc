@@ -759,7 +759,9 @@ impl Painter
     }
 
     // Draws an already shaped run with its top-left corner at `(left, top)`.
-    // `underlineOpacity` attenuates decoration ink independently of the glyphs; it is clamped to 0–1.
+    //
+    // `underlineOpacity` attenuates decoration ink independently of the glyphs and is clamped to
+    // 0–1.
     mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0, underlineOpacity = 1.0'f32)
     {
         .drawShapedRun(left, top, shaped, font, brush, {}, under, zoom, underlineOpacity)

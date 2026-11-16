@@ -1,5 +1,5 @@
 // Regenerates the lossless theme rasters beside their SVG masters.
-// Run with: bin/swc.dm.exe run -f bin/std/modules/gui/tools/rasterize-theme.swgs --num-cores 6
+// Run with: bin/swc.dm.exe run -f bin/std/modules/gui/tools/rasterize-theme.swgs -bc devmode --num-cores 3
 #import("pixel", location: "swag@std")
 
 using Core, Pixel

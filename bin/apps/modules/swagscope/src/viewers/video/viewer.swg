@@ -3,6 +3,9 @@
 
 using Core, Pixel, Gui, Video, Audio
 
+// Three deliberate playback gestures dismiss the introductory hints across sessions.
+var g_PlaybackHintUses: u32
+
 // Describes the movie player to the host.
 //
 // It offers itself for every container the video module can read, so a demuxer added there reaches
@@ -176,7 +179,14 @@ struct Panel
         volumeSlider:    *Slider
     }
 
-    seekOverlay: *SeekOverlay?
+    seekOverlay:         *SeekOverlay?
+    subtitleToast:       *Toast?
+    subtitleLoad:        Viewer.BackgroundLoad'LoadedSubtitle
+    pendingSubtitle:     String
+    subtitleDelay:       f64
+    manualSubtitleIndex: u32 = Swag.U32.Max
+    previousSeek:        f64 = -1
+    helpLine:            *HintLine?
 
     // The veils leave when the hand rests away from them, unless a timeline is being dragged or
     // an options page is open.
@@ -359,7 +369,8 @@ private impl Panel
             }
         }
 
-        if .decode.isPending() do
+        let subtitlesRetired = .subtitleLoad.retire()
+        if .decode.isPending() or not subtitlesRetired do
             return false
         .finishRetire()
         return true
@@ -375,12 +386,14 @@ private impl Panel
     mtd retranslate()
     {
         let strings = texts()
-        .playButton.toolTip    = .playing ? strings.ui_TipPause : strings.ui_TipPlay
-        .timeline.toolTip      = strings.ui_TipSeek
-        .muteButton.toolTip    = strings.ui_TipMute
-        .volumeSlider.toolTip  = strings.ui_TipVolume
-        .tracksButton.toolTip  = strings.ui_TipTracks
-        .optionsButton.toolTip = strings.ui_TipOptions
+        .playButton.toolTip            = .playing ? strings.ui_TipPause : strings.ui_TipPlay
+        .timeline.toolTip              = strings.ui_TipSeek
+        .muteButton.toolTip            = strings.ui_TipMute
+        .volumeSlider.toolTip          = strings.ui_TipVolume
+        .tracksButton.toolTip          = strings.ui_TipTracks
+        .optionsButton.toolTip         = strings.ui_TipOptions
+        .bottomVeil.timeButton.toolTip = strings.ui_TipTime
+        .refreshHelp()
 
         .refreshDetails()
         .refreshControls()
@@ -510,6 +523,7 @@ impl Panel
         .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
         .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
         .playButton.enable(.hasFrame)
+        .refreshControls()
         .refreshTime()
     }
 
@@ -563,9 +577,27 @@ impl Panel
         .seekFrame(.video.frameAtTime(target))
     }
 
+    // Remembers one deliberate jump; decoder resync, looping and state restoration bypass it.
+    mtd jumpTo(seconds: f64)
+    {
+        if not .hasFrame do
+            return
+        .previousSeek = .currentSeconds()
+        .seekSeconds(seconds)
+    }
+
+    mtd undoSeek()
+    {
+        if .previousSeek < 0 do
+            return
+        let target = .previousSeek
+        .previousSeek = -1
+        .seekSeconds(target)
+    }
+
     mtd seekRelative(seconds: f64)
     {
-        .seekSeconds(.currentSeconds() + seconds)
+        .jumpTo(.currentSeconds() + seconds)
         .showSeekFeedback(seconds)
     }
 
@@ -620,6 +652,13 @@ private impl IWnd for Panel
         .updatePlayback()
         if not .isPendingDestroy
         {
+            if not .pendingSubtitle.isEmpty() and not .subtitleLoad.started
+            {
+                let path = #move .pendingSubtitle
+                .loadSubtitle(path)
+            }
+
+            .finishSubtitleLoad()
             .finishSubtitles()
             .refreshTime()
             .refreshSubtitle()
@@ -639,6 +678,21 @@ private impl IWnd for Panel
         if evt.kind == .Move do
             .notePointer(evt.surfacePos, false)
         evt.accepted = false
+    }
+
+    // Defer file access until the native drag loop has released its source window.
+    mtd impl onDragDropEvent(evt: *DragDropEvent)
+    {
+        let fileName = evt.data.singleFile()
+        if not fileName or not hasSubtitleExtension(fileName) or not .hasFrame
+        {
+            evt.accepted = false
+            return
+        }
+
+        evt.effect = pickDropEffect(evt.allowed & (DropEffect.Copy | DropEffect.Link), evt.modifiers)
+        if evt.kind == .Drop and evt.effect != .None do
+            .pendingSubtitle = fileName
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -667,36 +721,27 @@ private impl IWnd for Panel
             return
         }
 
-        if evt.modifiers == .Control and (evt.key == .Left or evt.key == .Right)
-        {
-            discard .stepFrame(evt.key == .Right)
-            return
-        }
-
-        if evt.modifiers == .Shift and (evt.key == .Left or evt.key == .Right)
-        {
-            .setPlaybackRate(playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
-            return
-        }
-
-        if evt.modifiers != .None
-        {
-            evt.accepted = false
-            return
-        }
-
+        let control = evt.modifiers == .Control
+        let shift   = evt.modifiers == .Shift
+        let plain   = evt.modifiers == .None
         switch evt.key
         {
-        case .Space, .MediaPlayPause: .togglePlayback()
-        case .Left:                   .seekRelative(-SeekSeconds)
-        case .Right:                  .seekRelative(SeekSeconds)
-        case .M, .VolumeMute:         .setMuted(not .muted)
-        case .Up:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
-        case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
-        case .Home:                   .seekSeconds(0)
-        case .MediaStop:              .stopPlayback()
-        default:                      evt.accepted = false
+        case .G where control:                    .promptGoToTime()
+        case .Left, .Right where control:         discard .stepFrame(evt.key == .Right)
+        case .Left, .Right where shift:           .setPlaybackRate(playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
+        case .Space, .MediaPlayPause where plain: .togglePlayback()
+        case .Left where plain:                   .seekRelative(-SeekSeconds)
+        case .Right where plain:                  .seekRelative(SeekSeconds)
+        case .M, .VolumeMute where plain:         .setMuted(not .muted)
+        case .Up where plain:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
+        case .Down where plain:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
+        case .Home where plain:                   .jumpTo(0)
+        case .MediaStop where plain:              .stopPlayback()
+        default: evt.accepted = false
         }
+
+        if evt.accepted and evt.key != .G do
+            .notePlaybackGesture()
     }
 }
 
@@ -918,7 +963,8 @@ private impl Panel
         if .optionsOpen do
             return
 
-        .tracksButton.enable(.subtitleReady or .video.audioTrackCount() > 1)
+        .tracksButton.enable(.hasFrame)
+        .bottomVeil.timeButton.enable(.hasFrame)
         .bottomVeil.arrange()
     }
 
@@ -934,8 +980,8 @@ private impl Panel
             let strings = Film.texts()
             if ready do
                 entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, shortcut: Input.formatKeyShortcut(.None, .Space))
-            if .subtitleReady do
-                entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) })
+            entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) })
+            entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .G))
             if .audio and .video.audioTrackCount() > 1 do
                 entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) })
             if .tracksButton.isEnabled() do
@@ -953,7 +999,11 @@ private impl Panel
         entries.add(texts.cmd_NextFrame, .ChevronRight, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
         let strings = Film.texts()
-        entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, disabled: not .subtitleReady)
+        entries.add(strings.cmd_Subtitles, .Wrap, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeSubtitles(page) }) }, disabled: not ready)
+        entries.add(strings.cmd_LoadSubtitles, .OpenFile, func|view = me|() { view.promptSubtitle() }, disabled: not ready or .subtitleLoad.started)
+        entries.add(strings.cmd_GoToTime, .GoTo, func|view = me|() { view.promptGoToTime() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .G))
+        entries.add(strings.cmd_UndoSeek, .ChevronLeft, func|view = me|() { view.undoSeek() }, disabled: .previousSeek < 0)
+        entries.add(strings.cmd_PlaybackHelp, .Information, func|view = me|() { view.showPlaybackHelp() })
         entries.add(strings.cmd_AudioTrack, .AudioTracks, func|view = me|() { view.showChoices(view.tracksButton, func|view|(page) { view.describeAudioTracks(page) }) }, disabled: not .audio or .video.audioTrackCount() < 2)
         entries.add(strings.cmd_Tracks, .AudioTracks, func|view = me|() { view.showTracks() }, disabled: not .tracksButton.isEnabled())
         entries.add(strings.cmd_Speed, .PlaybackSpeed, func|view = me|() { view.showChoices(view.optionsButton, func|view|(page) { view.describeSpeeds(page) }) })
@@ -976,7 +1026,14 @@ private impl Panel
         let strings = texts()
         .playButton.toolTip = strings.ui_TipPlay
         .playButton.enable(false)
-        .playButton.sigPressed += func|view = me|(_) { view.togglePlayback() }
+        .playButton.sigPressed += func|view = me|(_)
+        {
+            view.togglePlayback()
+            view.notePlaybackGesture()
+        }
+
+        .bottomVeil.timeButton.toolTip    = strings.ui_TipTime
+        .bottomVeil.timeButton.sigPressed += func|view = me|(_) { view.promptGoToTime() }
 
         .muteButton.toolTip = strings.ui_TipMute
         .muteButton.enable(false)
@@ -1004,12 +1061,34 @@ private impl Panel
         .timeline.sigEndChange += func|view = me|(timeline)
         {
             view.timelineChanging = false
-            view.seekSeconds(timeline.value())
+            view.jumpTo(timeline.value())
+            view.notePlaybackGesture()
         }
 
         // The veils follow movement over the film and its controls.
         .hookOnChildEvent = func|view = me|(_, evt)->bool
         {
+            if evt is FocusEvent as focus
+            {
+                let target = focus.target
+                if not target do
+                    return false
+                if target == view.tracksButton or
+                   target == view.optionsButton or
+                   target == view.bottomVeil.timeButton
+                {
+                    if focus.kind == .Gained
+                    {
+                        view.pointerMoved()
+                        view.app().toolTip.show(target, target.surfaceRect().center(), target.toolTip, 0's)
+                    }
+                    else
+                    {
+                        view.app().toolTip.hide()
+                    }
+                }
+            }
+
             if evt is MouseEvent as mouse where mouse.kind == .Move
             {
                 let target   = mouse.target
@@ -1050,6 +1129,7 @@ private impl Panel
         if .veilsShown do
             return
         .veilsShown = true
+        .refreshHelp()
         .services.chromeChanged(me)
     }
 
@@ -1071,6 +1151,7 @@ private impl Panel
         if not .veilsShown do
             return
         .veilsShown = false
+        .helpLine?.hide()
         .services.chromeChanged(me)
     }
 

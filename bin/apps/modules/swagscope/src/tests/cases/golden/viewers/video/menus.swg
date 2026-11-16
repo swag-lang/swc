@@ -3,26 +3,14 @@
 
 using Core, Pixel, Gui, Video, Audio, Viewers
 
-// Opens a track choice through the command a reader can use from the lens.
-func openVideoLensChoice(host: *Testing.HeadlessHost, view: *Film.Panel, title: string)
-{
-    var results: Lens.Results
-    var entries = Viewer.LensEntries.create(&results, "Video", host.theme)
-    view.describeLens(&entries)
-    for &entry in results.sections[0]!.entries where entry.title == title
-    {
-        entry.run!()
-        return
-    }
-
-    Swag.require(false, title)
-}
-
 // Playback options and track settings each open above their own control; direct lens commands
 // still reach the sound and subtitle choices without a duplicate readout on the veil.
 #[Swag.TestTag("golden")]
 #test
 {
+    let savedHints = Film.g_PlaybackHintUses
+    defer Film.g_PlaybackHintUses = savedHints
+    Film.g_PlaybackHintUses = 3
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
     var host: Testing.HeadlessHost

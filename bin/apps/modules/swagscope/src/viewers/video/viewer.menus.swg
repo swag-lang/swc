@@ -8,6 +8,154 @@ const MaxSubtitleDelay = 60.0
 
 impl Panel
 {
+    // The old selection remains active until the worker has decoded a complete replacement.
+    mtd loadSubtitle(fileName: string)
+    {
+        if .subtitleLoad.started
+        {
+            .pendingSubtitle = fileName
+            return
+        }
+
+        .subtitleLoad.start(fileName, &LoadedSubtitle.load, me)
+    }
+
+    mtd finishSubtitleLoad()
+    {
+        if not .subtitleLoad.isDone() do
+            return
+        var loaded: LoadedSubtitle
+        let failure = .subtitleLoad.finish(&loaded)
+        if not failure.isEmpty()
+        {
+            if not .subtitleToast do
+                .subtitleToast = Toast.create(me)
+            .subtitleToast.show(texts().ui_SubtitleLoadFailed, failure, .Failure)
+            return
+        }
+
+        if .manualSubtitleIndex < .subtitleOverlay.sidecars.count
+        {
+            Subtitle.Track.destroy(.subtitleOverlay.sidecars[.manualSubtitleIndex])
+            .subtitleOverlay.sidecars[.manualSubtitleIndex] = unwrap loaded.track
+        }
+        else
+        {
+            .manualSubtitleIndex = cast(u32, .subtitleOverlay.sidecars.count)
+            .subtitleOverlay.sidecars.add(unwrap loaded.track)
+        }
+
+        loaded.track   = null
+        .subtitleReady = true
+        .selectSubtitle(.Sidecar, .manualSubtitleIndex)
+        .refreshInformation()
+        .notePlaybackGesture()
+    }
+
+    mtd promptSubtitle()
+    {
+        if not .surface or not .hasFrame do
+            return
+        .pointerMoved()
+        with var options: FileDlgOptions
+        {
+            .title = texts().cmd_LoadSubtitles
+            .filters.add({texts().ui_OptionSubtitles, ".srt;.vtt;.ass;.ssa;.lrc;.sub"})
+        }
+
+        let dialog = FileDlg.create(.surface, options)
+        if dialog.doModal() == Dialog.BtnOk do
+            .loadSubtitle(dialog.selectedPath())
+    }
+
+    // Capture the relative origin before opening the modal: playback may continue behind it.
+    mtd createTimeDialog()->*EditDlg
+    {
+        let origin   = .currentSeconds()
+        let duration = .video.durationInSeconds()
+        let initial  = Viewer.timeText(origin)
+        with var options: EditDlgOptions
+        {
+            .title   = texts().cmd_GoToTime
+            .message = texts().ui_TimeHelp
+            .text    = initial
+            .confirmButtonText = texts().ui_Go
+        }
+
+        let dialog = EditDlg.createSingleLine(unwrap .surface, options)
+        let check  = func|origin, duration, dialog|(edit: *EditBox)->EditBoxCheckResult
+        {
+            let valid = parseTimeAddress(edit.text(), origin, duration) >= 0
+            dialog.setMessage(valid ? texts().ui_TimeHelp : texts().ui_TimeError)
+            return valid ? .Valid : .InvalidVisible
+        }
+
+        dialog.edit!.setValidator(check)
+        dialog.validateResult = func|view = me, dialog, origin, duration|(_, result)->bool
+        {
+            if result != Dialog.BtnOk do
+                return true
+            let target = parseTimeAddress(dialog.text(), origin, duration)
+            if target < 0
+            {
+                discard dialog.edit!.revalidate()
+                return false
+            }
+
+            view.jumpTo(target)
+            view.notePlaybackGesture()
+            return true
+        }
+
+        return dialog
+    }
+
+    mtd promptGoToTime()
+    {
+        if not .surface or not .hasFrame do
+            return
+        .pointerMoved()
+        discard .createTimeDialog().doModal()
+    }
+
+    mtd showPlaybackHelp()
+    {
+        .pointerMoved()
+        g_PlaybackHintUses = 0
+        .refreshHelp()
+        catch g_App.saveState()
+    }
+
+    mtd notePlaybackGesture()
+    {
+        if g_PlaybackHintUses >= 3 do
+            return
+        g_PlaybackHintUses += 1
+        .refreshHelp()
+        catch g_App.saveState()
+    }
+
+    mtd refreshHelp()
+    {
+        if .thumbnail or not .veilsShown or g_PlaybackHintUses >= 3
+        {
+            .helpLine?.hide()
+            return
+        }
+
+        if not .helpLine
+        {
+            .helpLine = HintLine.create(me)
+            .helpLine.setGrounded(true)
+        }
+
+        .helpLine.clearHints()
+        .helpLine.addHint(Input.formatKeyShortcut(.None, .Space), texts().hint_Pause)
+        .helpLine.addHint(texts().hint_Arrows, texts().hint_Seek)
+        .helpLine.addHint(Input.formatKeyShortcut(.Control, .Space), appStrings().ui_HintLens)
+        .helpLine.show()
+    }
+
     // Replaces the active sound track without disturbing picture transport state.
     //
     // The new voice is fully positioned and configured before the old one is released, so an
@@ -102,7 +250,7 @@ impl Panel
             return
         }
 
-        let seconds = .currentSeconds() + g_SubtitleSettings.delay
+        let seconds = .currentSeconds() + .subtitleDelay
         if .subtitleLastSeconds >= 0 and
            seconds >= .subtitleLastSeconds and
            seconds < .subtitleNextChange do
@@ -144,6 +292,9 @@ impl Panel
 
         .services.playback.addOptionRows(page, me)
         page.addLink(strings.ui_OptionSpeed, playbackRateText(.playbackRate), func|view = me|(speeds) { view.describeSpeeds(speeds) }, theme.icon(.PlaybackSpeed, iconSize))
+        page.addAction(strings.cmd_GoToTime, func|view = me|() { view.promptGoToTime() }, disabled: not .hasFrame, closesSheet: true, icon: theme.icon(.GoTo, iconSize))
+        page.addAction(strings.cmd_UndoSeek, func|view = me|() { view.undoSeek() }, disabled: .previousSeek < 0, icon: theme.icon(.ChevronLeft, iconSize))
+        page.addAction(strings.cmd_PlaybackHelp, func|view = me|() { view.showPlaybackHelp() }, closesSheet: true, icon: theme.icon(.Information, iconSize))
     }
 
     // Describes the available sound track and subtitle choices.
@@ -160,8 +311,7 @@ impl Panel
             page.addLink(strings.ui_OptionAudio, current, func|view = me|(tracks) { view.describeAudioTracks(tracks) }, theme.icon(.AudioTracks, iconSize), disabled: audioCount < 2)
         }
 
-        if .subtitleReady do
-            page.addLink(strings.ui_OptionSubtitles, .subtitleText(), func|view = me|(subtitles) { view.describeSubtitles(subtitles) }, theme.icon(.Wrap, iconSize))
+        page.addLink(strings.ui_OptionSubtitles, .subtitleText(), func|view = me|(subtitles) { view.describeSubtitles(subtitles) }, theme.icon(.Wrap, iconSize))
     }
 
     mtd describeSpeeds(page: *OptionSheet.Page)
@@ -199,6 +349,7 @@ impl Panel
     mtd describeSubtitles(page: *OptionSheet.Page)
     {
         let strings = texts()
+        page.addAction(strings.cmd_LoadSubtitles, func|view = me|() { view.promptSubtitle() }, disabled: .subtitleLoad.started, closesSheet: true, icon: .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
         page.addHeading(strings.ui_SubtitleTrack)
         page.addChoice(strings.ui_SubtitleOff, .subtitleSource == .Off, func|view = me|() { view.selectSubtitle(.Off) })
         for index in .video.subtitleTrackCount()
@@ -225,10 +376,28 @@ impl Panel
                            note: subtitleTrackLanguage(track))
         }
 
-        // The appearance is shared by every film and saved with the window, so each choice is
-        // written into the shared settings and drawn again at once.
-        page.addHeading(strings.ui_SubtitleAppearance)
-        let style = &g_SubtitleSettings
+        // Positive values present cues earlier; the wording makes the direction explicit.
+        page.addStepper(strings.ui_SubtitleDelay,
+                        Format.toString("%{f2} s", .subtitleDelay),
+                        func|view = me|(step)
+                        {
+                            view.subtitleDelay       = Math.clamp(view.subtitleDelay + step * 0.05, -MaxSubtitleDelay, MaxSubtitleDelay)
+                            view.subtitleLastSeconds = -1
+                            view.refreshSubtitle()
+                        },
+                        canDecrease: .subtitleDelay > -MaxSubtitleDelay,
+                        canIncrease: .subtitleDelay < MaxSubtitleDelay)
+        if .subtitleDelay != 0 do
+            page.addAction(strings.ui_SubtitleDelayReset, func|view = me|() { view.subtitleDelay = 0; view.subtitleLastSeconds = -1; view.refreshSubtitle() }, icon: .theme().icon(.Update, themeRowIconSize(.themeMetrics())))
+
+        page.addLink(strings.ui_SubtitleAppearance, "", func|view = me|(appearance) { view.describeSubtitleAppearance(appearance) }, .theme().icon(.Appearance, themeRowIconSize(.themeMetrics())))
+    }
+
+    // Shared appearance stays one page away so attachment and timing fit a short window.
+    mtd describeSubtitleAppearance(page: *OptionSheet.Page)
+    {
+        let strings = texts()
+        let style   = &g_SubtitleSettings
         page.addLink(strings.ui_SubtitleFont,
                      subtitleFontText(style.font),
                      func|view = me|(fonts)
@@ -273,18 +442,5 @@ impl Panel
                              colors.addChoice(subtitleColorText(color), g_SubtitleSettings.color == color, func|view, color|() { g_SubtitleSettings.color = color; view.subtitleSettingsChanged() })
                      },
                      icon: .theme().icon(.Picker, themeRowIconSize(.themeMetrics())))
-
-        // A step is a tenth of a second, a second with Shift, within a minute either way.
-        page.addStepper(strings.ui_SubtitleDelay,
-                        Format.toString("%{f1} s", style.delay),
-                        func|view = me|(step)
-                        {
-                            g_SubtitleSettings.delay = Math.clamp(g_SubtitleSettings.delay + step * 0.1, -MaxSubtitleDelay, MaxSubtitleDelay)
-                            view.subtitleSettingsChanged()
-                        },
-                        canDecrease: style.delay > -MaxSubtitleDelay,
-                        canIncrease: style.delay < MaxSubtitleDelay)
-        if style.delay != 0 do
-            page.addAction(strings.ui_SubtitleDelayReset, func|view = me|() { g_SubtitleSettings.delay = 0; view.subtitleSettingsChanged() }, icon: .theme().icon(.Update, themeRowIconSize(.themeMetrics())))
     }
 }

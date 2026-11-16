@@ -237,17 +237,6 @@ impl ViewerWindow
         .historyChanged()
     }
 
-    // Counts the files of the history that are gone from the disk.
-    //
-    // The reader asks for it, opening the clear menu: a handful of probes, once.
-    mtd missingRecentCount()->u64
-    {
-        var result = 0'u64
-        for one in .recent where not File.exists(one[]) do
-            result += 1
-        return result
-    }
-
     // Counts the files of the history last opened more than a month ago.
     mtd olderRecentCount()->u64
     {
@@ -261,17 +250,7 @@ impl ViewerWindow
     // Takes the files that are gone from the disk out of the history.
     mtd removeMissingRecent()
     {
-        .recentOpened.resize(.recent.count)
-        for i in reversed(.recent.count) where not File.exists(.recent[i])
-        {
-            .recent.removeAtOrdered(i)
-            .recentOpened.removeAtOrdered(i)
-        }
-
-        for i in reversed(.exploredFolders.count) where not Directory.exists(.exploredFolders[i]) do
-            .exploredFolders.removeAtOrdered(i)
-
-        .historyChanged()
+        .historyCleanup.start(me)
     }
 
     // Takes the files last opened more than a month ago out of the history.
@@ -296,7 +275,7 @@ impl ViewerWindow
     }
 
     // Shows the history as it now stands, and keeps it.
-    private mtd historyChanged()
+    mtd historyChanged()
     {
         .pruneResume()
         .refreshHome()

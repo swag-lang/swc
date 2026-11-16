@@ -15,6 +15,29 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: repeating a single-use attribute gives a located diagnostic, while attributes
   marked `Swag.AttrMulti` retain their supported repeated values.
 
+### compiler.core.114 — Resolve a DevMode host exception while compiling Swag Vault
+
+- Evidence: `tools/apps.bat dm test swagvault --test-tag golden` with three workers raised
+  `0xC0000005` after rebuilding the Pixel dependency. The read address was
+  `0xFFFFFFFFFFFFFFFF`, `rcx` contained `0xDFDFDFDFDFDFDFDF`, and the faulting DevMode RVA was
+  `0xCA7DBA`; the exception report contained no current source span or resolved stack symbols.
+- Next: retain the matching compiler and PDB on recurrence, resolve the faulting stack, and
+  identify which compiler-owned object was read after release before reducing the import path.
+- Done when: a reduced workspace regression protects the corrected lifetime and the application
+  compiles repeatedly with parallel workers and retained dependencies.
+
+### compiler.core.113 — Wait for imported struct layout before lowering an empty slice default
+
+- Evidence: `tools/apps.bat dm test swagcapture --test-tag golden`, with three compiler workers,
+  asserted `sizeInBytes != 0` in `Symbol.Struct.cpp` during semantic parsing of the imported
+  `video` API. The source span is `SoftwareTrimEdits.ranges: const [..] SoftwareRenderRange = []`
+  in `bin/apps/.dep/video/shared-library/devmode/x86_64/video.swg`. The reported structure is
+  declared and typed, has one field so far, and is not semantically complete.
+- Next: reduce the imported structure and empty slice default to a workspace fixture, then
+  trace the layout wait before constant lowering under parallel semantic analysis.
+- Done when: the reduced fixture and the application compile with DevMode assertions enabled,
+  including retained dependency APIs and parallel workers, without changing the valid default.
+
 ### compiler.core.111 — Lifetime analysis retains a success edge after an always-failing helper
 
 - Evidence: the Linux Release compiler reports that `state` may refer to released memory at

@@ -38,6 +38,7 @@ struct ViewerHomeFolders
     folders:         Array'String
     generation:      u64
     explored:        bool
+    useSystemPlaces: bool
 }
 
 impl ViewerHomeFolders
@@ -46,6 +47,7 @@ impl ViewerHomeFolders
     {
         .recent = home.window.exploredFolders
         .system = home.window.systemPlaces
+        .useSystemPlaces = home.useSystemPlaces and .system.isEmpty()
         .folders.clear()
         .generation = home.placesGeneration
         .explored   = false
@@ -59,8 +61,23 @@ impl ViewerHomeFolders
     {
         .collect(.recent.toSlice())
         .explored = not .folders.isEmpty()
-        if not .explored do
-            .collect(.system.toSlice())
+        if .explored do
+            return
+
+        // Known folders can be redirected to an offline share. Even asking Windows for their
+        // paths belongs here, rather than in the window constructor.
+        if .useSystemPlaces
+        {
+            for kind in [Env.SpecialDirectory.UserPictures, Env.SpecialDirectory.UserVideos, Env.SpecialDirectory.UserMusic,
+                         Env.SpecialDirectory.UserDocuments, Env.SpecialDirectory.Downloads]
+            {
+                if Swag.isCancelled() do
+                    return
+                .system.add(Env.getSpecialDirectory(kind))
+            }
+        }
+
+        .collect(.system.toSlice())
     }
 
     private mtd collect(paths: const [..] String)
@@ -128,9 +145,11 @@ struct ViewerHome
     pointerIn:        bool
     now:              u64     // Local ticks the times are written against; zero for the clock.
     preview:          ExplorerPreview
+    previewExecutor:  Swag.Executor
     previewRow:       u64 = Swag.U64.Max
     folders:          ViewerHomeFolders
     placesGeneration: u64
+    useSystemPlaces:  bool
 }
 
 impl ViewerHome
@@ -301,6 +320,8 @@ impl ViewerHome
         }
 
         .places.clear()
+        if .folders.useSystemPlaces do
+            .window.systemPlaces = .folders.system
         for folder in .folders.folders do
             .places.add(ViewerHomePlace{folder[], .theme().fileGlyph(folder[], true)})
         .explored     = .folders.explored
@@ -551,7 +572,9 @@ impl ViewerHome
             .preview.settings = ThumbnailSettings.capture(.window, localArtworkOnly: true)
             .preview.mediaFile.clear()
             .preview.archivePath.clear()
-            .preview.start(me)
+            if not .previewExecutor.isStarted() do
+                .previewExecutor.start(.Background)
+            .preview.start(me, executor: &.previewExecutor)
             return
         }
     }
@@ -665,10 +688,9 @@ impl ViewerHome
         const OlderId   = "scope.home.clear.older"
         const AllId     = "scope.home.clear.all"
 
-        let texts   = appStrings()
-        let missing = .window.missingRecentCount()
-        let menu    = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem(texts.home_ClearMissing, MissingId, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())), rightName: Format.toString("%", missing), disabled: missing == 0).critical = true
+        let texts = appStrings()
+        let menu  = MenuCtrl.createPopup(me, owner: me)
+        menu.addItem(texts.home_ClearMissing, MissingId, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())), disabled: .window.historyCleanup.started or .window.recent.isEmpty()).critical = true
         menu.addItem(texts.home_ClearOlder, OlderId, .theme().icon(.Remove, themeRowIconSize(.themeMetrics())), disabled: .window.olderRecentCount() == 0).critical = true
         menu.addSeparator()
         menu.addItem(texts.home_ClearAll, AllId, .theme().icon(.RemoveAll, themeRowIconSize(.themeMetrics()))).critical = true
@@ -873,6 +895,7 @@ impl IWnd for ViewerHome
         .folders.executor.close()
         .preview.task.cancel()
         .preview.wait()
+        .previewExecutor.close()
         for &row in .rows where row.texture.isValid() do
             .app().renderer.removeTexture(&row.texture)
     }

@@ -167,7 +167,7 @@ impl ViewerWindow
     mtd resumeFile(fileName: string, fromHistory = true)
     {
         let point = .resumePoint(fileName)
-        if not point or not File.exists(fileName)
+        if not point
         {
             .queueFile(fileName, offerForgetMissing: fromHistory)
             return

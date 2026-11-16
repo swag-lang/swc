@@ -124,6 +124,7 @@ struct ViewerWindow
     pendingForgetMissing:    bool
     fileWatch:               ViewerFileWatch
     privacy:                 ViewerPrivacy
+    historyCleanup:          ViewerHistoryCleanup
     privacyTimer:            *Timer?
     fileWatchTimer:          *Timer?
     readingState:            ViewerReadingState
@@ -437,6 +438,19 @@ impl IWnd for ViewerWindow
     // The classification of a queued file ended.
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
+        if .privacy.scan.claim(evt)
+        {
+            .privacy.finishScan()
+            .refreshHome()
+            return
+        }
+
+        if .historyCleanup.claim(evt)
+        {
+            .historyCleanup.finish(me)
+            return
+        }
+
         if not .choiceLoad.claim(evt)
         {
             evt.accepted = false
@@ -457,6 +471,8 @@ impl IWnd for ViewerWindow
         .stopSlide()
         .stopTimer(&.privacyTimer)
         .privacy.flush()
+        .historyCleanup.task.cancel()
+        .historyCleanup.wait()
         .privacy.destroyIndicator()
         .stopTimer(&.fileWatchTimer)
         .stopTimer(&.viewerBarTimer)
@@ -501,20 +517,12 @@ impl IWnd for ViewerWindow
         {
             .explorer?.rememberView()
             .privacy.sanitize()
+            .captureResume()
         }
 
-        catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
+        .privacy.serializeState(evt.serializer)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
         catch evt.serializer.serialize("ViewerWindow.language", &me.language)
-        catch evt.serializer.serialize("ViewerWindow.recent", &me.recent)
-        catch evt.serializer.serialize("ViewerWindow.recentOpened", &me.recentOpened)
-        catch evt.serializer.serialize("ViewerWindow.folderHistory", &me.folderHistory)
-        if not evt.serializer.isReading() do
-            .captureResume()
-        catch evt.serializer.serialize("ViewerWindow.resumePoints", &me.resumePoints)
-        catch evt.serializer.serialize("ViewerWindow.exploredFolders", &me.exploredFolders)
-        catch evt.serializer.serialize("ViewerWindow.folderViews", &me.folderViews)
-        catch evt.serializer.serialize("ViewerWindow.musicChoices", &me.musicChoices)
         catch evt.serializer.serialize("ViewerWindow.onlineMovies", &me.onlineMovies)
         catch evt.serializer.serialize("ViewerWindow.onlineMusic", &me.onlineMusic)
         catch evt.serializer.serialize("ViewerWindow.rightPanelWidth", &me.rightPanelWidth)
@@ -525,6 +533,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.searchWholeWord", &me.searchWholeWordOption)
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &Viewers.Film.g_SubtitleSettings)
+        catch evt.serializer.serialize("ViewerWindow.videoHintUses", &Viewers.Film.g_PlaybackHintUses)
         catch evt.serializer.serialize("ViewerWindow.movieDetection", &Viewers.Film.g_MovieDetectionSettings)
         catch evt.serializer.serialize("ViewerWindow.markdown", &Viewers.MarkdownText.g_ViewerSettings)
         catch evt.serializer.serialize("ViewerWindow.midi", &Viewers.Midi.g_ViewerSettings)
@@ -562,7 +571,6 @@ impl IWnd for ViewerWindow
             if cast(u32, .playMode) > cast(u32, Viewer.PlayMode.Shuffle) do
                 .playMode = .Once
             .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
-            Viewers.Film.g_SubtitleSettings.sanitize()
             Viewers.MarkdownText.g_ViewerSettings.sanitize()
             Viewers.Midi.g_ViewerSettings.sanitize()
         }
@@ -1074,10 +1082,6 @@ impl ViewerWindow
         result.index           = #move index
         result.language        = Gui.ReferenceLanguage
         result.index.attachTo(result.app())
-        for kind in [Env.SpecialDirectory.UserPictures, Env.SpecialDirectory.UserVideos, Env.SpecialDirectory.UserMusic,
-                     Env.SpecialDirectory.UserDocuments, Env.SpecialDirectory.Downloads] do
-            result.systemPlaces.add(Env.getSpecialDirectory(kind))
-
         with result.returnExplorerCaptionButton = CaptionButton.createLeading(result.surface, .ChevronLeft, ViewerCommands.ReturnToExplorer)
         {
             .toolTip    = appStrings().cmd_ReturnToExplorer
@@ -1250,7 +1254,8 @@ impl ViewerWindow
         let arrowKey  = evt.key == .Left or evt.key == .Right
         let rateStep  = evt.modifiers == .Shift and arrowKey
         let frameStep = evt.modifiers == .Control and arrowKey
-        if evt.modifiers != .None and not rateStep and not frameStep do
+        let timeJump  = evt.modifiers == .Control and evt.key == .G
+        if evt.modifiers != .None and not rateStep and not frameStep and not timeJump do
             return false
 
         let toggle = evt.key == .Space or evt.key == .MediaPlayPause
@@ -1270,7 +1275,7 @@ impl ViewerWindow
         if not playbackViewer do
             return false
 
-        if rateStep or frameStep
+        if rateStep or frameStep or timeJump
         {
             if key != "video" do
                 return false
@@ -1467,7 +1472,7 @@ impl ViewerWindow
             .explorer = Explorer.create(.documentPanel, me)
         .explorer.history.push(Format.toString("%\n", source))
         .explorerActive = true
-        .privacy.track(source, File.MountPrivacy.query(source))
+        .privacy.track(source)
         .rememberExplored(source)
         .closeFile(forExplorer: true)
         .home.hide()

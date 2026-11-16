@@ -15,7 +15,19 @@ internal func __bootstrapRoundedSize(size: u64, alignment: u32)->u64
         return 0
 
     let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(BootstrapAllocationHeader)))
-    let overhead           = BootstrapAllocationHeaderSize + cast(u64, effectiveAlignment) - 1
+    let alignment64        = cast(u64, effectiveAlignment)
+    var overhead           = BootstrapAllocationHeaderSize
+    if cast(u64, effectiveAlignment) <= AllocatorHostCommitGranularity
+    {
+        // Host reservations start on a commit-granularity boundary, so alignments up to
+        // that size need only the rounded header prefix, not worst-case padding.
+        overhead = (overhead + alignment64 - 1) & ~(alignment64 - 1)
+    }
+    else
+    {
+        overhead += alignment64 - 1
+    }
+
     if size > Swag.U64.Max - overhead do
         return 0
 

@@ -386,6 +386,7 @@ struct ZoomButton
     hasStatistics:  bool
     services:       Viewer.HostServices
     outline:        *DocumentOutline?
+    history:        Viewer.History'u64     // Source offsets the reader left by choosing a heading.
 }
 
 impl IWnd for ZoomButton
@@ -438,6 +439,43 @@ impl ZoomButton
 
         // The window saves preferences on navigation and close, outside wheel handling.
         g_ViewerSettings.zoomPercent = bounded
+    }
+
+    // Returns the source offset of the block being read; the start of the document until one is laid out.
+    mtd readingPlace()->u64
+    {
+        let offset = .view.readingOffset()
+        return offset == Swag.U64.Max ? 0 : offset
+    }
+
+    // Remembers the place the reader is about to leave for a heading.
+    mtd rememberPlace()
+    {
+        .history.visit(.readingPlace())
+    }
+
+    // Returns to the place the last chosen heading left.
+    mtd goBack()
+    {
+        if .history.canGoBack() do
+            discard .view.revealBlock(.history.back(.readingPlace()))
+    }
+
+    // Undoes the last return.
+    mtd goForward()
+    {
+        if .history.canGoForward() do
+            discard .view.revealBlock(.history.forward(.readingPlace()))
+    }
+
+    mtd handleHistoryKey(evt: const *KeyEvent)->bool
+    {
+        let direction = Viewer.historyKeyDirection(evt)
+        if direction < 0 do
+            .goBack()
+        elif direction > 0 do
+            .goForward()
+        return direction != 0
     }
 
     // The zoom menu opens from the same readout whether reached by pointer or lens.
@@ -577,6 +615,9 @@ func createViewer(host: Viewer.Host)
     with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {
         .outline = DocumentOutline.create(host, floatingSurface: false)
+
+        // Subscribed before the outline reveals its heading, so the place kept is the one left.
+        .outline.sigSelected += func|zoomButton|(_, _) { zoomButton.rememberPlace() }
         .outline.bindMarkdown(view, host.fileName())
         .outline.startMarkdown()
     }
@@ -592,6 +633,8 @@ func createViewer(host: Viewer.Host)
         entries.addZoom(.Out, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Out, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.addZoom(.Reset, zoomButton.zoomPercent, func|zoomButton, percent = Viewer.zoomTarget(.Reset, zoomButton.zoomPercent)|() { zoomButton.applyZoom(percent) })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|zoomButton|() { zoomButton.showZoomMenu() })
+        entries.add(texts().ui_Back, .ChevronLeft, func|zoomButton|() { zoomButton.goBack() }, disabled: not zoomButton.history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(texts().ui_Forward, .ChevronRight, func|zoomButton|() { zoomButton.goForward() }, disabled: not zoomButton.history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(appStrings().cmd_Options, .Settings, func|view, zoomButton, optionsButton|() { showOptions(optionsButton, view, zoomButton) })
     })
 
@@ -601,6 +644,9 @@ func createViewer(host: Viewer.Host)
         {
         case KeyEvent as key where Viewer.isZoomKey(key):
             zoomButton.applyZoom(Viewer.zoomAfterKey(key, zoomButton.zoomPercent))
+            return true
+
+        case KeyEvent as key where zoomButton.handleHistoryKey(key):
             return true
 
         case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):

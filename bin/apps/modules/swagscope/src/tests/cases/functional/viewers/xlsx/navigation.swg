@@ -75,3 +75,38 @@ using Core, Gui, Gui.Testing, Viewers
         Testing.assertContentFits(view)
     }
 }
+
+// A colon and a cell address in the lens select that cell of the sheet in view, from the reading
+// text too, and an address that is not one offers nothing.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.monthly-budget.xlsx"), true)
+    let view   = assume cast(*Xlsx.Panel, window.currentView)
+    view.setTextMode(true)
+
+    window.lens.open(":c5")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(Xlsx.texts().ui_GoToCell, "C5"))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    let grid = unwrap view.grid
+    Swag.require(not view.textMode and grid.hasSelection and grid.selected.row == 4 and grid.selected.column == 2)
+
+    // An OpenDocument spreadsheet is read by the same workbook panel and answers alike.
+    var odsHost: HeadlessHost
+    let odsWindow = framedViewerWindow(&odsHost, scopeTestDataPath("viewer.ods"), true)
+    odsWindow.lens.open(":a1")
+    odsHost.finishAnimations()
+    Swag.require((unwrap odsWindow.lens.results.sections[0]).entries[0].title == Format.toString(Xlsx.texts().ui_GoToCell, "A1"))
+    odsWindow.lens.close()
+    odsHost.finishAnimations()
+
+    window.lens.open(":5c")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
+}

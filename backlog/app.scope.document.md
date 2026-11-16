@@ -183,7 +183,8 @@ integration around those engines.
   stay hidden until explicitly revealed. The native grid preserves declared column widths, row
   heights, sparse addresses, disjoint merged cells and hidden rows/columns; a separate command
   reveals hidden ranges. Cell selection, keyboard moves, copy and a theme-aware text view support
-  reading. Only visible rows are painted, including million-row address spans. Direct and base
+  reading, and `:` with a cell address in the lens selects that cell. Only visible rows are
+  painted, including million-row address spans. Direct and base
   XFs now retain font size/emphasis, colors, solid fills, common borders, alignment, wrapping and
   Normal-font indents. Spreadsheet theme/indexed colors and luminance tints are resolved; numeric
   overflow stays explicit. Common built-in and custom currency, grouped decimal, percentage,
@@ -196,7 +197,7 @@ integration around those engines.
   and charts remain absent. [Excel's frozen panes](https://support.microsoft.com/en-gb/excel/get-started/freeze-panes-to-lock-rows-and-columns)
   illustrate why authored grid navigation matters to reading.
 - Next: paint inherited styles in unsaved blank regions and resolve named font families, then preserve frozen panes and add
-  rectangular selection, direct cell addressing and sheet-wide search before read-only chart
+  rectangular selection, sheet-qualified cell addresses and sheet-wide search before read-only chart
   previews. Extend numeric formatting to conditions, fractions, scientific notation and localized
   date profiles with producer fixtures; keep unsupported codes explicit.
 - Done when: real workbooks show their authored grid and formatted values, frozen and hidden regions

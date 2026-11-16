@@ -274,8 +274,31 @@ private impl Panel
         return true
     }
 
+    // Shows the cell at `address` of the sheet in view in the grid, selected and in view.
+    internal mtd revealCell(address: Address)
+    {
+        if .textMode do
+            .setTextMode(false)
+        .grid?.selectAddress(address)
+    }
+
+    // Answers `:` and a cell address, as `B12`, with that cell of the sheet in view; any other
+    // query with the commands of the workbook.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        if entries.results.prefix == .Line
+        {
+            var typed = String.from(Latin1.trim(entries.query.toString()))
+            typed.makeUpper()
+            let address = catch Address.parse(typed.toString()) { return; }
+            if .sheet >= .workbook.sheets.count do
+                return
+            let entry = entries.add(Format.toString(texts().ui_GoToCell, address.label()), .GoTo, func|view = me, address|() { view.revealCell(address) })
+            if entry do
+                entry.lead = address.label()
+            return
+        }
+
         entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         if .workbook.hiddenSheets do

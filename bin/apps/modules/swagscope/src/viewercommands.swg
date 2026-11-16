@@ -344,8 +344,8 @@ impl ViewerWindow
 
     // Answers the lens with the lines of the open document that hold the query, under "In This
     // File", in the order of the file, each led by its number in mono; `:` and a number go to that
-    // line. Code, text and Markdown answer, as documents read line by line; a table answers `:`
-    // itself, with its rows.
+    // line. Code, text and Markdown answer, as documents read line by line; a table and a workbook
+    // answer `:` themselves, with their rows and cells.
     private mtd describeFileLines(results: *Lens.Results)
     {
         if .isExploring() or .currentFile.isEmpty() do
@@ -353,7 +353,7 @@ impl ViewerWindow
         if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
             return
         let key = .choices[.activeChoiceIndex].key
-        if key == "table" and results.prefix == .Line
+        if (key == "table" or key == "xlsx" or key == "ods") and results.prefix == .Line
         {
             .describeViewerCommands(results)
             return

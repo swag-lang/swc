@@ -22,6 +22,9 @@ namespace Backend::Unittest
 
     Result parseExpected(const char* text, std::vector<ExpectedByte>& result);
 
+    // Runs allocation, legalization, final allocation, and emission for tests.
+    Result runEncodePipeline(MicroBuilder& builder, Encoder& encoder);
+
     // Runs one pass over what the builder holds, in a default Swag-convention context.
     template<typename PASS>
     Result runMicroPass(MicroBuilder& builder, Encoder* encoder = nullptr, CallConvKind callConv = CallConvKind::Swag)

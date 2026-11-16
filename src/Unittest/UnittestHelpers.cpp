@@ -122,11 +122,8 @@ namespace Backend::Unittest
         return Result::Continue;
     }
 
-    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn)
+    Result runEncodePipeline(MicroBuilder& builder, Encoder& encoder)
     {
-        MicroBuilder builder(ctx);
-        fn(builder);
-
         MicroRegisterAllocationPass regAllocPass;
         MicroLegalizePass           legalizePass;
         MicroEmitPass               encodePass;
@@ -137,7 +134,15 @@ namespace Backend::Unittest
         passes.addStartPass(encodePass);
 
         MicroPassContext passCtx;
-        SWC_RESULT(builder.runPasses(passes, &encoder, passCtx));
+        return builder.runPasses(passes, &encoder, passCtx);
+    }
+
+    Result runEncodeCase(TaskContext& ctx, Encoder& encoder, const char* name, const char* expectedHex, const std::function<void(MicroBuilder&)>& fn)
+    {
+        MicroBuilder builder(ctx);
+        fn(builder);
+
+        SWC_RESULT(runEncodePipeline(builder, encoder));
 
         if (encoder.size() == 0)
         {

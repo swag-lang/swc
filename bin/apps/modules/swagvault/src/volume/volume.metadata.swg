@@ -161,6 +161,7 @@ impl Volume
                     fail volumeError(.Corrupted)
             }
         }
+
         if not .nextNodeId or .nextNodeId <= maximumNodeId do
             fail volumeError(.Corrupted)
         try .rebuildFreeList()
@@ -210,7 +211,7 @@ impl Volume
                    not mapping.count or
                    mapping.count > .blockCount - mapping.physical do
                     fail volumeError(.Corrupted)
-                for physical in mapping.physical until mapping.physical + mapping.count do
+                for physical in mapping.physical until mapping.physical + mapping.count
                 {
                     if used.get(physical) do
                         fail volumeError(.Corrupted)
@@ -280,8 +281,8 @@ impl Volume
         var previousFree: Array'FreeExtent
         previousFree.add(.blocks.free.toSlice())
         let previousFreeBlocksCount = .blocks.freeBlocksCount
-        let previousMetadataSize     = .metadataSize
-        let previousSequence         = .sequence
+        let previousMetadataSize    = .metadataSize
+        let previousSequence        = .sequence
 
         var committed = false
         defer

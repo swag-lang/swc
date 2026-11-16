@@ -69,6 +69,28 @@ func statusForError(kind: ErrorKind)->s32
     Swag.require(total == volume.totalBytes())
     Swag.require(free == volume.freeBytes())
     Swag.require(WinFsp.cString(&label[0]) == "Swag Vault")
+
+    // A byte-limited label ends before a partial rune and leaves the caller's tail intact.
+    volume.label = "Aé𐍈Z"
+    let prefixes = ["", "A", "A", "Aé", "Aé", "Aé", "Aé", "Aé𐍈", "Aé𐍈Z"]
+    for prefix, index in prefixes
+    {
+        for &byte in label do
+            byte[] = 0xA5
+        let capacity = cast(u32, (index + 1))
+        callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], capacity)
+        Swag.require(callbackStatus == WinFsp.StatusSuccess)
+        Swag.require(label[prefix.count] == 0 and label[capacity] == 0xA5)
+        Swag.require(WinFsp.cString(&label[0]) == prefix)
+    }
+
+    volume.label   = ""
+    label[0]       = 0xA5
+    callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], 0)
+    Swag.require(callbackStatus == WinFsp.StatusInvalidParameter and label[0] == 0xA5)
+    callbackStatus = WinFsp.callbackGetVolumeInfo(context, &total, &free, &label[0], 1)
+    Swag.require(callbackStatus == WinFsp.StatusSuccess and label[0] == 0)
+
     callbackStatus = WinFsp.callbackSetVolumeLabel(context, ("Private").buffer)
     Swag.require(callbackStatus == WinFsp.StatusSuccess)
 

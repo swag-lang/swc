@@ -58,6 +58,7 @@ namespace WinFsp
             else do
                 allocationSize += BlockSize
         }
+
         with output
         {
             // Windows reports the space a file occupies, so a file always
@@ -85,11 +86,12 @@ namespace WinFsp
         defer volume.accessLock.unlockShared()
         total[] = volume.totalBytes()
         free[]  = volume.freeBytes()
-        var count = Math.min(volume.label.length, cast(u64, labelCapacity) - 1)
-        while count and (volume.label.buffer[count] & 0xC0) == 0x80 do
+        let bytes = volume.label.toSlice()
+        var count = Math.min(bytes.count, cast(u64, labelCapacity) - 1)
+        while count and count < bytes.count and (bytes[count] & 0xC0) == 0x80 do
             count -= 1
         if count do
-            Swag.memcpy(label, volume.label.toString().buffer, count)
+            Swag.memcpy(label, &bytes[0], count)
         label[count] = 0
         return StatusSuccess
     }
@@ -106,7 +108,7 @@ namespace WinFsp
         let value = cString(label)
         if value.count > 32 * 4 or not Utf8.isValid(value) do
             return StatusInvalidParameter
-        let bytes = cast(const [..] u8, value)
+        let bytes  = cast(const [..] u8, value)
         var offset = 0'u64
         var units  = 0'u32
         while offset < bytes.count
@@ -117,6 +119,7 @@ namespace WinFsp
                 return StatusInvalidParameter
             offset += eat
         }
+
         volume.label = value
         volume.touchScalars()
         var errOutcome: Swag.Error
@@ -187,7 +190,7 @@ namespace WinFsp
             node.attributes = attributes ? attributes : FileAttributeNormal
         else do
             node.attributes |= attributes
-        node.attributes &= ~FileAttributeDirectory
+        node.attributes    &= ~FileAttributeDirectory
         node.changeTime    = volumeTimeNow()
         node.lastWriteTime = node.changeTime
         volume.touch(nodeId)

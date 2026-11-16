@@ -436,9 +436,10 @@ let renderer: IRenderer = &cpu
 `*T` is the only borrowed indirection: it is non-null, member access and method calls read
 through it directly, and only a whole-value read or write opens the place with the postfix `[]`.
 
-- Iterate elements as pointers. Over struct elements, `for v in items` binds `const *T` — never
+- Over struct elements, `for v in items` binds `const *T` — never
   a copy — and `for &v in items` binds `*T`. Access members and call methods through the binding
-  directly; write a scalar element with `v[] = value`.
+  directly. Scalar elements, including `string`, bind by value in `for v in items`; use that value
+  directly, without `[]`. Use `for &v` to mutate an element and `v[] = value` to replace it.
 - Pass structs by value. The ABI hands the callee a const address, so a by-value struct
   parameter costs no copy, and the compiler treats the value as fixed for the whole call: it may
   read a field once and keep it across stores and calls. Take `*T` when the callee mutates the

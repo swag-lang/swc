@@ -64,6 +64,20 @@ private func resetDynamicSlots(dst: *void, type: const *TypeInfoStruct, index: u
 internal func resetValueStorage(dst: *void, type: typeinfo)
 {
     let concreteType = concreteRuntimeType(type)
+    if concreteType.kind == .Array and type.flags & TypeInfoFlags.HasDynamicStorage
+    {
+        let typeArray = assume cast(const *TypeInfoArray, concreteType)
+        let valueType = typeArray.pointedType
+        var scan      = cast([*] u8, dst)
+        for typeArray.count
+        {
+            resetValueStorage(scan, valueType)
+            scan += valueType.sizeof
+        }
+
+        return
+    }
+
     if concreteType.kind == .Struct
     {
         let info = assume cast(const *TypeInfoStruct, concreteType)

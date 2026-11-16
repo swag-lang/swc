@@ -1846,6 +1846,11 @@ namespace
 
                 builder.emitLoadRegMem(source, conv.stackPointer, baseOffset, MicroOpBits::B64);
                 builder.emitLoadRegReg(copy, source, MicroOpBits::B64);
+                if (index + 1 == candidateCount)
+                {
+                    // The ninth pair also repeats a copy to exercise a table hit.
+                    builder.emitLoadRegReg(copy, source, MicroOpBits::B64);
+                }
                 builder.emitCmpRegImm(source, ApInt(index + 1, 64), MicroOpBits::B64);
                 builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skipLabel);
                 builder.emitLoadMemReg(conv.stackPointer, baseOffset + 8, copy, MicroOpBits::B64);

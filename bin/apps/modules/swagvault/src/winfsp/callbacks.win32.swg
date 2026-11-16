@@ -72,27 +72,42 @@ namespace WinFsp
     // Reports the size, the free space, and the label of the volume, cut to `labelCapacity`.
     func callbackGetVolumeInfo(context: *void?, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
+        if not labelCapacity do
+            return StatusInvalidParameter
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         total[] = volume.totalBytes()
         free[]  = volume.freeBytes()
-        let count = Math.min(volume.label.length, cast(u64, labelCapacity) - 1)
+        var count = Math.min(volume.label.length, cast(u64, labelCapacity) - 1)
+        while count and (volume.label.buffer[count] & 0xC0) == 0x80 do
+            count -= 1
         if count do
             Swag.memcpy(label, volume.label.toString().buffer, count)
         label[count] = 0
         return StatusSuccess
     }
 
-    // Renames the volume and commits; a label holds at most 32 characters, so 128 UTF-8 bytes.
+    // Renames the volume and commits; WinFsp stores labels in 32 UTF-16 code units.
     func callbackSetVolumeLabel(context: *void?, label: const [*] u8?)->s32
     {
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let value = cString(label)
-        if value.count > 32 * 4 do
+        if value.count > 32 * 4 or not Utf8.isValid(value) do
             return StatusInvalidParameter
+        let bytes = cast(const [..] u8, value)
+        var offset = 0'u64
+        var units  = 0'u32
+        while offset < bytes.count
+        {
+            let {c, eat} = Utf8.decodeRune(bytes[offset to])
+            units += c > 0xFFFF ? 2 : 1
+            if units > 32 do
+                return StatusInvalidParameter
+            offset += eat
+        }
         volume.label = value
         volume.touchScalars()
         var errOutcome: Swag.Error

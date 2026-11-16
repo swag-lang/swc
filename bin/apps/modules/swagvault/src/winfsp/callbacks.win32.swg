@@ -554,6 +554,8 @@ namespace WinFsp
         let directory = volume.nodeById(directoryId)
         if not directory do
             return StatusObjectNameNotFound
+        if not directory.isDirectory() do
+            return StatusNotADirectory
         let value = cString(name)
         if value == "." do
             return fillInfo(volume, directoryId, info)

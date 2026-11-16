@@ -398,6 +398,39 @@ using Swag, Core
     Swag.require(Math.abs(shape.rotate) < 0.001)
 }
 
+// A press turns into a drag after the same travel on screen at every zoom: a few image pixels
+// are a long way at a high zoom, and less than a jitter of the hand at a low one.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    f.main.editMode = .Shape
+
+    f.editView.setZoom(4)
+    f.dragImage({100, 100}, {101.25, 100})
+    Swag.require(f.capture.forms.count == 1)
+    f.capture.undo()
+    Swag.require(f.capture.forms.count == 0)
+
+    f.editView.setZoom(0.5)
+    f.dragImage({100, 100}, {104, 100})
+    Swag.require(f.capture.forms.count == 0)
+
+    let image = testAddImage(f.capture, 40, 50, 80, 60)
+    image.kind  = .Image
+    image.image = Image.create(20, 20, .BGRA8)
+    f.capture.selection.add(0)
+
+    f.editView.setZoom(4)
+    f.dragImage({60, 70}, {61.25, 70})
+    Gui.Testing.assertRect(image.IForm.boundRect(), 41, 50, 80, 60)
+
+    f.editView.setZoom(0.5)
+    f.dragImage({70, 80}, {74, 80})
+    Gui.Testing.assertRect(image.IForm.boundRect(), 41, 50, 80, 60)
+}
+
 // A free image can be switched into inside-edit mode by double-clicking, then
 // its inner placement rectangle is resized through the same gizmo event path.
 #test

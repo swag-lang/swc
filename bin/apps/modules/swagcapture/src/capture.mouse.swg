@@ -244,6 +244,14 @@ impl Capture
         view.invalidate()
     }
 
+    // Whether the pointer has left the zone around the press where it is still a click. The zone
+    // is measured on screen, so a drag starts after the same travel of the hand at every zoom.
+    mtd leftClickZone(localPos: Math.Point)->bool
+    {
+        const ClickZone = 3.0
+        return Math.abs(localPos.x - .movingStart.x) > ClickZone or Math.abs(localPos.y - .movingStart.y) > ClickZone
+    }
+
     // Leaves the current drag and gives the pointer back.
     mtd stopDrag(view: *EditView)
     {
@@ -320,7 +328,7 @@ impl Capture
         let firstDragMove = .firstMouseMove
         if firstDragMove
         {
-            if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 do
+            if not .leftClickZone(localPos) do
                 return true
             .firstMouseMove = false
         }
@@ -376,14 +384,11 @@ impl Capture
     // Creates a form with the current tool on the first real move, then sizes it.
     mtd dragCreate(view: *EditView, localPos: Math.Point, evt: *MouseEvent)->bool
     {
-        let newPosX = cast(s32, (localPos.x - .movingStart.x) / view.zoom)
-        let newPosY = cast(s32, (localPos.y - .movingStart.y) / view.zoom)
-
         var createdNow = false
         if .firstMouseMove
         {
             let editView = unwrap .editView
-            if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 and editView.main.editMode != .Step do
+            if not .leftClickZone(localPos) and editView.main.editMode != .Step do
                 return true
             .firstMouseMove = false
             createdNow      = true

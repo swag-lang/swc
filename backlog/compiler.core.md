@@ -116,10 +116,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   grouping now uses one composite-key first-index table and a source-ordered list of instruction refs,
   instead of nested maps and per-location vectors. A worker-kept `FlatKeyMap` also clears its
   largest previously used capacity on each rebuild.
-- Follow-up: `SanitizerState::upperRegValues` now uses the existing flat map. Its joins and pruning
-  treat each packed-register key independently, and its iteration does not select diagnostic order.
-  DevMode C++ (1,715 tests), safety and sanity suites pass. After one non-reproducing initial
-  broad-run safety failure, the full compiler campaign passed all 69 stages.
+- Rejected for now: embedding `upperRegValues` in `SanitizerFlatMap` passed the compiler suites but
+  adds 16 bytes to every `SanitizerState`, including empty maps. Without occupancy evidence, fewer
+  node allocations do not prove that the larger, more frequently copied state is a net saving.
 - Next: choose another remaining map, establish its traversal order, and design an order-preserving
   flat representation; leave the kept-table reset tradeoff for measurement.
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no

@@ -73,7 +73,12 @@ DevMode and memory evidence above. It makes no timing, CPU or memory claims.
 | Grow sink counters on dense-index insertion | A register-table size comparison for each sink use/definition | The counter table is cleared with the index and grows once for each newly assigned dense index. | DevMode build; C++ suite passed. |
 | Grow sanitizer stamps on dense-index insertion | A stamp-vector size comparison for each sanitizer use/definition | Both structures start empty in `computeChainLiveness`; new dense indices are sequential and each appends exactly one stamp slot. | DevMode build; C++ suite and sanity suite passed. |
 | Grow global range lists on dense-index insertion | A range-table size comparison for each global range insertion | `clearState` clears the dense index and range table together; each newly assigned dense index gets one range list. | DevMode build; C++ suite and focused native register-pressure stages passed. |
-| Flatten sanitizer upper-register facts | Per-entry node allocation and pointer chasing when copying or joining this sparse map in chain states | The same packed-register keys and values remain; join, pruning and borrow-marking operate independently per entry and do not depend on map iteration order. | DevMode build; 1,715 C++ tests, safety and sanity suites passed. |
+
+Rejected experiment: storing `upperRegValues` directly in `SanitizerFlatMap`
+passed DevMode C++, safety, sanity and a 69-stage compiler campaign, but grew
+every `SanitizerState` by 16 bytes even when the map was empty. Without evidence
+about map occupancy, the added copy work is not justified by fewer node
+allocations; the map remains sparse.
 
 At this checkpoint DevMode passed 1,715 C++ tests. The broad compiler suite
 passed 69/69 stages before the final three insertion-driven table-growth edits;
@@ -82,6 +87,7 @@ error suites. A later full compiler run first passed 8/69 stages and reported
 one `safety` failure on `cwe416_use_after_free.swg`; rerunning that safety
 command in its workspace passed all 165 tests. A fresh full compiler campaign
 then passed 69/69 stages, including C++, safety, sanity, native and workspace
-stages. The changes reduce repeated scans, size comparisons and table growth
-checks by construction. Their net speed and memory effects remain for the
-dedicated benchmark campaign to measure.
+stages. After reverting the flat-map experiment, the rebuilt retained tree also
+passed all 69 compiler stages. The changes reduce repeated scans, size
+comparisons and table growth checks by construction. Their net speed and memory
+effects remain for the dedicated benchmark campaign to measure.

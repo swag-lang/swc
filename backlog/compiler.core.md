@@ -707,3 +707,18 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   exact failure, then inspect runtime cloning, symbol publication and native lowering there.
 - Done when: a nested runtime helper resolves and executes through native startup, with
   a regression at the owning boundary and no unknown-name diagnosis on its declaration.
+
+### compiler.core.112 — A positional struct literal rejects the same identifier given twice
+
+- Evidence: with `struct Point { x, y: f32 }`, `func take(p: Point)->f32` and
+  `const Margin = 12.0'f32`, `take({Margin, Margin})` fails semantic checking with
+  `record construction already initializes field 'Margin'`, a field `Point` does not have.
+  `take({Margin, Margin + 0})` and `take(Point{Margin, Margin})` compile. The check lives in
+  `SemaHelpers::finalizeAggregateStruct`: a literal made only of identifiers is named from them
+  as a record before its destination type is known, so two positional values spelled alike
+  collide. `Gui.PdfView.readingPosition` spells `Math.Point{PageMargin, PageMargin}` for it.
+- Next: decide the duplicate once the destination is known: keep the error when the repeated
+  name is a field of the target or the literal has no target, and treat the identifiers as
+  positional values otherwise; add `sema` cases for both outcomes.
+- Done when: `take({Margin, Margin})` compiles and fills both fields, a repeated field shorthand
+  is still rejected with a diagnostic naming a field the type has, and both are suite tests.

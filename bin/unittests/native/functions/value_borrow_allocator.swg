@@ -22,7 +22,9 @@ func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
     {
     case 0: allocator.free(&request)     // No caller size: the allocator must recover the extent.
     case 1:
-        request.size = 262144
+        // A stricter alignment forces relocation even when a cached larger block could grow in place.
+        request.size      = 262144
+        request.alignment = 128
         allocator.realloc(&request)
     }
     return value.value
@@ -32,6 +34,14 @@ func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
 #test
 {
     let allocator = unwrap Swag.getContext().allocator
+
+    // Reuse of a larger reservation must not turn the relocation check into an in-place growth check.
+    var cached: Swag.AllocatorRequest
+    cached.size = 262144
+    allocator.alloc(&cached)
+    Swag.require(cached.address != null)
+    allocator.free(&cached)
+
     for size in [3 * #sizeof(Thing), 131072'u64]
     {
         var request: Swag.AllocatorRequest

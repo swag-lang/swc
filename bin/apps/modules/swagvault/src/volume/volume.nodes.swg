@@ -104,6 +104,8 @@ impl Volume
             fail volumeError(.NotFound)
         if not name.count or name == "." or name == ".." do
             fail volumeError(.InvalidInput)
+        if name.count > MaximumNameSize or security.count > MaximumSecuritySize do
+            fail volumeError(.InvalidInput)
         if .findChild(parent.id, name) do
             fail volumeError(.AlreadyExists)
 
@@ -183,7 +185,7 @@ impl Volume
         let {parent, name} = .resolveParent(newPath)
         if parent == null or not parent.isDirectory() do
             fail volumeError(.NotFound)
-        if not name.count or name == "." or name == ".." do
+        if not name.count or name == "." or name == ".." or name.count > MaximumNameSize do
             fail volumeError(.InvalidInput)
         let source = .nodeById(id)
         if not source do

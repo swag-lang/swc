@@ -117,6 +117,8 @@ namespace WinFsp
     // data and times are journaled with it.
     func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
+        if securitySize and not security do
+            return StatusInvalidParameter
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
@@ -408,6 +410,8 @@ namespace WinFsp
 
     func callbackSetSecurity(context: *void?, nodeId: u64, security: const *void?, securitySize: u32)->s32
     {
+        if securitySize > MaximumSecuritySize or (securitySize and not security) do
+            return StatusInvalidParameter
         let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()

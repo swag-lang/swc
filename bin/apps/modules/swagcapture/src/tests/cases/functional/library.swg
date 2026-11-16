@@ -1128,3 +1128,58 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     Swag.require(Gui.Testing.actionUpdate'ActionLibSel(wnd, ActionLibSel.Home, &state))
     Swag.require(state.disabled)
 }
+
+// Walking the grid with the keyboard scrolls the least that shows the whole chosen capture: one
+// row at a time going down, and back as little going up.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.gui.surfaceWnd.view = f.main
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    let wnd = cast(*Wnd, lib)
+    lib.setPosition({0, 0, 900, 600})
+    lib.applyLayout()
+    for index in 30 do
+        discard testAddLibraryItem(lib.view, Format.toString("capture-%", index), 10, 1)
+
+    let wasDirty = g_DirtyList
+    defer g_DirtyList = wasDirty
+    g_DirtyList = false
+    discard f.gui.render(lib)
+
+    let view   = lib.view
+    let scroll = view.scrollWnd
+    let rows   = (30 + view.numImagesPerLine() - 1) / view.numImagesPerLine()
+    testLibraryKey(wnd, ActionLibSel.Home)
+    Swag.require(scroll.scrollPosition().y == 0)
+
+    func shown(view: *LibraryView)->bool
+    {
+        let rect = view.items[view.focusItem].rect
+        let top  = view.scrollWnd.scrollPosition().y
+        return rect.y - LibraryCellRing >= top - 0.5 and rect.bottom() + LibraryCellRing <= top + view.position.height + 0.5
+    }
+
+    var previous = 0'f32
+    for rows - 1
+    {
+        testLibraryKey(wnd, ActionLibSel.Down)
+        discard f.gui.render(lib)
+        Swag.require(shown(view))
+        let top = scroll.scrollPosition().y
+        Swag.require(top - previous <= view.items[view.focusItem].rect.height + LibraryRowGap + 0.5)
+        previous = top
+    }
+    Swag.require(previous > 0)
+
+    for rows - 1
+    {
+        testLibraryKey(wnd, ActionLibSel.Up)
+        discard f.gui.render(lib)
+        Swag.require(shown(view))
+    }
+    Swag.require(scroll.scrollPosition().y == 0)
+}

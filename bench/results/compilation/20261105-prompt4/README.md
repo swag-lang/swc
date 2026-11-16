@@ -73,6 +73,7 @@ DevMode and memory evidence above. It makes no timing, CPU or memory claims.
 | Grow sink counters on dense-index insertion | A register-table size comparison for each sink use/definition | The counter table is cleared with the index and grows once for each newly assigned dense index. | DevMode build; C++ suite passed. |
 | Grow sanitizer stamps on dense-index insertion | A stamp-vector size comparison for each sanitizer use/definition | Both structures start empty in `computeChainLiveness`; new dense indices are sequential and each appends exactly one stamp slot. | DevMode build; C++ suite and sanity suite passed. |
 | Grow global range lists on dense-index insertion | A range-table size comparison for each global range insertion | `clearState` clears the dense index and range table together; each newly assigned dense index gets one range list. | DevMode build; C++ suite and focused native register-pressure stages passed. |
+| Flatten sanitizer upper-register facts | Per-entry node allocation and pointer chasing when copying or joining this sparse map in chain states | The same packed-register keys and values remain; join, pruning and borrow-marking operate independently per entry and do not depend on map iteration order. | DevMode build; 1,715 C++ tests, safety and sanity suites passed. |
 
 At this checkpoint DevMode passed 1,715 C++ tests. The broad compiler suite
 passed 69/69 stages before the final three insertion-driven table-growth edits;

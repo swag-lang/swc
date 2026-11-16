@@ -48,6 +48,9 @@ bookmarks   Signets
 style       Style
 unitsPerEm  Unités par em
 faces       Faces
+version     Version
+designer    Créateur
+copyright   Droits d'auteur
 separator   Séparateur
 meter       Mesure
 glyphCount  % glyphes

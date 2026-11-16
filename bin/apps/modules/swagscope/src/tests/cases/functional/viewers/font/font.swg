@@ -115,3 +115,24 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     window.lens.close()
     host.finishAnimations()
 }
+
+// The information sheet gives what the face says of itself: its version, its designer and its
+// notice, each as the face writes it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(760, 520)
+    var result = openTestViewer(Typeface.viewerPlugin(), &host.root, fontFixturePath(), commandParent: &host.root)
+    let view   = assume cast(*Typeface.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    let face = unwrap view.document.face
+    Swag.require(not face.version.isEmpty() and not face.copyright.isEmpty())
+
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, Format.toString("Version\n%", face.version).toString()), text)
+    Swag.require(Utf8.contains(text, Format.toString("Copyright\n%", face.copyright).toString()), text)
+    if not face.designer.isEmpty() do
+        Swag.require(Utf8.contains(text, Format.toString("Designer\n%", face.designer).toString()), text)
+}

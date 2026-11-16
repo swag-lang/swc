@@ -68,9 +68,10 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.004 — Font names, legal metadata, and embedding permissions are hidden
 
-- Evidence: only family and style reach the document. Full/PostScript/unique/version names,
-  copyright, designer/vendor, licence, description, dates, PANOSE, weight/width/classification,
-  fsType embedding restrictions, and supported tables are absent.
+- Evidence: the information sheet gives family, style, units per em, and the version, designer
+  and copyright notice the face declares. Full/PostScript/unique names, vendor, licence,
+  description, dates, PANOSE, weight/width/classification, fsType embedding restrictions,
+  localized name records and supported tables are absent.
 - Next: expose original localized name records and normalized technical/legal properties through a
   read-only information panel.
 - Done when: all name records retain platform/language IDs, permissions are explained without

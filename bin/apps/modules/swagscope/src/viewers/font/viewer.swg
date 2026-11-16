@@ -405,6 +405,14 @@ impl Panel
         data.add(.Font, group: true)
         data.add(.Style, face.styleName.isEmpty() ? texts().ui_Regular : face.styleName.toString())
         data.add(.UnitsPerEm, Format.toString("%", face.unitsPerEm))
+
+        // What the face says of itself, set literally: the names and the notice are its own text.
+        if not face.version.isEmpty() do
+            data.add(.Version, face.version.toString())
+        if not face.designer.isEmpty() do
+            data.add(.Designer, face.designer.toString())
+        if not face.copyright.isEmpty() do
+            data.add(.Copyright, face.copyright.toString())
         data.describe(sheet)
     }
 }

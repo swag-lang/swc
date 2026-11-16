@@ -371,7 +371,10 @@ struct SanitizerState
     // The upper eight bytes of a 128-bit register copy. Keep this sparse instead of
     // widening every scalar register's information. Loads snapshot both lanes before
     // subsequent stores can change the source memory.
-    SanitizerSparseMap<uint32_t, SanitizerValue> upperRegValues;
+    // These facts are keyed independently; joins and pruning never depend on
+    // iteration order. Keep them in one flat table rather than allocating one
+    // unordered-map node per upper-half value in every copied chain state.
+    SanitizerFlatMap<uint32_t, SanitizerValue> upperRegValues;
 
     // Frame ranges abandoned by a '#move'/'#relocate' (moved-from, not reset), set by a
     // 'SanityInvalidate' marker: key = slot offset. A range is moved-from only when it

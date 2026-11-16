@@ -614,7 +614,7 @@ void Sanitizer::pruneDeadRegs(SanitizerState& state, const uint64_t* live) const
     };
 
     state.regs.eraseIf([&](uint32_t reg, const SanitizerRegInfo&) { return isDead(reg); });
-    state.upperRegValues.eraseIf([&](const auto& entry) { return isDead(entry.first); });
+    state.upperRegValues.eraseIf([&](const uint32_t reg, const SanitizerValue&) { return isDead(reg); });
 }
 
 void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<const EnabledCheck> checks, SmallVector<uint32_t, 32>* worklist, uint64_t& steps)
@@ -741,8 +741,8 @@ SanitizerValue Sanitizer::getUpperReg(const SanitizerState& state, MicroReg reg)
 {
     if (!reg.isAnyFloat())
         return {};
-    const auto it = state.upperRegValues.find(reg.packed);
-    return it == state.upperRegValues.end() ? SanitizerValue{} : it->second;
+    const SanitizerValue* value = state.upperRegValues.find(reg.packed);
+    return value ? *value : SanitizerValue{};
 }
 
 void Sanitizer::setUpperReg(SanitizerState& state, MicroReg reg, const SanitizerValue& value)
@@ -990,17 +990,15 @@ bool Sanitizer::joinInto(SanitizerState& into, const SanitizerState& from)
 {
     bool changed = false;
 
-    for (auto it = into.upperRegValues.begin(); it != into.upperRegValues.end();)
-    {
-        const auto other = from.upperRegValues.find(it->first);
-        if (other == from.upperRegValues.end() || !it->second.intersect(other->second, changed))
+    into.upperRegValues.eraseIf([&](const uint32_t reg, SanitizerValue& value) {
+        const SanitizerValue* other = from.upperRegValues.find(reg);
+        if (!other || !value.intersect(*other, changed))
         {
-            it      = into.upperRegValues.erase(it);
             changed = true;
+            return true;
         }
-        else
-            ++it;
-    }
+        return false;
+    });
 
     if (into.stack.eraseIf([&](int64_t slot, SanitizerValue& value) {
             const SanitizerValue* other = from.stack.find(slot);
@@ -1939,7 +1937,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
             // Instrumentation cannot mutate a source local or its pointees on a
             // returning path. Its ABI still clobbers physical registers and flags.
             state.regs.eraseIf([](uint32_t reg, const SanitizerRegInfo&) { return !MicroReg::fromPacked(reg).isVirtual(); });
-            state.upperRegValues.eraseIf([](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual(); });
+            state.upperRegValues.eraseIf([](const uint32_t reg, const SanitizerValue&) { return !MicroReg::fromPacked(reg).isVirtual(); });
             state.flagsSubject = MicroReg::invalid();
             return;
         }
@@ -2173,7 +2171,7 @@ void Sanitizer::applyValueEffects(SanitizerState& state, const MicroInstr& inst,
         // clobbered, and what a register said about the CONTENT of a slot no longer holds
         // once the callee may have written it.
         state.regs.eraseIf([](uint32_t reg, const SanitizerRegInfo& info) { return !MicroReg::fromPacked(reg).isVirtual() || (!info.value.isStackAddr() && !info.releasedPointer); });
-        state.upperRegValues.eraseIf([](const auto& entry) { return !MicroReg::fromPacked(entry.first).isVirtual() || !entry.second.isStackAddr(); });
+        state.upperRegValues.eraseIf([](const uint32_t reg, const SanitizerValue& value) { return !MicroReg::fromPacked(reg).isVirtual() || !value.isStackAddr(); });
         state.regs.forEach([](uint32_t, SanitizerRegInfo& info) {
             info = SanitizerRegInfo{.value = info.value, .releasedPointer = info.releasedPointer, .releasedOrigin = info.releasedOrigin};
         });
@@ -2367,7 +2365,7 @@ void Sanitizer::dropZeros(SanitizerState& state)
         return info == SanitizerRegInfo{};
     });
     state.stack.eraseIf([](int64_t, const SanitizerValue& value) { return value.isZero(); });
-    state.upperRegValues.eraseIf([](const auto& entry) { return entry.second.isZero(); });
+    state.upperRegValues.eraseIf([](uint32_t, const SanitizerValue& value) { return value.isZero(); });
 }
 
 void Sanitizer::markMovedBorrows(SanitizerState& state, const int64_t slot, const uint64_t size)
@@ -2381,8 +2379,7 @@ void Sanitizer::markMovedBorrows(SanitizerState& state, const int64_t slot, cons
     };
 
     state.stack.forEach([&](int64_t, SanitizerValue& value) { mark(value); });
-    for (auto& [_, value] : state.upperRegValues)
-        mark(value);
+    state.upperRegValues.forEach([&](uint32_t, SanitizerValue& value) { mark(value); });
     state.regs.forEach([&](uint32_t, SanitizerRegInfo& info) {
         // A compiler-created frame address is still usable for reinitialization.
         // Only register values read from pointer storage are old borrows here.

@@ -72,11 +72,6 @@ impl Volume
             try .file.resize(targetPhysical)
             try .file.flush()
         }
-        if targetPhysical < previousPhysical
-        {
-            try .file.resize(targetPhysical)
-            try .file.flush()
-        }
     }
 
     // Chooses and authenticates a fresh random physical size while leaving the

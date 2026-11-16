@@ -81,7 +81,7 @@ dlg_BtnSave            Enregistrer
 dlg_BtnExport          Exporter
 dlg_BtnMove            Déplacer
 msg_RemoveAssociation  L'association avec l'image sera supprimée.
-msg_DeleteCaptures     Le ou les fichiers de capture seront supprimés.
+msg_DeleteCaptures     Les captures choisies vont dans la corbeille, d'où elles peuvent être restaurées.
 msg_OverwriteLinked    L'image d'origine sera écrasée.
 ui_DoNotAskAgain       Ne plus demander
 ui_DoNotShowResidentAgain Ne plus afficher cet avertissement

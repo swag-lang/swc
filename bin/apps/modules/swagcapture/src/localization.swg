@@ -96,7 +96,7 @@ struct AppStrings
     dlg_BtnExport:                string = "Export"
     dlg_BtnMove:                  string = "Move"
     msg_RemoveAssociation:        string = "This will remove the image association."
-    msg_DeleteCaptures:           string = "This will delete the capture file(s)."
+    msg_DeleteCaptures:           string = "The selected captures move to the recycle bin, where they can be restored."
     msg_EraseTrash:               string = "This will permanently erase every capture in the recycle bin."
     msg_EraseSelected:            string = "This will permanently erase the selected capture(s)."
     msg_OverwriteLinked:          string = "This will overwrite the original image."     // Confirmation before updating a linked image.

@@ -98,7 +98,7 @@ struct AppStrings
     msg_RemoveAssociation:        string = "This will remove the image association."
     msg_DeleteCaptures:           string = "The selected captures move to the recycle bin, where they can be restored."
     msg_EraseTrash:               string = "This will permanently erase every capture in the recycle bin."
-    msg_EraseSelected:            string = "This will permanently erase the selected capture(s)."
+    msg_EraseSelected:            string = "The selected captures will be permanently erased."
     msg_OverwriteLinked:          string = "This will overwrite the original image."     // Confirmation before updating a linked image.
     ui_DoNotAskAgain:             string = "Do not ask again"                            // Option of a confirmation that turns it off.
     ui_DoNotShowResidentAgain:    string = "Do not show this reminder again"             // Choice in the resident notification.

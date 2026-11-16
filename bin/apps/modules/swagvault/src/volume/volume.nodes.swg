@@ -181,8 +181,10 @@ impl Volume
         if id == RootNodeId do
             fail volumeError(.AccessDenied)
         let {parent, name} = .resolveParent(newPath)
-        if parent == null or not parent.isDirectory() or not name.count do
+        if parent == null or not parent.isDirectory() do
             fail volumeError(.NotFound)
+        if not name.count or name == "." or name == ".." do
+            fail volumeError(.InvalidInput)
         let source = .nodeById(id)
         if not source do
             fail volumeError(.NotFound)

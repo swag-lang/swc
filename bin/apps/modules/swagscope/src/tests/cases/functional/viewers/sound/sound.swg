@@ -449,3 +449,37 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     // The 5000 × 367 banner keeps its shape; a waveform would be half as tall as it is wide.
     Swag.require(image.isValid() and image.width == 96 and image.height == 7)
 }
+
+// Shift and an arrow step the rate of a recording through the rates a film offers, the lens
+// steps it too, and the summary declares a rate other than the source one.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-sound-rate-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, TinyWav)
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
+    var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
+    let view     = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.playbackRate == 1)
+
+    var faster = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Shift}
+    view.sendEvent(&faster)
+    Swag.require(view.playbackRate == 1.25 and Utf8.contains(view.details.toString(), "1.25×"))
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Sound", host.theme)
+    view.describeLens(&entries)
+    for &entry in results.sections[0]!.entries where entry.title == Sound.texts().cmd_Slower do
+        entry.run!()
+    Swag.require(view.playbackRate == 1 and not Utf8.contains(view.details.toString(), "×"))
+
+    for 9 do
+        view.sendEvent(&faster)
+    Swag.require(view.playbackRate == Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
+}

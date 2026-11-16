@@ -35,7 +35,6 @@ struct Texts
     ui_OptionSpeed:            string = "Speed"                    // Option choosing the playback rate.
     ui_OptionAudio:            string = "Audio Track"              // Option choosing the sound track.
     ui_OptionSubtitles:        string = "Subtitles"                // Option choosing and styling the subtitles.
-    ui_PlayerSpeedNormal:      string = "Normal"                   // The source playback rate.
     ui_AudioTrackNumber:       string = "Audio %"                  // Fallback name for an unnamed sound track.
     ui_AudioTrackLang:         string = "(%)"                      // A sound-track language, written after its name.
     ui_AudioDetails:           string = "% · % ch · %{f1} kHz"     // Encoding, channel count, and sample rate in the host summary.

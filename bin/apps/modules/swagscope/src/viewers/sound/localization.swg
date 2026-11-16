@@ -17,6 +17,8 @@ struct Texts
     ui_TipSeek:     string = "Seek"                           // Tooltip of the playback timeline.
     ui_TipMute:     string = "Mute or Unmute (M)"             // Tooltip of the mute switch.
     ui_TipVolume:   string = "Volume"                         // Tooltip of the volume slider.
+    cmd_Faster:     string = "Play Faster"                    // Lens command moving playback one rate up; the pitch rises with it.
+    cmd_Slower:     string = "Play Slower"                    // Lens command moving playback one rate down.
     ui_NoEngine:    string = "Playback unavailable"           // Tooltip when no audio engine could be acquired.
     word_Channel:   string = "channel"                        // One audio channel.
     word_Channels:  string = "channels"                       // Several audio channels.

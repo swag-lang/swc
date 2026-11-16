@@ -167,6 +167,7 @@ struct AppStrings
     ui_MenuForget:                     string = "Remove This File from the History"           // Panel menu entry dropping one file from the recent list.
     ui_PreviousPage:                   string = "Previous Page"
     ui_NextPage:                       string = "Next Page"
+    ui_SpeedNormal:                    string = "Normal"     // The source playback rate of a medium.
     ui_CloseSearch:                    string = "Close Search (Esc)"
     ui_Search:                         string = "Find in document"                                // Placeholder of the search field.
     ui_SearchPrevious:                 string = "Previous Match (Shift F3)"                       // Tooltip of the previous-match button.

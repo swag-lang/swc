@@ -16,12 +16,14 @@ the professional listening and inspection surface; decoder and output-engine wor
   synchronized, numeric time/frame jumps work, waveform detail refines asynchronously, and memory
   is independent of recording duration.
 
-### app.scope.audio.001 — Audio playback has no speed or pitch policy
+### app.scope.audio.001 — Audio playback has no rate above 2x or pitch-preserving mode
 
-- Evidence: transport plays at source speed only. There is no 0.25x–4x rate selector, fine rate
-  adjustment, pitch-preserving mode, pitch shift, or visible statement of resampling quality.
-- Next: add variable-rate playback first with an explicit pitch-follows-speed mode, then evaluate a
-  bounded time-stretch path for speech and music.
+- Evidence: a recording plays at the film rates, 0.25x to 2x, stepped with Shift and the arrows
+  or from the lens, the pitch following the rate through `Voice.setFrequencyRatio`; positions stay
+  in source seconds and the summary declares a rate other than 1x. There is no fine rate
+  adjustment, no rate above the voices' 2x ceiling, no pitch-preserving mode or pitch shift, and no
+  statement of resampling quality.
+- Next: evaluate a bounded time-stretch path for speech and music, shared with the film player.
 - Done when: speed is visible and keyboard adjustable, seeks and elapsed time remain source-time
   based, A/V-independent sound playback stays stable at supported rates, and unsupported pitch
   preservation is never implied.

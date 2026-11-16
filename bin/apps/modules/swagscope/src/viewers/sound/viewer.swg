@@ -406,15 +406,16 @@ struct Panel
     waveformLock:  Swag.Mutex
     waveformBuilt: u64
 
-    voice:       *Voice?
-    timer:       *Timer?
-    duration:    f32
-    elapsed:     f32
-    engineReady: bool
-    thumbnail:   bool
-    playing:     bool
-    muted:       bool
-    volume:      f32 = 1
+    voice:        *Voice?
+    timer:        *Timer?
+    duration:     f32
+    elapsed:      f32
+    engineReady:  bool
+    thumbnail:    bool
+    playing:      bool
+    muted:        bool
+    volume:       f32 = 1
+    playbackRate: f64 = 1     // Source seconds played per second; the pitch follows it.
 
     retireRequested: bool
     retired:         bool
@@ -487,6 +488,10 @@ impl Panel
                                    channelCountText(.sound.numChannels()),
                                    .sound.sampleStorageBits(),
                                    durationText(.duration))
+
+        // An adjusted rate is part of what the reader hears, so the summary declares it.
+        if .playbackRate != 1 do
+            .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
         .services.showDetails(me, .details)
         .invalidate()
     }
@@ -694,6 +699,8 @@ impl Panel
         {
             .voice = try Voice.create(&.sound)
             catch .voice.setVolume(.muted ? 0 : .volume)
+            if .playbackRate != 1 do
+                catch .voice.setFrequencyRatio(cast(f32, .playbackRate))
             return true
         }
 
@@ -725,6 +732,28 @@ impl Panel
         entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
         entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))
+
+        // The rate is stepped like a film's, and the row reads the rate in force.
+        let strings = Sound.texts()
+        let faster  = entries.add(strings.cmd_Faster, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, 1)) }, disabled: .playbackRate >= Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
+        if faster do
+            faster.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Right))
+        let slower = entries.add(strings.cmd_Slower, .PlaybackSpeed, func|view = me|() { view.setPlaybackRate(Viewer.playbackRateStep(view.playbackRate, -1)) }, disabled: .playbackRate <= Viewer.PlaybackRates[0])
+        if slower do
+            slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
+    }
+
+    // Plays the recording at `rate` source seconds per second, the pitch following it. Positions
+    // and times stay in source seconds: the voice reports where it is in the recording. A voice
+    // that refuses the ratio keeps its own rate.
+    mtd setPlaybackRate(rate: f64)
+    {
+        if rate == .playbackRate do
+            return
+        .playbackRate = rate
+        if .voice do
+            catch .voice.setFrequencyRatio(cast(f32, rate))
+        .refreshDetails()
     }
 
     mtd seekRelative(seconds: f32)
@@ -933,6 +962,13 @@ impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
+        // Shift and an arrow step the rate, as they do over a film.
+        if evt.kind == .Pressed and evt.modifiers == .Shift and (evt.key == .Left or evt.key == .Right)
+        {
+            .setPlaybackRate(Viewer.playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
+            return
+        }
+
         if evt.kind != .Pressed or evt.modifiers != .None
         {
             evt.accepted = false

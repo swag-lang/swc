@@ -29,7 +29,6 @@ ui_TipOptions    Options de lecture
 ui_OptionSpeed       Vitesse
 ui_OptionAudio       Piste audio
 ui_OptionSubtitles   Sous-titres
-ui_PlayerSpeedNormal  Normale
 ui_AudioTrackNumber  Audio %
 ui_AudioTrackLang    (%)
 ui_AudioDetails  % · % can. · %{f1} kHz

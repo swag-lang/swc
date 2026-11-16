@@ -35,10 +35,6 @@ private
     const SeekSeconds = 10.0
     const NoSubtitle  = Swag.U32.Max
 
-    // The playback rates the settings menu offers. XAudio2 creates every voice with the default
-    // maximum frequency ratio of two, so 2x is the fastest rate the sound can follow.
-    const PlaybackRates: [7] f64 = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
-
     // How far behind the clock playback is allowed to fall before it gives up and jumps.
     //
     // Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
@@ -131,19 +127,6 @@ func soundSample(sound: const *SoundFile, seconds: f64)->u64
     let local = Math.max(seconds - sound.timelineStartSeconds(), 0)
     return cast(u64, Math.round(local * cast(f64, sound.sampleRateHz())))
 }
-
-// Moves one step through the playback rates the options offer.
-private func playbackRateStep(current: f64, direction: s32)->f64
-{
-    var currentIndex = 0's32
-    for rate, index in PlaybackRates where rate <= current do
-        currentIndex = cast(s32, index)
-    let nextIndex = Math.clamp(currentIndex + direction, 0, cast(s32, PlaybackRates.count - 1))
-    return PlaybackRates[cast(u32, nextIndex)]
-}
-
-// Names one selectable playback rate; the source rate keeps its word rather than a number.
-private func playbackRateText(rate: f64)->String => rate == 1 ? texts().ui_PlayerSpeedNormal : Format.toString("%×", rate)
 
 // One decoded picture of the run-ahead queue.
 //
@@ -728,7 +711,7 @@ private impl IWnd for Panel
         {
         case .G where control:                    .promptGoToTime()
         case .Left, .Right where control:         discard .stepFrame(evt.key == .Right)
-        case .Left, .Right where shift:           .setPlaybackRate(playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
+        case .Left, .Right where shift:           .setPlaybackRate(Viewer.playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
         case .Space, .MediaPlayPause where plain: .togglePlayback()
         case .Left where plain:                   .seekRelative(-SeekSeconds)
         case .Right where plain:                  .seekRelative(SeekSeconds)
@@ -839,7 +822,7 @@ private impl Panel
 
         // An adjusted rate is part of what the reader is watching, so the summary declares it.
         if .playbackRate != 1 do
-            .details = Format.toString("% · %", .details, playbackRateText(.playbackRate))
+            .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
 
         // Technical facts use the host footer; the title only identifies the file.
         .services.showDetails(me, .facts())

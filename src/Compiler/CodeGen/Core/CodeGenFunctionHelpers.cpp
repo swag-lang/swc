@@ -295,6 +295,27 @@ bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const Sym
     return functionUsesIndirectReturnStorage(codeGen, codeGen.function());
 }
 
+void CodeGenFunctionHelpers::emitCompilerRunReturnValue(CodeGen& codeGen, const CallConvKind callConvKind, const TypeRef returnTypeRef, const MicroReg outputStorageReg, const MicroReg payloadReg, const bool payloadLValue, const ABITypeNormalize::NormalizedType& normalizedRet)
+{
+    const bool needsPersistent = needsPersistentCompilerRunReturn(codeGen.ctx(), returnTypeRef);
+    if (normalizedRet.isIndirect)
+    {
+        SWC_ASSERT(normalizedRet.indirectSize != 0);
+        if (needsPersistent)
+            emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
+        else
+            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
+    }
+    else
+    {
+        // Argument cleanup can call runtime helpers after the result was materialized.
+        ABICall::storeValueToReturnBuffer(codeGen.builder(), callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
+
+        if (needsPersistent)
+            emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
+    }
+}
+
 CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(CodeGen& codeGen, const SymbolVariable& symVar)
 {
     SWC_ASSERT(usesCallerReturnStorage(codeGen, symVar));

@@ -430,27 +430,7 @@ Result AstCompilerRunExpr::codeGenPostNode(CodeGen& codeGen) const
 
     const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(codeGen.ctx(), callConv, *exprView.type(), ABITypeNormalize::Usage::Return);
 
-    const bool needsPersistent = CodeGenFunctionHelpers::needsPersistentCompilerRunReturn(codeGen.ctx(), exprView.typeRef());
-
-    if (normalizedRet.isIndirect)
-    {
-        SWC_ASSERT(normalizedRet.indirectSize != 0);
-        if (needsPersistent)
-            CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, payloadReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-        else
-            CodeGenMemoryHelpers::emitMemCopy(codeGen, outputStorageReg, payloadReg, normalizedRet.indirectSize);
-    }
-    else
-    {
-        // Argument cleanup can call runtime helpers after the result was materialized.
-        ABICall::storeValueToReturnBuffer(builder, callConvKind, outputStorageReg, payloadReg, payloadLValue, normalizedRet);
-
-        if (needsPersistent)
-        {
-            // Direct ABI returns can still carry stack-backed strings/slices inside the register payload.
-            CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, exprView.typeRef(), outputStorageReg, outputStorageReg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
-        }
-    }
+    CodeGenFunctionHelpers::emitCompilerRunReturnValue(codeGen, callConvKind, exprView.typeRef(), outputStorageReg, payloadReg, payloadLValue, normalizedRet);
 
     SWC_RESULT(codeGen.emitDeferredActionsForReturn());
     CodeGenFunctionHelpers::emitLocalStackFrameEpilogue(codeGen, callConvKind);

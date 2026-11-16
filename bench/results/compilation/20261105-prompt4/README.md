@@ -102,8 +102,9 @@ tests), all three native stages, and the full compiler campaign (69/69 stages).
 The later preload live-bit walk passed the C++ suite, all three native stages,
 the full compiler campaign (69/69 stages), and the twelve-task static Micro
 comparison with identical checksums. Listing differences included reordered
-duplicate `AtomicValue` clone bodies and synthetic `__run_expr` addresses; a
-same-binary control reproduced these variations. The retained changes reduce
+duplicate `AtomicValue` clone bodies and synthetic `__run_expr` addresses; all
+task-owned function listings were unchanged, and a same-binary control
+reproduced the runtime/synthetic variations. The retained changes reduce
 repeated scans, size comparisons, table growth checks, and temporary header
 storage by construction. Their net speed and memory effects remain for the
 dedicated benchmark campaign to measure.

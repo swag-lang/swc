@@ -14,8 +14,8 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
-#include "Unittest/Unittest.h"
 #include "Unittest/ABI/AbiTestTypes.h"
+#include "Unittest/Unittest.h"
 #include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -338,8 +338,8 @@ SWC_TEST_BEGIN(MachineCodeCache_PreservesSourceSharingAcrossGapsAndFlagChanges)
             uint32_t tokenDelta = index == 3 || index == 6 ? 1 : 0;
             if (index == 8 && variant == 2)
                 tokenDelta = 2;
-            source.sourceCodeRef      = {view, TokenRef{tokenBase + tokenDelta}};
-            source.debugNoStep        = index == 1 && variant == 3;
+            source.sourceCodeRef = {view, TokenRef{tokenBase + tokenDelta}};
+            source.debugNoStep   = index == 1 && variant == 3;
         }
         keys[variant] = cacheKey(ctx, *caller, builder);
         if (keys[variant].empty())
@@ -517,8 +517,8 @@ SWC_TEST_BEGIN(MachineCodeCache_PreservesConstantLeafAlignmentBytesAndOffsets)
     {
         const uint32_t shard             = variant == 0 ? 0 : 1;
         DataSegment&   segment           = ctx.cstMgr().shardDataSegment(shard);
-        const auto [first, firstBytes]   = segment.reserveBytes(payload.size(), 8, false);
-        const auto [second, secondBytes] = segment.reserveBytes(payload.size(), variant == 2 ? 16 : 8, false);
+        const auto [first, firstBytes]   = segment.reserveBytes(static_cast<uint32_t>(payload.size()), 8, false);
+        const auto [second, secondBytes] = segment.reserveBytes(static_cast<uint32_t>(payload.size()), variant == 2 ? 16 : 8, false);
         std::memcpy(firstBytes, payload.data(), payload.size());
         std::memcpy(secondBytes, payload.data(), payload.size());
         if (variant == 3)
@@ -554,11 +554,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(MachineCodeCache_DistinguishesAdditionalResultRegisters)
 {
-    auto* function = makeCacheFunction(ctx, "cacheAggregateResult");
+    auto*        function = makeCacheFunction(ctx, "cacheAggregateResult");
     MicroBuilder builder(ctx);
     builder.emitRet();
     builder.setRetUsesAbiRegs(true, false);
-    const Utf8 scalar = cacheKey(ctx, *function, builder);
+    const Utf8     scalar        = cacheKey(ctx, *function, builder);
     const uint64_t secondInteger = MicroPassHelpers::MicroPhysLiveness::maskOf(MicroReg::intReg(3));
     builder.setRetUsesAbiRegs(true, false, secondInteger);
     const Utf8 aggregate = cacheKey(ctx, *function, builder);
@@ -573,13 +573,13 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(MachineCodeCache_DistinguishesSystemVAggregateRegisterClasses)
 {
     const std::array fields{ctx.typeMgr().typeU64(), ctx.typeMgr().typeF64()};
-    const TypeRef type = Backend::Unittest::makeStructType(ctx, fields);
-    auto* function = makeCacheFunction(ctx, "cacheSystemVStorage", type);
+    const TypeRef    type     = Backend::Unittest::makeStructType(ctx, fields);
+    auto*            function = makeCacheFunction(ctx, "cacheSystemVStorage", type);
     function->setCallConvKind(CallConvKind::SystemVAMD64);
     MicroBuilder builder(ctx);
     builder.emitRet();
     const Utf8 mixed = cacheKey(ctx, *function, builder);
-    auto* field = ctx.typeMgr().get(type).payloadSymStruct().fields()[1];
+    auto*      field = ctx.typeMgr().get(type).payloadSymStruct().fields()[1];
     field->setTypeRef(ctx.typeMgr().typeU64());
     const Utf8 integers = cacheKey(ctx, *function, builder);
     field->setTypeRef(ctx.typeMgr().typeF64());

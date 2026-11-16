@@ -2,9 +2,9 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Backend/RuntimeName.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Lexer/LangSpec.h"
 #include "Compiler/Lexer/Lexer.h"
@@ -1289,8 +1289,8 @@ SWC_TEST_BEGIN(Compiler_GlobalOsGuardSelectsTargetBeforeDeclarations)
     struct Case
     {
         std::string_view condition;
-        bool            windowsSkip;
-        bool            linuxSkip;
+        bool             windowsSkip;
+        bool             linuxSkip;
     };
     constexpr Case cases[] = {
         {"#os == Swag.TargetOs.Windows", false, true},
@@ -1312,10 +1312,10 @@ SWC_TEST_BEGIN(Compiler_GlobalOsGuardSelectsTargetBeforeDeclarations)
         for (const auto& item : cases)
         {
             CommandLine cmdLine;
-            cmdLine.command = CommandKind::Syntax;
+            cmdLine.command  = CommandKind::Syntax;
             cmdLine.targetOs = target;
             CompilerInstance compiler(ctx.global(), cmdLine);
-            const Utf8 source = std::format("#global if {}\nstruct PlatformValue {{ value: s32 }}\n", item.condition);
+            const Utf8       source = std::format("#global if {}\nstruct PlatformValue {{ value: s32 }}\n", item.condition);
             Unittest::registerTestSource(compiler, sourcePath, source.view());
             TaskContext compilerCtx(compiler);
             SourceFile& file = compiler.addFile(sourcePath, FileFlagsE::CustomSrc);
@@ -1330,13 +1330,57 @@ SWC_TEST_BEGIN(Compiler_GlobalOsGuardSelectsTargetBeforeDeclarations)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Runtime_BootstrapReservationSizesRemainWide)
+{
+    static constexpr std::string_view SOURCE = R"(#global private
+
+using Swag
+
+#run
+{
+    let granularity = AllocatorHostCommitGranularity
+    Swag.require(__bootstrapRoundedSize(1, 8) == granularity)
+    Swag.require(__bootstrapRoundedSize(granularity, 8) == 2 * granularity)
+
+    const LargeAlignment = 1'u32 << 31
+    let large = __bootstrapRoundedSize(1, LargeAlignment)
+    Swag.require(large > LargeAlignment)
+    Swag.require(large % granularity == 0)
+
+    Swag.require(__bootstrapRoundedSize(Swag.U64.Max, 8) == 0)
+    Swag.require(__bootstrapRoundedSize(Swag.U64.Max - granularity, 8) == 0)
+    Swag.require(__bootstrapRoundedSize(1, 0) == 0)
+    Swag.require(__bootstrapRoundedSize(1, 3) == 0)
+}
+)";
+
+    CommandLine command;
+    command.command  = CommandKind::Sema;
+    command.targetOs = hostTargetOs();
+    command.buildCfg = "devmode";
+    command.numCores = 3;
+    command.silent   = true;
+    command.name     = "runtime_bootstrap_reservation_sizes";
+    CommandLineParser::refreshBuildCfg(command);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), command);
+    TaskContext       context(compiler);
+    Unittest::addTestSource(context, "Runtime", "BootstrapReservationSizes", SOURCE, FileFlagsE::Runtime);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 #if defined(__linux__) && defined(__x86_64__)
 SWC_TEST_BEGIN(Compiler_LinuxGuardedRuntimeBootstrapsPureLeaves)
 {
     // The runtime folds its monotonic frequency while allocator callbacks are still
     // being analyzed. Unused borrow guards and unrelated global roots formed a cycle.
-    static constexpr std::string_view SOURCE = "const Answer = 42\n#assert(Answer == 42)\n";
-    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "LinuxGuardedRuntimeBootstrap");
+    static constexpr std::string_view SOURCE     = "const Answer = 42\n#assert(Answer == 42)\n";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "LinuxGuardedRuntimeBootstrap");
 
     CommandLine cmdLine;
     cmdLine.command  = CommandKind::Sema;
@@ -1348,9 +1392,9 @@ SWC_TEST_BEGIN(Compiler_LinuxGuardedRuntimeBootstrapsPureLeaves)
     cmdLine.files.insert(sourcePath);
     CommandLineParser::refreshBuildCfg(cmdLine);
 
-    const uint64_t errorsBefore = Stats::getNumErrors();
+    const uint64_t    errorsBefore = Stats::getNumErrors();
     RestoreErrorCount restoreErrors{errorsBefore};
-    CompilerInstance compiler(ctx.global(), cmdLine);
+    CompilerInstance  compiler(ctx.global(), cmdLine);
     Unittest::registerTestSource(compiler, sourcePath, SOURCE);
     Command::sema(compiler);
     if (Stats::getNumErrors() != errorsBefore)

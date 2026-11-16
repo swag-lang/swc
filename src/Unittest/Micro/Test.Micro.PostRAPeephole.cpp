@@ -1399,7 +1399,7 @@ SWC_TEST_BEGIN(PostRAPeephole_LoadedValueOffsetKeepsBothResults)
                         SWC_RESULT(executeForwardingCase(ctx, builder, values, optimize));
                         const uint64_t result   = input + static_cast<uint64_t>(offset);
                         const bool     expected = result < input;
-                        if (values[1] != input || values[2] != result || values[3] != expected)
+                        if (values[1] != input || values[2] != result || values[3] != static_cast<uint64_t>(expected))
                             return Result::Error;
                         if (optimize && !liveFlags && hasLoadRegReg(builder, saved, value))
                             return Result::Error;
@@ -5824,7 +5824,8 @@ SWC_TEST_BEGIN(PostRAPeephole_WideZeroStoresPreserveBytesAndFlags)
                 builder.emitStoreVolatileMemReg(base, second, zero, MicroOpBits::B128);
             else
                 builder.emitLoadMemReg(variant == 10 ? other : base, second, variant == 11 ? MicroReg::floatReg(1) : zero, MicroOpBits::B128);
-            const uint32_t chunks = variant == 0 ? 6 : variant == 12 ? 5 : 4;
+            const uint32_t chunks = variant == 0 ? 6 : variant == 12 ? 5
+                                                                     : 4;
             for (uint32_t i = 2; i < chunks; ++i)
                 builder.emitLoadMemReg(base, first + i * 16, zero, MicroOpBits::B128);
             builder.emitLoadMemReg(base, 160, MicroReg::floatReg(1), MicroOpBits::B128);
@@ -7071,7 +7072,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarCopyTransfersCallLaneDemands)
                     SWC_RESULT(runPostRaPeepholePass(builder));
                     const auto* inst = builder.instructions().ptr(copy);
                     const bool  wide = variant == 0 || variant == 3 || variant == 5 || (variant == 6 && bits == MicroOpBits::B64) ||
-                                       (variant == 4 && !CallConv::get(convention).isFloatPersistentReg(copied));
+                                      (variant == 4 && !CallConv::get(convention).isFloatPersistentReg(copied));
                     if (!inst || inst->op != MicroInstrOpcode::LoadRegReg ||
                         inst->ops(builder.operands())[2].opBits != (wide ? MicroOpBits::B128 : bits))
                         return Result::Error;
@@ -8353,9 +8354,9 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedIntegerMemoryPreservesLanesAndOrder)
                             reference = values;
                         else
                         {
-                            const bool fold = !commute || op != MicroOp::VecSub32 || destination == 1;
+                            const bool     fold   = !commute || op != MicroOp::VecSub32 || destination == 1;
                             const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) +
-                                                   Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
+                                                    Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
                             if (values != reference || folded != (fold ? 1u : 0u))
                             {
                                 Logger::print(ctx, std::format("packed-int op={} destination={} address={} commute={} equal={} folded={} expected={}\n", static_cast<int>(op), destination, address, commute, values == reference, folded, fold));
@@ -8438,7 +8439,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(PostRAPeephole_NarrowMemoryKeepsFrameReloadsAvailable)
 {
-    const auto& conv = CallConv::get(CallConvKind::Swag);
+    const auto&    conv  = CallConv::get(CallConvKind::Swag);
     const MicroReg local = MicroReg::intReg(12);
     for (const auto base : {conv.stackPointer, conv.framePointer, local})
         for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32})
@@ -8630,7 +8631,7 @@ SWC_TEST_BEGIN(PostRAPeephole_ZeroExtendedBitwiseMemoryPreservesHighBitsAndFlags
                                     {
                                         const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegAmcMem) +
                                                                 Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem);
-                                        const bool     fold   = mode == 0 && resultBits != MicroOpBits::B32 && op != MicroOp::And;
+                                        const bool fold = mode == 0 && resultBits != MicroOpBits::B32 && op != MicroOp::And;
                                         if (values != reference || folded != (fold ? 1u : 0u))
                                             return Result::Error;
                                     }
@@ -8720,7 +8721,7 @@ SWC_TEST_BEGIN(PostRAPeephole_DestructiveScalarMemoryRequiresDeadUpperLanesAndNo
                             {
                                 const uint32_t folded = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegAmcMem) +
                                                         Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegRegMem);
-                                const bool     fold   = noNaN && !liveUpper && (op == MicroOp::FloatAdd || op == MicroOp::FloatMultiply);
+                                const bool fold = noNaN && !liveUpper && (op == MicroOp::FloatAdd || op == MicroOp::FloatMultiply);
                                 if (values != reference || folded != (fold ? 1u : 0u))
                                     return Result::Error;
                             }

@@ -205,10 +205,10 @@ func __hostPageReserve(size: u64)->[*] u8?
 
     let record = cast(*LinuxPageReservation, unwrap mapping)
     record.size = size
-    __hostLockExclusive(&registry.lock)
+    __linuxLockProcessWide(&registry.lock)
     record.next    = registry.first
     registry.first = record
-    __hostUnlockExclusive(&registry.lock)
+    __linuxUnlockProcessWide(&registry.lock)
     return cast([*] u8, cast(u64, mapping) + AllocatorHostCommitGranularity)
 }
 
@@ -218,8 +218,8 @@ private func __linuxSetPageCommitted(address: *void?, size: u64, committed: bool
     let registry = __linuxPageRegistry()
     if not registry do
         return
-    __hostLockExclusive(&registry.lock)
-    defer __hostUnlockExclusive(&(unwrap registry).lock)
+    __linuxLockProcessWide(&registry.lock)
+    defer __linuxUnlockProcessWide(&(unwrap registry).lock)
     var record = registry.first
     while record
     {
@@ -292,8 +292,8 @@ private func __linuxReleaseReservation(address: *void, size: u64)
     let registry = __linuxPageRegistry()
     if not registry do
         return
-    __hostLockExclusive(&registry.lock)
-    defer __hostUnlockExclusive(&(unwrap registry).lock)
+    __linuxLockProcessWide(&registry.lock)
+    defer __linuxUnlockProcessWide(&(unwrap registry).lock)
     var link = &registry.first
     while link[]
     {
@@ -318,8 +318,8 @@ func __hostPageAllocationBase(address: u64)->u64
     let registry = __linuxPageRegistry()
     if not registry do
         return 0
-    __hostLockExclusive(&registry.lock)
-    defer __hostUnlockExclusive(&(unwrap registry).lock)
+    __linuxLockProcessWide(&registry.lock)
+    defer __linuxUnlockProcessWide(&(unwrap registry).lock)
     var record = registry.first
     while record
     {

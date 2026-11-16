@@ -158,7 +158,8 @@ impl HashSet
 
             let storageBytes = .capacity * #sizeof(HashSetEntry'(K))
             let oldTable     = .tablePtr()
-            let newTable     = cast([*] HashSetEntry'(K), Memory.alloc(storageBytes, .allocator))
+            let newTable     = cast([*] HashSetEntry'(K),
+                                    Memory.alloc(storageBytes, .allocator, #alignof(HashSetEntry'(K))))
             #static if Reflection.hasDynamicStorage(HashSetEntry'(K)) do
                 Swag.init(newTable, .capacity)
             else do
@@ -297,7 +298,8 @@ impl HashSet
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        .table = cast([*] HashSetEntry'(K), Memory.alloc(newCapacityBytes, .allocator))
+        .table = cast([*] HashSetEntry'(K),
+                      Memory.alloc(newCapacityBytes, .allocator, #alignof(HashSetEntry'(K))))
         .count, .deleted = 0
         let table = .tablePtr()
 

@@ -344,7 +344,8 @@ impl ViewerWindow
 
     // Answers the lens with the lines of the open document that hold the query, under "In This
     // File", in the order of the file, each led by its number in mono; `:` and a number go to that
-    // line. Code, text and Markdown answer, as documents read line by line.
+    // line. Code, text and Markdown answer, as documents read line by line; a table answers `:`
+    // itself, with its rows.
     private mtd describeFileLines(results: *Lens.Results)
     {
         if .isExploring() or .currentFile.isEmpty() do
@@ -352,6 +353,12 @@ impl ViewerWindow
         if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
             return
         let key = .choices[.activeChoiceIndex].key
+        if key == "table" and results.prefix == .Line
+        {
+            .describeViewerCommands(results)
+            return
+        }
+
         if key != "text" and key != "code" and key != "markdown" do
             return
         if not .instances[.activeChoiceIndex].revealMatch do
@@ -1230,6 +1237,7 @@ impl ViewerWindow
             .documentHost.applyLayout()
             .layoutViewerBar()
         }
+
         .layoutSearchBar()
     }
 

@@ -939,6 +939,37 @@ impl Panel
         return Viewer.listCellMatchBounds(.list, .lineOfRow(.searchRow), cast(u32, .searchColumn), shown, lead + markedStart - range.start, markedEnd - markedStart, result)
     }
 
+    // Moves the keyboard focus to row `line` as the table shows it, the one the row readout names,
+    // and brings it into view.
+    internal mtd revealLine(line: u32)
+    {
+        if line >= .document.rows.count do
+            return
+        .list.unselectAll()
+        .list.setFocusedIndex(line)
+        .refreshDetails()
+    }
+
+    // Answers `:` and a number in the lens with that row of the table, counted as the row readout
+    // counts it: from one, in the order on screen.
+    mtd describeLens(entries: *Viewer.LensEntries)
+    {
+        if entries.results.prefix != .Line do
+            return
+        let query = Latin1.trim(entries.query.toString())
+        if not query.count do
+            return
+        for c in query where not Latin1.isDigit(c) do
+            return
+        let row = catch StrConv.toU64(query)
+        if not row or row > .document.rows.count do
+            return
+
+        let entry = entries.add(Format.toString(texts().ui_GoToRow, row), .GoTo, func|view = me, row|() { view.revealLine(cast(u32, row - 1)) })
+        if entry do
+            entry.lead = Format.toString("%", row)
+    }
+
     mtd clearSearch()
     {
         .searchRow    = Swag.U64.Max
@@ -1006,6 +1037,7 @@ func createViewer(host: Viewer.Host)
 
     host.setSearch(Viewer.searchApi(view))
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
+    host.setLensSource(func|view|(entries) { view.describeLens(entries) })
 
     host.setLifecycle(Viewer.loadLifecycle(view))
 }

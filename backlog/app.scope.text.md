@@ -480,8 +480,9 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.021 — Table navigation has no stable row identity or direct cell address
 
-- Evidence: the reader can scroll and search but cannot jump to source row, visible row, column,
-  or `R:C` cell; sorting and filtering from app.scope.text.017 will make those coordinate systems diverge.
+- Evidence: `:` and a number in the lens go to that row as the row readout counts it, in the
+  order on screen. There is no jump to a source row once sorted, to a column, or to an `R:C`
+  cell; sorting and filtering from app.scope.text.017 make those coordinate systems diverge.
 - Next: define source and view coordinates before adding a name/address box and navigation history.
 - Done when: direct jumps identify their coordinate space, headers are searchable, current cell
   and source row remain visible, and back/forward survives sort and filter changes where possible.

@@ -18,6 +18,7 @@ struct Texts
     ui_KindDecimal:     string = "decimal"
     ui_KindDate:        string = "date"
     ui_RowAt:           string = "row %"
+    ui_GoToRow:         string = "Go to Row %"     // Lens row moving the table to the row typed after a colon, as the row readout counts it.
     err_TooLarge:       string = "the tabular viewer accepts files up to 32 MiB"
     err_TooManyColumns: string = "the tabular viewer accepts up to 256 columns"
     err_UnclosedQuote:  string = "a quoted field reaches the end of the file"

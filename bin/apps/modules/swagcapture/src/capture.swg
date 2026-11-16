@@ -199,8 +199,10 @@ struct CaptureFileModel
 // and where it came from.
 struct Capture
 {
+    // The sizes the resize and expand boxes accept. The largest is the largest texture side current
+    // graphics cards take, past the grab of a desktop across several monitors.
     const MinSize = 16
-    const MaxSize = 4096
+    const MaxSize = 16384
     width, height:       s32
     backImg:             Image
     widthOrg, heightOrg: s32

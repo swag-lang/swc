@@ -207,6 +207,32 @@ using Swag, Core
     Swag.require(f.capture.height == 20)
 }
 
+// A grab across two 2560-wide monitors is 5120 wide, and the canvas of such a capture still
+// expands.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 5120
+    f.capture.height  = 1440
+    f.capture.backImg = Image.create(5120, 1440, .BGRA8)
+
+    let resizeMode = g_ResizeMode
+    defer g_ResizeMode = resizeMode
+    g_ResizeMode = 1
+    f.gui.app.sigFrame += func|host = &f.gui|(_)
+    {
+        g_Width  = 5160
+        g_Height = 1440
+        discard host.clickModalButton(Dialog.BtnOk)
+    }
+
+    f.main.sendCommandEvent(ActionImage.ExpandCapture)
+    f.gui.pump()
+    Swag.require(f.capture.width == 5160 and f.capture.height == 1440)
+}
+
 // Centred, an expansion by an odd number of pixels gives the odd one to the right and the bottom:
 // the image and the canvas take exactly the size asked for.
 #test

@@ -886,25 +886,6 @@ namespace PostRaPeephole
 
     namespace
     {
-        // ALU ops that set ZF/SF/PF from their register result exactly as
-        // `cmp result, 0` would. add/sub/and/or/xor all qualify. Multiply
-        // (imul leaves SF/ZF/PF undefined on x64) and shifts (flags depend on
-        // the count, undefined for count 0) are intentionally excluded.
-        bool isFlagReuseSafeMicroOp(MicroOp op)
-        {
-            switch (op)
-            {
-                case MicroOp::Add:
-                case MicroOp::Subtract:
-                case MicroOp::And:
-                case MicroOp::Or:
-                case MicroOp::Xor:
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
         // Conditions whose truth depends only on ZF/SF/PF, which the reused
         // arithmetic flags reproduce identically. Carry/overflow-sensitive
         // orderings (Above/Below/Greater/Less/Overflow) are NOT reusable: a
@@ -981,7 +962,7 @@ namespace PostRaPeephole
             {
                 case MicroInstrOpcode::OpBinaryRegImm:
                     // [dst, opBits, microOp, imm]
-                    if (!isFlagReuseSafeMicroOp(ops[2].microOp))
+                    if (!MicroPassHelpers::isFlagReuseSafeMicroOp(ops[2].microOp))
                         return false;
                     outReg  = ops[0].reg;
                     outBits = ops[1].opBits;
@@ -989,7 +970,7 @@ namespace PostRaPeephole
 
                 case MicroInstrOpcode::OpBinaryRegReg:
                     // [dst, rhs, opBits, microOp]
-                    if (!isFlagReuseSafeMicroOp(ops[3].microOp))
+                    if (!MicroPassHelpers::isFlagReuseSafeMicroOp(ops[3].microOp))
                         return false;
                     outReg  = ops[0].reg;
                     outBits = ops[2].opBits;
@@ -1177,13 +1158,13 @@ namespace PostRaPeephole
         if (prev->op == MicroInstrOpcode::OpBinaryMemImm)
         {
             // [base, opBits, microOp, offset, imm]
-            if (prevOps[1].opBits != cmpOps[1].opBits || !isFlagReuseSafeMicroOp(prevOps[2].microOp) || prevOps[3].valueU64 != cmpOps[2].valueU64)
+            if (prevOps[1].opBits != cmpOps[1].opBits || !MicroPassHelpers::isFlagReuseSafeMicroOp(prevOps[2].microOp) || prevOps[3].valueU64 != cmpOps[2].valueU64)
                 return false;
         }
         else if (prev->op == MicroInstrOpcode::OpBinaryMemReg)
         {
             // [base, reg, opBits, microOp, offset]
-            if (prevOps[2].opBits != cmpOps[1].opBits || !isFlagReuseSafeMicroOp(prevOps[3].microOp) || prevOps[4].valueU64 != cmpOps[2].valueU64)
+            if (prevOps[2].opBits != cmpOps[1].opBits || !MicroPassHelpers::isFlagReuseSafeMicroOp(prevOps[3].microOp) || prevOps[4].valueU64 != cmpOps[2].valueU64)
                 return false;
         }
         else

@@ -18,6 +18,23 @@ namespace MicroPassHelpers
 {
     using MicroOptimizationLimits::Helpers::K_MAX_ROOT_CHAIN;
 
+    // On x64 these ALU operations set ZF/SF/PF from their result, as `cmp result, 0` does.
+    // Multiply leaves those flags undefined and shifts depend on the count.
+    inline bool isFlagReuseSafeMicroOp(const MicroOp op)
+    {
+        switch (op)
+        {
+            case MicroOp::Add:
+            case MicroOp::Subtract:
+            case MicroOp::And:
+            case MicroOp::Or:
+            case MicroOp::Xor:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     struct RegTouch
     {
         bool use = false;

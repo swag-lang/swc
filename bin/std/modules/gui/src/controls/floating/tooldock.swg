@@ -54,7 +54,7 @@ struct ToolDockMember
 
 impl ToolDockMember
 {
-    mtd idView()->WndId? => .hasId ? .idStorage.toString() : null
+    private mtd idView()->WndId? => .hasId ? .idStorage.toString() : null
 }
 
 // The tools one cell of a [[Gui.ToolDock]] stands for.
@@ -183,7 +183,8 @@ impl ToolDock
                 member.idStorage = cell.id
                 member.hasId     = true
             }
-            member.toolTip = String.from(cell.toolTip)
+
+            member.toolTip   = String.from(cell.toolTip)
             cell.hookOnEvent = func|dock = me|(wnd, evt)->bool => dock.groupCellEvent(assume cast(*IconButton, wnd), evt)
         }
 
@@ -237,6 +238,7 @@ impl ToolDock
             for &member in group.members
             {
                 let memberId = member.idView()
+
                 // A tool with no words of its own is named by its command.
                 if member.toolTip.isEmpty() and memberId do
                     discard .addItem(null, memberId, member.icon, checked: memberId == cell.id)
@@ -283,8 +285,9 @@ impl ToolDock
         .activate(tool, notify: false)
     }
 
-    // Returns the size of the column; its shadow falls outside it.
-
+    // Returns the dock body's size in local coordinates, including padding but excluding its shadow.
+    //
+    // An empty dock still includes vertical padding.
     mtd bodySize()->Math.Point
     {
         let metrics = .themeMetrics()

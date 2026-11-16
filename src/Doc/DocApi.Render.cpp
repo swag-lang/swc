@@ -68,14 +68,6 @@ namespace
         return false;
     }
 
-    Utf8 codeHtml(const TaskContext& ctx, const DocRenderContext& renderCtx, const std::string_view code)
-    {
-        if (code.empty())
-            return {};
-
-        return DocMarkdown::renderCodeBlock(ctx, code, true, &renderCtx);
-    }
-
     // Drives the accent color of an item card; the displayed kind can carry a space.
     const char* itemKindClass(const DocItemKind kind)
     {
@@ -212,7 +204,7 @@ namespace
                 if (!symbol || !DocApi::itemKind(*symbol).has_value() || DocApi::hasNoDocAttribute(*symbol) || symbol->hasAnonymousAggregateDeclaration() || DocApi::isInCompilerGeneratedScope(ctx, *symbol))
                     continue;
 
-                const Utf8 fullName = symbol->getFullScopedName(ctx);
+                const Utf8 fullName = DocApi::symbolFullName(ctx, *symbol);
                 if (fullName.empty())
                     continue;
 
@@ -720,7 +712,7 @@ namespace
             if (!overload.commentLines.empty())
                 content += DocMarkdown::renderLines(overloadCtx, overload.commentLines);
             if (!overload.signature.empty() && item.kind != DocItemKind::Namespace)
-                content += codeHtml(*overloadCtx.ctx, overloadCtx, overload.signature);
+                content += DocMarkdown::renderCodeBlock(*overloadCtx.ctx, overload.signature, true, &overloadCtx, &overload.signatureReferences);
         }
 
         content += "</section>\n";

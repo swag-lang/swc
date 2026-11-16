@@ -57,14 +57,22 @@ struct DocPageOptions
     bool hasSearch        = true;
 };
 
+struct DocCodeReference
+{
+    uint32_t offset = 0;
+    uint32_t length = 0;
+    Utf8     fullName;
+};
+
 struct DocOverload
 {
-    const Symbol*     symbol = nullptr;
-    const SourceFile* file   = nullptr;
-    Utf8              signature;
-    std::vector<Utf8> commentLines;
-    std::vector<Utf8> genericNames;
-    uint32_t          sourceLine = 0;
+    const Symbol*                 symbol = nullptr;
+    const SourceFile*             file   = nullptr;
+    Utf8                          signature;
+    std::vector<DocCodeReference> signatureReferences;
+    std::vector<Utf8>             commentLines;
+    std::vector<Utf8>             genericNames;
+    uint32_t                      sourceLine = 0;
 };
 
 struct DocMember

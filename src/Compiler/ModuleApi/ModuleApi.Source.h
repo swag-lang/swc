@@ -26,6 +26,7 @@ namespace ModuleApi
     bool tryGetModuleApiSnippet(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, std::string_view& outSnippet);
 
     Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, const SourceFile& file, AstNodeRef nodeRef, uint32_t startOffset, std::string_view snippetText, std::string_view eol);
+    Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, std::vector<uint32_t>& sourceTokenOffsets, const SourceFile& file, AstNodeRef nodeRef, uint32_t startOffset, std::string_view snippetText, std::string_view eol);
 }
 
 SWC_END_NAMESPACE();

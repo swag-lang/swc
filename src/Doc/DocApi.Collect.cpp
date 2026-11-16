@@ -1,14 +1,17 @@
 #include "pch.h"
 #include "Doc/DocApi.h"
+#include "Compiler/Lexer/Lexer.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/ModuleApi/ModuleApi.Source.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/AttributeList.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
+#include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
 #include "Doc/DocApiSort.h"
 #include "Main/Command/CommandLine.h"
@@ -65,6 +68,27 @@ std::optional<DocItemKind> DocApi::itemKind(const Symbol& symbol)
         return function->isAttribute() ? DocItemKind::Attribute : DocItemKind::Function;
 
     return std::nullopt;
+}
+
+Utf8 DocApi::symbolFullName(const TaskContext& ctx, const Symbol& symbol)
+{
+    Utf8          result = symbol.getFullScopedName(ctx);
+    const Symbol* owner  = documentationOwner(symbol);
+    if (!owner || result.empty())
+        return result;
+
+    Utf8 qualified = owner->getFullScopedName(ctx);
+    if (qualified.empty())
+        return result;
+    qualified += ".";
+    if (result.starts_with(qualified.view()))
+        return result;
+
+    // An impl's function can carry only its type's short path, including in an
+    // imported API. Declarations and references must use the same owning type.
+    const size_t lastPart = result.view().rfind('.');
+    qualified.append(lastPart == std::string_view::npos ? result.view() : result.view().substr(lastPart + 1));
+    return qualified;
 }
 
 bool DocApi::hasNoDocAttribute(const Symbol& symbol)
@@ -374,8 +398,50 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    Utf8 buildDisplaySignature(TaskContext& ctx, const SourceFile& file, const AstNodeRef declRef, const AstNodeRef rootRef)
+    void collectSignatureSymbols(TaskContext& ctx, std::unordered_map<uint32_t, Utf8>& outSymbols, const SourceFile& file, const AstNodeRef rootRef, const AstNodeRef bodyRef, const SourceView& source)
     {
+        const Ast&                   ast     = file.ast();
+        const NodePayload&           payload = file.nodePayloadContext();
+        SmallVector<AstNodeRef>      pending;
+        std::unordered_set<uint32_t> seen;
+        pending.push_back(rootRef);
+        while (!pending.empty())
+        {
+            const AstNodeRef nodeRef = pending.back();
+            pending.pop_back();
+            if (nodeRef == bodyRef || !nodeRef.isValid() || ast.isAdditionalNode(nodeRef) || !seen.insert(nodeRef.get()).second)
+                continue;
+
+            const AstNode& node = ast.node(nodeRef);
+            node.collectChildrenFromAst(pending, ast);
+            AstNodeRef nameRef = nodeRef;
+            if (const auto* access = node.safeCast<AstMemberAccessExpr>())
+                nameRef = access->nodeRightRef;
+            else if (node.isNot(AstNodeId::Identifier))
+                continue;
+            if (!nameRef.isValid() || !ast.hasNode(nameRef))
+                continue;
+
+            const AstNode& name = ast.node(nameRef);
+            if (!name.tokRef().isValid() || &ModuleApi::moduleApiNodeSourceView(ctx, ast, nameRef) != &source)
+                continue;
+
+            const auto    stored = payload.viewStored(ctx, nodeRef);
+            const Symbol* symbol = stored.hasSymbol && (!stored.hasSymbolList || stored.symList.size() == 1) ? stored.sym : payload.foldedSourceSymbol(nodeRef);
+            if (!symbol && stored.typeRef.isValid() && !stored.cstRef.isValid() && !(static_cast<uint16_t>(stored.flags) & static_cast<uint16_t>(NodePayloadFlags::Value)))
+            {
+                symbol = ctx.typeMgr().get(stored.typeRef).getSymbol();
+            }
+            if (!symbol || (!DocApi::itemKind(*symbol).has_value() && !symbol->isEnumValue()) || DocApi::hasNoDocAttribute(*symbol))
+                continue;
+
+            outSymbols.insert_or_assign(source.tokenByteStart(source.token(name.tokRef())), DocApi::symbolFullName(ctx, *symbol));
+        }
+    }
+
+    Utf8 buildDisplaySignature(TaskContext& ctx, std::vector<DocCodeReference>& outReferences, const SourceFile& file, const AstNodeRef declRef, const AstNodeRef rootRef)
+    {
+        outReferences.clear();
         const Ast& ast = file.ast();
         if (declRef.isInvalid() || rootRef.isInvalid() || !ast.hasNode(declRef) || !ast.hasNode(rootRef))
             return {};
@@ -418,8 +484,37 @@ namespace
         if (startOffset >= endOffset)
             return {};
 
-        Utf8 result = ModuleApi::buildSanitizedModuleApiSnippet(ctx, file, rootRef, startOffset, source.substr(startOffset, endOffset - startOffset), "\n");
+        // Namespace signatures are retained for collection identity, but never
+        // displayed. Do not walk their complete bodies to bind unused code links.
+        if (declaration.is(AstNodeId::NamespaceDecl))
+        {
+            Utf8 result = ModuleApi::buildSanitizedModuleApiSnippet(ctx, file, rootRef, startOffset, source.substr(startOffset, endOffset - startOffset), "\n");
+            result.trim();
+            return result;
+        }
+
+        std::vector<uint32_t> sourceTokenOffsets;
+        Utf8                  result = ModuleApi::buildSanitizedModuleApiSnippet(ctx, sourceTokenOffsets, file, rootRef, startOffset, source.substr(startOffset, endOffset - startOffset), "\n");
         result.trim();
+
+        // Keep resolved identities across comment, access-modifier and indentation
+        // removal. A matching spelling elsewhere on the page is not a binding.
+        std::unordered_map<uint32_t, Utf8> symbols;
+        collectSignatureSymbols(ctx, symbols, file, rootRef, bodyRef, srcView);
+        SourceFile signatureFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
+        signatureFile.setContent(result.view());
+        SourceView signatureSource(SourceViewRef::invalid(), &signatureFile);
+        Lexer      lexer;
+        lexer.tokenize(ctx, signatureSource, LexerFlagsE::AllowReservedIdentifiers);
+        SWC_ASSERT(signatureSource.numTokens() == sourceTokenOffsets.size() + 1);
+        for (uint32_t index = 0; index < sourceTokenOffsets.size(); ++index)
+        {
+            const auto found = symbols.find(sourceTokenOffsets[index]);
+            if (found == symbols.end())
+                continue;
+            const Token& token = signatureSource.token(TokenRef(index));
+            outReferences.push_back({signatureSource.tokenByteStart(token), static_cast<uint32_t>(token.string(signatureSource).size()), found->second});
+        }
         return result;
     }
 
@@ -987,30 +1082,12 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
         if (rootRef.isInvalid())
             return;
 
-        Utf8 fullName = symbol->getFullScopedName(workerCtx);
+        Utf8 fullName = symbolFullName(workerCtx, *symbol);
         if (fullName.empty())
             return;
 
-        // A method declared in an 'impl' block is scoped by its type alone, while the
-        // same symbol seen from an importing module carries the whole path. Qualifying it
-        // here keeps one spelling, so a cross-module link reaches the anchor it names.
-        const Symbol* owner = documentationOwner(*symbol);
-        Utf8          ownerName;
-        if (owner)
-        {
-            ownerName = owner->getFullScopedName(workerCtx);
-            if (!ownerName.empty())
-            {
-                Utf8 qualified = ownerName;
-                qualified += ".";
-                if (!fullName.starts_with(qualified.view()))
-                {
-                    const size_t lastPart = fullName.view().rfind('.');
-                    qualified.append(lastPart == std::string_view::npos ? fullName.view() : fullName.view().substr(lastPart + 1));
-                    fullName = std::move(qualified);
-                }
-            }
-        }
+        const Symbol* owner     = documentationOwner(*symbol);
+        Utf8          ownerName = owner ? owner->getFullScopedName(workerCtx) : Utf8{};
 
         DocItemCandidate& candidate = candidates[index];
         candidate.file              = file;
@@ -1021,7 +1098,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
 
         candidate.overload.symbol       = symbol;
         candidate.overload.file         = file;
-        candidate.overload.signature    = buildDisplaySignature(workerCtx, *file, declRef, rootRef);
+        candidate.overload.signature    = buildDisplaySignature(workerCtx, candidate.overload.signatureReferences, *file, declRef, rootRef);
         candidate.overload.commentLines = symbolCommentLines(workerCtx, *symbol, *file, declRef, rootRef);
         candidate.overload.sourceLine   = symbol->codeRange(workerCtx).line;
         collectGenericNames(workerCtx, *symbol, candidate.overload.genericNames);

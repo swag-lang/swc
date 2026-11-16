@@ -638,67 +638,104 @@ namespace ModuleApi
         return true;
     }
 
+    namespace
+    {
+        Utf8 buildSanitizedSnippet(TaskContext& ctx, std::vector<uint32_t>* sourceTokenOffsets, const SourceFile& file, const AstNodeRef nodeRef, const uint32_t startOffset, const std::string_view snippetText, const std::string_view eol)
+        {
+            if (sourceTokenOffsets)
+                sourceTokenOffsets->clear();
+            if (snippetText.empty())
+                return {};
+
+            const SourceView&      snippetSrcView      = moduleApiNodeSourceView(ctx, file.ast(), nodeRef);
+            const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(snippetSrcView, startOffset);
+
+            std::vector<ModuleApiStripRange> stripRanges;
+            collectModuleApiPublicStripRanges(ctx, file.ast(), nodeRef, stripRanges);
+            normalizeModuleApiStripRanges(stripRanges);
+
+            const Utf8 filteredSnippet = stripModuleApiSourceRanges(snippetText, startOffset, stripRanges);
+
+            SourceFile lexFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
+            lexFile.setContent(filteredSnippet.view());
+
+            SourceView srcView(SourceViewRef::invalid(), &lexFile);
+            Lexer      lexer;
+            lexer.tokenize(ctx, srcView, LexerFlagsE::EmitTrivia | LexerFlagsE::AllowReservedIdentifiers);
+
+            Utf8 result;
+            Utf8 line;
+
+            bool wroteLine      = false;
+            bool lineHasContent = false;
+            bool pendingSpace   = false;
+
+            uint32_t tokenIndex       = 0;
+            uint32_t triviaIndex      = 0;
+            size_t   indentStripIndex = 0;
+
+            result.reserve(filteredSnippet.size());
+            line.reserve(filteredSnippet.size());
+
+            while (true)
+            {
+                const ModuleApiLexedPiece piece = nextModuleApiLexedPiece(srcView, tokenIndex, triviaIndex);
+                if (piece.tokenId == TokenId::Invalid)
+                    break;
+
+                if (isModuleApiCommentToken(piece.tokenId))
+                {
+                    if (!line.empty() && line.back() != ' ' && line.back() != '\t')
+                        pendingSpace = true;
+
+                    continue;
+                }
+
+                if (piece.tokenId == TokenId::Whitespace)
+                {
+                    appendModuleApiLexedText(result, line, piece.text, indentPrefixToStrip, eol, false, wroteLine, lineHasContent, pendingSpace, indentStripIndex);
+                    continue;
+                }
+
+                appendModuleApiLexedText(result, line, piece.text, indentPrefixToStrip, eol, true, wroteLine, lineHasContent, pendingSpace, indentStripIndex);
+            }
+
+            flushModuleApiLine(result, line, eol, wroteLine, lineHasContent, false);
+
+            if (sourceTokenOffsets)
+            {
+                for (const Token& token : srcView.tokens())
+                {
+                    if (token.is(TokenId::EndOfFile))
+                        continue;
+
+                    uint32_t sourceOffset = startOffset + srcView.tokenByteStart(token);
+                    for (const ModuleApiStripRange& range : stripRanges)
+                    {
+                        const uint32_t first = std::max(range.startOffset, startOffset);
+                        const uint32_t last  = std::min<uint32_t>(range.endOffset, startOffset + static_cast<uint32_t>(snippetText.size()));
+                        if (first >= last)
+                            continue;
+                        if (first > sourceOffset)
+                            break;
+                        sourceOffset += last - first;
+                    }
+                    sourceTokenOffsets->push_back(sourceOffset);
+                }
+            }
+
+            return result;
+        }
+    }
+
     Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, const uint32_t startOffset, const std::string_view snippetText, const std::string_view eol)
     {
-        if (snippetText.empty())
-            return {};
+        return buildSanitizedSnippet(ctx, nullptr, file, nodeRef, startOffset, snippetText, eol);
+    }
 
-        const SourceView&      snippetSrcView      = moduleApiNodeSourceView(ctx, file.ast(), nodeRef);
-        const std::string_view indentPrefixToStrip = moduleApiLeadingIndentPrefix(snippetSrcView, startOffset);
-
-        std::vector<ModuleApiStripRange> stripRanges;
-        collectModuleApiPublicStripRanges(ctx, file.ast(), nodeRef, stripRanges);
-        normalizeModuleApiStripRanges(stripRanges);
-
-        const Utf8 filteredSnippet = stripModuleApiSourceRanges(snippetText, startOffset, stripRanges);
-
-        SourceFile lexFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
-        lexFile.setContent(filteredSnippet.view());
-
-        SourceView srcView(SourceViewRef::invalid(), &lexFile);
-        Lexer      lexer;
-        lexer.tokenize(ctx, srcView, LexerFlagsE::EmitTrivia | LexerFlagsE::AllowReservedIdentifiers);
-
-        Utf8 result;
-        Utf8 line;
-
-        bool wroteLine      = false;
-        bool lineHasContent = false;
-        bool pendingSpace   = false;
-
-        uint32_t tokenIndex       = 0;
-        uint32_t triviaIndex      = 0;
-        size_t   indentStripIndex = 0;
-
-        result.reserve(filteredSnippet.size());
-        line.reserve(filteredSnippet.size());
-
-        while (true)
-        {
-            const ModuleApiLexedPiece piece = nextModuleApiLexedPiece(srcView, tokenIndex, triviaIndex);
-            if (piece.tokenId == TokenId::Invalid)
-                break;
-
-            if (isModuleApiCommentToken(piece.tokenId))
-            {
-                if (!line.empty() && line.back() != ' ' && line.back() != '\t')
-                    pendingSpace = true;
-
-                continue;
-            }
-
-            if (piece.tokenId == TokenId::Whitespace)
-            {
-                appendModuleApiLexedText(result, line, piece.text, indentPrefixToStrip, eol, false, wroteLine, lineHasContent, pendingSpace, indentStripIndex);
-                continue;
-            }
-
-            appendModuleApiLexedText(result, line, piece.text, indentPrefixToStrip, eol, true, wroteLine, lineHasContent, pendingSpace, indentStripIndex);
-        }
-
-        flushModuleApiLine(result, line, eol, wroteLine, lineHasContent, false);
-
-        return result;
+    Utf8 buildSanitizedModuleApiSnippet(TaskContext& ctx, std::vector<uint32_t>& sourceTokenOffsets, const SourceFile& file, const AstNodeRef nodeRef, const uint32_t startOffset, const std::string_view snippetText, const std::string_view eol)
+    {
+        return buildSanitizedSnippet(ctx, &sourceTokenOffsets, file, nodeRef, startOffset, snippetText, eol);
     }
 }
 

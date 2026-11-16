@@ -273,6 +273,97 @@ Swag **does not require `break`** at the end of each case, and see https://swag-
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_DocSignaturesUseResolvedTokenIdentities)
+{
+    const std::string_view         code = "func accept(label: string = \"<&>\", first: Pixel.Image, second: Image, mode: Kind = .Image)";
+    std::unordered_map<Utf8, Utf8> local{{"Image", "Wrong_Image"}, {"Owner.Kind.Image", "Owner_Kind_Image"}};
+    std::unordered_map<Utf8, Utf8> imported{{"Pixel.Image", "std.pixel.html#Pixel_Image"}};
+    DocRenderContext               renderCtx{.ctx = &ctx, .references = &local, .externalReferences = &imported};
+    std::vector<DocCodeReference>  references;
+    size_t                         position = code.find("Image");
+    references.push_back({static_cast<uint32_t>(position), 5, "Pixel.Image"});
+    position = code.find("Image", position + 5);
+    references.push_back({static_cast<uint32_t>(position), 5, "Pixel.Image"});
+    position = code.find("Image", position + 5);
+    references.push_back({static_cast<uint32_t>(position), 5, "Owner.Kind.Image"});
+
+    const Utf8 html = DocMarkdown::renderCodeBlock(ctx, code, true, &renderCtx, &references);
+    if (countOccurrences(html, "href=\"std.pixel.html#Pixel_Image\">Image</a>") != 2 ||
+        countOccurrences(html, "href=\"#Owner_Kind_Image\">Image</a>") != 1 || html.contains("Wrong_Image"))
+        return Result::Error;
+    if (!html.contains("&lt;&amp;&gt;"))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocSignatureBindingsSurviveSanitization)
+{
+    static constexpr std::string_view SOURCE = R"(#global namespace SignatureLinks
+#global public
+using Swag
+
+enum Kind
+{
+    TypeInfo
+}
+
+struct Factory {}
+
+impl Factory
+{
+    #[Swag.ConstExpr]
+    func value()->s32 => 1
+}
+
+public func accept(
+    label: string = "<&>",
+    count: s32 = Factory.value(),
+    first: *Swag.TypeInfo? = null,
+    // The comment is removed from the displayed declaration.
+    second: *TypeInfo? = null,
+    mode: Kind = .TypeInfo)
+{
+    discard label
+    discard count
+    discard first
+    discard second
+    discard mode
+}
+)";
+    ScopedDocTestDirectory            directory("signature-bindings");
+    if (!directory.ready())
+        return Result::Error;
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "DocSignatureBindings");
+    CommandLine    cmdLine;
+    cmdLine.command      = CommandKind::Doc;
+    cmdLine.name         = "signature_binding_test";
+    cmdLine.docOutputDir = directory.root();
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    auto& genDoc      = compiler.buildCfg().genDoc;
+    genDoc.kind       = Runtime::BuildCfgDocKind::Api;
+    genDoc.outputName = runtimeString("signature-links");
+    TaskContext                  compilerCtx(compiler);
+    DocGenerator::GenerateResult generated;
+    SWC_RESULT(DocGenerator(compilerCtx).generate(generated));
+    std::string             content;
+    FileSystem::IoErrorInfo ioError;
+    SWC_RESULT(FileSystem::readTextFile(directory.root() / "signature-links.html", content, ioError));
+    if (countOccurrences(content, "href=\"swag.runtime.html#Swag_TypeInfo\">TypeInfo</a>") != 2)
+        return Result::Error;
+    if (countOccurrences(content, "href=\"#Signature_binding_test_SignatureLinks_Kind_TypeInfo\">TypeInfo</a>") < 1)
+        return Result::Error;
+    if (!content.contains("href=\"#Signature_binding_test_SignatureLinks_Factory_value\">value</a>") || content.contains("href=\"#Factory_value\""))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_DocExamplesNestTableOfContentsLists)
 {
     static constexpr std::string_view SOURCE = R"(/**

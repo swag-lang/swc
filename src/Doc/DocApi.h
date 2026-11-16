@@ -15,6 +15,7 @@ class DocApi
 {
 public:
     static Utf8                       displayNameFor(std::string_view fullName, DocItemKind kind);
+    static Utf8                       symbolFullName(const TaskContext& ctx, const Symbol& symbol);
     static std::optional<DocItemKind> itemKind(const Symbol& symbol);
     static bool                       hasNoDocAttribute(const Symbol& symbol);
     static bool                       hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol);

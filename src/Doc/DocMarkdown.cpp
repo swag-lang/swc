@@ -312,9 +312,10 @@ namespace
     }
 
     void linkSyntaxClass(Utf8& html, const DocRenderContext& renderCtx, std::string_view cssClass);
+    Utf8 linkCodeReferences(const Utf8& html, const DocRenderContext& renderCtx, std::string_view code, std::span<const DocCodeReference> references, size_t trimmedPrefix);
 }
 
-Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const DocRenderContext* renderCtx)
+Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const DocRenderContext* renderCtx, const std::vector<DocCodeReference>* references)
 {
     // Boundary documentation comments can leave empty code segments; omit their frames.
     const std::string_view trimmedCode = trimCodeBoundaryLines(code);
@@ -328,8 +329,13 @@ Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view
         rendered = SyntaxColorHelper::colorize(ctx, SyntaxColorMode::ForDoc, escaped.view(), true);
         if (renderCtx)
         {
-            linkSyntaxClass(rendered, *renderCtx, SYN_CONSTANT);
-            linkSyntaxClass(rendered, *renderCtx, SYN_TYPE);
+            if (references)
+                rendered = linkCodeReferences(rendered, *renderCtx, code, *references, static_cast<size_t>(trimmedCode.data() - code.data()));
+            else
+            {
+                linkSyntaxClass(rendered, *renderCtx, SYN_CONSTANT);
+                linkSyntaxClass(rendered, *renderCtx, SYN_TYPE);
+            }
         }
     }
     else
@@ -888,6 +894,70 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
 
 namespace
 {
+    Utf8 linkCodeReferences(const Utf8& html, const DocRenderContext& renderCtx, const std::string_view code, const std::span<const DocCodeReference> references, const size_t trimmedPrefix)
+    {
+        Utf8 result;
+        result.reserve(html.size());
+        size_t sourceOffset   = trimmedPrefix;
+        size_t referenceIndex = 0;
+        size_t pos            = 0;
+        while (referenceIndex < references.size() && references[referenceIndex].offset < trimmedPrefix)
+            referenceIndex++;
+
+        while (pos < html.size())
+        {
+            if (html[pos] == '<')
+            {
+                const size_t end = html.find('>', pos);
+                SWC_ASSERT(end != Utf8::npos);
+                result.append(html.subView(pos, end + 1 - pos));
+                pos = end + 1;
+                continue;
+            }
+
+            if (referenceIndex < references.size() && references[referenceIndex].offset == sourceOffset)
+            {
+                const DocCodeReference& reference = references[referenceIndex++];
+                const Utf8              label     = Utf8Helper::escapeHtml(code.substr(reference.offset, reference.length));
+                SWC_ASSERT(html.subView(pos, label.size()) == label.view());
+                Utf8 href;
+                if (renderCtx.references)
+                {
+                    const auto found = renderCtx.references->find(reference.fullName);
+                    if (found != renderCtx.references->end())
+                        href = std::format("#{}", found->second);
+                }
+                if (href.empty() && renderCtx.externalReferences)
+                {
+                    const auto found = renderCtx.externalReferences->find(reference.fullName);
+                    if (found != renderCtx.externalReferences->end())
+                        href = found->second;
+                }
+                if (href.empty())
+                    result += label;
+                else
+                    result.append(std::format("<a href=\"{}\">{}</a>", Utf8Helper::escapeHtml(href, true), label));
+                pos += label.size();
+                sourceOffset += reference.length;
+                continue;
+            }
+
+            // Color spans contribute no source bytes, and an escaped entity still
+            // stands for one byte of the original code. Keep token positions intact.
+            if (html[pos] == '&')
+            {
+                const size_t end = html.find(';', pos);
+                SWC_ASSERT(end != Utf8::npos);
+                result.append(html.subView(pos, end + 1 - pos));
+                pos = end + 1;
+            }
+            else
+                result += html[pos++];
+            sourceOffset++;
+        }
+        return result;
+    }
+
     void linkSyntaxClass(Utf8& html, const DocRenderContext& renderCtx, const std::string_view cssClass)
     {
         const Utf8 open = std::format("<span class=\"{}\">", cssClass);

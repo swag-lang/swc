@@ -28,7 +28,7 @@ struct SearchMatch
         major:  u64     // Zero-based outer container index, such as a page or row.
         minor:  u64     // Zero-based inner container index, such as a span or cell.
         offset: u64     // Byte offset within the container, or within the file for zero indexes.
-        length: u64     // Nonzero matched length in bytes.
+        length: u64     // Matched length in bytes; zero places the reader at `offset`, as a line jump does.
     }
 }
 

@@ -35,14 +35,18 @@ large-file work without editing, implicit network access, macros or source mutat
   current cue is marked, and search reveal, cue selection, and timeline position remain
   synchronized.
 
-### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
+### app.scope.text.002 — Text navigation has no column, byte-offset, or percentage jump
 
-- Evidence: basic text and code can reach the file ends and host search matches, but there is no
-  Go To command or caret address readout. `revealOffset` already seeks a source byte offset into
-  the resident editor for search and streamed scrolling; it does not provide a reverse map from
-  arbitrary editor positions to exact whole-file line, column, and byte coordinates.
-- Next: introduce a streamed text-position map and a Go To surface that accepts line, `line:column`,
-  absolute byte offset, and percentage.
+- Evidence: `:` and a line number in the lens move basic text and code to that line and place the
+  caret on it, and basic text names the cursor's line in the whole file once the window is
+  counted (`Viewer.LineCounter.offsetOfLine` and `lineAt`). The lens resolves the line in the first
+  `LensFileLimit` bytes of the file by counting byte 10, so a line further down is not offered and a
+  UTF-16 or UTF-32 file is numbered wrongly; a window more than a few megabytes past the last
+  count names no line until the gutter is shown; columns, byte offsets and percentages cannot be
+  typed.
+- Next: let the active viewer resolve a typed line itself through its encoding-aware
+  `LineCounter`, and extend the `:` grammar with `line:column`, an absolute byte offset and a
+  percentage.
 - Done when: jumps work before a full line index exists, report exact versus estimated
   positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
 

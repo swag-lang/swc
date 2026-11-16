@@ -91,9 +91,9 @@ struct Panel
 
     // The whole file counted in the background for the information sheet, apart from the window
     // the editor streams.
-    statisticsLoad:    Viewer.BackgroundLoad'TextStatistics
-    statistics:        TextStatistics
-    hasStatistics:     bool
+    statisticsLoad: Viewer.BackgroundLoad'TextStatistics
+    statistics:     TextStatistics
+    hasStatistics:  bool
 }
 
 impl Panel
@@ -221,7 +221,10 @@ impl Panel
     // Reloads the resident window to start shortly before `offset` and highlights `text` there. A
     // start inside a UTF-8 sequence does not decode, so it moves forward up to three bytes to reach
     // the next character. Returns false when the file cannot be read there.
-    mtd revealOffset(offset: u64, text: string)->bool
+    //
+    // With `caret`, the caret is placed at `offset` and brought into view even without text to
+    // highlight; without it, an empty `text` only loads the part of the file around `offset`.
+    mtd revealOffset(offset: u64, text: string, caret = false)->bool
     {
         .stopLoading()
         .pendingSeek   = false
@@ -252,7 +255,7 @@ impl Panel
             .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
             .updateEstimatedHeight()
-            if text.count do
+            if text.count or caret do
                 Viewer.highlightRichEditMatch(.editor, chunk, requested - actual, text.count)
             .scheduleMore()
             return true
@@ -635,7 +638,7 @@ func createViewer(host: Viewer.Host)
 
     with var search: Viewer.SearchApi
     {
-        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text)
+        .revealMatch = func|view|(match, text)->bool => view.revealOffset(match.offset, text, caret: true)
         .matchBounds = func|view|(_, bounds)->bool => Viewer.richEditMatchBounds(view.editor, bounds)
         .clear       = func|view|() => Viewer.clearRichEditMatch(view.editor)
     }
@@ -646,5 +649,5 @@ func createViewer(host: Viewer.Host)
 
     view.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8, view)
     host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null,
-                       retire:    func|view|()->bool => view.statisticsLoad.retire()})
+                       retire: func|view|()->bool => view.statisticsLoad.retire()})
 }

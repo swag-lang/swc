@@ -68,3 +68,50 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
 
     Swag.require(matchCaseChecked)
 }
+
+// A colon and a number in the lens move a text or a code reader to that line: the caret stands
+// at its start and the line is in view, however far down the file it is.
+#test
+{
+    for extension in [".txt", ".swg"]
+    {
+        let fileName = Testing.tempFilePath("scope-lens-line-", extension)
+        defer discard catch File.delete(fileName)
+        var source: String
+        for i in 600 do
+            source += Format.toString("// Line % of a file longer than the view.\n", i + 1)
+        discard expect File.writeAllText(fileName, source)
+
+        var host: HeadlessHost
+        let window = framedViewerWindow(&host, fileName, extension == ".txt")
+        window.lens.open(":450")
+        host.finishAnimations()
+        let section = unwrap window.lens.results.sections[0]
+        Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToLine, 450))
+        section.entries[0].run!()
+        window.lens.close()
+        host.finishAnimations()
+
+        let view = window.instances[window.activeChoiceIndex].view
+        var editor: *RichEditCtrl
+        if extension == ".txt"
+        {
+            let text = assume cast(*PlainText.Panel, view)
+            completeTextReads(&host, text)
+            Swag.require(text.currentLine() == 450, Format.toString("line %", text.currentLine()))
+            editor = text.editor
+        }
+        else
+        {
+            let code = assume cast(*Code.Panel, view)
+            discard host.render(code)
+            Swag.require(code.editor.cursorLogicalLineIndex() == 449, Format.toString("line %", code.editor.cursorLogicalLineIndex() + 1))
+            editor = code.editor
+        }
+
+        Swag.require(editor.cursorLogicalCharPos() == 0)
+        let caret = editor.cursorDisplayPosition(editor.selectionStart())
+        let top   = editor.scrollPosition().y
+        Swag.require(caret.y > top and caret.y <= top + editor.paddedClientRect().height, "the line is out of view")
+    }
+}

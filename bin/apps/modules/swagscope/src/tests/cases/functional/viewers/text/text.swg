@@ -40,6 +40,58 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     // Read as UTF-32 BE from the start, the same bytes hold no line feed at all.
     lines.reset()
     Swag.require(lines.lineAt(fileName, 16, .Utf32Be) == 1)
+
+    // A line is found where the previous one ended, from the closest line already numbered or
+    // from the start; a line past the last one answers the start of the last line.
+    lines.reset()
+    Swag.require(lines.offsetOfLine(fileName, 0, .Utf16Le, 2) == Swag.U64.Max)
+    Swag.require(lines.offsetOfLine(fileName, 1, .Utf16Le, 2) == 2)
+    Swag.require(lines.offsetOfLine(fileName, 3, .Utf16Le, 2) == 14)
+    Swag.require(lines.lineAt(fileName, 14, .Utf16Le, 2) == 3)
+    Swag.require(lines.offsetOfLine(fileName, 2, .Utf16Le, 2) == 10)
+    Swag.require(lines.offsetOfLine(fileName, 9, .Utf16Le, 2) == 14)
+}
+
+// The line under the cursor is a line of the whole file, wherever the resident window starts. A
+// window whose preceding lines would take a pause to count names no line rather than one of its
+// own, until the reader numbers the lines.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-text-line-readout-", ".txt")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for i in 120_000 do
+        source += Format.toString("Line % of a file longer than the resident window.\n", i + 1)
+    discard expect File.writeAllBytes(fileName, source)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*PlainText.Panel, session.view)
+    defer if view.lineNumbers do
+        view.toggleLineNumbers()
+    Swag.require(view.currentLine() == 1)
+
+    // A window a short count away is numbered without the gutter.
+    var lines: Viewer.LineCounter
+    let near = lines.offsetOfLine(fileName, 30_000)
+    Swag.require(Utf8.startsWith(source.toSlice()[near to], "Line 30000 of"))
+    Swag.require(view.revealOffset(near, "Line 30000"))
+    completeTextReads(&host, view)
+    Swag.require(view.residentStart > 0 and view.currentLine() == 30_000)
+    Swag.require(Utf8.contains(view.detailsText().toSlice(), Format.toString(PlainText.texts().ui_CurrentLine, 30_000).toSlice()))
+
+    // A window more than a few megabytes from the last count waits for the gutter.
+    let far = lines.offsetOfLine(fileName, 110_000)
+    Swag.require(Utf8.startsWith(source.toSlice()[far to], "Line 110000 of"))
+    view.lines.reset()
+    Swag.require(view.revealOffset(far, "Line 110000"))
+    completeTextReads(&host, view)
+    Swag.require(view.currentLine() == 0)
+    Swag.require(not Utf8.contains(view.detailsText().toSlice(), Format.toString(PlainText.texts().ui_CurrentLine, "").toSlice()))
+
+    view.toggleLineNumbers()
+    Swag.require(view.currentLine() == 110_000)
 }
 
 // Basic text numbers its lines on demand, and the choice follows the reader to the next file.
@@ -112,7 +164,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     view.applyEncoding(.Utf16Le)
     let changedDetails = view.detailsText()
     let currentLine    = Format.toString(PlainText.texts().ui_CurrentLine, view.editor.cursorLogicalLineIndex() + 1)
-    Swag.require(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE", currentLine))
+    Swag.require(changedDetails == Format.toString("UTF-16 LE · %", currentLine))
 
     // The encoding is chosen among the options, from a page that checks the one in force.
     host.activateOptionRowWhenShown(PlainText.texts().ui_Encoding)

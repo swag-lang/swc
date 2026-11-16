@@ -8,9 +8,10 @@ private func validateUtf8(value: const *String) fail
         fail Errors.InvalidFormatError{"file content is not valid UTF-8"}
 }
 
-// Reads a UTF-8 text file through an owned, buffered [[Core.File.FileStream]].
+// Reads and validates a UTF-8 text file through an owned, buffered [[Core.File.FileStream]].
 //
-// A byte-order mark at the start of the file is skipped.
+// A byte-order mark at the start of the file is skipped. Invalid UTF-8 fails with
+// [[Core.Errors.InvalidFormatError]].
 public struct TextReader
 {
     internal
@@ -40,7 +41,9 @@ impl TextReader
 
 public impl TextReader
 {
-    // Opens `fullName` for reading.
+    // Opens `fullName` for reading and resets the reader to the start of the file.
+    //
+    // The reader must be closed. A leading UTF-8 byte-order mark is skipped.
     mtd open(fullName: string) fail
     {
         Swag.assert(not .stream.isOpen())
@@ -63,7 +66,9 @@ public impl TextReader
 
     // Reads one line into `result` and returns false at end of file.
     //
-    // Line-ending bytes are consumed but not included in the result.
+    // Line-ending bytes are consumed but not included in the result. Empty lines return true
+    // with an empty string. Invalid UTF-8 in the line fails with
+    // [[Core.Errors.InvalidFormatError]].
     #[Swag.Safety(.BoundCheck | .Overflow, false)]
     mtd readLine(result: *String)->bool fail
     {
@@ -138,7 +143,9 @@ public impl TextReader
         return true
     }
 
-    // Reads from the current position to the end of the file.
+    // Reads and validates the remaining file text from the current position.
+    //
+    // Invalid UTF-8 fails with [[Core.Errors.InvalidFormatError]].
     mtd readToEnd()->String fail
     {
         var result: #returntype

@@ -69,6 +69,15 @@ private func contoursIntersect(a, b: const *Polygon)->bool
     return false
 }
 
+private func contourContainsContour(outer, inner: const *Polygon)->bool
+{
+    if not outer.points.count or not inner.points.count or
+       inner.minBounds.x < outer.minBounds.x or inner.maxBounds.x > outer.maxBounds.x or
+       inner.minBounds.y < outer.minBounds.y or inner.maxBounds.y > outer.maxBounds.y do
+        return false
+    return outer.contains(inner.pointAt(0)[])
+}
+
 private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
 {
     for p in pathList.paths where not p.polygon.isSimple do
@@ -315,21 +324,28 @@ impl LinePathList
         var claimed: Array'bool
         claimed.resize(solved.paths.count)
 
-        for outer in solved.paths where outer.polygon.isClockwise
+        for outer, outerIndex in solved.paths where outer.polygon.isClockwise
         {
             .paths.add(outer)
             for hole, index in solved.paths where not hole.polygon.isClockwise and not claimed[index]
             {
-                // A hole lies wholly inside its outer, so the cheap bounds test settles
-                // every pair but the few that share a region, and one point decides those:
-                // the contours of a boolean result never cross.
-                if hole.minBounds.x < outer.minBounds.x or hole.maxBounds.x > outer.maxBounds.x do
+                if not contourContainsContour(&outer.polygon, &hole.polygon) do
                     continue
-                if hole.minBounds.y < outer.minBounds.y or hole.maxBounds.y > outer.maxBounds.y do
-                    continue
-                if not outer.polygon.points.count or not hole.polygon.points.count do
-                    continue
-                if not outer.polygon.contains(hole.polygon.pointAt(0)[]) do
+
+                // An island can contain another hole inside this outer contour. Give that hole
+                // to the innermost containing outer, so each region's holes follow its parent.
+                var belongsToNestedOuter = false
+                for nested, nestedIndex in solved.paths
+                    where nestedIndex != outerIndex and nested.polygon.isClockwise
+                {
+                    if contourContainsContour(&outer.polygon, &nested.polygon) and
+                       contourContainsContour(&nested.polygon, &hole.polygon)
+                    {
+                        belongsToNestedOuter = true
+                        break
+                    }
+                }
+                if belongsToNestedOuter do
                     continue
 
                 claimed[index] = true

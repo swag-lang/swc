@@ -1830,7 +1830,7 @@ namespace
 
     Result runManySameValueCopies(TaskContext& ctx)
     {
-        constexpr uint32_t candidateCount = 9;
+        constexpr uint32_t candidateCount = 17;
         for (const auto callConvKind : testedCallConvs())
         {
             const CallConv& conv = CallConv::get(callConvKind);
@@ -1848,7 +1848,7 @@ namespace
                 builder.emitLoadRegReg(copy, source, MicroOpBits::B64);
                 if (index + 1 == candidateCount)
                 {
-                    // The ninth pair also repeats a copy to exercise a table hit.
+                    // The seventeenth pair repeats a copy to exercise a table hit.
                     builder.emitLoadRegReg(copy, source, MicroOpBits::B64);
                 }
                 builder.emitCmpRegImm(source, ApInt(index + 1, 64), MicroOpBits::B64);

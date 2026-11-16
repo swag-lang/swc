@@ -2330,7 +2330,7 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         uint32_t copyDepth;
         bool     rejected;
     };
-    constexpr size_t K_CANDIDATE_LOOKUP_THRESHOLD = 8;
+    constexpr size_t K_CANDIDATE_LOOKUP_THRESHOLD = 16;
     FlatKeyMap<uint32_t, uint64_t> candidateIndexByPair;
     const auto candidatePairKey = [](const uint32_t lhs, const uint32_t rhs) {
         const uint32_t first  = std::min(lhs, rhs);

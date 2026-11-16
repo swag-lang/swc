@@ -83,6 +83,30 @@ impl State
             .hide()
     }
 
+    // Lets go of `wnd` as it is destroyed: a request it made never becomes a tip, and the tip it
+    // annotates or holds goes with it. A request outliving its owner would show its tip over a
+    // freed window once its delay ran out.
+    mtd forget(wnd: *Wnd)
+    {
+        if .current and (wnd == .current or wnd.isOwnerOf(.current))
+        {
+            .current       = null
+            .currentOwner  = null
+            .pointerInside = false
+        }
+
+        let owner = .currentOwner
+        if owner and (wnd == owner or wnd.isOwnerOf(owner)) do
+            .hide()
+
+        let pending = .pending
+        if pending and (wnd == pending.owner or wnd.isOwnerOf(pending.owner))
+        {
+            Memory.delete(pending)
+            .pending = null
+        }
+    }
+
     // Reports whether `wnd` is the visible tip or part of it.
     public mtd contains(wnd: *Wnd?)->bool
     {

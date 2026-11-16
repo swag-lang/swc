@@ -247,7 +247,7 @@ public impl IWnd for MenuCtrl
             // wording otherwise. Submenu markers stay at the trailing edge in either direction.
             if it.label
             {
-                labelPos.x += metrics.menuPopup_IconMargin
+                labelPos.x     += metrics.menuPopup_IconMargin
                 labelPos.width -= metrics.menuPopup_IconMargin
                 SectionLabel.paint(me, painter, labelPos, it.name.text)
                 continue
@@ -389,15 +389,16 @@ public impl IWnd for MenuCtrl
         var widgetTarget: *Wnd?
         if widgetItem
         {
-            let pos = .surfaceToLocal(evt.surfacePos)
+            let pos    = .surfaceToLocal(evt.surfacePos)
             let widget = unwrap widgetItem.widget
             widgetTarget = widget.windowAt(pos.x, pos.y, includeDisabled: false)
         }
+
         .updateWidgetHover(widgetTarget, evt.surfacePos)
         if widgetItem
         {
             .removeTimer()
-            .hotIdx      = Swag.U32.Max
+            .hotIdx = Swag.U32.Max
             if evt.kind != .Move or evt.delta.x != 0 or evt.delta.y != 0 do
                 .selectedIdx = Swag.U32.Max
             .invalidate()
@@ -408,9 +409,12 @@ public impl IWnd for MenuCtrl
                 evt.target = widgetTarget
                 widgetTarget.processEvent(evt)
                 evt.target = originalTarget
+
                 // Icon buttons release their own capture after activation. Keep the modal
                 // menu in charge, while leaving a child popup's capture alone.
-                if widgetTarget is IconButton and not .bar and not .endModal and
+                if widgetTarget is IconButton and
+                   not .bar and
+                   not .endModal and
                    (.mouseCapture() == null or .mouseCapture() == widgetTarget) do
                     .captureMouse()
             }
@@ -432,7 +436,7 @@ public impl IWnd for MenuCtrl
                 .timer.restart()
             }
 
-            .hotIdx = hit
+            .hotIdx      = hit
             .selectedIdx = Swag.U32.Max
             .invalidate()
 
@@ -959,7 +963,7 @@ impl MenuCtrl
         let subPos        = sub.position
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * sdw
         let openLeft      = parentTopLeft.x - subPos.width + 2 * sdw
-        var pt = Math.Point{hotItem.submenuOpensLeft ? openLeft : openRight, parentTopLeft.y + hotItem.pos - .padding.y - sdw}
+        var pt            = Math.Point{hotItem.submenuOpensLeft ? openLeft : openRight, parentTopLeft.y + hotItem.pos - .padding.y - sdw}
 
         // Keep the complete submenu inside the window when possible, with the same outer air as
         // its root. An oversized menu is clamped on the requested side as a last resort.
@@ -1110,8 +1114,8 @@ impl MenuCtrl
             if it.widget
             {
                 let sizeHint = it.widget.measure({})
-                it.size = Math.max(sizeHint.preferred.y, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
-                .position.width = Math.max(.position.width, sizeHint.preferred.x)
+                it.size          = Math.max(sizeHint.preferred.y, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
+                .position.width  = Math.max(.position.width, sizeHint.preferred.x)
                 .position.height += it.size
                 continue
             }
@@ -1179,10 +1183,10 @@ impl MenuCtrl
         clientRect.applyPadding(.padding)
         for item in .items where item!.widget != null
         {
-            let widget = unwrap item.widget
+            let widget    = unwrap item.widget
             let leftInset = item.widgetFullWidth ? 0 : leadingWidth
-            let widgetX = clientRect.x + leftInset
-            let widgetW = clientRect.width - leftInset
+            let widgetX   = clientRect.x + leftInset
+            let widgetW   = clientRect.width - leftInset
             widget.setPosition(Math.Rectangle{widgetX, item.pos, widgetW, item.size}, computeLayout: false)
             widget.show()
         }
@@ -1230,18 +1234,22 @@ public impl MenuCtrl
         if .bar or .endModal do
             return
 
-        if evt.kind == .Character and evt.character >= ' 'rune and
-           not evt.modifiers.has(.Control) and not evt.modifiers.has(.Alt)
+        if evt.kind == .Character and
+           evt.character >= ' 'rune and
+           not evt.modifiers.has(.Control) and
+           not evt.modifiers.has(.Alt)
         {
             let letter = Format.toString("%", evt.character)
             .selectKeyboardLetter(letter.toString())
             evt.accepted = true
             return
         }
+
         if evt.kind != .Pressed do
             return
 
-        if .selectedIdx < .items.count and .items[.selectedIdx]!.widget and
+        if .selectedIdx < .items.count and
+           .items[.selectedIdx]!.widget and
            (evt.key == .Left or evt.key == .Right or evt.key == .Return or evt.key == .Space)
         {
             let widget = unwrap .items[.selectedIdx]!.widget
@@ -1255,11 +1263,21 @@ public impl MenuCtrl
 
         switch evt.key
         {
-        case .Up:     .moveKeyboardSelection(forward: false)
-        case .Down:   .moveKeyboardSelection(forward: true)
-        case .Home:   .selectKeyboardEdge(forward: true)
-        case .End:    .selectKeyboardEdge(forward: false)
-        case .Escape: .setEndModal(null)
+        case .Up:
+            .moveKeyboardSelection(forward: false)
+
+        case .Down:
+            .moveKeyboardSelection(forward: true)
+
+        case .Home:
+            .selectKeyboardEdge(forward: true)
+
+        case .End:
+            .selectKeyboardEdge(forward: false)
+
+        case .Escape:
+            .setEndModal(null)
+
         case .Return, .Space:
             if .selectedIdx == Swag.U32.Max do
                 .selectKeyboardEdge(forward: true)
@@ -1271,10 +1289,14 @@ public impl MenuCtrl
                     .hotIdx = .selectedIdx
                     .showHotPopup()
                 }
-                elif item.id do
+                elif item.id
+                {
                     .setEndModal(item.id)
+                }
             }
-        default: return
+
+        default:
+            return
         }
 
         evt.accepted = true
@@ -1283,13 +1305,16 @@ public impl MenuCtrl
     private mtd canSelectKeyboard(index: u64)->bool
     {
         let item = unwrap .items[index]
-        return not item.hidden and not item.disabled and not item.separator and not item.note and
+        return not item.hidden and
+               not item.disabled and
+               not item.separator and
+               not item.note and
                (item.id != null or item.widget != null or item.popup != null)
     }
 
     private mtd setKeyboardSelection(index: u64)
     {
-        .hotIdx = Swag.U32.Max
+        .hotIdx      = Swag.U32.Max
         .selectedIdx = cast(u32, index)
         .invalidate()
     }
@@ -1371,7 +1396,7 @@ public impl MenuCtrl
         with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
             .focusPolicy = .Click
-            .wndFlags   |= .NoPointerFocus
+            .wndFlags    |= .NoPointerFocus
             .owner       = owner orelse parent
             .setAllPaddings(.themeMetrics().menuPopup_Padding)
             .style.addStyleSheetColors("frameWnd_Border $menuPopup_Border")
@@ -1607,9 +1632,9 @@ public impl MenuCtrl
 
         with let item = me.items.allocate()
         {
-            .widget         = widget
-            .icon           = icon
-            .dismissOnClick = dismissOnClick
+            .widget          = widget
+            .icon            = icon
+            .dismissOnClick  = dismissOnClick
             .widgetFullWidth = fullWidth
         }
 

@@ -104,10 +104,10 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
     // Struct equality compares string content, so hashing must not include the buffer address.
     var left:  [4] u8 = ['s', 'a', 'm', 'e']
     var right: [4] u8 = ['s', 'a', 'm', 'e']
-    let leftText  = cast(string, Swag.makeSlice(cast(const [*] u8, left.buffer), 4))
-    let rightText = cast(string, Swag.makeSlice(cast(const [*] u8, right.buffer), 4))
+    let leftText      = cast(string, Swag.makeSlice(cast(const [*] u8, left.buffer), 4))
+    let rightText     = cast(string, Swag.makeSlice(cast(const [*] u8, right.buffer), 4))
     Swag.require(leftText.buffer != rightText.buffer)
-    let leftValue = HashTestTypes.StringHolder{text: leftText, tag: 7}
+    let leftValue  = HashTestTypes.StringHolder{text: leftText, tag: 7}
     let rightValue = HashTestTypes.StringHolder{text: rightText, tag: 7}
     Swag.require(leftValue == rightValue)
     Swag.require(Hash.hash32(leftValue) == Hash.hash32(rightValue))

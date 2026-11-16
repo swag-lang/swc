@@ -20,16 +20,16 @@ struct StreamEncoder
 {
     private
     {
-        encoder:               Encoder
-        pending:               [2 * 1_024] s16
-        channels:              u16
-        pendingFrames:         u32
-        inputFrames:           u64
-        emittedPackets:        u64
-        lastStart:             u64
-        lastValid:             u32
-        drained:               bool
-        ended:                 bool
+        encoder:        Encoder
+        pending:        [2 * 1_024] s16
+        channels:       u16
+        pendingFrames:  u32
+        inputFrames:    u64
+        emittedPackets: u64
+        lastStart:      u64
+        lastValid:      u32
+        drained:        bool
+        ended:          bool
     }
 }
 
@@ -90,10 +90,9 @@ impl StreamEncoder
         packet.clear()
         if not frames do
             return 0
-        Memory.copy(&.pending[cast(u64, .pendingFrames) * .channels], samples.buffer,
-                    frames * .channels * #sizeof(s16))
+        Memory.copy(&.pending[cast(u64, .pendingFrames) * .channels], samples.buffer, frames * .channels * #sizeof(s16))
         .pendingFrames += cast(u32, frames)
-        .inputFrames += frames
+        .inputFrames   += frames
         if .pendingFrames == 1_024 do
             try .emit(packet, 1_024)
         return frames
@@ -116,15 +115,17 @@ impl StreamEncoder
             try .emit(packet, valid)
             return true
         }
+
         if .emittedPackets and not .drained
         {
             for index in 1_024'u64 * .channels do
                 .pending[index] = 0
             try .emit(packet, 0)
             .drained = true
-            .ended = true
+            .ended   = true
             return true
         }
+
         .ended = true
         return false
     }
@@ -138,6 +139,6 @@ private impl StreamEncoder
         .lastStart      = .emittedPackets * 1_024
         .lastValid      = validFrames
         .emittedPackets += 1
-        .pendingFrames = 0
+        .pendingFrames  = 0
     }
 }

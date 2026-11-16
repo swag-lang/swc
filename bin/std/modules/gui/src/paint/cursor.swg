@@ -22,7 +22,7 @@ enum CursorShape
 struct Cursor
 {
     using native: NativeCursor     // Platform cursor handle.
-    hidden: bool                   // Whether this descriptor hides the pointer.
+    hidden:       bool             // Whether this descriptor hides the pointer.
 }
 
 impl Cursor

@@ -13,16 +13,19 @@ using Core, Gui, Pixel
     let main = journey.main
 
     let picture = Path.combine(journey.root, "source.png")
-    var image = Testing.indexedImage(72, 48)
+    var image   = Testing.indexedImage(72, 48)
     expect image.save(picture)
     main.loadExternalImage(picture)
     journey.waitFor("import local picture", func|main|()->bool
     {
         let capture = main.editWnd.getCapture()
-        return capture and capture.width == 72 and capture.height == 48 and capture.sourceKind == .ImageFile
+        return capture and
+               capture.width == 72 and
+               capture.height == 48 and
+               capture.sourceKind == .ImageFile
     })
 
-    let capture = unwrap main.editWnd.getCapture()
+    let capture     = unwrap main.editWnd.getCapture()
     var capturePath = String.from(capture.file)
     Swag.require(capture.linkedImage == picture)
     discard testAddText(capture, 5, 6, 40, 20)

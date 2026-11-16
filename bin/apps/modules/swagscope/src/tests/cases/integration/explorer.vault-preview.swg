@@ -15,6 +15,7 @@ func measureVideoOpen(paths: const [..] String)->u64 fail
         var reader = Reader.open(path.toString(), pictureOnly: true)
         Swag.require(reader.durationInSeconds() > 0)
     }
+
     return timer.elapsedMicroseconds()
 }
 
@@ -26,9 +27,10 @@ func measureKeyPicture(paths: const [..] String)->u64 fail
     for &path in paths
     {
         var reader = Reader.open(path.toString(), pictureOnly: true)
-        let image = reader.decodeKeyPicture(reader.durationInSeconds() * 0.3)
+        let image  = reader.decodeKeyPicture(reader.durationInSeconds() * 0.3)
         Swag.require(image.isValid())
     }
+
     return timer.elapsedMicroseconds()
 }
 
@@ -42,6 +44,7 @@ func measureThumbnail(paths: const [..] String)->u64 fail
         let image = Film.loadThumbnail(path.toString())
         Swag.require(image.isValid())
     }
+
     return timer.elapsedMicroseconds()
 }
 
@@ -58,9 +61,11 @@ func measureThumbnailParallel(paths: const [..] String)->u64
             Atomic.add(&failures, 1)
             continue
         }
+
         if not image.isValid() do
             Atomic.add(&failures, 1)
     }
+
     Swag.require(failures == 0)
     return timer.elapsedMicroseconds()
 }
@@ -78,26 +83,27 @@ func reportPreviewTime(stage: string, local, mounted: u64)
 #[Swag.TestTag("integration.vault.frame.generate")]
 #test
 {
-    let name = Format.toString("frame-pressure-%.mp4", Guid64.random())
+    let name     = Format.toString("frame-pressure-%.mp4", Guid64.random())
     let hostPath = Path.combine(Env.getSpecialDirectory(.Temp), name)
 
-    var frame = Image.create(1920, 1080, .RGB8)
+    var frame  = Image.create(1920, 1080, .RGB8)
     let pixels = cast([*] u8, frame.pixels.storage())
     var random = 0x12345678'u32
     for index in frame.pixels.count
     {
-        random = random ^ (random << 13)
-        random = random ^ (random >> 17)
-        random = random ^ (random << 5)
+        random        = random ^ (random << 13)
+        random        = random ^ (random >> 17)
+        random        = random ^ (random << 5)
         pixels[index] = cast(u8, random >> 24)
     }
 
-    let rate = expect FrameRate.create(24, 1)
+    let rate   = expect FrameRate.create(24, 1)
     var writer = expect Writer.create(hostPath, 1920, 1080, rate, Mp4.EncodeOptions{quality: 95})
     for 24
     {
         expect writer.addFrame(frame)
     }
+
     expect writer.end()
     let size = (expect File.info(hostPath)).size
     Swag.require(size > 8 * 1024 * 1024 and size < 160 * 1024 * 1024)
@@ -108,13 +114,13 @@ func reportPreviewTime(stage: string, local, mounted: u64)
 #[Swag.TestTag("integration.vault.frame")]
 #test
 {
-    let hostPath = Env.variable("SWAG_VAULT_PREVIEW_VIDEO")
+    let hostPath  = Env.variable("SWAG_VAULT_PREVIEW_VIDEO")
     let mountRoot = Env.variable("SWAG_VAULT_PREVIEW_ROOT")
     Swag.require(File.exists(hostPath) and Directory.exists(mountRoot))
     let vaultPath = Path.combine(mountRoot, Path.fileName(hostPath) orelse "")
     Swag.require(File.exists(vaultPath))
 
-    var local: [1] String = [hostPath]
+    var local:   [1] String = [hostPath]
     var mounted: [1] String = [vaultPath]
     reportPreviewTime("large video open", expect measureVideoOpen(local), expect measureVideoOpen(mounted))
     reportPreviewTime("large video key picture", expect measureKeyPicture(local), expect measureKeyPicture(mounted))
@@ -128,7 +134,9 @@ func reportPreviewTime(stage: string, local, mounted: u64)
     Console.println(Format.toString("First key picture: usable %, lively %, center %/%/%",
                                     candidate.usable,
                                     candidate.lively,
-                                    center.r, center.g, center.b))
+                                    center.r,
+                                    center.g,
+                                    center.b))
     reportPreviewTime("large video thumbnail", expect measureThumbnail(local), expect measureThumbnail(mounted))
 }
 
@@ -193,10 +201,12 @@ func reportPreviewTime(stage: string, local, mounted: u64)
             if not firstPictureMicroseconds do
                 firstPictureMicroseconds = timer.elapsedMicroseconds()
         }
+
         if pictured and pictured == explorer.entries.count do
             break
         Threading.Thread.sleep(20'ms)
     }
+
     Swag.require(pictured > 0)
     for &entry in explorer.entries where entry.texture.isValid() do
         Swag.require(entry.attempted and not entry.onlinePending)

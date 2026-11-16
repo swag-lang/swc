@@ -33,8 +33,8 @@ func assertHomeCombination(files, folders: u32, light: bool, name: string)
         window.recentOpened.add(HomeNow - cast(u64, index) * Time.TicksPerHour)
     }
 
-    let data = scopeTestDataDirectory()
-    let tests = Path.directoryName(data) orelse ""
+    let data    = scopeTestDataDirectory()
+    let tests   = Path.directoryName(data) orelse ""
     let sources = Path.directoryName(tests) orelse ""
     let Paths: [3] string = [data, tests, sources]
     for index in folders do
@@ -45,7 +45,7 @@ func assertHomeCombination(files, folders: u32, light: bool, name: string)
     window.applyLayout()
     completeHomePreviews(&host, window.home)
 
-    let home = window.home
+    let home  = window.home
     let place = home.layout()
     Swag.require(home.rows.count == files and home.places.count == folders)
     Swag.require(home.explored == (folders != 0))

@@ -84,7 +84,7 @@ using Swag, Core, Gui, Pixel
     defer discard catch host.app.setLanguage(Gui.ReferenceLanguage)
     expect host.app.setLanguage("fr")
     testAddMonitorAt(main, {1440, 0, 1440, 900})
-    main.captureOptions.delay = 5
+    main.captureOptions.delay         = 5
     main.captureOptions.captureCursor = true
 
     let panel = testOpenResidentPanel(&host, main, .AtPointer)

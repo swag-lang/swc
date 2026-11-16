@@ -4,7 +4,7 @@
 #test
 {
     var callbacks: [3] ((func||()->s64)?) = cast((func||()->s64)?, null)
-    let base: s32 = 10
+    let base:      s32 = 10
     for index in 0 until callbacks.count do
         callbacks[index] = func|index, base|()->s64 { return index + base }
 

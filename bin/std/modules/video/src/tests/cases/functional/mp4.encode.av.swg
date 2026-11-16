@@ -17,13 +17,17 @@ using Swag, Core, Audio, Pixel
         rgb[pixel * 3 + 1] = 50
         rgb[pixel * 3 + 2] = 30
     }
+
     let image = Image.create(32, 16, .RGB8, rgb.toSlice())
     var nv12: Nv12Frame
     expect nv12.convertFrom(&image)
 
-    var video = expect H264.Encoder.create(32, 16, keyInterval: 2)
-    let audio = expect Aac.SilenceEncoder.create(48_000, 2)
-    var writer = expect Mp4.FragmentedWriter.createWithAudio(path, 32, 16, 90_000,
+    var video  = expect H264.Encoder.create(32, 16, keyInterval: 2)
+    let audio  = expect Aac.SilenceEncoder.create(48_000, 2)
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             32,
+                                                             16,
+                                                             90_000,
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 2,
                                                                                        audio.decoderConfig()})
@@ -33,6 +37,7 @@ using Swag, Core, Audio, Pixel
         expect writer.addAudioPacket(EncodedPacket{audio.packet(), index * 1_024,
                                                    index * 1_024, 1_024, true})
     }
+
     expect writer.end()
 
     let summary = expect Mp4.summarizeFragmentedRecording(path)

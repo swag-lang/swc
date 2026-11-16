@@ -84,7 +84,7 @@ struct xcb_shm_get_image_reply_t
 }
 
 #[Swag.CallingConvention(.C)]
-alias xcb_send_request_fn = func(*void, s32, *xcb_iovec_t, const *xcb_protocol_request_t)->u32
+alias xcb_send_request_fn   = func(*void, s32, *xcb_iovec_t, const *xcb_protocol_request_t)->u32
 
 #[Swag.CallingConvention(.C)]
 alias xcb_wait_for_reply_fn = func(*void, u32, *(*xcb_generic_error_t?)?)->*xcb_get_image_reply_t?

@@ -11,10 +11,10 @@ struct CaptureAacPacket
 {
     public
     {
-        startSample:       u64  // Encoded packet start on the output sample clock.
-        validFrames:       u32  // Input frames represented by this packet, excluding final padding.
-        syntheticFrames:   u32  // Frames inserted for a missing capture block or lost source.
-        sourceInterrupted: bool // A device restoration contributed PCM to this packet.
+        startSample:       u64      // Encoded packet start on the output sample clock.
+        validFrames:       u32      // Input frames represented by this packet, excluding final padding.
+        syntheticFrames:   u32      // Frames inserted for a missing capture block or lost source.
+        sourceInterrupted: bool     // A device restoration contributed PCM to this packet.
     }
 }
 
@@ -60,10 +60,11 @@ impl CaptureAacTrack
     {
         with var result: #returntype
         {
-            .queue = queue
+            .queue    = queue
             .channels = queue.channelCount()
-            .encoder = try Aac.StreamEncoder.create(queue.sampleRateHz(), .channels, bandwidth)
+            .encoder  = try Aac.StreamEncoder.create(queue.sampleRateHz(), .channels, bandwidth)
         }
+
         return result
     }
 
@@ -105,6 +106,7 @@ impl CaptureAacTrack
             Swag.init(info, 1)
             return false
         }
+
         .finishing = true
         if try .pull(packet, info) do
             return true
@@ -113,6 +115,7 @@ impl CaptureAacTrack
             .describePacket(info)
             return true
         }
+
         .finished = true
         Swag.init(info, 1)
         return false
@@ -128,32 +131,34 @@ private impl CaptureAacTrack
         {
             if .gapFrames
             {
-                let frames = Math.min(.gapFrames, 1_024'u64)
+                let frames   = Math.min(.gapFrames, 1_024'u64)
                 let consumed = try .encoder.push(Swag.makeSlice(&.zeros[0], frames * .channels), packet)
-                .gapFrames -= consumed
-                .nextInputSample += consumed
+                .gapFrames         -= consumed
+                .nextInputSample   += consumed
                 .syntheticInPacket += cast(u32, consumed)
                 if packet.count
                 {
                     .describePacket(info)
                     return true
                 }
+
                 continue
             }
 
             if .capturedOffset < .current.frameCount
             {
-                .packetInterrupted = .packetInterrupted or .pendingInterrupted
+                .packetInterrupted  = .packetInterrupted or .pendingInterrupted
                 .pendingInterrupted = false
-                let start = .capturedOffset * .channels
+                let start    = .capturedOffset * .channels
                 let consumed = try .encoder.push(.captured.toSlice()[start until .current.frameCount * .channels], packet)
-                .capturedOffset += consumed
+                .capturedOffset  += consumed
                 .nextInputSample += consumed
                 if packet.count
                 {
                     .describePacket(info)
                     return true
                 }
+
                 continue
             }
 
@@ -173,17 +178,18 @@ private impl CaptureAacTrack
                 .gapFrames = lostEnd - .nextInputSample
                 continue
             }
+
             return false
         }
     }
 
     mtd describePacket(info: *CaptureAacPacket)
     {
-        info.startSample = .encoder.lastPacketStartSample()
-        info.validFrames = .encoder.lastPacketValidFrames()
-        info.syntheticFrames = .syntheticInPacket
+        info.startSample       = .encoder.lastPacketStartSample()
+        info.validFrames       = .encoder.lastPacketValidFrames()
+        info.syntheticFrames   = .syntheticInPacket
         info.sourceInterrupted = .packetInterrupted
-        .syntheticInPacket = 0
-        .packetInterrupted = false
+        .syntheticInPacket     = 0
+        .packetInterrupted     = false
     }
 }

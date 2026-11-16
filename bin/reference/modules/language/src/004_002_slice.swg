@@ -41,7 +41,7 @@ The empty slice is present and has a count of zero. Without a destination type,
     Swag.require(a[1] == 2)
 }
 
-func emptySliceCount(values: const [..] u32)->u64 => values.count
+func emptySliceCount(values: const [..] u32)->u64        => values.count
 func emptySliceDefault(values: const [..] u32 = [])->u64 => values.count
 func emptySliceReturn()->const [..] u32 => []
 

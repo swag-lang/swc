@@ -5,33 +5,33 @@
 using Core
 
 #[Swag.CallingConvention(.C)]
-private alias XTestMotion = func(*void, s32, s32, s32, u64)->s32
+private alias XTestMotion      = func(*void, s32, s32, s32, u64)->s32
 #[Swag.CallingConvention(.C)]
-private alias XTestButton = func(*void, u32, s32, u64)->s32
+private alias XTestButton      = func(*void, u32, s32, u64)->s32
 #[Swag.CallingConvention(.C)]
-private alias XTestKey = func(*void, u32, s32, u64)->s32
+private alias XTestKey         = func(*void, u32, s32, u64)->s32
 #[Swag.CallingConvention(.C)]
 private alias XKeysymToKeycode = func(*void, u64)->u8
 #[Swag.CallingConvention(.C)]
-private alias XSetInputFocus = func(*void, u64, s32, u64)->s32
+private alias XSetInputFocus   = func(*void, u64, s32, u64)->s32
 #[Swag.CallingConvention(.C)]
-private alias XGetInputFocus = func(*void, *u64, *s32)->s32
+private alias XGetInputFocus   = func(*void, *u64, *s32)->s32
 #[Swag.CallingConvention(.C)]
-private alias XSync = func(*void, s32)->s32
+private alias XSync            = func(*void, s32)->s32
 
 internal struct NativeDesktopInput
 {
     x11, xtst, display: *void?
-    priorFocus: u64
-    late motion: XTestMotion
-    late button: XTestButton
-    late key: XTestKey
-    late keycode: XKeysymToKeycode
-    late setFocus: XSetInputFocus
-    late getFocus: XGetInputFocus
-    late sync: XSync
-    mousePressed: bool
-    pressedKeyCode: u32
+    priorFocus:         u64
+    late motion:        XTestMotion
+    late button:        XTestButton
+    late key:           XTestKey
+    late keycode:       XKeysymToKeycode
+    late setFocus:      XSetInputFocus
+    late getFocus:      XGetInputFocus
+    late sync:          XSync
+    mousePressed:       bool
+    pressedKeyCode:     u32
     heldControl, heldShift, heldAlt: bool
 }
 
@@ -43,18 +43,18 @@ impl DesktopInput
         Swag.require(.x11 != null, "desktop input needs libX11.so.6")
         .xtst = Linux.dlopen("libXtst.so.6".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         Swag.require(.xtst != null, "desktop input needs libXtst.so.6")
-        let x11 = .x11
+        let x11  = .x11
         let xtst = .xtst
         let open = expect LinuxDesktop.symbol'Linux.XOpenDisplay_fn(x11, "XOpenDisplay")
         .display = open(null)
         Swag.require(.display != null, "desktop input needs an X11 display")
-        .motion = expect LinuxDesktop.symbol'XTestMotion(xtst, "XTestFakeMotionEvent")
-        .button = expect LinuxDesktop.symbol'XTestButton(xtst, "XTestFakeButtonEvent")
-        .key = expect LinuxDesktop.symbol'XTestKey(xtst, "XTestFakeKeyEvent")
-        .keycode = expect LinuxDesktop.symbol'XKeysymToKeycode(x11, "XKeysymToKeycode")
+        .motion   = expect LinuxDesktop.symbol'XTestMotion(xtst, "XTestFakeMotionEvent")
+        .button   = expect LinuxDesktop.symbol'XTestButton(xtst, "XTestFakeButtonEvent")
+        .key      = expect LinuxDesktop.symbol'XTestKey(xtst, "XTestFakeKeyEvent")
+        .keycode  = expect LinuxDesktop.symbol'XKeysymToKeycode(x11, "XKeysymToKeycode")
         .setFocus = expect LinuxDesktop.symbol'XSetInputFocus(x11, "XSetInputFocus")
         .getFocus = expect LinuxDesktop.symbol'XGetInputFocus(x11, "XGetInputFocus")
-        .sync = expect LinuxDesktop.symbol'XSync(x11, "XSync")
+        .sync     = expect LinuxDesktop.symbol'XSync(x11, "XSync")
         var revertTo: s32
         discard .getFocus(.display, &.priorFocus, &revertTo)
     }
@@ -62,8 +62,8 @@ impl DesktopInput
     internal mtd closeNative()
     {
         let display = unwrap .display
-        let x11 = unwrap .x11
-        let xtst = unwrap .xtst
+        let x11     = unwrap .x11
+        let xtst    = unwrap .xtst
         if .pressedKeyCode != 0 do
             discard .key(display, .pressedKeyCode, 0, 0)
         if .heldAlt do
@@ -91,7 +91,7 @@ impl DesktopInput
 
     internal mtd requireNativeFocus()
     {
-        var focused: u64
+        var focused:  u64
         var revertTo: s32
         discard .getFocus(unwrap .display, &focused, &revertTo)
         Swag.require(focused == .surface.windowId, "the test window lost X11 keyboard focus")
@@ -123,7 +123,7 @@ impl DesktopInput
     internal mtd sendNativeKey(key: Input.Key, pressed: bool)
     {
         let symbol = Input.Keyboard.keyToVirtualKey(key)
-        let code = .keycode(unwrap .display, symbol)
+        let code   = .keycode(unwrap .display, symbol)
         Swag.require(code != 0, "the X11 keyboard map lacks the shortcut key")
         .sendRawKey(code, pressed)
         .pressedKeyCode = pressed ? code : 0
@@ -152,6 +152,7 @@ impl DesktopInput
         case .Alt:     symbol = 0xFFE9
         default:       Swag.require(false, "desktop input does not support this modifier")
         }
+
         return .keycode(unwrap .display, symbol)
     }
 

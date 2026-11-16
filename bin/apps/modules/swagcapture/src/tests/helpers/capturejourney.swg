@@ -15,26 +15,26 @@ enum RecordingJourneyEnd
 // that the shipped application uses. The fixture owns every file it creates.
 struct CaptureJourney
 {
-    late app: *Application
-    root:     String
-    late surface: *Surface
-    late main:    *MainWnd
-    watch:    Time.Stopwatch
-    savedKeepRatio: bool
-    savedResizeMode: u64
+    late app:                *Application
+    root:                    String
+    late surface:            *Surface
+    late main:               *MainWnd
+    watch:                   Time.Stopwatch
+    savedKeepRatio:          bool
+    savedResizeMode:         u64
     savedWidth, savedHeight: s32
-    started: bool
+    started:                 bool
 }
 
 impl CaptureJourney
 {
     mtd setup()
     {
-        .app = &g_App
-        .savedKeepRatio = g_KeepRatio
+        .app             = &g_App
+        .savedKeepRatio  = g_KeepRatio
         .savedResizeMode = g_ResizeMode
-        .savedWidth = g_Width
-        .savedHeight = g_Height
+        .savedWidth      = g_Width
+        .savedHeight     = g_Height
         testUseScratchLibrary()
         .root = Testing.tempFilePath("capture-journey-", "")
         expect Directory.create(.root)
@@ -46,9 +46,10 @@ impl CaptureJourney
         registerAppStrings(&.app.resources)
         .surface = expect .app.createSurface(40, 40, 1100, 760, surfaceId: "capture-test-journey")
         .surface.setTitle(ProductName)
-        .main = MainWnd.create(.surface.wnd)
+        .main    = MainWnd.create(.surface.wnd)
         .started = true
         .surface.show()
+
         // Application.run sends this startup event before its first frame.
         var firstFrame = FrameEvent{firstFrame: true}
         .surface.wnd.view.sendEvent(&firstFrame)
@@ -68,11 +69,11 @@ impl CaptureJourney
         Swag.drop(&g_Library, 1)
         Swag.init(&g_Library, 1)
         discard catch Directory.delete(.root, recurse: true)
-        g_KeepRatio = .savedKeepRatio
+        g_KeepRatio  = .savedKeepRatio
         g_ResizeMode = .savedResizeMode
-        g_Width = .savedWidth
-        g_Height = .savedHeight
-        g_Main = null
+        g_Width      = .savedWidth
+        g_Height     = .savedHeight
+        g_Main       = null
         Swag.drop(&g_App, 1)
         Swag.init(&g_App, 1)
     }
@@ -89,10 +90,13 @@ impl CaptureJourney
                 return
             if .watch.elapsedMilliseconds() > 38_000
             {
-                Console.println("ready=", ready(), " animations=", .app.animator.activeCount(),
-                                " renderFailure=", .surface.renderFailure)
-                Console.println("libraryMode=", .main.libraryMode, " items=", .main.libWnd.view.allItems.count,
-                                " updating=", g_UpdatingLib)
+                Console.println("ready=", ready(), " animations=", .app.animator.activeCount(), " renderFailure=", .surface.renderFailure)
+                Console.println("libraryMode=",
+                                .main.libraryMode,
+                                " items=",
+                                .main.libWnd.view.allItems.count,
+                                " updating=",
+                                g_UpdatingLib)
                 for item in .main.libWnd.view.allItems do
                     Console.println("item=", item!.fi.fullName, " loaded=", item.loaded)
                 Swag.require(false, Format.toString("Swag Capture journey timed out at %", stage))
@@ -103,7 +107,7 @@ impl CaptureJourney
     mtd openLibrary(count: u64)
     {
         .main.sendCommandEvent(ActionGlobal.ShowLibrary)
-        let main = .main
+        let main  = .main
         let ready = func|main, count|()->bool
         {
             let view = main.libWnd.view
@@ -113,6 +117,7 @@ impl CaptureJourney
                 return false
             return true
         }
+
         .waitFor("library loaded", ready)
     }
 
@@ -120,7 +125,7 @@ impl CaptureJourney
     {
         .main.newCapture(Testing.indexedImage(width, height), sourceKind: .Clipboard)
         let capture = unwrap .main.editWnd.getCapture()
-        var path = String.from(capture.file)
+        var path    = String.from(capture.file)
         .waitFor("new capture saved", func|&path|()->bool => File.exists(path))
         return path
     }
@@ -139,10 +144,10 @@ impl CaptureJourney
     // Take an area picture through the native selector and open it in the editor.
     mtd captureScreenPicture()
     {
-        let app = .app
+        let app  = .app
         let main = .main
         var selected: bool
-        main.captureOptions.inPlaceEdit = false
+        main.captureOptions.inPlaceEdit  = false
         main.captureOptions.sendToEditor = true
         defer app.sigFrame.clear()
         app.sigFrame += func|journey = me, selected = &selected|(_)
@@ -170,7 +175,7 @@ impl CaptureJourney
     // Cancel a selected picture from the in-place editor before it becomes a capture.
     mtd cancelInPlacePicture()
     {
-        let app = .app
+        let app  = .app
         let main = .main
         var stage: u32
         main.captureOptions.inPlaceEdit = true
@@ -215,10 +220,10 @@ impl CaptureJourney
     // recording pill. Wait for written frames before ending it.
     mtd recordAnimation(ending: RecordingJourneyEnd)
     {
-        var stage: u32
+        var stage:       u32
         var pausedCount: u64
-        let main = .main
-        let app  = .app
+        let main  = .main
+        let app   = .app
         let watch = &.watch
         defer app.sigFrame.clear()
 
@@ -259,8 +264,8 @@ impl CaptureJourney
             if stage[] == 2 and g_Recorder
             {
                 let recorder = unwrap g_Recorder
-                let hud = unwrap recorder.hud
-                let count = recorder.writer.frameCount()
+                let hud      = unwrap recorder.hud
+                let count    = recorder.writer.frameCount()
                 if ending == .CancelCountdown and recorder.state == .Counting
                 {
                     stage[] = 5
@@ -270,7 +275,7 @@ impl CaptureJourney
                 elif ending == .PauseThenStop and count >= 1
                 {
                     pausedCount[] = count
-                    stage[] = 3
+                    stage[]       = 3
                     hud.pauseButton.sigPressed.call(hud.pauseButton)
                     return
                 }
@@ -333,9 +338,9 @@ impl CaptureJourney
 
     mtd dragSurfacePoints(first, last: Math.Point, hover = true)
     {
-        let view = .main.editWnd.editView
+        let view         = .main.editWnd.editView
         let target: IWnd = view
-        var pointer = MouseEvent{kind: .Move, button: .Left, surfacePos: first}
+        var pointer      = MouseEvent{kind: .Move, button: .Left, surfacePos: first}
         if hover do
             target.onMouseEvent(&pointer)
         pointer.kind = .Pressed
@@ -384,6 +389,7 @@ impl CaptureJourney
                     }
                 }
             }
+
             Swag.require(foundWidth and foundHeight)
             answered[] = true
             Swag.require(dialog.closeWithResult(Dialog.BtnOk))
@@ -406,6 +412,7 @@ impl CaptureJourney
             answered[] = true
             Swag.require(dialog.closeWithResult(answer))
         }
+
         .main.sendCommandEvent(command)
         Swag.require(answered)
     }
@@ -414,11 +421,11 @@ impl CaptureJourney
     {
         .main.sendCommandEvent(ActionToolMode.Poly)
         Swag.require(.main.editMode == .Polygon)
-        let view    = .main.editWnd.editView
-        let capture = unwrap view.capture
-        let count   = capture.forms.count
+        let view         = .main.editWnd.editView
+        let capture      = unwrap view.capture
+        let count        = capture.forms.count
         let target: IWnd = view
-        var pointer = MouseEvent{kind: .Pressed, button: .Left, surfacePos: .surfacePoint(first)}
+        var pointer      = MouseEvent{kind: .Pressed, button: .Left, surfacePos: .surfacePoint(first)}
         target.onMouseEvent(&pointer)
         pointer.kind       = .Move
         pointer.surfacePos = .surfacePoint(second)

@@ -926,7 +926,7 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
 #test
 {
     var packed: ConcatBuffer
-    var file: BmpFH
+    var file:   BmpFH
     file.bfType    = 0x4D42'u16
     file.bfSize    = 62'u32
     file.bfOffBits = 58'u32
@@ -1002,7 +1002,7 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     addBmpPaletteColor(&rle4Absolute, 3, 2, 1)
     rle4Absolute.addNative(0'u8)     // Absolute packet of three indices.
     rle4Absolute.addNative(3'u8)
-    rle4Absolute.addNative(0x10'u8)  // Includes undeclared palette entry 1.
+    rle4Absolute.addNative(0x10'u8)     // Includes undeclared palette entry 1.
     rle4Absolute.addNative(0'u8)
     rle4Absolute.addNative(0'u8)     // End of bitmap.
     rle4Absolute.addNative(1'u8)

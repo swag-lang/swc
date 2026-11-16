@@ -11,19 +11,20 @@ using Swag, Core
     host.setup(600, 400)
     defer host.shutdown()
 
-    let surface = unwrap PopupMenuSurface.create(&host.app, {100, 100})
+    let surface   = unwrap PopupMenuSurface.create(&host.app, {100, 100})
     with let root = Wnd.create'Wnd(surface.wnd)
     {
         .backgroundStyle = .Window
-        .focusPolicy = .Click
-        .dockStyle = .Center
+        .focusPolicy     = .Click
+        .dockStyle       = .Center
     }
+
     let menu = Wnd.create'MenuCtrl(root)
     menu.addItem("First", "popup.first")
     menu.addItem("Second", "popup.second")
-    menu.owner = &host.root
+    menu.owner     = &host.root
     menu.dockStyle = .Center
-    menu.padding = 10
+    menu.padding   = 10
     menu.setFramePainting(true)
     PopupMenuSurface.show(root, menu, {100, 100, 80, 30}, .BelowAnchor, {100, 100})
 

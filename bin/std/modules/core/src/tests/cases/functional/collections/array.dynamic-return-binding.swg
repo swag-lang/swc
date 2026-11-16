@@ -14,7 +14,7 @@ struct ArrayBindingMiddle
 struct ArrayBindingDerived
 {
     using middle: ArrayBindingMiddle
-    value: s32 = 42
+    value:        s32 = 42
 }
 
 func findArrayBinding(items: *Array'(*ArrayBindingBase))->*ArrayBindingDerived?

@@ -15,7 +15,7 @@ internal struct Context
     settingsOwner:                                u32
     screenIndex:                                  s32
     uiThread:                                     u64
-    wslDpiScale:                                  f32 = 1
+    wslDpiScale:                                  f32         = 1
     wslDpiResolved:                               bool
     surfaces:                                     Array'(*Surface)
     cursorFont:                                   u32
@@ -362,12 +362,13 @@ internal func initializeKeyboard(context: *Context) fail
     let connection = unwrap context.connection
     if context.xkb_x11_setup_xkb_extension(connection, 1, 0, 0, null, null, &context.xkbEventBase, null) == 0 do
         fail Swag.SystemError{"X11 keyboard extension is unavailable"}
+
     // Subscribe to new keyboards, map updates and group state changes. Map parts 0xff cover
     // key types, symbols, modifiers, actions and virtual modifiers.
-    try check(context, context.xcb_xkb_select_events_checked(connection, 0x100, 7, 0, 7, 0xff, 0xff, null))
+    try check(context, context.xcb_xkb_select_events_checked(connection, 0x100, 7, 0, 7, 0xFF, 0xFF, null))
     let repeatReply = context.xcb_xkb_per_client_flags_reply(connection,
-                                                            context.xcb_xkb_per_client_flags(connection, 0x100, 1, 1, 0, 0, 0),
-                                                            null)
+                                                             context.xcb_xkb_per_client_flags(connection, 0x100, 1, 1, 0, 0, 0),
+                                                             null)
     if not repeatReply do
         fail Swag.SystemError{"cannot configure X11 detectable key repeat"}
     defer Linux.free(repeatReply)
@@ -414,7 +415,7 @@ internal func refreshKeyboardMap(context: *Context)->bool
     if not context.keyboardMap do
         return false
     let connection = unwrap context.connection
-    let device = context.xkb_x11_get_core_keyboard_device_id(connection)
+    let device     = context.xkb_x11_get_core_keyboard_device_id(connection)
     if device < 0 do
         return false
     let keymap = context.xkb_x11_keymap_new_from_device(unwrap context.keyboardContext, connection, device, 0)
@@ -429,7 +430,7 @@ internal func refreshKeyboardMap(context: *Context)->bool
 
     context.xkb_state_unref(unwrap context.keyboardState)
     context.xkb_keymap_unref(context.keyboardMap)
-    context.keyboardMap = keymap
+    context.keyboardMap   = keymap
     context.keyboardState = state
     return true
 }
@@ -604,7 +605,7 @@ internal func wslDpiScale()->f32
 
 internal func preferences(context: *Context)->Preferences
 {
-    let connection   = unwrap context.connection
+    let connection = unwrap context.connection
     if not context.wslDpiResolved
     {
         context.wslDpiResolved = true
@@ -612,7 +613,7 @@ internal func preferences(context: *Context)->Preferences
         context.wslDpiScale = scale > 0 ? scale : 1
     }
 
-    var result = Preferences{scale: context.wslDpiScale}
+    var result       = Preferences{scale: context.wslDpiScale}
     let resourceName = expect atom(context, "RESOURCE_MANAGER")
     let resources    = catch readProperty(context, context.screen.root, resourceName) orelse Array'u8{}
     if not resources.isEmpty()

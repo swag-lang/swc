@@ -14,7 +14,7 @@ using Core, Gui, Pixel
     {
         discard journey.newCapture()
         let capture = unwrap main.editWnd.getCapture()
-        capture.title = title
+        capture.title   = title
         capture.changed = true
         main.saveCapture(capture)
     }

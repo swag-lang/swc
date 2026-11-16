@@ -61,8 +61,8 @@ impl PlanarFrame
         if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1) do
             return false
 
-        let width  = cast(u64, .width)
-        let height = cast(u64, .height)
+        let width        = cast(u64, .width)
+        let height       = cast(u64, .height)
         let chromaWidth  = .chromaShift == 0 ? width : width / 2 + width % 2
         let chromaHeight = .chromaShift == 0 ? height : height / 2 + height % 2
         let lumaStride   = cast(u64, .strideLuma)

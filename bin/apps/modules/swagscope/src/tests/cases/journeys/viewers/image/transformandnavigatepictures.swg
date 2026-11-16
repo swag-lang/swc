@@ -29,7 +29,8 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.NextFile)
     journey.waitForFile(raster)
     let next = assume cast(*Picture.Panel, window.currentView)
-    Swag.require(not next.facts.vector and next.imageView.rotationQuarterTurns == 0 and
+    Swag.require(not next.facts.vector and
+                 next.imageView.rotationQuarterTurns == 0 and
                  not next.imageView.isMirrored)
     next.rotateCounterClockwise()
     Swag.require(next.imageView.rotationQuarterTurns == 3)

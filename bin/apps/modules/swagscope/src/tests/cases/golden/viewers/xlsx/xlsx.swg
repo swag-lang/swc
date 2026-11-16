@@ -87,13 +87,13 @@ using Core, Gui, Viewers
     panel.grid!.selectAddress({11, 3})
     window.applyLayout()
     host.finishAnimations()
-    var image = host.renderSettled(window)
-    let grid = panel.grid
+    var image    = host.renderSettled(window)
+    let grid     = panel.grid
     let selected = grid.cellRect(grid.selected, grid.selected)
     Swag.require(selected.bottom() <= grid.clientRect().height + 1, Format.toString("selected bottom %; viewport %; origin %; scroll span %", selected.bottom(), grid.clientRect().height, grid.originY, grid.scroll.scrollSize.y))
     let point = grid.localToSurface(Math.Point{selected.horzCenter(), selected.y})
     let pixel = image.pixelColor(cast(s32, Math.round(point.x * grid.deviceScale())), cast(s32, Math.round(point.y * grid.deviceScale())))
-    let arc = grid.themeColors().arc
+    let arc   = grid.themeColors().arc
     Swag.require(Math.abs(cast(s32, pixel.r) - arc.r) + Math.abs(cast(s32, pixel.g) - arc.g) + Math.abs(cast(s32, pixel.b) - arc.b) < 20,
                  Format.toString("selection at %,% missing; cell bottom %; viewport height %; grid y %; origin %; scroll span %", point.x, point.y, selected.bottom(), grid.clientRect().height, grid.surfaceRect().y, grid.originY, grid.scroll.scrollSize.y))
     assertScopeImageGolden(&image, "viewer.xlsx.revealed.hidpi.paper")

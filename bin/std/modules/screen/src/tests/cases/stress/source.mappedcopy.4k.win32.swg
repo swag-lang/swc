@@ -7,14 +7,14 @@ using Swag, Core
 #[Swag.TestTag("stress")]
 #test
 {
-    const Width = 7680'u64
-    const Height = 2168'u64
-    const SourcePitch = Width * 4 + 256
+    const Width            = 7680'u64
+    const Height           = 2168'u64
+    const SourcePitch      = Width * 4 + 256
     const DestinationPitch = Width * 4 + 128
-    const RowBytes = Width * 4
-    const Iterations = 16'u64
-    var source: Array'u8
-    var output: Array'u8
+    const RowBytes         = Width * 4
+    const Iterations       = 16'u64
+    var source:    Array'u8
+    var output:    Array'u8
     var reference: Array'u8
     source.resize(SourcePitch * Height)
     output.resize(DestinationPitch * Height)
@@ -28,8 +28,7 @@ using Swag, Core
     var watch: Time.Stopwatch
     watch.start()
     for Iterations do
-        copyMappedBgraRows(outputBottom, DestinationPitch, source.storage(), SourcePitch,
-                           RowBytes, Height)
+        copyMappedBgraRows(outputBottom, DestinationPitch, source.storage(), SourcePitch, RowBytes, Height)
     watch.stop()
     let parallelMicros = watch.elapsedMicroseconds()
 
@@ -39,12 +38,16 @@ using Swag, Core
     {
         for row in Height do
             Memory.copy(referenceBottom - row * DestinationPitch,
-                        source.storage() + row * SourcePitch, RowBytes)
+                        source.storage() + row * SourcePitch,
+                        RowBytes)
     }
+
     watch.stop()
     let serialMicros = watch.elapsedMicroseconds()
 
     Swag.require(Slice.equals(output.toSlice(), reference.toSlice()))
     Console.printf("Virtual desktop pitched BGRA copy: parallel % us, serial % us for % frames\n",
-                   parallelMicros, serialMicros, Iterations)
+                   parallelMicros,
+                   serialMicros,
+                   Iterations)
 }

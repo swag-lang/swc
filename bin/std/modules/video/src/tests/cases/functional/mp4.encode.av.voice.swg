@@ -17,13 +17,17 @@ using Swag, Core, Audio, Pixel
         rgb[pixel * 3 + 1] = 70
         rgb[pixel * 3 + 2] = 25
     }
+
     let image = Image.create(32, 16, .RGB8, rgb.toSlice())
     var nv12: Nv12Frame
     expect nv12.convertFrom(&image)
 
-    var video = expect H264.Encoder.create(32, 16, keyInterval: 4)
-    var audio = expect Aac.Encoder.create(48_000, 1)
-    var writer = expect Mp4.FragmentedWriter.createWithAudio(path, 32, 16, 90_000,
+    var video  = expect H264.Encoder.create(32, 16, keyInterval: 4)
+    var audio  = expect Aac.Encoder.create(48_000, 1)
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             32,
+                                                             16,
+                                                             90_000,
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 1,
                                                                                        audio.decoderConfig()})
@@ -32,8 +36,9 @@ using Swag, Core, Audio, Pixel
 
     var input: [12 * 1_024] s16
     for sample in input.count do
-        input[sample] = cast(s16, Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                  1_000.0 * sample / 48_000.0)))
+        input[sample] = cast(s16,
+                             Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                            1_000.0 * sample / 48_000.0)))
     for block in 12'u64
     {
         var packet: Array'u8
@@ -41,6 +46,7 @@ using Swag, Core, Audio, Pixel
         expect writer.addAudioPacket(EncodedPacket{packet.toSlice(), block * 1_024,
                                                    block * 1_024, 1_024, true})
     }
+
     expect writer.end()
 
     let summary = expect Mp4.summarizeFragmentedRecording(path)
@@ -68,9 +74,9 @@ using Swag, Core, Audio, Pixel
         return true
     })
     Swag.require(pcm.count == input.count)
-    var error = 0.0'f64
-    var power = 0.0'f64
-    var cross = 0.0'f64
+    var error        = 0.0'f64
+    var power        = 0.0'f64
+    var cross        = 0.0'f64
     var decodedPower = 0.0'f64
     for index in 3_072 until 10_240
     {
@@ -81,6 +87,7 @@ using Swag, Core, Audio, Pixel
         decodedPower += actual * actual
         cross        += original * actual
     }
+
     Swag.require(Math.sqrt(error / power) < 0.15)
     Swag.require(cross / Math.sqrt(power * decodedPower) > 0.9)
 }

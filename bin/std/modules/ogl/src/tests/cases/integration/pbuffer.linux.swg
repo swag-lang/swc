@@ -89,39 +89,41 @@ private var g_OffscreenPixel: u32
 #test
 {
     var firstWindow = expect Env.createWindow({identifier: "egl-connections", title: "EGL connections", width: 16, height: 16})
-    var first = expect Platform.Xcb.createContext(&firstWindow)
+    var first       = expect Platform.Xcb.createContext(&firstWindow)
     scope
     {
         let library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         Swag.require(library != null)
         defer discard Linux.dlclose(unwrap library)
+
         func(T) symbol(library: *void, name: string)->T
         {
             let address = Linux.dlsym(library, name.buffer)
             Swag.require(address != null)
             return cast(T, address)
         }
-        let connect = symbol'Linux.xcb_connect_fn(library, "xcb_connect")
+
+        let connect    = symbol'Linux.xcb_connect_fn(library, "xcb_connect")
         let disconnect = symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
-        let setup = symbol'Linux.xcb_get_setup_fn(library, "xcb_get_setup")
-        let roots = symbol'Linux.xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
-        let generate = symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")
-        let create = symbol'Linux.xcb_create_window_checked_fn(library, "xcb_create_window_checked")
-        let check = symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+        let setup      = symbol'Linux.xcb_get_setup_fn(library, "xcb_get_setup")
+        let roots      = symbol'Linux.xcb_setup_roots_iterator_fn(library, "xcb_setup_roots_iterator")
+        let generate   = symbol'Linux.xcb_generate_id_fn(library, "xcb_generate_id")
+        let create     = symbol'Linux.xcb_create_window_checked_fn(library, "xcb_create_window_checked")
+        let check      = symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
         let connection = connect(null, null)
         Swag.require(connection != null)
         defer disconnect(unwrap connection)
         let screen = roots(setup(connection)).data
         Swag.require(screen != null)
         let window = generate(connection)
-        let error = check(connection, create(connection, screen.root_depth, window, screen.root,
-            0, 0, 16, 16, 0, 1, screen.root_visual, 0, null))
+        let error  = check(connection, create(connection, screen.root_depth, window, screen.root, 0, 0, 16, 16, 0, 1, screen.root_visual, 0, null))
         defer Linux.free(error)
         Swag.require(error == null)
         var second = expect Platform.Xcb.createContextForDrawable({connection, window, screen.root_visual, 0})
         expect first.makeCurrent()
         second.destroy()
     }
+
     // The second native connection and its EGL display have both gone away.
     glClearColor(0, 0, 1, 1)
     glClear(GL_COLOR_BUFFER_BIT)

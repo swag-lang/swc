@@ -59,7 +59,7 @@ else
     #[Swag.NoInline]
     func readUninitializedSlot(shouldInitialize: bool)->s32
     {
-        var slot: GuardedLateSlot
+        var slot:  GuardedLateSlot
         var value: s32 = 42
         if shouldInitialize do slot.value = &value
         return slot.value[]
@@ -68,7 +68,7 @@ else
     #test
     {
         var absent: *s32? = null
-        let missing = Swag.catchPanic(func|&absent|() { discard unwrap absent })
+        let missing       = Swag.catchPanic(func|&absent|() { discard unwrap absent })
         Swag.require(missing.raised)
 
         let uninitialized = Swag.catchPanic(func() { discard readUninitializedSlot(false) })

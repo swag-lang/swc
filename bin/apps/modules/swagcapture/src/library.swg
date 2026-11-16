@@ -121,29 +121,34 @@ impl Library
                 continue
 
             let capture = Memory.new'Capture()
-            capture.file = document
+            capture.file       = document
             capture.capturedAt = fi.lastWriteTime
             catch capture.adoptVideo()
             {
                 Memory.delete(capture)
                 continue
             }
-            let scale = Math.min(1.0, Math.min(PreviewWidth / capture.width,
-                                               PreviewHeight / capture.height))
+
+            let scale = Math.min(1.0,
+                                 Math.min(PreviewWidth / capture.width,
+                                          PreviewHeight / capture.height))
             capture.preview = capture.backImg
             if scale < 1 do
                 capture.preview.resize(Math.max(1, cast(s32, capture.width * scale)),
-                                       Math.max(1, cast(s32, capture.height * scale)), .Bilinear)
+                                       Math.max(1, cast(s32, capture.height * scale)),
+                                       .Bilinear)
             catch capture.saveRecoveredDocument()
             {
                 Memory.delete(capture)
                 continue
             }
+
             Memory.delete(capture)
             recovered.add(document)
             if recovered.count == VideoRecoveryBatchSize do
                 break
         }
+
         return recovered
     }
 
@@ -156,7 +161,8 @@ impl Library
         let base = Path.fileName(name) orelse ""
         var dst  = Path.combine(folder, base)
         var n    = 1
-        while File.exists(dst) or File.exists(Capture.mediaPathOf(dst)) or
+        while File.exists(dst) or
+              File.exists(Capture.mediaPathOf(dst)) or
               File.exists(Capture.mediaPathOf(dst, .Video))
         {
             // Build "<n>_<base>" without passing the name through a formatted `any` arg,
@@ -254,6 +260,7 @@ impl Library
                 break
             }
         }
+
         return false
     }
 

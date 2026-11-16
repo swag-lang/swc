@@ -42,9 +42,12 @@ impl Resampler
     // fixed for the stream; `setInputClockDriftPpm` adjusts the input consumption rate later.
     func create(inputRate, outputRate, channels: u32)->Resampler fail
     {
-        if inputRate < 8_000 or inputRate > 192_000 or
-           outputRate < 8_000 or outputRate > 192_000 or
-           not channels or channels > 8 do
+        if inputRate < 8_000 or
+           inputRate > 192_000 or
+           outputRate < 8_000 or
+           outputRate > 192_000 or
+           not channels or
+           channels > 8 do
             fail BadParameterError{"resampler needs sample rates from 8000 to 192000 and one to eight channels"}
 
         with var result: #returntype
@@ -61,7 +64,7 @@ impl Resampler
         for phase in ResamplerPhases
         {
             let fraction = cast(f64, phase) / ResamplerPhases
-            var sum = 0.0'f64
+            var sum      = 0.0'f64
             for tap in ResamplerTaps
             {
                 let distance = cast(f64, cast(s64, tap) - cast(s64, ResamplerRightContext - 1)) - fraction
@@ -73,10 +76,12 @@ impl Resampler
                 result.coefficients[phase * ResamplerTaps + tap] = cast(f32, value)
                 sum += value
             }
+
             for tap in ResamplerTaps do
                 result.coefficients[phase * ResamplerTaps + tap] =
                     cast(f32, result.coefficients[phase * ResamplerTaps + tap] / sum)
         }
+
         return result
     }
 
@@ -98,10 +103,10 @@ impl Resampler
     mtd restart()
     {
         .receivedFrames = 0
-        .positionFrame = 0
-        .positionPart = 0
-        .step = makeStep(.inputRate, .outputRate, 0)
-        .isEnded = false
+        .positionFrame  = 0
+        .positionPart   = 0
+        .step           = makeStep(.inputRate, .outputRate, 0)
+        .isEnded        = false
     }
 
     // Appends every output frame made available by these complete interleaved input frames.
@@ -158,17 +163,18 @@ impl Resampler
             for tap in ResamplerTaps
             {
                 let relative = cast(s64, tap) - cast(s64, ResamplerRightContext - 1)
-                let frame = relative < 0 and .positionFrame < cast(u64, -relative) ? 0 :
-                            (relative < 0 ? .positionFrame - cast(u64, -relative) : .positionFrame + cast(u64, relative))
+                let frame    = relative < 0 and .positionFrame < cast(u64, -relative) ? 0 :
+                               (relative < 0 ? .positionFrame - cast(u64, -relative) : .positionFrame + cast(u64, relative))
                 let available = Math.min(frame, .receivedFrames - 1)
-                let sample = .history[(available % ResamplerHistory) * .channels + channel]
+                let sample    = .history[(available % ResamplerHistory) * .channels + channel]
                 value += sample * .coefficients[phase * ResamplerTaps + tap]
             }
+
             output.add(cast(f32, value))
         }
 
         let fraction = .positionPart + (.step % ResamplerFractionUnit)
         .positionFrame += .step / ResamplerFractionUnit + fraction / ResamplerFractionUnit
-        .positionPart   = fraction % ResamplerFractionUnit
+        .positionPart  = fraction % ResamplerFractionUnit
     }
 }

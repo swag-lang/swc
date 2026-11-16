@@ -8,7 +8,7 @@
 using Core, Core.Errors
 
 private const SilenceRates: [12] u32 = [96_000, 88_200, 64_000, 48_000, 44_100, 32_000,
-                                       24_000, 22_050, 16_000, 12_000, 11_025, 8_000]
+                                        24_000, 22_050, 16_000, 12_000, 11_025, 8_000]
 private const MonoSilence:   [4] u8 = [0x00, 0x00, 0x00, 0x07]
 private const StereoSilence: [7] u8 = [0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0E]
 
@@ -22,8 +22,8 @@ struct SilenceEncoder
 {
     private
     {
-        config:    [2] u8
-        channels:  u16
+        config:     [2] u8
+        channels:   u16
         sampleRate: u32
     }
 }
@@ -45,6 +45,7 @@ impl SilenceEncoder
             result.sampleRate = sampleRate
             return result
         }
+
         fail BadParameterError{"AAC silence encoder needs an indexed sample rate"}
     }
 
@@ -54,7 +55,7 @@ impl SilenceEncoder
     // Returns one borrowed raw AAC-LC access unit representing 1024 sample frames.
     mtd const packet()->const [..] u8
         => .channels == 1 ? Swag.makeSlice(&MonoSilence[0], MonoSilence.count) :
-                            Swag.makeSlice(&StereoSilence[0], StereoSilence.count)
+    Swag.makeSlice(&StereoSilence[0], StereoSilence.count)
 
     // Returns the number of sample frames per packet.
     mtd const packetFrames()->u32 => 1_024

@@ -1118,6 +1118,7 @@ private func promoteHairline(pen: Pen, deviceScale: f32)->Pen
             case .None, .Pattern:
                 break
             }
+
             result.dashStyle = .Pattern
         }
     }

@@ -220,7 +220,7 @@ using Swag, Core
 
     let resizeMode = g_ResizeMode
     defer g_ResizeMode = resizeMode
-    g_ResizeMode = 1
+    g_ResizeMode       = 1
     f.gui.app.sigFrame += func|host = &f.gui|(_)
     {
         g_Width  = 5160
@@ -251,7 +251,7 @@ using Swag, Core
 
     let resizeMode = g_ResizeMode
     defer g_ResizeMode = resizeMode
-    g_ResizeMode = 5
+    g_ResizeMode       = 5
     f.gui.app.sigFrame += func|host = &f.gui|(_)
     {
         g_Width  = 41

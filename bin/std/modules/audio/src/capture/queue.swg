@@ -11,11 +11,11 @@ struct CaptureBlock
 {
     public
     {
-        startSample:       u64  // First retained sample frame on the recording timeline.
-        firstTick:         u64  // Source timestamp of the first submitted sample frame.
-        frameCount:        u32  // Number of sample frames copied to the caller's output.
-        gapFrames:         u64  // Missing sample frames since the previous returned block.
-        sourceInterrupted: bool // A source loss occurred since the previous returned block.
+        startSample:       u64      // First retained sample frame on the recording timeline.
+        firstTick:         u64      // Source timestamp of the first submitted sample frame.
+        frameCount:        u32      // Number of sample frames copied to the caller's output.
+        gapFrames:         u64      // Missing sample frames since the previous returned block.
+        sourceInterrupted: bool     // A source loss occurred since the previous returned block.
     }
 }
 
@@ -68,17 +68,21 @@ impl CaptureQueue
     // one through `blockFrames` complete frames; `slots` is between one and 256. The origin and
     // source timestamps use `clockFrequency` ticks per second. `tolerance` absorbs small clock
     // jitter in sample frames without hiding larger gaps.
-    func create(sampleRate: u32, channels: u16, originTick: u64, clockFrequency: u64,
-                blockFrames: u32 = 1_024, slots: u32 = 8, tolerance: u32 = 1)->CaptureQueue fail
+    func create(sampleRate: u32, channels: u16, originTick: u64, clockFrequency: u64, blockFrames: u32 = 1_024, slots: u32 = 8, tolerance: u32 = 1)->CaptureQueue fail
     {
-        if not channels or channels > 8 or not blockFrames or blockFrames > 4_096 or
-           not slots or slots > 256 or tolerance > blockFrames do
+        if not channels or
+           channels > 8 or
+           not blockFrames or
+           blockFrames > 4_096 or
+           not slots or
+           slots > 256 or
+           tolerance > blockFrames do
             fail BadParameterError{"capture queue needs one to eight channels, 1-4096 frames per block, and 1-256 slots"}
         var result: #returntype
-        result.timeline = try SampleTimeline.createWithOrigin(sampleRate, clockFrequency, originTick, tolerance)
-        result.channels = channels
+        result.timeline    = try SampleTimeline.createWithOrigin(sampleRate, clockFrequency, originTick, tolerance)
+        result.channels    = channels
         result.blockFrames = blockFrames
-        result.slotCount = slots
+        result.slotCount   = slots
         result.slots.resize(slots)
         result.storage.resize(cast(u64, slots) * blockFrames * channels)
         return result
@@ -103,7 +107,8 @@ impl CaptureQueue
     // Invalid input or timestamps leave the queue and timeline unchanged.
     mtd push(samples: const [..] s16, firstTick: u64)->SamplePlacement fail
     {
-        if not samples.count or samples.count % .channels or
+        if not samples.count or
+           samples.count % .channels or
            samples.count / .channels > .blockFrames do
             fail BadParameterError{"capture queue needs one complete nonempty block within its frame limit"}
         .mutex.lock()
@@ -112,57 +117,66 @@ impl CaptureQueue
             fail BadParameterError{"capture source is lost; mark it restored before submitting samples"}
 
         var lateFrames = 0'u64
-        let frames = samples.count / .channels
+        let frames     = samples.count / .channels
         if .idleSilent and firstTick < .timeline.previousTick
         {
-            let delta = .timeline.previousTick - firstTick
+            let delta        = .timeline.previousTick - firstTick
             let wholeSeconds = delta / .timeline.clockFrequency
-            if wholeSeconds > frames / .timeline.sampleRate do
+            if wholeSeconds > frames / .timeline.sampleRate
+            {
                 lateFrames = frames
+            }
             else
             {
                 let wholeFrames = wholeSeconds * .timeline.sampleRate
-                if wholeFrames >= frames do
+                if wholeFrames >= frames
+                {
                     lateFrames = frames
+                }
                 else
                 {
-                    let fractionalTicks = (delta % .timeline.clockFrequency) * .timeline.sampleRate
+                    let fractionalTicks  = (delta % .timeline.clockFrequency) * .timeline.sampleRate
                     let fractionalFrames = fractionalTicks / .timeline.clockFrequency +
                                            cast(u64, fractionalTicks % .timeline.clockFrequency != 0)
                     let remaining = frames - wholeFrames
                     lateFrames = fractionalFrames >= remaining ? frames : wholeFrames + fractionalFrames
                 }
             }
+
             if lateFrames == frames do
                 return SamplePlacement{.timeline.sampleEnd(), 0, lateFrames, 0}
         }
+
         var placement: SamplePlacement
         if lateFrames
         {
             placement = try .timeline.placeClipped(firstTick, lateFrames, frames - lateFrames)
             placement.discardedFrames += lateFrames
         }
-        else do
+        else
+        {
             placement = try .timeline.place(firstTick, frames)
+        }
+
         if not placement.acceptedFrames do
             return placement
         if .count == .slotCount
         {
             .droppedBlocks += 1
             .droppedFrames += .slots[.head].frameCount
-            .head = (.head + 1) % .slotCount
-            .count -= 1
+            .head          = (.head + 1) % .slotCount
+            .count         -= 1
         }
+
         let tail = (.head + .count) % .slotCount
         let slot = &.slots[tail]
         slot.startSample = placement.startSample
-        slot.firstTick = firstTick
-        slot.frameCount = cast(u32, placement.acceptedFrames)
-        slot.generation = .generation
+        slot.firstTick   = firstTick
+        slot.frameCount  = cast(u32, placement.acceptedFrames)
+        slot.generation  = .generation
         let offset = cast(u64, tail) * .blockFrames * .channels
-        Memory.copy(&.storage[offset], samples.buffer + placement.discardedFrames * .channels,
-                    placement.acceptedFrames * .channels * #sizeof(s16))
-        .count += 1
+        Memory.copy(&.storage[offset], samples.buffer + placement.discardedFrames * .channels, placement.acceptedFrames * .channels * #sizeof(s16))
+        .count      += 1
         .idleSilent = false
         return placement
     }
@@ -182,18 +196,19 @@ impl CaptureQueue
             Swag.init(info, 1)
             return false
         }
-        let slot = .slots[.head]
+
+        let slot   = .slots[.head]
         let offset = cast(u64, .head) * .blockFrames * .channels
         samples.add(Swag.makeSlice(&.storage[offset], cast(u64, slot.frameCount) * .channels))
-        info.startSample = slot.startSample
-        info.firstTick = slot.firstTick
-        info.frameCount = slot.frameCount
-        info.gapFrames = slot.startSample > .deliveredEnd ? slot.startSample - .deliveredEnd : 0
+        info.startSample       = slot.startSample
+        info.firstTick         = slot.firstTick
+        info.frameCount        = slot.frameCount
+        info.gapFrames         = slot.startSample > .deliveredEnd ? slot.startSample - .deliveredEnd : 0
         info.sourceInterrupted = slot.generation != .deliveredGeneration
-        .deliveredEnd = slot.startSample + slot.frameCount
-        .deliveredGeneration = slot.generation
-        .head = (.head + 1) % .slotCount
-        .count -= 1
+        .deliveredEnd          = slot.startSample + slot.frameCount
+        .deliveredGeneration   = slot.generation
+        .head                  = (.head + 1) % .slotCount
+        .count                 -= 1
         return true
     }
 
@@ -208,7 +223,7 @@ impl CaptureQueue
         discard try .timeline.advanceTo(effective)
         if not .lost
         {
-            .lost = true
+            .lost       = true
             .generation += 1
         }
     }

@@ -9,15 +9,16 @@ using Swag, Core, Core.Errors
     for direction in 2
     {
         let expected = direction == 0 ? 100 : -100
-        var clock = expect CaptureClockDrift.create(48_000, 1_000_000_000)
+        var clock    = expect CaptureClockDrift.create(48_000, 1_000_000_000)
         Swag.require(not expect clock.observe(0, 0))
         Swag.require(not clock.estimateIsReady() and clock.inputClockDriftPpm() == 0)
         var estimates = 0
         for second in 13
         {
             let frame = (cast(u64, second) + 1) * 48_000
-            let tick = cast(u64, Math.round(cast(f64, frame) * 1_000_000_000.0 /
-                                              (48_000.0 * (1.0 + expected / 1_000_000.0))))
+            let tick  = cast(u64,
+                             Math.round(cast(f64, frame) * 1_000_000_000.0 /
+                                        (48_000.0 * (1.0 + expected / 1_000_000.0))))
             if expect clock.observe(tick, frame)
             {
                 Swag.require(clock.estimateIsReady())
@@ -25,6 +26,7 @@ using Swag, Core, Core.Errors
                 estimates += 1
             }
         }
+
         Swag.require(estimates >= 6)
     }
 }
@@ -58,21 +60,22 @@ using Swag, Core, Core.Errors
     for index in 30
     {
         let second = cast(u64, index) + 1
-        let tick = second * 1_000_000_000 + (second % 2 == 0 ? 100_000'u64 : 0)
-        let frame = cast(u64, Math.round(cast(f64, second) * 44_100.0 * 1.0001))
+        let tick   = second * 1_000_000_000 + (second % 2 == 0 ? 100_000'u64 : 0)
+        let frame  = cast(u64, Math.round(cast(f64, second) * 44_100.0 * 1.0001))
         if expect clock.observe(tick, frame)
         {
             Swag.require(Math.abs(clock.inputClockDriftPpm() - 100) <= 20)
             estimates += 1
         }
     }
+
     Swag.require(estimates >= 2)
 }
 
 // A measured drift adjusts the resampler's input consumption without moving its sample phase.
 #test
 {
-    var clock = expect CaptureClockDrift.create(48_000, 1_000_000_000)
+    var clock     = expect CaptureClockDrift.create(48_000, 1_000_000_000)
     var resampler = expect Resampler.create(48_000, 48_000, 1)
     Swag.require(not expect clock.applyTo(&resampler))
     Swag.require(not expect clock.observe(0, 0))

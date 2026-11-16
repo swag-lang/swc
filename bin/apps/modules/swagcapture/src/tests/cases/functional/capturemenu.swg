@@ -31,8 +31,8 @@ using Swag, Core
         let choices = assume cast(*Gui.StackLayoutCtrl, menu.children[0])
         Swag.require(choices.mode == .HorizontalCenter and choices.children.count == CaptureDelays.count)
         Swag.require((assume cast(*Gui.IconButton, choices.children[1])).isChecked)
-        let first = choices.children[0].surfaceRect()
-        let last  = choices.children[choices.children.count - 1].surfaceRect()
+        let first  = choices.children[0].surfaceRect()
+        let last   = choices.children[choices.children.count - 1].surfaceRect()
         let center = (first.x + last.right()) * 0.5
         Swag.require(Math.abs(center - menu.surfaceRect().horzCenter()) <= 0.5)
 

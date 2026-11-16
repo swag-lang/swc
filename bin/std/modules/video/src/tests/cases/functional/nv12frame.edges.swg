@@ -8,9 +8,9 @@ using Swag, Core, Core.Errors, Pixel
 {
     // Bottom two rows are blue; top two rows are red. Alpha must not affect NV12.
     const Bgra: [32] u8 = [255, 0, 0, 0, 255, 0, 0, 255,
-                            255, 0, 0, 128, 255, 0, 0, 1,
-                            0, 0, 255, 0, 0, 0, 255, 255,
-                            0, 0, 255, 128, 0, 0, 255, 1]
+                           255, 0, 0, 128, 255, 0, 0, 1,
+                           0, 0, 255, 0, 0, 0, 255, 255,
+                           0, 0, 255, 128, 0, 0, 255, 1]
     let image = Image.create(2, 4, .BGRA8, Swag.makeSlice(&Bgra[0], Bgra.count))
     var frame: Nv12Frame
     expect frame.convertFrom(&image)
@@ -56,7 +56,7 @@ using Swag, Core, Core.Errors, Pixel
     const Expected: [6] u8 = [235, 235, 235, 235, 128, 128]
 
     var rejected: Swag.Error
-    var empty: Image
+    var empty:    Image
     discard catch frame.convertFrom(&empty) as rejected
     Swag.require(rejected.value() is BadParameterError)
     let oddHeight = Image.create(2, 3, .BGRA8)
@@ -76,20 +76,20 @@ using Swag, Core, Core.Errors, Pixel
 // The specialized BGRA8 path must match BGR8 across vector groups and the scalar tail.
 func requireBgraBgrParity(width: s32)
 {
-    let bgr  = Image.create(width, 6, .BGR8)
-    let bgra = Image.create(width, 6, .BGRA8)
+    let bgr        = Image.create(width, 6, .BGR8)
+    let bgra       = Image.create(width, 6, .BGRA8)
     let bgrPixels  = bgr.pixels.storage()
     let bgraPixels = bgra.pixels.storage()
     for pixel in cast(u64, width) * 6
     {
-        let blue  = cast(u8, (pixel * 37 + 11) & 0xFF)
-        let green = cast(u8, (pixel * 53 + 97) & 0xFF)
-        let red   = cast(u8, (pixel * 71 + 193) & 0xFF)
+        let blue       = cast(u8, (pixel * 37 + 11) & 0xFF)
+        let green      = cast(u8, (pixel * 53 + 97) & 0xFF)
+        let red        = cast(u8, (pixel * 71 + 193) & 0xFF)
         let bgrOffset  = pixel * 3
         let bgraOffset = pixel * 4
-        bgrPixels[bgrOffset]      = blue
-        bgrPixels[bgrOffset + 1]  = green
-        bgrPixels[bgrOffset + 2]  = red
+        bgrPixels[bgrOffset]       = blue
+        bgrPixels[bgrOffset + 1]   = green
+        bgrPixels[bgrOffset + 2]   = red
         bgraPixels[bgraOffset]     = blue
         bgraPixels[bgraOffset + 1] = green
         bgraPixels[bgraOffset + 2] = red

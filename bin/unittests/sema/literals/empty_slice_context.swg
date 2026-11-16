@@ -1,6 +1,6 @@
 #global private
 
-func emptySliceCount(values: const [..] string)->u64 => values.count
+func emptySliceCount(values: const [..] string)->u64        => values.count
 func emptySliceDefault(values: const [..] string = [])->u64 => values.count
 func emptySliceReturn()->const [..] string => []
 

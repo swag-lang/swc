@@ -5,7 +5,7 @@ using Swag, Core, Pixel
 
 func encoderStressPicture(shiftY: s32, flat: bool)->Nv12Frame fail
 {
-    const Width = 1920
+    const Width  = 1920
     const Height = 1080
     var rgb: Array'u8
     rgb.resize(Width * Height * 3)
@@ -14,12 +14,13 @@ func encoderStressPicture(shiftY: s32, flat: bool)->Nv12Frame fail
         for x in Width
         {
             let sourceY = (y + shiftY) % Height
-            let offset = cast(u64, (y * Width + x) * 3)
-            rgb[offset] = flat ? 30 : cast(u8, (x * 7 + sourceY * 3) & 255)
+            let offset  = cast(u64, (y * Width + x) * 3)
+            rgb[offset]     = flat ? 30 : cast(u8, (x * 7 + sourceY * 3) & 255)
             rgb[offset + 1] = flat ? 90 : cast(u8, (x * 5 + sourceY * 11) & 255)
             rgb[offset + 2] = flat ? 200 : cast(u8, (x * 13 + sourceY * 2) & 255)
         }
     }
+
     let image = Image.create(Width, Height, .RGB8, rgb.toSlice())
     var frame: Nv12Frame
     try frame.convertFrom(&image)
@@ -34,13 +35,14 @@ func encoderStressTiles(bright: s32, width: s32 = 1920, height: s32 = 1080)->Nv1
     {
         for x in width
         {
-            let value = cast(u8, 30 + ((x / 4 * 17 + y / 4 * 31) % 160) + bright)
+            let value  = cast(u8, 30 + ((x / 4 * 17 + y / 4 * 31) % 160) + bright)
             let offset = cast(u64, (y * width + x) * 3)
-            rgb[offset] = value
+            rgb[offset]     = value
             rgb[offset + 1] = value
             rgb[offset + 2] = value
         }
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var frame: Nv12Frame
     try frame.convertFrom(&image)
@@ -56,14 +58,16 @@ func encoderStressSparse(width, height: s32, changed: bool)->Nv12Frame fail
         for x in cast(u64, width)
         {
             let special = x % 16 == 0 and y % 16 == 15
-            let value = cast(u8, special ? (changed ? 102 : 100) :
-                                 30 + ((x / 4 * 17 + y / 4 * 31) % 160))
+            let value   = cast(u8,
+                               special ? (changed ? 102 : 100) :
+                               30 + ((x / 4 * 17 + y / 4 * 31) % 160))
             let offset = (y * cast(u64, width) + x) * 3
-            rgb[offset] = value
+            rgb[offset]     = value
             rgb[offset + 1] = value
             rgb[offset + 2] = value
         }
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var frame: Nv12Frame
     try frame.convertFrom(&image)
@@ -91,7 +95,7 @@ private impl Nv12Frame
         for index in (.bytes.count - start) / 2
         {
             let offset = start + index * 2
-            .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + deltaU)
+            .bytes[offset]     = cast(u8, cast(s32, .bytes[offset]) + deltaU)
             .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + deltaV)
         }
     }
@@ -112,7 +116,7 @@ private impl Nv12Frame
 
     mtd stressIrregularLumaChroma()
     {
-        let width = cast(u64, .width)
+        let width  = cast(u64, .width)
         let chroma = width * cast(u64, .height)
         for mbY in cast(u64, .height) / 16
         {
@@ -127,6 +131,7 @@ private impl Nv12Frame
                         .bytes[offset] = cast(u8, (row * 17 + column * 31 + mbX * 7 + mbY * 13) & 255)
                     }
                 }
+
                 let uv = chroma + mbY * 8 * width + mbX * 16
                 .bytes[uv] = cast(u8, cast(s32, .bytes[uv]) + 2)
             }
@@ -141,12 +146,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-1080p", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderStressPicture(0, false)
+    let base     = expect encoderStressPicture(0, false)
     let scrolled = expect encoderStressPicture(16, false)
-    let flat = expect encoderStressPicture(0, true)
-    var encoder = expect H264.Encoder.create(1920, 1080, keyInterval: 4)
-    var writer = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000,
-                                                    encoder.decoderConfig())
+    let flat     = expect encoderStressPicture(0, true)
+    var encoder  = expect H264.Encoder.create(1920, 1080, keyInterval: 4)
+    var writer   = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
     var watch: Time.Stopwatch
 
     watch.start()
@@ -159,32 +163,28 @@ private impl Nv12Frame
     watch.restart()
     let scroll = expect encoder.encode(&scrolled, 1_500, 1_500)
     watch.stop()
-    Console.printf("H264 1080p 16px scroll: % bytes, % us\n", scroll.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p 16px scroll: % bytes, % us\n", scroll.bytes.count, watch.elapsedMicroseconds())
     Swag.require(scroll.bytes.count < keySize / 4)
     expect writer.addPacket(scroll)
 
     watch.restart()
     let still = expect encoder.encode(&scrolled, 3_000, 1_500)
     watch.stop()
-    Console.printf("H264 1080p still: % bytes, % us\n", still.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p still: % bytes, % us\n", still.bytes.count, watch.elapsedMicroseconds())
     Swag.require(still.bytes.count < keySize / 100)
     expect writer.addPacket(still)
 
     watch.restart()
     let changed = expect encoder.encode(&flat, 4_500, 1_500)
     watch.stop()
-    Console.printf("H264 1080p flat change: % bytes, % us\n", changed.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p flat change: % bytes, % us\n", changed.bytes.count, watch.elapsedMicroseconds())
     Swag.require(changed.bytes.count < keySize / 16)
     expect writer.addPacket(changed)
 
     watch.restart()
     let flatKey = expect encoder.encode(&flat, 6_000, 1_500)
     watch.stop()
-    Console.printf("H264 1080p flat IDR: % bytes, % us\n", flatKey.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p flat IDR: % bytes, % us\n", flatKey.bytes.count, watch.elapsedMicroseconds())
     Swag.require(flatKey.isKeyFrame and flatKey.bytes.count < keySize / 16)
     expect writer.addPacket(flatKey)
     expect writer.end()
@@ -206,26 +206,23 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-1080p-dc", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderStressTiles(0)
-    let brighter = expect encoderStressTiles(1)
+    let base      = expect encoderStressTiles(0)
+    let brighter  = expect encoderStressTiles(1)
     let brightest = expect encoderStressTiles(2)
-    var encoder = expect H264.Encoder.create(1920, 1080)
-    var writer = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000,
-                                                    encoder.decoderConfig())
+    var encoder   = expect H264.Encoder.create(1920, 1080)
+    var writer    = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
     var watch: Time.Stopwatch
     watch.start()
     let key = expect encoder.encode(&base, 0, 1_500)
     watch.stop()
     let keySize = key.bytes.count
-    Console.printf("H264 1080p varied IDR: % bytes, % us\n", keySize,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p varied IDR: % bytes, % us\n", keySize, watch.elapsedMicroseconds())
     expect writer.addPacket(key)
 
     watch.restart()
     let faded = expect encoder.encode(&brighter, 1_500, 1_500)
     watch.stop()
-    Console.printf("H264 1080p DC residual: % bytes, % us\n", faded.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p DC residual: % bytes, % us\n", faded.bytes.count, watch.elapsedMicroseconds())
     Swag.require(faded.bytes.count < keySize / 6)
     expect writer.addPacket(faded)
 
@@ -252,29 +249,26 @@ private impl Nv12Frame
 {
     for resolution in 2'u64
     {
-        let width = resolution == 0 ? 1920 : 3840
+        let width  = resolution == 0 ? 1920 : 3840
         let height = resolution == 0 ? 1080 : 2160
-        let path = videoTempPath("h264-encoder-ac-sparse", "mp4")
+        let path   = videoTempPath("h264-encoder-ac-sparse", "mp4")
         defer discard catch File.delete(path)
-        let base = expect encoderStressSparse(width, height, false)
+        let base    = expect encoderStressSparse(width, height, false)
         let changed = expect encoderStressSparse(width, height, true)
         var encoder = expect H264.Encoder.create(width, height)
-        var writer = expect Mp4.FragmentedWriter.create(path, width, height, 90_000,
-                                                        encoder.decoderConfig())
+        var writer  = expect Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
         var watch: Time.Stopwatch
         watch.start()
         let key = expect encoder.encode(&base, 0, 1_500)
         watch.stop()
         let keySize = key.bytes.count
-        Console.printf("H264 sparse % by % IDR: % bytes, % us\n", width, height, keySize,
-                       watch.elapsedMicroseconds())
+        Console.printf("H264 sparse % by % IDR: % bytes, % us\n", width, height, keySize, watch.elapsedMicroseconds())
         expect writer.addPacket(key)
 
         watch.restart()
         let sparse = expect encoder.encode(&changed, 1_500, 1_500)
         watch.stop()
-        Console.printf("H264 sparse % by % AC: % bytes, % us\n", width, height,
-                       sparse.bytes.count, watch.elapsedMicroseconds())
+        Console.printf("H264 sparse % by % AC: % bytes, % us\n", width, height, sparse.bytes.count, watch.elapsedMicroseconds())
         Swag.require(sparse.bytes.count < keySize / 16)
         expect writer.addPacket(sparse)
         let back = expect encoder.encode(&base, 3_000, 1_500)
@@ -298,12 +292,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-1080p", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderStressTiles(0)
+    let base   = expect encoderStressTiles(0)
     var tinted = expect encoderStressTiles(0)
     tinted.stressTint(1, -1)
     var encoder = expect H264.Encoder.create(1920, 1080)
-    var writer = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
     var watch: Time.Stopwatch
     watch.start()
     let key = expect encoder.encode(&base, 0, 1_500)
@@ -314,8 +307,7 @@ private impl Nv12Frame
     watch.restart()
     let tint = expect encoder.encode(&tinted, 1_500, 1_500)
     watch.stop()
-    Console.printf("H264 1080p chroma DC: % bytes, % us\n", tint.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p chroma DC: % bytes, % us\n", tint.bytes.count, watch.elapsedMicroseconds())
     Swag.require(tint.bytes.count < keySize / 20)
     expect writer.addPacket(tint)
     let back = expect encoder.encode(&base, 3_000, 1_500)
@@ -338,12 +330,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-ac-1080p", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderStressTiles(0)
+    let base    = expect encoderStressTiles(0)
     var changed = expect encoderStressTiles(0)
     changed.stressSparseChroma(2)
     var encoder = expect H264.Encoder.create(1920, 1080)
-    var writer = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 1920, 1080, 90_000, encoder.decoderConfig())
     var watch: Time.Stopwatch
     watch.start()
     let key = expect encoder.encode(&base, 0, 1_500)
@@ -354,8 +345,7 @@ private impl Nv12Frame
     watch.restart()
     let ac = expect encoder.encode(&changed, 1_500, 1_500)
     watch.stop()
-    Console.printf("H264 1080p chroma AC: % bytes, % us\n", ac.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 1080p chroma AC: % bytes, % us\n", ac.bytes.count, watch.elapsedMicroseconds())
     Swag.require(ac.bytes.count < keySize / 10)
     expect writer.addPacket(ac)
     let back = expect encoder.encode(&base, 3_000, 1_500)
@@ -378,12 +368,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-ac-4k", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderStressTiles(0, 3840, 2160)
+    let base    = expect encoderStressTiles(0, 3840, 2160)
     var changed = expect encoderStressTiles(0, 3840, 2160)
     changed.stressSparseChroma(2)
     var encoder = expect H264.Encoder.create(3840, 2160)
-    var writer = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000, encoder.decoderConfig())
     var watch: Time.Stopwatch
     watch.start()
     let key = expect encoder.encode(&base, 0, 1_500)
@@ -394,8 +383,7 @@ private impl Nv12Frame
     watch.restart()
     let ac = expect encoder.encode(&changed, 1_500, 1_500)
     watch.stop()
-    Console.printf("H264 4K chroma AC: % bytes, % us\n", ac.bytes.count,
-                   watch.elapsedMicroseconds())
+    Console.printf("H264 4K chroma AC: % bytes, % us\n", ac.bytes.count, watch.elapsedMicroseconds())
     Swag.require(ac.bytes.count < keySize / 10)
     expect writer.addPacket(ac)
     expect writer.end()
@@ -414,20 +402,20 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-irregular-4k", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderStressTiles(0, 3840, 2160)
+    let base    = expect encoderStressTiles(0, 3840, 2160)
     var changed = expect encoderStressTiles(0, 3840, 2160)
     changed.stressIrregularLumaChroma()
     var encoder = expect H264.Encoder.create(3840, 2160)
-    var writer = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 1_500)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 1_500)
     expect writer.addPacket(key)
     var watch: Time.Stopwatch
     watch.start()
     let changedPacket = expect encoder.encode(&changed, 1_500, 1_500)
     watch.stop()
     Console.printf("H264 4K irregular change: % bytes, % us\n",
-                   changedPacket.bytes.count, watch.elapsedMicroseconds())
+                   changedPacket.bytes.count,
+                   watch.elapsedMicroseconds())
     Swag.require(changedPacket.bytes.count > key.bytes.count / 100)
     Swag.require(changedPacket.bytes.count < key.bytes.count * 2)
     expect writer.addPacket(changedPacket)
@@ -447,26 +435,27 @@ private impl Nv12Frame
 {
     mtd qpStressTexture()
     {
-        let width = cast(u64, .width)
+        let width  = cast(u64, .width)
         let height = cast(u64, .height)
         for y in height
         {
             for x in width
             {
                 let offset = y * width + x
-                let delta = cast(s32, (x * 13 + y * 7 + (x / 5) * 11) % 25) - 12
-                let value = cast(s32, .bytes[offset]) + delta
+                let delta  = cast(s32, (x * 13 + y * 7 + (x / 5) * 11) % 25) - 12
+                let value  = cast(s32, .bytes[offset]) + delta
                 .bytes[offset] = cast(u8, Math.max(16's32, Math.min(235's32, value)))
             }
         }
+
         let chroma = width * height
         for y in height / 2
         {
             for x in width / 2
             {
                 let offset = chroma + y * width + x * 2
-                let delta = cast(s32, (x * 5 + y * 9) % 13) - 6
-                .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + delta)
+                let delta  = cast(s32, (x * 5 + y * 9) % 13) - 6
+                .bytes[offset]     = cast(u8, cast(s32, .bytes[offset]) + delta)
                 .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) - delta)
             }
         }
@@ -474,9 +463,9 @@ private impl Nv12Frame
 
     mtd qpStressScroll(source: const *Nv12Frame)
     {
-        let width = cast(u64, .width)
+        let width  = cast(u64, .width)
         let height = cast(u64, .height)
-        let luma = source.luma()
+        let luma   = source.luma()
         for y in height
         {
             let fromY = (y + 16) % height
@@ -497,26 +486,28 @@ private struct QpStressQuality
 func qpStressQuality(reference: const *Nv12Frame, decoded: const *PlanarFrame)->QpStressQuality
 {
     Swag.require(decoded.width == reference.width and decoded.height == reference.height)
-    let y = reference.luma()
-    let uv = reference.chroma()
-    var ySquared = 0'u64
+    let y         = reference.luma()
+    let uv        = reference.chroma()
+    var ySquared  = 0'u64
     var uvSquared = 0'u64
-    var maxY = 0'u32
-    var maxUv = 0'u32
+    var maxY      = 0'u32
+    var maxUv     = 0'u32
     for index in y.count
     {
         let error = Math.abs(cast(s32, y[index]) - cast(s32, decoded.luma[index]))
         ySquared += cast(u64, error * error)
-        maxY = Math.max(maxY, cast(u32, error))
+        maxY     = Math.max(maxY, cast(u32, error))
     }
+
     for index in decoded.chromaB.count
     {
         let errorU = Math.abs(cast(s32, uv[index * 2]) - cast(s32, decoded.chromaB[index]))
         let errorV = Math.abs(cast(s32, uv[index * 2 + 1]) - cast(s32, decoded.chromaR[index]))
         uvSquared += cast(u64, errorU * errorU + errorV * errorV)
-        maxUv = Math.max(maxUv, cast(u32, Math.max(errorU, errorV)))
+        maxUv     = Math.max(maxUv, cast(u32, Math.max(errorU, errorV)))
     }
-    let yMse = cast(f64, ySquared) / cast(f64, y.count)
+
+    let yMse  = cast(f64, ySquared) / cast(f64, y.count)
     let uvMse = cast(f64, uvSquared) / cast(f64, uv.count)
     return {yMse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / yMse),
             uvMse == 0 ? 99.0 : 10.0 * Math.log10(65_025.0 / uvMse),
@@ -528,10 +519,10 @@ func qpStressMedian(a, b, c: u64)->u64
 
 func runQpStress(width, height: s32) fail
 {
-    let base = try encoderStressTiles(0, width, height)
+    let base             = try encoderStressTiles(0, width, height)
     var baselineBytes: [3] u64
     var qp28TextureBytes = 0'u64
-    var qp28TextureY = 0.0'f64
+    var qp28TextureY     = 0.0'f64
     for qpIndex in 3'u32
     {
         let qp = qpIndex == 0 ? 0'u32 : (qpIndex == 1 ? 28'u32 : 36'u32)
@@ -546,8 +537,7 @@ func runQpStress(width, height: s32) fail
             let path = videoTempPath("h264-qp-stress", "mp4")
             defer discard catch File.delete(path)
             var encoder = try H264.Encoder.create(width, height, 60, qp)
-            var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000,
-                                                        encoder.decoderConfig())
+            var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
             var watch: Time.Stopwatch
             watch.start()
             let idr = try encoder.encode(&base, 0, 1_500)
@@ -557,7 +547,7 @@ func runQpStress(width, height: s32) fail
             let idrBytes = idr.bytes.count
             try writer.addPacket(idr)
             var micros: [3] u64
-            var bytes: [3] u64
+            var bytes:  [3] u64
             var timestamp = 1_500'u64
             for repeat in 3'u64
             {
@@ -565,7 +555,7 @@ func runQpStress(width, height: s32) fail
                 let packet = try encoder.encode(&target, timestamp, 1_500)
                 watch.stop()
                 micros[repeat] = watch.elapsedMicroseconds()
-                bytes[repeat] = packet.bytes.count
+                bytes[repeat]  = packet.bytes.count
                 try writer.addPacket(packet)
                 timestamp += 1_500
                 if repeat < 2
@@ -574,8 +564,9 @@ func runQpStress(width, height: s32) fail
                     timestamp += 1_500
                 }
             }
+
             try writer.end()
-            let middleBytes = qpStressMedian(bytes[0], bytes[1], bytes[2])
+            let middleBytes  = qpStressMedian(bytes[0], bytes[1], bytes[2])
             let middleMicros = qpStressMedian(micros[0], micros[1], micros[2])
             if qp == 0 do
                 baselineBytes[scene] = middleBytes
@@ -589,27 +580,28 @@ func runQpStress(width, height: s32) fail
                 requireStressPicture(&base, &decoded)
             else do
                 Swag.require(idrQuality.yPsnr >= 18.0 and idrQuality.uvPsnr >= 18.0)
-            var minY = 99.0'f64
+            var minY  = 99.0'f64
             var minUv = 99.0'f64
-            var maxY = 0'u32
+            var maxY  = 0'u32
             var maxUv = 0'u32
             for repeat in 3'u64
             {
                 try reader.decodeFramePlanesInto(&decoded, repeat * 2 + 1)
                 let quality = qpStressQuality(&target, &decoded)
-                minY = Math.min(minY, quality.yPsnr)
+                minY  = Math.min(minY, quality.yPsnr)
                 minUv = Math.min(minUv, quality.uvPsnr)
-                maxY = Math.max(maxY, quality.maxY)
+                maxY  = Math.max(maxY, quality.maxY)
                 maxUv = Math.max(maxUv, quality.maxUv)
                 if qp == 0 do
                     requireStressPicture(&target, &decoded)
                 else do
                     Swag.require(quality.yPsnr >= 18.0 and quality.uvPsnr >= 18.0)
             }
+
             if scene == 2 and qp == 28
             {
                 qp28TextureBytes = middleBytes
-                qp28TextureY = minY
+                qp28TextureY     = minY
 
                 // Levels are rounded with a dead zone, which trades a decibel or two at a given QP
                 // for a much smaller picture: the floor is that of the quantizer, not of the scene.
@@ -620,16 +612,27 @@ func runQpStress(width, height: s32) fail
                 Swag.require(middleBytes < qp28TextureBytes and minY < qp28TextureY)
                 Swag.require(minY >= 27.0 and minUv >= 30.0)
             }
+
             let sceneName = scene == 0 ? "still" : (scene == 1 ? "scroll" : "texture")
-            let gopMbps = cast(f64, idrBytes + 59 * middleBytes) * 8.0 / 1_000_000.0
+            let gopMbps   = cast(f64, idrBytes + 59 * middleBytes) * 8.0 / 1_000_000.0
             Console.printf("H264 QP % % by % %: IDR % bytes, PSNR %/% dB; P median % bytes/% us; GOP60 % Mb/s; PSNR Y/UV %/% dB; max error %/%\n",
-                           qp, width, height, sceneName, idrBytes,
-                           idrQuality.yPsnr, idrQuality.uvPsnr,
-                           middleBytes, middleMicros,
-                           gopMbps, minY, minUv, maxY, maxUv)
+                           qp,
+                           width,
+                           height,
+                           sceneName,
+                           idrBytes,
+                           idrQuality.yPsnr,
+                           idrQuality.uvPsnr,
+                           middleBytes,
+                           middleMicros,
+                           gopMbps,
+                           minY,
+                           minUv,
+                           maxY,
+                           maxUv)
         }
-        Console.printf("H264 QP % % by % IDR median % us\n", qp, width, height,
-                       qpStressMedian(idrTimes[0], idrTimes[1], idrTimes[2]))
+
+        Console.printf("H264 QP % % by % IDR median % us\n", qp, width, height, qpStressMedian(idrTimes[0], idrTimes[1], idrTimes[2]))
     }
 }
 
@@ -650,36 +653,39 @@ func runQpStress(width, height: s32) fail
 // when the encoder compares the input only with its reconstructed reference.
 func runQpRepeatedInput(width, height: s32) fail
 {
-    let base = try encoderStressTiles(0, width, height)
+    let base   = try encoderStressTiles(0, width, height)
     var source = try encoderStressTiles(0, width, height)
     source.qpStressTexture()
     for qp in 2'u32
     {
         let selectedQp = qp == 0 ? 28'u32 : 36'u32
-        let path = videoTempPath("h264-qp-repeat", "mp4")
+        let path       = videoTempPath("h264-qp-repeat", "mp4")
         defer discard catch File.delete(path)
         var encoder = try H264.Encoder.create(width, height, 60, selectedQp)
-        var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000,
-                                                     encoder.decoderConfig())
+        var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
         try writer.addPacket(try encoder.encode(&base, 0, 1_500))
-        let first = try encoder.encode(&source, 1_500, 1_500)
+        let first      = try encoder.encode(&source, 1_500, 1_500)
         let firstBytes = first.bytes.count
         try writer.addPacket(first)
-        var repeatedBytes: [3] u64
+        var repeatedBytes:  [3] u64
         var repeatedMicros: [3] u64
-        var watch: Time.Stopwatch
+        var watch:          Time.Stopwatch
         for repeat in 3'u64
         {
             watch.restart()
             let packet = try encoder.encode(&source, (repeat + 2) * 1_500, 1_500)
             watch.stop()
-            repeatedBytes[repeat] = packet.bytes.count
+            repeatedBytes[repeat]  = packet.bytes.count
             repeatedMicros[repeat] = watch.elapsedMicroseconds()
             try writer.addPacket(packet)
         }
+
         try writer.end()
         Console.printf("H264 QP % % by % repeated raw texture: first % bytes; P2-P4 median % bytes/% us\n",
-                       selectedQp, width, height, firstBytes,
+                       selectedQp,
+                       width,
+                       height,
+                       firstBytes,
                        qpStressMedian(repeatedBytes[0], repeatedBytes[1], repeatedBytes[2]),
                        qpStressMedian(repeatedMicros[0], repeatedMicros[1], repeatedMicros[2]))
         var reader = try Reader.open(path)
@@ -717,7 +723,7 @@ private impl Nv12Frame
             .bytes[index] += 5
         for index in yCount / 4
         {
-            .bytes[yCount + index * 2] += 3
+            .bytes[yCount + index * 2]     += 3
             .bytes[yCount + index * 2 + 1] -= 3
         }
     }
@@ -730,57 +736,62 @@ func qpStressIdrScene(source: const *Nv12Frame, qp, scene: u32)->u64 fail
     let path = videoTempPath("h264-qp-idr-4k", "mp4")
     defer discard catch File.delete(path)
     var encoder = try H264.Encoder.create(source.width, source.height, 1, qp)
-    var writer = try Mp4.FragmentedWriter.create(path, source.width, source.height,
-                                                 90_000, encoder.decoderConfig())
-    var bytes: [3] u64
+    var writer  = try Mp4.FragmentedWriter.create(path, source.width, source.height, 90_000, encoder.decoderConfig())
+    var bytes:  [3] u64
     var micros: [3] u64
-    var watch: Time.Stopwatch
+    var watch:  Time.Stopwatch
     for frame in 3'u64
     {
         watch.restart()
         let packet = try encoder.encode(source, frame * 1_500, 1_500)
         watch.stop()
-        bytes[frame] = packet.bytes.count
+        bytes[frame]  = packet.bytes.count
         micros[frame] = watch.elapsedMicroseconds()
         try writer.addPacket(packet)
     }
+
     try writer.end()
 
     var reader = try Reader.open(path)
     var decoded: PlanarFrame
-    var minY = 99.0'f64
-    var minUv = 99.0'f64
+    var minY   = 99.0'f64
+    var minUv  = 99.0'f64
     for frame in 3'u64
     {
         try reader.decodeFramePlanesInto(&decoded, frame)
         let quality = qpStressQuality(source, &decoded)
-        minY = Math.min(minY, quality.yPsnr)
+        minY  = Math.min(minY, quality.yPsnr)
         minUv = Math.min(minUv, quality.uvPsnr)
         if qp == 0 do
             requireStressPicture(source, &decoded)
         else do
             Swag.require(quality.yPsnr >= 25.0 and quality.uvPsnr >= 25.0)
     }
+
     let middleBytes = qpStressMedian(bytes[0], bytes[1], bytes[2])
     Console.printf("H264 IDR 4K QP % scene %: % bytes, median % us, PSNR Y/UV %/% dB\n",
-                   qp, scene, middleBytes, qpStressMedian(micros[0], micros[1], micros[2]),
-                   minY, minUv)
+                   qp,
+                   scene,
+                   middleBytes,
+                   qpStressMedian(micros[0], micros[1], micros[2]),
+                   minY,
+                   minUv)
     return middleBytes
 }
 
 #[Swag.TestTag("stress")]
 #test
 {
-    var flat = expect encoderStressTiles(0, 3840, 2160)
+    var flat   = expect encoderStressTiles(0, 3840, 2160)
     let yCount = 3840'u64 * 2160
     for index in yCount do
         flat.bytes[index] = 110
     for index in yCount / 2 do
         flat.bytes[yCount + index] = 128
-    let textured = expect encoderStressTiles(0, 3840, 2160)
-    let flatExact = expect qpStressIdrScene(&flat, 0, 0)
-    let texturedExact = expect qpStressIdrScene(&textured, 0, 1)
-    let flatQuantized = expect qpStressIdrScene(&flat, 36, 0)
+    let textured          = expect encoderStressTiles(0, 3840, 2160)
+    let flatExact         = expect qpStressIdrScene(&flat, 0, 0)
+    let texturedExact     = expect qpStressIdrScene(&textured, 0, 1)
+    let flatQuantized     = expect qpStressIdrScene(&flat, 36, 0)
     let texturedQuantized = expect qpStressIdrScene(&textured, 36, 1)
     Swag.require(flatQuantized < flatExact * 2)
     Swag.require(texturedQuantized < texturedExact / 4)
@@ -790,7 +801,7 @@ func qpStressIdrScene(source: const *Nv12Frame, qp, scene: u32)->u64 fail
 // Uniform screen deltas exercise single-DC CAVLC; texture exercises the general path.
 func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
 {
-    let base = try encoderStressTiles(0, width, height)
+    let base   = try encoderStressTiles(0, width, height)
     var source = try encoderStressTiles(0, width, height)
     if mode == 0
     {
@@ -800,8 +811,7 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
         let anchorPath = videoTempPath("h264-qp-cavlc-anchor", "mp4")
         defer discard catch File.delete(anchorPath)
         var anchorEncoder = try H264.Encoder.create(width, height, 60, qp)
-        var anchorWriter = try Mp4.FragmentedWriter.create(anchorPath, width, height,
-                                                           90_000, anchorEncoder.decoderConfig())
+        var anchorWriter  = try Mp4.FragmentedWriter.create(anchorPath, width, height, 90_000, anchorEncoder.decoderConfig())
         try anchorWriter.addPacket(try anchorEncoder.encode(&base, 0, 1_500))
         try anchorWriter.end()
         var anchorReader = try Reader.open(anchorPath)
@@ -812,25 +822,27 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
             source.bytes[index] = anchor.luma[index] + 5
         for index in yCount / 4
         {
-            source.bytes[yCount + index * 2] = anchor.chromaB[index] + 3
+            source.bytes[yCount + index * 2]     = anchor.chromaB[index] + 3
             source.bytes[yCount + index * 2 + 1] = anchor.chromaR[index] - 3
         }
     }
-    else do
+    else
+    {
         source.qpStressTexture()
+    }
+
     let path = videoTempPath("h264-qp-cavlc", "mp4")
     defer discard catch File.delete(path)
     var encoder = try H264.Encoder.create(width, height, 60, qp)
-    var writer = try Mp4.FragmentedWriter.create(path, width, height, 90_000,
-                                                 encoder.decoderConfig())
+    var writer  = try Mp4.FragmentedWriter.create(path, width, height, 90_000, encoder.decoderConfig())
     try writer.addPacket(try encoder.encode(&base, 0, 1_500))
-    var watch: Time.Stopwatch
+    var watch:   Time.Stopwatch
     var pMicros: [3] u64
     watch.start()
     let packet = try encoder.encode(&source, 1_500, 1_500)
     watch.stop()
     pMicros[0] = watch.elapsedMicroseconds()
-    let checksum = Hash.Crc32.compute(packet.bytes)
+    let checksum   = Hash.Crc32.compute(packet.bytes)
     let packetSize = packet.bytes.count
     try writer.addPacket(packet)
     try writer.end()
@@ -844,6 +856,7 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
         pMicros[trial] = watch.elapsedMicroseconds()
         Swag.require(Hash.Crc32.compute(timedPacket.bytes) == checksum)
     }
+
     var reader = try Reader.open(path)
     var decoded: PlanarFrame
     try reader.decodeFramePlanesInto(&decoded, 1)
@@ -853,8 +866,14 @@ func qpStressCavlcProbe(width, height: s32, qp, mode: u32) fail
     else do
         Swag.require(quality.yPsnr >= 25.0 and quality.uvPsnr >= 25.0)
     Console.printf("H264 CAVLC probe % by % QP % mode %: % bytes, CRC32 %, P median % us, PSNR Y/UV %/% dB\n",
-                   width, height, qp, mode, packetSize, checksum,
-                   qpStressMedian(pMicros[0], pMicros[1], pMicros[2]), quality.yPsnr,
+                   width,
+                   height,
+                   qp,
+                   mode,
+                   packetSize,
+                   checksum,
+                   qpStressMedian(pMicros[0], pMicros[1], pMicros[2]),
+                   quality.yPsnr,
                    quality.uvPsnr)
 }
 

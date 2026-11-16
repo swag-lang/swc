@@ -372,6 +372,7 @@ private impl Panel
         {
             .sigPressed += func|view = result|(_) { view.promptGoToPage() }
         }
+
         with result.nextButton = Viewer.createPageStep(info, 1)
         {
             .dockStyle       = .Left

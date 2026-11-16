@@ -40,8 +40,11 @@ impl CaptureClockDrift
     // effect of timestamp rounding and callback jitter, but responds more slowly to changes.
     func create(sampleRate: u32, clockFrequency: u64, windowSeconds: u32 = 1)->CaptureClockDrift fail
     {
-        if sampleRate < 8_000 or sampleRate > 192_000 or not clockFrequency or
-           not windowSeconds or windowSeconds > 60 or
+        if sampleRate < 8_000 or
+           sampleRate > 192_000 or
+           not clockFrequency or
+           not windowSeconds or
+           windowSeconds > 60 or
            clockFrequency > Swag.U64.Max / windowSeconds do
             fail BadParameterError{"capture drift needs an 8-192 kHz source and a representable 1-60 second window"}
         return CaptureClockDrift{sampleRate, clockFrequency, clockFrequency * windowSeconds}
@@ -50,13 +53,13 @@ impl CaptureClockDrift
     // Clears the estimate and anchors a continuous source run at one sample timestamp.
     mtd reset(firstTick: u64, sourceFrame: u64)
     {
-        .windowStartTick = firstTick
+        .windowStartTick  = firstTick
         .windowStartFrame = sourceFrame
-        .previousTick = firstTick
-        .previousFrame = sourceFrame
-        .ppm = 0
-        .hasAnchor = true
-        .hasEstimate = false
+        .previousTick     = firstTick
+        .previousFrame    = sourceFrame
+        .ppm              = 0
+        .hasAnchor        = true
+        .hasEstimate      = false
     }
 
     // Observes the first sample of another continuous captured block.
@@ -72,29 +75,32 @@ impl CaptureClockDrift
             .reset(firstTick, sourceFrame)
             return false
         }
+
         if firstTick <= .previousTick or sourceFrame <= .previousFrame do
             fail BadParameterError{"capture drift needs increasing source ticks and frame positions"}
-        let elapsed = firstTick - .windowStartTick
+        let elapsed  = firstTick - .windowStartTick
         var measured = .ppm
-        let ready = elapsed >= .windowTicks
+        let ready    = elapsed >= .windowTicks
         if ready
         {
             let frames = sourceFrame - .windowStartFrame
-            let rate = cast(f64, frames) * .clockFrequency / elapsed
+            let rate   = cast(f64, frames) * .clockFrequency / elapsed
             let offset = (rate / .sampleRate - 1.0) * 1_000_000.0
             if offset < -1_000.0 or offset > 1_000.0 do
                 fail BadParameterError{"capture clock jump exceeds the supported drift range"}
             measured = cast(s32, Math.round(offset))
         }
-        .previousTick = firstTick
+
+        .previousTick  = firstTick
         .previousFrame = sourceFrame
         if ready
         {
-            .windowStartTick = firstTick
+            .windowStartTick  = firstTick
             .windowStartFrame = sourceFrame
-            .ppm = measured
-            .hasEstimate = true
+            .ppm              = measured
+            .hasEstimate      = true
         }
+
         return ready
     }
 

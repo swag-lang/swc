@@ -17,9 +17,7 @@ using Swag, Core
     for mask in [0x0003'u32, 0x0004_0000'u32]
     {
         var outcome: Swag.Error
-        discard catch SoundFile.openPacketStream(path, .AacLc, 48_000, 1, 1,
-                                                 packets.toSlice(), Config,
-                                                 PacketStreamOptions{speakerMask: mask}) as outcome
+        discard catch SoundFile.openPacketStream(path, .AacLc, 48_000, 1, 1, packets.toSlice(), Config, PacketStreamOptions{speakerMask: mask}) as outcome
         Swag.require(outcome.value() is Errors.BadParameterError)
     }
 }

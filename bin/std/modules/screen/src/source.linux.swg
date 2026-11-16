@@ -5,9 +5,12 @@ using Core, Pixel
 // Checks an X11 capture rectangle without opening a display connection.
 internal func validateCaptureRect(options: SourceOptions, desktopWidth, desktopHeight: u16) fail
 {
-    if options.x < 0 or options.y < 0 or
-       options.x > 32767 or options.y > 32767 or
-       options.width <= 0 or options.height <= 0 do
+    if options.x < 0 or
+       options.y < 0 or
+       options.x > 32767 or
+       options.y > 32767 or
+       options.width <= 0 or
+       options.height <= 0 do
         fail Errors.BadParameterError{"capture rectangle lies outside the X11 screen"}
 
     let right  = cast(s64, options.x) + cast(s64, options.width)
@@ -40,12 +43,11 @@ impl NativeSource
     {
         discard preserveOnTimeout
         let start = Time.monotonicMicroseconds()
-        try .capture.imageInto(target, .options.includeCursor, .options.x, .options.y,
-                               .options.width, .options.height)
+        try .capture.imageInto(target, .options.includeCursor, .options.x, .options.y, .options.width, .options.height)
         let readbackDuration = Time.monotonicMicroseconds() - start
-        .metrics.readbackMicroseconds += readbackDuration
+        .metrics.readbackMicroseconds    += readbackDuration
         .metrics.maxReadbackMicroseconds = Math.max(.metrics.maxReadbackMicroseconds, readbackDuration)
-        .metrics.acquiredFrames += 1
+        .metrics.acquiredFrames          += 1
         return true
     }
 

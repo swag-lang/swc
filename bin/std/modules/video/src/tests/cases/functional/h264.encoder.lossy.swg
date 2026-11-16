@@ -59,9 +59,9 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
     {
         let path = videoTempPath("h264-lossy-drift", "mp4")
         defer discard catch File.delete(path)
-        var encoder = expect H264.Encoder.create(Width, Height, quantizationQp: qp, sliceCount: 2)
-        var writer  = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
-        var keyBytes = 0'u64
+        var encoder   = expect H264.Encoder.create(Width, Height, quantizationQp: qp, sliceCount: 2)
+        var writer    = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
+        var keyBytes  = 0'u64
         var lastBytes = 0'u64
         for index in 6's32
         {
@@ -109,11 +109,11 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
     const Height = 128
     let path = videoTempPath("h264-lossy-motion", "mp4")
     defer discard catch File.delete(path)
-    var encoder = expect H264.Encoder.create(Width, Height, quantizationQp: 24, sliceCount: 2)
-    var writer  = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
-    let first   = expect lossyScene(Width, Height, 0, 0)
-    let moved   = expect lossyScene(Width, Height, 5, 3)
-    let key     = expect encoder.encode(&first, 0, 3_000)
+    var encoder  = expect H264.Encoder.create(Width, Height, quantizationQp: 24, sliceCount: 2)
+    var writer   = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
+    let first    = expect lossyScene(Width, Height, 0, 0)
+    let moved    = expect lossyScene(Width, Height, 5, 3)
+    let key      = expect encoder.encode(&first, 0, 3_000)
     let keyBytes = key.bytes.count
     expect writer.addPacket(key)
     let inter = expect encoder.encode(&moved, 3_000, 3_000)
@@ -140,6 +140,7 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
 {
     const Width  = 256
     const Height = 144
+
     func page(scroll: s32)->Nv12Frame fail
     {
         var rgb: Array'u8
@@ -166,8 +167,8 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
 
     let path = videoTempPath("h264-lossy-scroll", "mp4")
     defer discard catch File.delete(path)
-    var encoder = expect H264.Encoder.create(Width, Height, quantizationQp: 26)
-    var writer  = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
+    var encoder  = expect H264.Encoder.create(Width, Height, quantizationQp: 26)
+    var writer   = expect Mp4.FragmentedWriter.create(path, Width, Height, 90_000, encoder.decoderConfig())
     let first    = expect page(0)
     let scrolled = expect page(36)
     let key      = expect encoder.encode(&first, 0, 3_000)
@@ -181,6 +182,7 @@ func lossyLumaError(source: const *Nv12Frame, decoded: const *PlanarFrame)->f64
     expect writer.end()
 
     var scrolledBlocks = 0'u32
+
     // Pictures are stored bottom-up, so the sign of the vector is not what the fixture reads as.
     for &mb in encoder.lossy.mbs where mb.inter and mb.mvX == 0 and Math.abs(cast(s32, mb.mvY)) == 36 * 4 do
         scrolledBlocks += 1

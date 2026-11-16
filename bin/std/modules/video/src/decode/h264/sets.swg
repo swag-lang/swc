@@ -94,7 +94,7 @@ struct Sps
     cropTop:              s32
     cropBottom:           s32
     fullRange:            bool
-    matrixCoefficients:   u8 = 2 // H.273 matrix_coefficients; 2 means unspecified.
+    matrixCoefficients:   u8 = 2     // H.273 matrix_coefficients; 2 means unspecified.
     hasScaling:           bool
     scaling4:             [96] u8     // Six weight lists of Table 7-2, in zig-zag scan order.
 
@@ -327,11 +327,11 @@ impl Sps
             // Cropping is expressed in chroma samples, section 7.4.2.1.1, so a unit is two luma
             // samples on both axes in 4:2:0 and one in 4:4:4, whose chroma planes are the size
             // of luma. Keep luma pixels.
-            let unit = 1's32 << .chromaShift()
-            let cropLeft   = cast(u64, bits.ue()) * cast(u64, unit)
-            let cropRight  = cast(u64, bits.ue()) * cast(u64, unit)
-            let cropTop    = cast(u64, bits.ue()) * cast(u64, unit)
-            let cropBottom = cast(u64, bits.ue()) * cast(u64, unit)
+            let unit        = 1's32 << .chromaShift()
+            let cropLeft    = cast(u64, bits.ue()) * cast(u64, unit)
+            let cropRight   = cast(u64, bits.ue()) * cast(u64, unit)
+            let cropTop     = cast(u64, bits.ue()) * cast(u64, unit)
+            let cropBottom  = cast(u64, bits.ue()) * cast(u64, unit)
             let codedWidth  = cast(u64, .mbWidth) * 16
             let codedHeight = cast(u64, .mbHeight) * 16
             if cropLeft + cropRight >= codedWidth or cropTop + cropBottom >= codedHeight do
@@ -352,6 +352,7 @@ impl Sps
                 if aspect == 255 do
                     bits.skip(32)
             }
+
             if bits.bit() do
                 bits.skip(1)
             if bits.bit()
@@ -360,11 +361,12 @@ impl Sps
                 .fullRange = bits.bit() != 0
                 if bits.bit()
                 {
-                    bits.skip(16) // Primaries and transfer characteristic.
+                    bits.skip(16)     // Primaries and transfer characteristic.
                     .matrixCoefficients = cast(u8, bits.read(8))
                 }
             }
         }
+
         if bits.overran do
             fail InvalidFormatError{"H.264 sequence parameter set is truncated"}
 

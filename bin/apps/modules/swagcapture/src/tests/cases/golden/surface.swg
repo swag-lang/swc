@@ -436,10 +436,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     var allImage = host.render(main)
     Pixel.Testing.assertImageGolden(&allImage, "edit.font-choice.all.paper")
 
-    let scroll = popup.list.scrollWnd
+    let scroll  = popup.list.scrollWnd
     let metrics = scroll.themeMetrics()
-    let hit = scroll.localToSurface(Math.Point{scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5,
-                                               scroll.view.position.y + metrics.scrollBar_BoxMinSize * 0.5})
+    let hit     = scroll.localToSurface(Math.Point{scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5,
+                                                   scroll.view.position.y + metrics.scrollBar_BoxMinSize * 0.5})
     Swag.require(host.mouseTargetAt(hit) == scroll, "the font scrollbar is outside its parent hit region")
     host.moveMouse(hit)
     host.mouseDown(hit)

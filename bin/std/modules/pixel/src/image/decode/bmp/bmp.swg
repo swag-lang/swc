@@ -327,9 +327,15 @@ internal impl IImageDecoder for Decoder
         {
             switch bh.biBitCount
             {
-            case 1, 4, 8: try decodePackedPalette(&result, dataof, last, palette, paletteEntrySize, paletteCount, bh.biBitCount, topDown)
-            case 16:      try decode16(&result, dataof, last, masks, topDown)
-            case 24:      try decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
+            case 1, 4, 8:
+                try decodePackedPalette(&result, dataof, last, palette, paletteEntrySize, paletteCount, bh.biBitCount, topDown)
+
+            case 16:
+                try decode16(&result, dataof, last, masks, topDown)
+
+            case 24:
+                try decodeUncompressedDirect(&result, dataof, last, bh.biBitCount, topDown)
+
             case 32:
                 if bh.biCompression == BI_BITFIELDS do
                     try decode32(&result, dataof, last, masks, topDown)

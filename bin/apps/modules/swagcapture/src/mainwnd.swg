@@ -135,31 +135,31 @@ struct MainWnd
         appearanceButton:    *AppearanceButton
     }
 
-    takenHotKeys: Array'String      // Capture keys the desktop did not grant this process.
+    takenHotKeys: Array'String     // Capture keys the desktop did not grant this process.
 
     // The timeline floating under the canvas while a timed capture is edited.
     timeline: *TimelineBar?
 
     // The resident home, centered or opened beside the pointer.
-    residentPanel: *ResidentPanel?
-    residentNotice: *TrayNotice?
+    residentPanel:          *ResidentPanel?
+    residentNotice:         *TrayNotice?
     openHubAfterRecentLoad: bool
-    metadataTimer: *Gui.Timer?
-    copyTimer: *Gui.Timer?
-    copyJob: *CaptureLoadJob?
-    copyRequestedFile: String
-    duplicateTimer: *Gui.Timer?
-    duplicateJob: *CaptureDuplicateJob?
-    duplicateSource: String
-    exportTimer: *Gui.Timer?
-    exportJob: *CaptureLoadJob?
+    metadataTimer:          *Gui.Timer?
+    copyTimer:              *Gui.Timer?
+    copyJob:                *CaptureLoadJob?
+    copyRequestedFile:      String
+    duplicateTimer:         *Gui.Timer?
+    duplicateJob:           *CaptureDuplicateJob?
+    duplicateSource:        String
+    exportTimer:            *Gui.Timer?
+    exportJob:              *CaptureLoadJob?
     exportSource, exportDestination: String
-    exportLinked: bool
-    imageWriteJob: *CaptureImageWriteJob?
-    videoCopyJobs: Array'(*CaptureVideoCopyJob)
-    videoRecoveryJob: *CaptureVideoRecoveryJob?
-    videoRecoveryFolder: String
-    videoRecoveryCount: u64
+    exportLinked:           bool
+    imageWriteJob:          *CaptureImageWriteJob?
+    videoCopyJobs:          Array'(*CaptureVideoCopyJob)
+    videoRecoveryJob:       *CaptureVideoRecoveryJob?
+    videoRecoveryFolder:    String
+    videoRecoveryCount:     u64
 
     // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
     miniBarKind:       MiniBarKind = .None
@@ -222,35 +222,41 @@ impl IWnd for MainWnd
             .finishLibraryCopy(job)
             return
         }
+
         let duplicate = .duplicateJob
         if duplicate and evt.task == &duplicate.task
         {
             .finishDuplicateCapture(duplicate)
             return
         }
+
         let export = .exportJob
         if export and evt.task == &export.task
         {
             .finishLibraryExport(export)
             return
         }
+
         let imageWrite = .imageWriteJob
         if imageWrite and evt.task == &imageWrite.task
         {
             .finishLibraryImageWrite(imageWrite)
             return
         }
+
         for videoCopy in .videoCopyJobs where evt.task == &videoCopy.task
         {
             .finishVideoCopy(videoCopy)
             return
         }
+
         let recovery = .videoRecoveryJob
         if recovery and evt.task == &recovery.task
         {
             .finishVideoRecovery(recovery)
             return
         }
+
         evt.accepted = false
     }
 
@@ -262,23 +268,27 @@ impl IWnd for MainWnd
             .startLibraryCopy()
             return
         }
+
         if evt.timer == .duplicateTimer
         {
             .stopTimer(&.duplicateTimer)
             .startDuplicateCapture()
             return
         }
+
         if evt.timer == .exportTimer
         {
             .stopTimer(&.exportTimer)
             .startLibraryExport()
             return
         }
+
         if evt.timer != .metadataTimer
         {
             .wnd.IWnd.onTimerEvent(evt)
             return
         }
+
         let failed = g_CaptureSaves.collect()
         if not failed.isEmpty() do
             .reportFailure(Format.toString(appStrings().msg_FailedSaveCapture, failed))
@@ -341,8 +351,10 @@ impl IWnd for MainWnd
                 .surface?.hide()
                 .noticeResident()
             }
-            else do
+            else
+            {
                 .postCommandEvent(ActionGlobal.Exit)
+            }
         }
     }
 
@@ -365,6 +377,7 @@ impl IWnd for MainWnd
             job.task.wait()
             Memory.delete(job)
         }
+
         .videoCopyJobs.clear()
         if .videoRecoveryJob
         {
@@ -374,6 +387,7 @@ impl IWnd for MainWnd
             job.task.wait()
             Memory.delete(job)
         }
+
         if .imageWriteJob
         {
             let job = .imageWriteJob
@@ -382,6 +396,7 @@ impl IWnd for MainWnd
             job.task.wait()
             Memory.delete(job)
         }
+
         .stopTimer(&.exportTimer)
         if .exportJob
         {
@@ -393,6 +408,7 @@ impl IWnd for MainWnd
                 Memory.delete(job.capture)
             Memory.delete(job)
         }
+
         .stopTimer(&.duplicateTimer)
         if .duplicateJob
         {
@@ -404,6 +420,7 @@ impl IWnd for MainWnd
                 Memory.delete(job.snapshot)
             Memory.delete(job)
         }
+
         .stopTimer(&.copyTimer)
         if .copyJob
         {
@@ -415,6 +432,7 @@ impl IWnd for MainWnd
                 Memory.delete(job.capture)
             Memory.delete(job)
         }
+
         .stopTimer(&.metadataTimer)
         discard g_CaptureSaves.flush()
         .saveAppState()
@@ -525,20 +543,21 @@ impl MainWnd
             return
         .videoRecoveryFolder = folder
         let job = Memory.new'CaptureVideoRecoveryJob()
-        job.folder = folder
+        job.folder        = folder
         .videoRecoveryJob = job
         job.task.submit(func|job|()
         {
             catch { job.recovered = try Library.recoverOrphanVideos(job.folder) } as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishVideoRecovery(job: *CaptureVideoRecoveryJob)
     {
         .videoRecoveryJob = null
-        let count = job.recovered.count
+        let count   = job.recovered.count
         let current = Path.equals(job.folder, Library.getFolder())
-        let failed = not job.error.isEmpty()
+        let failed  = not job.error.isEmpty()
         Memory.delete(job)
         if not current do
             .videoRecoveryCount = 0
@@ -549,24 +568,27 @@ impl MainWnd
                 .libWnd.fill()
             .videoRecoveryCount += count
         }
+
         if current and count == VideoRecoveryBatchSize
         {
             .videoRecoveryFolder.clear()
             .startVideoRecovery()
             return
         }
+
         if .videoRecoveryCount
         {
             let total = .videoRecoveryCount
             .videoRecoveryCount = 0
             let message = total == 1 ? appStrings().msg_RecoveredVideo :
-                                     Format.toString(appStrings().msg_RecoveredVideos, total)
+                          Format.toString(appStrings().msg_RecoveredVideos, total)
             .confirm(message, "", appStrings().act_Library, func|main = me|()
             {
                 if not main.libraryMode do
                     main.swapLibraryMode()
             })
         }
+
         if failed do
             .reportFailure(appStrings().msg_FailedRecoverVideos)
         .startVideoRecovery()
@@ -577,9 +599,9 @@ impl MainWnd
     {
         if .exportJob or not .exportSource.isEmpty() or .imageWriteJob do
             return
-        .exportSource = source
+        .exportSource      = source
         .exportDestination = destination
-        .exportLinked = linked
+        .exportLinked      = linked
         .startLibraryExport()
     }
 
@@ -597,6 +619,7 @@ impl MainWnd
                 return
             }
         }
+
         if g_CaptureSaves.writing(.exportSource)
         {
             if not .exportTimer do
@@ -605,21 +628,22 @@ impl MainWnd
         }
 
         let job = Memory.new'CaptureLoadJob()
-        job.file = .exportSource
+        job.file   = .exportSource
         .exportJob = job
         job.task.submit(func|job|()
         {
             catch { job.capture = try Capture.load(job.file) } as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishLibraryExport(job: *CaptureLoadJob)
     {
         .exportJob = null
         .exportSource.clear()
-        let capture = job.capture
+        let capture     = job.capture
         let destination = String.from(.exportDestination)
-        let linked = .exportLinked
+        let linked      = .exportLinked
         .exportDestination.clear()
         Memory.delete(job)
         if not capture
@@ -635,6 +659,7 @@ impl MainWnd
             .startImageWrite(capture, destination)
             return
         }
+
         .saveLoadedAsImage(capture, destination, linked)
     }
 
@@ -648,22 +673,24 @@ impl MainWnd
             .reportFailure(appStrings().msg_FailedSaveFile, destination)
             return
         }
+
         let job = Memory.new'CaptureImageWriteJob()
-        job.image  = #move image
-        job.source = capture.file
-        job.target = destination
+        job.image      = #move image
+        job.source     = capture.file
+        job.target     = destination
         .imageWriteJob = job
         job.task.submit(func|job|()
         {
             catch saveCaptureImageFile(&job.image, job.source, job.target) as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishLibraryImageWrite(job: *CaptureImageWriteJob)
     {
         .imageWriteJob = null
         let destination = String.from(job.target)
-        let failed = not job.error.isEmpty()
+        let failed      = not job.error.isEmpty()
         Memory.delete(job)
         if failed do
             .reportFailure(appStrings().msg_FailedSaveFile, destination)
@@ -680,7 +707,8 @@ impl MainWnd
         job.task.submit(func|job|()
         {
             catch exportOriginalVideo(job.source, job.target) as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishVideoCopy(job: *CaptureVideoCopyJob)
@@ -690,8 +718,9 @@ impl MainWnd
             .videoCopyJobs.removeAtOrdered(index)
             break
         }
+
         let destination = String.from(job.target)
-        let failed = not job.error.isEmpty()
+        let failed      = not job.error.isEmpty()
         Memory.delete(job)
         if failed do
             .reportFailure(appStrings().msg_FailedSaveFile, destination)
@@ -726,22 +755,26 @@ impl MainWnd
             return false
 
         .residentNotice?.close()
-        let texts = appStrings()
-        let notice = TrayNotice.open(unwrap .surface, texts.msg_ResidentTitle, texts.msg_ResidentText,
+        let texts  = appStrings()
+        let notice = TrayNotice.open(unwrap .surface,
+                                     texts.msg_ResidentTitle,
+                                     texts.msg_ResidentText,
                                      texts.ui_DoNotShowResidentAgain)
         if not notice do
             return false
-        .residentNotice = notice
+        .residentNotice         = notice
         notice.sigOptionChanged += func|main = me|(_, checked)
         {
             main.editorOptions.showResidentNotice = not checked
             main.saveAppState()
         }
+
         notice.sigDismissed += func|main = me|(dismissed)
         {
             if main.residentNotice == dismissed do
                 main.residentNotice = null
         }
+
         return true
     }
 
@@ -804,27 +837,31 @@ impl MainWnd
             return
         let job = Memory.new'CaptureMetadataJob()
         job.owner = me
-        job.file = file
+        job.file  = file
         if title != null
         {
-            job.title = title
+            job.title    = title
             job.hasTitle = true
         }
+
         if tags
         {
-            job.tags = tags[]
+            job.tags    = tags[]
             job.hasTags = true
         }
+
         if favorite
         {
-            job.favorite = favorite[]
+            job.favorite    = favorite[]
             job.hasFavorite = true
         }
+
         if rating
         {
-            job.rating = rating[]
+            job.rating    = rating[]
             job.hasRating = true
         }
+
         job.unlink = unlink
         g_CaptureSaves.adoptMetadata(job)
         if not .metadataTimer do
@@ -835,10 +872,10 @@ impl MainWnd
     {
         job.task.submit(func|job|()
         {
-            let title: string? = job.hasTitle ? job.title : null
-            let tags: const *Array'String? = job.hasTags ? &job.tags : null
-            let favorite: const *bool? = job.hasFavorite ? &job.favorite : null
-            let rating: const *u8? = job.hasRating ? &job.rating : null
+            let title:    string?              = job.hasTitle ? job.title : null
+            let tags:     const *Array'String? = job.hasTags ? &job.tags : null
+            let favorite: const *bool?         = job.hasFavorite ? &job.favorite : null
+            let rating:   const *u8?           = job.hasRating ? &job.rating : null
             catch Capture.updateFileMetadata(job.file, title, tags, favorite, rating, job.unlink) as job.error
         })
     }
@@ -854,8 +891,10 @@ impl MainWnd
             editCapture.changed = true
             .saveCapture(editCapture)
         }
-        else do
+        else
+        {
             .queueCaptureMetadata(file, title: title)
+        }
 
         // Reflect the new title on the library preview(s) that reference this file.
         if .libWnd != null and .libWnd.view != null
@@ -894,7 +933,8 @@ impl MainWnd
         job.task.submit(func|job|()
         {
             catch { job.capture = try Capture.load(job.file) } as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishLibraryCopy(job: *CaptureLoadJob)
@@ -925,6 +965,7 @@ impl MainWnd
             .reportFailure(appStrings().msg_FailedCopyCapture, file)
             return
         }
+
         .confirm(appStrings().msg_Copied)
     }
 
@@ -941,21 +982,23 @@ impl MainWnd
     {
         if .duplicateJob or not .duplicateSource.isEmpty() do
             return
-        let target = Library.newFileName()
+        let target   = Library.newFileName()
         let snapshot = catch capture.snapshotDuplicate(target)
         {
             .reportFailure(appStrings().msg_FailedDuplicate, capture.file)
             return
         }
+
         let job = Memory.new'CaptureDuplicateJob()
-        job.source = capture.file
-        job.target = target
-        job.snapshot = snapshot
+        job.source    = capture.file
+        job.target    = target
+        job.snapshot  = snapshot
         .duplicateJob = job
         job.task.submit(func|job|()
         {
             catch Capture.duplicateSnapshot(job.source, unwrap job.snapshot) as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd startDuplicateCapture()
@@ -972,6 +1015,7 @@ impl MainWnd
                 return
             }
         }
+
         if g_CaptureSaves.writing(.duplicateSource)
         {
             if not .duplicateTimer do
@@ -980,13 +1024,14 @@ impl MainWnd
         }
 
         let job = Memory.new'CaptureDuplicateJob()
-        job.source = .duplicateSource
-        job.target = Library.newFileName()
+        job.source    = .duplicateSource
+        job.target    = Library.newFileName()
         .duplicateJob = job
         job.task.submit(func|job|()
         {
             catch Capture.duplicateDocument(job.source, job.target) as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishDuplicateCapture(job: *CaptureDuplicateJob)
@@ -1047,16 +1092,19 @@ impl MainWnd
         for md in imgToLoad.metadata where md.isTag(CaptureFileMetadataTag)
         {
             let linkedCapture = catch .recentWnd.addRecent(cast(string, md.toSlice())) { break }
-            let linkedFile = String.from(linkedCapture.file)
+            let linkedFile    = String.from(linkedCapture.file)
             Memory.delete(linkedCapture)
             let active = .editWnd.getCapture()
-            if not active or active.file != linkedFile do
+            if not active or active.file != linkedFile
+            {
                 .recentWnd.requestSelection(linkedFile, false, {}, returnToEditor: .libraryMode)
+            }
             elif .libraryMode
             {
                 .swapLibraryMode()
                 .updateState()
             }
+
             done = true
             break
         }
@@ -1121,8 +1169,10 @@ impl MainWnd
             for it in capture.forms do
                 it.freeze = true
         }
-        else do
+        else
+        {
             .freezeSel = false
+        }
 
         if .taskStrip != null do
             .taskStrip.showFrozen(.freezeSel)
@@ -1374,7 +1424,7 @@ impl MainWnd
     // Explains which desktop capture keys were unavailable at startup, beside Capture itself.
     mtd showUnavailableShortcuts(button: *IconButton)
     {
-        let main = me
+        let main      = me
         with let menu = MenuCtrl.createPopup(me)
         {
             .addLabel(appStrings().ui_CaptureShortcuts)
@@ -1541,8 +1591,7 @@ impl MainWnd
     {
         .savedPaths.add(path)
         let index = .savedPaths.count - 1
-        .reportFailure(appStrings().msg_VideoKeptAfterError, Path.fileName(path) orelse "",
-                       appStrings().act_Show, func|main = me, index|()
+        .reportFailure(appStrings().msg_VideoKeptAfterError, Path.fileName(path) orelse "", appStrings().act_Show, func|main = me, index|()
         {
             discard Env.showInFileExplorer(main.savedPaths[index])
         })

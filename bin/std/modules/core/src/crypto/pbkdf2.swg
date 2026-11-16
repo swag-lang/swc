@@ -27,7 +27,7 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
 
     // A destination write for one block must not change the password used for later blocks.
     var passwordCopy: Array'u8
-    var passwordInput = password
+    var passwordInput    = password
     let passwordStart    = cast(u64, password.buffer)
     let destinationStart = cast(u64, destination.buffer)
     if passwordStart < destinationStart + destination.count and
@@ -36,6 +36,7 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
         passwordCopy.add(password)
         passwordInput = passwordCopy.toSlice()
     }
+
     defer secureClear(passwordCopy.toSlice())
 
     const DigestSize = #sizeof(HmacSha256Digest)

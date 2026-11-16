@@ -10,9 +10,9 @@ using Core, Gui, Pixel
     var journey: CaptureJourney
     journey.setup()
     journey.recordAnimation(.Stop)
-    let main = journey.main
+    let main    = journey.main
     let capture = unwrap main.editWnd.getCapture()
-    var path = String.from(capture.file)
+    var path    = String.from(capture.file)
 
     journey.drawForm(ActionToolMode.Arrow, .Arrow, {5, 5}, {45, 30})
     main.sendCommandEvent(ActionToolMode.Selection)
@@ -30,7 +30,7 @@ using Core, Gui, Pixel
     expect Directory.create(exportFolder)
     let gif = Path.combine(exportFolder, "annotated.gif")
     expect capture.exportAnimation(gif)
-    let bytes = expect File.readAllBytes(gif)
+    let bytes  = expect File.readAllBytes(gif)
     var reader = expect ImageReader.decode("annotated.gif", bytes.toSlice())
     Swag.require(reader.info.frames.count >= 2)
 
@@ -40,7 +40,11 @@ using Core, Gui, Pixel
     journey.waitFor("timed annotation reopened", func|main, &path, start|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and
-               opened.forms.count == 1 and opened.forms[0].timeStart == start and not opened.mediaMissing
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.forms.count == 1 and
+               opened.forms[0].timeStart == start and
+               not opened.mediaMissing
     })
 }

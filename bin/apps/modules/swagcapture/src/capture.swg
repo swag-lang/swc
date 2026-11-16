@@ -267,12 +267,12 @@ struct Capture
         selection: Array'u64
         paintRect: Math.Rectangle
 
-        backTexture: Texture
-        playbackPlanes: PlanarFrame
-        playbackPlanar: bool
+        backTexture:       Texture
+        playbackPlanes:    PlanarFrame
+        playbackPlanar:    bool
         backTexturePlanar: bool
-        snapX:       f32 = -1
-        snapY:       f32 = -1
+        snapX:             f32 = -1
+        snapY:             f32 = -1
 
         // Retained per-form renderings (see FormCache) and the per-repaint budget for
         // sharpening the ones a zoom left behind.
@@ -311,31 +311,31 @@ struct Capture
 // One decoded capture and its failure remain owned until the requesting window accepts them.
 struct CaptureLoadJob
 {
-    task:    Swag.Task
-    file:    String
-    capture: *Capture?
-    error:   Swag.Error
+    task:     Swag.Task
+    file:     String
+    capture:  *Capture?
+    error:    Swag.Error
     revision: File.FileInfo
 }
 
 // One duplicate owns both paths until its SCC and timed media files are ready.
 struct CaptureDuplicateJob
 {
-    task:   Swag.Task
-    source: String
-    target: String
+    task:     Swag.Task
+    source:   String
+    target:   String
     snapshot: *CaptureSaveJob?
-    error:  Swag.Error
+    error:    Swag.Error
 }
 
 // An already rendered image is encoded and written without holding the interface thread.
 struct CaptureImageWriteJob
 {
-    task: Swag.Task
-    image: Image
+    task:   Swag.Task
+    image:  Image
     source: String
     target: String
-    error: Swag.Error
+    error:  Swag.Error
 }
 
 // An unchanged MP4 is copied without borrowing its editable capture.
@@ -349,10 +349,10 @@ struct CaptureVideoCopyJob
 
 struct CaptureVideoRecoveryJob
 {
-    task: Swag.Task
-    folder: String
+    task:      Swag.Task
+    folder:    String
     recovered: Array'String
-    error: Swag.Error
+    error:     Swag.Error
 }
 
 // Everything one save writes, snapshotted from the capture so a worker can
@@ -365,9 +365,9 @@ struct CaptureSaveJob
     modelBytes: Array'u8     // Document model, already TagBin-encoded: forms are only safe to read on the interface thread.
     backImg:    Image        // Owned pixel copies, because a later crop or flatten must not race the encoder.
     backOrig:   Image
-    backChunk:  Guid128      // Identifiers of the background chunks, chosen with the snapshot.
+    backChunk:  Guid128     // Identifiers of the background chunks, chosen with the snapshot.
     origChunk:  Guid128
-    reuseBack:  bool         // Copy those chunks from the current file instead of encoding the images.
+    reuseBack:  bool     // Copy those chunks from the current file instead of encoding the images.
     preview:    Image
     failed:     bool     // Set by the worker when producing or replacing the file failed.
 }
@@ -394,7 +394,7 @@ struct CaptureMetadataJob
 // behind it and run in request order. Readers, moves and deletions flush the affected file first.
 struct CaptureSaveQueue
 {
-    pending: *CaptureSaveJob?
+    pending:         *CaptureSaveJob?
     metadataPending: *CaptureMetadataJob?
     metadataWaiting: Array'*CaptureMetadataJob
 }
@@ -452,6 +452,7 @@ impl CaptureSaveQueue
             if job.owner.libWnd != null and job.owner.libWnd.view != null do
                 catch job.owner.libWnd.view.fill()
         }
+
         Memory.delete(job)
         .startMetadata()
     }
@@ -494,6 +495,7 @@ impl CaptureSaveQueue
             .pending.task.wait()
             failed = .collect()
         }
+
         while .metadataPending or not .metadataWaiting.isEmpty()
         {
             if file != null and not .metadataTargets(file) do
@@ -503,6 +505,7 @@ impl CaptureSaveQueue
             job.task.wait()
             .finishMetadata()
         }
+
         return failed
     }
 }

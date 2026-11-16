@@ -101,14 +101,14 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     expect window.setPosition(10, 20)
     expect window.show()
     paintCaptureWindow(&window, 0xFF0000)
-    var capture = expect X11Capture.create()
-    let warp    = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.nativeLibrary(), "xcb_warp_pointer_checked")
-    let check   = expect X11Capture.symbol'Linux.xcb_request_check_fn(unwrap capture.nativeLibrary(), "xcb_request_check")
+    var capture    = expect X11Capture.create()
+    let warp       = expect X11Capture.symbol'Linux.xcb_warp_pointer_checked_fn(unwrap capture.nativeLibrary(), "xcb_warp_pointer_checked")
+    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(unwrap capture.nativeLibrary(), "xcb_request_check")
     let connection = unwrap capture.nativeConnection()
-    let error   = check(connection, warp(connection, 0, capture.rootWindow(), 0, 0, 0, 0, 40, 50))
+    let error      = check(connection, warp(connection, 0, capture.rootWindow(), 0, 0, 0, 0, 40, 50))
     defer Linux.free(error)
     Swag.require(error == null)
-    let plain = expect capture.image(false, 10, 20, 64, 64)
+    let plain  = expect capture.image(false, 10, 20, 64, 64)
     var source = expect ScreenFrameSource.create(true, 10, 20, 64, 64)
     var cursor: Image
     expect source.grabInto(&cursor)
@@ -173,6 +173,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
             expect source.reopen()
         }
     }
+
     Swag.require(openCaptureDescriptorCount() == before)
 }
 
@@ -268,7 +269,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     expect window.show()
     paintCaptureWindow(&window, 0xFF0000)
     let windowId = (expect window.xcbDrawable()).window
-    var x11 = expect X11Capture.create()
+    var x11      = expect X11Capture.create()
     setActiveCaptureWindow(&x11, windowId)
     defer setActiveCaptureWindow(&x11, 0)
 
@@ -292,6 +293,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
         discard catch File.delete(capture.file)
         g_Library.files.clear()
     }
+
     Swag.require(capture.width == 64 and capture.height == 48)
     Swag.require(capture.sourceWindowTitle == "Active capture fixture")
     Swag.require(capture.backImg.pixelColor(4, 5).argb == Argb.Red)
@@ -302,6 +304,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 #test
 {
     Swag.require(Env.variable("SWAG_TEST_ISOLATED_X11") == "1")
+
     // Earlier headless fixtures bind their renderer to this global application.
     // Reset it before creating a native surface and after retiring that surface.
     Swag.drop(&g_App, 1)
@@ -312,6 +315,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
         Swag.init(&g_App, 1)
         g_Main = null
     }
+
     testUseScratchLibrary()
     expect Library.init()
     g_Library.loaded = true
@@ -338,10 +342,10 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     main.captureOptions.sendToEditor     = true
     main.captureOptions.inPlaceEdit      = false
     main.captureOptions.delay            = 0
-    g_StartGrabX = 10
-    g_StartGrabY = 20
-    g_EndGrabX   = 74
-    g_EndGrabY   = 68
+    g_StartGrabX                         = 10
+    g_StartGrabY                         = 20
+    g_EndGrabX                           = 74
+    g_EndGrabY                           = 68
 
     main.sendCommandEvent(ActionCapture.LastArea)
     let capture = unwrap main.editWnd.getCapture()
@@ -361,6 +365,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
             break
         }
     }
+
     Swag.require(presented, "the capture editor never reached its native X11 surface")
 
     // Drive the full-screen area overlay through its real window tree. A bounded frame
@@ -393,7 +398,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     main.sendCommandEvent(ActionCapture.Area)
     g_App.sigFrame.clear()
     Swag.require(areaDriven, "the area selector did not open")
-    let area = unwrap main.editWnd.getCapture()
+    let area     = unwrap main.editWnd.getCapture()
     let areaPath = area.file
     defer discard catch File.delete(areaPath)
     Swag.require(area.width == 33 and area.height == 27)
@@ -409,6 +414,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
             break
         }
     }
+
     Swag.require(areaPresented, "the selected area never reached the native editor surface")
 
     // Cancelling the next overlay must return to the existing capture and release its surface.
@@ -442,8 +448,8 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
 
     // The next selection uses XTEST motion and button events through the Linux input backend.
     let script = Path.combine(testSourceRoot(), "datas/capture-area.x11.peer.py")
-    var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString()],
-                                                    standardError: .Pipe})
+    var peer   = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString()],
+                                                       standardError: .Pipe})
     defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
     let deadline = Time.monotonicMilliseconds() + 5000
     g_App.sigFrame += func|deadline|(_)
@@ -456,7 +462,7 @@ func setActiveCaptureWindow(capture: *X11Capture, window: u32)
     g_App.sigFrame.clear()
     Swag.require(expect peer.tryWaitForExit(3000'ms))
     Swag.require(peer.exitCode() == 0, peer.standardError())
-    let physical = unwrap main.editWnd.getCapture()
+    let physical     = unwrap main.editWnd.getCapture()
     let physicalPath = physical.file
     defer discard catch File.delete(physicalPath)
     Swag.require(physical.width == 32 and physical.height == 27)

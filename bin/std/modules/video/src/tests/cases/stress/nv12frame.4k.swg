@@ -24,5 +24,7 @@ using Swag, Core, Pixel
         expect frame.convertFrom(&image)
     watch.stop()
     Console.printf("NV12 4K BGRA8: % us for % frames (% us/frame)\n",
-                   watch.elapsedMicroseconds(), Iterations, watch.elapsedMicroseconds() / Iterations)
+                   watch.elapsedMicroseconds(),
+                   Iterations,
+                   watch.elapsedMicroseconds() / Iterations)
 }

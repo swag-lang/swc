@@ -12,29 +12,33 @@ using Swag, Core, Core.Errors, Audio, Pixel
     Memory.set(image.pixels.storage(), 110, image.pixels.count)
     let configs: [2] Mp4.SoftwareAudioConfig = [{48_000, 1, .Voice},
                                                 {48_000, 2, .Full}]
-    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(
-        path, 32, 16, 90_000, Swag.makeSlice(&configs[0], configs.count))
+    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(path, 32, 16, 90_000, Swag.makeSlice(&configs[0], configs.count))
     Swag.require(recorder.audioTrackCount() == 2 and recorder.videoPrerollTicks() == 1_920)
     let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 48_000, 90_000)
     for frame in 13'u64 do
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
 
     var microphone: [10 * 1_024] s16
-    var system: [10 * 1_024 * 2] s16
+    var system:     [10 * 1_024 * 2] s16
     for frame in 10 * 1_024
     {
-        microphone[frame] = cast(s16, Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                      1_000.0 * frame / 48_000.0)))
-        system[frame * 2] = cast(s16, Math.round(7_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                     2_000.0 * frame / 48_000.0)))
-        system[frame * 2 + 1] = cast(s16, Math.round(6_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                         3_000.0 * frame / 48_000.0)))
+        microphone[frame] = cast(s16,
+                                 Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                               1_000.0 * frame / 48_000.0)))
+        system[frame * 2] = cast(s16,
+                                 Math.round(7_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                               2_000.0 * frame / 48_000.0)))
+        system[frame * 2 + 1] = cast(s16,
+                                     Math.round(6_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                                   3_000.0 * frame / 48_000.0)))
     }
+
     for block in 10'u64
     {
         expect recorder.addAudioFrames(Swag.makeSlice(&microphone[block * 1_024], 1_024), 0)
         expect recorder.addAudioFrames(Swag.makeSlice(&system[block * 2 * 1_024], 2 * 1_024), 1)
     }
+
     Swag.require(expect recorder.audioInputFrameCountOf(0) == 10 * 1_024)
     Swag.require(expect recorder.audioInputFrameCountOf(1) == 10 * 1_024)
     Swag.require(expect recorder.audioPacketCountOf(0) == 10)
@@ -63,20 +67,21 @@ using Swag, Core, Core.Errors, Audio, Pixel
         Swag.require(pcm.count == 10 * 1_024 * channels)
         for channel in channels
         {
-            var error = 0.0'f64
-            var power = 0.0'f64
-            var cross = 0.0'f64
+            var error        = 0.0'f64
+            var power        = 0.0'f64
+            var cross        = 0.0'f64
             var decodedPower = 0.0'f64
             for frame in 2_048 until 8_192
             {
                 let expected = trackIndex == 0 ? cast(f64, microphone[frame]) :
                                cast(f64, system[frame * 2 + channel])
                 let actual = cast(f64, pcm[frame * channels + channel])
-                error += (expected - actual) * (expected - actual)
-                power += expected * expected
+                error        += (expected - actual) * (expected - actual)
+                power        += expected * expected
                 decodedPower += actual * actual
-                cross += expected * actual
+                cross        += expected * actual
             }
+
             Swag.require(Math.sqrt(error / power) < 0.2)
             Swag.require(cross / Math.sqrt(power * decodedPower) > 0.9)
         }
@@ -90,12 +95,10 @@ using Swag, Core, Core.Errors, Audio, Pixel
     defer discard catch File.delete(path)
     const MixedRates: [2] Mp4.SoftwareAudioConfig = [{48_000, 1}, {44_100, 2}]
     var rejected: Swag.Error
-    discard catch Mp4.SoftwareRecording.createWithAudioTracks(
-        path, 16, 16, 90_000, Swag.makeSlice(&MixedRates[0], MixedRates.count)) as rejected
+    discard catch Mp4.SoftwareRecording.createWithAudioTracks(path, 16, 16, 90_000, Swag.makeSlice(&MixedRates[0], MixedRates.count)) as rejected
     Swag.require(rejected.value() is BadParameterError)
     let configs: [2] Mp4.SoftwareAudioConfig = [{48_000, 1}, {48_000, 2}]
-    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(
-        path, 16, 16, 90_000, Swag.makeSlice(&configs[0], configs.count))
+    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(path, 16, 16, 90_000, Swag.makeSlice(&configs[0], configs.count))
     const Pair: [2] s16 = [10, 20]
     discard catch recorder.addAudioFrames(Swag.makeSlice(&Pair[0], Pair.count), 2) as rejected
     Swag.require(rejected.value() is BadParameterError)
@@ -116,8 +119,7 @@ using Swag, Core, Core.Errors, Audio, Pixel
     const TooMany: [5] Mp4.SoftwareAudioConfig = [{48_000, 1}, {48_000, 1},
                                                   {48_000, 1}, {48_000, 1},
                                                   {48_000, 1}]
-    discard catch Mp4.SoftwareRecording.createWithAudioTracks(
-        path, 16, 16, 90_000, Swag.makeSlice(&TooMany[0], TooMany.count)) as rejected
+    discard catch Mp4.SoftwareRecording.createWithAudioTracks(path, 16, 16, 90_000, Swag.makeSlice(&TooMany[0], TooMany.count)) as rejected
     Swag.require(rejected.value() is BadParameterError)
 }
 
@@ -163,12 +165,13 @@ using Swag, Core, Core.Errors, Audio, Pixel
         expect recorder.addFrame(&image, expect pacer.slotAt(frame))
     var signal: [10 * 1_024] s16
     for frame in signal.count do
-        signal[frame] = cast(s16, Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                 1_000.0 * frame / 44_100.0)))
+        signal[frame] = cast(s16,
+                             Math.round(9_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                           1_000.0 * frame / 44_100.0)))
     expect recorder.addAudioFrames(Swag.makeSlice(&signal[0], signal.count))
     expect recorder.end()
     var reader = expect Reader.open(path)
-    let sound = unwrap reader.audioTrack(0)
+    let sound  = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == signal.count)
     Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000012)
     var decoded: Array's16
@@ -178,17 +181,18 @@ using Swag, Core, Core.Errors, Audio, Pixel
         return true
     })
     Swag.require(decoded.count == signal.count)
-    var cross = 0.0'f64
-    var sourcePower = 0.0'f64
+    var cross        = 0.0'f64
+    var sourcePower  = 0.0'f64
     var decodedPower = 0.0'f64
     for frame in 2_048 until 8_192
     {
         let source = cast(f64, signal[frame])
         let actual = cast(f64, decoded[frame])
-        cross += source * actual
-        sourcePower += source * source
+        cross        += source * actual
+        sourcePower  += source * source
         decodedPower += actual * actual
     }
+
     Swag.require(cross / Math.sqrt(sourcePower * decodedPower) > 0.9)
 }
 

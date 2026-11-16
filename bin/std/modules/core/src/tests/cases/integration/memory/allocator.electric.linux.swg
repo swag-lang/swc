@@ -1,4 +1,6 @@
-#global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics")
+#global if #command == Swag.CompilerCommand.Test and
+           #os == Swag.TargetOs.Linux and
+           #hastag("Swag.AllocatorDiagnostics")
 #global private
 
 using Swag
@@ -14,12 +16,13 @@ func electricFaultPeer(stale: bool)
     Swag.require(request.address != null)
 
     let address = cast(u64, request.address)
-    let header = g_ElectricFaultAllocator.headerOf(address)
+    let header  = g_ElectricFaultAllocator.headerOf(address)
     Swag.require(header.isElectric and header.userAddr == address)
 
     if stale
     {
         g_ElectricFaultAllocator.freeBlock(&request)
+
         // The reservation remains, but its payload pages are inaccessible after free.
         Swag.memset(cast(*void, address), 0x5A, 1)
     }
@@ -48,8 +51,8 @@ func electricFaultPeer(stale: bool)
     for argument in ["--swag-electric-guard-peer", "--swag-electric-stale-peer"]
     {
         let process = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: [argument],
-                                                     standardOutput: .Pipe, standardError: .Pipe})
-        Swag.require(process.exitCode() == 139, // Linux SIGSEGV uses signal number 11.
+                                                          standardOutput: .Pipe, standardError: .Pipe})
+        Swag.require(process.exitCode() == 139,     // Linux SIGSEGV uses signal number 11.
                      String.from(process.standardError()).toString())
     }
 }

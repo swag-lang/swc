@@ -19,10 +19,10 @@ using Core, Gui, Pixel
     var input = Gui.Testing.DesktopInput.create(journey.app, journey.surface)
     input.shortcut(.L, .Control)
     journey.waitFor("desktop keyboard freezes selection", func|main|()->bool =>
-        main.freezeSel and main.taskStrip.frozenPanel.isLocallyVisible())
+                    main.freezeSel and main.taskStrip.frozenPanel.isLocallyVisible())
     Swag.require(capture.selection.isEmpty() and capture.forms[0].freeze)
 
     input.click(&main.taskStrip.frozenButton.wnd)
     journey.waitFor("desktop pointer releases selection", func|main|()->bool =>
-        not main.freezeSel and not main.taskStrip.frozenPanel.isLocallyVisible())
+                    not main.freezeSel and not main.taskStrip.frozenPanel.isLocallyVisible())
 }

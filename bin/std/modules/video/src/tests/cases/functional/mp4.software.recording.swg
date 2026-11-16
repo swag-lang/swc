@@ -22,8 +22,9 @@ using Swag, Core, Core.Errors, Audio, Pixel
 
     var source: [10 * 1_024] s16
     for sample in source.count do
-        source[sample] = cast(s16, Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                   1_000.0 * sample / 48_000.0)))
+        source[sample] = cast(s16,
+                              Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                             1_000.0 * sample / 48_000.0)))
     var cursor = 0'u64
     while cursor < source.count
     {
@@ -31,6 +32,7 @@ using Swag, Core, Core.Errors, Audio, Pixel
         expect recorder.addAudioFrames(Swag.makeSlice(&source[cursor], count))
         cursor += count
     }
+
     Swag.require(recorder.videoFrameCount() == 13)
     Swag.require(recorder.audioInputFrameCount() == source.count and recorder.audioPacketCount() == 10)
     expect recorder.end()
@@ -53,6 +55,7 @@ using Swag, Core, Core.Errors, Audio, Pixel
         Swag.require(decodedFrame.chromaB[index] == uv[index * 2])
         Swag.require(decodedFrame.chromaR[index] == uv[index * 2 + 1])
     }
+
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == source.count)
     Swag.require(Math.abs(sound.timelineStartSeconds()) < 0.000001)
@@ -68,10 +71,11 @@ using Swag, Core, Core.Errors, Audio, Pixel
     for sample in 2_048 until 8_192
     {
         let expectedSample = cast(f64, source[sample])
-        let actual = cast(f64, decoded[sample])
+        let actual         = cast(f64, decoded[sample])
         error += (expectedSample - actual) * (expectedSample - actual)
         power += expectedSample * expectedSample
     }
+
     Swag.require(Math.sqrt(error / power) < 0.15)
 }
 
@@ -80,9 +84,9 @@ using Swag, Core, Core.Errors, Audio, Pixel
 {
     let path = videoTempPath("mp4-software-recorder-invalid", "mp4")
     defer discard catch File.delete(path)
-    let image = Image.create(16, 16, .RGB8)
+    let image    = Image.create(16, 16, .RGB8)
     var recorder = expect Mp4.SoftwareRecording.create(path, 16, 16, 90_000, 48_000, 2)
-    let pacer = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000, 90_000)
+    let pacer    = expect FramePacer.create(expect FrameRate.create(30, 1), 1_000, 90_000)
     var rejected: Swag.Error
     discard catch recorder.end() as rejected
     Swag.require(rejected.value() is BadParameterError)
@@ -110,7 +114,7 @@ using Swag, Core, Core.Errors, Audio, Pixel
     let image = Image.create(16, 16, .BGRA8)
     Memory.set(image.pixels.storage(), 90, image.pixels.count)
     var recorder = expect Mp4.SoftwareRecording.create(path, 16, 16, 90_000, 48_000, 1)
-    let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000, 90_000)
+    let pacer    = expect FramePacer.create(expect FrameRate.create(60, 1), 1_000, 90_000)
     var rejected: Swag.Error
     discard catch recorder.repeatLastFrame(expect pacer.slotAt(0)) as rejected
     Swag.require(rejected.value() is BadParameterError)

@@ -85,7 +85,7 @@ impl IWnd for Inspector
         }
 
         // A scrolling body keeps its normal content width, with one gutter to its right.
-        let pad = .layoutPadding()
+        let pad    = .layoutPadding()
         let gutter = .content ? metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset : 0
         let width  = Math.min(metrics.inspector_Width + gutter + 2 * (pad - metrics.inspector_Padding),
                               bounds.width - 2 * inset)
@@ -369,7 +369,7 @@ impl Inspector
 
         if .content
         {
-            let top = .rows.isEmpty() ? pad + rowSize + metrics.inspector_RowGap : .measureBody() - pad + metrics.inspector_RowGap
+            let top    = .rows.isEmpty() ? pad + rowSize + metrics.inspector_RowGap : .measureBody() - pad + metrics.inspector_RowGap
             let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
             .content.setPosition(Math.Rectangle{pad, top, Math.max(width - 2 * pad + gutter, 0), Math.max(height - top - pad, 0)})
         }

@@ -85,7 +85,7 @@ using Core
             overlongHost.append(".")
         }
 
-        let validLabelLength = label == 3 ? 61 : 63
+        let validLabelLength    = label == 3 ? 61 : 63
         let overlongLabelLength = label == 3 ? 62 : 63
         var index = 0
         while index < validLabelLength
@@ -93,6 +93,7 @@ using Core
             validHost.append('a'u8)
             index += 1
         }
+
         index = 0
         while index < overlongLabelLength
         {

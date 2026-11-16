@@ -83,6 +83,7 @@ using Core, Gui, Pixel
                 Console.println("tile=", entry.name, " attempted=", entry.attempted, " texture=", entry.texture.isValid())
             }
         }
+
         Swag.require(visible > 0, "the library produced no visible previews")
     }
 }

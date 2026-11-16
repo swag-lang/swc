@@ -10,9 +10,9 @@ using Core, Gui, Pixel
     var journey: CaptureJourney
     journey.setup()
     journey.recordAnimation(.Stop)
-    let main = journey.main
+    let main    = journey.main
     let capture = unwrap main.editWnd.getCapture()
-    var path = String.from(capture.file)
+    var path    = String.from(capture.file)
 
     journey.drawForm(ActionToolMode.Shape, .Shape, {8, 8}, {55, 40})
     main.sendCommandEvent(ActionToolMode.Selection)
@@ -35,8 +35,12 @@ using Core, Gui, Pixel
     journey.waitFor("timed ending reopened", func|main, &path, end, trim|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and
-               opened.forms.count == 1 and opened.forms[0].timeEnd == end and opened.trimEnd() == trim
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.forms.count == 1 and
+               opened.forms[0].timeEnd == end and
+               opened.trimEnd() == trim
     })
 
     let opened = unwrap main.editWnd.getCapture()

@@ -59,7 +59,7 @@ func publishIfZero(ptr: *u32, value: u32)
 // A Boolean context tests the full atomic integer, including bits above the low byte.
 #test
 {
-    var flag = 0x100'u32
+    var flag    = 0x100'u32
     let isClear = func|flag = &flag|()->bool => not Swag.atomicLoad(flag)
 
     Swag.require(not isClear())

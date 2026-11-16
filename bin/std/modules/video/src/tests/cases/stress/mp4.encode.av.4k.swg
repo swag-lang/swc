@@ -12,8 +12,8 @@ using Swag, Core, Audio, Pixel
     const Height = 2160
     let path = videoTempPath("mp4-software-scroll-4k60", "mp4")
     defer discard catch File.delete(path)
-    let first = Image.create(Width, Height, .BGRA8)
-    let moved = Image.create(Width, Height, .BGRA8)
+    let first       = Image.create(Width, Height, .BGRA8)
+    let moved       = Image.create(Width, Height, .BGRA8)
     let firstPixels = first.pixels.storage()
     let movedPixels = moved.pixels.storage()
     for y in Height
@@ -32,19 +32,25 @@ using Swag, Core, Audio, Pixel
             movedPixels[offset + 3] = 255
         }
     }
+
     var samples: [2 * 1_024] s16
     for index in 1_024'u64
     {
-        samples[index * 2] = cast(s16, Math.round(8_000.0 *
-            Math.sin(Math.ConstF64.TwoPi * 1_000.0 * index / 48_000.0)))
-        samples[index * 2 + 1] = cast(s16, Math.round(6_000.0 *
-            Math.sin(Math.ConstF64.TwoPi * 1_500.0 * index / 48_000.0)))
+        samples[index * 2] = cast(s16,
+                                  Math.round(8_000.0 *
+                                             Math.sin(Math.ConstF64.TwoPi * 1_000.0 * index / 48_000.0)))
+        samples[index * 2 + 1] = cast(s16,
+                                      Math.round(6_000.0 *
+                                                 Math.sin(Math.ConstF64.TwoPi * 1_500.0 * index / 48_000.0)))
     }
 
     var nv12: Nv12Frame
-    var video = expect H264.Encoder.create(Width, Height, keyInterval: 120)
-    var audio = expect Aac.StreamEncoder.create(48_000, 2)
-    var writer = expect Mp4.FragmentedWriter.createWithAudio(path, Width, Height, 90_000,
+    var video  = expect H264.Encoder.create(Width, Height, keyInterval: 120)
+    var audio  = expect Aac.StreamEncoder.create(48_000, 2)
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             Width,
+                                                             Height,
+                                                             90_000,
                                                              video.decoderConfig(),
                                                              Mp4.FragmentedAudioConfig{48_000, 2,
                                                                                        audio.decoderConfig()})
@@ -70,6 +76,7 @@ using Swag, Core, Audio, Pixel
             audioBlocks += 1
         }
     }
+
     Swag.require(audioBlocks == 47)
     var drain: Array'u8
     Swag.require(expect audio.finish(&drain))
@@ -79,7 +86,8 @@ using Swag, Core, Audio, Pixel
     expect writer.end()
     watch.stop()
     Console.printf("Software MP4 scrolling 4K60: % us for 60 video and % audio packets\n",
-                   watch.elapsedMicroseconds(), audio.packetCount())
+                   watch.elapsedMicroseconds(),
+                   audio.packetCount())
 
     let summary = expect Mp4.summarizeFragmentedRecording(path)
     Swag.require(summary.video.packetCount == 60 and summary.audioTracks.count == 1)
@@ -95,6 +103,7 @@ using Swag, Core, Audio, Pixel
         Swag.require(decoded.chromaB[index] == uv[index * 2])
         Swag.require(decoded.chromaR[index] == uv[index * 2 + 1])
     }
+
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleFrameCount() == 47 * 1_024)
 }

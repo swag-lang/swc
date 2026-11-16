@@ -11,15 +11,15 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(320, 240)
+    var path    = journey.newCapture(320, 240)
     let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Shape, .Shape, {20, 20}, {60, 55})
     journey.drawForm(ActionToolMode.Shape, .Shape, {110, 75}, {165, 120})
     journey.drawForm(ActionToolMode.Shape, .Shape, {215, 150}, {285, 210})
     let middle = capture.forms[1]
-    let last = capture.forms[2]
-    let x = middle.x
-    let y = middle.y
+    let last   = capture.forms[2]
+    let x      = middle.x
+    let y      = middle.y
 
     main.sendCommandEvent(ActionToolMode.Selection)
     Swag.require(capture.selection.count == 1 and capture.selection[0] == 2)
@@ -40,6 +40,7 @@ using Core, Gui, Pixel
         main.sendCommandEvent(ActionUndo.DoUndo)
         Swag.require(middle.x == x)
     }
+
     for command in [ActionAlign.AlignTop, ActionAlign.AlignMiddle, ActionAlign.AlignBottom]
     {
         main.sendCommandEvent(command)

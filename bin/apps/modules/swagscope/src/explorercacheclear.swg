@@ -6,9 +6,9 @@ using Core, Gui
 struct ExplorerCacheClear
 {
     using operation: Viewer.BackgroundOperation
-    removed: u64
-    error:   String
-    root:    String
+    removed:         u64
+    error:           String
+    root:            String
 }
 
 impl ExplorerCacheClear
@@ -25,8 +25,10 @@ impl ExplorerCacheClear
             {
                 operation.error = Viewer.failureText(Swag.err)
             }
+
             clearMusicCaches()
-        }, owner)
+        },
+                owner)
     }
 
     mtd opDrop() { .wait() }

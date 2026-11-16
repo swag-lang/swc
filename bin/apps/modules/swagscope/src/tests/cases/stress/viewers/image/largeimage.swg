@@ -14,8 +14,7 @@ using Core, Pixel, Gui, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    var session = openTestViewer(Picture.viewerPlugin(), &host.root, file,
-                                 commandParent: &host.root, actionParent: &host.root)
+    var session = openTestViewer(Picture.viewerPlugin(), &host.root, file, commandParent: &host.root, actionParent: &host.root)
     Swag.require(session.view != null)
     let view = assume cast(*Picture.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)

@@ -9,10 +9,10 @@ using Core, Gui, Pixel
 {
     var journey: ScopeJourney
     journey.setup()
-    let pdf = journey.copyData("viewer.pdf", "A-document.pdf")
+    let pdf     = journey.copyData("viewer.pdf", "A-document.pdf")
     let archive = journey.copyData("viewer.archive.zip", "B-archive.zip")
     let picture = journey.copyData("appicon.png", "C-picture.png")
-    let window = journey.window
+    let window  = journey.window
 
     window.openFile(pdf)
     journey.app.runFrame()
@@ -24,8 +24,8 @@ using Core, Gui, Pixel
     window.openFile(pdf)
     window.sendCommandEvent(ViewerCommands.Close)
     journey.waitFor("queued opening dismissed", func|window|()->bool => window.home.isLocallyVisible() and
-                                                                    window.currentFile.isEmpty() and
-                                                                    window.pendingFile.isEmpty() and
-                                                                    not window.choiceLoad.started)
+                                                                        window.currentFile.isEmpty() and
+                                                                        window.pendingFile.isEmpty() and
+                                                                        not window.choiceLoad.started)
     Swag.require(window.currentView == null)
 }

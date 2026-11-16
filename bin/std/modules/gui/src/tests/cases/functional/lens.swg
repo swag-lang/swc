@@ -110,7 +110,9 @@ func lensDynamicCommandState(_: *Wnd, evt: IEvent)->bool
     Swag.require(export.items.count == 1 and export.items[0]!.id == LensSave)
 
     menu.updateState()
-    Swag.require(menu.items[2]!.id == LensDisabled and menu.items[2]!.name.text == "Center Disabled" and menu.items[2]!.disabled)
+    Swag.require(menu.items[2]!.id == LensDisabled and
+                 menu.items[2]!.name.text == "Center Disabled" and
+                 menu.items[2]!.disabled)
 
     lens.open(">")
     var foundExcluded: bool

@@ -7,8 +7,8 @@ using Swag
 // every operation below is a string algorithm governed by these values.
 private const TargetHasWindowsPathSyntax = WINDOWS
 private const TargetPathCaseSensitive    = not WINDOWS
-private const ExtendedVolumeGuidPrefix   = #raw "\\?\Volume{"
-private const ExtendedVolumeGuidLength   = 36'u64
+private const ExtendedVolumeGuidPrefix = #raw "\\?\Volume{"
+private const ExtendedVolumeGuidLength = 36'u64
 
 const DirectorySeparator    = '/'u8     // Preferred directory separator.
 const AltDirectorySeparator = WINDOWS ? '\\'u8 : 0'u8     // Accepted alternate separator, or zero when none exists.
@@ -22,8 +22,8 @@ func isDirectorySeparator(c: u8)->bool
 }
 
 private func isHexDigit(c: u8)->bool => (c >= '0' and c <= '9') or
-                                       (c >= 'A' and c <= 'F') or
-                                       (c >= 'a' and c <= 'f')
+                                        (c >= 'A' and c <= 'F') or
+                                        (c >= 'a' and c <= 'f')
 
 // Returns the root length of a Windows volume-GUID path, or zero if it does not have that form.
 internal func extendedVolumeGuidRootLength(path: string)->u32
@@ -41,8 +41,10 @@ internal func extendedVolumeGuidRootLength(path: string)->u32
             if c != '-' do
                 return 0
         }
-        elif not isHexDigit(c) do
+        elif not isHexDigit(c)
+        {
             return 0
+        }
     }
 
     let suffix = prefixLength + ExtendedVolumeGuidLength
@@ -167,8 +169,8 @@ func rootLength(path: string)->u32
     const ExtendedPathPrefix = #raw "\\?\"
     const UncExtendedPathPrefix = #raw "\\?\UNC\"
 
-    let extendedSyntax    = startsWithOrdinal(path, ExtendedPathPrefix)
-    let extendedUncSyntax = startsWithOrdinal(path, UncExtendedPathPrefix)
+    let extendedSyntax     = startsWithOrdinal(path, ExtendedPathPrefix)
+    let extendedUncSyntax  = startsWithOrdinal(path, UncExtendedPathPrefix)
     let extendedVolumeRoot = extendedSyntax and not extendedUncSyntax ? extendedVolumeGuidRootLength(path) : 0
     if extendedVolumeRoot do
         return extendedVolumeRoot

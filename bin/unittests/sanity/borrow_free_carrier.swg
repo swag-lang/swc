@@ -39,7 +39,7 @@ func createDual(target: *s32)->*DualCarrier
 {
     let carrier = cast(*DualCarrier, allocate(#sizeof(DualCarrier)))
     carrier.target = target
-    carrier.owned = cast(*s32, allocate(#sizeof(s32)))
+    carrier.owned  = cast(*s32, allocate(#sizeof(s32)))
     return carrier
 }
 
@@ -279,7 +279,7 @@ func rejectReleaseWrappedCarrierTarget()
 #test
 {
     var value: s32 = 57
-    let carrier = createDual(&value)
+    let carrier    = createDual(&value)
     release(carrier.owned, #sizeof(s32))
     release(carrier, #sizeof(DualCarrier))
     Swag.require(value == 57)

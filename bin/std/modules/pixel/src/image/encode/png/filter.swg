@@ -320,11 +320,11 @@ impl Encoder
     {
         switch index
         {
-        case 0: return .None
-        case 1: return .Sub
-        case 2: return .Up
-        case 3: return .Average
-        case 4: return .Paeth
+        case 0:  return .None
+        case 1:  return .Sub
+        case 2:  return .Up
+        case 3:  return .Average
+        case 4:  return .Paeth
         default: return .None
         }
     }

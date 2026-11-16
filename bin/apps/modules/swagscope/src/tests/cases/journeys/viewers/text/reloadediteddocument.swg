@@ -22,8 +22,8 @@ using Core, Gui, Pixel
     expect File.writeAllText(file, "alpha beta alpha gamma alpha\n")
     window.sendCommandEvent(ViewerCommands.Reload)
     journey.waitFor("reloaded matches", func|window|()->bool => window.currentView != null and
-                                                            window.searchComplete and
-                                                            window.searchMatches.count == 3)
+                                                                window.searchComplete and
+                                                                window.searchMatches.count == 3)
     Swag.require(window.searchBox.text() == "alpha")
     Swag.require(window.searchBar.isLocallyVisible())
 }

@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = journey.copyData("comprehensive.md", "manual.md")
+    let file   = journey.copyData("comprehensive.md", "manual.md")
     let window = journey.window
 
     window.openFile(file)
@@ -30,6 +30,6 @@ using Core, Gui, Pixel, Viewers
     outline.list.selectLine(1)
     outline.list.selectLine(0)
     journey.waitFor("first section", func|scroll, targetPosition|()->bool =>
-        scroll.scrollPosition().y < targetPosition)
+                    scroll.scrollPosition().y < targetPosition)
     Swag.require(outline.list.selectedLine() == outline.rows[0])
 }

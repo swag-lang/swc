@@ -93,7 +93,7 @@ func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
     var backing: [72] u8
     let base   = cast(u64, cast(const [*] u8, backing.buffer))
     let offset = (1 + 8 - (base & 7)) & 7
-    var input   = backing[offset to offset + 64]
+    var input  = backing[offset to offset + 64]
     for i in 64 do
         input[i] = cast #bit (u8, (i * 173 + 41))
     Swag.require((cast(u64, cast(const [*] u8, input.buffer)) & 7) == 1)

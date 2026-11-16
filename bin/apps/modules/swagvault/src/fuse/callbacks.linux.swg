@@ -181,7 +181,7 @@ namespace Fuse
     {
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
-        let value = catch pathString(path) { return statusFromError(Swag.err) }
+        let value        = catch pathString(path) { return statusFromError(Swag.err) }
         let parentStatus = writableParentPath(owner, value)
         if parentStatus do
             return parentStatus
@@ -204,7 +204,7 @@ namespace Fuse
             return -Linux.EBUSY
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
-        let value      = catch pathString(path) { return statusFromError(Swag.err) }
+        let value        = catch pathString(path) { return statusFromError(Swag.err) }
         let parentStatus = writableParentPath(owner, value)
         if parentStatus do
             return parentStatus
@@ -312,7 +312,7 @@ namespace Fuse
         let writableStatus = writable(owner, node)
         if writableStatus do
             return writableStatus
-        let writeToEnd = (info.flags & 0x400) != 0
+        let writeToEnd  = (info.flags & 0x400) != 0
         let writeOffset = writeToEnd ? node.size : cast(u64, offset)
         if size
         {
@@ -399,8 +399,8 @@ namespace Fuse
         defer owner.volume.accessLock.unlock()
         if flags & ~1'u32 do
             return -Linux.EINVAL
-        let node     = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
-        let value    = catch pathString(destination) { return statusFromError(Swag.err) }
+        let node  = catch lookup(owner, path, null) { return statusFromError(Swag.err) }
+        let value = catch pathString(destination) { return statusFromError(Swag.err) }
         let sourceParentStatus = writableParent(owner, owner.volume.nodeById(node.parentId))
         if sourceParentStatus do
             return sourceParentStatus
@@ -490,7 +490,7 @@ namespace Fuse
     {
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
-        let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
+        let node         = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
         let volumeStatus = writableVolume(owner)
         if volumeStatus do
             return volumeStatus
@@ -532,7 +532,7 @@ namespace Fuse
     {
         owner.volume.accessLock.lock()
         defer owner.volume.accessLock.unlock()
-        let node = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
+        let node         = catch lookup(owner, path, info) { return statusFromError(Swag.err) }
         let volumeStatus = writableVolume(owner)
         if volumeStatus do
             return volumeStatus

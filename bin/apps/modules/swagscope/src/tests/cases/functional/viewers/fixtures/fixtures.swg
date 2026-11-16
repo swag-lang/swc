@@ -5,7 +5,7 @@ using Core, Pixel, Gui, TrueType, Viewers
 
 private struct Fixture
 {
-    name: string
+    name:   string
     viewer: string
 }
 
@@ -13,7 +13,7 @@ private struct Fixture
 #test
 {
     let bytes = expect File.readAllBytes(scopeTestDataPath("viewer.ttc"))
-    let face = expect Face.load(bytes.toSlice())
+    let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
     Swag.require(face.hasChar('A'))
 }
@@ -149,8 +149,7 @@ private struct Fixture
         Fixture{"viewer.groove.mid", "midi"},
         Fixture{"viewer.hex", "text"},
         Fixture{"viewer.page.html", "html"},
-        Fixture{"viewer.reading.srt", "subtitle"},
-    ]
+        Fixture{"viewer.reading.srt", "subtitle"}]
     let registry = createViewerPluginRegistry()
     for &item in Cases
     {
@@ -169,8 +168,7 @@ private struct Fixture
         "viewer.ico", "viewer.jpg", "viewer.jpeg", "viewer.ktx2", "viewer.png",
         "viewer.psd", "viewer.qoi", "viewer.tga", "viewer.tif", "viewer.tiff",
         "viewer.webp", "viewer.cmyk.jpg", "viewer.progressive.jpg", "viewer.animation.apng",
-        "viewer.apng", "viewer.cur",
-    ]
+        "viewer.apng", "viewer.cur"]
     for name in Cases
     {
         let image = catch Image.load(scopeTestDataPath(name))
@@ -178,6 +176,7 @@ private struct Fixture
             Swag.require(false, name)
             continue
         }
+
         Swag.require(image.isValid(), name)
     }
 }

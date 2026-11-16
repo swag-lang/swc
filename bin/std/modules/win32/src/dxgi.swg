@@ -9,10 +9,10 @@ const DXGI_ERROR_WAS_STILL_DRAWING = cast #bit (HRESULT, 0x887A_000A)
 const DXGI_ERROR_ACCESS_LOST       = cast #bit (HRESULT, 0x887A_0026)
 const DXGI_ERROR_WAIT_TIMEOUT      = cast #bit (HRESULT, 0x887A_0027)
 
-const IID_IDXGIDevice  = GUID{0x54EC77FA, 0x1377, 0x44E6,
+const IID_IDXGIDevice = GUID{0x54EC77FA, 0x1377, 0x44E6,
                              [0x8C, 0x32, 0x88, 0xFD, 0x5F, 0x44, 0xC8, 0x4C]}
 const IID_IDXGIOutput1 = GUID{0x00CDDEA8, 0x939B, 0x4B83,
-                             [0xA3, 0x40, 0xA6, 0x85, 0x22, 0x66, 0x66, 0xCC]}
+                              [0xA3, 0x40, 0xA6, 0x85, 0x22, 0x66, 0x66, 0xCC]}
 
 struct DXGI_OUTPUT_DESC
 {
@@ -44,9 +44,9 @@ struct DXGI_OUTDUPL_FRAME_INFO
         AccumulatedFrames:         u32
         RectsCoalesced:            BOOL
         ProtectedContentMaskedOut: BOOL
-        PointerPosition:          DXGI_OUTDUPL_POINTER_POSITION
-        TotalMetadataBufferSize:  u32
-        PointerShapeBufferSize:   u32
+        PointerPosition:           DXGI_OUTDUPL_POINTER_POSITION
+        TotalMetadataBufferSize:   u32
+        PointerShapeBufferSize:    u32
     }
 }
 
@@ -117,8 +117,8 @@ struct IDXGIOutputDuplicationVtbl
         GetFrameDirtyRects: func(*IDXGIOutputDuplication, u32, *RECT, *u32)->HRESULT
         GetFrameMoveRects:  func(*IDXGIOutputDuplication, u32, *DXGI_OUTDUPL_MOVE_RECT,
                                  *u32)->HRESULT
-        other:            [3] *void
-        ReleaseFrame:     func(*IDXGIOutputDuplication)->HRESULT
+        other:        [3] *void
+        ReleaseFrame: func(*IDXGIOutputDuplication)->HRESULT
     }
 }
 

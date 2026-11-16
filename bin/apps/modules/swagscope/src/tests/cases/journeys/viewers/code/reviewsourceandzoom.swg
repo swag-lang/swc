@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = journey.copyData("sample.cpp", "review.cpp")
+    let file   = journey.copyData("sample.cpp", "review.cpp")
     let window = journey.window
 
     window.openFile(file)
@@ -21,10 +21,12 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Find)
     window.searchBox.setText("doubled")
     journey.waitFor("source symbol matches", func|window|()->bool =>
-        window.searchComplete and window.searchMatches.count == 3)
+                    window.searchComplete and window.searchMatches.count == 3)
     code.setZoom(150)
     Swag.require(code.zoomPercent == 150 and (unwrap code.zoomLabel).text() == "150 %")
     window.sendCommandEvent(ViewerCommands.Close)
     journey.waitFor("source returned to recent files", func|window|()->bool =>
-        window.home.isLocallyVisible() and window.currentView == null and window.recent.count == 1)
+                    window.home.isLocallyVisible() and
+                    window.currentView == null and
+                    window.recent.count == 1)
 }

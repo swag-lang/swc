@@ -21,6 +21,7 @@ using Core, Gui, Pixel
         shapeButton = button
         break
     }
+
     Swag.require(shapeButton != null, "the Shape tool is absent from the dock")
     Swag.require(not main.libraryMode, "the new capture did not open the editor")
     Swag.require(not shapeButton.wndFlags.has(.Disabled), "the Shape tool is disabled")

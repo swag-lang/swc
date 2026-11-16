@@ -40,11 +40,11 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     Swag.require(Linux.mkdtemp(temporary.storage()) == temporary.buffer)
     defer expect Directory.delete(temporary, recurse: true)
     let script = Path.combine(testSourceRoot(), "datas/xsettings.x11.peer.py")
-    var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3",
-                                                     arguments: [script.toString(), temporary.toString()],
-                                                     standardOutput: .Pipe, standardError: .Pipe})
+    var peer   = expect Env.startProcess(Env.StartInfo{fileName: "python3",
+                                                       arguments: [script.toString(), temporary.toString()],
+                                                       standardOutput: .Pipe, standardError: .Pipe})
     defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
-    let ready = Path.combine(temporary, "ready")
+    let ready    = Path.combine(temporary, "ready")
     let deadline = Time.monotonicMilliseconds() + 3000
     while not File.exists(ready) and Time.monotonicMilliseconds() < deadline do
         Threading.Thread.sleep(1'ms)
@@ -71,7 +71,7 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     let lightPixel = app.renderer.readRenderTarget(&surface.rt, 200, 150, 1, 1).pixelColor(0, 0)
 
     let command = Path.combine(temporary, "command")
-    let ack = Path.combine(temporary, "ack")
+    let ack     = Path.combine(temporary, "ack")
     discard expect File.writeAllText(command, "dark")
     Swag.require(waitForNativeTheme(&app, ack.toString(), "dark", false))
     for 4 do
@@ -97,7 +97,10 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     options.duration = 10000'ms
     let first = app.animator.animateF32(surface.wnd.view,
                                         AnimationChannel.from("linux.native.motion.first"),
-                                        0, 1, func(_, _) {}, options)
+                                        0,
+                                        1,
+                                        func(_, _) {},
+                                        options)
     Swag.require(app.animator.isActive(first))
     discard expect File.writeAllText(command, "reduce")
     Swag.require(waitForNativeMotion(&app, ack.toString(), "reduce", true))
@@ -107,7 +110,10 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     Swag.require(waitForNativeMotion(&app, ack.toString(), "restore", false))
     let second = app.animator.animateF32(surface.wnd.view,
                                          AnimationChannel.from("linux.native.motion.second"),
-                                         0, 1, func(_, _) {}, options)
+                                         0,
+                                         1,
+                                         func(_, _) {},
+                                         options)
     Swag.require(app.animator.isActive(second), "desktop animation preference did not recover")
     app.animator.cancel(second)
 
@@ -132,8 +138,8 @@ func waitForNativeMotion(app: *Application, ack, wanted: string, reduced: bool)-
     // take up its settings without reopening the display or creating another application.
     let changesBeforeHandoff = themeChanges
     peer = expect Env.startProcess(Env.StartInfo{fileName: "python3",
-                                                arguments: [script.toString(), temporary.toString(), "dark", "reduce"],
-                                                standardOutput: .Pipe, standardError: .Pipe})
+                                                 arguments: [script.toString(), temporary.toString(), "dark", "reduce"],
+                                                 standardOutput: .Pipe, standardError: .Pipe})
     let handoffDeadline = Time.monotonicMilliseconds() + 4000
     while (app.usesLightTheme() or not app.isReducedMotion()) and Time.monotonicMilliseconds() < handoffDeadline do
         app.runFrame()

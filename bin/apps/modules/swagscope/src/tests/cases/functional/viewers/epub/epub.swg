@@ -18,7 +18,7 @@ using Core, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.epub"), true)
-    let view = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
+    let view   = assume cast(*Epub.Panel, window.instances[window.activeChoiceIndex].view)
     Swag.require(view.book.chapters.count == 2 and view.chapter == 0)
     Swag.require(view.view != null and view.contents.count == 2)
     view.turn(1)

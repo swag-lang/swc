@@ -97,7 +97,7 @@ using Core, Gui, Viewers
 {
     for fileName in ["viewer.comic.cbz", "viewer.epub"]
     {
-        var host:     Testing.HeadlessHost
+        var host: Testing.HeadlessHost
         let window = framedViewerWindow(&host, scopeTestDataPath(fileName), true)
         let view   = window.currentView
         if view is Comic.Panel as comic

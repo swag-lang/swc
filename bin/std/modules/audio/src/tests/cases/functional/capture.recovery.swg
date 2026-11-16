@@ -6,10 +6,9 @@ using Swag, Core, Core.Errors
 // A failed reopen advances the gap; recovery marks the next block as interrupted.
 #test
 {
-    var queue = expect CaptureQueue.create(1_000, 1, 0, 1_000,
-                                           blockFrames: 2, tolerance: 0)
+    var queue    = expect CaptureQueue.create(1_000, 1, 0, 1_000, blockFrames: 2, tolerance: 0)
     var recovery = expect CaptureRecovery.create(&queue, 1_000)
-    const First: [2] s16 = [10, 20]
+    const First:  [2] s16 = [10, 20]
     const Second: [2] s16 = [30, 40]
     discard expect queue.push(Swag.makeSlice(&First[0], First.count), 0)
     expect recovery.deviceLost(2)
@@ -23,7 +22,7 @@ using Swag, Core, Core.Errors
     discard expect queue.push(Swag.makeSlice(&Second[0], Second.count), 2_500)
 
     var samples: Array's16
-    var info: CaptureBlock
+    var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and not info.sourceInterrupted)
     Swag.require(queue.pop(&samples, &info))
     Swag.require(info.startSample == 2_500 and info.gapFrames == 2_498)
@@ -34,7 +33,7 @@ using Swag, Core, Core.Errors
 // Duplicate loss notices do not move the next retry; early retries fail atomically.
 #test
 {
-    var queue = expect CaptureQueue.create(1_000, 1, 0, 1_000, tolerance: 0)
+    var queue    = expect CaptureQueue.create(1_000, 1, 0, 1_000, tolerance: 0)
     var recovery = expect CaptureRecovery.create(&queue, 100)
     expect recovery.deviceLost(10)
     expect recovery.deviceLost(50)
@@ -69,8 +68,7 @@ using Swag, Core, Core.Errors
 // Four hours of missed retries keep constant state and one precise sample gap.
 #test
 {
-    var queue = expect CaptureQueue.create(1_000, 1, 0, 1_000,
-                                           blockFrames: 1, slots: 2, tolerance: 0)
+    var queue    = expect CaptureQueue.create(1_000, 1, 0, 1_000, blockFrames: 1, slots: 2, tolerance: 0)
     var recovery = expect CaptureRecovery.create(&queue, 1_000)
     const Sample: [1] s16 = [7]
     discard expect queue.push(Swag.makeSlice(&Sample[0], 1), 0)
@@ -81,10 +79,11 @@ using Swag, Core, Core.Errors
         Swag.require(recovery.retryDue(tick))
         expect recovery.retryFailed(tick)
     }
+
     expect recovery.deviceRestored(4'u64 * 60 * 60 * 1_000)
     discard expect queue.push(Swag.makeSlice(&Sample[0], 1), 4'u64 * 60 * 60 * 1_000)
     var samples: Array's16
-    var info: CaptureBlock
+    var info:    CaptureBlock
     Swag.require(queue.pop(&samples, &info) and info.gapFrames == 0)
     Swag.require(queue.pop(&samples, &info))
     Swag.require(info.startSample == 14_400_000 and info.gapFrames == 14_399_999)

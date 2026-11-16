@@ -17,6 +17,7 @@ private func slicedRecordingPicture(shift: u64)->Image
             image.pixels[offset + 3] = 255
         }
     }
+
     return image
 }
 
@@ -30,33 +31,36 @@ private func slicedRecordingPicture(shift: u64)->Image
     for scenario in 2'u64
     {
         let sliceCount = SliceCounts[scenario]
-        let qp = Quantizers[scenario]
-        let path = videoTempPath(sliceCount == 2 ? "mp4-software-slice2" :
-                                                  "mp4-software-slice4", "mp4")
+        let qp         = Quantizers[scenario]
+        let path       = videoTempPath(sliceCount == 2 ? "mp4-software-slice2" :
+                                       "mp4-software-slice4",
+                                       "mp4")
         defer
         {
             if not retainProbe do
                 discard catch File.delete(path)
         }
-        var recorder = expect Mp4.SoftwareRecording.createVideoOnly(
-            path, 64, 64, 90_000, keyInterval: 3,
-            quantizationQp: qp, sliceCount: sliceCount)
-        let pacer = expect FramePacer.create(expect FrameRate.create(30, 1),
-                                             1_000_000, 90_000)
+
+        var recorder = expect Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000, keyInterval: 3, quantizationQp: qp, sliceCount: sliceCount)
+        let pacer    = expect FramePacer.create(expect FrameRate.create(30, 1),
+                                                1_000_000,
+                                                90_000)
         for frame in 4'u64
         {
             let image = slicedRecordingPicture(frame)
             expect recorder.addFrame(&image, expect pacer.slotAt(frame))
         }
+
         expect recorder.repeatLastFrame(expect pacer.slotAt(4))
         expect recorder.end()
         Swag.require(recorder.videoFrameCount() == 5 and recorder.repeatedFrameCount() == 1)
         let summary = expect Mp4.summarizeFragmentedRecording(path)
-        Swag.require(summary.video.packetCount == 5 and summary.audioTracks.count == 0 and
+        Swag.require(summary.video.packetCount == 5 and
+                     summary.audioTracks.count == 0 and
                      not summary.hasIncompleteTail)
         var reader = expect Reader.open(path)
         Swag.require(reader.frameCount() == 5 and reader.audioTrackCount() == 0)
-        var decoded: PlanarFrame
+        var decoded:      PlanarFrame
         var previousLuma: Array'u8
         for frame in 5'u64
         {
@@ -74,9 +78,12 @@ private func slicedRecordingPicture(shift: u64)->Image
             if frame == 4 do
                 Swag.require(Slice.equals(decoded.luma.toSlice(), previousLuma.toSlice()))
         }
+
         if retainProbe do
             Console.printf("Software MP4 slice probe: % slices, QP %, path %\n",
-                           sliceCount, qp, path)
+                           sliceCount,
+                           qp,
+                           path)
     }
 }
 
@@ -86,14 +93,11 @@ private func slicedRecordingPicture(shift: u64)->Image
     let path = videoTempPath("mp4-software-slice-invalid", "mp4")
     defer discard catch File.delete(path)
     var rejected: Swag.Error
-    discard catch Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000,
-                                                         sliceCount: 0) as rejected
+    discard catch Mp4.SoftwareRecording.createVideoOnly(path, 64, 64, 90_000, sliceCount: 0) as rejected
     Swag.require(rejected.value() is BadParameterError)
-    discard catch Mp4.SoftwareRecording.create(path, 64, 64, 90_000, 48_000, 1,
-                                                sliceCount: 5) as rejected
+    discard catch Mp4.SoftwareRecording.create(path, 64, 64, 90_000, 48_000, 1, sliceCount: 5) as rejected
     Swag.require(rejected.value() is BadParameterError)
-    discard catch Mp4.SoftwareRecording.createWithAudioTracks(path, 64, 64, 90_000, [],
-                                                               sliceCount: 9) as rejected
+    discard catch Mp4.SoftwareRecording.createWithAudioTracks(path, 64, 64, 90_000, [], sliceCount: 9) as rejected
     Swag.require(rejected.value() is BadParameterError)
     Swag.require(not File.exists(path))
 }

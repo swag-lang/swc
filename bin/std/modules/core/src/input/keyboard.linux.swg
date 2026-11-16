@@ -191,9 +191,9 @@ public impl Keyboard
         var button: u16
         switch key
         {
-        case .LButton:            button = 1 << 8
-        case .MButton:            button = 1 << 9
-        case .RButton:            button = 1 << 10
+        case .LButton: button = 1 << 8
+        case .MButton: button = 1 << 9
+        case .RButton: button = 1 << 10
         case .XButton1, .XButton2: return false
         }
 

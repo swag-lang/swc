@@ -33,10 +33,10 @@ enum ViewerIcons
     Ods          // OpenDocument workbook reading grid.
     Odp          // OpenDocument presentation reading canvas.
 }
+
 const ViewerIconValues: [24] ViewerIcons = [
     .Html, .Code, .Markdown, .Image, .Video, .Pdf, .Sound, .Font, .Binary, .Hex, .Text, .Table,
-    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf, .Odt, .Ods, .Odp,
-]
+    .Midi, .Subtitle, .Archive, .Comic, .Epub, .Docx, .Xlsx, .Pptx, .Rtf, .Odt, .Ods, .Odp]
 
 private const IconsSvg = #include("../datas/icons.svg")
 

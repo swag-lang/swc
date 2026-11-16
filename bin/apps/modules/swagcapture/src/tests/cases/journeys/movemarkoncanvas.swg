@@ -11,14 +11,14 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(220, 160)
+    var path    = journey.newCapture(220, 160)
     let capture = unwrap main.editWnd.getCapture()
     var shapePreset: IForm = main.quickWnd.qsShape.forms[4]
     main.quickWnd.applyPreset(shapePreset)
     journey.drawForm(ActionToolMode.Shape, .Shape, {25, 25}, {85, 70})
     let shape = assume cast(*FormShape, capture.forms[0])
-    let x = shape.x
-    let y = shape.y
+    let x     = shape.x
+    let y     = shape.y
 
     journey.dragImage({55, 45}, {95, 75})
     Swag.require(shape.x == x + 40 and shape.y == y + 30)
@@ -46,8 +46,13 @@ using Core, Gui, Pixel
     journey.waitFor("reopen moved mark", func|main, &path, x, y, sizeX, sizeY|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and opened.forms.count == 1 and
-               opened.forms[0].x == x + 40 and opened.forms[0].y == y + 30 and
-               opened.forms[0].w == sizeX + 25 and opened.forms[0].h == sizeY + 20
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.forms.count == 1 and
+               opened.forms[0].x == x + 40 and
+               opened.forms[0].y == y + 30 and
+               opened.forms[0].w == sizeX + 25 and
+               opened.forms[0].h == sizeY + 20
     })
 }

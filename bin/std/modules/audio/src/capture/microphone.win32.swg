@@ -16,13 +16,13 @@ struct CaptureMicrophone
 {
     private
     {
-        native:                WasapiCapture
-        feeder:                CaptureResampledFeeder
-        late queue:            *CaptureQueue
-        format:                WasapiCaptureFormat
-        source:                WasapiCaptureSource
-        pendingDiscontinuity:  bool
-        lastSourceEndTick:     u64
+        native:               WasapiCapture
+        feeder:               CaptureResampledFeeder
+        late queue:           *CaptureQueue
+        format:               WasapiCaptureFormat
+        source:               WasapiCaptureSource
+        pendingDiscontinuity: bool
+        lastSourceEndTick:    u64
     }
 }
 
@@ -56,10 +56,9 @@ impl CaptureMicrophone
         result.native = try WasapiCapture.openDefault(source)
         defer #fail result.native.close()
         result.format = result.native.mixFormat()
-        result.queue = queue
+        result.queue  = queue
         result.source = source
-        result.feeder = try CaptureResampledFeeder.create(queue, result.format.sampleRate,
-                                                          result.format.channels)
+        result.feeder = try CaptureResampledFeeder.create(queue, result.format.sampleRate, result.format.channels)
         return result
     }
 
@@ -83,6 +82,7 @@ impl CaptureMicrophone
             try .advanceIdleLoopback()
             return 0
         }
+
         var count = 0'u32
         var packet: WasapiCapturePacket
         while try .native.nextPacket(&packet)
@@ -98,24 +98,30 @@ impl CaptureMicrophone
 
             let discontinuity = .pendingDiscontinuity or
                                 (packet.flags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY) != 0
-            if packet.flags & AUDCLNT_BUFFERFLAGS_SILENT do
-                try .feeder.pushSilence(packet.frames, packet.timestamp100ns,
-                                        packet.devicePosition, discontinuity)
+            if packet.flags & AUDCLNT_BUFFERFLAGS_SILENT
+            {
+                try .feeder.pushSilence(packet.frames, packet.timestamp100ns, packet.devicePosition, discontinuity)
+            }
             else
             {
                 if .format.sampleFormat == .Pcm16
                 {
                     let pcm = cast(const [*] s16, unwrap packet.data)
                     try .feeder.pushPcm16(Swag.makeSlice(pcm, cast(u64, packet.frames) * .format.channels),
-                                          packet.timestamp100ns, packet.devicePosition, discontinuity)
+                                          packet.timestamp100ns,
+                                          packet.devicePosition,
+                                          discontinuity)
                 }
                 else
                 {
                     let pcm = cast(const [*] f32, unwrap packet.data)
                     try .feeder.pushFloat32(Swag.makeSlice(pcm, cast(u64, packet.frames) * .format.channels),
-                                            packet.timestamp100ns, packet.devicePosition, discontinuity)
+                                            packet.timestamp100ns,
+                                            packet.devicePosition,
+                                            discontinuity)
                 }
             }
+
             .pendingDiscontinuity = false
             let packetTicks = (cast(u64, packet.frames) * 10_000_000 + .format.sampleRate / 2) /
                               .format.sampleRate
@@ -124,6 +130,7 @@ impl CaptureMicrophone
             .lastSourceEndTick = packet.timestamp100ns + packetTicks
             try .native.releasePacket()
         }
+
         try .advanceIdleLoopback()
         return count
     }
@@ -142,6 +149,7 @@ private impl CaptureMicrophone
     {
         if .source != .OutputLoopback do
             return
+
         // Leave 250 ms for packets already mixed by the render endpoint to arrive before
         // committing the otherwise silent interval to a live AAC track.
         const SafeLag100ns = 2_500_000'u64

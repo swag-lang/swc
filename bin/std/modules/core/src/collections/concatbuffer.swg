@@ -289,8 +289,8 @@ impl ConcatBuffer
             let curBucket = unwrap .curBucket
             let currentSP = unwrap .currentSP
             Memory.copy(currentSP, &val, #sizeof(T))
-            .currentSP            += #sizeof(T)
-            curBucket.count       += #sizeof(T)
+            .currentSP      += #sizeof(T)
+            curBucket.count += #sizeof(T)
         }
     }
 

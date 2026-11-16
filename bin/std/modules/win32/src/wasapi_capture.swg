@@ -5,33 +5,33 @@ using Swag
 // Selects a shared-mode audio source or the system output mix for capture.
 enum WasapiCaptureSource
 {
-    Microphone     // Reads the default input endpoint.
-    OutputLoopback // Reads the default render endpoint's mixed output.
+    Microphone         // Reads the default input endpoint.
+    OutputLoopback     // Reads the default render endpoint's mixed output.
 }
 
 // The two shared-mode audio source formats the audio capture adapter can copy to PCM16.
 enum WasapiCaptureSampleFormat
 {
-    Pcm16   // Interleaved signed 16-bit integer samples.
-    Float32 // Interleaved IEEE 32-bit floating-point samples.
+    Pcm16       // Interleaved signed 16-bit integer samples.
+    Float32     // Interleaved IEEE 32-bit floating-point samples.
 }
 
 // Describes the selected endpoint's shared-mode mix format.
 struct WasapiCaptureFormat
 {
-    public sampleRate: u32                      // Frames per second.
-    public channels: u16                       // One or two interleaved channels.
-    public sampleFormat: WasapiCaptureSampleFormat // Encoding of each sample.
+    public sampleRate:   u32     // Frames per second.
+    public channels:     u16     // One or two interleaved channels.
+    public sampleFormat: WasapiCaptureSampleFormat     // Encoding of each sample.
 }
 
 // Borrows one WASAPI capture packet until [[Win32.WasapiCapture.releasePacket]].
 struct WasapiCapturePacket
 {
-    public data: LPVOID       // Borrowed source bytes, possibly null for a silent packet.
-    public frames: u32        // Number of frames that must be released.
-    public flags: u32         // AUDCLNT_BUFFERFLAGS_* values.
-    public devicePosition: u64 // First frame on the device sample clock.
-    public timestamp100ns: u64 // First frame on the monotonic QPC clock, in 100 ns units.
+    public data:           LPVOID     // Borrowed source bytes, possibly null for a silent packet.
+    public frames:         u32        // Number of frames that must be released.
+    public flags:          u32        // AUDCLNT_BUFFERFLAGS_* values.
+    public devicePosition: u64        // First frame on the device sample clock.
+    public timestamp100ns: u64        // First frame on the monotonic QPC clock, in 100 ns units.
 }
 
 // Owns a default audio endpoint, shared-mode capture client, and event on one COM thread.
@@ -76,36 +76,35 @@ impl WasapiCapture
             fail SystemError{"cannot initialize audio source COM apartment", errorID: cast(u64, cast #bit (u32, apartment))}
         result.ownsApartment = apartment == S_OK or apartment == S_FALSE
 
-        let clsid = CLSID_MMDeviceEnumerator
+        let clsid        = CLSID_MMDeviceEnumerator
         let enumeratorId = IID_IMMDeviceEnumerator
         var raw: LPVOID
-        var hr = CoCreateInstance(&clsid, null, CLSCTX_INPROC_SERVER, &enumeratorId, &raw)
+        var hr           = CoCreateInstance(&clsid, null, CLSCTX_INPROC_SERVER, &enumeratorId, &raw)
         if hr != S_OK do
             fail SystemError{"cannot create audio source device enumerator", errorID: cast(u64, cast #bit (u32, hr))}
         result.enumerator = cast(*IMMDeviceEnumerator, unwrap raw)
         let enumerator = result.enumerator
-        let flow = source == .OutputLoopback ? EDATAFLOW_RENDER : EDATAFLOW_CAPTURE
-        hr = enumerator.lpVtbl.GetDefaultAudioEndpoint(enumerator, flow,
-                                                       EROLE_MULTIMEDIA, &result.device)
+        let flow       = source == .OutputLoopback ? EDATAFLOW_RENDER : EDATAFLOW_CAPTURE
+        hr = enumerator.lpVtbl.GetDefaultAudioEndpoint(enumerator, flow, EROLE_MULTIMEDIA, &result.device)
         if hr != S_OK do
             fail SystemError{"cannot find a default audio capture endpoint", errorID: cast(u64, cast #bit (u32, hr))}
-        let device = unwrap result.device
+        let device   = unwrap result.device
         let clientId = IID_IAudioClient
         raw = null
-        hr = device.lpVtbl.Activate(device, &clientId, CLSCTX_INPROC_SERVER, null, &raw)
+        hr  = device.lpVtbl.Activate(device, &clientId, CLSCTX_INPROC_SERVER, null, &raw)
         if hr != S_OK do
             fail SystemError{"cannot activate audio capture client", errorID: cast(u64, cast #bit (u32, hr))}
         result.client = cast(*IAudioClient, unwrap raw)
         let client = result.client
         raw = null
-        hr = client.lpVtbl.GetMixFormat(client, &raw)
+        hr  = client.lpVtbl.GetMixFormat(client, &raw)
         if hr != S_OK do
             fail SystemError{"cannot read audio source mix format", errorID: cast(u64, cast #bit (u32, hr))}
         let mixRaw = raw
         defer CoTaskMemFree(mixRaw)
         let mix = cast(*WAVEFORMATEX, unwrap mixRaw)
         result.format = try classifyWasapiCaptureFormat(mix)
-        result.event = try CreateEventW(null, 0, 0, null)
+        result.event  = try CreateEventW(null, 0, 0, null)
         let flags = AUDCLNT_STREAMFLAGS_EVENTCALLBACK |
                     (source == .OutputLoopback ? AUDCLNT_STREAMFLAGS_LOOPBACK : 0'u32)
         hr = client.lpVtbl.Initialize(client, AUDCLNT_SHAREMODE_SHARED, flags, 0, 0, mix, null)
@@ -116,7 +115,7 @@ impl WasapiCapture
             fail SystemError{"cannot attach audio source event", errorID: cast(u64, cast #bit (u32, hr))}
         let captureId = IID_IAudioCaptureClient
         raw = null
-        hr = client.lpVtbl.GetService(client, &captureId, &raw)
+        hr  = client.lpVtbl.GetService(client, &captureId, &raw)
         if hr != S_OK do
             fail SystemError{"cannot obtain audio source capture service", errorID: cast(u64, cast #bit (u32, hr))}
         result.capture = cast(*IAudioCaptureClient, unwrap raw)
@@ -150,16 +149,16 @@ impl WasapiCapture
             fail SystemError{"release the previous audio source packet on its COM thread"}
         let capture = unwrap .capture
         var available: UINT
-        var hr = capture.lpVtbl.GetNextPacketSize(capture, &available)
+        var hr      = capture.lpVtbl.GetNextPacketSize(capture, &available)
         if hr != S_OK do
             fail SystemError{"cannot inspect audio source packet", errorID: cast(u64, cast #bit (u32, hr))}
         if not available do
             return false
-        var frames: UINT
-        var flags: DWORD
+        var frames:         UINT
+        var flags:          DWORD
         var devicePosition: u64
-        var timestamp: u64
-        var data: LPVOID
+        var timestamp:      u64
+        var data:           LPVOID
         hr = capture.lpVtbl.GetBuffer(capture, &data, &frames, &flags, &devicePosition, &timestamp)
         if hr != S_OK do
             fail SystemError{"cannot read audio source packet", errorID: cast(u64, cast #bit (u32, hr))}
@@ -168,8 +167,9 @@ impl WasapiCapture
             discard capture.lpVtbl.ReleaseBuffer(capture, 0)
             return false
         }
+
         .pendingFrames = frames
-        packet[] = WasapiCapturePacket{data, frames, flags, devicePosition, timestamp}
+        packet[]       = WasapiCapturePacket{data, frames, flags, devicePosition, timestamp}
         return true
     }
 
@@ -179,7 +179,7 @@ impl WasapiCapture
         if GetCurrentThreadId() != .ownerThread or not .pendingFrames do
             fail SystemError{"no audio source packet is borrowed on this COM thread"}
         let capture = unwrap .capture
-        let hr = capture.lpVtbl.ReleaseBuffer(capture, .pendingFrames)
+        let hr      = capture.lpVtbl.ReleaseBuffer(capture, .pendingFrames)
         if hr != S_OK do
             fail SystemError{"cannot release audio source packet", errorID: cast(u64, cast #bit (u32, hr))}
         .pendingFrames = 0
@@ -194,41 +194,48 @@ impl WasapiCapture
             discard capture.lpVtbl.ReleaseBuffer(capture, .pendingFrames)
             .pendingFrames = 0
         }
+
         if .client and .started
         {
             let client = .client
             discard client.lpVtbl.Stop(client)
             .started = false
         }
+
         if .capture
         {
             let capture = .capture
             discard capture.lpVtbl.Release(capture)
             .capture = null
         }
+
         if .client
         {
             let client = .client
             discard client.lpVtbl.Release(client)
             .client = null
         }
+
         if .device
         {
             let device = .device
             discard device.lpVtbl.Release(device)
             .device = null
         }
+
         if .enumerator
         {
             let enumerator = .enumerator
             discard enumerator.lpVtbl.Release(enumerator)
             .enumerator = null
         }
+
         if .event
         {
             CloseHandle(.event)
             .event = null
         }
+
         if .ownsApartment
         {
             CoUninitialize()
@@ -240,14 +247,14 @@ impl WasapiCapture
 // Converts a QPC counter to WASAPI's shared 100-nanosecond timestamp unit.
 func wasapiCaptureNow100ns()->u64 fail
 {
-    var counter: LARGE_INTEGER
+    var counter:   LARGE_INTEGER
     var frequency: LARGE_INTEGER
     QueryPerformanceCounter(&counter)
     QueryPerformanceFrequency(&frequency)
     if counter < 0 or frequency <= 0 do
         fail SystemError{"cannot read the audio source monotonic clock"}
-    let whole = cast(u64, counter) / cast(u64, frequency)
-    let fraction = cast(u64, counter) % cast(u64, frequency)
+    let whole           = cast(u64, counter) / cast(u64, frequency)
+    let fraction        = cast(u64, counter) % cast(u64, frequency)
     let fractionalTicks = cast(u64, cast(f64, fraction) * 10_000_000.0 / frequency)
     if whole > (Swag.U64.Max - fractionalTicks) / 10_000_000 do
         fail SystemError{"audio source timestamp overflows 100-nanosecond units"}
@@ -256,8 +263,10 @@ func wasapiCaptureNow100ns()->u64 fail
 
 private func classifyWasapiCaptureFormat(mix: *WAVEFORMATEX)->WasapiCaptureFormat fail
 {
-    if mix.nChannels < 1 or mix.nChannels > 2 or
-       mix.nSamplesPerSec < 8_000 or mix.nSamplesPerSec > 192_000 do
+    if mix.nChannels < 1 or
+       mix.nChannels > 2 or
+       mix.nSamplesPerSec < 8_000 or
+       mix.nSamplesPerSec > 192_000 do
         fail SystemError{"audio source mix must be mono or stereo at 8-192 kHz"}
     if mix.nBlockAlign != mix.nChannels * mix.wBitsPerSample / 8 do
         fail SystemError{"invalid audio source mix frame alignment"}
@@ -268,20 +277,28 @@ private func classifyWasapiCaptureFormat(mix: *WAVEFORMATEX)->WasapiCaptureForma
     if mix.wFormatTag == WAVE_FORMAT_EXTENSIBLE and mix.cbSize >= 22
     {
         let extended = cast(*WAVEFORMATEXTENSIBLE, cast(*void, mix))
-        let isStandardSubtype = extended.SubFormat.Data2 == 0 and extended.SubFormat.Data3 == 0x0010 and
-                                extended.SubFormat.Data4[0] == 0x80 and extended.SubFormat.Data4[1] == 0 and
-                                extended.SubFormat.Data4[2] == 0 and extended.SubFormat.Data4[3] == 0xAA and
-                                extended.SubFormat.Data4[4] == 0 and extended.SubFormat.Data4[5] == 0x38 and
-                                extended.SubFormat.Data4[6] == 0x9B and extended.SubFormat.Data4[7] == 0x71
+        let isStandardSubtype = extended.SubFormat.Data2 == 0 and
+                                extended.SubFormat.Data3 == 0x0010 and
+                                extended.SubFormat.Data4[0] == 0x80 and
+                                extended.SubFormat.Data4[1] == 0 and
+                                extended.SubFormat.Data4[2] == 0 and
+                                extended.SubFormat.Data4[3] == 0xAA and
+                                extended.SubFormat.Data4[4] == 0 and
+                                extended.SubFormat.Data4[5] == 0x38 and
+                                extended.SubFormat.Data4[6] == 0x9B and
+                                extended.SubFormat.Data4[7] == 0x71
         if not isStandardSubtype do
             fail SystemError{"unsupported audio source extensible sample subtype"}
-        if extended.SubFormat.Data1 == 1 and mix.wBitsPerSample == 16 and
+        if extended.SubFormat.Data1 == 1 and
+           mix.wBitsPerSample == 16 and
            extended.wValidBitsPerSample == 16 do
             return WasapiCaptureFormat{mix.nSamplesPerSec, mix.nChannels, .Pcm16}
-        if extended.SubFormat.Data1 == 3 and mix.wBitsPerSample == 32 and
+        if extended.SubFormat.Data1 == 3 and
+           mix.wBitsPerSample == 32 and
            extended.wValidBitsPerSample == 32 do
             return WasapiCaptureFormat{mix.nSamplesPerSec, mix.nChannels, .Float32}
         fail SystemError{"unsupported audio source extensible sample precision"}
     }
+
     fail SystemError{"unsupported audio source mix format"}
 }

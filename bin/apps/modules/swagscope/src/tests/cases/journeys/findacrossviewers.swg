@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     journey.setup()
     let text = Path.combine(journey.root, "notes.txt")
     expect File.writeAllText(text, "alpha beta alpha\nALPHA\n")
-    let midi = journey.copyData("viewer.mid", "music.mid")
+    let midi   = journey.copyData("viewer.mid", "music.mid")
     let window = journey.window
 
     window.openFile(text)
@@ -19,7 +19,8 @@ using Core, Gui, Pixel
     window.sendCommandEvent(ViewerCommands.Find)
     window.searchBox.setText("alpha")
     journey.waitFor("three matches", func|window|()->bool => window.searchBar.isLocallyVisible() and
-                                                        window.searchComplete and window.searchMatches.count == 3)
+                                                             window.searchComplete and
+                                                             window.searchMatches.count == 3)
     window.sendCommandEvent(ViewerCommands.FindNext)
     journey.waitFor("second match", func|window|()->bool => window.searchIndex == 1 and window.searchCountLabel.text() == "2/3")
 
@@ -32,6 +33,6 @@ using Core, Gui, Pixel
     Swag.require(window.searchBar.isLocallyVisible() and window.searchBox.text().count == 0)
     window.searchBox.setText("alpha")
     journey.waitFor("search after return", func|window|()->bool => window.searchBar.isLocallyVisible() and
-                                                              window.searchMatches.count == 3)
+                                                                   window.searchMatches.count == 3)
     Swag.require(window.searchBox.text() == "alpha")
 }

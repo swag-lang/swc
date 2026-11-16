@@ -4,5 +4,5 @@
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "SharedArtifactJitConsumer"
-    cfg.backendKind = .Executable
+    cfg.backendKind     = .Executable
 }

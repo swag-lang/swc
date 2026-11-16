@@ -4,5 +4,5 @@
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "BorrowFieldProvider"
-    cfg.backendKind = .SharedLibrary
+    cfg.backendKind     = .SharedLibrary
 }

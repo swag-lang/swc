@@ -38,12 +38,14 @@ using Core, Gui, Pixel
         return window.infoSheet.isLocallyVisible() and
                Utf8.contains(window.infoSheet.text(), selectedName.toString())
     }
+
     expect library.waitFor(window, "film information sheet", sheetReady)
     window.infoSheet.selectPage(1)
     let technicalReady = func|window|()->bool
     {
         return window.infoSheet.pageIndex == 1 and not window.infoSheet.text().isEmpty()
     }
+
     expect library.waitFor(window, "film technical sheet", technicalReady)
     window.closeInformation()
     expect library.waitForLibrary(window, "close film information", films)

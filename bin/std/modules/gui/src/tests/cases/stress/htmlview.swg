@@ -175,7 +175,7 @@ func writeHtmlAtDecodedSize(fileName: string, decodedSize: u64) fail
     if tailSize < 7
     {
         fullBlocks -= 1
-        tailSize += blockDecodedSize
+        tailSize   += blockDecodedSize
     }
 
     for fullBlocks do

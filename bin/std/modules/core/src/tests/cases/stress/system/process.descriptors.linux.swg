@@ -22,13 +22,13 @@ func checkProcessDescriptorLifetime()
     for 64
     {
         var process = expect Env.runProcess(Env.StartInfo{fileName: "/bin/true", standardInput: .Pipe,
-                                                       standardOutput: .Pipe, standardError: .Pipe})
+                                                          standardOutput: .Pipe, standardError: .Pipe})
         Swag.require(process.exitCode() == 0)
         process.close()
 
         var outcome: Swag.Error
         discard catch Env.startProcess(Env.StartInfo{fileName: "/swag-missing-process", standardInput: .Pipe,
-                                                    standardOutput: .Pipe, standardError: .Pipe}) as outcome
+                                                     standardOutput: .Pipe, standardError: .Pipe}) as outcome
         Swag.require(outcome.value() is Errors.FileNotFoundError)
     }
 
@@ -49,7 +49,7 @@ func checkProcessDescriptorLifetime()
 {
     Swag.require(not Swag.jit(), "run process descriptor stress with --no-test-jit")
     let process = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(),
-                                                     arguments: ["--swag-process-descriptor-peer"],
-                                                     standardOutput: .Pipe, standardError: .Pipe})
+                                                      arguments: ["--swag-process-descriptor-peer"],
+                                                      standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 37, String.from(process.standardError()).toString())
 }

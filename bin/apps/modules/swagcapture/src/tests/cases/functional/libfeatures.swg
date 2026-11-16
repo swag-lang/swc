@@ -126,12 +126,12 @@ using Swag, Core
 
     let path = testTempCapturePath()
     defer discard catch File.delete(path)
-    f.capture.file = path
-    f.capture.title = "First version"
+    f.capture.file    = path
+    f.capture.title   = "First version"
     f.capture.changed = true
     expect f.capture.save()
 
-    f.capture.title = "Automatic save"
+    f.capture.title   = "Automatic save"
     f.capture.changed = true
     expect f.capture.scheduleSave()
     let rating = 3'u8
@@ -162,11 +162,11 @@ using Swag, Core
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 18
     capture.height, capture.heightOrg = 12
-    capture.backImg = Gui.Testing.indexedImage(18, 12)
-    capture.file = source
-    capture.linkedImage = Path.combine(Library.getFolder(), "original.png")
-    capture.linkedUpToDate = false
-    capture.changed = true
+    capture.backImg                   = Gui.Testing.indexedImage(18, 12)
+    capture.file                      = source
+    capture.linkedImage               = Path.combine(Library.getFolder(), "original.png")
+    capture.linkedUpToDate            = false
+    capture.changed                   = true
     expect capture.save()
     Memory.delete(capture)
 
@@ -175,7 +175,7 @@ using Swag, Core
     let originalId = before.id()
     Swag.require(before.chunks().count == 2)
     let background = before.chunks()[1]
-    let stored = expect before.readStoredChunk(background.id)
+    let stored     = expect before.readStoredChunk(background.id)
     before.close()
 
     expect Capture.duplicateDocument(source, target)
@@ -242,24 +242,24 @@ using Swag, Core
     let first = Memory.new'Capture()
     first.width, first.widthOrg   = 9
     first.height, first.heightOrg = 7
-    first.backImg = Gui.Testing.indexedImage(9, 7)
-    first.file = firstPath
-    first.changed = true
+    first.backImg                 = Gui.Testing.indexedImage(9, 7)
+    first.file                    = firstPath
+    first.changed                 = true
     expect first.save()
     Memory.delete(first)
 
     let second = Memory.new'Capture()
     second.width, second.widthOrg   = 13
     second.height, second.heightOrg = 7
-    second.backImg = Gui.Testing.indexedImage(13, 7)
-    second.file = secondPath
-    second.changed = true
+    second.backImg                  = Gui.Testing.indexedImage(13, 7)
+    second.file                     = secondPath
+    second.changed                  = true
     expect second.save()
     Memory.delete(second)
 
     f.main.copyLibraryImage(firstPath)
     let firstJob = unwrap f.main.copyJob
-    let rating = 4'u8
+    let rating   = 4'u8
     f.main.queueCaptureMetadata(secondPath, rating: &rating)
     f.main.copyLibraryImage(secondPath)
     firstJob.task.wait()
@@ -267,6 +267,7 @@ using Swag, Core
     Swag.require(f.main.copyJob == null and f.main.copyTimer != null)
 
     Swag.require(g_CaptureSaves.flush(secondPath).isEmpty())
+
     // The timer starts the copy of the second capture. The pump that follows the timer may
     // already have collected a quick one; the clipboard tells which capture was copied.
     f.gui.fireTimer(f.main.copyTimer)
@@ -298,12 +299,13 @@ using Swag, Core
         discard catch File.delete(source)
         discard catch File.delete(target)
     }
+
     let capture = Memory.new'Capture()
     capture.width, capture.widthOrg   = 19
     capture.height, capture.heightOrg = 13
-    capture.backImg = Gui.Testing.indexedImage(19, 13)
-    capture.file = source
-    capture.changed = true
+    capture.backImg                   = Gui.Testing.indexedImage(19, 13)
+    capture.file                      = source
+    capture.changed                   = true
     expect capture.save()
     Memory.delete(capture)
 
@@ -469,7 +471,7 @@ using Swag, Core
 
     let firstPath  = testTempCapturePath()
     let secondPath = testTempCapturePath()
-    let folder = Path.combine(Library.getFolder(), Format.toString("export-%", Guid64.random()))
+    let folder     = Path.combine(Library.getFolder(), Format.toString("export-%", Guid64.random()))
     expect Directory.create(folder)
     defer
     {
@@ -481,18 +483,18 @@ using Swag, Core
     let first = Memory.new'Capture()
     first.width, first.widthOrg   = 16
     first.height, first.heightOrg = 10
-    first.backImg = Gui.Testing.indexedImage(16, 10)
-    first.file = firstPath
-    first.changed = true
+    first.backImg                 = Gui.Testing.indexedImage(16, 10)
+    first.file                    = firstPath
+    first.changed                 = true
     expect first.save()
     Memory.delete(first)
 
     let second = Memory.new'Capture()
     second.width, second.widthOrg   = 19
     second.height, second.heightOrg = 12
-    second.backImg = Gui.Testing.indexedImage(19, 12)
-    second.file = secondPath
-    second.changed = true
+    second.backImg                  = Gui.Testing.indexedImage(19, 12)
+    second.file                     = secondPath
+    second.changed                  = true
     expect second.save()
     Memory.delete(second)
 
@@ -509,9 +511,10 @@ using Swag, Core
         library.exportJob.task.wait()
         f.gui.pump()
     }
+
     Swag.require(not library.exporting and library.exportJob == null)
 
-    let firstImage = expect Image.load(Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(firstPath) orelse "capture")))
+    let firstImage  = expect Image.load(Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(firstPath) orelse "capture")))
     let secondImage = expect Image.load(Path.combine(folder, Format.toString("%.png", Path.fileNameWithoutExtension(secondPath) orelse "capture")))
     Swag.require(firstImage.width == 16 and firstImage.height == 10)
     Swag.require(secondImage.width == 19 and secondImage.height == 12)

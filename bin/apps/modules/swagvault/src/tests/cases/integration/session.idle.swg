@@ -1,6 +1,7 @@
 #global if #os == Swag.TargetOs.Linux and #command == Swag.CompilerCommand.Test
 #global if #hastag("vault.session.x11")
 #global private
+
 using Core
 
 #[Swag.TestTag("integration.session.x11")]

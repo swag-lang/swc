@@ -40,13 +40,13 @@ struct HtmlPainter
     selStartOffset: u64
     selEndOffset:   u64
 
-    scrollTrack:    Color
-    scrollThumb:    Color
-    scrollBarSize:       f32
-    scrollBarHitSize: f32
+    scrollTrack:        Color
+    scrollThumb:        Color
+    scrollBarSize:      f32
+    scrollBarHitSize:   f32
     scrollBarHoverSize: f32
     scrollBarExpansion: f32
-    scrollThumbMin:      f32
+    scrollThumbMin:     f32
 
     // The one region whose bar is shown, and how much of it: a region's bar rests invisible.
     barRegion = HtmlNoNode

@@ -2,9 +2,9 @@
 
 using Core
 
-private var g_InitCount:    u32
-private var g_PreMainCount: u32
-private var g_DropCounter:  *u32?
+private var g_InitCount:     u32
+private var g_PreMainCount:  u32
+private var g_DropCounter:   *u32?
 private var g_ArgumentCount: u64
 private var g_ArgumentHash:  u64
 private var g_CheckLibraryPath = true
@@ -100,7 +100,7 @@ func ctxDynamicReadContext()->*Swag.Context => Swag.getContext()
     func ctxDynamicCloseLiveChild()->u64
     {
         var process = expect Env.startProcess("/bin/sleep", ["2"])
-        let pid = process.processId
+        let pid     = process.processId
         process.close()
         return pid
     }

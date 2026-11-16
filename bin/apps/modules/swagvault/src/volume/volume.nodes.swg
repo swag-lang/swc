@@ -198,7 +198,7 @@ impl Volume
         // Reject a cycle before replacing anything: a failed move must leave both names intact.
         if sourceIsDirectory
         {
-            var ancestor = destinationParentId
+            var ancestor  = destinationParentId
             var remaining = .nodes.count
             while ancestor != RootNodeId
             {

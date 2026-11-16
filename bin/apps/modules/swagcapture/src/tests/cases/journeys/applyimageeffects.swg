@@ -11,8 +11,8 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(420, 260)
-    let capture = unwrap main.editWnd.getCapture()
+    var path      = journey.newCapture(420, 260)
+    let capture   = unwrap main.editWnd.getCapture()
     let positions = [Math.Point{10, 15}, Math.Point{95, 15}, Math.Point{180, 15},
                      Math.Point{265, 15}, Math.Point{350, 15}]
     let kinds = [FormImageKind.Image, FormImageKind.Zoom, FormImageKind.Blur,
@@ -42,6 +42,7 @@ using Core, Gui, Pixel
             if effect.kind != kind do
                 return false
         }
+
         return true
     })
 }

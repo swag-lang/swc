@@ -1,8 +1,7 @@
 #import("core", location: "swag@std")
 
 #main
-{
-}
+{}
 
 #drop
 {

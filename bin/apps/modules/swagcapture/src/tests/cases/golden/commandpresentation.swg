@@ -28,6 +28,7 @@ using Core
             titles.add(entry.title)
         }
     }
+
     Swag.require(titles.contains(appStrings().act_DeleteCapture) and titles.contains(appStrings().act_Delete))
 
     var image = host.renderSettled(main)

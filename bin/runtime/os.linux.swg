@@ -15,15 +15,15 @@ namespace __LinuxRT
         nanoseconds: s64
     }
 
-    const ClockMonotonic = 1's32
-    const FutexWait = 0's32
-    const FutexWake = 1's32
+    const ClockMonotonic   = 1's32
+    const FutexWait        = 0's32
+    const FutexWake        = 1's32
     const FutexWaitPrivate = 128's32
     const FutexWakePrivate = 129's32
-    const FutexSyscall = 202's64
-    const Interrupted = 4's32
-    const WouldBlock = 11's32
-    const TimedOut = 110's32
+    const FutexSyscall     = 202's64
+    const Interrupted      = 4's32
+    const WouldBlock       = 11's32
+    const TimedOut         = 110's32
 
     #[Swag.Foreign(module: "libc.so.6", link: "c", callconv: .C)]
     {
@@ -36,6 +36,7 @@ namespace __LinuxRT
         func nanosleep(duration: const *Timespec, remaining: *Timespec?)->s32
         func sched_yield()->s32
         func __errno_location()->*s32
+
         // Fixed declaration of the six-argument futex operation: all arguments are integer
         // class, so its System V call also satisfies syscall's variadic register contract.
         func syscall(number: s64, address: *u32, operation: s32, value: u32, timeout: const *Timespec?, other: *u32?, value3: u32)->s64
@@ -161,7 +162,7 @@ func __hostUnlockExclusive(lock: *(*void?))
 #[Swag.Safety(.ValueBorrow, false)]
 func __hostTryLockShared(lock: *(*void?))->bool
 {
-    let state = cast(*u32, lock)
+    let state    = cast(*u32, lock)
     var observed = Swag.atomicLoad(state)
     for
     {
@@ -189,7 +190,7 @@ func __hostLockShared(lock: *(*void?))
 #[Swag.Safety(.ValueBorrow, false)]
 func __hostUnlockShared(lock: *(*void?))
 {
-    let state = cast(*u32, lock)
+    let state    = cast(*u32, lock)
     let previous = Swag.atomicAdd(state, Swag.U32.Max)
     if previous == 1 or previous == LinuxWriter - 1 do
         __linuxWake(state, 0x7FFF_FFFF)
@@ -223,7 +224,7 @@ func __hostConditionWait(condition: *(*void?), lock: *(*void?), milliseconds: u3
 {
     let sequence = cast(*u32, condition)
     let observed = Swag.atomicLoad(sequence)
-    let finite = milliseconds != Swag.InfiniteWait
+    let finite   = milliseconds != Swag.InfiniteWait
     let deadline = finite ? __hostMonotonicTicks() + cast(u64, milliseconds) * 1_000_000 : 0'u64
     __hostUnlockExclusive(lock)
     defer __hostLockExclusive(lock)
@@ -231,14 +232,14 @@ func __hostConditionWait(condition: *(*void?), lock: *(*void?), milliseconds: u3
     for
     {
         var duration: __LinuxRT.Timespec
-        var timeout: const *__LinuxRT.Timespec?
+        var timeout:  const *__LinuxRT.Timespec?
         if finite
         {
             let now = __hostMonotonicTicks()
             if now >= deadline do
                 return false
             let remaining = deadline - now
-            duration.seconds = cast(s64, remaining / 1_000_000_000)
+            duration.seconds     = cast(s64, remaining / 1_000_000_000)
             duration.nanoseconds = cast(s64, remaining % 1_000_000_000)
             timeout = &duration
         }
@@ -261,7 +262,7 @@ struct MutexRW
 #[Swag.NoDoc]
 impl MutexRW
 {
-    mtd lock() => __hostLockExclusive(&.v)
+    mtd lock()   => __hostLockExclusive(&.v)
     mtd unlock() => __hostUnlockExclusive(&.v)
 }
 
@@ -350,4 +351,3 @@ namespace __LinuxRT
     func atan2(value1, value2: f32)->f32 => __LinuxRT.atan2f(value1, value2)
     func atan2(value1, value2: f64)->f64 => __LinuxRT.atan2(value1, value2)
 }
-

@@ -127,8 +127,8 @@ func depBorrowLegacyObserver() {}
 struct DepUafNode
 {
     public padding: u64
-    public data: *s32
-    public other: *s32
+    public data:    *s32
+    public other:   *s32
 }
 
 #[Swag.NoInline]
@@ -205,7 +205,7 @@ func depUafInferredReleaseProjectedAlias(node: *DepUafNode)
 
 func depUafInferredReleaseProjectedAliasChain(node: *DepUafNode)
 {
-    let pointer: *s32 = node.data
+    let pointer:       *s32 = node.data
     let secondPointer: *s32 = pointer
     depUafInferredReleasePointer(secondPointer)
 }
@@ -244,7 +244,7 @@ func depUafInferredReleaseField(node: *DepUafNode)
 func depUafInferredAliasReleaseField(node: *DepUafNode)
 {
     let data: *s32 = node.data
-    var req: Swag.AllocatorRequest
+    var req:  Swag.AllocatorRequest
     req.address = data
     req.size    = #sizeof(s32)
     Swag.getContext().allocator!.free(&req)

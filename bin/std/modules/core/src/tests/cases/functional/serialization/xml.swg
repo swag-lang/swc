@@ -82,7 +82,7 @@ struct XmlTextPayload
 #test
 {
     let numericEntities: String = "<p><value>&#233;&#x1F600;</value></p>"
-    var decoder: Serialization.Decoder'Serialization.Read.Xml
+    var decoder:         Serialization.Decoder'Serialization.Read.Xml
     let decoded = expect decoder.readAll'XmlTextPayload(numericEntities.toSlice())
     defer Memory.delete(decoded)
     Swag.require(decoded.value == "é😀")
@@ -101,8 +101,8 @@ struct XmlTextPayload
 // XML 1.0 rejects forbidden controls but permits tab, line feed, and carriage return in text.
 #test
 {
-    let invalidXml: String = "<p><value>before\x01after</value></p>"
-    var decoder:    Serialization.Decoder'Serialization.Read.Xml
+    let invalidXml:   String = "<p><value>before\x01after</value></p>"
+    var decoder:      Serialization.Decoder'Serialization.Read.Xml
     var errorOutcome: Swag.Error
     catch CoreTests.readAndDelete'(XmlTextPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errorOutcome
     Swag.require(errorOutcome.value() is SyntaxError)
@@ -113,7 +113,7 @@ struct XmlTextPayload
     Swag.require(decoded.value.count == 7)
 
     let lineEndXml: String = "<p><value>a\r\nb\rc</value></p>"
-    let normalized = expect decoder.readAll'XmlTextPayload(lineEndXml.toSlice())
+    let normalized         = expect decoder.readAll'XmlTextPayload(lineEndXml.toSlice())
     defer Memory.delete(normalized)
     Swag.require(normalized.value == "a\nb\nc")
 }
@@ -154,7 +154,7 @@ func(T) xmlRejectsOverflow(input: string)->bool
 
 #test
 {
-    let culture           = Globalization.currentCulture()
+    let culture = Globalization.currentCulture()
     let previousNumberFmt = culture.numberFormat
     defer culture.numberFormat = previousNumberFmt
     culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat

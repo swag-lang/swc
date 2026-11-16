@@ -11,32 +11,32 @@ using Core, Core.Errors, Pixel, Audio
 #[Swag.ConstExpr]
 func fourCc(a, b, c, d: u32)->u32 => (a << 24) | (b << 16) | (c << 8) | d
 
-const FileTypeId           = fourCc('f'u32, 't'u32, 'y'u32, 'p'u32)
-const MovieId              = fourCc('m'u32, 'o'u32, 'o'u32, 'v'u32)
-const TrackId              = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
-const TrackHeaderId        = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
+const FileTypeId            = fourCc('f'u32, 't'u32, 'y'u32, 'p'u32)
+const MovieId               = fourCc('m'u32, 'o'u32, 'o'u32, 'v'u32)
+const TrackId               = fourCc('t'u32, 'r'u32, 'a'u32, 'k'u32)
+const TrackHeaderId         = fourCc('t'u32, 'k'u32, 'h'u32, 'd'u32)
 const ParsedEditContainerId = fourCc('e'u32, 'd'u32, 't'u32, 's'u32)
 const ParsedEditListId      = fourCc('e'u32, 'l'u32, 's'u32, 't'u32)
 const ParsedFreeBoxId       = fourCc('f'u32, 'r'u32, 'e'u32, 'e'u32)
-const MediaDataId          = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
-const MediaId              = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
-const MediaHeaderId        = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
-const HandlerId            = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
-const MediaInfoId          = fourCc('m'u32, 'i'u32, 'n'u32, 'f'u32)
-const SampleTableId        = fourCc('s'u32, 't'u32, 'b'u32, 'l'u32)
-const SampleDescriptionId  = fourCc('s'u32, 't'u32, 's'u32, 'd'u32)
-const TimeToSampleId       = fourCc('s'u32, 't'u32, 't'u32, 's'u32)
-const SampleToChunkId      = fourCc('s'u32, 't'u32, 's'u32, 'c'u32)
-const SampleSizeId         = fourCc('s'u32, 't'u32, 's'u32, 'z'u32)
-const ChunkOffsetId        = fourCc('s'u32, 't'u32, 'c'u32, 'o'u32)
-const ChunkOffset64Id      = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
-const VideoHandlerId       = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
-const AudioHandlerId       = fourCc('s'u32, 'o'u32, 'u'u32, 'n'u32)
-const ElementaryStreamId   = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
-const Mpeg4VisualId        = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
-const Mpeg4AudioId         = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
-const WaveId               = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
-const Mpeg4AudioObjectType = 0x40'u8
+const MediaDataId           = fourCc('m'u32, 'd'u32, 'a'u32, 't'u32)
+const MediaId               = fourCc('m'u32, 'd'u32, 'i'u32, 'a'u32)
+const MediaHeaderId         = fourCc('m'u32, 'd'u32, 'h'u32, 'd'u32)
+const HandlerId             = fourCc('h'u32, 'd'u32, 'l'u32, 'r'u32)
+const MediaInfoId           = fourCc('m'u32, 'i'u32, 'n'u32, 'f'u32)
+const SampleTableId         = fourCc('s'u32, 't'u32, 'b'u32, 'l'u32)
+const SampleDescriptionId   = fourCc('s'u32, 't'u32, 's'u32, 'd'u32)
+const TimeToSampleId        = fourCc('s'u32, 't'u32, 't'u32, 's'u32)
+const SampleToChunkId       = fourCc('s'u32, 't'u32, 's'u32, 'c'u32)
+const SampleSizeId          = fourCc('s'u32, 't'u32, 's'u32, 'z'u32)
+const ChunkOffsetId         = fourCc('s'u32, 't'u32, 'c'u32, 'o'u32)
+const ChunkOffset64Id       = fourCc('c'u32, 'o'u32, '6'u32, '4'u32)
+const VideoHandlerId        = fourCc('v'u32, 'i'u32, 'd'u32, 'e'u32)
+const AudioHandlerId        = fourCc('s'u32, 'o'u32, 'u'u32, 'n'u32)
+const ElementaryStreamId    = fourCc('e'u32, 's'u32, 'd'u32, 's'u32)
+const Mpeg4VisualId         = fourCc('m'u32, 'p'u32, '4'u32, 'v'u32)
+const Mpeg4AudioId          = fourCc('m'u32, 'p'u32, '4'u32, 'a'u32)
+const WaveId                = fourCc('w'u32, 'a'u32, 'v'u32, 'e'u32)
+const Mpeg4AudioObjectType  = 0x40'u8
 
 const SyncSampleId           = fourCc('s'u32, 't'u32, 's'u32, 's'u32)
 const CompositionId          = fourCc('c'u32, 't'u32, 't'u32, 's'u32)
@@ -70,6 +70,7 @@ const BoxHeaderSize   = 8'u64
 const FullBoxSize     = 4'u64
 const NoFrameIndex    = Swag.U64.Max
 const AacFrameSamples = 1024'u32
+
 // Bound classic sample-table expansion before allocating per-sample metadata.
 const MaxClassicSampleCount = 1_048_576'u32
 
@@ -174,10 +175,10 @@ struct Track
     isAvc:          bool
     isHevc:         bool
     isAac:          bool
-    editMediaTime: s64
-    editDuration:  u64
-    hasSingleEdit: bool
-    editBoxOffset: u64
+    editMediaTime:  s64
+    editDuration:   u64
+    hasSingleEdit:  bool
+    editBoxOffset:  u64
 }
 
 private impl Track
@@ -613,14 +614,17 @@ impl Track
         while source.position() + BoxHeaderSize <= end
         {
             let boxStart = source.position()
-            let box = readBox(source, end)
+            let box      = readBox(source, end)
             switch box.kind
             {
-            case TrackHeaderId: .parseTrackHeader(source, box.end)
+            case TrackHeaderId:
+                .parseTrackHeader(source, box.end)
+
             case ParsedEditContainerId:
                 .parseEdits(source, box.end)
                 if .hasSingleEdit and box.end - boxStart == 44 do
                     .editBoxOffset = boxStart
+
             case ParsedFreeBoxId:
                 if box.end - boxStart == 44
                 {
@@ -629,7 +633,9 @@ impl Track
                     if childSize == 36 and childKind == ParsedEditListId do
                         .editBoxOffset = boxStart
                 }
-            case MediaId:       .parseMedia(source, box.end)
+
+            case MediaId:
+                .parseMedia(source, box.end)
             }
 
             source.seek(box.end)
@@ -646,12 +652,12 @@ impl Track
                 if box.end - source.position() < 8 do
                     fail InvalidFormatError{"MP4 edit list is truncated"}
                 let version = try readFullBox(source)
-                let count = try source.readBigEndian'u32()
+                let count   = try source.readBigEndian'u32()
                 if version == 0 and count == 1 and box.end - source.position() >= 12
                 {
                     let duration  = try source.readBigEndian'u32()
                     let mediaTime = cast #bit(s32, (try source.readBigEndian'u32()))
-                    let rate = try source.readBigEndian'u32()
+                    let rate      = try source.readBigEndian'u32()
                     if mediaTime >= 0 and rate == 0x0001_0000 and duration
                     {
                         .editDuration  = duration
@@ -672,6 +678,7 @@ impl Track
                     }
                 }
             }
+
             try source.seek(box.end)
         }
     }
@@ -1200,7 +1207,7 @@ impl Track
                 if times[index] > Swag.S64.Max - delta do
                     fail InvalidFormatError{"MP4 sample presentation end overflows"}
                 result = Math.max(result, times[index] + delta)
-                index += 1
+                index  += 1
             }
         }
 
@@ -1210,7 +1217,7 @@ impl Track
             if times[index] > Swag.S64.Max - lastDelta do
                 fail InvalidFormatError{"MP4 sample presentation end overflows"}
             result = Math.max(result, times[index] + lastDelta)
-            index += 1
+            index  += 1
         }
 
         return result
@@ -1424,22 +1431,23 @@ impl IDecoder for Decoder
                         // timeline used before edit-list support was added.
                         if audioTrack.editDuration <= Swag.U64.Max / audioTrack.sampleRate
                         {
-                            let scaled = audioTrack.editDuration * audioTrack.sampleRate
+                            let scaled        = audioTrack.editDuration * audioTrack.sampleRate
                             let audibleFrames = scaled / layout.movieTimescale +
                                                 (scaled % layout.movieTimescale != 0 ? 1'u64 : 0)
-                            let mediaStart = cast(u64, audioTrack.editMediaTime)
-                            let decodedCount = samples.count * AacFrameSamples
+                            let mediaStart      = cast(u64, audioTrack.editMediaTime)
+                            let decodedCount    = samples.count * AacFrameSamples
                             let firstSampleTime = samples[0].decodeTime
                             if mediaStart >= firstSampleTime and
                                mediaStart - firstSampleTime < decodedCount
                             {
                                 let proposedTrim = mediaStart - firstSampleTime
-                                if audibleFrames and audibleFrames <= decodedCount - proposedTrim and
+                                if audibleFrames and
+                                   audibleFrames <= decodedCount - proposedTrim and
                                    decodedCount - proposedTrim - audibleFrames < AacFrameSamples and
                                    proposedTrim <= Swag.U32.Max
                                 {
-                                    trim = proposedTrim
-                                    start = 0
+                                    trim         = proposedTrim
+                                    start        = 0
                                     trailingTrim = decodedCount - trim - audibleFrames
                                 }
                             }
@@ -1456,7 +1464,9 @@ impl IDecoder for Decoder
                 {
                     let packetLayout = try audioTrack.buildSoundPackets(source.size())
                     var options: PacketStreamOptions
-                    if audioTrack.hasSingleEdit and layout.movieTimescale and audioTrack.timescale and
+                    if audioTrack.hasSingleEdit and
+                       layout.movieTimescale and
+                       audioTrack.timescale and
                        audioTrack.editMediaTime >= 0 and
                        audioTrack.editDuration <= Swag.U64.Max / audioTrack.sampleRate
                     {
@@ -1464,13 +1474,14 @@ impl IDecoder for Decoder
                                                           cast(f64, audioTrack.sampleRate) /
                                                           cast(f64, audioTrack.timescale))
                         let scaled        = audioTrack.editDuration * audioTrack.sampleRate
-                        let audibleFrames  = scaled / layout.movieTimescale +
-                                             (scaled % layout.movieTimescale != 0 ? 1'u64 : 0)
-                        let decodedFrames  = packetLayout.frameCount
+                        let audibleFrames = scaled / layout.movieTimescale +
+                                            (scaled % layout.movieTimescale != 0 ? 1'u64 : 0)
+                        let decodedFrames = packetLayout.frameCount
                         if mediaStartFrames >= 0 and mediaStartFrames < cast(f64, decodedFrames)
                         {
                             let leading = cast(u64, mediaStartFrames)
-                            if audibleFrames and audibleFrames <= decodedFrames - leading and
+                            if audibleFrames and
+                               audibleFrames <= decodedFrames - leading and
                                decodedFrames - leading - audibleFrames < AacFrameSamples
                             {
                                 options.leadingTrimFrames  = leading

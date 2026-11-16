@@ -7,7 +7,7 @@ using Core, Pixel
 struct Launcher
 {
     public using captionButton: Gui.CaptionButton     // Embedded caption-button behavior and presentation.
-    command: String
+    command:  String
     menuLens: *View?
 }
 
@@ -43,19 +43,20 @@ impl Launcher
         let parent      = assume cast(*SurfaceWnd, surface.wnd)
         with let result = Wnd.create'Launcher(parent)
         {
-            .owner   = owner
-            .command = command
+            .owner    = owner
+            .command  = command
             .menuLens = menuLens
             .captionButton.leading = menuLens != null
             .setForm(.RoundedRectangle)
             .focusPolicy = .None
-            .sigPressed += func|result|(_)
+            .sigPressed  += func|result|(_)
             {
                 if result.menuLens do
                     result.menuLens.openCommandMenu(&result.captionButton.button)
                 else do
                     result.owner!.postCommandEvent(result.command)
             }
+
             .refreshLabel()
         }
 

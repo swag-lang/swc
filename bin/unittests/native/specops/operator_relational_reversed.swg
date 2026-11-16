@@ -69,7 +69,7 @@ impl RightCompareOwner
 
 #test
 {
-    let left = LeftCompareOwner{}
+    let left  = LeftCompareOwner{}
     let right = RightCompareOwner{}
     Swag.require(left == right)
     Swag.require(right != left)

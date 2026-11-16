@@ -127,23 +127,23 @@ struct Row
 // A command registered on a [[Gui.Lens.View]].
 internal struct Command
 {
-    commandId:  String     // Owns the ID; derive a view only when the registered command is used.
-    family:     String
-    familyText: MenuLabelResolver?
-    aliases:    MenuLabelResolver?
-    menuFamily: MenuLabelResolver?
-    menuGroup:  MenuLabelResolver?
+    commandId:   String     // Owns the ID; derive a view only when the registered command is used.
+    family:      String
+    familyText:  MenuLabelResolver?
+    aliases:     MenuLabelResolver?
+    menuFamily:  MenuLabelResolver?
+    menuGroup:   MenuLabelResolver?
     menuSection: u32
-    inLens:     bool = true
-    inMenu:     bool = true
+    inLens:      bool = true
+    inMenu:      bool = true
 }
 
 // One currently visible command, with the two menu levels it belongs to.
 internal struct MenuCommand
 {
-    id:     WndId = ""
-    family: String
-    group:  String
+    id:      WndId = ""
+    family:  String
+    group:   String
     section: u32
 }
 
@@ -411,9 +411,7 @@ impl View
     // the lens alone, while `inLens: false` keeps a choice supplied by a lens source in the menu
     // alone. A missing menu family uses the lens family, and a missing group is direct.
     // Adjacent direct commands with different `menuSection` values receive a separator.
-    mtd addCommand(family: string, id: WndId, aliases: MenuLabelResolver? = null,
-                   menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
-                   menuSection: u32 = 0, inLens = true, inMenu = true)
+    mtd addCommand(family: string, id: WndId, aliases: MenuLabelResolver? = null, menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null, menuSection: u32 = 0, inLens = true, inMenu = true)
     {
         .commands.add(Command{commandId: id, family: family, aliases: aliases,
                               menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection,
@@ -423,9 +421,7 @@ impl View
     // Registers the command `id` under a section label read from `family` each time the lens
     // opens, so it follows the language of the application. `aliases` follows the same contract
     // as the overload with a fixed family label.
-    mtd addCommand(family: MenuLabelResolver, id: WndId, aliases: MenuLabelResolver? = null,
-                   menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
-                   menuSection: u32 = 0, inLens = true, inMenu = true)
+    mtd addCommand(family: MenuLabelResolver, id: WndId, aliases: MenuLabelResolver? = null, menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null, menuSection: u32 = 0, inLens = true, inMenu = true)
     {
         .commands.add(Command{commandId: id, familyText: family, aliases: aliases,
                               menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection,
@@ -433,23 +429,17 @@ impl View
     }
 
     // Registers several commands under the section label `family`.
-    mtd addCommands(family: string, ids: const [..] WndId,
-                    menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
-                    menuSection: u32 = 0, inLens = true, inMenu = true)
+    mtd addCommands(family: string, ids: const [..] WndId, menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null, menuSection: u32 = 0, inLens = true, inMenu = true)
     {
         for id in ids do
-            .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup,
-                        menuSection: menuSection, inLens: inLens, inMenu: inMenu)
+            .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection, inLens: inLens, inMenu: inMenu)
     }
 
     // Registers several commands under a section label read from `family` each time the lens opens.
-    mtd addCommands(family: MenuLabelResolver, ids: const [..] WndId,
-                    menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null,
-                    menuSection: u32 = 0, inLens = true, inMenu = true)
+    mtd addCommands(family: MenuLabelResolver, ids: const [..] WndId, menuFamily: MenuLabelResolver? = null, menuGroup: MenuLabelResolver? = null, menuSection: u32 = 0, inLens = true, inMenu = true)
     {
         for id in ids do
-            .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup,
-                        menuSection: menuSection, inLens: inLens, inMenu: inMenu)
+            .addCommand(family, id, menuFamily: menuFamily, menuGroup: menuGroup, menuSection: menuSection, inLens: inLens, inMenu: inMenu)
     }
 
     // Builds a popup menu solely from the registered commands and their current state.
@@ -463,10 +453,10 @@ impl View
     {
         let owner = unwrap .ownerOrParent()
         let menu  = MenuCtrl.createPopup(owner, owner: owner)
-        var entries: Array'MenuCommand
-        var families: Array'String
+        var entries:           Array'MenuCommand
+        var families:          Array'String
         var lastRootWasDirect: bool
-        var hasRootEntry: bool
+        var hasRootEntry:      bool
 
         // Resolve localized placement and visibility before allocating any menu branches.
         for &command in .commands where command.inMenu
@@ -487,17 +477,18 @@ impl View
 
         for family in families
         {
-            var one: const *MenuCommand?
+            var one:   const *MenuCommand?
             var count: u32
             for &entry in entries where entry.family == family
             {
-                one = entry
+                one   = entry
                 count += 1
             }
+
             let direct = count == 1 and one and one.group.isEmpty()
             if hasRootEntry and direct != lastRootWasDirect do
                 menu.addSeparator()
-            hasRootEntry = true
+            hasRootEntry      = true
             lastRootWasDirect = direct
             if direct
             {
@@ -506,11 +497,11 @@ impl View
             }
 
             let branch = MenuCtrl.createPopup(menu, owner: owner)
-            var groups: Array'String
-            var groupMenus: Array'(*MenuCtrl)
-            var hasRow: bool
+            var groups:       Array'String
+            var groupMenus:   Array'(*MenuCtrl)
+            var hasRow:       bool
             var lastWasGroup: bool
-            var lastSection: u32
+            var lastSection:  u32
             for &entry in entries where entry.family == family
             {
                 if entry.group.isEmpty()
@@ -530,6 +521,7 @@ impl View
                     group = groupMenus[index]
                     break
                 }
+
                 if not group
                 {
                     group = MenuCtrl.createPopup(branch, owner: owner)
@@ -542,8 +534,10 @@ impl View
                     lastWasGroup = true
                     lastSection  = entry.section
                 }
+
                 group.addItem(entry.id)
             }
+
             menu.addPopup(family[], branch)
         }
 
@@ -1248,11 +1242,11 @@ private impl View
         {
             if choiceIndex >= .inlineChoices.count do
                 break
-            let choice  = &.inlineChoices[choiceIndex]
-            let combo   = choice.combo
-            let height  = combo.position.height
-            let x       = list.x + metrics.lens_TextInset
-            let y       = list.y + row.top - .scroll + (row.height - height) * 0.5
+            let choice = &.inlineChoices[choiceIndex]
+            let combo  = choice.combo
+            let height = combo.position.height
+            let x      = list.x + metrics.lens_TextInset
+            let y      = list.y + row.top - .scroll + (row.height - height) * 0.5
 
             // A row of more choices than the lens is wide stops at its edge, where the combo
             // gives up its segments for a list that opens rather than running past the lens.
@@ -1351,6 +1345,7 @@ private impl View
     mtd pageResults(direction: f32)
     {
         let step = direction * Math.max(.listRect().height - .themeMetrics().lens_RowHeight, .themeMetrics().lens_RowHeight)
+
         // Back to the start of a row, so a page still overlaps the last one by a row at least;
         // past the start of the next row when one row is taller than a page.
         var target = .rowAlignedScroll(.scroll + step, forward: false)
@@ -1651,6 +1646,7 @@ private impl View
             for command in .commands where command.inLens do
                 return true
         }
+
         for source in .sources where source.prefix == prefix do
             return true
         return false

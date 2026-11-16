@@ -34,6 +34,7 @@ namespace Integration
             Console.println("FAIL: ", errorMessage(Swag.err))
             Env.exit(1)
         }
+
         Env.exit(0)
     }
 }

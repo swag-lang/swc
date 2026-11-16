@@ -60,65 +60,65 @@ enum MediaInfoField
 // Visible strings of the media readings added to the application information sheet.
 struct MediaInfoStrings
 {
-    media:       string = "Media"
-    image:       string = "Image"
-    video:       string = "Video"
-    metadata:    string = "Metadata"
-    technical:   string = "Technical"
-    document:    string = "Document"
-    text:        string = "Text"
-    sound:       string = "Sound"
-    font:        string = "Font"
-    table:       string = "Table"
-    music:       string = "Music"
-    binary:      string = "Binary"
-    format:      string = "Format"
-    codec:       string = "Video codec"
-    dimensions:  string = "Dimensions"
-    displaySize: string = "Display size"
-    aspectRatio: string = "Aspect ratio"
-    pixelFormat: string = "Pixel format"
-    depth:       string = "Bits per pixel"
-    frames:      string = "Frames"
-    pages:       string = "Pages"
-    lines:       string = "Lines"
-    sections:    string = "Sections"
-    members:     string = "Files"
-    typeface:    string = "Typeface"
-    duration:    string = "Duration"
-    frameRate:   string = "Frame rate"
+    media:          string = "Media"
+    image:          string = "Image"
+    video:          string = "Video"
+    metadata:       string = "Metadata"
+    technical:      string = "Technical"
+    document:       string = "Document"
+    text:           string = "Text"
+    sound:          string = "Sound"
+    font:           string = "Font"
+    table:          string = "Table"
+    music:          string = "Music"
+    binary:         string = "Binary"
+    format:         string = "Format"
+    codec:          string = "Video codec"
+    dimensions:     string = "Dimensions"
+    displaySize:    string = "Display size"
+    aspectRatio:    string = "Aspect ratio"
+    pixelFormat:    string = "Pixel format"
+    depth:          string = "Bits per pixel"
+    frames:         string = "Frames"
+    pages:          string = "Pages"
+    lines:          string = "Lines"
+    sections:       string = "Sections"
+    members:        string = "Files"
+    typeface:       string = "Typeface"
+    duration:       string = "Duration"
+    frameRate:      string = "Frame rate"
     exactFrameRate: string = "Exact frame rate"
-    bitrate:     string = "Approx. bitrate"
-    audio:       string = "Audio tracks"
-    subtitles:   string = "Subtitle tracks"
-    name:        string = "Name"
-    language:    string = "Language"
-    encoding:    string = "Encoding"
-    sampleRate:  string = "Sample rate"
-    channels:    string = "Channels"
-    sampleSize:  string = "Sample size"
-    title:       string = "Title"
-    author:      string = "Author"
-    bookmarks:   string = "Bookmarks"
-    style:       string = "Style"
-    unitsPerEm:  string = "Units per em"
-    faces:       string = "Faces"
-    separator:   string = "Separator"
-    meter:       string = "Time signature"
-    lineEnds:    string = "Line ends"
-    oneLine:     string = "1 line"
-    lineCount:   string = "% lines"
-    oneWord:     string = "1 word"
-    wordCount:   string = "% words"
-    oneCharacter: string = "1 character"
+    bitrate:        string = "Approx. bitrate"
+    audio:          string = "Audio tracks"
+    subtitles:      string = "Subtitle tracks"
+    name:           string = "Name"
+    language:       string = "Language"
+    encoding:       string = "Encoding"
+    sampleRate:     string = "Sample rate"
+    channels:       string = "Channels"
+    sampleSize:     string = "Sample size"
+    title:          string = "Title"
+    author:         string = "Author"
+    bookmarks:      string = "Bookmarks"
+    style:          string = "Style"
+    unitsPerEm:     string = "Units per em"
+    faces:          string = "Faces"
+    separator:      string = "Separator"
+    meter:          string = "Time signature"
+    lineEnds:       string = "Line ends"
+    oneLine:        string = "1 line"
+    lineCount:      string = "% lines"
+    oneWord:        string = "1 word"
+    wordCount:      string = "% words"
+    oneCharacter:   string = "1 character"
     characterCount: string = "% characters"
-    glyphCount:  string = "% glyphs"
-    mono:        string = "mono"
-    stereo:      string = "stereo"
-    channelCount: string = "% channels"
-    track:       string = "Track %"
-    empty:       string = "None"
-    unavailable: string = "Read error"
+    glyphCount:     string = "% glyphs"
+    mono:           string = "mono"
+    stereo:         string = "stereo"
+    channelCount:   string = "% channels"
+    track:          string = "Track %"
+    empty:          string = "None"
+    unavailable:    string = "Read error"
 }
 
 private const FrenchMediaStringsName = "lang/fr/scope.media.tweak"
@@ -170,56 +170,56 @@ impl MediaInfoRow
         let s = &g_MediaInfoStrings
         switch #complete .field
         {
-        case .Custom:      return .name.toString()
-        case .Media:       return s.media
-        case .Image:       return s.image
-        case .Video:       return s.video
-        case .Metadata:    return s.metadata
-        case .Technical:   return s.technical
-        case .Document:    return s.document
-        case .Text:        return s.text
-        case .Sound:       return s.sound
-        case .Font:        return s.font
-        case .Table:       return s.table
-        case .Music:       return s.music
-        case .Binary:      return s.binary
-        case .Format:      return s.format
-        case .Codec:       return s.codec
-        case .Dimensions:  return s.dimensions
-        case .DisplaySize: return s.displaySize
-        case .AspectRatio: return s.aspectRatio
-        case .PixelFormat: return s.pixelFormat
-        case .Depth:       return s.depth
-        case .Frames:      return s.frames
-        case .Pages:       return s.pages
-        case .Lines:       return s.lines
-        case .Sections:    return s.sections
-        case .Members:     return s.members
-        case .Typeface:    return s.typeface
-        case .Duration:    return s.duration
-        case .FrameRate:   return s.frameRate
+        case .Custom:         return .name.toString()
+        case .Media:          return s.media
+        case .Image:          return s.image
+        case .Video:          return s.video
+        case .Metadata:       return s.metadata
+        case .Technical:      return s.technical
+        case .Document:       return s.document
+        case .Text:           return s.text
+        case .Sound:          return s.sound
+        case .Font:           return s.font
+        case .Table:          return s.table
+        case .Music:          return s.music
+        case .Binary:         return s.binary
+        case .Format:         return s.format
+        case .Codec:          return s.codec
+        case .Dimensions:     return s.dimensions
+        case .DisplaySize:    return s.displaySize
+        case .AspectRatio:    return s.aspectRatio
+        case .PixelFormat:    return s.pixelFormat
+        case .Depth:          return s.depth
+        case .Frames:         return s.frames
+        case .Pages:          return s.pages
+        case .Lines:          return s.lines
+        case .Sections:       return s.sections
+        case .Members:        return s.members
+        case .Typeface:       return s.typeface
+        case .Duration:       return s.duration
+        case .FrameRate:      return s.frameRate
         case .ExactFrameRate: return s.exactFrameRate
-        case .Bitrate:     return s.bitrate
-        case .Audio:       return s.audio
-        case .Subtitles:   return s.subtitles
-        case .Name:        return s.name
-        case .Language:    return s.language
-        case .Encoding:    return s.encoding
-        case .SampleRate:  return s.sampleRate
-        case .Channels:    return s.channels
-        case .SampleSize:  return s.sampleSize
-        case .Title:       return s.title
-        case .Author:      return s.author
-        case .Bookmarks:   return s.bookmarks
-        case .Style:       return s.style
-        case .UnitsPerEm:  return s.unitsPerEm
-        case .Faces:       return s.faces
-        case .Separator:   return s.separator
-        case .Meter:       return s.meter
-        case .LineEnds:    return s.lineEnds
-        case .Track:       return .name.toString()
-        case .Empty:       return s.empty
-        case .Unavailable: return s.unavailable
+        case .Bitrate:        return s.bitrate
+        case .Audio:          return s.audio
+        case .Subtitles:      return s.subtitles
+        case .Name:           return s.name
+        case .Language:       return s.language
+        case .Encoding:       return s.encoding
+        case .SampleRate:     return s.sampleRate
+        case .Channels:       return s.channels
+        case .SampleSize:     return s.sampleSize
+        case .Title:          return s.title
+        case .Author:         return s.author
+        case .Bookmarks:      return s.bookmarks
+        case .Style:          return s.style
+        case .UnitsPerEm:     return s.unitsPerEm
+        case .Faces:          return s.faces
+        case .Separator:      return s.separator
+        case .Meter:          return s.meter
+        case .LineEnds:       return s.lineEnds
+        case .Track:          return .name.toString()
+        case .Empty:          return s.empty
+        case .Unavailable:    return s.unavailable
         }
     }
 
@@ -228,9 +228,9 @@ impl MediaInfoRow
     {
         switch .field
         {
-        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines, .Sections,
-             .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate, .Channels,
-             .SampleSize, .Bookmarks, .UnitsPerEm, .Faces, .Meter, .LineEnds:
+        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines,
+             .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate,
+             .Channels, .SampleSize, .Bookmarks, .UnitsPerEm, .Faces, .Meter, .LineEnds:
             return true
         }
 
@@ -459,14 +459,10 @@ impl MediaInfoData
 
             switch
             {
-            case row.field == .Unavailable:
-                sheet.addNote(row.value.isEmpty() ? row.label() : row.value.toString())
-            case row.field == .Track:
-                sheet.addTrack(row.number, row.name, row.value)
-            case row.value.isEmpty():
-                sheet.addText(row.label())
-            default:
-                sheet.addReading(row.label(), row.value, mono: row.isMeasure())
+            case row.field == .Unavailable: sheet.addNote(row.value.isEmpty() ? row.label() : row.value.toString())
+            case row.field == .Track:       sheet.addTrack(row.number, row.name, row.value)
+            case row.value.isEmpty():       sheet.addText(row.label())
+            default: sheet.addReading(row.label(), row.value, mono: row.isMeasure())
             }
         }
     }

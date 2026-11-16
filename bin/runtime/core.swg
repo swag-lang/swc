@@ -26,8 +26,8 @@ func __borrowAnyValue(toType, fromType: typeinfo?, ptr: *void?)->*void?
         return null
     if fromType.flags & .ReadOnlyStorage and not __isCompilerType(fromType) do
         return null
-    let target = toType
-    let targetConst = (target.flags & .Const) != 0
+    let target         = toType
+    let targetConst    = (target.flags & .Const) != 0
     let sourceReadOnly = (fromType.flags & .Const) != 0 or (fromType.flags & .ReadOnlyStorage) != 0
     if sourceReadOnly and not targetConst do
         return null
@@ -181,7 +181,8 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
         if not __isCompilerType(fromType) or (not targetIsConst and not borrowValue) do
             return null
     }
-    var targetType    = requestedType
+
+    var targetType = requestedType
     if not borrowValue and requestedType.kind == .Pointer do
         targetType = __concreteAlias(cast(const *TypeInfoPointer, cast(const *void, requestedType)).pointedType)
     if borrowValue do
@@ -370,19 +371,27 @@ func __runtimeCopyIgnoresConst(target: typeinfo)->bool
         let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueType))
         valueType = aliasInfo.rawType
     }
+
     if valueType.kind == .Enum do
         return true
     if valueType.kind == .Native
     {
         let native = cast(const *TypeInfoNative, cast(const *void, valueType))
-        return native.nativeKind == .S8 or native.nativeKind == .S16 or
-               native.nativeKind == .S32 or native.nativeKind == .S64 or
-               native.nativeKind == .U8 or native.nativeKind == .U16 or
-               native.nativeKind == .U32 or native.nativeKind == .U64 or
-               native.nativeKind == .F32 or native.nativeKind == .F64 or
-               native.nativeKind == .Bool or native.nativeKind == .Rune or
+        return native.nativeKind == .S8 or
+               native.nativeKind == .S16 or
+               native.nativeKind == .S32 or
+               native.nativeKind == .S64 or
+               native.nativeKind == .U8 or
+               native.nativeKind == .U16 or
+               native.nativeKind == .U32 or
+               native.nativeKind == .U64 or
+               native.nativeKind == .F32 or
+               native.nativeKind == .F64 or
+               native.nativeKind == .Bool or
+               native.nativeKind == .Rune or
                native.nativeKind == .String
     }
+
     return false
 }
 
@@ -394,6 +403,7 @@ func __runtimeTypeIsPointer(type: typeinfo)->bool
         let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueType))
         valueType = aliasInfo.rawType
     }
+
     return valueType.kind == .Pointer
 }
 
@@ -405,19 +415,23 @@ func __runtimeCopiesValue(type: typeinfo)->bool
         let aliasInfo = cast(const *TypeInfoAlias, cast(const *void, valueType))
         valueType = aliasInfo.rawType
     }
-    return valueType.kind == .Struct or valueType.kind == .Array or
-           valueType.kind == .TypeListTuple or valueType.kind == .TypeListArray or
-           valueType.kind == .Simd or __runtimeCopyIgnoresConst(valueType)
+
+    return valueType.kind == .Struct or
+           valueType.kind == .Array or
+           valueType.kind == .TypeListTuple or
+           valueType.kind == .TypeListArray or
+           valueType.kind == .Simd or
+           __runtimeCopyIgnoresConst(valueType)
 }
 
 func __runtimeTypeCast(toType, fromType: typeinfo?)->typeinfo?
 {
     if not __isCompilerType(toType) or not __isCompilerType(fromType) do
         return null
-    var target = unwrap toType
-    var source = unwrap fromType
+    var target         = unwrap toType
+    var source         = unwrap fromType
     let sourceReadOnly = (source.flags & .Const) != 0
-    let copyValue = __runtimeCopiesValue(target)
+    let copyValue      = __runtimeCopiesValue(target)
     if sourceReadOnly and not copyValue and (target.flags & .Const) == 0 do
         return null
     if sourceReadOnly and source.unqualified != null do
@@ -456,13 +470,13 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     let sourceHeader = cast(const *RuntimeAnyHeader, cast(const *void, source))
     if not __isCompilerType(sourceHeader.type) do
         return false
-    var sourceType = unwrap sourceHeader.type
-    var target = unwrap toType
+    var sourceType             = unwrap sourceHeader.type
+    var target                 = unwrap toType
     let sourceStorageOnlyConst = (sourceType.flags & .ReadOnlyStorage) != 0
-    let sourceReadOnly = (sourceType.flags & .Const) != 0 or sourceStorageOnlyConst
-    let copyReadOnly = sourceReadOnly and
-                       (__runtimeCopiesValue(target) or
-                        (sourceStorageOnlyConst and __runtimeTypeIsPointer(sourceType)))
+    let sourceReadOnly         = (sourceType.flags & .Const) != 0 or sourceStorageOnlyConst
+    let copyReadOnly           = sourceReadOnly and
+                                 (__runtimeCopiesValue(target) or
+                                  (sourceStorageOnlyConst and __runtimeTypeIsPointer(sourceType)))
     if sourceReadOnly and not copyReadOnly and not readOnly do
         return false
 
@@ -487,8 +501,7 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
 
     // The result's constness is carried by the cast expression; lookup only reads this address.
     let sourceData = cast #unconst(*void?, cast(const *void?, source[].buffer))
-    let found      = __dynamicCastImpl(
-        target, sourceType, sourceData, view, false, null, true, readOnly or copyReadOnly)
+    let found      = __dynamicCastImpl(target, sourceType, sourceData, view, false, null, true, readOnly or copyReadOnly)
     if target.kind == .Interface
     {
         if result.view.itable == null do
@@ -528,8 +541,8 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
 
     // These qualifiers do not change the identity of the represented value type.
     let identityIgnoredFlags = TypeInfoFlags.Nullable | TypeInfoFlags.RequiresExplicitInit | TypeInfoFlags.ReadOnlyStorage
-    let flags1               = type1.flags & ~identityIgnoredFlags
-    let flags2               = type2.flags & ~identityIgnoredFlags
+    let flags1 = type1.flags & ~identityIgnoredFlags
+    let flags2 = type2.flags & ~identityIgnoredFlags
     if flags1 != flags2 do
         return false
 
@@ -701,9 +714,9 @@ func __ensureRuntimeAllocator()
 
 func __resetRuntimeContext()
 {
-    let cxt          = Swag.getContext()
-    let allocator    = __runtimeAllocator()
-    let tlsIdPlusOne = cxt.runtimeTlsIdPlusOne
+    let cxt           = Swag.getContext()
+    let allocator     = __runtimeAllocator()
+    let tlsIdPlusOne  = cxt.runtimeTlsIdPlusOne
     let compilerRaise = cxt.compilerRaise
 
     cxt.tempAllocator.release()
@@ -714,7 +727,7 @@ func __resetRuntimeContext()
     cxt.allocator           = allocator
     cxt.defaultAllocator    = allocator
     cxt.runtimeTlsIdPlusOne = tlsIdPlusOne
-    cxt.compilerRaise = compilerRaise
+    cxt.compilerRaise       = compilerRaise
 }
 
 // Every artifact is x86-64-v3 code: the backend emits VEX-encoded forms unconditionally, so a

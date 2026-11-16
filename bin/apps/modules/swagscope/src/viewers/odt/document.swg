@@ -77,7 +77,7 @@ impl Document
     func load(fileName: string)->Document fail
     {
         let archive = try Odf.openPackage(fileName, "application/vnd.oasis.opendocument.text", texts().err_Invalid, texts().err_TooLarge, texts().err_Encrypted)
-        let parts = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
+        let parts   = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
         let content = try parts.text("content.xml")
         var reader: Reader
         reader.fileName = fileName

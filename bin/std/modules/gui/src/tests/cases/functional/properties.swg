@@ -1232,7 +1232,7 @@ impl Gui.IPropertyNotify for ValData
 
     let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
     prop.addStruct(data)
-    let arrayItem = unwrap findFieldItem(prop, #nameof(PropMoveData.dyn))
+    let arrayItem    = unwrap findFieldItem(prop, #nameof(PropMoveData.dyn))
     var payload: s32 = 42
     arrayItem.userData0 = cast(*void?, &payload)
 

@@ -12,6 +12,7 @@ private func copyX11BgraRow(input: const [*] u8, output: [*] u8, width: u64, opa
         let pixels = cast #bit(Math.Simd.U32x4, Math.Simd.load(input + offset))
         Math.Simd.store(output + offset, cast #bit(Math.Simd.U8x16, pixels | opaque))
     }
+
     for pixel in width % 4
     {
         let offset = (width / 4 * 4 + pixel) * 4
@@ -74,15 +75,15 @@ struct X11Capture
 
 impl X11Capture
 {
-    mtd const desktopWidth()->u16 => .screen.width_in_pixels
-    mtd const desktopHeight()->u16 => .screen.height_in_pixels
-    mtd const rootWindow()->u32 => .screen.root
-    mtd const rootDepth()->u8 => .screen.root_depth
-    mtd const nativeLibrary()->*void? => .library
-    mtd const nativeConnection()->*void? => .connection
+    mtd const desktopWidth()->u16          => .screen.width_in_pixels
+    mtd const desktopHeight()->u16         => .screen.height_in_pixels
+    mtd const rootWindow()->u32            => .screen.root
+    mtd const rootDepth()->u8              => .screen.root_depth
+    mtd const nativeLibrary()->*void?      => .library
+    mtd const nativeConnection()->*void?   => .connection
     mtd const cursorExtensionReady()->bool => .fixesReady
-    mtd const usesSharedMemory()->bool => .shmData != null
-    mtd const sharedMemorySize()->u64 => .shmSize
+    mtd const usesSharedMemory()->bool     => .shmData != null
+    mtd const sharedMemorySize()->u64      => .shmSize
 
     func(T) symbol(library: *void, name: string)->T fail
     {
@@ -98,7 +99,7 @@ impl X11Capture
         result.library = Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
         if not result.library do
             fail Swag.SystemError{"desktop capture cannot load libxcb.so.1"}
-        result.shmExtension.name = "MIT-SHM".buffer
+        result.shmExtension.name   = "MIT-SHM".buffer
         result.fixesExtension.name = "XFIXES".buffer
         let library = result.library
         result.disconnect = try symbol'Linux.xcb_disconnect_fn(library, "xcb_disconnect")
@@ -152,8 +153,7 @@ impl X11Capture
     mtd atom(name: string, create: bool = false)->u32
     {
         let connection = unwrap .connection
-        let reply      = .internReply(connection, .intern(connection, create ? 0'u8 : 1'u8,
-                                                        cast(u16, name.count), name.buffer), null)
+        let reply      = .internReply(connection, .intern(connection, create ? 0'u8 : 1'u8, cast(u16, name.count), name.buffer), null)
         if not reply do
             return 0
         defer Linux.free(reply)
@@ -236,7 +236,7 @@ impl X11Capture
     mtd windowIsViewable(window: u32)->bool
     {
         let connection = unwrap .connection
-        let attrs = .attributesReply(connection, .getAttributes(connection, window), null)
+        let attrs      = .attributesReply(connection, .getAttributes(connection, window), null)
         if not attrs do
             return false
         let visible = attrs.map_state == 2
@@ -349,10 +349,10 @@ impl X11Capture
 
     // libxcb fills the four-byte X11 header and routes the request through the
     // selected extension descriptor. Each wire request below is otherwise Swag data.
-    private mtd extensionRequest(extension: *Linux.xcb_extension_t, wire: *void, size: u64,
-                                 opcode: u8, isvoid, checked: bool)->u32
+    private mtd extensionRequest(extension: *Linux.xcb_extension_t, wire: *void, size: u64, opcode: u8, isvoid, checked: bool)->u32
     {
         let send = cast(Linux.xcb_send_request_fn, unwrap Linux.dlsym(unwrap .library, "xcb_send_request".buffer))
+
         // xcb_send_request writes its request header into the two reserved slots
         // immediately before the payload vectors, so leave those slots at [0..2).
         var vectors: [4] Linux.xcb_iovec_t
@@ -395,6 +395,7 @@ impl X11Capture
             .disableSharedMemory()
             return false
         }
+
         let address = Linux.shmat(id, null, 0)
         if address == cast(*void, -1's64)
         {
@@ -425,12 +426,14 @@ impl X11Capture
         .shmSize    = needed
         .shmId      = id
         .shmSegment = segment
+
         // The segment is reclaimed after both X11 and this process detach.
         if Linux.shmctl(id, 0, null) != 0
         {
             .disableSharedMemory()
             return false
         }
+
         return true
     }
 
@@ -477,9 +480,9 @@ impl X11Capture
         let depthNext  = try symbol'Linux.xcb_depth_next_fn(library, "xcb_depth_next")
         let visuals    = try symbol'Linux.xcb_depth_visuals_iterator_fn(library, "xcb_depth_visuals_iterator")
         let visualNext = try symbol'Linux.xcb_visualtype_next_fn(library, "xcb_visualtype_next")
-        var captured: *Linux.xcb_get_image_reply_t?
+        var captured:   *Linux.xcb_get_image_reply_t?
         var sharedSize: u64
-        var shared = .ensureSharedMemory(width, height)
+        var shared     = .ensureSharedMemory(width, height)
         if shared
         {
             var wire: Linux.xcb_shm_get_image_request_t
@@ -491,8 +494,8 @@ impl X11Capture
             wire.plane_mask = Swag.U32.Max
             wire.format     = 2
             wire.segment    = .shmSegment
-            let sequence = .sharedRequest(&wire, #sizeof(wire), 4, false, true)
-            let wait = cast(Linux.xcb_wait_for_reply_fn, unwrap Linux.dlsym(library, "xcb_wait_for_reply".buffer))
+            let sequence    = .sharedRequest(&wire, #sizeof(wire), 4, false, true)
+            let wait        = cast(Linux.xcb_wait_for_reply_fn, unwrap Linux.dlsym(library, "xcb_wait_for_reply".buffer))
             let sharedReply = wait(connection, sequence, null)
             var replySize: u32
             if sharedReply do
@@ -512,6 +515,7 @@ impl X11Capture
                 shared = false
             }
         }
+
         if not shared do
             captured = reply(connection,
                              get(connection, 2, .screen.root, cast(s16, x), cast(s16, y), cast(u16, width), cast(u16, height), Swag.U32.Max),
@@ -556,7 +560,7 @@ impl X11Capture
             fail Errors.UnsupportedFormatError{"desktop capture needs a 16-, 24- or 32-bit X11 TrueColor visual"}
         let rowBits = cast(u64, width) * format.bits_per_pixel
         let stride  = ((rowBits + format.scanline_pad - 1) / format.scanline_pad) * (format.scanline_pad / 8)
-        let count = shared ? cast(s64, sharedSize) : cast(s64, dataLength(captured))
+        let count   = shared ? cast(s64, sharedSize) : cast(s64, dataLength(captured))
         if count < 0 or cast(u64, count) < stride * cast(u64, height) do
             fail Swag.SystemError{"X11 returned an incomplete desktop image"}
 
@@ -575,20 +579,21 @@ impl X11Capture
 
         if target.width != width or target.height != height or target.pixelFormat != .BGRA8 do
             target[] = Image.create(width, height, .BGRA8)
-        let source = shared ? cast([*] u8, unwrap .shmData) : data(captured)
-        let bytes  = format.bits_per_pixel / 8
+        let source      = shared ? cast([*] u8, unwrap .shmData) : data(captured)
+        let bytes       = format.bits_per_pixel / 8
         let imageHeight = cast(u64, height)
         let imageWidth  = cast(u64, width)
 
         // A little-endian 32-bit TrueColor reply already stores B, G and R in BGRA order.
         // Reverse its rows and make alpha opaque without per-pixel mask scaling.
-        if format.bits_per_pixel == 32 and .setup.image_byte_order == 0 and
+        if format.bits_per_pixel == 32 and
+           .setup.image_byte_order == 0 and
            visual.blue_mask == 0x000000FF and
            visual.green_mask == 0x0000FF00 and
            visual.red_mask == 0x00FF0000
         {
-            let opaque = Math.Simd.splat(0xFF000000'u32)
-            let outputBase = target.pixels.storage()
+            let opaque       = Math.Simd.splat(0xFF000000'u32)
+            let outputBase   = target.pixels.storage()
             let outputStride = cast(u64, target.rowStride)
             if imageWidth >= 3840 and imageHeight >= 2160
             {
@@ -601,7 +606,8 @@ impl X11Capture
                     for row in first until last do
                         copyX11BgraRow(source + row * stride,
                                        outputBase + (imageHeight - row - 1) * outputStride,
-                                       imageWidth, opaque)
+                                       imageWidth,
+                                       opaque)
                 }
             }
             else
@@ -609,8 +615,10 @@ impl X11Capture
                 for row in imageHeight do
                     copyX11BgraRow(source + row * stride,
                                    outputBase + (imageHeight - row - 1) * outputStride,
-                                   imageWidth, opaque)
+                                   imageWidth,
+                                   opaque)
             }
+
             if drawCursor do
                 try .drawCursor(target, x, y)
             return
@@ -656,7 +664,7 @@ impl X11Capture
             wire.minor = 0
             var error: *Linux.xcb_generic_error_t?
             let sequence = .extensionRequest(&.fixesExtension, &wire, #sizeof(wire), 0, false, true)
-            let raw = wait(connection, sequence, &error)
+            let raw      = wait(connection, sequence, &error)
             defer Linux.free(error)
             if error or not raw do
                 fail Swag.SystemError{"cursor capture cannot negotiate XFixes"}
@@ -666,10 +674,11 @@ impl X11Capture
                 fail Swag.SystemError{"XFixes cursor capture requires version 2"}
             .fixesReady = true
         }
-        var wire: XfixesCursorRequest
+
+        var wire:  XfixesCursorRequest
         var error: *Linux.xcb_generic_error_t?
         let sequence = .extensionRequest(&.fixesExtension, &wire, #sizeof(wire), 4, false, true)
-        let raw = wait(connection, sequence, &error)
+        let raw      = wait(connection, sequence, &error)
         defer Linux.free(error)
         if error or not raw do
             fail Swag.SystemError{"X11 cannot read the cursor image"}

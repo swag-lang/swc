@@ -9,8 +9,8 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    let main = journey.main
-    var path = journey.newCapture()
+    let main    = journey.main
+    var path    = journey.newCapture()
     let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Arrow, .Arrow, {5, 5}, {45, 30})
 
@@ -36,7 +36,10 @@ using Core, Gui, Pixel
     journey.waitFor("unlinked capture reopened", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and
-               opened.forms.count == 2 and opened.linkedImage.isEmpty()
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.forms.count == 2 and
+               opened.linkedImage.isEmpty()
     })
 }

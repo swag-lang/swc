@@ -161,9 +161,10 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         let oldBuffer   = arrayView.buffer
         let oldCapacity = arrayView.capacity
         let newCapacity = Math.max(arrayView.count + 1, arrayView.capacity * 2)
-        let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * elementBytes,
-                                                   arrayView.allocator,
-                                                   runtimeTypeAlignment(elementBytes)))
+        let newBuffer   = cast([*] u8,
+                               Memory.alloc(newCapacity * elementBytes,
+                                            arrayView.allocator,
+                                            runtimeTypeAlignment(elementBytes)))
         Memory.clear(newBuffer, newCapacity * elementBytes)
 
         if arrayView.count do

@@ -206,6 +206,7 @@ impl MainWnd
         with .quickWnd = QuickWnd.create(body, me)
         {
             .dockStyle = .Top
+
             // Keep the six-chip row centred in the content column; the scroll gutter
             // belongs to the property view below it.
             let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
@@ -958,7 +959,7 @@ impl MainWnd
         let capture = results.addSection(appStrings().ui_MenuCapture)
         .lens.addCommandRows(capture, [ActionCapture.Area, ActionCapture.Record, ActionCapture.RecordVideo, ActionCapture.RecordScreen, ActionCapture.RecordActiveWindow, ActionCapture.LastArea, ActionFile.OpenImage, ActionGlobal.ShowLibrary])
 
-        let edited = .getCapture()
+        let edited    = .getCapture()
         let mediaName = edited and edited.media == .Video ? appStrings().ui_MediaVideo :
                         edited and edited.media == .Animation ? appStrings().ui_MediaAnimation :
                         appStrings().ui_MenuImage
@@ -1023,7 +1024,7 @@ impl MainWnd
     // is a View choice in the strip and lens; its captures are also lens entries.
     mtd createRecentBar()
     {
-        let gutter = .themeMetrics().panel_GutterSize
+        let gutter  = .themeMetrics().panel_GutterSize
         let barRoom = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
         with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136 + barRoom - 12})
         {

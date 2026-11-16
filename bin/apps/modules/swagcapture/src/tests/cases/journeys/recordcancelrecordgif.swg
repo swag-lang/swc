@@ -12,14 +12,14 @@ using Core, Gui, Pixel
     let main = journey.main
 
     journey.recordAnimation(.Stop)
-    let first = unwrap main.editWnd.getCapture()
+    let first     = unwrap main.editWnd.getCapture()
     var firstPath = String.from(first.file)
     Swag.require(first.isTimed() and File.exists(firstPath))
 
     journey.recordAnimation(.Cancel)
     Swag.require(g_Recorder == null and journey.app.surfaces.count == 1)
     journey.recordAnimation(.Stop)
-    let last = unwrap main.editWnd.getCapture()
+    let last     = unwrap main.editWnd.getCapture()
     var lastPath = String.from(last.file)
     Swag.require(last.isTimed() and lastPath != firstPath and File.exists(lastPath))
 
@@ -32,5 +32,6 @@ using Core, Gui, Pixel
         if item.fi.fullName == lastPath do
             foundLast = true
     }
+
     Swag.require(foundFirst and foundLast)
 }

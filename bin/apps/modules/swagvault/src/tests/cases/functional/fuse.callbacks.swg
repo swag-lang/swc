@@ -27,8 +27,8 @@ using Core
     var attributes: Linux.stat
     Swag.require(Fuse.callbackGetattr(&owner, "/renamed".buffer, &attributes, null) == 0)
     Swag.require(attributes.st_size == 5 and
-                attributes.st_uid == owner.uid and
-                (attributes.st_mode & 0xFFF) == 0x180)
+                 attributes.st_uid == owner.uid and
+                 (attributes.st_mode & 0xFFF) == 0x180)
     Swag.require(Fuse.callbackChmod(&owner, null, 0x1A4, &info) == -Linux.ENOTSUP)
     Swag.require(Fuse.callbackChown(&owner, null, owner.uid + 1, owner.gid, &info) == -Linux.EPERM)
     Swag.require(Fuse.callbackChmod(&owner, null, 0x100, &info) == 0)

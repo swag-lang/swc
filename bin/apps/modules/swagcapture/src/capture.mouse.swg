@@ -80,7 +80,7 @@ impl Capture
                 me.endInteractiveMove()
         }
 
-        var localPos = view.surfaceToLocal(evt.surfacePos)
+        var localPos    = view.surfaceToLocal(evt.surfacePos)
         let captureRect = view.getCaptureRect()
         localPos   += view.scrollPos
         localPos.x -= captureRect.x
@@ -401,6 +401,7 @@ impl Capture
                 let form: *BaseForm = itf
                 form.timeStart = .playheadTime()
             }
+
             if editView.main.editMode == .PixSel do
                 itf.subKind = .PixSel
             let undo = .newUndo(.CreateForm)

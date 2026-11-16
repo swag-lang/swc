@@ -30,9 +30,9 @@ func returnedDesktopWindow()->Env.Window fail
 #[Swag.TestTag("integration.desktop")]
 #test
 {
-    var returned = expect returnedDesktopWindow()
+    var returned     = expect returnedDesktopWindow()
     let renderHandle = returned.nativeRenderHandle()
-    var window   = #move returned
+    var window       = #move returned
     Swag.require(window.isOpen() and window.nativeRenderHandle() == renderHandle)
     let drawable = cast(const *Env.XcbDrawable, unwrap renderHandle)[]
     Swag.require(drawable == (expect window.xcbDrawable()))
@@ -195,12 +195,12 @@ func returnedDesktopWindow()->Env.Window fail
     let context  = expect LinuxDesktop.ensure()
     let monitors = Env.getMonitors()
     Swag.require(context.xcb_connection_has_error(unwrap context.connection) == 0,
-                "optional monitor discovery must preserve the display connection")
+                 "optional monitor discovery must preserve the display connection")
     Swag.require(monitors.count == 1 and monitors[0].bounds.width > 0)
     Input.showMouseCursor(false)
     Input.showMouseCursor(true)
     Swag.require(context.xcb_connection_has_error(context.connection) == 0,
-                "unsupported cursor visibility must preserve the display connection")
+                 "unsupported cursor visibility must preserve the display connection")
     Swag.require(not context.cursorReady and context.cursorBalance == 0)
     var window = expect returnedDesktopWindow()
     expect window.showOffScreen()

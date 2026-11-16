@@ -27,7 +27,7 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, file, false, 1280, 680)
     host.surface.setTitle("Reading.html")
-    let panel  = assume cast(*Html.Panel, window.currentView)
+    let panel = assume cast(*Html.Panel, window.currentView)
     Swag.require(panel.children.count == 1 and panel.children[0] == cast(*Wnd, panel.view))
     Swag.require(not window.currentSidePanelHost!.isLocallyVisible())
     var image = host.renderSettled(window)

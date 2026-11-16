@@ -205,6 +205,7 @@ using Swag, Core
         f.main.sendCommandEvent(ActionZoom.ZoomIn)
         steps += 1
     }
+
     Swag.require(steps == EditView.ZoomStops.count - 1)
     Swag.require(Math.isEqualEpsilon(f.editView.zoom, EditView.MaxZoom, 0.001))
 }

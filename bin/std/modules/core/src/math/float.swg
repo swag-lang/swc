@@ -57,7 +57,10 @@ alias ConstF64 = Const'f64
             return x
         if factor == 1 do
             return y
-        if factor > 0 and factor < 1 and Math.isFinite(x) and Math.isFinite(y) and
+        if factor > 0 and
+           factor < 1 and
+           Math.isFinite(x) and
+           Math.isFinite(y) and
            ((x < 0 and y > 0) or (x > 0 and y < 0)) do
             return (1'f32 - factor) * x + factor * y
         return x + factor * (y - x)
@@ -69,7 +72,10 @@ alias ConstF64 = Const'f64
             return x
         if factor == 1 do
             return y
-        if factor > 0 and factor < 1 and Math.isFinite(x) and Math.isFinite(y) and
+        if factor > 0 and
+           factor < 1 and
+           Math.isFinite(x) and
+           Math.isFinite(y) and
            ((x < 0 and y > 0) or (x > 0 and y < 0)) do
             return (1'f64 - factor) * x + factor * y
         return x + factor * (y - x)

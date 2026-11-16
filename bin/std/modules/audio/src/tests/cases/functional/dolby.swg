@@ -19,38 +19,38 @@ private func ac3TestFrameWithBandwidth(bandwidth: u32)->Array'u8
 {
     var frame: Array'u8
     var bits = 0'u64
-    ac3TestAppendBits(&frame, &bits, 0x0B77, 16) // Sync word.
-    ac3TestAppendBits(&frame, &bits, 0, 16) // CRC.
-    ac3TestAppendBits(&frame, &bits, 0, 2) // 48 kHz.
-    ac3TestAppendBits(&frame, &bits, 0, 6) // 32 kbps, 128-byte frame.
-    ac3TestAppendBits(&frame, &bits, 8, 5) // AC-3 bit-stream id.
-    ac3TestAppendBits(&frame, &bits, 0, 3) // Bit-stream mode.
-    ac3TestAppendBits(&frame, &bits, 1, 3) // Mono.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No LFE.
-    ac3TestAppendBits(&frame, &bits, 0, 5) // Dialnorm.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No compression word.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No language code.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No audio production info.
-    ac3TestAppendBits(&frame, &bits, 0, 2) // Copyright and original bits.
-    ac3TestAppendBits(&frame, &bits, 0, 3) // No extended BSI or additional bytes.
+    ac3TestAppendBits(&frame, &bits, 0x0B77, 16)     // Sync word.
+    ac3TestAppendBits(&frame, &bits, 0, 16)          // CRC.
+    ac3TestAppendBits(&frame, &bits, 0, 2)           // 48 kHz.
+    ac3TestAppendBits(&frame, &bits, 0, 6)           // 32 kbps, 128-byte frame.
+    ac3TestAppendBits(&frame, &bits, 8, 5)           // AC-3 bit-stream id.
+    ac3TestAppendBits(&frame, &bits, 0, 3)           // Bit-stream mode.
+    ac3TestAppendBits(&frame, &bits, 1, 3)           // Mono.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No LFE.
+    ac3TestAppendBits(&frame, &bits, 0, 5)           // Dialnorm.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No compression word.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No language code.
+    ac3TestAppendBits(&frame, &bits, 0, 1)           // No audio production info.
+    ac3TestAppendBits(&frame, &bits, 0, 2)           // Copyright and original bits.
+    ac3TestAppendBits(&frame, &bits, 0, 3)           // No extended BSI or additional bytes.
 
-    ac3TestAppendBits(&frame, &bits, 0, 1) // Block switching.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // Dither.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No dynamic range word.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No coupling.
-    ac3TestAppendBits(&frame, &bits, 1, 2) // Exponent strategy 1.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // Block switching.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // Dither.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No dynamic range word.
+    ac3TestAppendBits(&frame, &bits, 0, 1)     // No coupling.
+    ac3TestAppendBits(&frame, &bits, 1, 2)     // Exponent strategy 1.
     ac3TestAppendBits(&frame, &bits, bandwidth, 6)
-    ac3TestAppendBits(&frame, &bits, 12, 4) // Absolute exponent.
+    ac3TestAppendBits(&frame, &bits, 12, 4)     // Absolute exponent.
     for 87 do
-        ac3TestAppendBits(&frame, &bits, 62, 7) // Keep every exponent at the absolute value.
-    ac3TestAppendBits(&frame, &bits, 0, 2) // Gain range.
-    ac3TestAppendBits(&frame, &bits, 1, 1) // First block has allocation parameters.
-    ac3TestAppendBits(&frame, &bits, 0, 11) // Allocation parameters.
-    ac3TestAppendBits(&frame, &bits, 1, 1) // SNR offsets present.
-    ac3TestAppendBits(&frame, &bits, 15, 6) // Coarse SNR: zero bit allocation.
-    ac3TestAppendBits(&frame, &bits, 0, 7) // Fine SNR and fast gain.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No delta allocation.
-    ac3TestAppendBits(&frame, &bits, 0, 1) // No skip field.
+        ac3TestAppendBits(&frame, &bits, 62, 7)     // Keep every exponent at the absolute value.
+    ac3TestAppendBits(&frame, &bits, 0, 2)      // Gain range.
+    ac3TestAppendBits(&frame, &bits, 1, 1)      // First block has allocation parameters.
+    ac3TestAppendBits(&frame, &bits, 0, 11)     // Allocation parameters.
+    ac3TestAppendBits(&frame, &bits, 1, 1)      // SNR offsets present.
+    ac3TestAppendBits(&frame, &bits, 15, 6)     // Coarse SNR: zero bit allocation.
+    ac3TestAppendBits(&frame, &bits, 0, 7)      // Fine SNR and fast gain.
+    ac3TestAppendBits(&frame, &bits, 0, 1)      // No delta allocation.
+    ac3TestAppendBits(&frame, &bits, 0, 1)      // No skip field.
 
     while frame.count < 128 do
         frame.add(0)
@@ -164,7 +164,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
         packets.add(SoundPacket{0, 128, 1536})
         var config: Array'u8
         var sound = expect SoundFile.openPacketStream(path.toString(), .Ac3, 48_000, 1, 1536, packets.toSlice(), config.toSlice())
-        var error: Swag.Error
+        var error:  Swag.Error
         discard catch sound.decodePcm16(func(_)->bool => true) as error
         Swag.require(error.value() is InvalidFormatError)
     }

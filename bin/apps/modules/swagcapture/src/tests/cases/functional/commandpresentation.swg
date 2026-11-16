@@ -26,7 +26,7 @@ using Swag, Core
     for name, index in expected do
         Swag.require(menu.items[index]!.name.text == name and menu.items[index]!.popup != null)
 
-    let capture = menu.items[0]!.popup
+    let capture       = menu.items[0]!.popup
     let captureDirect = 10 + 2 * main.monitors.count
     Swag.require(capture.items[0]!.id == ActionCapture.Area)
     Swag.require(capture.items[1 + CaptureModeIds.count + main.monitors.count]!.separator)
@@ -70,7 +70,9 @@ using Swag, Core
 
     let application = menu.items[5]!.popup
     Swag.require(application.items.count == 8)
-    Swag.require(application.items[1]!.separator and application.items[4]!.separator and application.items[6]!.separator)
+    Swag.require(application.items[1]!.separator and
+                 application.items[4]!.separator and
+                 application.items[6]!.separator)
     Swag.require(application.items[2]!.name.text == Gui.strings().appearance_Theme)
     Swag.require(application.items[3]!.name.text == Gui.strings().appearance_Language)
     Swag.require(application.items[2]!.popup.items.count == 3)
@@ -86,6 +88,7 @@ using Swag, Core
         Swag.require(host.clickPopupMenuItem(ActionCaptureDelay.Delay3))
         chosen[] = true
     }
+
     main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
     host.app.sigFrame.clear()
     host.pump()

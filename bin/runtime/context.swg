@@ -20,7 +20,7 @@ namespace Swag
         public
         {
             modules:   const [..] Module?     // Every loaded module
-            args:      string?               // The legacy process command line, when supplied by the host.
+            args:      string?     // The legacy process command line, when supplied by the host.
             arguments: const [..] string?     // Host-supplied argument values, including the executable name; used by [[Swag.args]] without parsing.
         }
     }
@@ -136,7 +136,7 @@ namespace Swag
         Warning
         Assert
         Safety
-        Check       // A failed 'Swag.check', which lets the running test go on
+        Check     // A failed 'Swag.check', which lets the running test go on
     }
 
     const MaxTraces = 32     // Maximum error traces
@@ -223,18 +223,18 @@ namespace Swag
 
         public panic: (func(string?, SourceCodeLocation))?     // A function to call if there's a panic
 
-        curError:            any?               // The current raised error
-        errorIndex:          u32                // Number of error stack levels in use
-        traceIndex:          u32                // Number of traces in the array
-        hasError:            u32                // Nonzero while an error is raised
-        errorCaptures:       *ErrorCapture?     // Live lexical owners of caught errors
-        runtimeTlsIdPlusOne: u64                // Process TLS slot shared by dynamically loaded Swag modules
-        panicStack:          [64] (*void?)      // Native call stack captured before entering a panic hook
-        panicStackCount:     u32                // Number of valid addresses in 'panicStack'
-        panicCatch:          *void?             // Innermost 'catchPanic' running on this context
-        cancelScope:         *CancelScope?      // Cancellation state of the work running on this context
+        curError:            any?                  // The current raised error
+        errorIndex:          u32                   // Number of error stack levels in use
+        traceIndex:          u32                   // Number of traces in the array
+        hasError:            u32                   // Nonzero while an error is raised
+        errorCaptures:       *ErrorCapture?        // Live lexical owners of caught errors
+        runtimeTlsIdPlusOne: u64                   // Process TLS slot shared by dynamically loaded Swag modules
+        panicStack:          [64] (*void?)         // Native call stack captured before entering a panic hook
+        panicStackCount:     u32                   // Number of valid addresses in 'panicStack'
+        panicCatch:          *void?                // Innermost 'catchPanic' running on this context
+        cancelScope:         *CancelScope?         // Cancellation state of the work running on this context
         testCheck:           (func(string?, SourceCodeLocation)->bool)?     // Native test verdict handler shared across imported runtimes
-        compilerRaise:       (func(*Context))?  // Compiler-owned diagnostic transport; null in a native process
+        compilerRaise:       (func(*Context))?     // Compiler-owned diagnostic transport; null in a native process
     }
 
     // Represent a part of a source code file.

@@ -159,7 +159,7 @@ private var linuxPageRegistryCache: u64
 private func __linuxPageRegistry()->*LinuxPageRegistry?
 {
     let processId = __LinuxRT.getpid()
-    let known = Swag.atomicLoad(&linuxPageRegistryCache)
+    let known     = Swag.atomicLoad(&linuxPageRegistryCache)
     if known and cast(*LinuxPageRegistry, known).processId == processId do
         return cast(*LinuxPageRegistry, known)
     let registry = __hostProcessStorage(LinuxPageRegistryKey, #sizeof(LinuxPageRegistry))

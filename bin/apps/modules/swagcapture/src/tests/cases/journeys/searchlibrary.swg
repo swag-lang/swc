@@ -16,7 +16,7 @@ using Core, Gui, Pixel
     {
         discard journey.newCapture()
         let capture = unwrap main.editWnd.getCapture()
-        capture.title = title
+        capture.title   = title
         capture.changed = true
         main.saveCapture(capture)
     }
@@ -25,7 +25,8 @@ using Core, Gui, Pixel
     main.libWnd.setSearch("South")
     journey.waitFor("search captures", func|main|()->bool
     {
-        return main.libraryMode and main.libWnd.view.items.count == 1 and
+        return main.libraryMode and
+               main.libWnd.view.items.count == 1 and
                main.libWnd.view.items[0].capture!.title == "South report"
     })
 

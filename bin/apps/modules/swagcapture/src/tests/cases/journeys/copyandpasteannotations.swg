@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(160, 120)
+    var path    = journey.newCapture(160, 120)
     let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Shape, .Shape, {15, 15}, {65, 60})
     main.sendCommandEvent(ActionCopyPaste.Copy)

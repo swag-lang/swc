@@ -16,6 +16,7 @@ using Core, Pixel, Gui, Viewers
         entry.packed = entry.plain
         entries.add(#move entry)
     }
+
     let file = Testing.tempFilePath("scope-many-entries-", ".zip")
     defer discard catch File.delete(file)
     let bytes = buildZipEntries(entries.toSlice())
@@ -29,7 +30,7 @@ using Core, Pixel, Gui, Viewers
     host.setup(900, 600)
     shipFrame(&host)
     var registry = createViewerPluginRegistry()
-    let window = ViewerWindow.create(&host.surfaceWnd, #move registry)
+    let window   = ViewerWindow.create(&host.surfaceWnd, #move registry)
     window.thumbnailMode = true
     window.resize(900, 600)
     window.openFile(file)

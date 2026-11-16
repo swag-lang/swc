@@ -160,9 +160,9 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     let faceAllocatorView:    IAllocator = &faceAllocator
     context.allocator = contextAllocatorView
 
-    let faceBaseline    = faceAllocator.stats().countAlloc
-    let contextBaseline = contextAllocator.stats().countAlloc
-    let face = expect Face.load(bytes.toSlice(), faceAllocatorView)
+    let faceBaseline      = faceAllocator.stats().countAlloc
+    let contextBaseline   = contextAllocator.stats().countAlloc
+    let face              = expect Face.load(bytes.toSlice(), faceAllocatorView)
     let loadedAllocations = faceAllocator.stats().countAlloc
     Swag.require(contextAllocator.stats().countAlloc == contextBaseline)
     Swag.require(loadedAllocations > faceBaseline)

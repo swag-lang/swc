@@ -34,9 +34,11 @@ using Core
         case 0:
             dlg.browser.setFileName("colon:é.txt")
             Swag.require(dlg.closeWithResult(Dialog.BtnOk))
+
         case 1:
             dlg.browser.setFileName("new:é.txt")
             Swag.require(dlg.closeWithResult(Dialog.BtnOk))
+
         case 2:
             dlg.browser.setFileName("missing/sub")
             Swag.require(not dlg.closeWithResult(Dialog.BtnOk))
@@ -45,20 +47,20 @@ using Core
     }
 
     var selected = FileDlg.create(surface, {mode: .SelectFile, initialFolder: temporary.toString(), showLocationsPane: false})
-    action = 0
+    action  = 0
     pending = selected
     Swag.require(selected.doModal() == Dialog.BtnOk)
     Swag.require(selected.selectedPath() == file)
 
     var saved = FileDlg.create(surface, {mode: .CreateFile, initialFolder: temporary.toString(), showLocationsPane: false})
-    action = 1
+    action  = 1
     pending = saved
     Swag.require(saved.doModal() == Dialog.BtnOk)
     let newFile = Path.combine(temporary, "new:é.txt")
     Swag.require(saved.selectedPath() == newFile and not File.exists(newFile))
 
     var cancelled = FileDlg.create(surface, {mode: .SelectFile, initialFolder: temporary.toString(), showLocationsPane: false})
-    action = 2
+    action  = 2
     pending = cancelled
     Swag.require(cancelled.doModal() == Dialog.BtnCancel)
     Swag.require(pending == null)

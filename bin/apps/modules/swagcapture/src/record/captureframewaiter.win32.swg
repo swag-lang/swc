@@ -13,8 +13,7 @@ impl CaptureFrameWaiter
 {
     mtd open()
     {
-        .timer = CreateWaitableTimerExW(null, null, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION,
-                                        SYNCHRONIZE | TIMER_MODIFY_STATE)
+        .timer = CreateWaitableTimerExW(null, null, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, SYNCHRONIZE | TIMER_MODIFY_STATE)
         if not .timer do
             .timer = CreateWaitableTimerW(null, FALSE, null)
     }

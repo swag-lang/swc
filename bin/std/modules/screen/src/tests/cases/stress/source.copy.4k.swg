@@ -7,13 +7,13 @@ using Swag, Core, Pixel
 #[Swag.TestTag("stress")]
 #test
 {
-    const Width = 7680'u64
-    const Height = 2168'u64
+    const Width      = 7680'u64
+    const Height     = 2168'u64
     const Iterations = 16'u64
-    var source = Image.create(cast(s32, Width), cast(s32, Height), .BGRA8)
-    var output = Image.create(cast(s32, Width), cast(s32, Height), .BGRA8)
+    var source    = Image.create(cast(s32, Width), cast(s32, Height), .BGRA8)
+    var output    = Image.create(cast(s32, Width), cast(s32, Height), .BGRA8)
     var reference = Image.create(cast(s32, Width), cast(s32, Height), .BGRA8)
-    let pixels = cast([*] u32, source.pixels.storage())
+    let pixels    = cast([*] u32, source.pixels.storage())
     for index in Width * Height do
         pixels[index] = cast(u32, (index * 2_654_435_761'u64) & 0xFFFF_FFFF)
 
@@ -32,5 +32,7 @@ using Swag, Core, Pixel
 
     Swag.require(Slice.equals(output.pixels.toSlice(), reference.pixels.toSlice()))
     Console.printf("Virtual desktop BGRA copy: parallel % us, serial % us for % frames\n",
-                   parallelMicros, serialMicros, Iterations)
+                   parallelMicros,
+                   serialMicros,
+                   Iterations)
 }

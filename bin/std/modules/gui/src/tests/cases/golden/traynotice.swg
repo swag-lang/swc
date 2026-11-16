@@ -13,9 +13,7 @@ using Swag, Core, Pixel
 
     host.theme.setLight()
     host.notify(.ThemeChanged)
-    let notice = unwrap TrayNotice.open(&host.surface, "Capture continues in the background.",
-                                         "Open it from the notification area to continue.",
-                                         "Do not show this message again")
-    var image = host.renderSurface(unwrap notice.surface)
+    let notice = unwrap TrayNotice.open(&host.surface, "Capture continues in the background.", "Open it from the notification area to continue.", "Do not show this message again")
+    var image  = host.renderSurface(unwrap notice.surface)
     Pixel.Testing.assertImageGolden(&image, "traynotice.papier")
 }

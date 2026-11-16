@@ -299,15 +299,20 @@ func fragmentedPacketSource()->ByteSource fail
     const AudioConfig: [2] u8 = [0x12, 0x10]
     var pictureSource = expect fragmentedPacketSource()
     var soundSource   = expect ByteSource.openFile(videoFixturePath("glint-aac-lc-stereo.packets").toString())
-    let picture = expect fragmentedPacket(&pictureSource)
-    let sound   = expect fragmentedPacket(&soundSource)
-    var video   = expect FramePacer.createWithOrigin(expect FrameRate.create(30, 1),
-                                                     1_000_000_000, 90_000, 1_000_000_000)
-    var audio   = expect SampleTimeline.createWithOrigin(44_100, 1_000_000_000, 1_000_000_000)
-    var writer  = expect Mp4.FragmentedWriter.createWithAudio(path, 64, 48, 90_000,
-                                                               config.toSlice(),
-                                                               Mp4.FragmentedAudioConfig{44_100, 2,
-                                                                                         Swag.makeSlice(&AudioConfig[0], 2)})
+    let picture       = expect fragmentedPacket(&pictureSource)
+    let sound         = expect fragmentedPacket(&soundSource)
+    var video         = expect FramePacer.createWithOrigin(expect FrameRate.create(30, 1),
+                                                           1_000_000_000,
+                                                           90_000,
+                                                           1_000_000_000)
+    var audio  = expect SampleTimeline.createWithOrigin(44_100, 1_000_000_000, 1_000_000_000)
+    var writer = expect Mp4.FragmentedWriter.createWithAudio(path,
+                                                             64,
+                                                             48,
+                                                             90_000,
+                                                             config.toSlice(),
+                                                             Mp4.FragmentedAudioConfig{44_100, 2,
+                                                                                       Swag.makeSlice(&AudioConfig[0], 2)})
     var slot: FrameSlot
     Swag.require(expect video.tryAccept(1_100_000_000, &slot))
     let placement = expect audio.place(1_120_000_000, 1024)
@@ -328,7 +333,8 @@ func fragmentedPacketSource()->ByteSource fail
     Swag.require(reader.frameCount() == 1 and reader.audioTrackCount() == 1)
     Swag.require(Math.isEqualEpsilon(reader.frameTimestamp(0), 0.0, 0.000001))
     Swag.require(Math.isEqualEpsilon((unwrap reader.audioTrack(0)).timelineStartSeconds(),
-                                     0.02, 0.000001))
+                                     0.02,
+                                     0.000001))
 }
 
 // Rejected packets do not advance the sequence or leave a partial fragment.

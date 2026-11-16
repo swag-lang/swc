@@ -60,9 +60,9 @@ struct FileNotFoundError
 {
     public
     {
-        using base: Swag.BaseError     // Embedded base state.
-        fileName:   string?            // Path that was not found, when known.
-        nativeErrorID: u64             // Host error code, or zero for a Core-generated failure.
+        using base:    Swag.BaseError     // Embedded base state.
+        fileName:      string?            // Path that was not found, when known.
+        nativeErrorID: u64                // Host error code, or zero for a Core-generated failure.
     }
 }
 
@@ -74,9 +74,9 @@ struct InvalidFileNameError
 {
     public
     {
-        using base: Swag.BaseError     // Embedded base state.
-        fileName:   string?            // Rejected path, when known.
-        nativeErrorID: u64             // Host error code, or zero for a lexical rejection.
+        using base:    Swag.BaseError     // Embedded base state.
+        fileName:      string?            // Rejected path, when known.
+        nativeErrorID: u64                // Host error code, or zero for a lexical rejection.
     }
 }
 

@@ -76,7 +76,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     scroll.setScrollPos(0, 0)
 
     var grip = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,
-                                                 scroll.clientRect().height * 0.65})
+                                                scroll.clientRect().height * 0.65})
     scroll.surface!.surfaceToScreen(&grip)
     f.gui.moveMouse(grip)
     f.gui.mouseDown(grip)
@@ -672,7 +672,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     var fixture: HeadlessFixture
     fixture.setup()
     defer fixture.shutdown()
-    let prop = testSetupPropWnd(&fixture)
+    let prop    = testSetupPropWnd(&fixture)
     let capture = fixture.capture
     capture.media = .Animation
     capture.timeline.duration = 300_000
@@ -681,7 +681,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
     prop.selectionHasChanged()
 
     var start: *EditBox?
-    var end: *EditBox?
+    var end:   *EditBox?
     var whole: *PushButton?
     for item in prop.grid.items
     {
@@ -695,6 +695,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
                 if it.typeValue.name == "time.end" do
                     end = ctrl.edit
             }
+
             if child is PushButton as button
             {
                 if it.typeValue.name == "time.whole" do
@@ -702,6 +703,7 @@ func testFindStyleButtons(prop: *PropWnd, tip: string)->Array'(*IconButton)
             }
         }
     }
+
     Swag.require(start and end and whole)
 
     start.setText("0.15")

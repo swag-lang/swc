@@ -368,10 +368,10 @@ impl PopupListCtrl
         {
             .setFrameFlags(.SmallShadow)
             .setFrameForm(.Square)
+
             // The scrolling child grows into the trailing padding without moving its text.
             let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
-            .setPadding(gutter, .themeMetrics().frameWnd_SquarePadding,
-                        gutter, .themeMetrics().frameWnd_SquarePadding)
+            .setPadding(gutter, .themeMetrics().frameWnd_SquarePadding, gutter, .themeMetrics().frameWnd_SquarePadding)
             .scrollWnd = .createView'ScrollWnd()
             .scrollWnd.dockStyle = .Center
             let popupView = .scrollWnd.createView'PopupListView()
@@ -449,8 +449,8 @@ impl PopupListCtrl
         // reads on its own while nothing is highlighted.
         .listView().hotIdx = .markSelectionOnly ? Swag.U32.Max : .selectedIndex
 
-        let pt  = .parent!.surfaceToLocal(Math.Point{x, y})
-        var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
+        let pt     = .parent!.surfaceToLocal(Math.Point{x, y})
+        var pos    = Math.Rectangle{pt.x, pt.y, 0, 0}
         let gutter = .themeMetrics().scrollBar_HitSize + .themeMetrics().scrollBar_EdgeInset
         pos.width  = Math.max(width + gutter, .minimumWidth + gutter, .contentWidth(), 0)
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))

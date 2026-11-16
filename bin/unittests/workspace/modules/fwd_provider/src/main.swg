@@ -1,7 +1,7 @@
 #global public
 
 var copies: s32
-var moves: s32
+var moves:  s32
 
 struct FwdValue
 {

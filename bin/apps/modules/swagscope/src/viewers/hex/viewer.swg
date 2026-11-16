@@ -662,7 +662,6 @@ impl Panel
         return result
     }
 
-
     // Creates the analysis side panel, and wires the host toggle that opens it.
     private mtd createAnalysisPanel(host: Viewer.Host)
     {

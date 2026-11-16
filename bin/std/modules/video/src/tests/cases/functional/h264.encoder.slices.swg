@@ -11,13 +11,14 @@ func sliceTestFrame(width, height: s32, mode: u32)->Nv12Frame fail
     {
         for x in cast(u64, width)
         {
-            let at = (y * cast(u64, width) + x) * 3
+            let at    = (y * cast(u64, width) + x) * 3
             let value = mode != 0 ? cast(u8, 30 + (x / 4 * 17 + y / 4 * 31) % 160 + mode - 1) : 72'u8
-            rgb[at] = value
+            rgb[at]     = value
             rgb[at + 1] = value
             rgb[at + 2] = value
         }
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -33,12 +34,13 @@ func sliceTestScrolledFrame(shift: u64)->Nv12Frame fail
         for x in 64'u64
         {
             let sampleX = (x + shift) % 64
-            let at = (y * 64 + x) * 3
-            rgb[at] = cast(u8, (sampleX * 7 + y * 3) & 255)
+            let at      = (y * 64 + x) * 3
+            rgb[at]     = cast(u8, (sampleX * 7 + y * 3) & 255)
             rgb[at + 1] = cast(u8, (sampleX * 5 + y * 11) & 255)
             rgb[at + 2] = cast(u8, (sampleX * 13 + y * 2) & 255)
         }
     }
+
     let image = Image.create(64, 64, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -49,7 +51,7 @@ func sliceTestFirstMb(nal: const [..] u8)->u32
 {
     Swag.require(nal.count >= 2)
     var bitPosition = 0'u64
-    var zeroCount = 0'u32
+    var zeroCount   = 0'u32
     while true
     {
         Swag.require(1 + bitPosition / 8 < nal.count)
@@ -60,13 +62,15 @@ func sliceTestFirstMb(nal: const [..] u8)->u32
         zeroCount += 1
         Swag.require(zeroCount < 32)
     }
+
     var result = 0'u32
     for zeroCount
     {
         Swag.require(1 + bitPosition / 8 < nal.count)
-        result = (result << 1) | cast(u32, (nal[1 + bitPosition / 8] >> cast(u8, 7 - bitPosition % 8)) & 1)
+        result      = (result << 1) | cast(u32, (nal[1 + bitPosition / 8] >> cast(u8, 7 - bitPosition % 8)) & 1)
         bitPosition += 1
     }
+
     return result + (1'u32 << zeroCount) - 1
 }
 
@@ -87,6 +91,7 @@ func sliceTestPacket(packet: const [..] u8, count, mbWidth, mbHeight: u32, key: 
         Swag.require(sliceTestFirstMb(nal) == (index * mbHeight / count) * mbWidth)
         offset += size
     }
+
     Swag.require(offset == packet.count)
 }
 
@@ -94,8 +99,7 @@ func sliceTestExact(original: const *Nv12Frame, decoded: const *PlanarFrame)
 {
     Swag.require(decoded.width == original.width and decoded.height == original.height)
     Swag.require(decoded.luma.count == original.luma().count)
-    Swag.require(Memory.compare(decoded.luma.storage(), original.luma().buffer,
-                                decoded.luma.count) == 0)
+    Swag.require(Memory.compare(decoded.luma.storage(), original.luma().buffer, decoded.luma.count) == 0)
     let uv = original.chroma()
     for index in decoded.chromaB.count
     {
@@ -119,22 +123,20 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
     {
         let path = videoTempPath("h264-encoder-slices", "mp4")
         defer discard catch File.delete(path)
-        let flat = expect sliceTestFrame(66, 70, 0)
-        let patterned = expect sliceTestFrame(66, 70, 1)
-        let shifted = expect sliceTestFrame(66, 70, 2)
-        var encoder = expect H264.Encoder.create(66, 70, keyInterval: 4, sliceCount: count)
-        var duplicate = expect H264.Encoder.create(66, 70, keyInterval: 4, sliceCount: count)
-        var writer = expect Mp4.FragmentedWriter.create(path, 66, 70, 90_000,
-                                                        encoder.decoderConfig())
+        let flat         = expect sliceTestFrame(66, 70, 0)
+        let patterned    = expect sliceTestFrame(66, 70, 1)
+        let shifted      = expect sliceTestFrame(66, 70, 2)
+        var encoder      = expect H264.Encoder.create(66, 70, keyInterval: 4, sliceCount: count)
+        var duplicate    = expect H264.Encoder.create(66, 70, keyInterval: 4, sliceCount: count)
+        var writer       = expect Mp4.FragmentedWriter.create(path, 66, 70, 90_000, encoder.decoderConfig())
         let frames: [5] const *Nv12Frame = [&flat, &patterned, &shifted, &shifted, &flat]
         var previousSize = 0'u64
         for index in 5'u64
         {
-            let packet = expect encoder.encode(frames[index], index * 3_000, 3_000)
+            let packet   = expect encoder.encode(frames[index], index * 3_000, 3_000)
             let matching = expect duplicate.encode(frames[index], index * 3_000, 3_000)
             Swag.require(packet.bytes.count == matching.bytes.count)
-            Swag.require(Memory.compare(packet.bytes.buffer, matching.bytes.buffer,
-                                        packet.bytes.count) == 0)
+            Swag.require(Memory.compare(packet.bytes.buffer, matching.bytes.buffer, packet.bytes.count) == 0)
             sliceTestPacket(packet.bytes, count, 5, 5, index == 0 or index == 4)
             if index == 1 do
                 previousSize = packet.bytes.count
@@ -142,6 +144,7 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
                 Swag.require(packet.bytes.count < previousSize)
             expect writer.addPacket(packet)
         }
+
         expect writer.end()
         var reader = expect Reader.open(path)
         Swag.require(reader.frameCount() == 5)
@@ -161,25 +164,22 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
     {
         let path = videoTempPath("h264-encoder-slices-qp", "mp4")
         defer discard catch File.delete(path)
-        let first = expect sliceTestScrolledFrame(0)
-        let changed = expect sliceTestScrolledFrame(1)
-        var encoder = expect H264.Encoder.create(64, 64, quantizationQp: 28,
-                                                  sliceCount: count)
-        var duplicate = expect H264.Encoder.create(64, 64, quantizationQp: 28,
-                                                    sliceCount: count)
-        var writer = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000,
-                                                        encoder.decoderConfig())
+        let first     = expect sliceTestScrolledFrame(0)
+        let changed   = expect sliceTestScrolledFrame(1)
+        var encoder   = expect H264.Encoder.create(64, 64, quantizationQp: 28, sliceCount: count)
+        var duplicate = expect H264.Encoder.create(64, 64, quantizationQp: 28, sliceCount: count)
+        var writer    = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000, encoder.decoderConfig())
         let frames: [3] const *Nv12Frame = [&first, &changed, &changed]
         for index in 3'u64
         {
-            let packet = expect encoder.encode(frames[index], index * 3_000, 3_000)
+            let packet   = expect encoder.encode(frames[index], index * 3_000, 3_000)
             let matching = expect duplicate.encode(frames[index], index * 3_000, 3_000)
             Swag.require(packet.bytes.count == matching.bytes.count)
-            Swag.require(Memory.compare(packet.bytes.buffer, matching.bytes.buffer,
-                                        packet.bytes.count) == 0)
+            Swag.require(Memory.compare(packet.bytes.buffer, matching.bytes.buffer, packet.bytes.count) == 0)
             sliceTestPacket(packet.bytes, count, 4, 4, index == 0)
             expect writer.addPacket(packet)
         }
+
         expect writer.end()
         var reader = expect Reader.open(path)
         Swag.require(reader.frameCount() == 3)
@@ -196,14 +196,13 @@ func sliceTestSameDecoded(left, right: const *PlanarFrame)
 // Slice counts must fit the picture and the bounded encoder contract.
 #test
 {
-    let frame = expect sliceTestFrame(64, 64, 1)
-    var defaultEncoder = expect H264.Encoder.create(64, 64)
+    let frame           = expect sliceTestFrame(64, 64, 1)
+    var defaultEncoder  = expect H264.Encoder.create(64, 64)
     var explicitEncoder = expect H264.Encoder.create(64, 64, sliceCount: 1)
-    let defaultPacket = expect defaultEncoder.encode(&frame, 0, 3_000)
-    let explicitPacket = expect explicitEncoder.encode(&frame, 0, 3_000)
+    let defaultPacket   = expect defaultEncoder.encode(&frame, 0, 3_000)
+    let explicitPacket  = expect explicitEncoder.encode(&frame, 0, 3_000)
     Swag.require(defaultPacket.bytes.count == explicitPacket.bytes.count)
-    Swag.require(Memory.compare(defaultPacket.bytes.buffer, explicitPacket.bytes.buffer,
-                                defaultPacket.bytes.count) == 0)
+    Swag.require(Memory.compare(defaultPacket.bytes.buffer, explicitPacket.bytes.buffer, defaultPacket.bytes.count) == 0)
 
     var rejected: Swag.Error
     discard catch H264.Encoder.create(64, 64, sliceCount: 0) as rejected

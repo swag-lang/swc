@@ -127,26 +127,20 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     const Config: [2] u8 = [0x12, 0x10]
     const Lead = 1_024'u64
     const Tail = 37'u64
-    let path = audioGetTestDataPath("aac-lc-stereo-44100.aac")
-    let packets = expect aacTestPackets(path)
+    let path          = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let packets       = expect aacTestPackets(path)
     let decodedFrames = packets.count * 1_024
-    var full = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
-                                                  decodedFrames, packets.toSlice(), Config)
-    var trimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
-                                                     decodedFrames, packets.toSlice(), Config,
-                                                     {leadingTrimFrames: Lead,
-                                                      trailingTrimFrames: Tail})
+    var full          = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, decodedFrames, packets.toSlice(), Config)
+    var trimmed       = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, decodedFrames, packets.toSlice(), Config, {leadingTrimFrames: Lead,
+                                                                                                                              trailingTrimFrames: Tail})
     Swag.require(trimmed.sampleFrameCount() == decodedFrames - Lead - Tail)
     var invalidPadding: Swag.Error
-    discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
-                                             decodedFrames, packets.toSlice(), Config,
-                                             {trailingTrimFrames: 1_024}) as invalidPadding
+    discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2, decodedFrames, packets.toSlice(), Config, {trailingTrimFrames: 1_024}) as invalidPadding
     Swag.require(invalidPadding.value() is BadParameterError)
     var withTerminal: Array'SoundPacket
     withTerminal.add(packets.toSlice())
     withTerminal.add({0, 1, 0})
-    let untrimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
-                                                       decodedFrames, withTerminal.toSlice(), Config)
+    let untrimmed = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, decodedFrames, withTerminal.toSlice(), Config)
     Swag.require(untrimmed.sampleFrameCount() == decodedFrames)
     var all: Array's16
     expect full.decodePcm16(func|all = &all|(part: const [..] s16)->bool
@@ -176,6 +170,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
         let samples = cast(const [*] s16, part.buffer)
         played.add(samples[until part.size / #sizeof(s16)])
     }
+
     Swag.require(Slice.equals(played.toSlice(), audible.toSlice()))
 
     let lastStart = trimmed.sampleFrameCount() - 23
@@ -191,12 +186,10 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 #test
 {
     const Config: [2] u8 = [0x12, 0x10]
-    let path = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     var packets = expect aacTestPackets(path)
     packets.add({0, 0, 1_024})
-    var sound = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2,
-                                                  packets.count * 1_024, packets.toSlice(), Config,
-                                                  {trailingTrimFrames: 37})
+    var sound = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1_024, packets.toSlice(), Config, {trailingTrimFrames: 37})
     discard expect createNoSoundEngine()
     defer destroyEngine()
     let voice = expect Voice.create(&sound)
@@ -403,8 +396,8 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 // The reader rejects ADTS packets with multiple raw data blocks, which the packet decoder cannot decode.
 #test
 {
-    var bytes    = expect File.readAllBytes(audioGetTestDataPath("aac-lc-stereo-44100.aac"))
-    bytes[6]     = (bytes[6] & 0xFC) | 1
+    var bytes = expect File.readAllBytes(audioGetTestDataPath("aac-lc-stereo-44100.aac"))
+    bytes[6] = (bytes[6] & 0xFC) | 1
     let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
                                  Format.toString("audio-aac-multiblock-%.aac", Guid128.random()))
     defer discard catch File.delete(temporary)
@@ -419,8 +412,8 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 #test
 {
     var bytes = expect File.readAllBytes(audioGetTestDataPath("aac-lc-stereo-44100.aac"))
-    bytes[2]  = bytes[2] | 1
-    bytes[3]  = (bytes[3] & 0x3F) | 0xC0
+    bytes[2] = bytes[2] | 1
+    bytes[3] = (bytes[3] & 0x3F) | 0xC0
     let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
                                  Format.toString("audio-aac-channel-config-%.aac", Guid128.random()))
     defer discard catch File.delete(temporary)
@@ -435,7 +428,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 #test
 {
     var bytes = expect File.readAllBytes(audioGetTestDataPath("aac-lc-stereo-44100.aac"))
-    bytes[2]  = (bytes[2] & 0xC3) | 0x30
+    bytes[2] = (bytes[2] & 0xC3) | 0x30
     let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
                                  Format.toString("audio-aac-rate-index-%.aac", Guid128.random()))
     defer discard catch File.delete(temporary)

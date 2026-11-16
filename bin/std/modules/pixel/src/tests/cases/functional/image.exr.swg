@@ -72,14 +72,15 @@ func exrMixedRgbYFixture()->ConcatBuffer
     for name in ["B", "G", "R", "Y"]
     {
         exrAddText(&channels, name)
-        exrAddU32(&channels, 1) // HALF channel.
+        exrAddU32(&channels, 1)     // HALF channel.
         exrAddU32(&channels, 0)
         exrAddU32(&channels, 1)
         exrAddU32(&channels, 1)
     }
+
     channels.addNative(0'u8)
 
-    var compression: [1] u8 = [0] // No compression.
+    var compression: [1] u8 = [0]     // No compression.
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
@@ -103,13 +104,13 @@ func exrUnalignedFloatFixture()->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
-    exrAddU32(&channels, 2) // FLOAT channel.
+    exrAddU32(&channels, 2)     // FLOAT channel.
     exrAddU32(&channels, 0)
     exrAddU32(&channels, 1)
     exrAddU32(&channels, 1)
     channels.addNative(0'u8)
 
-    var compression: [1] u8 = [0] // No compression.
+    var compression: [1] u8 = [0]     // No compression.
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
@@ -126,14 +127,14 @@ func exrUnalignedFloatFixture()->ConcatBuffer
     exrAddU32(&result, Exr.Magic)
     exrAddU32(&result, 2)
     result.addBytes(unwrap header.toSlice())
-    let tableEnd   = result.count() + 8
+    let tableEnd    = result.count() + 8
     let chunkOffset = tableEnd + (tableEnd & 1 ? 0 : 1)
     exrAddU64(&result, chunkOffset)
     while result.count() < chunkOffset do
         result.addNative(0'u8)
-    exrAddU32(&result, 0)          // First scanline.
-    exrAddU32(&result, 4)          // One FLOAT sample.
-    exrAddU32(&result, 0x3F800000) // 1.0f, at an odd address.
+    exrAddU32(&result, 0)     // First scanline.
+    exrAddU32(&result, 4)     // One FLOAT sample.
+    exrAddU32(&result, 0x3F800000)     // 1.0f, at an odd address.
     return result
 }
 

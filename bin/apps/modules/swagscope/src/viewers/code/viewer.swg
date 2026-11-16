@@ -91,9 +91,9 @@ struct Panel
 
     // The whole file counted in the background for the information sheet, apart from the window
     // the editor streams.
-    statisticsLoad:    Viewer.BackgroundLoad'TextStatistics
-    statistics:        TextStatistics
-    hasStatistics:     bool
+    statisticsLoad: Viewer.BackgroundLoad'TextStatistics
+    statistics:     TextStatistics
+    hasStatistics:  bool
 }
 
 impl Panel
@@ -646,5 +646,5 @@ func createViewer(host: Viewer.Host)
 
     view.statisticsLoad.start(host.fileName(), &TextStatisticsCounter.loadUtf8, view)
     host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null,
-                       retire:    func|view|()->bool => view.statisticsLoad.retire()})
+                       retire: func|view|()->bool => view.statisticsLoad.retire()})
 }

@@ -36,7 +36,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         let safeValueType = valueType
         while one.count and one[0] != '#'
         {
-            let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
+            let addrVal       = Reflection.appendDynamicArrayElement(addr, safeValueType)
             let previousCount = one.count
             one = try parseValue(addrVal, safeValueType, one)
             if one.count >= previousCount do
@@ -58,7 +58,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             if cpt == arrayType.totalCount do
                 fail InvalidFormatError{"too many static array values"}
             let previousCount = one.count
-            one     = try parseValue(addrVal, arrayType.finalType, one)
+            one = try parseValue(addrVal, arrayType.finalType, one)
             if one.count >= previousCount do
                 fail InvalidFormatError{"array value parser did not consume input"}
             one     = Tokenize.eatSpaces(one)

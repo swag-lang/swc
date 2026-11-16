@@ -505,8 +505,8 @@ impl String
         .grow(.length + 2)
 
         let buffer = unwrap .buffer
-        buffer[.length]     = value
-        .length += 1
+        buffer[.length] = value
+        .length         += 1
         buffer[.length] = 0
     }
 

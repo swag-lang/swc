@@ -279,11 +279,11 @@ public impl LinePath
             .polygon.recompute()
             .triangles.clear()
             .triangleOffsets.clear()
-            .minBounds        = .polygon.minBounds
-            .maxBounds        = .polygon.maxBounds
-            .isDirty          = false
-            .isFlatten        = true
-            .revision         = nextContourRevision()
+            .minBounds = .polygon.minBounds
+            .maxBounds = .polygon.maxBounds
+            .isDirty   = false
+            .isFlatten = true
+            .revision  = nextContourRevision()
             return
         }
 

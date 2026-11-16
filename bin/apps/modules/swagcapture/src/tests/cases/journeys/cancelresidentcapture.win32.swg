@@ -9,13 +9,13 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    let main = journey.main
-    let app = journey.app
+    let main    = journey.main
+    let app     = journey.app
     let surface = journey.surface
     surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
     surface.hide()
     main.editorOptions.showResidentNotice = true
-    main.editorOptions.residentNotices = 0
+    main.editorOptions.residentNotices    = 0
     defer main.residentNotice?.close()
 
     var canceled: bool

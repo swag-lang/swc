@@ -442,6 +442,7 @@ func convertInt(buf: *ConcatBuffer, value: const any?, fmt: ConvertFormatInt)
     }
 
     const Tbl = "0123456789ABCDEF"
+
     // 255 is the maximum supported width. Leave index 0 available as a leading-sign slot.
     var tmp: [256] u8
     var cpt = 255'u32

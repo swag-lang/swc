@@ -11,9 +11,9 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(360, 220)
+    var path    = journey.newCapture(360, 220)
     let capture = unwrap main.editWnd.getCapture()
-    let view = main.editWnd.editView
+    let view    = main.editWnd.editView
 
     journey.drawForm(ActionToolMode.Text, .Text, {20, 25}, {150, 75})
     let text = assume cast(*FormText, capture.forms[0])
@@ -59,10 +59,12 @@ using Core, Gui, Pixel
         let opened = main.editWnd.getCapture()
         if main.libraryMode or not opened or opened.file != path or opened.forms.count != 3 do
             return false
-        let written = assume cast(*FormText, opened.forms[0])
-        let noted = assume cast(*FormCallout, opened.forms[1])
+        let written  = assume cast(*FormText, opened.forms[0])
+        let noted    = assume cast(*FormCallout, opened.forms[1])
         let numbered = assume cast(*FormStep, opened.forms[2])
-        return written.text == "Review" and written.fontStyle == .BoldItalic and
-               noted.text == "Look here" and numbered.index == 7
+        return written.text == "Review" and
+               written.fontStyle == .BoldItalic and
+               noted.text == "Look here" and
+               numbered.index == 7
     })
 }

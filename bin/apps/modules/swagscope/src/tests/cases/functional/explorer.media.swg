@@ -91,7 +91,7 @@ using Core, Gui, Pixel, Audio
 {
     var host: Testing.HeadlessHost
     host.setup(880, 420)
-    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = false
     let explorer = Explorer.create(window.documentPanel, window)
     window.explorer       = explorer
@@ -163,7 +163,7 @@ using Core, Gui, Pixel, Audio
     for &entry, index in explorer.entries where entry.name == "glint-aac-mjpeg.mp4"
     {
         selected = index
-        entry.movie.title = "Glint"
+        entry.movie.title    = "Glint"
         entry.movie.director = "A director"
         entry.movie.overview = "A short film"
         entry.technical.add(.Format, "MPEG-4")

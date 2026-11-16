@@ -6,7 +6,10 @@ using Core
 // Resolves a package-relative URL to a safe normalized ZIP path, or empty when it escapes the package.
 func resolvePath(baseDirectory: string, reference: string)->String
 {
-    if not reference.count or reference[0] == '/'u8 or Utf8.contains(reference, "\\") or Utf8.contains(reference, "://") do
+    if not reference.count or
+       reference[0] == '/'u8 or
+       Utf8.contains(reference, "\\") or
+       Utf8.contains(reference, "://") do
         return {}
 
     var parts: Array'String
@@ -27,6 +30,7 @@ func resolvePath(baseDirectory: string, reference: string)->String
             discard parts.popBack()
             continue
         }
+
         if not Path.isValidFileName(part) do
             return {}
         parts.add(part)
@@ -41,6 +45,7 @@ func resolvePath(baseDirectory: string, reference: string)->String
             result += '/'u8
         result += part[]
     }
+
     return result
 }
 

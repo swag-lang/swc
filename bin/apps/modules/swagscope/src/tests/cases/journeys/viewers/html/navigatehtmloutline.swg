@@ -19,13 +19,13 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Outline)
     let outline = assume cast(*DocumentOutline, window.currentSidePanelHost!.children[0].children[0])
     journey.waitFor("outline shown", func|outline|()->bool => outline.isLocallyVisible() and
-                                                         outline.rows.count == 2)
+                                                              outline.rows.count == 2)
 
     outline.filterBox.setText("Details")
     Swag.require(outline.rows.count == 1)
     outline.filterBox.setText("")
     outline.list.selectLine(1)
-    let html = assume cast(*Html.Panel, window.currentView)
+    let html   = assume cast(*Html.Panel, window.currentView)
     let scroll = assume cast(*ScrollWnd, html.view.children[0])
     journey.waitFor("details reached", func|scroll|()->bool => scroll.scrollPosition().y > 700)
 

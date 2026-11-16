@@ -2,7 +2,7 @@
 
 #run
 {
-    let info = Swag.processInfo()
+    let info  = Swag.processInfo()
     let saved = info.arguments
     defer info.arguments = saved
     let values: [6] string = ["", "two words", "a\"b", "tail\\", "\t", "café"]

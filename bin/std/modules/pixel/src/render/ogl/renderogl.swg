@@ -2025,7 +2025,7 @@ impl RenderOgl
             glBindTexture(GL_TEXTURE_2D, .whiteTexture)
 
         case .BindTexture0:
-            let params = &cmd.texture0
+            let params         = &cmd.texture0
             let textureCurrent = params.type == .Texture and params.texture.isValid()
 
             // A planar picture is three textures and its own program. Selecting it here, from the

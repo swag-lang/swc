@@ -43,6 +43,7 @@ private func flacTestHeaderCrc8(bytes: const [..] u8)->u8
         for 8 do
             crc = (crc & 0x80) != 0 ? cast(u8, ((crc << 1) ^ 0x07)) : cast(u8, (crc << 1))
     }
+
     return crc
 }
 
@@ -63,16 +64,16 @@ private func flacWideStereoTestConfig()->Array'u8
 {
     var config: Array'u8
     config.add(0)
-    config.add(1) // Min block size: one sample.
+    config.add(1)     // Min block size: one sample.
     config.add(0)
-    config.add(1) // Max block size: one sample.
+    config.add(1)     // Max block size: one sample.
     for 6 do
-        config.add(0) // Min/max frame sizes are unknown.
+        config.add(0)     // Min/max frame sizes are unknown.
     let description = (48_000'u64 << 44) | (1'u64 << 41) | (31'u64 << 36) | 1
     for byte in 8 do
         config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
     for 16 do
-        config.add(0) // MD5 is not consulted by the frame decoder.
+        config.add(0)     // MD5 is not consulted by the frame decoder.
     return config
 }
 
@@ -80,18 +81,18 @@ private func flacWideMidSideFrame()->Array'u8
 {
     var frame: Array'u8
     frame.add(0xFF)
-    frame.add(0xF9) // Variable-block strategy.
-    frame.add(0x60) // One-sample block size, sample rate from STREAMINFO.
-    frame.add(0xA0) // Two-channel mid/side decorrelation, 32-bit samples from STREAMINFO.
-    frame.add(0)    // Sample number.
-    frame.add(0)    // Block size minus one.
+    frame.add(0xF9)     // Variable-block strategy.
+    frame.add(0x60)     // One-sample block size, sample rate from STREAMINFO.
+    frame.add(0xA0)     // Two-channel mid/side decorrelation, 32-bit samples from STREAMINFO.
+    frame.add(0)        // Sample number.
+    frame.add(0)        // Block size minus one.
     frame.add(flacTestHeaderCrc8(frame.toSlice()))
 
     var bitCount = frame.count * 8
-    flacTestAppendBits(&frame, &bitCount, 0, 8)                  // Constant mid subframe.
-    flacTestAppendBits(&frame, &bitCount, 0xFFFF_FFFF, 32)       // Mid = -1.
-    flacTestAppendBits(&frame, &bitCount, 0, 8)                  // Constant side subframe.
-    flacTestAppendBits(&frame, &bitCount, 0xFFFF_FFFF, 33)       // Side = 2^32 - 1.
+    flacTestAppendBits(&frame, &bitCount, 0, 8)                // Constant mid subframe.
+    flacTestAppendBits(&frame, &bitCount, 0xFFFF_FFFF, 32)     // Mid = -1.
+    flacTestAppendBits(&frame, &bitCount, 0, 8)                // Constant side subframe.
+    flacTestAppendBits(&frame, &bitCount, 0xFFFF_FFFF, 33)     // Side = 2^32 - 1.
     while bitCount & 7 do
         flacTestAppendBits(&frame, &bitCount, 0, 1)
 
@@ -110,7 +111,7 @@ private func flacFrameWithInvalidSampleNumberPrefix()->Array'u8
     frame.add(0xFF)
     for 6 do
         frame.add(0x80)
-    frame.add(valid[5]) // Block-size extension follows the seven-byte sample number.
+    frame.add(valid[5])     // Block-size extension follows the seven-byte sample number.
     frame.add(flacTestHeaderCrc8(frame.toSlice()))
     frame.add(valid[7 until valid.count - 2])
 
@@ -160,7 +161,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 // The side subframe of 32-bit mid/side stereo needs 33 bits to reconstruct the full PCM range.
 #test
 {
-    var codec: Flac.Codec
+    var codec:   Flac.Codec
     let decoder: IPacketCodec = &codec
     let config = flacWideStereoTestConfig()
     expect decoder.initialize(config.toSlice(), 48_000, 2)
@@ -175,12 +176,12 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 // 0xFE is FLAC's seven-byte number prefix; 0xFF is reserved and rejected.
 #test
 {
-    var codec: Flac.Codec
+    var codec:   Flac.Codec
     let decoder: IPacketCodec = &codec
     let config = flacWideStereoTestConfig()
     expect decoder.initialize(config.toSlice(), 48_000, 2)
 
-    var decoded: [2] s16
+    var decoded:      [2] s16
     let frame = flacFrameWithInvalidSampleNumberPrefix()
     var errorOutcome: Swag.Error
     discard catch decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), frame.toSlice()) as errorOutcome
@@ -192,7 +193,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     defer discard catch File.delete(path.toString())
     var fileBytes: Array'u8
     fileBytes.add("fLaC")
-    fileBytes.add(0x80) // Last metadata block: STREAMINFO.
+    fileBytes.add(0x80)     // Last metadata block: STREAMINFO.
     fileBytes.add(0)
     fileBytes.add(0)
     fileBytes.add(34)

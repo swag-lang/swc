@@ -70,7 +70,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Edit tags", Menu_Open, icon: host.theme.icon(.Edit, 16))
     popup.addSeparator()
 
-    let metrics = host.root.themeMetrics()
+    let metrics      = host.root.themeMetrics()
     with let choices = StackLayoutCtrl.create(popup, .Left)
     {
         .backgroundStyle = .Transparent
@@ -95,6 +95,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             .setChecked(rating == 4)
         }
     }
+
     popup.addWidget(choices)
 
     var captured: bool
@@ -140,7 +141,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     popup.addItem("Capture Full Screen", Menu_Open, icon: host.theme.icon(.FullScreen, 16))
     popup.addSeparator()
 
-    let metrics = host.root.themeMetrics()
+    let metrics      = host.root.themeMetrics()
     with let choices = StackLayoutCtrl.create(popup, .Left)
     {
         .backgroundStyle = .Transparent
@@ -165,6 +166,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
             .setChecked(seconds == 3)
         }
     }
+
     popup.addWidget(choices)
 
     var captured: bool

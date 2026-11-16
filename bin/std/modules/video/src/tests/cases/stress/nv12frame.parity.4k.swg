@@ -9,18 +9,18 @@ using Swag, Core, Pixel
 {
     const Width  = 3840
     const Height = 2160
-    let bgr  = Image.create(Width, Height, .BGR8)
-    let bgra = Image.create(Width, Height, .BGRA8)
+    let bgr        = Image.create(Width, Height, .BGR8)
+    let bgra       = Image.create(Width, Height, .BGRA8)
     let bgrPixels  = bgr.pixels.storage()
     let bgraPixels = bgra.pixels.storage()
     for y in Height
     {
         for x in Width
         {
-            let pixel = cast(u64, y) * Width + cast(u64, x)
-            let blue  = cast(u8, (x * 37 + y * 19 + 11) & 0xFF)
-            let green = cast(u8, (x * 53 + y * 29 + 97) & 0xFF)
-            let red   = cast(u8, (x * 71 + y * 43 + 193) & 0xFF)
+            let pixel      = cast(u64, y) * Width + cast(u64, x)
+            let blue       = cast(u8, (x * 37 + y * 19 + 11) & 0xFF)
+            let green      = cast(u8, (x * 53 + y * 29 + 97) & 0xFF)
+            let red        = cast(u8, (x * 71 + y * 43 + 193) & 0xFF)
             let bgrOffset  = pixel * 3
             let bgraOffset = pixel * 4
             bgrPixels[bgrOffset]       = blue

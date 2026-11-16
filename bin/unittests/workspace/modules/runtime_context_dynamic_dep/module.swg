@@ -4,5 +4,5 @@
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "RuntimeCtxDynamicDep"
-    cfg.backendKind = .SharedLibrary
+    cfg.backendKind     = .SharedLibrary
 }

@@ -46,8 +46,8 @@ impl FramePacer
         let ticksPerFrame = cast(u64, videoTimescale) * rate.denominator()
         let maxDuration   = ticksPerFrame / rate.numerator() +
                             cast(u64, ticksPerFrame % rate.numerator() != 0)
-        let divisor = cast(u32, try Math.gcd(rate.numerator(), rate.denominator()))
-        let reduced = try FrameRate.create(rate.numerator() / divisor, rate.denominator() / divisor)
+        let divisor    = cast(u32, try Math.gcd(rate.numerator(), rate.denominator()))
+        let reduced    = try FrameRate.create(rate.numerator() / divisor, rate.denominator() / divisor)
         let clockScale = cast(u64, reduced.numerator()) * reduced.denominator()
         if ticksPerFrame < rate.numerator() or
            maxDuration > Swag.U32.Max or

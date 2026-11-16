@@ -546,7 +546,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
     second.gui.app.theme.setDark()
 
     var image: FormImage
-    image.image = Image.create(8, 8, .BGRA8)
+    image.image   = Image.create(8, 8, .BGRA8)
     image.capture = first.capture
     Swag.require(image.ownerApp() == &first.gui.app)
     image.backCapture()
@@ -557,15 +557,16 @@ func testAssertFormFitsItsMargin(itf: IForm)
     var painter: Painter
     painter.begin(layoutOnly: true)
     let style = image.applyPixSelStyle(&painter, {})
-    Swag.require(style.bSize > 0 and image.borderColor ==
+    Swag.require(style.bSize > 0 and
+                 image.borderColor ==
                  first.gui.app.theme.colors.btnIcon_Icon)
     Swag.require(image.borderColor != second.gui.app.theme.colors.btnIcon_Icon)
     painter.end()
 
     var step: FormStep
     step.capture = first.capture
-    step.w = 48
-    step.h = 48
+    step.w       = 48
+    step.h       = 48
     var context: FormPaintContext
     context.z = 1
     painter.begin(layoutOnly: true)

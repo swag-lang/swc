@@ -49,11 +49,11 @@ const LossyRegionWidth = 256'u64
 // What a coded macroblock leaves for its neighbours to predict from.
 struct LossyMb
 {
-    mvX:    s16          // Motion in quarter samples; zero for an intra macroblock.
-    mvY:    s16
-    inter:  bool         // Predicted from the reference picture.
-    coded:  bool         // Already coded in this picture.
-    modes:  [16] u8      // Intra_4x4 mode of each block by raster position; DC for any other type.
+    mvX:   s16     // Motion in quarter samples; zero for an intra macroblock.
+    mvY:   s16
+    inter: bool        // Predicted from the reference picture.
+    coded: bool        // Already coded in this picture.
+    modes: [16] u8     // Intra_4x4 mode of each block by raster position; DC for any other type.
 }
 
 // Quantized levels of one macroblock, in the layout CAVLC writes them.
@@ -86,7 +86,7 @@ struct LossyCoder
     priorV:        Array'u8
     hasPrior:      bool
     mbs:           Array'LossyMb
-    priorMotion:   Array's16       // Motion of the previous picture, two components per macroblock.
+    priorMotion:   Array's16     // Motion of the previous picture, two components per macroblock.
     nonZero:       Array'u8
     chromaNonZero: Array'u8
     intraCbpCode:  [48] u8
@@ -94,8 +94,8 @@ struct LossyCoder
     mbHeight:      u32
     width:         s32
     height:        s32
-    baseQp:        u32             // Quantizer of predicted pictures.
-    qp:            u32             // Quantizer of the picture being coded.
+    baseQp:        u32     // Quantizer of predicted pictures.
+    qp:            u32     // Quantizer of the picture being coded.
     lambda:        s32
 }
 
@@ -144,13 +144,13 @@ impl LossyCoder
     // Copies the NV12 picture into padded planes, repeating its last column and row.
     mtd loadSource(frame: const *Nv12Frame)
     {
-        let width      = cast(u64, .width)
-        let height     = cast(u64, .height)
-        let stride     = .lumaStride()
-        let rows       = cast(u64, .mbHeight) * 16
-        let luma       = frame.luma()
-        let chroma     = frame.chroma()
-        let targetY    = .sourceY.storage()
+        let width   = cast(u64, .width)
+        let height  = cast(u64, .height)
+        let stride  = .lumaStride()
+        let rows    = cast(u64, .mbHeight) * 16
+        let luma    = frame.luma()
+        let chroma  = frame.chroma()
+        let targetY = .sourceY.storage()
         for row in rows
         {
             let line = targetY + row * stride
@@ -208,8 +208,10 @@ impl LossyCoder
         slices.resize(sliceCount)
         let coder = me
         let slots = slices.storage()
-        if sliceCount == 1 do
+        if sliceCount == 1
+        {
             coder.encodeSlice(key, frameNumber, 0, sliceCount, &slots[0].bytes)
+        }
         else
         {
             parallel for |coder, key, frameNumber, sliceCount, slots| sliceIndex in cast(u64, sliceCount) do
@@ -243,25 +245,25 @@ impl LossyCoder
         var bits: EncoderBits
         bits.unsigned(firstRow * .mbWidth)     // first_mb_in_slice.
         bits.unsigned(key ? 2 : 0)             // I or P slice.
-        bits.unsigned(0)                       // pic_parameter_set_id.
+        bits.unsigned(0)     // pic_parameter_set_id.
         bits.bits(key ? 0 : frameNumber, 8)
         if key
         {
-            bits.unsigned(0)                   // idr_pic_id.
-            bits.bit(0)                        // no_output_of_prior_pics_flag.
-            bits.bit(0)                        // long_term_reference_flag.
+            bits.unsigned(0)     // idr_pic_id.
+            bits.bit(0)          // no_output_of_prior_pics_flag.
+            bits.bit(0)          // long_term_reference_flag.
         }
         else
         {
-            bits.bit(0)                        // num_ref_idx_active_override_flag.
-            bits.bit(0)                        // ref_pic_list_modification_flag_l0.
-            bits.bit(0)                        // adaptive_ref_pic_marking_mode_flag.
+            bits.bit(0)     // num_ref_idx_active_override_flag.
+            bits.bit(0)     // ref_pic_list_modification_flag_l0.
+            bits.bit(0)     // adaptive_ref_pic_marking_mode_flag.
         }
 
-        bits.signed(cast(s32, .qp) - 26)       // slice_qp_delta: the whole slice keeps one QP.
-        bits.unsigned(2)                       // disable_deblocking_filter_idc: filter inside the slice only.
-        bits.signed(0)                         // slice_alpha_c0_offset_div2.
-        bits.signed(0)                         // slice_beta_offset_div2.
+        bits.signed(cast(s32, .qp) - 26)     // slice_qp_delta: the whole slice keeps one QP.
+        bits.unsigned(2)     // disable_deblocking_filter_idc: filter inside the slice only.
+        bits.signed(0)       // slice_alpha_c0_offset_div2.
+        bits.signed(0)       // slice_beta_offset_div2.
 
         // A scroll or a pan moves a whole area by one vector that no local search finds on fine
         // detail; each region of the slice proposes the translation its profiles show.
@@ -362,11 +364,12 @@ func forwardIntraDc4x4(input: const [*] s32, output: [*] s32)
         let e1 = c0 - c2
         let e2 = c1 - c3
         let e3 = c1 + c3
-        rows[at] = e0 + e3
+        rows[at]     = e0 + e3
         rows[at + 1] = e1 + e2
         rows[at + 2] = e1 - e2
         rows[at + 3] = e0 - e3
     }
+
     for column in 4'u64
     {
         let c0 = rows[column]
@@ -377,9 +380,9 @@ func forwardIntraDc4x4(input: const [*] s32, output: [*] s32)
         let e1 = c0 - c2
         let e2 = c1 - c3
         let e3 = c1 + c3
-        output[column] = e0 + e3
-        output[4 + column] = e1 + e2
-        output[8 + column] = e1 - e2
+        output[column]      = e0 + e3
+        output[4 + column]  = e1 + e2
+        output[8 + column]  = e1 - e2
         output[12 + column] = e0 - e3
     }
 }
@@ -417,10 +420,10 @@ func lossyQuantize4x4(coefficients: const [*] s32, first: u64, qp: u32, rounding
 // according to its position, so it cannot exceed that weight times their absolute sum.
 func lossyZeroBound(qp: u32, rounding: s64)->u32
 {
-    let qmod   = cast(u64, qp % 6)
-    let qbits  = 15 + qp / 6
-    let limit  = (1's64 << qbits) - ((rounding << qbits) >> 16) - 1
-    var bound  = Swag.S64.Max
+    let qmod  = cast(u64, qp % 6)
+    let qbits = 15 + qp / 6
+    let limit = (1's64 << qbits) - ((rounding << qbits) >> 16) - 1
+    var bound = Swag.S64.Max
     for class in 3'u64 do
         bound = Math.min(bound, limit / (cast(s64, LossyQuantFactor[qmod, class]) << class))
     return cast(u32, Math.max(bound, 0))
@@ -607,20 +610,20 @@ impl LossyCoder
         let qdiv   = qpc / 6
         let dcBits = 16 + qdiv
         var scaled: [128] s16
-        var anyDc   = false
-        var anyAc   = false
-        let quiet   = lossyZeroBound(qpc, rounding)
+        var anyDc  = false
+        var anyAc  = false
+        let quiet  = lossyZeroBound(qpc, rounding)
 
         for plane in 2'u32
         {
-            let pixels = frame.pixChroma(plane, cast(s32, mbX) * 8, cast(s32, mbY) * 8)
+            let pixels  = frame.pixChroma(plane, cast(s32, mbX) * 8, cast(s32, mbY) * 8)
             let plane64 = cast(u64, plane)
-            let source = (plane == 0 ? .sourceU.storage() : .sourceV.storage()) + cast(u64, mbY) * 8 * .chromaStride() + cast(u64, mbX) * 8
+            let source  = (plane == 0 ? .sourceU.storage() : .sourceV.storage()) + cast(u64, mbY) * 8 * .chromaStride() + cast(u64, mbX) * 8
             var rawDc: [4] s32
             for block in 4'u64
             {
-                let bx = block & 1
-                let by = block >> 1
+                let bx     = block & 1
+                let by     = block >> 1
                 let at     = plane64 * 4 + block
                 let levels = residual.chromaAc.buffer + at * 16
                 if lossySums4(source + by * 4 * .chromaStride() + bx * 4, .chromaStride(), pixels + by * 4 * stride + bx * 4, stride, &rawDc[block]) <= quiet
@@ -633,16 +636,16 @@ impl LossyCoder
                 var coefficients: [16] s32
                 lossyForward4x4(source + by * 4 * .chromaStride() + bx * 4, .chromaStride(), pixels + by * 4 * stride + bx * 4, stride, coefficients.buffer)
                 rawDc[block] = coefficients[0]
-                levels[0] = 0
+                levels[0]    = 0
                 residual.chromaCount[at] = cast(u8, lossyQuantize4x4(coefficients.buffer, 1, qpc, rounding, levels, scaled.buffer + at * 16))
                 if residual.chromaCount[at] do
                     anyAc = true
             }
 
             let transformed: [4] s32 = [rawDc[0] + rawDc[1] + rawDc[2] + rawDc[3],
-                                         rawDc[0] - rawDc[1] + rawDc[2] - rawDc[3],
-                                         rawDc[0] + rawDc[1] - rawDc[2] - rawDc[3],
-                                         rawDc[0] - rawDc[1] - rawDc[2] + rawDc[3]]
+                                        rawDc[0] - rawDc[1] + rawDc[2] - rawDc[3],
+                                        rawDc[0] + rawDc[1] - rawDc[2] - rawDc[3],
+                                        rawDc[0] - rawDc[1] - rawDc[2] + rawDc[3]]
             var inverse: [4] s16
             for index in 4'u64
             {
@@ -650,7 +653,7 @@ impl LossyCoder
                 let magnitude   = (cast(s64, Math.abs(coefficient)) * cast(s64, LossyQuantFactor[qmod, 0]) + ((rounding << dcBits) >> 16)) >> dcBits
                 let level       = cast(s16, coefficient < 0 ? -magnitude : magnitude)
                 residual.chromaDc[plane64 * 4 + index] = level
-                inverse[index]                         = level
+                inverse[index] = level
                 if level do
                     anyDc = true
             }
@@ -809,17 +812,17 @@ impl LossyCoder
     // ones, never across the first row of the slice.
     mtd deblockMb(mbX, mbY, firstRow: u32)
     {
-        let frame   = .current()
-        let index   = .mbIndex(mbX, mbY)
-        let mb      = &.mbs[index]
-        let counts  = .nonZero.storage() + index * 16
-        let qpc     = cast(u64, ChromaQp[.qp])
-        let alpha   = cast(s32, DeblockAlpha[.qp])
-        let beta    = cast(s32, DeblockBeta[.qp])
-        let cAlpha  = cast(s32, DeblockAlpha[qpc])
-        let cBeta   = cast(s32, DeblockBeta[qpc])
-        let x       = cast(s32, mbX) * 16
-        let y       = cast(s32, mbY) * 16
+        let frame  = .current()
+        let index  = .mbIndex(mbX, mbY)
+        let mb     = &.mbs[index]
+        let counts = .nonZero.storage() + index * 16
+        let qpc    = cast(u64, ChromaQp[.qp])
+        let alpha  = cast(s32, DeblockAlpha[.qp])
+        let beta   = cast(s32, DeblockBeta[.qp])
+        let cAlpha = cast(s32, DeblockAlpha[qpc])
+        let cBeta  = cast(s32, DeblockBeta[qpc])
+        let x      = cast(s32, mbX) * 16
+        let y      = cast(s32, mbY) * 16
 
         for edge in 4'u32
         {
@@ -828,7 +831,7 @@ impl LossyCoder
             let other       = edge == 0 ? &.mbs[index - 1] : mb
             let otherCounts = edge == 0 ? .nonZero.storage() + (index - 1) * 16 : counts
             var strengths: EdgeStrength
-            var filtered = false
+            var filtered    = false
             for row in 4'u32
             {
                 let q = counts[row * 4 + edge]
@@ -843,7 +846,10 @@ impl LossyCoder
                 filterLumaVertical(frame.pixLuma(x + cast(s32, edge) * 4, y), frame.strideLuma, &strengths, cast(s32, .qp), alpha, beta)
             if (edge == 0 or edge == 2) and cAlpha and cBeta
             {
-                let weak = strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+                let weak = strengths.bs[0] < 4 and
+                           strengths.bs[1] < 4 and
+                           strengths.bs[2] < 4 and
+                           strengths.bs[3] < 4
                 for plane in 2'u32
                 {
                     let pix = frame.pixChroma(plane, x / 2 + cast(s32, edge) * 2, y / 2)
@@ -863,7 +869,7 @@ impl LossyCoder
             let other       = edge == 0 ? &.mbs[above] : mb
             let otherCounts = edge == 0 ? .nonZero.storage() + above * 16 : counts
             var strengths: EdgeStrength
-            var filtered = false
+            var filtered    = false
             for column in 4'u32
             {
                 let q = counts[edge * 4 + column]
@@ -874,7 +880,10 @@ impl LossyCoder
 
             if not filtered do
                 continue
-            let weak = strengths.bs[0] < 4 and strengths.bs[1] < 4 and strengths.bs[2] < 4 and strengths.bs[3] < 4
+            let weak = strengths.bs[0] < 4 and
+                       strengths.bs[1] < 4 and
+                       strengths.bs[2] < 4 and
+                       strengths.bs[3] < 4
             if alpha and beta
             {
                 let pix = frame.pixLuma(x, y + cast(s32, edge) * 4)
@@ -918,8 +927,8 @@ func lossySad16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, ro
 func lossySatd16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64)->u32
 {
     let ones: Simd.S16x8 = Simd.splat(1's16)
-    let alternate = cast(Simd.S16x8, [1's16, -1, 1, -1, 1, -1, 1, -1])
-    var sum = 0'u32
+    let alternate        = cast(Simd.S16x8, [1's16, -1, 1, -1, 1, -1, 1, -1])
+    var sum              = 0'u32
     for band in 4'u64
     {
         // Four rows of differences, eight columns to a vector: the vertical half of the
@@ -1022,7 +1031,8 @@ impl LossyCoder
         bestMode[] = Intra16Dc
         for mode in [Intra16Dc, Intra16Vertical, Intra16Horizontal, Intra16Plane]
         {
-            if (mode == Intra16Vertical and not hasTop) or (mode == Intra16Horizontal and not hasLeft) or
+            if (mode == Intra16Vertical and not hasTop) or
+               (mode == Intra16Horizontal and not hasLeft) or
                (mode == Intra16Plane and not (hasTop and hasLeft)) do
                 continue
             intraPredict16x16(mode, pixels, frame.strideLuma, hasLeft, hasTop)
@@ -1043,16 +1053,17 @@ impl LossyCoder
     // Predicts both chroma planes in the mode closest to the source and returns that mode.
     mtd predictChroma(mbX, mbY, firstRow: u32)->u32
     {
-        let frame   = .current()
-        let hasLeft = mbX > 0
-        let hasTop  = mbY > firstRow
-        let offset  = cast(u64, mbY) * 8 * .chromaStride() + cast(u64, mbX) * 8
+        let frame    = .current()
+        let hasLeft  = mbX > 0
+        let hasTop   = mbY > firstRow
+        let offset   = cast(u64, mbY) * 8 * .chromaStride() + cast(u64, mbX) * 8
         var best     = Swag.U32.Max
         var bestMode = IntraChromaDc
         var last     = IntraChromaDc
         for mode in [IntraChromaDc, IntraChromaHorizontal, IntraChromaVertical, IntraChromaPlane]
         {
-            if (mode == IntraChromaHorizontal and not hasLeft) or (mode == IntraChromaVertical and not hasTop) or
+            if (mode == IntraChromaHorizontal and not hasLeft) or
+               (mode == IntraChromaVertical and not hasTop) or
                (mode == IntraChromaPlane and not (hasTop and hasLeft)) do
                 continue
             var distance = 0'u32
@@ -1106,19 +1117,21 @@ impl LossyCoder
         residual.cbpLuma = 0
         for index in 16'u32
         {
-            let bx      = cast(u32, LossyBlockColumn[index])
-            let by      = cast(u32, LossyBlockRow[index])
-            let block   = cast(u64, by * 4 + bx)
-            let pixels  = origin + cast(u64, by) * 4 * stride + cast(u64, bx) * 4
-            let from    = source + cast(u64, by) * 4 * .lumaStride() + cast(u64, bx) * 4
-            let hasLeft = bx > 0 or mbX > 0
-            let hasTop  = by > 0 or mbY > firstRow
+            let bx        = cast(u32, LossyBlockColumn[index])
+            let by        = cast(u32, LossyBlockRow[index])
+            let block     = cast(u64, by * 4 + bx)
+            let pixels    = origin + cast(u64, by) * 4 * stride + cast(u64, bx) * 4
+            let from      = source + cast(u64, by) * 4 * .lumaStride() + cast(u64, bx) * 4
+            let hasLeft   = bx > 0 or mbX > 0
+            let hasTop    = by > 0 or mbY > firstRow
             let hasCorner = hasLeft and hasTop
 
             // The samples above and to the right exist only when their block was decoded first.
             var hasTopRight = false
-            if by == 0 do
+            if by == 0
+            {
                 hasTopRight = mbY > firstRow and (bx < 3 or mbX + 1 < .mbWidth)
+            }
             elif bx < 3
             {
                 for other in index where LossyBlockColumn[other] == bx + 1 and LossyBlockRow[other] == by - 1 do
@@ -1134,7 +1147,9 @@ impl LossyCoder
                 let needsTop  = mode == IntraVertical or mode == IntraDownLeft or mode == IntraVerticalLeft
                 let needsLeft = mode == IntraHorizontal or mode == IntraHorizontalUp
                 let needsAll  = mode == IntraDownRight or mode == IntraVerticalRight or mode == IntraHorizontalDown
-                if (needsTop and not hasTop) or (needsLeft and not hasLeft) or (needsAll and not hasCorner) do
+                if (needsTop and not hasTop) or
+                   (needsLeft and not hasLeft) or
+                   (needsAll and not hasCorner) do
                     continue
                 intraPredict4x4(mode, pixels, stride, hasLeft, hasTop, hasCorner, hasTopRight)
                 last = mode
@@ -1230,8 +1245,10 @@ impl LossyCoder
             let by       = cast(u32, LossyBlockRow[index])
             let mode     = cast(u32, mb.modes[by * 4 + bx])
             let expected = .predictedMode4(mbX, mbY, bx, by, firstRow)
-            if mode == expected do
+            if mode == expected
+            {
                 bits.bit(1)
+            }
             else
             {
                 bits.bit(0)
@@ -1252,7 +1269,6 @@ impl LossyCoder
 // ---------------------------------------------------------------------------------------------
 // Inter prediction
 // ---------------------------------------------------------------------------------------------
-
 
 // A motion vector in quarter samples.
 struct LossyVector
@@ -1298,7 +1314,7 @@ impl LossyCoder
         let b = .neighbourMotion(x, y - 1, firstRow, &interB)
 
         // The top-right macroblock gives way to the top-left one where the picture ends.
-        var c = .neighbourMotion(x + 1, y - 1, firstRow, &interC)
+        var c        = .neighbourMotion(x + 1, y - 1, firstRow, &interC)
         let hasRight = mbY > firstRow and x + 1 < cast(s32, .mbWidth)
         if not hasRight do
             c = .neighbourMotion(x - 1, y - 1, firstRow, &interC)
@@ -1334,13 +1350,13 @@ impl LossyCoder
     // block is nobody's to match.
     mtd blockDistance(mbX, mbY: u32, vector: LossyVector, scratch: [*] u8)->u32
     {
-        let source   = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
-        let x        = cast(s32, mbX) * 16 + (vector.x >> 2)
-        let y        = cast(s32, mbY) * 16 + (vector.y >> 2)
-        let frame    = .reference()
-        let columns  = cast(u64, Math.min(.width - cast(s32, mbX) * 16, 16))
-        let rows     = cast(u64, Math.min(.height - cast(s32, mbY) * 16, 16))
-        let whole    = vector.x & 3 == 0 and vector.y & 3 == 0
+        let source  = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
+        let x       = cast(s32, mbX) * 16 + (vector.x >> 2)
+        let y       = cast(s32, mbY) * 16 + (vector.y >> 2)
+        let frame   = .reference()
+        let columns = cast(u64, Math.min(.width - cast(s32, mbX) * 16, 16))
+        let rows    = cast(u64, Math.min(.height - cast(s32, mbY) * 16, 16))
+        let whole   = vector.x & 3 == 0 and vector.y & 3 == 0
         if not whole do
             mcLuma(scratch, 16, frame, 0, x, y, vector.x & 3, vector.y & 3, 16, 16)
         let other  = whole ? cast(const [*] u8, frame.pixLuma(x, y)) : cast(const [*] u8, scratch)
@@ -1381,6 +1397,7 @@ impl LossyCoder
         // Row profiles: the sums of each row of the region, cell by cell, here and in the rows
         // of the previous picture a shift can reach.
         let cellsX = (width + Cell - 1) / Cell
+
         func rowCells(plane: const [*] u8, stride: u64, x, y, width: s64, cells: [*] s32)
         {
             var zero: Simd.U8x16
@@ -1413,7 +1430,7 @@ impl LossyCoder
             for pair in rows / 2
             {
                 let row = pair * 2
-                let y = top + row + shift
+                let y   = top + row + shift
                 if y < 0 or y >= height do
                     continue
                 let here  = profile.storage() + cast(u64, row * cellsX)
@@ -1472,7 +1489,7 @@ impl LossyCoder
             for pair in width / 2
             {
                 let column = pair * 2
-                let x = left + column + shift
+                let x      = left + column + shift
                 if x < 0 or x >= total do
                     continue
                 let here  = columns.storage() + cast(u64, column * cellsY)
@@ -1538,13 +1555,13 @@ impl LossyCoder
         var candidates: [9] LossyVector
         var count = 0'u64
         candidates[count] = {}
-        count += 1
+        count             += 1
         candidates[count] = region
-        count += 1
+        count             += 1
         candidates[count] = whole(predicted)
-        count += 1
+        count             += 1
         candidates[count] = whole(skip)
-        count += 1
+        count             += 1
         var inter: bool
         const Neighbours: [3, 2] s32 = [[-1, 0], [0, -1], [1, -1]]
         for side in 3'u64
@@ -1564,7 +1581,7 @@ impl LossyCoder
         for candidate in count
         {
             let vector = .clampVector(mbX, mbY, candidates[candidate])
-            var seen = false
+            var seen   = false
             for earlier in candidate where candidates[earlier].x == vector.x and candidates[earlier].y == vector.y do
                 seen = true
             candidates[candidate] = vector
@@ -1667,8 +1684,8 @@ impl LossyCoder
     // prediction. Nobody sees them, so the cheapest residual there is none.
     mtd padSourceWithPrediction(mbX, mbY: u32)
     {
-        let x = cast(u64, mbX) * 16
-        let y = cast(u64, mbY) * 16
+        let x        = cast(u64, mbX) * 16
+        let y        = cast(u64, mbY) * 16
         let visibleX = Math.min(cast(u64, .width) - Math.min(x, cast(u64, .width)), 16'u64)
         let visibleY = Math.min(cast(u64, .height) - Math.min(y, cast(u64, .height)), 16'u64)
         if visibleX == 16 and visibleY == 16 do
@@ -1742,9 +1759,9 @@ impl LossyCoder
             if cost >= cast(u32, 96 + .lambda * 24)
             {
                 var moved: [256] u8
-                let source    = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
+                let source = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
                 mcLuma(moved.buffer, 16, .reference(), 0, cast(s32, mbX) * 16 + (vector.x >> 2), cast(s32, mbY) * 16 + (vector.y >> 2), vector.x & 3, vector.y & 3, 16, 16)
-                let inter     = lossySatd16(source, .lumaStride(), moved.buffer, 16) + .vectorCost(vector, predicted)
+                let inter  = lossySatd16(source, .lumaStride(), moved.buffer, 16) + .vectorCost(vector, predicted)
                 var mode16 = Intra16Dc
                 let intra  = .predictLuma16(mbX, mbY, firstRow, &mode16) + cast(u32, .lambda) * LossyIntraBits
                 if intra < inter

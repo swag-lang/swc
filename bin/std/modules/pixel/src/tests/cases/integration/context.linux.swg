@@ -8,11 +8,11 @@ using Core
 #[Swag.TestTag("integration.renderer.opengl")]
 #test
 {
-    var firstWindow  = expect Env.createWindow({identifier: "pixel-shared-first", title: "First Pixel drawable", width: 32, height: 32})
-    var secondWindow = expect Env.createWindow({identifier: "pixel-shared-second", title: "Second Pixel drawable", width: 32, height: 32})
-    var backend: RenderOgl
+    var firstWindow         = expect Env.createWindow({identifier: "pixel-shared-first", title: "First Pixel drawable", width: 32, height: 32})
+    var secondWindow        = expect Env.createWindow({identifier: "pixel-shared-second", title: "Second Pixel drawable", width: 32, height: 32})
+    var backend:  RenderOgl
     let renderer: IRenderer = &backend
-    var first = expect renderer.createContext(firstWindow.nativeRenderHandle(), 32, 32)
+    var first               = expect renderer.createContext(firstWindow.nativeRenderHandle(), 32, 32)
     defer renderer.deleteContext(&first)
     renderer.setCurrentContext(first)
     renderer.init()
@@ -33,7 +33,7 @@ using Core
     renderer.setCurrentContext(second)
     renderer.deleteContext(&first)
     expect firstWindow.close()
-    let actual = renderer.readRenderTarget(&target, 0, 0, 16, 16)
+    let actual   = renderer.readRenderTarget(&target, 0, 0, 16, 16)
     var expected = Image.create(16, 16, .BGRA8)
     expected.fill(Color.fromArgb(Argb.Red))
     Testing.assertImagesNear(&expected, &actual, "context.linux.shared")

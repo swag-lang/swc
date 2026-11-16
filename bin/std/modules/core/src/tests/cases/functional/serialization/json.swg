@@ -122,29 +122,29 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    let validInput: string = "{\"state\":[4,5,6]}"
+    let validInput:   string = "{\"state\":[4,5,6]}"
     var validDecoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect validDecoder.readAll'JsonArrayEnumPayload(cast(const [..] u8, validInput))
     defer Memory.delete(decoded)
     Swag.require(decoded.state == .Busy)
 
-    let invalidInput: string = "{\"state\":[4,5,7]}"
+    let invalidInput:   string = "{\"state\":[4,5,7]}"
     var invalidDecoder: Serialization.Decoder'Serialization.Read.Json
-    var errorOutcome: Swag.Error
+    var errorOutcome:   Swag.Error
     catch CoreTests.readAndDelete'(JsonArrayEnumPayload, Serialization.Read.Json)(&invalidDecoder, cast(const [..] u8, invalidInput)) as errorOutcome
     Swag.require(errorOutcome.value() != null)
 }
 
 #test
 {
-    let validInput: string = "{\"state\":\"busy\"}"
+    let validInput:   string = "{\"state\":\"busy\"}"
     var validDecoder: Serialization.Decoder'Serialization.Read.Json
     let decoded = expect validDecoder.readAll'JsonStringEnumPayload(cast(const [..] u8, validInput))
     defer Memory.delete(decoded)
     Swag.require(decoded.state == .Busy)
 
     let input = "{\"state\":\"missing\"}"
-    var decoder: Serialization.Decoder'Serialization.Read.Json
+    var decoder:      Serialization.Decoder'Serialization.Read.Json
     var errorOutcome: Swag.Error
     catch CoreTests.readAndDelete'(JsonStringEnumPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errorOutcome
     Swag.require(errorOutcome.value() != null)
@@ -221,7 +221,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 
 #test
 {
-    let culture           = Globalization.currentCulture()
+    let culture = Globalization.currentCulture()
     let previousNumberFmt = culture.numberFormat
     defer culture.numberFormat = previousNumberFmt
     culture.numberFormat = Globalization.CultureInfo.fromName("fr-FR").numberFormat

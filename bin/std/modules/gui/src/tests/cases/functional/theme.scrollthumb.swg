@@ -12,8 +12,8 @@ impl IWnd for ScrollThumbSamples
 {
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let theme = .theme()
-        let color = .themeColors().scrollBar_PressedBox
+        let theme   = .theme()
+        let color   = .themeColors().scrollBar_PressedBox
         let painter = evt.paintContext.painter
         theme.drawSubRect(painter, {8, 8, 4, 16}, &theme.rects.scrollBar_BoxV, color)
         theme.drawSubRect(painter, {24, 8, 4, 40}, &theme.rects.scrollBar_BoxV, color)
@@ -37,16 +37,16 @@ impl IWnd for ScrollThumbSamples
         for x in cast(s32, 4 * scale) do
             for y in cast(s32, 2 * scale)
             {
-                let shortTop = image.pixelColor(cast(s32, 8 * scale) + x, cast(s32, 8 * scale) + y)
-                let longTop = image.pixelColor(cast(s32, 24 * scale) + x, cast(s32, 8 * scale) + y)
+                let shortTop    = image.pixelColor(cast(s32, 8 * scale) + x, cast(s32, 8 * scale) + y)
+                let longTop     = image.pixelColor(cast(s32, 24 * scale) + x, cast(s32, 8 * scale) + y)
                 let shortBottom = image.pixelColor(cast(s32, 8 * scale) + x, cast(s32, 24 * scale) - 1 - y)
-                let longBottom = image.pixelColor(cast(s32, 24 * scale) + x, cast(s32, 48 * scale) - 1 - y)
+                let longBottom  = image.pixelColor(cast(s32, 24 * scale) + x, cast(s32, 48 * scale) - 1 - y)
                 Swag.require(shortTop == longTop and shortBottom == longBottom)
 
-                let shortLeft = image.pixelColor(cast(s32, 48 * scale) + y, cast(s32, 8 * scale) + x)
-                let longLeft = image.pixelColor(cast(s32, 48 * scale) + y, cast(s32, 24 * scale) + x)
+                let shortLeft  = image.pixelColor(cast(s32, 48 * scale) + y, cast(s32, 8 * scale) + x)
+                let longLeft   = image.pixelColor(cast(s32, 48 * scale) + y, cast(s32, 24 * scale) + x)
                 let shortRight = image.pixelColor(cast(s32, 64 * scale) - 1 - y, cast(s32, 8 * scale) + x)
-                let longRight = image.pixelColor(cast(s32, 88 * scale) - 1 - y, cast(s32, 24 * scale) + x)
+                let longRight  = image.pixelColor(cast(s32, 88 * scale) - 1 - y, cast(s32, 24 * scale) + x)
                 Swag.require(shortLeft == longLeft and shortRight == longRight)
             }
     }

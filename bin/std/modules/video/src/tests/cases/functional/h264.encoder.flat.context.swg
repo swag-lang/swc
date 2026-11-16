@@ -7,7 +7,7 @@ private impl Nv12Frame
 {
     mtd fillFlatContext(changed: bool, amplitude: u8)
     {
-        .width = 64
+        .width  = 64
         .height = 32
         .bytes.resize(64 * 32 * 3 / 2)
         for index in .bytes.count do
@@ -34,7 +34,7 @@ private impl Nv12Frame
         first.fillFlatContext(false, amplitude)
         changed.fillFlatContext(true, amplitude)
         var encoder = expect H264.Encoder.create(64, 32)
-        var writer = expect Mp4.FragmentedWriter.create(path, 64, 32, 90_000, encoder.decoderConfig())
+        var writer  = expect Mp4.FragmentedWriter.create(path, 64, 32, 90_000, encoder.decoderConfig())
         expect writer.addPacket(expect encoder.encode(&first, 0, 3_000))
         expect writer.addPacket(expect encoder.encode(&changed, 3_000, 3_000))
         expect writer.end()

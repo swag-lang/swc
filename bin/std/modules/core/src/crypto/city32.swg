@@ -15,6 +15,7 @@ impl City32
 {
     const C1 = 0xCC9E2D51
     const C2 = 0x1B873593
+
     func fetch(buf: const [*] u8)->u32
     {
         var chunk: u32

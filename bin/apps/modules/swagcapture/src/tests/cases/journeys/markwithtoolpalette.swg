@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(400, 300)
+    var path    = journey.newCapture(400, 300)
     let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Line, .Line, {10, 10}, {80, 35})
     Swag.require(Swag.kindOf(capture.forms.back()) == FormLine)

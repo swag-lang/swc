@@ -19,7 +19,7 @@ struct CaptureRecovery
     {
         late queue: *CaptureQueue
         retryDelay: u64
-        nextRetry: u64
+        nextRetry:  u64
         lost:       bool
     }
 }
@@ -33,9 +33,10 @@ impl CaptureRecovery
             fail BadParameterError{"capture recovery needs a live queue and a positive retry interval"}
         with var result: #returntype
         {
-            .queue = queue
+            .queue      = queue
             .retryDelay = retryDelayTicks
         }
+
         return result
     }
 
@@ -56,7 +57,7 @@ impl CaptureRecovery
         if not .lost
         {
             .nextRetry = tick + .retryDelay
-            .lost = true
+            .lost      = true
         }
     }
 
@@ -82,7 +83,7 @@ impl CaptureRecovery
         if not .lost do
             return
         try .queue.markRestored(tick)
-        .lost = false
+        .lost      = false
         .nextRetry = 0
     }
 }

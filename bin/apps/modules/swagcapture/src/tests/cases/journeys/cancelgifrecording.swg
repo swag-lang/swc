@@ -14,7 +14,7 @@ using Core, Gui
     journey.recordAnimation(.Cancel)
     Swag.require(journey.main.editWnd.getCapture() == previous)
 
-    let media = expect Directory.enumerateFiles(journey.root, CaptureMediaExtension)
+    let media    = expect Directory.enumerateFiles(journey.root, CaptureMediaExtension)
     let captures = expect Directory.enumerateFiles(journey.root, CaptureFileExtension)
     Swag.require(media.isEmpty())
     for file in captures do

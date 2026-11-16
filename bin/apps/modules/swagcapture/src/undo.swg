@@ -450,8 +450,8 @@ impl Undo
                 // On redo, undo has cleared capture.selection, so bake from the command's
                 // OWN saved selection (the same set removeSelection deletes). Restoring it
                 // here keeps toImage(onlySel) and removeSelection consistent on every replay.
-                .selection    = me.selection
-                .backImg      = .toImage(onlySel: true)
+                .selection = me.selection
+                .backImg   = .toImage(onlySel: true)
                 .backgroundChanged()
                 .backImagePos.clear()
             }

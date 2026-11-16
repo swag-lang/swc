@@ -342,7 +342,7 @@ func readAfterConditionalRebind(release: bool)->s32
     var pointer = cast(*s32, heapAlloc(4))
     if release do
         heapFree(pointer, 4)
-    pointer = cast(*s32, heapAlloc(4))
+    pointer   = cast(*s32, heapAlloc(4))
     pointer[] = 7
     return pointer[]
 }

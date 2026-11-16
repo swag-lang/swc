@@ -65,7 +65,7 @@ impl LibraryWnd
     mtd showFolderMenu(btn: *IconButton)
     {
         let folderIcon = .commandFolderIcon()
-        with let menu = MenuCtrl.createPopup(me, owner: me)
+        with let menu  = MenuCtrl.createPopup(me, owner: me)
         {
             .addItem(appStrings().act_OpenLibraryFolder, "capture.library.root", icon: folderIcon)
             .addSeparator()

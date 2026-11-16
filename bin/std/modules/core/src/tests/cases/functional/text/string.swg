@@ -12,6 +12,7 @@ func assertConstStringByteBorrows(value: const *String)->u64
         Swag.require(byte[] == value[][index])
         count += 1
     }
+
     return count
 }
 

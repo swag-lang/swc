@@ -94,14 +94,14 @@ public interface IImageSetDecoder
 public struct ImageReader
 {
     public readonly info: ImageSetInfo     // Indexed images; valid until close or replacement of the reader.
-    bytes:            Array'u8
-    decoder:          *void?
-    decoderType:      const *TypeInfoStruct?
-    decoderAllocator: IAllocator?
-    options:          DecodeOptions
-    canvas:           Image
-    previous:         Image
-    lastIndex:        s32 = -1
+    bytes:                Array'u8
+    decoder:              *void?
+    decoderType:          const *TypeInfoStruct?
+    decoderAllocator:     IAllocator?
+    options:              DecodeOptions
+    canvas:               Image
+    previous:             Image
+    lastIndex:            s32 = -1
 }
 
 impl ImageReader
@@ -160,8 +160,10 @@ impl ImageReader
                         let blue  = (value.b * value.a + behind.b * remainder) / alpha
                         value = PixelValue{red, green, blue, alpha}
                     }
-                    else do
+                    else
+                    {
                         value = {0, 0, 0, 0}
+                    }
                 }
 
                 writePixelValue(target, .canvas.pixelFormat, value)
@@ -199,10 +201,10 @@ public impl ImageReader
             fail UnsupportedFormatError{"no matching image decoder"}
         var result: #returntype
         result.bytes.add(bytes)
-        result.options     = options
-        result.decoderType = found.type
+        result.options          = options
+        result.decoderType      = found.type
         result.decoderAllocator = Swag.getContext().allocator
-        result.decoder = Memory.new(found.type, result.decoderAllocator)
+        result.decoder          = Memory.new(found.type, result.decoderAllocator)
         let multiple = Swag.makeInterface(result.decoder, found.type, IImageSetDecoder)
         if multiple
         {

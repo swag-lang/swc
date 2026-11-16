@@ -11,7 +11,7 @@ using Swag, Core, Gui, Pixel, Video
     defer f.shutdown()
 
     let document = testTempCapturePath()
-    let source = Capture.mediaPathOf(document, .Video)
+    let source   = Capture.mediaPathOf(document, .Video)
     defer
     {
         f.capture.closeMedia()
@@ -35,13 +35,14 @@ using Swag, Core, Gui, Pixel, Video
     f.main.timeline = timeline
     timeline.togglePlay()
     defer timeline.stop()
-    var event = TimerEvent{timer: unwrap timeline.playTimer}
+    var event   = TimerEvent{timer: unwrap timeline.playTimer}
     let readyBy = Time.monotonicMicroseconds() + 2_000_000
     while not timeline.videoBuffered() and not timeline.videoDecodeFailed()
     {
         Swag.require(Time.monotonicMicroseconds() < readyBy, "video prefetch did not finish")
         Threading.Thread.sleep(1'ms)
     }
+
     timeline.IWnd.onTimerEvent(&event)
     Swag.require(timeline.audioReader != null and timeline.audioVoices[0] != null)
     let sound = unwrap timeline.audioReader.audioTrack(0)
@@ -49,7 +50,7 @@ using Swag, Core, Gui, Pixel, Video
     expect voice.pause()
     expect voice.seekSampleFrame(sound.sampleFrameCount())
 
-    timeline.playFrom = 0
+    timeline.playFrom  = 0
     timeline.playStart = Time.monotonicMicroseconds() - 700_000
     let frameBy = Time.monotonicMicroseconds() + 2_000_000
     while f.capture.playhead < 7
@@ -58,6 +59,7 @@ using Swag, Core, Gui, Pixel, Video
         timeline.IWnd.onTimerEvent(&event)
         Threading.Thread.sleep(1'ms)
     }
+
     Swag.require(f.capture.playhead >= 7 and timeline.isPlaying())
     Swag.require(f.capture.playbackPlanar)
     let rendered = f.capture.toImage()
@@ -66,8 +68,8 @@ using Swag, Core, Gui, Pixel, Video
     expect voice.pause()
     expect voice.seekSampleFrame(2_400)
     timeline.audioClockLast = sound.timelineStartSeconds() + voice.playbackPositionSeconds()
-    timeline.playFrom = 0
-    timeline.playStart = Time.monotonicMicroseconds() - 800_000
+    timeline.playFrom       = 0
+    timeline.playStart      = Time.monotonicMicroseconds() - 800_000
     let nextBy = Time.monotonicMicroseconds() + 2_000_000
     while f.capture.playhead < 8
     {
@@ -75,6 +77,7 @@ using Swag, Core, Gui, Pixel, Video
         timeline.IWnd.onTimerEvent(&event)
         Threading.Thread.sleep(1'ms)
     }
+
     Swag.require(f.capture.playhead >= 8)
 
     timeline.togglePlay()
@@ -89,13 +92,14 @@ using Swag, Core, Gui, Pixel, Video
     timeline.seek(timeline.trackX(frames.timeOf(2) + 1_000))
     Swag.require(timeline.seekTimer != null and f.capture.playhead >= 8)
     var seekEvent = TimerEvent{timer: timeline.seekTimer}
-    let seekBy = Time.monotonicMicroseconds() + 2_000_000
+    let seekBy    = Time.monotonicMicroseconds() + 2_000_000
     while f.capture.playhead != 2
     {
         Swag.require(Time.monotonicMicroseconds() < seekBy, "paused video seek did not finish")
         timeline.IWnd.onTimerEvent(&seekEvent)
         Threading.Thread.sleep(1'ms)
     }
+
     Swag.require(not timeline.isPlaying() and timeline.seekTimer == null and f.capture.playbackPlanar)
 
     timeline.seek(timeline.trackX(frames.timeOf(4) + 1_000))
@@ -107,6 +111,7 @@ using Swag, Core, Gui, Pixel, Video
         Swag.require(Time.monotonicMicroseconds() < replayBy, "video did not buffer after a pending seek")
         Threading.Thread.sleep(1'ms)
     }
+
     var replayEvent = TimerEvent{timer: timeline.playTimer}
     timeline.IWnd.onTimerEvent(&replayEvent)
     Swag.require(f.capture.playhead == 4)

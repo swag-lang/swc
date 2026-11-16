@@ -290,9 +290,9 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
 
     let ownerBaseline   = ownerBacking.stats().countAlloc
     let currentBaseline = currentBacking.stats().countAlloc
-    var reader = expect ImageReader.decode("image.bmp", nnBytes(bytes.toSlice()))
-    ownerProbe.decoder   = reader.decoder
-    currentProbe.decoder = reader.decoder
+    var reader          = expect ImageReader.decode("image.bmp", nnBytes(bytes.toSlice()))
+    ownerProbe.decoder     = reader.decoder
+    currentProbe.decoder   = reader.decoder
     ownerProbe.ownsDecoder = true
     let activeOwnerAllocations = ownerBacking.stats().countAlloc
     Swag.require(activeOwnerAllocations > ownerBaseline)

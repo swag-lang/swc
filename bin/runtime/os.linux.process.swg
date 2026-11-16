@@ -3,7 +3,7 @@
 namespace __LinuxRT
 {
     #[Swag.CallingConvention(.C)]
-    alias ThreadEntry = func(*void?)->u32
+    alias ThreadEntry  = func(*void?)->u32
     #[Swag.CallingConvention(.C)]
     alias PthreadEntry = func(*void?)->*void?
 
@@ -31,15 +31,15 @@ namespace __LinuxRT
 
 private struct LinuxThreadStart
 {
-    entry: __LinuxRT.ThreadEntry
+    entry:     __LinuxRT.ThreadEntry
     parameter: *void?
 }
 
 #[Swag.CallingConvention(.C)]
 private func __linuxThreadStart(parameter: *void?)->*void?
 {
-    let start = cast(*LinuxThreadStart, unwrap parameter)
-    let entry = start.entry
+    let start    = cast(*LinuxThreadStart, unwrap parameter)
+    let entry    = start.entry
     let argument = start.parameter
     __bootstrapFree(cast([*] void, start))
     discard entry(argument)
@@ -52,7 +52,7 @@ func __hostThreadCreate(entry: __LinuxRT.ThreadEntry, param: *void?)->*void?
     if not memory do
         return null
     let start = cast(*LinuxThreadStart, memory)
-    start.entry = entry
+    start.entry     = entry
     start.parameter = param
     var thread: u64
     if __LinuxRT.pthread_create(&thread, null, &__linuxThreadStart, start) != 0
@@ -60,6 +60,7 @@ func __hostThreadCreate(entry: __LinuxRT.ThreadEntry, param: *void?)->*void?
         __bootstrapFree(cast([*] void, start))
         return null
     }
+
     return cast(*void, thread)
 }
 
@@ -72,7 +73,7 @@ func __hostThreadJoin(handle: *void?)
 // BATCH is reversible without privilege; nice increments cannot safely implement restoration.
 func __hostThreadEnterBackground()->s32
 {
-    var policy: s32
+    var policy:    s32
     var parameter: __LinuxRT.ScheduleParameter
     let thread = __LinuxRT.pthread_self()
     if __LinuxRT.pthread_getschedparam(thread, &policy, &parameter) != 0 or (policy != 0 and policy != 3) do
@@ -101,16 +102,17 @@ func __hostProcessorCount()->u32
         var remaining = byte
         while remaining
         {
-            count += 1
+            count     += 1
             remaining &= remaining - 1
         }
     }
+
     return count == 0 ? 1 : count
 }
 
 func __hostRuntimeThreadLimit()->u32
 {
-    let text = __LinuxRT.getenv("SWAG_RUNTIME_THREADS".buffer)
+    let text  = __LinuxRT.getenv("SWAG_RUNTIME_THREADS".buffer)
     let value = text ? Swag.makeString(text, cast(const cstring, text).count) : ""
     let (limit, valid) = Swag.parseRuntimeThreadLimit(value)
     if valid do
@@ -159,6 +161,7 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
     let context = Swag.getContext()
     if kind == .Assert and context.panicCatch do
         Swag.panic(message, loc)
+
     // A check records failure without unwinding the native test's active frame.
     if kind == .Check and not Swag.jit() and Swag.__testCheckFailed(message, loc) do
         return
@@ -179,11 +182,12 @@ func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: S
         Swag.panic(msg, loc)
     }
 
-    context.exceptionLoc = loc
+    context.exceptionLoc       = loc
     context.exceptionParams[0] = cast(const *void, &context.exceptionLoc)
     context.exceptionParams[1] = cast(const *void?, message.buffer)
     context.exceptionParams[2] = cast(const *void, message.count)
     context.exceptionParams[3] = cast(const *void, cast(u64, kind))
+
     // Resumable checks keep every borrow alive for the following statements.
     if kind != .Check do
         Swag.__valueBorrowReset()
@@ -213,6 +217,7 @@ func __setUnixArguments(count: u32, values: const [*] (const [*] u8))->bool
         let value = values[index]
         arguments[index] = cast(string, Swag.makeSlice(value, cast(const cstring, value).count))
     }
+
     Swag.processInfo().arguments = Swag.makeSlice(arguments, cast(u64, count))
     return true
 }

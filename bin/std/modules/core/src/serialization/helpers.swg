@@ -109,8 +109,10 @@ public func isPodFinal(type: typeinfo?)->{ raw: bool, sizeof: u64 }
         {
             let enumType = assume cast(const *TypeInfoEnum, type)
             let rawType  = enumType.rawType
-            if Reflection.isInteger(rawType) or Reflection.isFloat(rawType) or
-               Reflection.isBool(rawType) or Reflection.isRune(rawType) do
+            if Reflection.isInteger(rawType) or
+               Reflection.isFloat(rawType) or
+               Reflection.isBool(rawType) or
+               Reflection.isRune(rawType) do
                 return {raw: true, sizeof: type.sizeof}
         }
 

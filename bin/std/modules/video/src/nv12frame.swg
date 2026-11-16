@@ -112,7 +112,7 @@ impl Nv12Frame
 {
     internal mtd copyPacked(width, height: s32, pixels: const [..] u8)
     {
-        .width = width
+        .width  = width
         .height = height
         .bytes.clear()
         .bytes.add(pixels)
@@ -152,6 +152,7 @@ impl Nv12Frame
             convertBgraToNv12(source, target, width, height, rowStride, lumaSize)
             return
         }
+
         let pixelSize = cast(u64, image.bytesPerPixel)
         let redIndex  = format == .BGR8 or format == .BGRA8 ? 2'u64 : 0'u64
         let blueIndex = 2 - redIndex

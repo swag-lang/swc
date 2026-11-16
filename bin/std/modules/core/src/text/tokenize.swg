@@ -121,6 +121,7 @@ func split(src: string, separator: string, maxSplit: u32 = 0, removeEmpty = true
         addSplitPart(&result, src, removeEmpty)
         return result
     }
+
     if not separatorBytes
     {
         addSplitPart(&result, src, removeEmpty)

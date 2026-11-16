@@ -45,7 +45,7 @@ const InfoOptionsWidth = 48.0
 // options among them, in its command group.
 func createInfoOptionsButton(info: *Wnd)->*IconButton
 {
-    let metrics = info.themeMetrics()
+    let metrics     = info.themeMetrics()
     with let result = IconButton.create(info,
                                         info.theme().icon(.Settings, themeRowIconSize(metrics)),
                                         Math.Rectangle{0, 0, InfoOptionsWidth, 32},

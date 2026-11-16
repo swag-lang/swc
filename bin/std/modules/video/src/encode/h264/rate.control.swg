@@ -29,11 +29,13 @@ internal struct RateControl
 
 impl RateControl
 {
-    internal func create(targetBitsPerSecond, reservoirBits: u64, ticksPerSecond,
-                minQp, maxQp: u32)->RateControl fail
+    internal func create(targetBitsPerSecond, reservoirBits: u64, ticksPerSecond, minQp, maxQp: u32)->RateControl fail
     {
-        if not targetBitsPerSecond or not reservoirBits or not ticksPerSecond or
-           minQp > maxQp or maxQp > 51 do
+        if not targetBitsPerSecond or
+           not reservoirBits or
+           not ticksPerSecond or
+           minQp > maxQp or
+           maxQp > 51 do
             fail BadParameterError{"H.264 rate control needs a positive rate, reservoir, timescale and QP range"}
         return {targetBitsPerSecond: targetBitsPerSecond,
                 reservoirBits: reservoirBits,
@@ -63,7 +65,9 @@ impl RateControl
     // Validate all arithmetic before changing state so a rejected observation can retry.
     internal mtd observe(packetBytes: u64, durationTicks, usedQp: u32) fail
     {
-        if not durationTicks or usedQp < .minQp or usedQp > .maxQp or
+        if not durationTicks or
+           usedQp < .minQp or
+           usedQp > .maxQp or
            (.hasObservation and
             ((usedQp > .lastQp and usedQp - .lastQp > 2) or
              (usedQp < .lastQp and .lastQp - usedQp > 2))) do
@@ -71,19 +75,20 @@ impl RateControl
         if packetBytes > Swag.U64.Max / 8 do
             fail OverflowError{"H.264 rate-control picture size overflows bits"}
 
-        let ticks = cast(u64, durationTicks)
-        let timebase = cast(u64, .ticksPerSecond)
+        let ticks     = cast(u64, durationTicks)
+        let timebase  = cast(u64, .ticksPerSecond)
         let wholeRate = .targetBitsPerSecond / timebase
         if wholeRate > Swag.U64.Max / ticks do
             fail OverflowError{"H.264 rate-control budget overflows"}
         let wholeBudget = wholeRate * ticks
+
         // Both remainders are smaller than a u32 timebase. Their product plus the
         // carried remainder fits u64 even when durationTicks is U32.Max.
-        let fractional = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
+        let fractional  = (.targetBitsPerSecond % timebase) * ticks + .fractionalBits
         let extraBudget = fractional / timebase
         if extraBudget > Swag.U64.Max - wholeBudget do
             fail OverflowError{"H.264 rate-control budget overflows"}
-        let budget = wholeBudget + extraBudget
+        let budget      = wholeBudget + extraBudget
         let encodedBits = packetBytes * 8
 
         var fullness = .fullnessBits
@@ -98,7 +103,7 @@ impl RateControl
             fullness = surplus >= .reservoirBits - fullness ? .reservoirBits : fullness + surplus
         }
 
-        var next = usedQp
+        var next    = usedQp
         let quarter = Math.max(1'u64, .reservoirBits / 4)
         if fullness < quarter and next < .maxQp do
             next += Math.min(2'u32, .maxQp - next)
@@ -106,9 +111,9 @@ impl RateControl
             next -= Math.min(2'u32, next - .minQp)
 
         .fractionalBits = fractional % timebase
-        .fullnessBits = fullness
-        .lastQp = usedQp
-        .nextQp = next
+        .fullnessBits   = fullness
+        .lastQp         = usedQp
+        .nextQp         = next
         .hasObservation = true
     }
 }

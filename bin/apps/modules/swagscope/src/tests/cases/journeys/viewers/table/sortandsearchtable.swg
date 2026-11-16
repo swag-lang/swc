@@ -21,12 +21,13 @@ using Core, Gui, Pixel, Viewers
 
     table.sortBy(1)
     journey.waitFor("ascending sizes", func|table|()->bool => table.sortColumn == 1 and
-                                                           not table.descending and table.order[0] == 3)
+                                                              not table.descending and
+                                                              table.order[0] == 3)
     window.sendCommandEvent(ViewerCommands.Find)
     window.searchBox.setText("file2")
     journey.waitFor("found table row", func|window, table|()->bool => window.searchComplete and
-                                                                   window.searchMatches.count == 1 and
-                                                                   table.searchRow == 2)
+                                                                      window.searchMatches.count == 1 and
+                                                                      table.searchRow == 2)
 
     table.sortBy(1)
     journey.waitFor("descending sizes", func|table|()->bool => table.descending and table.order[0] == 0)

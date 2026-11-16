@@ -443,9 +443,9 @@ impl IWnd for IconButton
         // its own words and chevron, where the face puts an underline.
         if .flags.has(.Underline) and not .name.isEmpty()
         {
-            let fontR    = nnFont(.font().regular)
-            let baseline = pos.vertCenter() - fontR.height * 0.5 + fontR.ascent
-            let size     = bc.painter.hairline(Math.max(1, Math.floor(fontR.underlineSize)))
+            let fontR     = nnFont(.font().regular)
+            let baseline  = pos.vertCenter() - fontR.height * 0.5 + fontR.ascent
+            let size      = bc.painter.hairline(Math.max(1, Math.floor(fontR.underlineSize)))
             var underline = bc.isDisabled ? colorText : colors.link
             underline.a = cast(u8, Math.round(underline.a * Math.clamp(metrics.label_LinkUnderlineOpacity, 0, 1)))
             bc.painter.fillRect(Math.Rectangle{pos.x, Math.round(baseline - fontR.underlinePos), pos.width, size}, underline)

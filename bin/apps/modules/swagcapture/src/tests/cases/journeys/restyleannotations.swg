@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(180, 140)
+    var path    = journey.newCapture(180, 140)
     let capture = unwrap main.editWnd.getCapture()
     journey.drawForm(ActionToolMode.Shape, .Shape, {25, 25}, {100, 90})
     let shape = assume cast(*FormShape, capture.forms[0])
@@ -26,9 +26,9 @@ using Core, Gui, Pixel
 
     main.propWnd.pushTypedValue(cast(u32, Argb.Blue), BaseForm, #nameof(BaseForm.backColor), true, true)
     Swag.require(shape.backColor.argb == cast(u32, Argb.Blue))
-    let styles = &main.quickWnd.qsShape
+    let styles       = &main.quickWnd.qsShape
     let defaultCount = styles.forms.count
-    let extra = Memory.new'FormShape()
+    let extra        = Memory.new'FormShape()
     extra.IForm.setup(capture)
     styles.forms.add(extra)
     journey.confirmCommand(ActionQuickStyle.Reset, Dialog.BtnYes)

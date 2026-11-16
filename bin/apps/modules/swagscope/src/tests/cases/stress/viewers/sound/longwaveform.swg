@@ -13,12 +13,12 @@ func storeWavSize(bytes: *Array'u8, at: u64, value: u32)
 #[Swag.TestTag("stress")]
 #test
 {
-    const SampleRate = 11_025'u64
-    const Frames = SampleRate * 60 * 5
+    const SampleRate  = 11_025'u64
+    const Frames      = SampleRate * 60 * 5
     const PayloadSize = Frames * 2
     let file = Testing.tempFilePath("scope-long-waveform-", ".wav")
     defer discard catch File.delete(file)
-    var wav = previewWav()
+    var wav         = previewWav()
     let initialSize = wav.count
     wav.resize(44 + PayloadSize)
     for index in wav.count - initialSize do
@@ -31,8 +31,7 @@ func storeWavSize(bytes: *Array'u8, at: u64, value: u32)
     defer Sound.releaseEngine()
     var host: Testing.HeadlessHost
     host.setup(820, 480)
-    var session = openTestViewer(Sound.viewerPlugin(), &host.root, file,
-                                 commandParent: &host.root)
+    var session = openTestViewer(Sound.viewerPlugin(), &host.root, file, commandParent: &host.root)
     Swag.require(session.view != null)
     let view = assume cast(*Sound.Panel, session.view)
     waitForSoundOpen(&host, view)

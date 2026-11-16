@@ -14,8 +14,8 @@ struct Reader
     width:        s32
     height:       s32
     pixelFormat:  PixelFormat
-    index:        Array'Entry // Recovered files without a trailer are scanned into this index.
-    mappedIndex:  File.MappedRegion // Complete files keep their index in the file, not the heap.
+    index:        Array'Entry           // Recovered files without a trailer are scanned into this index.
+    mappedIndex:  File.MappedRegion     // Complete files keep their index in the file, not the heap.
     mappedCount:  u64
     endTime:      u64       // Time the last frame stops being shown, in microseconds.
     isRecovered:  bool      // The trailer was missing and the index was rebuilt by a scan.
@@ -33,7 +33,7 @@ impl Reader
     {
         var result: #returntype
         result.fileName = fileName
-        result.source = try ByteSource.openFile(fileName)
+        result.source   = try ByteSource.openFile(fileName)
         if result.source.size() < HeaderSize do
             fail Errors.InvalidFormatError{}
 
@@ -50,6 +50,7 @@ impl Reader
 
         if not try result.readTrailer() do
             try result.scanRecords()
+
         // An interrupted writer may have left its temporary spool. The media itself recovers
         // from complete records, and never needs that spool after it has been opened.
         var stale = String.from(fileName)
@@ -73,9 +74,9 @@ impl Reader
             return .index[frame]
         Swag.assert(frame < .mappedCount)
         let bytes = .mappedIndex.bytes()
-        let from = bytes.buffer + frame * IndexEntrySize
+        let from  = bytes.buffer + frame * IndexEntrySize
         var result: Entry
-        var kind: u32
+        var kind:   u32
         Memory.copy(&result.offset, from, 8)
         Memory.copy(&result.time, from + 8, 8)
         Memory.copy(&kind, from + 16, 4)

@@ -62,7 +62,7 @@ const ExportPrefix = "__swc_api_72756e74696d655f636f6e746578745f64796e616d69635f
 
 func verifyDynamicallyLoadedRuntimeContext()
 {
-    const Prefix       = "--dynamic-runtime-library="
+    const Prefix = "--dynamic-runtime-library="
     var path = ""
     for argument in Env.arguments() where argument.count > Prefix.count and argument[0 until Prefix.count] == Prefix do
         path = argument[Prefix.count until argument.count]
@@ -110,13 +110,13 @@ func verifyDynamicallyLoadedRuntimeContext()
 
     #static if #os == Swag.TargetOs.Linux and #hastag("Swag.AllocatorDiagnostics")
     {
-        let createSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_create_electric_block"))
+        let createSymbol  = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_create_electric_block"))
         let releaseSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_release_electric_allocator"))
         Swag.assert(createSymbol != null and releaseSymbol != null)
-        let createBlock = cast(func(*u64)->*Swag.Allocator, createSymbol)
+        let createBlock      = cast(func(*u64)->*Swag.Allocator, createSymbol)
         let releaseAllocator = cast(func(), releaseSymbol)
-        var address = 0'u64
-        let allocator = createBlock(&address)
+        var address          = 0'u64
+        let allocator        = createBlock(&address)
         Swag.assert(address != 0)
         let header = allocator.headerOf(address)
         Swag.assert(header.isElectric and header.userAddr == address)
@@ -176,13 +176,13 @@ func verifyDynamicallyLoadedRuntimeContext()
             path = argument[Prefix.count until argument.count]
         Swag.require(path.count != 0)
 
-        var library = expect NativeLibrary.load(path)
-        let disableSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_disable_library_arg_check"))
+        var library          = expect NativeLibrary.load(path)
+        let disableSymbol    = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_disable_library_arg_check"))
         let closeChildSymbol = library.symbol(#stringof(ExportPrefix, "ctx_dynamic_close_live_child"))
         Swag.require(disableSymbol != null and closeChildSymbol != null)
         cast(func(), disableSymbol)()
         let closeChild = cast(func()->u64, closeChildSymbol)
-        let childId = closeChild()
+        let childId    = closeChild()
         Swag.require(childId != 0)
         library.close()
 

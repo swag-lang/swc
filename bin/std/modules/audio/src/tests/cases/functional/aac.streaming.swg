@@ -7,10 +7,10 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
 {
     var encoder = try Aac.StreamEncoder.create(48_000, 1, .Voice)
     var result: Array'u8
-    var cursor = 0'u64
+    var cursor  = 0'u64
     while cursor < samples.count
     {
-        let count = Math.min(chunk, samples.count - cursor)
+        let count    = Math.min(chunk, samples.count - cursor)
         var packet: Array'u8
         let consumed = try encoder.push(samples[cursor until cursor + count], &packet)
         cursor += consumed
@@ -21,6 +21,7 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
             result.add(packet.toSlice())
         }
     }
+
     var tail: Array'u8
     while try encoder.finish(&tail)
     {
@@ -28,6 +29,7 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
         result.add(cast(u8, tail.count >> 8))
         result.add(tail.toSlice())
     }
+
     Swag.require(encoder.packetCount() == 4 and encoder.inputFrameCount() == samples.count)
     return result
 }
@@ -38,7 +40,7 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     var source: [2_500] s16
     for index in source.count do
         source[index] = cast(s16, cast(s32, index * 31 % 20_000) - 10_000)
-    let one = expect collectStreamPackets(Swag.makeSlice(&source[0], source.count), source.count)
+    let one  = expect collectStreamPackets(Swag.makeSlice(&source[0], source.count), source.count)
     let many = expect collectStreamPackets(Swag.makeSlice(&source[0], source.count), 137)
     Swag.require(Slice.equals(one.toSlice(), many.toSlice()))
 }
@@ -77,12 +79,13 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     defer discard catch File.delete(path)
     var source: [2_500] s16
     for index in source.count do
-        source[index] = cast(s16, Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                  1_000.0 * index / 48_000.0)))
+        source[index] = cast(s16,
+                             Math.round(10_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                            1_000.0 * index / 48_000.0)))
     var encoder = expect Aac.StreamEncoder.create(48_000, 1, .Voice)
     var encoded: Array'u8
     var packets: Array'SoundPacket
-    var cursor = 0'u64
+    var cursor  = 0'u64
     while cursor < source.count
     {
         var packet: Array'u8
@@ -94,16 +97,17 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
             encoded.add(packet.toSlice())
         }
     }
+
     var tail: Array'u8
     while expect encoder.finish(&tail)
     {
         packets.add({encoded.count, cast(u32, tail.count), 1_024})
         encoded.add(tail.toSlice())
     }
+
     Swag.require(packets.count == 4)
     discard expect File.writeAllBytes(path.toString(), encoded.toSlice())
-    let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1,
-                                                  4 * 1_024, packets.toSlice(), encoder.decoderConfig())
+    let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 48_000, 1, 4 * 1_024, packets.toSlice(), encoder.decoderConfig())
     var decoded: Array's16
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {
@@ -116,10 +120,11 @@ func collectStreamPackets(samples: const [..] s16, chunk: u64)->Array'u8 fail
     for index in 2_048 until source.count
     {
         let expected = cast(f64, source[index])
-        let actual = cast(f64, decoded[index + 1_024])
+        let actual   = cast(f64, decoded[index + 1_024])
         error += (expected - actual) * (expected - actual)
         power += expected * expected
     }
+
     Swag.require(Math.sqrt(error / power) < 0.2)
 }
 

@@ -322,7 +322,7 @@ private func __runtimeTypeAlignment(size: u32)->u32
 private func __allocateErrMemory(allocator: IAllocator, size: u64, alignment: u32 = 0)->*void
 {
     var request: AllocatorRequest
-    request.size = Swag.max(size, 1'u64)
+    request.size      = Swag.max(size, 1'u64)
     request.alignment = alignment
     allocator.alloc(&request)
     if not request.address do

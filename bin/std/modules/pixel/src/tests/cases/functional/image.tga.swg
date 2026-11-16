@@ -883,11 +883,11 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 
     options = {}
     options.decodePixels = false
-    options.maxPixels = 3
+    options.maxPixels    = 3
     requireTgaDecodeFails(bytes, options)
 
     options = {}
-    options.decodePixels = false
+    options.decodePixels    = false
     options.maxDecodedBytes = 11
     requireTgaDecodeFails(bytes, options)
 }

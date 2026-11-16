@@ -129,9 +129,9 @@ alias UnaryDouble = func(f64)->f64
         Swag.require(roundTrip == seconds)
         if seconds == -1 do
             Swag.require(universal.tm_year == 69 and
-                        universal.tm_mon == 11 and
-                        universal.tm_mday == 31 and
-                        universal.tm_sec == 59)
+                         universal.tm_mon == 11 and
+                         universal.tm_mday == 31 and
+                         universal.tm_sec == 59)
         if seconds == 951_827_696 do
             Swag.require(universal.tm_year == 100 and universal.tm_mon == 1 and universal.tm_mday == 29)
 
@@ -749,10 +749,10 @@ func pthreadProbeEntry(argument: *void?)->*void?
     let changedDirectory = posix_spawn_file_actions_addchdir_np(&guardedActions.value, "/".buffer)
     let openedInput      = posix_spawn_file_actions_addopen(&guardedActions.value, 0, "/dev/null".buffer, O_RDONLY, 0)
     Swag.require(redirected == 0 and
-                closedRead == 0 and
-                closedWrite == 0 and
-                changedDirectory == 0 and
-                openedInput == 0)
+                 closedRead == 0 and
+                 closedWrite == 0 and
+                 changedDirectory == 0 and
+                 openedInput == 0)
     let arguments = ["sh", "-c", "printf '<%s>' \"$@\"; printf '<%s>' \"$SWAG_PROCESS_NATIVE\"; pwd; exit 37", "probe", "", "a b", "a\"b", "tail\\", "é"]
     var argv: [10] ([*] u8?)
     for argument, index in arguments do

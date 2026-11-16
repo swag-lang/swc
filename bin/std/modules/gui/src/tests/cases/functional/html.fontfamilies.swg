@@ -9,7 +9,7 @@ using Core
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     let source = "<style>#mono{font-family:'Courier New'} #serif{font:italic 18px \"Georgia\"} #stack{font-family:'Unavailable Face',CaMbRiA}</style><p id='mono'>Mono</p><p id='serif'>Serif</p><p id='stack'>Fallback</p>"
-    let view = HtmlView.createText(&host.root, source)
+    let view   = HtmlView.createText(&host.root, source)
     view.resize(640, 360)
     view.applyLayout()
     view.rebuild()

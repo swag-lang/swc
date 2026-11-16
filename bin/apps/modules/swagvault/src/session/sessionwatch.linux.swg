@@ -191,9 +191,10 @@ namespace SessionWatch
             // Optional desktop services are independent: a headless or non-systemd session
             // can still supply X11 idle time, and a Wayland session can supply logind hints.
             catch .openBus() { .closeBus() }
+
             // Xwayland's input clock does not include native Wayland clients. In that session
             // use the compositor's login1 hint rather than inventing inactivity from X11 alone.
-            let sessionType = Env.variable("XDG_SESSION_TYPE")
+            let sessionType    = Env.variable("XDG_SESSION_TYPE")
             let waylandDisplay = Env.variable("WAYLAND_DISPLAY")
             if sessionType == "wayland" or not waylandDisplay.isEmpty() do
                 return
@@ -287,7 +288,7 @@ namespace SessionWatch
                     result.idleMilliseconds = info.idle
             }
 
-            result.locked = result.locked or .lockPending
+            result.locked     = result.locked or .lockPending
             result.suspending = result.suspending or .suspendPending
             .lockPending      = false
             .suspendPending   = false

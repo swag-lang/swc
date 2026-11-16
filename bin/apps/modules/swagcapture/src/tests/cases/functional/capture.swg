@@ -75,8 +75,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     f.setup(320, 240)
     defer f.shutdown()
 
-    g_DesktopX, g_DesktopY = 0
-    g_Exit, g_GrabDone     = false
+    g_DesktopX, g_DesktopY   = 0
+    g_Exit, g_GrabDone       = false
     g_StartGrabX, g_EndGrabX = 0
     g_StartGrabY, g_EndGrabY = 0
     let wnd = Wnd.create'CaptureRectWnd(&f.gui.root, {0, 0, 320, 240})
@@ -211,7 +211,7 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     // exactly like the first, and each carries a distinct id and an enabled state.
     for idx in f.main.monitors.count
     {
-        let id = ActionCapture.screenId(idx)
+        let id       = ActionCapture.screenId(idx)
         let recordId = ActionCapture.recordScreenId(idx)
 
         // A minted id must still carry the owning scope: `acceptOwnCmdIds` routes a

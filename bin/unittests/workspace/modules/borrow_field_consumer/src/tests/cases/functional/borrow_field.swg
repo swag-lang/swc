@@ -8,7 +8,7 @@ func release(ptr: *void, size: u64)
 {
     var req: AllocatorRequest
     req.address = ptr
-    req.size = size
+    req.size    = size
     Swag.getContext().allocator!.free(&req)
 }
 
@@ -23,7 +23,7 @@ func rejectImportedBorrowedField()
 #test
 {
     var value: s32 = 73
-    let carrier = BorrowFieldProvider.createWrapped(&value)
+    let carrier    = BorrowFieldProvider.createWrapped(&value)
     release(carrier.owned, #sizeof(s32))
     release(carrier, #sizeof(BorrowFieldProvider.Carrier))
     Swag.require(value == 73)

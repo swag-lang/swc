@@ -29,10 +29,10 @@
     recovered[3] = 47
     let count = expect stream.read(recovered)
     Swag.require(count == 3 and
-                recovered[0] == 11 and
-                recovered[1] == 22 and
-                recovered[2] == 33 and
-                recovered[3] == 47)
+                 recovered[0] == 11 and
+                 recovered[1] == 22 and
+                 recovered[2] == 33 and
+                 recovered[3] == 47)
     expect stream.resize(2)
     let truncatedSize     = expect stream.size()
     let truncatedPosition = expect stream.position()

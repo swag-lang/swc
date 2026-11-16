@@ -38,18 +38,20 @@ private func validateDecodedEnumValues(dataType: typeinfo?, data: [*] u8) fail
             try validateDecodedEnumValues(elementType, element)
             element += elementType.sizeof
         }
+
         return
     }
 
     if Reflection.isStaticArray(type)
     {
         let arrayType = assume cast(const *TypeInfoArray, type)
-        var element = data
+        var element   = data
         for arrayType.count
         {
             try validateDecodedEnumValues(arrayType.pointedType, element)
             element += arrayType.pointedType.sizeof
         }
+
         return
     }
 
@@ -408,6 +410,7 @@ impl Decoder
                             .serializer.diag.fieldErrors += 1
                         Reflection.reset(fieldData, fieldType)
                     }
+
                     continue
                 }
 
@@ -443,6 +446,7 @@ impl Decoder
                 try itf.postRead(data, idecoder)
                 try validateDecodedEnumValues(type, cast([*] u8, data))
             }
+
             return
         }
 

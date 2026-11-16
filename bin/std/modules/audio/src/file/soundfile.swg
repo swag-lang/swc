@@ -362,10 +362,8 @@ impl SoundFile
             fail BadParameterError{"packetized sound needs decoder configuration"}
         if options.speakerMask and
            (options.speakerMask & ~0x0003_FFFF'u32 or
-            Swag.countOnes(options.speakerMask) != channels)
-        {
+            Swag.countOnes(options.speakerMask) != channels) do
             fail BadParameterError{"speaker mask must name one supported position per channel"}
-        }
 
         var stream     = try File.open(path, .Open, .Read, .ReadWrite)
         let sourceSize = try stream.size()

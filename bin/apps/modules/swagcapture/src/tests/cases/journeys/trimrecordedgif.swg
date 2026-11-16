@@ -10,9 +10,9 @@ using Core, Gui, Pixel
     var journey: CaptureJourney
     journey.setup()
     journey.recordAnimation(.Stop)
-    let main = journey.main
+    let main    = journey.main
     let capture = unwrap main.editWnd.getCapture()
-    var path = String.from(capture.file)
+    var path    = String.from(capture.file)
 
     main.sendCommandEvent(ActionTimeline.NextFrame)
     Swag.require(capture.playhead == 1)
@@ -26,14 +26,18 @@ using Core, Gui, Pixel
     journey.waitFor("trimmed recording reopened", func|main, &path, start|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and
-               opened.isTimed() and opened.trimStart() == start and not opened.mediaMissing
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.isTimed() and
+               opened.trimStart() == start and
+               not opened.mediaMissing
     })
 
     let opened = unwrap main.editWnd.getCapture()
-    let gif = Path.combine(journey.root, "trimmed.gif")
+    let gif    = Path.combine(journey.root, "trimmed.gif")
     expect opened.exportAnimation(gif)
-    let bytes = expect File.readAllBytes(gif)
+    let bytes  = expect File.readAllBytes(gif)
     var reader = expect ImageReader.decode("trimmed.gif", bytes.toSlice())
     Swag.require(reader.info.frames.count >= 1)
 

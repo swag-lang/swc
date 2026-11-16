@@ -21,7 +21,7 @@ func resolveOwnedPath(currentName, legacyName: string)->String
     allocator.configure(false, false, false, false, false)
     let backing: Swag.IAllocator = &allocator
     let context = Swag.getContext()
-    let originalAllocator = context.allocator
+    let originalAllocator        = context.allocator
     context.allocator = backing
     defer context.allocator = originalAllocator
 

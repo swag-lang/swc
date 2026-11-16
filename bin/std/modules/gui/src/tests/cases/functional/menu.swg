@@ -387,6 +387,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     {
         .fitToContent = true
     }
+
     let choice = IconButton.create(choices, {}, {0, 0, 48, 24}, flags: .Radio)
     choice.setText("3 s")
     popup.addWidget(choices)
@@ -636,7 +637,7 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
     let wide = MenuCtrl.createPopup(&host.root)
     wide.addItem("A child command too wide to fit on the right side of its parent menu", Menu_Open)
 
-    let popup = MenuCtrl.createPopup(&host.root)
+    let popup      = MenuCtrl.createPopup(&host.root)
     let narrowItem = popup.addPopup("Narrow", narrow)
     let wideItem   = popup.addPopup("Wide", wide)
 

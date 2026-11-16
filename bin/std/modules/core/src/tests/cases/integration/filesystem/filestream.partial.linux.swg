@@ -23,8 +23,10 @@ func writeAfterShortRead(thread: const *Threading.Thread)
             state.sentSecond = Linux.write(state.writeDescriptor, "cd".buffer, 2) == 2
             break
         }
+
         Threading.Thread.sleep(1'ms)
     }
+
     discard Linux.close(state.writeDescriptor)
 }
 
@@ -65,7 +67,7 @@ func interruptPipeIo(_: s32)
 
 func waitForBlockedPipeThread(id: u64, operation: string)->bool
 {
-    let path = Format.toString("/proc/self/task/%/wchan", id)
+    let path     = Format.toString("/proc/self/task/%/wchan", id)
     let deadline = Time.monotonicMilliseconds() + 3000
     while Time.monotonicMilliseconds() < deadline
     {

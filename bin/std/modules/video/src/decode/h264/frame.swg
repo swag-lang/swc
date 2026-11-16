@@ -133,7 +133,7 @@ impl Frame
     // Applies the colour range and matrix signalled by the sequence set.
     mtd setColorSignal(sps: const *Sps)
     {
-        .studioRange  = not sps.fullRange
+        .studioRange = not sps.fullRange
         switch sps.matrixCoefficients
         {
         case 1:     .matrix = .Bt709

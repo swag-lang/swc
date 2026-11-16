@@ -252,8 +252,8 @@ namespace WinFsp
     // Appends one entry to the WinFsp directory buffer; 0 once it is full.
     func emitFspDir(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
     {
-        let context = cast(*FspEmitContext, unwrap emitContext)
-        let name16  = Utf16.toZeroTerminated(cString(name))
+        let context    = cast(*FspEmitContext, unwrap emitContext)
+        let name16     = Utf16.toZeroTerminated(cString(name))
         let nameLength = name16.count - 1
         let bytes      = #offsetof(FspDirInfo.fileName) + nameLength * #sizeof(u16)
         if bytes > Swag.U16.Max do
@@ -293,7 +293,7 @@ namespace WinFsp
         if status != StatusSuccess do
             return status
 
-        let name16 = Utf16.toZeroTerminated(value)
+        let name16     = Utf16.toZeroTerminated(value)
         let nameLength = name16.count - 1
         let bytes      = #offsetof(FspDirInfo.fileName) + nameLength * #sizeof(u16)
         if bytes > Swag.U16.Max do

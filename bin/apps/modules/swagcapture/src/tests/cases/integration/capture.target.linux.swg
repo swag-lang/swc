@@ -11,13 +11,13 @@ impl Recorder
 func paintRecordFixtureWindow(window: *Env.Window, pixel: u32)
 {
     let drawable = expect window.xcbDrawable()
-    let library = unwrap Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
+    let library  = unwrap Linux.dlopen("libxcb.so.1".buffer, Linux.RTLD_NOW | Linux.RTLD_LOCAL)
     defer discard Linux.dlclose(library)
     let attributes = expect X11Capture.symbol'Linux.xcb_change_window_attributes_checked_fn(library, "xcb_change_window_attributes_checked")
-    let clear = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
-    let check = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let clear      = expect X11Capture.symbol'Linux.xcb_clear_area_checked_fn(library, "xcb_clear_area_checked")
+    let check      = expect X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
     let connection = unwrap drawable.connection
-    let changed = check(connection, attributes(connection, drawable.window, 2, &pixel))
+    let changed    = check(connection, attributes(connection, drawable.window, 2, &pixel))
     Swag.require(changed == null)
     let cleared = check(connection, clear(connection, 0, drawable.window, 0, 0, 0, 0))
     Swag.require(cleared == null)
@@ -54,15 +54,16 @@ func paintRecordFixtureWindow(window: *Env.Window, pixel: u32)
                                           width: 64, height: 48, stopLoopOnClose: false})
     expect window.setPosition(50, 60)
     expect window.show()
-    let id = cast(u64, (expect window.xcbDrawable()).window)
+    let id    = cast(u64, (expect window.xcbDrawable()).window)
     let first = getCaptureWindowBounds(id)
     Swag.require(first.exists and first.visible)
 
     let target = CaptureTarget.create({first.rect.x + 5, first.rect.y + 7, 20, 15}, id)
     expect window.setPosition(90, 110)
     let moved = getCaptureWindowBounds(id)
-    let area = target.resolve()
-    Swag.require(area.visible and area.area ==
+    let area  = target.resolve()
+    Swag.require(area.visible and
+                 area.area ==
                  Math.Rectangle{moved.rect.x + 5, moved.rect.y + 7, 20, 15})
 
     expect window.hide()
@@ -84,13 +85,13 @@ func paintRecordFixtureWindow(window: *Env.Window, pixel: u32)
                                           width: 64, height: 48, stopLoopOnClose: false})
     expect window.setPosition(40, 45)
     expect window.show()
-    let id = cast(u64, (expect window.xcbDrawable()).window)
+    let id    = cast(u64, (expect window.xcbDrawable()).window)
     let first = getCaptureWindowBounds(id)
     var recorder: Recorder
-    recorder.main = fixture.main
+    recorder.main   = fixture.main
     recorder.target = CaptureTarget.create({first.rect.x + 3, first.rect.y + 4, 20, 15}, id)
-    recorder.area = recorder.target.area
-    recorder.state = .Recording
+    recorder.area   = recorder.target.area
+    recorder.state  = .Recording
     recorder.clock.startAt(Time.monotonicMicroseconds())
     recorder.nextFrame = Swag.U64.Max
 

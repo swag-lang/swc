@@ -19,6 +19,7 @@ using Swag, Core, Pixel
         fixture.main.editMode = .Shape
         fixture.dragImage({x, y}, {x + 16, y + 12})
     }
+
     Swag.require(capture.forms.count == 128 and capture.undoMgr.appliedCount() == 128)
     var image = fixture.gui.render(fixture.main)
     Swag.require(image.isValid())
@@ -28,12 +29,14 @@ using Swag, Core, Pixel
         capture.undo()
         Swag.require(capture.forms.count == 127 - index)
     }
+
     Swag.require(not capture.canUndo() and capture.canRedo())
     for index in 128
     {
         capture.redo()
         Swag.require(capture.forms.count == index + 1)
     }
+
     Swag.require(capture.canUndo() and not capture.canRedo())
 
     for 64 do

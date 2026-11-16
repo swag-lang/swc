@@ -15,6 +15,7 @@ func captureRecordingFrame(drawCursor: bool, area: Math.Rectangle, chrome: *Surf
     {
         return try getScreenRectImage(drawCursor, x, y, w, h)
     }
+
     return try captureRecordingFrameWithWindow(drawCursor, drawable, x, y, w, h)
 }
 
@@ -26,16 +27,17 @@ func captureRecordingFrameWithWindow(drawCursor: bool, drawable: Env.XcbDrawable
         return try getScreenRectImage(drawCursor, x, y, w, h)
     defer discard Linux.dlclose(unwrap library)
 
-    let unmap = try X11Capture.symbol'Linux.xcb_unmap_window_checked_fn(library, "xcb_unmap_window_checked")
-    let map = try X11Capture.symbol'Linux.xcb_map_window_checked_fn(library, "xcb_map_window_checked")
-    let check = try X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
-    let connection = unwrap drawable.connection
+    let unmap       = try X11Capture.symbol'Linux.xcb_unmap_window_checked_fn(library, "xcb_unmap_window_checked")
+    let map         = try X11Capture.symbol'Linux.xcb_map_window_checked_fn(library, "xcb_map_window_checked")
+    let check       = try X11Capture.symbol'Linux.xcb_request_check_fn(library, "xcb_request_check")
+    let connection  = unwrap drawable.connection
     let hiddenError = check(connection, unmap(connection, drawable.window))
     if hiddenError
     {
         Linux.free(hiddenError)
         return try getScreenRectImage(drawCursor, x, y, w, h)
     }
+
     defer
     {
         let shownError = check(connection, map(connection, drawable.window))
@@ -76,8 +78,8 @@ func captureWindowInfo(capture: *X11Capture, window: u32)->CaptureWindowInfo
     var result: #returntype
     let native = capture.windowInfo(window)
     result.nativeWindow = window
-    result.title     = native.title
-    result.className = native.className
+    result.title        = native.title
+    result.className    = native.className
     if not native.processId do
         return result
     let path  = Format.toString("/proc/%/exe", native.processId)
@@ -100,9 +102,9 @@ func getCaptureWindowBounds(id: u64)->{rect: Math.Rectangle, visible: bool, exis
     if not id do
         return result
     var capture = catch X11Capture.create() { return result }
-    let window = cast(u32, id)
-    result.rect = capture.windowRect(window)
-    result.exists = not result.rect.isEmpty()
+    let window  = cast(u32, id)
+    result.rect    = capture.windowRect(window)
+    result.exists  = not result.rect.isEmpty()
     result.visible = result.exists and capture.windowIsViewable(window)
     return result
 }

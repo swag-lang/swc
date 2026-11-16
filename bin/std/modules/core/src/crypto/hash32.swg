@@ -56,8 +56,8 @@ public func hashBytes32(buffer: const [..] u8?)->u32
             var tail: u32
             Memory.copy(cast([*] void, &head), cast(const [*] void, data), #sizeof(head))
             Memory.copy(cast([*] void, &tail), cast(const [*] void, data + length - 4), #sizeof(tail))
-            head = Math.littleEndianToNative(head)
-            tail = Math.littleEndianToNative(tail)
+            head   = Math.littleEndianToNative(head)
+            tail   = Math.littleEndianToNative(tail)
             result ^= cast(u64, head) | (cast(u64, tail) << 32)
             result *= Mix2
         }

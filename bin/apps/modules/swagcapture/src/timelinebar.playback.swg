@@ -9,12 +9,12 @@ impl TimelineBar
     {
         Sync.scopedLock(&.videoLock)
         .videoGeneration += 1
-        .videoPath = String.from(Capture.mediaPathOf(capture.file, .Video))
-        .videoFrom = frame
-        .videoNext = frame
-        .videoCount = capture.frames!.frameCount()
-        .videoActive = true
-        .videoFailed = false
+        .videoPath       = String.from(Capture.mediaPathOf(capture.file, .Video))
+        .videoFrom       = frame
+        .videoNext       = frame
+        .videoCount      = capture.frames!.frameCount()
+        .videoActive     = true
+        .videoFailed     = false
         .videoReady.clear()
         .videoFree.clear()
         for slot in TimelineVideoSlots where not .videoBusy or slot != .videoBusySlot do
@@ -29,7 +29,7 @@ impl TimelineBar
             return
         Sync.scopedLock(&.videoLock)
         .videoGeneration += 1
-        .videoActive = false
+        .videoActive     = false
         .videoReady.clear()
         .videoFree.clear()
     }
@@ -37,7 +37,7 @@ impl TimelineBar
     // Closes every reader of a capture before the library moves its media to the trash.
     mtd releaseCaptureMedia(file: string)
     {
-        let media = Capture.mediaPathOf(file, .Video)
+        let media     = Capture.mediaPathOf(file, .Video)
         let displayed = .viewCapture and .viewCapture.isStoredIn(file)
         var decoding: bool
         scope
@@ -45,6 +45,7 @@ impl TimelineBar
             Sync.scopedLock(&.videoLock)
             decoding = Path.equals(.videoPath, media)
         }
+
         if not displayed and not decoding and not Path.equals(.audioPath, media) do
             return
 
@@ -58,9 +59,11 @@ impl TimelineBar
                 Sync.scopedLock(&.videoLock)
                 .videoReleaseRequested = true
             }
+
             .videoWake.signal()
             .videoReleased.wait()
         }
+
         if displayed do
             .viewCapture = null
     }
@@ -112,18 +115,18 @@ impl TimelineBar
     {
         var slot, generation: u32
         var index: u64
-        var path: String
+        var path:  String
         scope
         {
             Sync.scopedLock(&.videoLock)
             if not .videoActive or .videoFailed or .videoFree.isEmpty() or .videoNext >= .videoCount do
                 return false
-            slot = .videoFree.popBack()
-            index = .videoNext
-            generation = .videoGeneration
-            path = String.from(.videoPath)
-            .videoNext += 1
-            .videoBusy = true
+            slot           = .videoFree.popBack()
+            index          = .videoNext
+            generation     = .videoGeneration
+            path           = String.from(.videoPath)
+            .videoNext     += 1
+            .videoBusy     = true
             .videoBusySlot = slot
         }
 
@@ -134,9 +137,10 @@ impl TimelineBar
             {
                 if reader.isOpen() do
                     reader.close()
-                reader[] = try Video.Reader.open(path.toString(), pictureOnly: true)
+                reader[]     = try Video.Reader.open(path.toString(), pictureOnly: true)
                 readerPath[] = String.from(path)
             }
+
             try reader.decodeFramePlanesInto(&.videoSlots[slot].planes, index)
         }
         {
@@ -150,12 +154,14 @@ impl TimelineBar
             .videoFree.add(slot)
             return true
         }
+
         if failed
         {
             .videoFailed = true
             .videoFree.add(slot)
             return false
         }
+
         .videoSlots[slot].index = index
         .videoReady.add(slot)
         return true
@@ -166,7 +172,7 @@ impl TimelineBar
 func runTimelineVideoDecoder(bar: *TimelineBar)
 {
     var reader: Video.Reader
-    var path: String
+    var path:   String
     while not Swag.isCancelled()
     {
         bar.videoWake.wait()
@@ -177,6 +183,7 @@ func runTimelineVideoDecoder(bar: *TimelineBar)
             Sync.scopedLock(&bar.videoLock)
             releaseRequested = bar.videoReleaseRequested
         }
+
         if releaseRequested
         {
             if reader.isOpen() do
@@ -187,6 +194,7 @@ func runTimelineVideoDecoder(bar: *TimelineBar)
             bar.videoReleased.signal()
         }
     }
+
     if reader.isOpen() do
         reader.close()
 }

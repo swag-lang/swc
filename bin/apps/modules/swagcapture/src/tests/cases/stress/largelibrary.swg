@@ -16,11 +16,11 @@ using Swag, Core, Pixel
 
     for index in 800
     {
-        let name = Format.toString("capture%.scc", index)
+        let name  = Format.toString("capture%.scc", index)
         let title = index == 799 ? "Target final capture" : "Regular capture"
-        discard testAddLibraryItem(view, name, cast(u64, index + 1),
-                                   cast(u16, 1 + index % 28), title: title)
+        discard testAddLibraryItem(view, name, cast(u64, index + 1), cast(u16, 1 + index % 28), title: title)
     }
+
     Swag.require(view.items.count == 800)
     fixture.main.applyLayout()
     var image = fixture.gui.render(library)

@@ -153,14 +153,14 @@ private func webCaptureQuality()->VideoQuality
     journey.setup()
     let main = journey.main
     let app  = journey.app
-    main.captureOptions.recordCountdown   = false
-    main.captureOptions.captureCursor     = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
-    main.captureOptions.recordSystemSound = true
+    main.captureOptions.recordCountdown    = false
+    main.captureOptions.captureCursor      = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
+    main.captureOptions.recordSystemSound  = true
     main.captureOptions.recordVideoQuality = webCaptureQuality()
-    main.captureOptions.recordMicrophone  = false
-    main.captureOptions.inPlaceEdit       = true
-    main.captureOptions.hideEditorBefore  = true
-    main.captureOptions.sendToEditor      = true
+    main.captureOptions.recordMicrophone   = false
+    main.captureOptions.inPlaceEdit        = true
+    main.captureOptions.hideEditorBefore   = true
+    main.captureOptions.sendToEditor       = true
     var stage: u32
     var stalled = false
     app.sigFrame += func|&journey, x, y, width, height, browser, stallMs, maxMissed, stage = &stage, stalled = &stalled|(_)
@@ -186,12 +186,7 @@ private func webCaptureQuality()->VideoQuality
                     pointer.kind = .Released
                     overlay.sendEvent(&pointer)
                     if not g_CaptureAnchored or g_CaptureWindow.nativeWindow != cast(u64, browser) do
-                        Console.println("Area link: selected=", g_StartGrabX, ", ", g_StartGrabY,
-                                        " -> ", g_EndGrabX, ", ", g_EndGrabY,
-                                        " anchored=", g_CaptureAnchored,
-                                        " selected_window=", g_CaptureWindow.nativeWindow,
-                                        " browser=", cast(u64, browser),
-                                        " title=", g_CaptureWindow.title)
+                        Console.println("Area link: selected=", g_StartGrabX, ", ", g_StartGrabY, " -> ", g_EndGrabX, ", ", g_EndGrabY, " anchored=", g_CaptureAnchored, " selected_window=", g_CaptureWindow.nativeWindow, " browser=", cast(u64, browser), " title=", g_CaptureWindow.title)
                     Swag.require(g_CaptureAnchored and g_CaptureWindow.nativeWindow == cast(u64, browser),
                                  "selected area must be linked to the actual browser window")
                     stage[] = 1
@@ -233,33 +228,15 @@ private func webCaptureQuality()->VideoQuality
                 Console.println("Web recording: frames=", recorder.video.frameCount(), " duration_us=", recorder.elapsed(), " source_failures=", recorder.video.sourceFailureCount())
                 Console.println("Video missed slots=", recorder.video.missedFrameSlotCount(), " forced_ui_stall_ms=", stallMs)
                 Console.println("Video work: fresh=", recorder.video.freshFrames, " grab_us=", recorder.video.grabMicroseconds, " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds), " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds), " producer_wait_us=", recorder.video.producerWaitMicroseconds, " runtime_workers=", Swag.workerCount())
-                Console.println("Video peaks: grab_us=", recorder.video.maxGrabMicroseconds,
-                                " scale_us=", recorder.video.maxScaleMicroseconds,
-                                " submit_us=", recorder.video.maxProducerWaitMicroseconds,
-                                " first_missed=", recorder.video.firstMissedSlot,
-                                " last_missed=", recorder.video.lastMissedSlot)
-                Console.println("Screen read: dc_us=", recorder.video.source.dcMicroseconds,
-                                " blit_us=", recorder.video.source.blitMicroseconds,
-                                " flush_us=", recorder.video.source.flushMicroseconds,
-                                " copy_us=", recorder.video.source.copyMicroseconds,
-                                " cursor_us=", recorder.video.source.cursorMicroseconds)
+                Console.println("Video peaks: grab_us=", recorder.video.maxGrabMicroseconds, " scale_us=", recorder.video.maxScaleMicroseconds, " submit_us=", recorder.video.maxProducerWaitMicroseconds, " first_missed=", recorder.video.firstMissedSlot, " last_missed=", recorder.video.lastMissedSlot)
+                Console.println("Screen read: dc_us=", recorder.video.source.dcMicroseconds, " blit_us=", recorder.video.source.blitMicroseconds, " flush_us=", recorder.video.source.flushMicroseconds, " copy_us=", recorder.video.source.copyMicroseconds, " cursor_us=", recorder.video.source.cursorMicroseconds)
                 Console.println("Screen backend: dxgi=", recorder.video.source.accelerated != null)
                 if let accelerated = recorder.video.source.accelerated
                 {
                     let metrics = accelerated.metrics()
-                    Console.println("DXGI work: acquired=", metrics.acquiredFrames,
-                                    " unchanged=", metrics.unchangedFrames,
-                                    " acquire_us=", metrics.acquireMicroseconds,
-                                    " max_acquire_us=", metrics.maxAcquireMicroseconds,
-                                    " readback_us=", metrics.readbackMicroseconds,
-                                    " max_readback_us=", metrics.maxReadbackMicroseconds,
-                                    " coalesced_updates=", metrics.coalescedUpdates,
-                                    " multi_rect=", metrics.multiRectFrames,
-                                    " copy_us=", metrics.copyMicroseconds,
-                                    " mirrored_pixels=", metrics.mirroredPixels,
-                                    " output_us=", metrics.outputMicroseconds,
-                                    " compose_us=", metrics.composeMicroseconds)
+                    Console.println("DXGI work: acquired=", metrics.acquiredFrames, " unchanged=", metrics.unchangedFrames, " acquire_us=", metrics.acquireMicroseconds, " max_acquire_us=", metrics.maxAcquireMicroseconds, " readback_us=", metrics.readbackMicroseconds, " max_readback_us=", metrics.maxReadbackMicroseconds, " coalesced_updates=", metrics.coalescedUpdates, " multi_rect=", metrics.multiRectFrames, " copy_us=", metrics.copyMicroseconds, " mirrored_pixels=", metrics.mirroredPixels, " output_us=", metrics.outputMicroseconds, " compose_us=", metrics.composeMicroseconds)
                 }
+
                 if maxMissed >= 0 do
                     Swag.require(recorder.video.missedFrameSlotCount() <= cast(u64, maxMissed),
                                  "recording exceeded the requested missed-frame budget")
@@ -460,51 +437,53 @@ private func webCaptureQuality()->VideoQuality
     Swag.require(browser != null, "the owned browser fixture window is missing")
     var browserBounds: Win32.RECT
     Swag.require(Win32.GetWindowRect(browser, &browserBounds))
-    let browserX = browserBounds.left + expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
-    let browserY = browserBounds.top + expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
-    let monitors = Env.getMonitors()
+    let browserX     = browserBounds.left + expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_INSET_X"))
+    let browserY     = browserBounds.top + expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_INSET_Y"))
+    let monitors     = Env.getMonitors()
     var monitorIndex = Swag.U64.Max
     for index in monitors.count
     {
         let bounds = monitors[index].physicalBounds
-        if browserX >= bounds.x and browserX < bounds.right() and
-           browserY >= bounds.y and browserY < bounds.bottom()
+        if browserX >= bounds.x and
+           browserX < bounds.right() and
+           browserY >= bounds.y and
+           browserY < bounds.bottom()
         {
             monitorIndex = index
             break
         }
     }
+
     Swag.require(monitorIndex != Swag.U64.Max, "the browser fixture is outside the connected monitors")
     let expected = desktop ? Math.Rectangle{Env.getSystemMetric(.DesktopX),
-                                             Env.getSystemMetric(.DesktopY),
-                                             Env.getSystemMetric(.DesktopWidth),
-                                             Env.getSystemMetric(.DesktopHeight)} :
-                             monitors[monitorIndex].physicalBounds
-    let videoWidth = cast(s32, Math.floor(expected.width / 2) * 2)
+                                            Env.getSystemMetric(.DesktopY),
+                                            Env.getSystemMetric(.DesktopWidth),
+                                            Env.getSystemMetric(.DesktopHeight)} :
+                   monitors[monitorIndex].physicalBounds
+    let videoWidth  = cast(s32, Math.floor(expected.width / 2) * 2)
     let videoHeight = cast(s32, Math.floor(expected.height / 2) * 2)
-    let maxSide = Math.max(videoWidth, videoHeight)
+    let maxSide     = Math.max(videoWidth, videoHeight)
     let outputWidth = maxSide > 4096 ?
                       Math.max(2, cast(s32, Math.floor(cast(f64, videoWidth) * 4096 / maxSide / 2)) * 2) : videoWidth
     let outputHeight = maxSide > 4096 ?
                        Math.max(2, cast(s32, Math.floor(cast(f64, videoHeight) * 4096 / maxSide / 2)) * 2) : videoHeight
-    let maxMissed = expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_MAX_MISSED"))
+    let maxMissed       = expect StrConv.toS32(Env.variable("SWAG_CAPTURE_WEB_MAX_MISSED"))
     let durationSeconds = expect StrConv.toU32(Env.variable("SWAG_CAPTURE_WEB_DURATION"))
-    let evidence = Env.sandboxRoot()
-    Console.println("Full-screen capture: mode=", desktop ? "desktop" : "monitor",
-                    " bounds=", expected.x, ", ", expected.y, " ", expected.width, " x ", expected.height)
+    let evidence        = Env.sandboxRoot()
+    Console.println("Full-screen capture: mode=", desktop ? "desktop" : "monitor", " bounds=", expected.x, ", ", expected.y, " ", expected.width, " x ", expected.height)
 
     var journey: CaptureJourney
     journey.setup()
     let main = journey.main
-    let app = journey.app
-    main.captureOptions.recordCountdown = false
-    main.captureOptions.captureCursor = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
-    main.captureOptions.recordSystemSound = false
+    let app  = journey.app
+    main.captureOptions.recordCountdown    = false
+    main.captureOptions.captureCursor      = Env.variable("SWAG_CAPTURE_WEB_CURSOR") == "true"
+    main.captureOptions.recordSystemSound  = false
     main.captureOptions.recordVideoQuality = webCaptureQuality()
-    main.captureOptions.recordMicrophone = false
-    main.captureOptions.inPlaceEdit = true
-    main.captureOptions.hideEditorBefore = true
-    main.captureOptions.sendToEditor = true
+    main.captureOptions.recordMicrophone   = false
+    main.captureOptions.inPlaceEdit        = true
+    main.captureOptions.hideEditorBefore   = true
+    main.captureOptions.sendToEditor       = true
     var stage: u32
     app.sigFrame += func|&journey, desktop, expected, videoWidth, videoHeight, maxMissed, durationSeconds, stage = &stage|(_)
     {
@@ -518,7 +497,7 @@ private func webCaptureQuality()->VideoQuality
         if stage[] == 0
         {
             Swag.require(recorder.state == .Preparing and recorder.target.window == 0)
-            let hud = unwrap recorder.hud
+            let hud        = unwrap recorder.hud
             let hudSurface = unwrap hud.surface
             var affinity: Win32.DWORD
             Swag.require(GetWindowDisplayAffinity(hudSurface.win32Handle(), &affinity) and
@@ -536,8 +515,11 @@ private func webCaptureQuality()->VideoQuality
                 Swag.require(hudSurface.position.intersects(recorder.area),
                              "the full-desktop test must exercise overlapping recording controls")
             }
-            Swag.require(recorder.area.x == expected.x and recorder.area.y == expected.y and
-                         recorder.area.width == videoWidth and recorder.area.height == videoHeight)
+
+            Swag.require(recorder.area.x == expected.x and
+                         recorder.area.y == expected.y and
+                         recorder.area.width == videoWidth and
+                         recorder.area.height == videoHeight)
             stage[] = 1
             hud.recordButton!.sigPressed.call(hud.recordButton)
         }
@@ -545,39 +527,13 @@ private func webCaptureQuality()->VideoQuality
         {
             Swag.require(recorder.edges.isEmpty(), "the screen selection frame must be gone before encoding")
             recorder.videoProducer.close()
-            Console.println("Full-screen recording: frames=", recorder.video.frameCount(),
-                            " fresh=", recorder.video.freshFrames,
-                            " missed=", recorder.video.missedFrameSlotCount(),
-                            " source_failures=", recorder.video.sourceFailureCount(),
-                            " grab_us=", recorder.video.grabMicroseconds,
-                            " max_grab_us=", recorder.video.maxGrabMicroseconds,
-                            " scale_us=", recorder.video.scaleMicroseconds,
-                            " max_scale_us=", recorder.video.maxScaleMicroseconds,
-                            " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds),
-                            " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds),
-                            " max_submit_us=", recorder.video.maxProducerWaitMicroseconds,
-                            " first_missed=", recorder.video.firstMissedSlot,
-                            " last_missed=", recorder.video.lastMissedSlot,
-                            " dxgi=", recorder.video.source.accelerated != null)
+            Console.println("Full-screen recording: frames=", recorder.video.frameCount(), " fresh=", recorder.video.freshFrames, " missed=", recorder.video.missedFrameSlotCount(), " source_failures=", recorder.video.sourceFailureCount(), " grab_us=", recorder.video.grabMicroseconds, " max_grab_us=", recorder.video.maxGrabMicroseconds, " scale_us=", recorder.video.scaleMicroseconds, " max_scale_us=", recorder.video.maxScaleMicroseconds, " encode_us=", Atomic.get(&recorder.video.encoder.encodeMicroseconds), " repeat_us=", Atomic.get(&recorder.video.encoder.repeatMicroseconds), " max_submit_us=", recorder.video.maxProducerWaitMicroseconds, " first_missed=", recorder.video.firstMissedSlot, " last_missed=", recorder.video.lastMissedSlot, " dxgi=", recorder.video.source.accelerated != null)
             if let accelerated = recorder.video.source.accelerated
             {
                 let metrics = accelerated.metrics()
-                Console.println("DXGI work: acquired=", metrics.acquiredFrames,
-                                " unchanged=", metrics.unchangedFrames,
-                                " partial=", metrics.partialFrames,
-                                " copied_pixels=", metrics.copiedPixels,
-                                " acquire_us=", metrics.acquireMicroseconds,
-                                " max_acquire_us=", metrics.maxAcquireMicroseconds,
-                                " readback_us=", metrics.readbackMicroseconds,
-                                " max_readback_us=", metrics.maxReadbackMicroseconds,
-                                " deferred_readbacks=", metrics.deferredReadbacks,
-                                " coalesced_updates=", metrics.coalescedUpdates,
-                                " multi_rect=", metrics.multiRectFrames,
-                                " copy_us=", metrics.copyMicroseconds,
-                                " mirrored_pixels=", metrics.mirroredPixels,
-                                " output_us=", metrics.outputMicroseconds,
-                                " compose_us=", metrics.composeMicroseconds)
+                Console.println("DXGI work: acquired=", metrics.acquiredFrames, " unchanged=", metrics.unchangedFrames, " partial=", metrics.partialFrames, " copied_pixels=", metrics.copiedPixels, " acquire_us=", metrics.acquireMicroseconds, " max_acquire_us=", metrics.maxAcquireMicroseconds, " readback_us=", metrics.readbackMicroseconds, " max_readback_us=", metrics.maxReadbackMicroseconds, " deferred_readbacks=", metrics.deferredReadbacks, " coalesced_updates=", metrics.coalescedUpdates, " multi_rect=", metrics.multiRectFrames, " copy_us=", metrics.copyMicroseconds, " mirrored_pixels=", metrics.mirroredPixels, " output_us=", metrics.outputMicroseconds, " compose_us=", metrics.composeMicroseconds)
             }
+
             Swag.require(recorder.video.sourceFailureCount() == 0 and
                          recorder.video.source.accelerated != null)
             if Env.variable("SWAG_CAPTURE_WEB_MOTION_STRESS") == "true" do
@@ -601,12 +557,13 @@ private func webCaptureQuality()->VideoQuality
     app.sigFrame.clear()
     Swag.require(stage == 2 and g_Recorder == null)
     let capture = unwrap main.editWnd.getCapture()
-    Swag.require(capture.media == .Video and capture.width == outputWidth and
+    Swag.require(capture.media == .Video and
+                 capture.width == outputWidth and
                  capture.height == outputHeight)
-    let media = Capture.mediaPathOf(String.from(capture.file), .Video)
+    let media  = Capture.mediaPathOf(String.from(capture.file), .Video)
     var reader = expect Video.Reader.open(media)
-    Console.println("Full-screen file: frames=", reader.frameCount(),
-                    " duration=", reader.durationInSeconds())
+    Console.println("Full-screen file: frames=", reader.frameCount(), " duration=", reader.durationInSeconds())
+
     // A gap longer than four slots is represented by one held sample, so its duration
     // matters here rather than the number of encoded pictures.
     Swag.require(reader.frameCount() > 0 and
@@ -622,8 +579,7 @@ private func webCaptureQuality()->VideoQuality
     Swag.require(Hash.hashBytes32(image.pixels.toSlice()) != firstHash,
                  "the full-screen recording must preserve moving pixels")
     expect image.save(Path.combine(evidence, "fullscreen-last.png"))
-    Console.println("Full-screen file: frames=", reader.frameCount(),
-                    " duration=", reader.durationInSeconds(), " decoded=", image.width, " x ", image.height)
+    Console.println("Full-screen file: frames=", reader.frameCount(), " duration=", reader.durationInSeconds(), " decoded=", image.width, " x ", image.height)
     if durationSeconds <= 10 do
         discard expect File.writeAllBytes(Path.combine(evidence, "fullscreen.mp4"),
                                           (expect File.readAllBytes(media)).toSlice())

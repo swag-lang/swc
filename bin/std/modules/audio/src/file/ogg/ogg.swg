@@ -123,15 +123,15 @@ private enum StreamKind
 // What the first packet of the sound stream says about it.
 private struct StreamInfo
 {
-    kind:          StreamKind
-    serial:        u32
-    channels:      u32
-    sampleRate:    u32
-    headerPackets: u32     // Packets the codec setup occupies before the sound starts.
-    preSkip:       u64     // Opus priming frames omitted before audible frame zero.
-    speakerMask:   u32
+    kind:                     StreamKind
+    serial:                   u32
+    channels:                 u32
+    sampleRate:               u32
+    headerPackets:            u32     // Packets the codec setup occupies before the sound starts.
+    preSkip:                  u64     // Opus priming frames omitted before audible frame zero.
+    speakerMask:              u32
     firstAudioSequence:       u32
-    headerPacketsOnAudioPage:  u32
+    headerPacketsOnAudioPage: u32
 }
 
 // Reads the identification packet at the start of a first page's body.
@@ -253,8 +253,8 @@ private func findStream(walker: *Walker)->StreamInfo fail
 
 private struct HeaderEnd
 {
-    configEnd: u64     // End of the page containing the last header packet.
-    audioStart: u64    // Start of that page when audio follows its headers; otherwise `configEnd`.
+    configEnd:  u64     // End of the page containing the last header packet.
+    audioStart: u64     // Start of that page when audio follows its headers; otherwise `configEnd`.
 }
 
 // Advances past the pages holding the codec's header packets and returns where the sound starts.
@@ -272,14 +272,14 @@ private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
             {
                 if header.lacing[index] < 255
                 {
-                    completed += 1
+                    completed       += 1
                     completedOnPage += 1
                     if completed == info.headerPackets
                     {
                         let pageEnd = pageOffset + header.totalBytes()
                         if index + 1 < cast(u64, header.segments)
                         {
-                            info.firstAudioSequence      = header.sequence
+                            info.firstAudioSequence       = header.sequence
                             info.headerPacketsOnAudioPage = completedOnPage
                             walker.offset = pageOffset
                             return HeaderEnd{pageEnd, pageOffset}
@@ -316,16 +316,16 @@ private struct Run
 private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 {
     var run:       Run
-    var total       = 0'u64
-    var previous    = 0'u64     // Granule position at the end of the previous run.
-    var sequence    = Swag.U32.Max
-    var hasSequence = false
+    var total             = 0'u64
+    var previous          = 0'u64     // Granule position at the end of the previous run.
+    var sequence          = Swag.U32.Max
+    var hasSequence       = false
     var expectedContinued = false
-    var hasTargetPage = false
-    var firstRun    = true
+    var hasTargetPage     = false
+    var firstRun          = true
     var header:    PageHeader
     var lookahead: PageHeader
-    var hasPage     = try walker.next(&header)
+    var hasPage           = try walker.next(&header)
     while hasPage
     {
         let pageOffset = walker.offset
@@ -357,9 +357,9 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             }
         }
 
-        sequence    = header.sequence
-        hasSequence = true
-        hasTargetPage = true
+        sequence          = header.sequence
+        hasSequence       = true
+        hasTargetPage     = true
         expectedContinued = false
         if header.segments do
             expectedContinued = header.lacing[header.segments - 1] == 255
@@ -369,6 +369,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             run.start = pageOffset
             run.open  = (header.flags & ContinuedPacket) != 0
         }
+
         run.bytes += pageBytes
 
         if info.kind == .Opus
@@ -488,7 +489,7 @@ func openFile(path: string)->SoundFile fail
     walker.source = ByteSource.openFile(path)
     walker.table  = buildChecksumTable()
 
-    var info = findStream(&walker)
+    var info      = findStream(&walker)
     let headerEnd = skipHeaders(&walker, &info)
     walker.offset = headerEnd.audioStart
     let total = indexRuns(&walker, &info)

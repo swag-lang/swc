@@ -69,7 +69,7 @@ func probeScheduler(param: *void?)->u32
     let requestedMaximum = probe.initialCount > 6 ? probe.initialCount : 6'u32
     let capacity         = Swag.schedulerInstance().capacity
     let maximum          = requestedMaximum > capacity ? capacity : requestedMaximum
-    var previous = probe.initialCount
+    var previous         = probe.initialCount
     var tasks: [4] Swag.Task
     for round in 96
     {

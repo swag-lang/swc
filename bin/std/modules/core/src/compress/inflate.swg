@@ -245,9 +245,9 @@ impl Inflate
                 var chunk: u64
                 Memory.copy(cast([*] void, &chunk), cast(const [*] void, unwrap src + cur), #sizeof(chunk))
                 chunk = Math.littleEndianToNative(chunk)
-                cb  |= chunk << #wrap nb
-                cur += cast(u64, ((63 - nb) >> 3))
-                nb  |= 56
+                cb    |= chunk << #wrap nb
+                cur   += cast(u64, ((63 - nb) >> 3))
+                nb    |= 56
             }
             elif nb > 64
             {

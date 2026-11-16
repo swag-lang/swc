@@ -71,9 +71,12 @@ private func contoursIntersect(a, b: const *Polygon)->bool
 
 private func contourContainsContour(outer, inner: const *Polygon)->bool
 {
-    if not outer.points.count or not inner.points.count or
-       inner.minBounds.x < outer.minBounds.x or inner.maxBounds.x > outer.maxBounds.x or
-       inner.minBounds.y < outer.minBounds.y or inner.maxBounds.y > outer.maxBounds.y do
+    if not outer.points.count or
+       not inner.points.count or
+       inner.minBounds.x < outer.minBounds.x or
+       inner.maxBounds.x > outer.maxBounds.x or
+       inner.minBounds.y < outer.minBounds.y or
+       inner.maxBounds.y > outer.maxBounds.y do
         return false
     return outer.contains(inner.pointAt(0)[])
 }
@@ -347,7 +350,7 @@ impl LinePathList
                 let area = contourBoundsArea(&outer.polygon)
                 if area < smallestArea
                 {
-                    smallestArea          = area
+                    smallestArea = area
                     parentOuter[holeIndex] = outerIndex
                 }
             }
@@ -357,7 +360,9 @@ impl LinePathList
         {
             .paths.add(outer)
             for hole, index in solved.paths
-                where not hole.polygon.isClockwise and not claimed[index] and parentOuter[index] == outerIndex
+                where not hole.polygon.isClockwise and
+                      not claimed[index] and
+                      parentOuter[index] == outerIndex
             {
                 claimed[index] = true
                 .paths.add(hole)

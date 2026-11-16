@@ -298,10 +298,10 @@ public struct TagBinHookPayload
 {
     public
     {
-        direct:   s32
-        remapped: s32
+        direct:     s32
+        remapped:   s32
         customEnum: TagBinModeU8
-        bytes:    Array'u8
+        bytes:      Array'u8
 
         #[Serialization.NoSerialize]
         postReadSeen: bool
@@ -322,6 +322,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             defer #nofail try decoder.endField(type)
 
             let value = try decoder.readU8()
+
             // Exercise the post-hook validation path with a forged closed enum.
             cast(*u8, unwrap data)[] = value == cast(u8, TagBinModeU8.Precise) ? 0xFF'u8 : value
             return true
@@ -971,7 +972,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Reflection.registerType(#typeof(TagBinHookPayload))
     let bytes = encodeTagBin(payload)
 
-    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var errOutcome: Swag.Error
     discard catch decoder.readAll'TagBinHookPayload(bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
@@ -1057,7 +1058,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     {
         var patched: Array'u8
         patched.add(bytes.toSlice())
-        let field = findTagBinV1Field(patched.toSlice(), fieldName)
+        let field  = findTagBinV1Field(patched.toSlice(), fieldName)
         var reader = ByteStream.openRead(patched.toSlice())
         reader.setPosition(field.seek)
         Swag.require((expect reader.readNative'u32()) == Serialization.Write.TagBinSignature.Sequence)
@@ -1070,7 +1071,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
         writer.setPosition(valuesSeek + 1)
         writer.writeNative(0x7F'u8)
 
-        var decoder: Serialization.Decoder'Serialization.Read.TagBin
+        var decoder:      Serialization.Decoder'Serialization.Read.TagBin
         var errorOutcome: Swag.Error
         catch CoreTests.readAndDelete'(TagBinEnumArrays, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
         Swag.require(errorOutcome.value() != null)
@@ -1179,8 +1180,8 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 // An indexed shaped stream cannot point two fields at the same payload bytes.
 #test
 {
-    let bytes = encodeTagBin(makeTagBinPayload())
-    let first = findTagBinV1Field(bytes.toSlice(), "id")
+    let bytes  = encodeTagBin(makeTagBinPayload())
+    let first  = findTagBinV1Field(bytes.toSlice(), "id")
     let second = findTagBinV1Field(bytes.toSlice(), "name")
 
     var patched: Array'u8

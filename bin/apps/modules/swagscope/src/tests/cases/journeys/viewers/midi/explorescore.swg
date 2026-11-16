@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = journey.copyData("viewer.mid", "short-score.mid")
+    let file   = journey.copyData("viewer.mid", "short-score.mid")
     let window = journey.window
 
     window.openFile(file)

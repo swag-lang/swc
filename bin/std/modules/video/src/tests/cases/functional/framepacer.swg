@@ -47,7 +47,7 @@ using Swag, Core.Errors, Audio
 // A shared recording origin preserves the first sound and picture offsets.
 #test
 {
-    let rate = expect FrameRate.create(30, 1)
+    let rate  = expect FrameRate.create(30, 1)
     var video = expect FramePacer.createWithOrigin(rate, 1_000_000_000, 90_000, 1_000_000_000)
     var audio = expect SampleTimeline.createWithOrigin(48_000, 1_000_000_000, 1_000_000_000)
     var slot: FrameSlot
@@ -71,7 +71,8 @@ using Swag, Core.Errors, Audio
     Swag.require(rejected.value() is BadParameterError)
 
     var reduced = expect FramePacer.create(expect FrameRate.create(1_000_000_000, 1_000_000_000),
-                                           1_000_000_000, 90_000)
+                                           1_000_000_000,
+                                           90_000)
     var reducedSlot: FrameSlot
     Swag.require(expect reduced.tryAccept(0, &reducedSlot))
     Swag.require(expect reduced.tryAccept(1_000_000_000, &reducedSlot))

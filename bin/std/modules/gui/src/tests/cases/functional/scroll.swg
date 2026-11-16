@@ -127,7 +127,10 @@ impl IWnd for ResponsiveScrollView
     scroll.setScrollSize(300, 100)
     Swag.require(scroll.showBarH and not scroll.showBarV and view.position.height < room.height)
     scroll.setScrollSize(300, 300)
-    Swag.require(scroll.showBarV and scroll.showBarH and view.position.width < room.width and view.position.height < room.height)
+    Swag.require(scroll.showBarV and
+                 scroll.showBarH and
+                 view.position.width < room.width and
+                 view.position.height < room.height)
     scroll.setScrollSize(100, 100)
     Swag.require(not scroll.showBarV and not scroll.showBarH and view.position == room)
 }
@@ -145,7 +148,7 @@ impl IWnd for ResponsiveScrollView
     let view = scroll.createView'Wnd()
     parent.applyLayout()
     let original = scroll.position
-    let room = view.position
+    let room     = view.position
     Swag.require(original.x == 24 and original.y == 24)
 
     scroll.setScrollSize(0, 1000)

@@ -59,7 +59,7 @@ using Core
 
     monitor.stop()
     Swag.require(monitor.bus == null and
-                monitor.systemd == null and
-                monitor.display == null and
-                monitor.inhibitor == -1)
+                 monitor.systemd == null and
+                 monitor.display == null and
+                 monitor.inhibitor == -1)
 }

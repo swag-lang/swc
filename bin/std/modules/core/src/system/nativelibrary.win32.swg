@@ -5,6 +5,7 @@ using Win32
 internal func loadNativeLibrary(path: string)->const *void fail
 {
     let nativePath = Utf16.toZeroTerminated(path)
+
     // A full path identifies a deployable directory. Resolve its sibling DLL dependencies
     // there as well as in the application's normal search locations.
     let handle = Path.isRooted(path) ?

@@ -273,8 +273,8 @@ impl Capture
         if .previewOnly do
             fail Core.Errors.BadParameterError{"a capture loaded as a preview cannot be saved"}
 
-        var metadata     = .libraryMetadata()
-        var model        = .fileModel()
+        var metadata = .libraryMetadata()
+        var model    = .fileModel()
         if duplicate
         {
             metadata.linkedImage.clear()
@@ -282,6 +282,7 @@ impl Capture
             model.linkedImage.clear()
             model.linkedUpToDate = true
         }
+
         var profileBytes = try encodeValue(&metadata)
         var modelBytes   = try encodeValue(&model)
 
@@ -453,6 +454,7 @@ impl Capture
             if File.exists(media) do
                 try File.duplicate(mediaPathOf(target, kind), media)
         }
+
         try rewriteFileMetadata(source, target, null, null, null, null, true, true)
     }
 
@@ -469,12 +471,12 @@ impl Capture
             if File.exists(media) do
                 try File.duplicate(mediaPathOf(target, kind), media)
         }
+
         try writeScc(snapshot)
     }
 
     private func rewriteFileMetadata(source: String, target: String, title: string?, tags: const *Array'String?, favorite: const *bool?, rating: const *u8?, duplicate: bool, unlink: bool) fail
     {
-
         var reader: Scc.Reader
         try reader.initialize(source)
         if reader.kind() != containerKind() do
@@ -516,6 +518,7 @@ impl Capture
                 fail Core.Errors.OverflowError{"Capture container generation cannot advance"}
             writer.setIdentity(reader.id(), reader.generation() + 1)
         }
+
         writer.manifest()[] = reader.manifest()[]
         writer.manifest().modifiedAt = Time.DateTime.now()
         if duplicate
@@ -523,6 +526,7 @@ impl Capture
             for &entry in writer.manifest().entries do
                 entry.name = Path.fileName(target) orelse ""
         }
+
         if title != null do
             writer.manifest().name = title
         if tags
@@ -549,6 +553,7 @@ impl Capture
                 metadata.linkedImage.clear()
                 metadata.linkedUpToDate = true
             }
+
             writer.manifest().profileData = try encodeValue(metadata)
         }
 

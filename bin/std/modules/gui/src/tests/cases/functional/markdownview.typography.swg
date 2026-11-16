@@ -29,6 +29,7 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240)
+
     // The fallback metrics test owns its coverage instead of relying on installed fonts.
     let cjk = expect TypeFace.load(guiFixturePath("fonts/html-cjk.otf"))
     host.app.renderer.fontCache().setFallbackTypeFaces([host.theme.res.defaultTypeFaceR, cjk], false)

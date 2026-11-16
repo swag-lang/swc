@@ -32,7 +32,7 @@ using Swag, Core
         points.add({2487, 2057})
         points.add({410, 2057})
         let first = testAddPolygon(f.capture, points.toSlice())
-        first.borderSize = 23
+        first.borderSize  = 23
         first.paintShadow = true
 
         points.clear()
@@ -41,7 +41,7 @@ using Swag, Core
         points.add({1881, 2084})
         points.add({-176, 2084})
         let second = testAddPolygon(f.capture, points.toSlice())
-        second.borderSize = 23
+        second.borderSize  = 23
         second.paintShadow = true
     }
 
@@ -60,15 +60,16 @@ using Swag, Core
         Swag.require(shadow.contentTarget.colorBuffer.width <= MaxFormShadowDim and
                      shadow.contentTarget.colorBuffer.height <= MaxFormShadowDim)
     }
-    let firstShadow = f.capture.formCaches[0]!.shadow.contentTarget!.colorBuffer.handle
+
+    let firstShadow  = f.capture.formCaches[0]!.shadow.contentTarget!.colorBuffer.handle
     let secondShadow = f.capture.formCaches[1]!.shadow.contentTarget!.colorBuffer.handle
     f.gui.moveMouse({1600, 1300})
 
     for zoom in [0.66'f32, 0.86, 1.0, 1.5, 2.0, 3.0, 4.0]
     {
-        let first = unwrap f.capture.formCaches[0]
-        let second = unwrap f.capture.formCaches[1]
-        let firstZoom = first.zoom
+        let first      = unwrap f.capture.formCaches[0]
+        let second     = unwrap f.capture.formCaches[1]
+        let firstZoom  = first.zoom
         let secondZoom = second.zoom
         f.editView.setZoom(zoom, mouseCenter: true)
         watch.restart()

@@ -135,10 +135,12 @@ impl Theme
         }
 
         let cx, cy = subRect.corner
+
         // Stretching a small tile preserves its corners only when both axes keep the same scale.
         // A short scrollbar thumb still needs its end caps placed independently of its length.
         let uniformScale = dstRect.width * subRect.rect.height == dstRect.height * subRect.rect.width
-        if dstRect.width <= subRect.rect.width and dstRect.height <= subRect.rect.height and
+        if dstRect.width <= subRect.rect.width and
+           dstRect.height <= subRect.rect.height and
            (not subRect.keepBordersRatio or uniformScale)
         {
             painter.drawTexture(dstRect, subRect.rect.scaledFromOrigin(k), texture, color)

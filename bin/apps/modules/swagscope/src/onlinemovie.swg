@@ -454,11 +454,11 @@ impl MovieQuery
     // Without a year the title runs until the first release tag, such as `1080p`.
     func fromFile(path: string)->MovieQuery
     {
-        let stem = Path.fileNameWithoutExtension(path) orelse ""
+        let stem  = Path.fileNameWithoutExtension(path) orelse ""
         var words:     Array'String
         var bracketed: Array'bool
         var word:      String
-        var depth      = 0
+        var depth = 0
         for byte in stem
         {
             let opens  = byte == '(' or byte == '['
@@ -890,7 +890,9 @@ impl OnlineMovie
             {
                 let now     = Time.Timestamp.utcNow().ticks
                 let elapsed = (now - g_AppleLastRequest) / Time.TicksPerMillisecond
-                if g_AppleLastRequest == 0 or now < g_AppleLastRequest or elapsed >= AppleRequestSpacing do
+                if g_AppleLastRequest == 0 or
+                   now < g_AppleLastRequest or
+                   elapsed >= AppleRequestSpacing do
                     break
                 if Swag.isCancelled() do
                     return
@@ -899,6 +901,7 @@ impl OnlineMovie
 
             g_AppleLastRequest = Time.Timestamp.utcNow().ticks
         }
+
         #static if #hastag("vault.preview.benchmark") do
             Console.println(Format.toString("movie %: Apple wait % us", query.title, Time.monotonicMicroseconds() - slotStarted))
         let country = Utf8.startsWith(language, "fr") ? "FR" : "US"

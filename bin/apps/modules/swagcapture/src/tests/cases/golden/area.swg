@@ -33,6 +33,7 @@ using Swag, Core
         .startGrab = true
         .pointer   = {880, 520}
     }
+
     wnd.createHints()
 
     wnd.applyLayout()
@@ -52,8 +53,9 @@ using Swag, Core
     g_DesktopTexture = f.gui.app.renderer.addImage(desktop)
     defer f.gui.app.renderer.removeTexture(&g_DesktopTexture)
     g_DesktopX, g_DesktopY = 0
-    g_ScreenWidth  = 800
-    g_ScreenHeight = 500
+    g_ScreenWidth          = 800
+    g_ScreenHeight         = 500
+
     // A previous video zone must not appear when the selector opens again.
     g_StartGrabX = 120
     g_EndGrabX   = 620
@@ -70,6 +72,7 @@ using Swag, Core
         .main    = f.main
         .pointer = {400, 250}
     }
+
     wnd.createHints()
 
     wnd.applyLayout()

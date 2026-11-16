@@ -12,7 +12,7 @@ using Core, Gui, Pixel, Audio, Viewers
 
     var journey: ScopeJourney
     journey.setup()
-    let file = journey.copyData("pacman_beginning.wav", "short-recording.wav")
+    let file   = journey.copyData("pacman_beginning.wav", "short-recording.wav")
     let window = journey.window
 
     window.openFile(file)
@@ -33,5 +33,7 @@ using Core, Gui, Pixel, Audio, Viewers
 
     window.sendCommandEvent(ViewerCommands.Close)
     journey.waitFor("sound returned to recent files", func|window|()->bool =>
-        window.home.isLocallyVisible() and window.currentView == null and window.recent.count == 1)
+                    window.home.isLocallyVisible() and
+                    window.currentView == null and
+                    window.recent.count == 1)
 }

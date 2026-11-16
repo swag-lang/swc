@@ -175,6 +175,7 @@ internal func assertScopeAnchoredMenu(host: *Testing.HeadlessHost, window: *View
         window.selectViewer(cast(u32, index))
         break
     }
+
     completeExplorer(&host, unwrap window.explorer)
     assertScopeAnchoredMenu(&host, window, &window.viewerCaptionButton.button, "menus.viewer.choices.archive")
 }

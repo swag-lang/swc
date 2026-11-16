@@ -8,16 +8,16 @@ open an audio device; callers load `libFAudio.so.0` before resolving its entry p
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.moduleVersion     = #swcversion
-    cfg.moduleRevision    = #swcrevision
-    cfg.moduleBuildNum    = #swcbuildnum
-    cfg.moduleNamespace   = "FAudio"
-    cfg.backendKind       = .Export
-    cfg.repoPath          = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio"
+    cfg.moduleVersion       = #swcversion
+    cfg.moduleRevision      = #swcrevision
+    cfg.moduleBuildNum      = #swcbuildnum
+    cfg.moduleNamespace     = "FAudio"
+    cfg.backendKind         = .Export
+    cfg.repoPath            = "https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio"
     cfg.genDoc.titleContent = "FAudio"
-    cfg.genDoc.titleToc = "FAudio documentation"
-    cfg.genDoc.kind       = .Api
-    cfg.genDoc.outputName = "std.faudio"
-    cfg.genDoc.icon       = "favicon.svg"
-    cfg.genDoc.css        = "css/style.css"
+    cfg.genDoc.titleToc     = "FAudio documentation"
+    cfg.genDoc.kind         = .Api
+    cfg.genDoc.outputName   = "std.faudio"
+    cfg.genDoc.icon         = "favicon.svg"
+    cfg.genDoc.css          = "css/style.css"
 }

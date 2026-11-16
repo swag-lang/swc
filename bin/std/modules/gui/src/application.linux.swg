@@ -248,6 +248,7 @@ impl Application
                     for owned in context.surfaces do
                         owned.app.notifyKeyboardLayoutChanged(owned.wnd)
                 }
+
                 continue
             }
 
@@ -491,8 +492,8 @@ namespace LinuxDesktop
 
     internal func dispatchKey(context: *Context, surface: *Surface, packet: *Linux.xcb_key_press_event_t, pressed: bool)
     {
-        let app = surface.app
-        var key = app.nativeKeyPresses[packet.detail]
+        let app        = surface.app
+        var key        = app.nativeKeyPresses[packet.detail]
         let wasPressed = key != .None
         if key == .None do
             key = portableKey(context, packet.detail, packet.state)
@@ -512,6 +513,7 @@ namespace LinuxDesktop
             modifiers |= .Control
         if packet.state & 8 do
             modifiers |= .Alt
+
         // X11 can deliver another KeyPress while the key remains held. Keep the physical
         // transition single, while still delivering the repeated text below.
         if not pressed or not wasPressed
@@ -521,6 +523,7 @@ namespace LinuxDesktop
             if pressed and not event.accepted do
                 app.routeUnhandledKey(target, key, event.modifiers)
         }
+
         if not pressed do
             return
         let keyboardState = unwrap context.keyboardState
@@ -552,6 +555,7 @@ namespace LinuxDesktop
                 context.xkb_compose_state_reset(surface.compose)
                 return
             }
+
             if status == 3 do
                 context.xkb_compose_state_reset(surface.compose)
             if status == 3 do

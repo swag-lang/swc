@@ -633,9 +633,9 @@ impl HevcStream
     // Reports whether an access unit can be referenced by a later picture.
     mtd isReferenceAccessUnit(data: const [..] u8)->bool fail
     {
-        var hasPicture = false
+        var hasPicture   = false
         var hasReference = false
-        var offset     = 0'u64
+        var offset       = 0'u64
         while offset + cast(u64, .lengthSize) <= data.count
         {
             let length = try .unitLength(data, &offset)

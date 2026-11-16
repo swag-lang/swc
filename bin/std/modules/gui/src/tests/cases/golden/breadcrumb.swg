@@ -16,6 +16,7 @@ private func assertBreadcrumbGolden(ancestors: bool)
     host.root.backgroundStyle = .Dialog
     let bar = PathBar.create(&host.root)
     bar.setPosition({28, 28, 584, 34})
+
     // Use host-defined levels so the rendering fixture has the same labels on every OS.
     // Native path decomposition is covered by the functional PathBar tests.
     let location = ancestors ? "C:/Projects/A long archive folder/Illustrations/Current" : "C:/Projects/Illustrations"
@@ -28,6 +29,7 @@ private func assertBreadcrumbGolden(ancestors: bool)
         path.addItem("A long archive folder", tag: "C:/Projects/A long archive folder")
         path.addItem("Illustrations", tag: "C:/Projects/A long archive folder/Illustrations")
     }
+
     path.addItem(ancestors ? "Current" : "Illustrations", tag: location)
     bar.refreshPath()
     if ancestors do

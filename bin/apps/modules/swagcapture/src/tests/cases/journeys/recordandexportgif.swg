@@ -18,8 +18,9 @@ using Core, Gui, Pixel
 
     let path = Path.combine(journey.root, "recording.gif")
     expect capture.exportAnimation(path)
-    let bytes = expect File.readAllBytes(path)
+    let bytes  = expect File.readAllBytes(path)
     var reader = expect ImageReader.decode("recording.gif", bytes.toSlice())
+
     // Identical desktop frames may be folded into one GIF frame by the exporter.
     Swag.require(reader.info.frames.count >= 1)
     Swag.require(reader.info.canvasWidth == capture.width and reader.info.canvasHeight == capture.height)

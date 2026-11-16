@@ -15,7 +15,7 @@ struct LocalDocument
 {
     var journey: ScopeJourney
     journey.setup()
-    let window = journey.window
+    let window    = journey.window
     let documents = [LocalDocument{"markdown.images.md", "markdown"},
                      LocalDocument{"viewer.pdf", "pdf"},
                      LocalDocument{"viewer.csv", "table"},

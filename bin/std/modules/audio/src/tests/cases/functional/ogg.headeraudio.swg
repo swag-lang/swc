@@ -41,7 +41,8 @@ private func oggRefreshTestChecksum(page: *Array'u8)
 
 // Moves the first audio page's packets onto the page that ends the codec headers.
 private func oggMoveAudioPageAfterHeaders(source: const [..] u8,
-                                          headerPageIndex, audioPageIndex: u64)->Array'u8 fail
+                                          headerPageIndex,
+                                          audioPageIndex: u64)->Array'u8 fail
 {
     if audioPageIndex <= headerPageIndex do
         fail BadParameterError{"Ogg test audio page must follow its header page"}
@@ -92,6 +93,7 @@ private func oggMoveAudioPageAfterHeaders(source: const [..] u8,
                     page[18 + part] = cast(u8, (sequence >> cast(u32, part * 8)) & 0xFF'u32)
                 oggRefreshTestChecksum(&page)
             }
+
             result.add(page.toSlice())
         }
 
@@ -135,9 +137,9 @@ private func oggSetUnexpectedContinuation(source: const [..] u8)->Array'u8 fail
             return result
         }
 
-        previous = page
+        previous    = page
         hasPrevious = true
-        offset += page.bytes
+        offset      += page.bytes
     }
 
     fail InvalidFormatError{"Ogg fixture has no eligible page for a continuation flag mutation"}
@@ -164,6 +166,7 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
         let difference = cast(f64, decoded[index]) - cast(f64, reference[index])
         energy += difference * difference
     }
+
     let rms = Math.sqrt(energy / cast(f64, decoded.count)) / 32768.0'f64
     Swag.require(rms <= 0.0001'f64)
 }
@@ -174,10 +177,10 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     const HeaderPage = 1'u64
     const AudioPage  = 2'u64
 
-    let opusSource   = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
-    let opusMerged  = expect oggMoveAudioPageAfterHeaders(opusSource.toSlice(), HeaderPage, AudioPage)
-    let opusPath    = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
-                                   Format.toString("audio-ogg-opus-headers-%.opus", Guid64.random()).toString())
+    let opusSource = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
+    let opusMerged = expect oggMoveAudioPageAfterHeaders(opusSource.toSlice(), HeaderPage, AudioPage)
+    let opusPath   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                  Format.toString("audio-ogg-opus-headers-%.opus", Guid64.random()).toString())
     defer discard catch File.delete(opusPath.toString())
     expect File.writeAllBytes(opusPath.toString(), opusMerged.toSlice())
     var opusSound = expect SoundFile.load(opusPath.toString())
@@ -187,7 +190,7 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     let opusExpected = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.pcm").toString())
     oggAssertMatchesPcm(opusDecoded.toSlice(), opusExpected.toSlice())
 
-    let vorbisSource  = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.ogg").toString())
+    let vorbisSource = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.ogg").toString())
     let vorbisMerged = expect oggMoveAudioPageAfterHeaders(vorbisSource.toSlice(), HeaderPage, AudioPage)
     let vorbisPath   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
                                     Format.toString("audio-ogg-vorbis-headers-%.ogg", Guid64.random()).toString())
@@ -206,8 +209,8 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 {
     let source = expect File.readAllBytes(audioGetTestDataPath("opus-stereo-48000.opus").toString())
     let broken = expect oggSetUnexpectedContinuation(source.toSlice())
-    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
-                            Format.toString("audio-ogg-continuation-%.opus", Guid64.random()).toString())
+    let path   = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                              Format.toString("audio-ogg-continuation-%.opus", Guid64.random()).toString())
     defer discard catch File.delete(path.toString())
     expect File.writeAllBytes(path.toString(), broken.toSlice())
 

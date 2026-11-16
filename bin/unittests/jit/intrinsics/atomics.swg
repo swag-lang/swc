@@ -143,7 +143,7 @@ alias AtomicStrictU32 = u32
 
 #test
 {
-    var flag = 0x100'u32
+    var flag    = 0x100'u32
     let isClear = func|flag = &flag|()->bool => not Swag.atomicLoad(flag)
 
     Swag.require(not isClear())

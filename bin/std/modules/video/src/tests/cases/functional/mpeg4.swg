@@ -65,6 +65,7 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
         discard reader.read(4)
         discard reader.read(3)
     }
+
     if reader.read(4) == 15 do
         discard reader.read(16)
     if reader.bit() != 0
@@ -78,6 +79,7 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
                 discard reader.read(15)
                 discard reader.bit()
             }
+
             discard reader.read(3)
             discard reader.read(11)
             discard reader.bit()
@@ -85,6 +87,7 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
             discard reader.bit()
         }
     }
+
     discard reader.read(2)
     return bodyOffset * 8 + reader.bitPos
 }
@@ -145,14 +148,14 @@ func mpeg4VolMarkerBit(bytes: const [..] u8, bodyOffset: u64)->u64
     var valid: Mpeg4.Decoder
     expect valid.configure(bytes.toSlice()[volStart until volEnd])
 
-    let markerBit = mpeg4VolMarkerBit(bytes.toSlice(), volStart + VolStartCode.count)
+    let markerBit  = mpeg4VolMarkerBit(bytes.toSlice(), volStart + VolStartCode.count)
     let byteOffset = markerBit >> 3
-    let bitShift = cast(u32, 7 - (markerBit & 7))
-    let bitMask = cast(u8, 1'u32 << bitShift)
+    let bitShift   = cast(u32, 7 - (markerBit & 7))
+    let bitMask    = cast(u8, 1'u32 << bitShift)
     Swag.require((bytes[byteOffset] & bitMask) != 0)
     bytes[byteOffset] = bytes[byteOffset] & (0xFF'u8 - bitMask)
 
-    var invalid: Mpeg4.Decoder
+    var invalid:  Mpeg4.Decoder
     var rejected: Swag.Error
     discard catch invalid.configure(bytes.toSlice()[volStart until volEnd]) as rejected
     Swag.require(rejected.value() is InvalidFormatError)

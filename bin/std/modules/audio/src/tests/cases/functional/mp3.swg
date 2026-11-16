@@ -181,6 +181,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
 
     var protected: Array'u8
     protected.add(source[until audioOffset + 4])
+
     // CRC validation is unsupported; the two-byte word exercises the protected-frame layout.
     protected.add([0'u8, 0])
     protected.add(source[audioOffset + 4 until audioOffset + header.frameBytes - 2])

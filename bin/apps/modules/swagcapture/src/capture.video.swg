@@ -8,7 +8,7 @@ internal func exportOriginalVideo(source: string, path: string) fail
     if Path.equals(targetPath, sourcePath) do
         fail BadParameterError{"choose another file for the exported video"}
 
-    let temporary = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
+    let temporary     = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
     var ownsTemporary = true
     defer if ownsTemporary do
         discard catch File.delete(temporary)
@@ -24,8 +24,10 @@ impl Capture
         if .media != .Video or .mediaMissing or not .frames do
             return false
         let frames = .frames
-        return .forms.isEmpty() and not .isTrimmed() and
-               .width == frames.width and .height == frames.height
+        return .forms.isEmpty() and
+               not .isTrimmed() and
+               .width == frames.width and
+               .height == frames.height
     }
 
     // Places a standalone MP4 on the clipboard with the kept span and annotations.

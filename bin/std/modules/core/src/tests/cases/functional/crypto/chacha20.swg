@@ -122,8 +122,8 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     // Exercise arbitrary source/destination byte offsets in the scalar word path,
     // including exact in-place operation.
     const TestCount = Crypto.ChaCha20BlockSize
-    let key     = testKey()
-    let nonce   = testNonce()
+    let key   = testKey()
+    let nonce = testNonce()
 
     var sourceBacking: [TestCount + 8] u8
     let sourceBase   = cast(u64, cast(const [*] u8, sourceBacking.buffer))

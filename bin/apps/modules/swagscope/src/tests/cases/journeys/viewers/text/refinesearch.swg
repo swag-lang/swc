@@ -33,5 +33,6 @@ using Core, Gui, Pixel
     window.sendCommandEvent(ViewerCommands.RegularExpression)
     window.searchBox.setText("cat")
     journey.waitFor("search recovered", func|window|()->bool => window.searchBox.isValid() and
-                                                            window.searchComplete and window.searchMatches.count == 1)
+                                                                window.searchComplete and
+                                                                window.searchMatches.count == 1)
 }

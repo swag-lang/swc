@@ -46,8 +46,8 @@ internal struct ActionAppearance {}
 internal impl IActionUI for ActionAppearance
 {
     mtd impl accept(cxt: ActionContext)->bool => appearanceThemeCommandIndex(cxt.id) != Swag.U32.Max or
-                                                  cxt.id == AppearanceSystemLanguageCommand or
-                                                  appearanceLanguageForCommand(cxt.id) != null
+                                                 cxt.id == AppearanceSystemLanguageCommand or
+                                                 appearanceLanguageForCommand(cxt.id) != null
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
@@ -61,7 +61,7 @@ internal impl IActionUI for ActionAppearance
         let themeIndex = appearanceThemeCommandIndex(cxt.id)
         if themeIndex != Swag.U32.Max
         {
-            let theme   = AppearanceThemeValues[themeIndex]
+            let theme = AppearanceThemeValues[themeIndex]
             evt.name    = appearanceThemeName(theme)
             evt.checked = button.appearanceTheme == theme
             return true
@@ -160,6 +160,7 @@ impl AppearanceButton
             parent.registerAction'ActionAppearance()
             parent.appearanceActionRegistered = true
         }
+
         parent.appearanceButton = result
         return result
     }
@@ -250,14 +251,19 @@ impl AppearanceButton
         lens.addCommands(func()->string => strings().lens_Application,
                          [AppearanceDarkCommand, AppearanceLightCommand, AppearanceSystemCommand],
                          menuGroup: func()->string => strings().appearance_Theme,
-                         menuSection: 1, inLens: false)
-        lens.addCommand(func()->string => strings().lens_Application, AppearanceSystemLanguageCommand,
+                         menuSection: 1,
+                         inLens: false)
+        lens.addCommand(func()->string => strings().lens_Application,
+                        AppearanceSystemLanguageCommand,
                         menuGroup: func()->string => strings().appearance_Language,
-                        menuSection: 1, inLens: false)
+                        menuSection: 1,
+                        inLens: false)
         for &one in languages() do
-            lens.addCommand(func()->string => strings().lens_Application, appearanceLanguageCommandId(one.tag),
+            lens.addCommand(func()->string => strings().lens_Application,
+                            appearanceLanguageCommandId(one.tag),
                             menuGroup: func()->string => strings().appearance_Language,
-                            menuSection: 1, inLens: false)
+                            menuSection: 1,
+                            inLens: false)
     }
 
     internal mtd describeLens(results: *Lens.Results)

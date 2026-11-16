@@ -386,8 +386,8 @@ private
     // reference, so losing it is never such a choice.
     func isEdgeChoice(expected, actual: ComparisonPixels, x, y: s32, slack: u8)->bool
     {
-        let reference = expected.at(x, y)
-        let drawn     = actual.at(x, y)
+        let reference      = expected.at(x, y)
+        let drawn          = actual.at(x, y)
         let stepX: [4] s32 = [0, 0, 1, -1]
         let stepY: [4] s32 = [1, -1, 0, 0]
         for side in 4

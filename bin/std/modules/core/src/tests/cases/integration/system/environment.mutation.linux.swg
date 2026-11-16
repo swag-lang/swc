@@ -3,7 +3,7 @@
 
 func checkNativeEnvironmentMutation()
 {
-    const Name = "SWAG_LINUX_ENV_MUTATION_TEST"
+    const Name      = "SWAG_LINUX_ENV_MUTATION_TEST"
     const OtherCase = "swag_linux_env_mutation_test"
     Swag.require(Linux.unsetenv(Name.buffer) == 0)
     Swag.require(Linux.unsetenv(OtherCase.buffer) == 0)
@@ -50,7 +50,7 @@ func checkNativeEnvironmentMutation()
 {
     Swag.require(not Swag.jit(), "run native environment mutation with --no-test-jit")
     let process = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(),
-                                                     arguments: ["--swag-environment-mutation-peer"],
-                                                     standardOutput: .Pipe, standardError: .Pipe})
+                                                      arguments: ["--swag-environment-mutation-peer"],
+                                                      standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 37, String.from(process.standardError()).toString())
 }

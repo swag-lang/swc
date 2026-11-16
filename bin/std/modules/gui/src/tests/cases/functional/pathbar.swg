@@ -12,7 +12,7 @@ using Core
     bar.setPosition({0, 0, 400, 32})
     const Root = #os == Swag.TargetOs.Windows ? "Z:/" : "/"
     let shortPath = Path.combine(Root, "Films")
-    let longPath = Path.combine(Root, "A long collection folder/Another long folder/Films")
+    let longPath  = Path.combine(Root, "A long collection folder/Another long folder/Films")
     bar.setPath(shortPath.toString())
     Swag.require(bar.breadcrumb.toolTip.isEmpty())
     Swag.require(bar.breadcrumb.items.count == 2)

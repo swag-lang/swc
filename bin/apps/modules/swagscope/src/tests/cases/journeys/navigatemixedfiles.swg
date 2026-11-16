@@ -10,9 +10,9 @@ using Core, Gui, Pixel
     var journey: ScopeJourney
     journey.setup()
     let picture = journey.copyData("appicon.png", "A-picture.png")
-    let text = journey.copyData("comprehensive.txt", "B-notes.txt")
-    let table = journey.copyData("viewer.csv", "C-table.csv")
-    let window = journey.window
+    let text    = journey.copyData("comprehensive.txt", "B-notes.txt")
+    let table   = journey.copyData("viewer.csv", "C-table.csv")
+    let window  = journey.window
 
     window.openFile(picture)
     journey.waitForFile(picture)

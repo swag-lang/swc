@@ -61,14 +61,15 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.require(clusterOffset != Swag.U64.Max)
 
     let sizeOffset = clusterOffset + 4
-    let sizeFirst = bytes[sizeOffset]
-    var marker = 0x80'u8
-    var sizeWidth = 1'u32
+    let sizeFirst  = bytes[sizeOffset]
+    var marker     = 0x80'u8
+    var sizeWidth  = 1'u32
     while not (sizeFirst & marker)
     {
-        marker >>= 1
+        marker    >>= 1
         sizeWidth += 1
     }
+
     Swag.require(sizeWidth == 2)
     bytes[sizeOffset] = marker | (marker - 1)
     for index in 1 until sizeWidth do

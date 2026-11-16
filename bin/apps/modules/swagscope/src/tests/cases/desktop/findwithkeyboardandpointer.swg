@@ -18,11 +18,12 @@ using Core, Gui, Pixel
     var input = Testing.DesktopInput.create(&journey.app, journey.surface)
     input.shortcut(.F, .Control)
     journey.waitFor("native find shortcut", func|window|()->bool => window.searchBar.isLocallyVisible() and
-                                                               window.searchBox.hasFocus())
+                                                                    window.searchBox.hasFocus())
     for key in [Input.Key.A, .L, .P, .H, .A] do
         input.shortcut(key, .None)
     journey.waitFor("native search text", func|window|()->bool => window.searchBox.text() == "alpha" and
-                                                              window.searchComplete and window.searchMatches.count == 3)
+                                                                  window.searchComplete and
+                                                                  window.searchMatches.count == 3)
 
     input.click(&window.searchNext.wnd)
     journey.waitFor("native next match", func|window|()->bool => window.searchIndex == 1)

@@ -9,8 +9,9 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
+
     // Golden inputs own their fallback faces; installed CJK and emoji fonts differ by OS.
-    let cjk = expect TypeFace.load(guiFixturePath("fonts/html-cjk.otf"))
+    let cjk   = expect TypeFace.load(guiFixturePath("fonts/html-cjk.otf"))
     let emoji = expect TypeFace.load(guiFixturePath("fonts/html-emoji.ttf"))
     host.app.renderer.fontCache().setFallbackTypeFaces([cjk, emoji], false)
 

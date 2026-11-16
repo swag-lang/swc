@@ -2,7 +2,7 @@
 
 enum Color: s32
 {
-    Red = 1
+    Red   = 1
     Green = 4
 }
 
@@ -32,7 +32,7 @@ enum OpenCode: u32
     const fast: Ratio = cast(Ratio, 2.0'f32)
     Swag.require(fast == .Fast)
 
-    var raw: u32 = 3
+    var raw:  u32    = 3
     var both: Access = cast(Access, raw)
     Swag.require(both == (Access.Read | Access.Write))
 

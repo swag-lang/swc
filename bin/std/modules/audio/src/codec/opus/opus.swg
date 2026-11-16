@@ -139,11 +139,11 @@ private struct Decoder
     output:         Array's16     // Interleaved samples of the run being decoded.
     packet:         Array'u8      // Packet being assembled across pages.
 
-    serial:             u32
-    firstAudioSequence: u32
+    serial:                   u32
+    firstAudioSequence:       u32
     headerPacketsOnAudioPage: u32
-    granule:            u64
-    granuleKnown:       bool
+    granule:                  u64
+    granuleKnown:             bool
 }
 
 private impl Decoder
@@ -207,20 +207,21 @@ private impl Decoder
                         at += size
                         if size < 255
                         {
-                            completed += 1
+                            completed       += 1
                             completedOnPage += 1
                             if completed == 2
                             {
                                 if index + 1 < cast(u64, page.segments)
                                 {
-                                    .firstAudioSequence = page.sequence
+                                    .firstAudioSequence       = page.sequence
                                     .headerPacketsOnAudioPage = completedOnPage
                                 }
                                 else
                                 {
-                                    .firstAudioSequence = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
+                                    .firstAudioSequence       = page.sequence == Swag.U32.Max ? 0 : page.sequence + 1
                                     .headerPacketsOnAudioPage = 0
                                 }
+
                                 break
                             }
                         }
@@ -530,10 +531,8 @@ private impl Decoder
                     at += size
                     if size < 255
                     {
-                        if headersToSkip
-                        {
+                        if headersToSkip do
                             headersToSkip -= 1
-                        }
                         elif .packet.count do
                             produced += try .decodePacketFrames(.packet.toSlice())
                         .packet.clear()

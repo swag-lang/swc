@@ -38,6 +38,10 @@ using Core, Gui, Pixel
     journey.waitFor("reopen transformed capture", func|main, &path|()->bool
     {
         let capture = main.editWnd.getCapture()
-        return not main.libraryMode and capture and capture.file == path and capture.width == 64 and capture.height == 96
+        return not main.libraryMode and
+               capture and
+               capture.file == path and
+               capture.width == 64 and
+               capture.height == 96
     })
 }

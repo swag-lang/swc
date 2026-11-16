@@ -44,7 +44,7 @@ using Swag, Core
                                  Format.toString("audio-wav-frame-alignment-%.wav", Guid128.random()))
     defer discard catch File.delete(temporary)
 
-    var bytes  = source
+    var bytes = source
     bytes.add([0x7F'u8, 0])
     var writer = ByteStream.openWrite(&bytes)
     writer.setPosition(4)

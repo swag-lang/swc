@@ -29,7 +29,7 @@ An enum marked `#[Swag.Incomplete]` may also carry values outside its declared m
 
 enum CastSeverity: s32
 {
-    Low = 1
+    Low  = 1
     High = 4
 }
 
@@ -42,7 +42,7 @@ enum CastPermission: u32
 
 #test
 {
-    let severity: CastSeverity = cast(CastSeverity, 4's32)
+    let severity:    CastSeverity   = cast(CastSeverity, 4's32)
     let permissions: CastPermission = cast(CastPermission, 3'u32)
     Swag.require(severity == .High)
     Swag.require(permissions == (CastPermission.Read | CastPermission.Write))

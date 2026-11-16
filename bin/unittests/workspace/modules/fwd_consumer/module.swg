@@ -3,5 +3,5 @@
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "FwdConsumer"
-    cfg.backendKind = .Executable
+    cfg.backendKind     = .Executable
 }

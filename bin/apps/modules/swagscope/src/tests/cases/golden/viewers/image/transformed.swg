@@ -19,7 +19,8 @@ using Core, Pixel, Gui, Viewers
     view.imageView.setZoom(3)
     view.rotateClockwise()
     view.mirrorHorizontally()
-    Swag.require(view.imageView.zoom == 3 and view.imageView.rotationQuarterTurns == 3 and
+    Swag.require(view.imageView.zoom == 3 and
+                 view.imageView.rotationQuarterTurns == 3 and
                  view.imageView.isMirrored)
     window.applyLayout()
     var image = host.renderSettled(window)

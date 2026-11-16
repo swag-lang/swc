@@ -11,7 +11,7 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(100, 80)
+    var path    = journey.newCapture(100, 80)
     let capture = unwrap main.editWnd.getCapture()
     g_ResizeMode = 1
     journey.changeImageSize(ActionImage.ResizeImage, 120, 90)
@@ -37,7 +37,10 @@ using Core, Gui, Pixel
     journey.waitFor("reopen trimmed canvas", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and
-               opened.width == 140 and opened.height == 100
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.width == 140 and
+               opened.height == 100
     })
 }

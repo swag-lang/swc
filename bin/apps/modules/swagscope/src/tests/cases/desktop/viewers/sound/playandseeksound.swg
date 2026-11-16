@@ -12,7 +12,7 @@ using Core, Gui, Pixel, Audio, Viewers
 
     var journey: ScopeJourney
     journey.setup()
-    let file = Path.combine(journey.root, "recording.wav")
+    let file      = Path.combine(journey.root, "recording.wav")
     let recording = testSilentWav(30)
     expect File.writeAllBytes(file, recording.toSlice())
     let window = journey.window

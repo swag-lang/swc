@@ -140,7 +140,7 @@
     // A child that never closes either output pipe cannot extend a finite wait indefinitely.
     const Script = "while :; do printf '0123456789abcdef'; printf 'fedcba9876543210' >&2; done"
     var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/sh", arguments: ["-c", Script],
-                                                    standardOutput: .Pipe, standardError: .Pipe})
+                                                        standardOutput: .Pipe, standardError: .Pipe})
     defer
     {
         discard catch process.kill()
@@ -161,7 +161,7 @@
     // A grandchild may retain the redirected pipes after the direct child has exited.
     const Script = "sleep 3 & printf ready"
     var process = expect Env.startProcess(Env.StartInfo{fileName: "/bin/sh", arguments: ["-c", Script],
-                                                    standardOutput: .Pipe, standardError: .Pipe})
+                                                        standardOutput: .Pipe, standardError: .Pipe})
     var clock: Time.Stopwatch
     clock.start()
     let status  = expect process.waitForExit()

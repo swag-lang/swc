@@ -17,13 +17,26 @@ private func dolbySpeakerMask(acmod: u32, lfe: bool)->u32
     var mask: u32
     switch acmod
     {
-    case 0, 2: mask = 0x0003     // Dual mono or stereo.
-    case 1:    mask = 0x0004     // Center.
-    case 3:    mask = 0x0007     // Left, center, right.
-    case 4:    mask = 0x0103     // Left, right, back center.
-    case 5:    mask = 0x0107     // Left, center, right, back center.
-    case 6:    mask = 0x0603     // Left, right, side left, side right.
-    case 7:    mask = 0x0607     // Left, center, right, side left, side right.
+    case 0, 2:
+        mask = 0x0003     // Dual mono or stereo.
+
+    case 1:
+        mask = 0x0004     // Center.
+
+    case 3:
+        mask = 0x0007     // Left, center, right.
+
+    case 4:
+        mask = 0x0103     // Left, right, back center.
+
+    case 5:
+        mask = 0x0107     // Left, center, right, back center.
+
+    case 6:
+        mask = 0x0603     // Left, right, side left, side right.
+
+    case 7:
+        mask = 0x0607     // Left, center, right, side left, side right.
     }
 
     return mask | (lfe ? 0x0008 : 0)

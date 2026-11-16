@@ -177,10 +177,10 @@ func fillMurmur3Pattern(buffer: [..] u8)
 
     for length in 34
     {
-        let ptr = cast(const [*] u8, view.buffer)
+        let ptr        = cast(const [*] u8, view.buffer)
         let alignedPtr = cast(const [*] u8, copied.buffer)
-        let hash0 = Hash.murmur3(ptr, length, 0)
-        let hash1 = Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64)
+        let hash0      = Hash.murmur3(ptr, length, 0)
+        let hash1      = Hash.murmur3(ptr, length, 0x1234_5678_9ABC_DEF0'u64)
         Swag.require(hash0 == murmur3Reference(ptr, length, 0))
         Swag.require(hash1 == murmur3Reference(ptr, length, 0x1234_5678_9ABC_DEF0'u64))
         Swag.require(hash0 == Hash.murmur3(alignedPtr, length, 0))

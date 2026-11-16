@@ -18,14 +18,14 @@ using Core, Gui, Pixel
 
     let main = journey.main
     main.showRecentBar(true)
-    var input = Testing.DesktopInput.create(journey.app, journey.surface)
+    var input  = Testing.DesktopInput.create(journey.app, journey.surface)
     let recent = main.recentWnd
     journey.waitFor("recent strip overflow", func|recent|()->bool => recent.scrollSize.x > recent.view.position.width)
     Swag.require(recent.view.position.bottom() < recent.position.height)
     let recentMetrics = recent.themeMetrics()
-    let recentY = recent.position.height - recentMetrics.scrollBar_EdgeInset - recentMetrics.scrollBar_HitSize * 0.5
-    let recentFrom = recent.localToSurface(Math.Point{recent.view.position.width * 0.45, recentY})
-    let recentTo = recent.localToSurface(Math.Point{recent.view.position.width * 0.8, recentY})
+    let recentY       = recent.position.height - recentMetrics.scrollBar_EdgeInset - recentMetrics.scrollBar_HitSize * 0.5
+    let recentFrom    = recent.localToSurface(Math.Point{recent.view.position.width * 0.45, recentY})
+    let recentTo      = recent.localToSurface(Math.Point{recent.view.position.width * 0.8, recentY})
     input.drag(recent, recentFrom, recentTo)
     Swag.require(recent.scrollPosition().x > 0, "the native recent-strip scrollbar did not scroll")
 
@@ -35,9 +35,9 @@ using Core, Gui, Pixel
     let scroll = main.libWnd.captureHost
     Swag.require(scroll.view.position.right() < scroll.position.width)
     let metrics = scroll.themeMetrics()
-    let x = scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5
-    let first = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.4})
-    let last = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.75})
+    let x       = scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5
+    let first   = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.4})
+    let last    = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.75})
     input.drag(scroll, first, last)
     Swag.require(scroll.scrollPosition().y > 0, "the native library scrollbar did not scroll")
 }
@@ -59,9 +59,9 @@ using Core, Gui, Pixel
     Swag.require(scroll.scrollSize.y > scroll.view.position.height, "the compact shape inspector did not overflow")
     Swag.require(scroll.surfaceRect().right() == main.inspector.surfaceRect().right())
     let metrics = scroll.themeMetrics()
-    let x = scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5
-    let first = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.45})
-    let last = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.75})
+    let x       = scroll.position.width - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize * 0.5
+    let first   = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.45})
+    let last    = scroll.localToSurface(Math.Point{x, scroll.view.position.height * 0.75})
     input.drag(scroll, first, last)
     Swag.require(scroll.scrollPosition().y > 0, "the native shape inspector scrollbar did not scroll")
 }

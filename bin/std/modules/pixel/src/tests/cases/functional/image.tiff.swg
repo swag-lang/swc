@@ -334,7 +334,7 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     let buf = buildTiff(true, 2, 1, 3, 2, 1, 1, 8, PixelData, null, false, orientation: 2)
     let img = expect decodeTiff(nnBytes(buf.toSlice()))
     Swag.require(img.pixelFormat == .RGB8)
-    let left = img.pixelColor(0, 0)
+    let left  = img.pixelColor(0, 0)
     let right = img.pixelColor(1, 0)
     Swag.require(left.r == 40 and left.g == 50 and left.b == 60)
     Swag.require(right.r == 10 and right.g == 20 and right.b == 30)

@@ -83,7 +83,7 @@ using Swag, Core
     let path = Gui.Testing.tempFilePath("frames-hour-", ".frames")
     defer catch File.delete(path)
     let picture = Image.create(1, 1, .BGRA8)
-    var writer = expect Frames.Writer.create(path, 1, 1, .BGRA8)
+    var writer  = expect Frames.Writer.create(path, 1, 1, .BGRA8)
     for i in 72_000 do
         expect writer.add(picture, cast(u64, i) * 50_000)
     Swag.require(writer.frameCount() == 72_000)

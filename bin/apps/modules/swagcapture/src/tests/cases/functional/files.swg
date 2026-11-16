@@ -82,7 +82,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     second.changed = true
     expect second.save()
 
-    let firstCached = expect Capture.load(firstPath)
+    let firstCached  = expect Capture.load(firstPath)
     let secondCached = expect Capture.load(secondPath)
     var cache: RecentCaptureCache
     cache.put(firstCached, expect File.info(firstPath))
@@ -756,8 +756,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     let second = Memory.new'Capture()
     second.width, second.widthOrg   = 43
     second.height, second.heightOrg = 31
-    second.backImg                 = Gui.Testing.indexedImage(43, 31)
-    second.preview                 = Gui.Testing.indexedImage(32, 20)
+    second.backImg                  = Gui.Testing.indexedImage(43, 31)
+    second.preview                  = Gui.Testing.indexedImage(32, 20)
     let secondPath = testPrepareSavedCapture(second)
     defer
     {
@@ -833,8 +833,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     let second = Memory.new'Capture()
     second.width, second.widthOrg   = 43
     second.height, second.heightOrg = 31
-    second.backImg                 = Gui.Testing.indexedImage(43, 31)
-    second.preview                 = Gui.Testing.indexedImage(32, 20)
+    second.backImg                  = Gui.Testing.indexedImage(43, 31)
+    second.preview                  = Gui.Testing.indexedImage(32, 20)
     let secondPath = testPrepareSavedCapture(second)
     defer
     {
@@ -889,8 +889,8 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     let next = Memory.new'Capture()
     next.width, next.widthOrg   = 43
     next.height, next.heightOrg = 31
-    next.backImg               = Gui.Testing.indexedImage(43, 31)
-    next.preview               = Gui.Testing.indexedImage(32, 20)
+    next.backImg                = Gui.Testing.indexedImage(43, 31)
+    next.preview                = Gui.Testing.indexedImage(32, 20)
     let nextPath = testPrepareSavedCapture(next)
     defer
     {
@@ -911,6 +911,7 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
         g_CaptureSaves.pending!.task.wait()
         f.gui.fireTimer(recent.selectionTimer)
     }
+
     Swag.require(recent.recentView.selected == 0)
     Swag.require(f.main.editWnd.getCapture()!.file == nextPath)
     Swag.require(g_CaptureSaves.flush().isEmpty())
@@ -1201,7 +1202,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 36
     capture.height, capture.heightOrg = 24
-    capture.backImg                   = Gui.Testing.indexedImage(36, 24)
+    capture.backImg = Gui.Testing.indexedImage(36, 24)
     let path = testPrepareSavedCapture(capture)
     defer discard catch File.delete(path)
 
@@ -1209,7 +1210,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
     defer Memory.delete(other)
     other.width, other.widthOrg   = 24
     other.height, other.heightOrg = 36
-    other.backImg                 = Gui.Testing.indexedImage(24, 36)
+    other.backImg = Gui.Testing.indexedImage(24, 36)
     let otherPath = testPrepareSavedCapture(other)
     defer discard catch File.delete(otherPath)
     expect File.delete(path)
@@ -1230,7 +1231,7 @@ func testSharedChunks(first, second: Array'Guid128)->u32
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 28
     capture.height, capture.heightOrg = 18
-    capture.backImg                   = Gui.Testing.indexedImage(28, 18)
+    capture.backImg = Gui.Testing.indexedImage(28, 18)
     let path = testPrepareSavedCapture(capture)
     defer discard catch File.delete(path)
     let first = testStoredChunkIds(path)
@@ -1265,7 +1266,7 @@ func testOpensCapture(path: String)->bool
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30
-    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    capture.backImg = Gui.Testing.indexedImage(40, 30)
     let path = testPrepareSavedCapture(capture)
     defer discard catch File.delete(path)
     Swag.require(testOpensCapture(path))
@@ -1288,19 +1289,20 @@ func testOpensCapture(path: String)->bool
     defer Memory.delete(capture)
     capture.width, capture.widthOrg   = 40
     capture.height, capture.heightOrg = 30
-    capture.backImg                   = Gui.Testing.indexedImage(40, 30)
+    capture.backImg = Gui.Testing.indexedImage(40, 30)
     let path = testPrepareSavedCapture(capture)
     defer discard catch File.delete(path)
 
     // The background is the largest chunk of a capture without an original.
     var offset, size: u64
-    var reader: Scc.Reader
+    var reader:       Scc.Reader
     expect reader.initialize(path)
     for chunk in reader.chunks() where chunk.storedSize > size
     {
         offset = chunk.offset
         size   = chunk.storedSize
     }
+
     reader.close()
 
     var bytes = expect File.readAllBytes(path)
@@ -1331,6 +1333,7 @@ func testOpensCapture(path: String)->bool
         discard catch File.delete(path)
         Memory.delete(capture)
     }
+
     let bytes = expect File.readAllBytes(path)
     discard expect File.writeAllBytes(path, Swag.makeSlice(bytes.buffer, bytes.count / 2))
 
@@ -1444,7 +1447,7 @@ func testOpensCapture(path: String)->bool
 
     f.capture.width, f.capture.widthOrg   = 40
     f.capture.height, f.capture.heightOrg = 30
-    f.capture.backImg                     = Gui.Testing.indexedImage(40, 30)
+    f.capture.backImg = Gui.Testing.indexedImage(40, 30)
     let path = testPrepareSavedCapture(f.capture)
     defer discard catch File.delete(path)
     let linked = Gui.Testing.tempFilePath("linked-", ".png")

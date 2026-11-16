@@ -57,8 +57,8 @@ func readCompleteDynamicCase(value: const any)->s32
 
 #test
 {
-    var calls      = 0
-    var result     = 0
+    var calls  = 0
+    var result = 0
     let value: const any = 42's32
     switch
     {
@@ -76,7 +76,7 @@ func readCompleteDynamicCase(value: const any)->s32
 
 #test
 {
-    var result     = 0
+    var result = 0
     let value: const any = 42's32
     switch value
     {

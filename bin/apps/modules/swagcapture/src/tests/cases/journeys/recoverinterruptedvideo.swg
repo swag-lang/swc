@@ -15,8 +15,8 @@ using Core, Gui, Pixel, Video
     let folder = Path.combine(journey.root, "recordings")
     expect Directory.create(folder)
     var document = Path.combine(folder, "interrupted.scc")
-    let media = Capture.mediaPathOf(document, .Video)
-    var picture = Image.create(32, 16, .BGRA8)
+    let media    = Capture.mediaPathOf(document, .Video)
+    var picture  = Image.create(32, 16, .BGRA8)
     picture.fill(Argb.White)
     var writer = expect Mp4.SoftwareRecording.createVideoOnly(media, 32, 16, 1_000_000)
     for frame in 2'u64 do

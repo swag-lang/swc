@@ -72,6 +72,7 @@ impl Decoder
 
         // Discard plain text sub-blocks.
         .discardSubBlocks()
+
         // A graphic control extension applies to this plain-text rendering block, so it must
         // not carry over to the next image descriptor.
         .gce = {}
@@ -82,7 +83,7 @@ impl Decoder
     {
         if .readU8() != 4 do
             fail InvalidFormatError{"GIF graphic control extension needs a four-byte payload"}
-        let rdit = .readU8()
+        let rdit     = .readU8()
         let disposal = (rdit >> 2) & 7
         if disposal > 3 do
             fail InvalidFormatError{"GIF graphic control extension has a reserved disposal method"}

@@ -478,7 +478,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     for 8 do
         body.addNative(0'u8)     // 1x1 32-bit XOR and AND masks.
     var bytes = buildIco(1, 1, 32, 0, nnBytes(body.toSlice()))
-    let dib = cast(*IcoDib, bytes.storage() + #sizeof(IcoDir) + #sizeof(IcoEntry))
+    let dib   = cast(*IcoDib, bytes.storage() + #sizeof(IcoDir) + #sizeof(IcoEntry))
     dib[].planes = 2
 
     var errorOutcome: Swag.Error

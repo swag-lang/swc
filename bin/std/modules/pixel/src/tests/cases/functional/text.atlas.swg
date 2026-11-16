@@ -77,7 +77,7 @@ private func glyphCell(font: *Font, desc: const *GlyphDesc)->{x: u64, y: u64, at
 // whatever was packed before it. A text drawn after other texts renders as it does alone.
 #test
 {
-    let face = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
+    let face   = expect TypeFace.load(getTestDataPath("segoeui.ttf"))
     var alone, crowded: FontCache
     let first  = alone.createFont(face, 40, .Msdf)
     let second = crowded.createFont(face, 40, .Msdf)

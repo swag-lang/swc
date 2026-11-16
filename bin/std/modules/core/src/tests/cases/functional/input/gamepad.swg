@@ -23,8 +23,8 @@ using Swag
 
     for button in Input.GamepadButton
     {
-        let i = cast(u32, button)
-        let pos    = Math.Point{cast(f32, i) + 1.0, cast(f32, i) + 2.0}
+        let i   = cast(u32, button)
+        let pos = Math.Point{cast(f32, i) + 1.0, cast(f32, i) + 2.0}
 
         pad.setControlStates(button, false, true, Math.Point.Zero, pos)
 

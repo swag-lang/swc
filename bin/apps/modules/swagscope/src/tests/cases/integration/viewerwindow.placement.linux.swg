@@ -25,11 +25,32 @@ func waitForViewerNativeBounds(app: *Application, surface: *Surface, expected: M
 
     var origin = Math.Point{0, 0}
     surface.surfaceToScreen(&origin)
-    Console.println("Requested bounds: ", expected.x, ",", expected.y, " ", expected.width, "x", expected.height,
-                    "; actual bounds: ", surface.position.x, ",", surface.position.y, " ",
-                    surface.position.width, "x", surface.position.height, "; native origin: ", origin.x, ",", origin.y,
-                    "; render context: ", surface.renderingContext().width, "x", surface.renderingContext().height,
-                    "; pixels match: ", try Testing.verifyNativePresentation(surface))
+    Console.println("Requested bounds: ",
+                    expected.x,
+                    ",",
+                    expected.y,
+                    " ",
+                    expected.width,
+                    "x",
+                    expected.height,
+                    "; actual bounds: ",
+                    surface.position.x,
+                    ",",
+                    surface.position.y,
+                    " ",
+                    surface.position.width,
+                    "x",
+                    surface.position.height,
+                    "; native origin: ",
+                    origin.x,
+                    ",",
+                    origin.y,
+                    "; render context: ",
+                    surface.renderingContext().width,
+                    "x",
+                    surface.renderingContext().height,
+                    "; pixels match: ",
+                    try Testing.verifyNativePresentation(surface))
     fail Errors.InvalidFormatError{"Swag Scope did not present the requested native X11 bounds"}
 }
 
@@ -54,8 +75,9 @@ func waitForViewerNativeBounds(app: *Application, surface: *Surface, expected: M
             break
         Threading.Thread.sleep(10'ms)
     }
+
     Swag.require(not expect cast(*Markdown.View, window.currentView).isLoading())
-    let normal = surface.position
+    let normal  = surface.position
     let monitor = Env.monitorForRectangle(normal).physicalBounds
     expect waitForViewerNativeBounds(&app, surface, normal)
 

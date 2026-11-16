@@ -130,9 +130,9 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
         discard catch File.delete(copyPath)
     }
 
-    let kind = sccTestId("e6f71e08-c56a-4d70-a546-17b4b58b03c2")
-    let role = sccTestId("d8993350-f65a-4992-ac77-600284eaaad6")
-    let type = sccTestId("ecbc60fa-28d7-49e4-86b1-f6c1616fa26e")
+    let kind  = sccTestId("e6f71e08-c56a-4d70-a546-17b4b58b03c2")
+    let role  = sccTestId("d8993350-f65a-4992-ac77-600284eaaad6")
+    let type  = sccTestId("ecbc60fa-28d7-49e4-86b1-f6c1616fa26e")
     var codec = ReverseSccCodec{codecId: sccTestId("b9623a96-6cb1-4a35-9ec3-5a99a9c006a1")}
 
     var original: Scc.Writer
@@ -150,7 +150,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var copy: Scc.Writer
     copy.initialize(kind)
     copy.setIdentity(source.id(), source.generation() + 1)
-    copy.manifest()[] = source.manifest()[]
+    copy.manifest()[]    = source.manifest()[]
     copy.manifest().name = "Updated metadata"
 
     var damaged = stored

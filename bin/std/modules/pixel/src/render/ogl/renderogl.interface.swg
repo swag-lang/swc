@@ -79,6 +79,7 @@ impl IRenderer for RenderOgl
             .native.setCurrentContext(ogl[])
             .releaseFontTextures()
             .releaseClipMasks()
+
             // The last native context is about to go away. Planar chroma names belong to it,
             // and a later context may reuse those names for unrelated textures.
             .chromaPlanes.clear()

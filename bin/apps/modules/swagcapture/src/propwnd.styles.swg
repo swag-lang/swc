@@ -613,24 +613,23 @@ impl PropWnd
             return
 
         let form: *BaseForm = capture.forms[capture.selection[0]]
-        let duration = cast(f64, capture.timeline.duration) / 1_000_000
-        let section = .grid.addItem(Swag.TypeValue{name: "time.section"}, null, null,
-                                    .themeMetrics().inspector_SectionHeight, .None)
+        let duration        = cast(f64, capture.timeline.duration) / 1_000_000
+        let section         = .grid.addItem(Swag.TypeValue{name: "time.section"}, null, null, .themeMetrics().inspector_SectionHeight, .None)
         section.flags.add(.NoSeparator | .NoFocus)
-        SectionLabel.create(section.line, appStrings().ui_PropTime,
-                            {0, 0, 0, .themeMetrics().inspector_SectionHeight}).dockStyle = .Center
+        SectionLabel.create(section.line, appStrings().ui_PropTime, {0, 0, 0, .themeMetrics().inspector_SectionHeight}).dockStyle = .Center
 
         func addTime(prop: *PropWnd, label: string, time: u64, start: bool, duration: f64)
         {
             let item = prop.grid.addItem(Swag.TypeValue{name: start ? "time.start" : "time.end"},
-                                         null, null, prop.themeMetrics().control_InspectorHeight, .None)
+                                         null,
+                                         null,
+                                         prop.themeMetrics().control_InspectorHeight,
+                                         .None)
             item.flags.add(.NoSeparator)
             let seconds = cast(f64, time) / 1_000_000
-            let edit = EditCtrl.create(item.line, label, Format.toString("%", seconds),
-                                       flags: .ReleaseFocusOnEnterOrEscape)
+            let edit    = EditCtrl.create(item.line, label, Format.toString("%", seconds), flags: .ReleaseFocusOnEnterOrEscape)
             edit.dockStyle = .Center
-            edit.setLayoutMetrics(prop.themeMetrics().inspector_LabelWidth, 0,
-                                  prop.themeMetrics().inspector_LabelGap)
+            edit.setLayoutMetrics(prop.themeMetrics().inspector_LabelWidth, 0, prop.themeMetrics().inspector_LabelGap)
             edit.edit.setFloatingPointRange(0, duration)
             edit.edit.style.setFont(prop.theme().res.fontDefaultFs)
             edit.edit.sigCommitted += func|prop, start|(ed)
@@ -649,21 +648,23 @@ impl PropWnd
         }
 
         addTime(me, appStrings().ui_TimeStart, form.timeStart, true, duration)
-        addTime(me, appStrings().ui_TimeEnd, form.timeEnd ? form.timeEnd : capture.timeline.duration,
-                false, duration)
+        addTime(me,
+                appStrings().ui_TimeEnd,
+                form.timeEnd ? form.timeEnd : capture.timeline.duration,
+                false,
+                duration)
 
-        let item = .grid.addItem(Swag.TypeValue{name: "time.whole"}, null, null,
-                                 .themeMetrics().control_InspectorHeight, .None)
+        let item = .grid.addItem(Swag.TypeValue{name: "time.whole"}, null, null, .themeMetrics().control_InspectorHeight, .None)
         item.flags.add(.NoSeparator)
-        let button = PushButton.create(item.line, appStrings().act_ShowAlways,
-                                       {0, 0, 180, .themeMetrics().control_InspectorHeight}, form: .Flat)
-        button.dockStyle = .CenterKeepSizeVert
+        let button = PushButton.create(item.line, appStrings().act_ShowAlways, {0, 0, 180, .themeMetrics().control_InspectorHeight}, form: .Flat)
+        button.dockStyle  = .CenterKeepSizeVert
         button.sigPressed += func|prop = me|(_)
         {
             prop.main.getCapture()?.clearSelectionSpan()
             prop.main.timeline?.invalidate()
             prop.needRebuild = true
         }
+
         .grid.endAppendRows()
     }
 

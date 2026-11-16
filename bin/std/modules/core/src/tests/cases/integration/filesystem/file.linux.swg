@@ -132,6 +132,7 @@
         discard Linux.chmod(file.storage(), 0x180)
         expect Directory.delete(root, recurse: true)
     }
+
     expect Directory.create(folder)
     discard expect File.writeAllText(file.toString(), "saved")
     discard expect File.writeAllText(child.toString(), "child")
@@ -146,14 +147,14 @@
     let readError = assume cast(const *Swag.SystemError, deniedRead.value())
     Swag.require(readError.errorID == cast(u64, Linux.EACCES) and File.exists(file.toString()))
 
-    Swag.require(Linux.chmod(file.storage(), 0x100) == 0) // Owner read only.
+    Swag.require(Linux.chmod(file.storage(), 0x100) == 0)     // Owner read only.
     var deniedWrite: Swag.Error
     discard catch File.open(file.toString(), .Create, .Write, .Zero) as deniedWrite
     let writeError = assume cast(const *Swag.SystemError, deniedWrite.value())
     Swag.require(writeError.errorID == cast(u64, Linux.EACCES))
     Swag.require(expect File.readAllText(file.toString()) == "saved")
 
-    Swag.require(Linux.chmod(folder.storage(), 0x140) == 0) // Owner read/search only.
+    Swag.require(Linux.chmod(folder.storage(), 0x140) == 0)     // Owner read/search only.
     var deniedCreate: Swag.Error
     discard catch File.open(Path.combine(folder, "new.txt").toString(), .CreateNew, .Write, .Zero) as deniedCreate
     let createError = assume cast(const *Swag.SystemError, deniedCreate.value())

@@ -91,9 +91,9 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     defer free(property)
     Swag.require(property != null and propertyError == null)
     Swag.require(property.type == 31 and
-                property.format == 8 and
-                property.value_len == text.count and
-                property.bytes_after == 0)
+                 property.format == 8 and
+                 property.value_len == text.count and
+                 property.bytes_after == 0)
     Swag.require(propertyLength(property) == cast(s32, text.count))
     let propertyBytes = cast([*] u8, propertyValue(property))
     Swag.require(cast(string, Swag.makeSlice(propertyBytes, text.count)) == text)
@@ -168,7 +168,7 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
             if kind == XCB_ENTER_NOTIFY or kind == XCB_LEAVE_NOTIFY
             {
                 let crossing = cast(*xcb_enter_notify_event_t, cast(*void, bytes))
-                crossing.mode              = 2
+                crossing.mode = 2
                 crossing.same_screen_focus = 3
             }
         }
@@ -181,11 +181,13 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
         defer free(event)
         Swag.require(event.response_type == (kind | 0x80))
         let received = cast([*]u8, event)
+
         // X11 replaces the sequence field, but none of the input payload.
         Swag.require(received[1] == bytes[1])
         for index in 4 until 32 do
             Swag.require(received[index] == bytes[index])
     }
+
     let destroyError = check(connection, destroy(connection, window))
     defer free(destroyError)
     Swag.require(destroyError == null)
@@ -246,9 +248,9 @@ private func(T) xcbTestSymbol(library: *void, name: string)->T
     defer free(pointer)
     defer free(pointerError)
     Swag.require(pointer != null and
-                pointerError == null and
-                pointer.same_screen == 1 and
-                pointer.root == screen.root)
+                 pointerError == null and
+                 pointer.same_screen == 1 and
+                 pointer.root == screen.root)
 
     let randrLibrary = dlopen("libxcb-randr.so.0".buffer, RTLD_NOW | RTLD_LOCAL)
     Swag.require(randrLibrary != null)

@@ -477,6 +477,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     for itemIndex in page.items.count
     {
         let item = page.itemAt(itemIndex)
+
         // Text is the one kind whose extent the page cannot state on its own, so it is always
         // recorded; everything else answers for the box its marks cannot leave.
         if item.kind != .Text

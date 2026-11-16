@@ -46,6 +46,7 @@ using Core
                         // popup position to whole logical units, allowing a half-unit residual.
                         Swag.require(Math.abs(body.horzCenter() - original.horzCenter()) <= 0.5)
                     }
+
                     checked[] = true
                     popup.setEndModal(null)
                 }

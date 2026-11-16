@@ -1282,7 +1282,7 @@ impl IWnd for GridView
             .drawBuffer(painter, &.rowOffsetText, originX + ViewInset, textTop, font, offsetInk)
 
             // One cell per value, each at its own place in the row.
-            let size = .valueSize()
+            let size   = .valueSize()
             var column = 0'u64
             while column <= rowLast - rowOffset
             {

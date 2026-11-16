@@ -9,9 +9,9 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = Path.combine(journey.root, "report.pdf")
+    let file     = Path.combine(journey.root, "report.pdf")
     var document = Pdf.Document.create()
-    var first = Pdf.Page.create(320, 220)
+    var first    = Pdf.Page.create(320, 220)
     first.addText("First page", 32, 28, 24, Color.fromArgb(Argb.Black))
     document.addPage(#move first)
     var second = Pdf.Page.create(320, 220)

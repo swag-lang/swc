@@ -5,9 +5,7 @@ using Swag, Core, Pixel
 
 // Renders the pill of a recording that stopped after `recorded` microseconds of `limit` (zero for
 // none), on its own floating sheet, on a host in Encre or Papier.
-func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
-                         state = RecorderState.Stopped, screenMode = false,
-                         language: string? = null)->Image
+func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0, state = RecorderState.Stopped, screenMode = false, language: string? = null)->Image
 {
     g_CaptureWindow   = {}
     g_CaptureAnchored = false
@@ -25,26 +23,25 @@ func testRenderRecordHud(dark: bool, recorded, limit: u64, dropped: u32 = 0,
 
     let recorder = Memory.new'Recorder()
     defer Memory.delete(recorder)
-    recorder.main = f.main
-    recorder.state    = state
-    recorder.videoMode = state == .Preparing
+    recorder.main           = f.main
+    recorder.state          = state
+    recorder.videoMode      = state == .Preparing
     recorder.clock.recorded = recorded
-    recorder.limit    = limit
-    recorder.dropped  = dropped
-    recorder.area     = {0, 0, 1280, 720}
+    recorder.limit          = limit
+    recorder.dropped        = dropped
+    recorder.area           = {0, 0, 1280, 720}
     if screenMode
     {
         f.main.monitors.clear()
         testAddMonitorAt(f.main, {0, 0, 800, 600})
         testAddMonitorAt(f.main, {800, 0, 800, 600})
         recorder.screenSelection = true
-        recorder.screenIndex = 0
-        recorder.area = f.main.monitors[0].physicalBounds
+        recorder.screenIndex     = 0
+        recorder.area            = f.main.monitors[0].physicalBounds
     }
 
     // The same sheet the recorder opens, on the host's own application.
-    let width    = RecordHud.widthFor(limit, recorder.readoutLabel(), state == .Preparing,
-                                      screenWidth: screenMode ? RecordHud.screenChoiceWidth(f.main) : 0)
+    let width    = RecordHud.widthFor(limit, recorder.readoutLabel(), state == .Preparing, screenWidth: screenMode ? RecordHud.screenChoiceWidth(f.main) : 0)
     let height   = cast(s32, RecordHudHeight + (state == .Preparing ? f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding : 0))
     let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
     with let hud = RecordHud.create(surface.wnd, recorder)
@@ -74,20 +71,20 @@ func testRenderScreenChoices()->Image
 
     let recorder = Memory.new'Recorder()
     defer Memory.delete(recorder)
-    recorder.main = f.main
-    recorder.state = .Preparing
-    recorder.videoMode = true
+    recorder.main            = f.main
+    recorder.state           = .Preparing
+    recorder.videoMode       = true
     recorder.screenSelection = true
-    recorder.area = f.main.monitors[0].physicalBounds
+    recorder.area            = f.main.monitors[0].physicalBounds
 
-    let width = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true,
-                                   screenWidth: RecordHud.screenChoiceWidth(f.main))
-    let height = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
-    let surface = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
+    let width    = RecordHud.widthFor(0, recorder.readoutLabel(), preparing: true, screenWidth: RecordHud.screenChoiceWidth(f.main))
+    let height   = cast(s32, RecordHudHeight + f.gui.theme.metrics.miniBar_ButtonSize + f.gui.theme.metrics.miniBar_Padding)
+    let surface  = expect f.gui.app.createSurface(0, 0, cast(s32, width), height, .ToolWindow | .TopMost | .Sheet)
     with let hud = RecordHud.create(surface.wnd, recorder)
     {
         .dockStyle = .Center
     }
+
     surface.minSize = {}
     surface.setView(hud)
     surface.show()
@@ -112,8 +109,7 @@ func testRenderScreenChoices()->Image
 #[Swag.TestTag("golden")]
 #test
 {
-    var image = testRenderRecordHud(dark: true, recorded: 0, limit: 0,
-                                    state: .Preparing, screenMode: true)
+    var image = testRenderRecordHud(dark: true, recorded: 0, limit: 0, state: .Preparing, screenMode: true)
     Pixel.Testing.assertImageGolden(&image, "recordhud.screen-ready")
 }
 

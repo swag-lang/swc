@@ -43,7 +43,7 @@ conversion should produce null.
 {
     let a: any = 6
     Swag.require((catch cast(*s32?, a)) == null)
-    let ptr    = catch cast(const *s32?, a)
+    let ptr = catch cast(const *s32?, a)
     Swag.require(ptr != null)
     Swag.require(ptr[] == 6)
 }
@@ -51,8 +51,8 @@ conversion should produce null.
 #test
 {
     var value: s32 = 6
-    var a: any = value
-    let ptr = catch cast(*s32?, a)
+    var a:     any = value
+    let ptr        = catch cast(*s32?, a)
     Swag.require(ptr != null)
     ptr[] = 7
     Swag.require(value == 7)

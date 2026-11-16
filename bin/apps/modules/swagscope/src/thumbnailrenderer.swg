@@ -29,6 +29,7 @@ impl ThumbnailRenderer
             if face do
                 break
         }
+
         if not face do
             fail Errors.InvalidFormatError{"a system font is unavailable"}
 
@@ -92,5 +93,4 @@ impl ThumbnailRenderer
         var stream = try File.openReadLive(path)
         return try stream.readUtf8Chunk(ThumbnailSourceSize)
     }
-
 }

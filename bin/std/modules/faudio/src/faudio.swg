@@ -32,15 +32,15 @@ struct FAudioWaveFormatExtensible
 {
     public
     {
-        Format: FAudioWaveFormatEx
+        Format:  FAudioWaveFormatEx
         Samples: union
         {
             wValidBitsPerSample: u16
-            wSamplesPerBlock: u16
-            wReserved: u16
+            wSamplesPerBlock:    u16
+            wReserved:           u16
         }
         dwChannelMask: u32
-        SubFormat: FAudioGUID
+        SubFormat:     FAudioGUID
     }
 }
 

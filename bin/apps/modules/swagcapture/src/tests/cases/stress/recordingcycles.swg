@@ -29,6 +29,7 @@ using Core, Gui
             journey.recordAnimation(.Cancel)
             Swag.require(main.editWnd.getCapture() == before)
         }
+
         Swag.require(g_Recorder == null and journey.app.surfaces.count == 1)
     }
 

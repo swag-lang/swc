@@ -14,7 +14,7 @@ struct RefPointerPreview
 {
     var preview = RefPointerPreview{operation: {started: true}}
     var previews: [1] *RefPointerPreview = [&preview]
-    var count = 0
+    var count   = 0
     for &entry in previews
     {
         if entry[].started do

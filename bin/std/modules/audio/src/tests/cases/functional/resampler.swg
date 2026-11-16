@@ -20,6 +20,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
         let sample = cast(f64, samples[index])
         power += sample * sample
     }
+
     return Math.sqrt(power / (endIndex - startIndex))
 }
 
@@ -29,7 +30,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
     let input = sineFrames(4_800, 48_000, 1_000.0)
     var whole = expect Resampler.create(48_000, 44_100, 1)
     var parts = expect Resampler.create(48_000, 44_100, 1)
-    var one: Array'f32
+    var one:  Array'f32
     var many: Array'f32
     expect whole.addFrames(input.toSlice(), &one)
     expect whole.end(&one)
@@ -40,6 +41,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
         expect parts.addFrames(input.toSlice()[start until start + count], &many)
         start += count
     }
+
     expect parts.end(&many)
     Swag.require(one.count == 4_410 and many.count == one.count)
     for index in one.count do
@@ -50,7 +52,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 #test
 {
     let passband = sineFrames(9_600, 48_000, 18_000.0)
-    var pass = expect Resampler.create(48_000, 44_100, 1)
+    var pass     = expect Resampler.create(48_000, 44_100, 1)
     var passed: Array'f32
     expect pass.addFrames(passband.toSlice(), &passed)
     expect pass.end(&passed)
@@ -59,7 +61,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
     Swag.require(outputPower / inputPower > 0.94 and outputPower / inputPower < 1.02)
 
     let stopband = sineFrames(9_600, 96_000, 30_000.0)
-    var stop = expect Resampler.create(96_000, 48_000, 1)
+    var stop     = expect Resampler.create(96_000, 48_000, 1)
     var stopped: Array'f32
     expect stop.addFrames(stopband.toSlice(), &stopped)
     expect stop.end(&stopped)
@@ -93,7 +95,7 @@ func rootMeanSquare(samples: const [..] f32, startIndex, endIndex: u64)->f64
 #test
 {
     var resampler = expect Resampler.create(48_000, 48_000, 1)
-    var input: [4_800] f32
+    var input:  [4_800] f32
     var output: Array'f32
     expect resampler.addFrames(Swag.makeSlice(&input[0], input.count), &output)
     let firstCount = output.count

@@ -71,12 +71,12 @@ struct ComboBox
     }
 
     // Hover state, the open popup, and the color animations of the painted parts.
-    isHot:              bool                   // Whether the mouse is over the combo.
-    popup:              *PopupListCtrl?        // Drop-down list while it is open.
-    pointerFocusReturn: *Wnd?                  // Focus owner restored after pointer use.
-    maxIconSize:        s32                    // Widest item icon, sizing the icon column.
-    hotSegment:         u32 = Swag.U32.Max     // Segment under the pointer, when segmented.
-    segmentWidths:      Array'f32              // Optional content widths for a hosted segmented choice.
+    isHot:                bool                           // Whether the mouse is over the combo.
+    popup:                *PopupListCtrl?                // Drop-down list while it is open.
+    pointerFocusReturn:   *Wnd?                          // Focus owner restored after pointer use.
+    maxIconSize:          s32                            // Widest item icon, sizing the icon column.
+    hotSegment:           u32 = Swag.U32.Max             // Segment under the pointer, when segmented.
+    segmentWidths:        Array'f32                      // Optional content widths for a hosted segmented choice.
     sigSegmentReselected: SigArray'func||(*Wnd, u32)     // A pressed segment that was already selected.
 
     aniBk:     BlendColor     // Color animation of the background.
@@ -302,6 +302,7 @@ impl IWnd for ComboBox
                     else do
                         .applySelectedIndex(index, notify: true)
                 }
+
                 break
             }
 

@@ -164,8 +164,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 // A child chunk must stay inside its `rec ` list even when later records remain inside `movi`.
 #test
 {
-    var bytes = expect File.readAllBytes(videoFixturePath("edited-record-groups.avi"))
-    let raw = bytes.toSlice()
+    var bytes       = expect File.readAllBytes(videoFixturePath("edited-record-groups.avi"))
+    let raw         = bytes.toSlice()
     var firstRecord = 0'u64
     var foundRecord = false
     while firstRecord + 20 <= raw.count
@@ -177,17 +177,19 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
             foundRecord = true
             break
         }
+
         firstRecord += 1
     }
+
     Swag.require(foundRecord)
 
     let firstRecordSize = cast(u64, aviReadU32(raw, firstRecord + 4))
-    let secondRecord = firstRecord + 8 + firstRecordSize + (firstRecordSize & 1)
+    let secondRecord    = firstRecord + 8 + firstRecordSize + (firstRecordSize & 1)
     Swag.require(aviHasId(raw, secondRecord, "LIST") and aviHasId(raw, secondRecord + 8, "rec "))
     let secondRecordSize = cast(u64, aviReadU32(raw, secondRecord + 4))
-    let secondRecordEnd = secondRecord + 8 + secondRecordSize + (secondRecordSize & 1)
-    let crossingSize = cast(u32, secondRecordEnd - (firstRecord + 20))
-    let sizeOffset = firstRecord + 16
+    let secondRecordEnd  = secondRecord + 8 + secondRecordSize + (secondRecordSize & 1)
+    let crossingSize     = cast(u32, secondRecordEnd - (firstRecord + 20))
+    let sizeOffset       = firstRecord + 16
     bytes[sizeOffset]     = cast(u8, crossingSize & 0xFF)
     bytes[sizeOffset + 1] = cast(u8, (crossingSize >> 8) & 0xFF)
     bytes[sizeOffset + 2] = cast(u8, (crossingSize >> 16) & 0xFF)

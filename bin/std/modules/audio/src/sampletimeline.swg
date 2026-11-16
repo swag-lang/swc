@@ -5,10 +5,10 @@ using Core, Core.Errors
 // Describes how a captured PCM block joins a continuous sample timeline.
 struct SamplePlacement
 {
-    public startSample:      u64 // Write position after any silence; also the current end if empty.
-    public silenceFrames:    u64 // Silent frames to write before the block.
-    public discardedFrames:  u64 // Leading captured frames already covered by earlier blocks.
-    public acceptedFrames:   u64 // Captured frames to write after discarding the overlap.
+    public startSample:     u64     // Write position after any silence; also the current end if empty.
+    public silenceFrames:   u64     // Silent frames to write before the block.
+    public discardedFrames: u64     // Leading captured frames already covered by earlier blocks.
+    public acceptedFrames:  u64     // Captured frames to write after discarding the overlap.
 }
 
 // Places timestamped PCM blocks on a sample clock without retaining audio data.
@@ -29,7 +29,7 @@ struct SampleTimeline
         firstTick:      u64
         previousTick:   u64
         sampleEndValue: u64
-        hasOrigin:     bool
+        hasOrigin:      bool
         hasBlock:       bool
     }
 }
@@ -82,8 +82,8 @@ impl SampleTimeline
         let target  = try .targetAt(tick)
         let silence = target > .sampleEndValue ? target - .sampleEndValue : 0
         .sampleEndValue += silence
-        .previousTick    = tick
-        .hasBlock        = true
+        .previousTick   = tick
+        .hasBlock       = true
         return silence
     }
 
@@ -103,6 +103,7 @@ impl SampleTimeline
             .hasBlock       = true
             return SamplePlacement{0, 0, 0, frameCount}
         }
+
         let target = try .targetAt(tick)
         if frameCount > Swag.U64.Max - target do
             fail OverflowError{"sample timeline block end overflows"}
@@ -124,15 +125,17 @@ impl SampleTimeline
     {
         if not frameCount do
             fail BadParameterError{"sample timeline blocks must contain frames"}
-        let target = try .targetAfter(tick, skippedFrames)
+        let target         = try .targetAfter(tick, skippedFrames)
         var adjustedTarget = target
         if target >= .sampleEndValue
         {
             if target - .sampleEndValue <= .tolerance do
                 adjustedTarget = .sampleEndValue
         }
-        elif .sampleEndValue - target <= .tolerance do
+        elif .sampleEndValue - target <= .tolerance
+        {
             adjustedTarget = .sampleEndValue
+        }
 
         let silence   = adjustedTarget > .sampleEndValue ? adjustedTarget - .sampleEndValue : 0
         let discarded = adjustedTarget < .sampleEndValue ? Math.min(.sampleEndValue - adjustedTarget, frameCount) : 0
@@ -152,16 +155,16 @@ impl SampleTimeline
     private mtd const targetAfter(tick: u64, frameOffset: u64)->u64 fail
     {
         let isBeforeOrigin = tick < .firstTick
-        let elapsed = isBeforeOrigin ? .firstTick - tick : tick - .firstTick
-        let wholeSeconds = elapsed / .clockFrequency
+        let elapsed        = isBeforeOrigin ? .firstTick - tick : tick - .firstTick
+        let wholeSeconds   = elapsed / .clockFrequency
         if wholeSeconds > Swag.U64.Max / .sampleRate do
             fail OverflowError{"sample timeline position overflows"}
-        let wholeSamples = wholeSeconds * .sampleRate
-        let fraction = (elapsed % .clockFrequency) * .sampleRate
+        let wholeSamples    = wholeSeconds * .sampleRate
+        let fraction        = (elapsed % .clockFrequency) * .sampleRate
         let fractionSamples = fraction / .clockFrequency
-        let remainder = fraction % .clockFrequency
-        let roundsUp = isBeforeOrigin ? remainder > .clockFrequency / 2 :
-                       remainder >= .clockFrequency / 2 + .clockFrequency % 2
+        let remainder       = fraction % .clockFrequency
+        let roundsUp        = isBeforeOrigin ? remainder > .clockFrequency / 2 :
+                              remainder >= .clockFrequency / 2 + .clockFrequency % 2
         let rounded = fractionSamples + cast(u64, roundsUp)
         if rounded > Swag.U64.Max - wholeSamples do
             fail OverflowError{"sample timeline position overflows"}
@@ -172,6 +175,7 @@ impl SampleTimeline
                 return 0
             return frameOffset - magnitude
         }
+
         if frameOffset > Swag.U64.Max - magnitude do
             fail OverflowError{"sample timeline position overflows"}
         return magnitude + frameOffset
@@ -189,8 +193,9 @@ impl SampleTimeline
         let wholeSamples = wholeSeconds * .sampleRate
         let fraction     = (elapsed % .clockFrequency) * .sampleRate
         let rounded      = fraction / .clockFrequency +
-                           cast(u64, fraction % .clockFrequency >=
-                                      .clockFrequency / 2 + .clockFrequency % 2)
+                           cast(u64,
+                                fraction % .clockFrequency >=
+                                .clockFrequency / 2 + .clockFrequency % 2)
         if rounded > Swag.U64.Max - wholeSamples do
             fail OverflowError{"sample timeline position overflows"}
         var target = wholeSamples + rounded
@@ -207,6 +212,7 @@ impl SampleTimeline
                     target = .sampleEndValue
             }
         }
+
         return target
     }
 }

@@ -18,32 +18,32 @@ const IID_IAudioClient = GUID{0x1CB9AD4C, 0xDBFA, 0x4C32,
 const IID_IAudioCaptureClient = GUID{0xC8ADBD64, 0xE71E, 0x48A0,
                                      [0xA4, 0xDE, 0x18, 0x5C, 0x39, 0x5C, 0xD3, 0x17]}
 
-const EDATAFLOW_RENDER  = 0's32
-const EDATAFLOW_CAPTURE = 1's32
-const EROLE_CONSOLE     = 0's32
-const EROLE_MULTIMEDIA  = 1's32
+const EDATAFLOW_RENDER     = 0's32
+const EDATAFLOW_CAPTURE    = 1's32
+const EROLE_CONSOLE        = 0's32
+const EROLE_MULTIMEDIA     = 1's32
 const EROLE_COMMUNICATIONS = 2's32
-const DEVICE_STATE_ACTIVE = 1'u32
+const DEVICE_STATE_ACTIVE  = 1'u32
 
-const AUDCLNT_SHAREMODE_SHARED = 0's32
-const AUDCLNT_STREAMFLAGS_LOOPBACK = 0x0002_0000'u32
-const AUDCLNT_STREAMFLAGS_EVENTCALLBACK = 0x0004_0000'u32
+const AUDCLNT_SHAREMODE_SHARED               = 0's32
+const AUDCLNT_STREAMFLAGS_LOOPBACK           = 0x0002_0000'u32
+const AUDCLNT_STREAMFLAGS_EVENTCALLBACK      = 0x0004_0000'u32
 const AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY = 1'u32
 const AUDCLNT_BUFFERFLAGS_SILENT             = 2'u32
 const AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR    = 4'u32
-const AUDCLNT_E_DEVICE_INVALIDATED = cast #bit (HRESULT, 0x8889_0004)
-const AUDCLNT_E_SERVICE_NOT_RUNNING = cast #bit (HRESULT, 0x8889_0010)
-const AUDCLNT_E_RESOURCES_INVALIDATED = cast #bit (HRESULT, 0x8889_0026)
-const AUDCLNT_S_BUFFER_EMPTY = 0x0889_0001's32
+const AUDCLNT_E_DEVICE_INVALIDATED           = cast #bit (HRESULT, 0x8889_0004)
+const AUDCLNT_E_SERVICE_NOT_RUNNING          = cast #bit (HRESULT, 0x8889_0010)
+const AUDCLNT_E_RESOURCES_INVALIDATED        = cast #bit (HRESULT, 0x8889_0026)
+const AUDCLNT_S_BUFFER_EMPTY                 = 0x0889_0001's32
 
-const WAVE_FORMAT_PCM = 1'u16
+const WAVE_FORMAT_PCM        = 1'u16
 const WAVE_FORMAT_IEEE_FLOAT = 3'u16
 const WAVE_FORMAT_EXTENSIBLE = 0xFFFE'u16
 
 const KSDATAFORMAT_SUBTYPE_PCM = GUID{1, 0, 0x0010,
-                                     [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+                                      [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 const KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = GUID{3, 0, 0x0010,
-                                            [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
+                                             [0x80, 0x00, 0x00, 0xAA, 0x00, 0x38, 0x9B, 0x71]}
 
 #[Swag.Pack(1)]
 struct WAVEFORMATEX

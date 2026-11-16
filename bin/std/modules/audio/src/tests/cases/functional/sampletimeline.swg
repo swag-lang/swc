@@ -7,7 +7,7 @@ using Swag, Core, Core.Errors
 #test
 {
     var timeline = expect SampleTimeline.create(48_000, 1_000_000_000)
-    let first = expect timeline.place(1_000_000_000, 480)
+    let first    = expect timeline.place(1_000_000_000, 480)
     Swag.require(first.startSample == 0 and first.acceptedFrames == 480)
 
     let gap = expect timeline.place(1_020_000_000, 480)

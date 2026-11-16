@@ -16,7 +16,7 @@ using Swag, Core
     }
 
     let capture = unwrap main.getCapture()
-    let shape = testAddShape(capture, 20, 20, 60, 40)
+    let shape   = testAddShape(capture, 20, 20, 60, 40)
     Swag.require(main.keyShortcut(.Control, .L) == ActionSelection.Freeze)
     Swag.require(not main.taskStrip.frozenPanel.isLocallyVisible())
 

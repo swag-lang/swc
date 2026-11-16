@@ -13,7 +13,7 @@ namespace Integration
     var g_ReadWaitMicroseconds:     u64
     var g_ReadIoMicroseconds:       u64
     var g_ReadCryptoMicroseconds:   u64
-    var g_ReadIoCount:             u64
+    var g_ReadIoCount:              u64
 
     struct BenchmarkReadWork
     {
@@ -48,7 +48,7 @@ namespace Integration
         g_ReadWaitMicroseconds     = 0
         g_ReadIoMicroseconds       = 0
         g_ReadCryptoMicroseconds   = 0
-        g_ReadIoCount             = 0
+        g_ReadIoCount              = 0
     }
 
     func reportReadTimes()
@@ -98,6 +98,7 @@ namespace Integration
             let entries = Directory.enumerateFiles(clips)
             verify(entries.count == BenchmarkClipCount + 1, "benchmark directory must contain all files")
         }
+
         reportAccessTime("directory enumerate", timer.elapsedMicroseconds(), 100)
 
         timer.restart()
@@ -108,6 +109,7 @@ namespace Integration
             openedBytes += stream.size()
             stream.close()
         }
+
         verify(openedBytes == 100 * largePayload.count, "benchmark opens must see the large file")
         reportAccessTime("open and size", timer.elapsedMicroseconds(), 100)
 
@@ -125,6 +127,7 @@ namespace Integration
             if not (expect readClip(readWork.paths[index], index)) do
                 Atomic.add(&readWork.failures, 1)
         }
+
         verify(readWork.failures == 0, "parallel request set must read every clip")
         reportAccessTime("random 4 KiB reads, parallel", timer.elapsedMicroseconds(), BenchmarkClipCount * BenchmarkReadCount)
         reportReadTimes()
@@ -149,6 +152,7 @@ namespace Integration
             Console.println("FAIL: ", errorMessage(Swag.err))
             Env.exit(1)
         }
+
         Console.println("PASS: access benchmark completed.")
         Env.exit(0)
     }

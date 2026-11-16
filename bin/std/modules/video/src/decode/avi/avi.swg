@@ -563,7 +563,7 @@ private impl Decoder
                           (try source.readLittleEndian'u32()) == RecordListId
             if isGroup
             {
-                let groupEnd = chunk.data + chunk.size
+                let groupEnd       = chunk.data + chunk.size
                 var nestedPosition = chunk.data + FourCcSize
                 while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
                 {
@@ -578,12 +578,15 @@ private impl Decoder
 
                     nestedPosition = nested.next
                 }
+
                 if nestedPosition != groupEnd do
                     fail InvalidFormatError{"AVI record list ends with a partial chunk"}
                 position = chunk.next
             }
-            else do
+            else
+            {
                 position = chunk.next
+            }
         }
     }
 
@@ -604,14 +607,14 @@ private impl Decoder
         let compression = layout.format.biCompression
         if Slice.contains(MotionJpegIds, compression)
         {
-            .isJpeg = true
+            .isJpeg         = true
             .info.codecName = "Motion JPEG"
             return
         }
 
         if Video.isMpeg4FourCc(compression)
         {
-            .isCoded = true
+            .isCoded        = true
             .info.codecName = "MPEG-4 Part 2"
             return
         }
@@ -719,7 +722,7 @@ private impl Decoder
                           (try source.readLittleEndian'u32()) == RecordListId
             if isGroup
             {
-                let groupEnd = chunk.data + chunk.size
+                let groupEnd       = chunk.data + chunk.size
                 var nestedPosition = chunk.data + FourCcSize
                 while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
                 {
@@ -729,12 +732,15 @@ private impl Decoder
                         .frames.add(FrameEntry{nested.data, nested.size, .frames.isEmpty()})
                     nestedPosition = nested.next
                 }
+
                 if nestedPosition != groupEnd do
                     fail InvalidFormatError{"AVI record list ends with a partial chunk"}
                 position = chunk.next
             }
-            else do
+            else
+            {
                 position = chunk.next
+            }
         }
     }
 

@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Linux
 #global private
 
-const SandboxStartupPeerArg = "--swag-sandbox-startup-peer"
+const SandboxStartupPeerArg    = "--swag-sandbox-startup-peer"
 const SandboxStartupOutsideArg = "--swag-sandbox-outside="
 
 #init
@@ -16,7 +16,7 @@ const SandboxStartupOutsideArg = "--swag-sandbox-outside="
     {
         var outside = ""
         for argument in Env.arguments() where argument.count > SandboxStartupOutsideArg.count and
-                                            argument[0 until SandboxStartupOutsideArg.count] == SandboxStartupOutsideArg do
+                                              argument[0 until SandboxStartupOutsideArg.count] == SandboxStartupOutsideArg do
             outside = argument[SandboxStartupOutsideArg.count until argument.count]
         Swag.require(outside.count != 0)
         Swag.require(Env.isSandboxed())
@@ -40,17 +40,17 @@ const SandboxStartupOutsideArg = "--swag-sandbox-outside="
     let created = Linux.mkdtemp(temporary.buffer)
     Swag.require(created == temporary.buffer)
     let outside = cast(string, cast(cstring, temporary.buffer))
-    let root = Path.combine(outside, "root")
-    let marker = Path.combine(outside, "marker")
+    let root    = Path.combine(outside, "root")
+    let marker  = Path.combine(outside, "marker")
     defer discard Linux.unlinkat(Linux.AT_FDCWD, temporary.buffer, Linux.AT_REMOVEDIR)
     defer discard Linux.unlinkat(Linux.AT_FDCWD, marker.storage(), 0)
     defer discard Linux.unlinkat(Linux.AT_FDCWD, root.storage(), Linux.AT_REMOVEDIR)
 
     let sandboxArg = Format.toString("swag.sandbox=%", root)
     let outsideArg = Format.toString("--swag-sandbox-outside=%", outside)
-    let arguments = [SandboxStartupPeerArg, sandboxArg.toString(), outsideArg.toString()]
-    let process = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: arguments,
-                                                     standardOutput: .Pipe, standardError: .Pipe})
+    let arguments  = [SandboxStartupPeerArg, sandboxArg.toString(), outsideArg.toString()]
+    let process    = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: arguments,
+                                                         standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 37, String.from(process.standardError()).toString())
     let escaped = Linux.openat(Linux.AT_FDCWD, marker.storage(), Linux.O_RDONLY, 0)
     if escaped >= 0 do

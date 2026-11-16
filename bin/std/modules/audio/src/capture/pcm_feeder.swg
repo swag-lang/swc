@@ -18,12 +18,12 @@ struct CapturePcmFeeder
 {
     private
     {
-        late queue:  *CaptureQueue
-        scratch:     Array's16
-        channels:    u16
-        sampleRate:  u32
-        maximum:     u32
-        clockRate:   u64
+        late queue: *CaptureQueue
+        scratch:    Array's16
+        channels:   u16
+        sampleRate: u32
+        maximum:    u32
+        clockRate:  u64
     }
 }
 
@@ -34,13 +34,14 @@ impl CapturePcmFeeder
     {
         with var result: #returntype
         {
-            .queue = queue
-            .channels = queue.channelCount()
+            .queue      = queue
+            .channels   = queue.channelCount()
             .sampleRate = queue.sampleRateHz()
-            .maximum = queue.maximumBlockFrames()
-            .clockRate = queue.clockFrequencyHz()
+            .maximum    = queue.maximumBlockFrames()
+            .clockRate  = queue.clockFrequencyHz()
             .scratch.resize(cast(u64, .maximum) * .channels)
         }
+
         return result
     }
 
@@ -56,7 +57,7 @@ impl CapturePcmFeeder
         while offset < frames
         {
             let count = Math.min(frames - offset, .maximum)
-            let tick = try .tickAt(firstTick, offset)
+            let tick  = try .tickAt(firstTick, offset)
             discard try .queue.push(samples[offset * .channels until (offset + count) * .channels], tick)
             offset += count
         }
@@ -78,9 +79,12 @@ impl CapturePcmFeeder
             {
                 let sample = samples[offset * .channels + index]
                 .scratch[index] = Math.isFinite(sample) ?
-                                  cast(s16, Math.clamp(Math.round(cast(f64, sample) * 32_768.0),
-                                                       -32_768.0, 32_767.0)) : 0
+                                  cast(s16,
+                                       Math.clamp(Math.round(cast(f64, sample) * 32_768.0),
+                                                  -32_768.0,
+                                                  32_767.0)) : 0
             }
+
             let tick = try .tickAt(firstTick, offset)
             discard try .queue.push(.scratch.toSlice()[0 until count * .channels], tick)
             offset += count
@@ -125,12 +129,12 @@ private impl CapturePcmFeeder
 
     mtd tickAt(firstTick: u64, offset: u64)->u64 fail
     {
-        let whole = offset / .sampleRate
+        let whole     = offset / .sampleRate
         let remainder = offset % .sampleRate
         if whole > (Swag.U64.Max - firstTick) / .clockRate do
             fail OverflowError{"capture packet timestamp overflows"}
-        let base = firstTick + whole * .clockRate
-        let scaled = remainder * .clockRate
+        let base     = firstTick + whole * .clockRate
+        let scaled   = remainder * .clockRate
         let fraction = scaled / .sampleRate +
                        cast(u64, scaled % .sampleRate >= .sampleRate / 2 + .sampleRate % 2)
         if fraction > Swag.U64.Max - base do

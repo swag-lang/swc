@@ -11,8 +11,8 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(180, 120)
-    let capture = unwrap main.editWnd.getCapture()
+    var path     = journey.newCapture(180, 120)
+    let capture  = unwrap main.editWnd.getCapture()
     let original = capture.backImg.pixelColor(10, 20).argb
     main.sendCommandEvent(ActionImage.FlipImage)
     Swag.require(capture.backImg.pixelColor(10, 20).argb != original)
@@ -47,7 +47,11 @@ using Core, Gui, Pixel
     journey.waitFor("reopen flattened picture", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and opened.forms.isEmpty() and
-               opened.width == 180 and opened.height == 120
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.forms.isEmpty() and
+               opened.width == 180 and
+               opened.height == 120
     })
 }

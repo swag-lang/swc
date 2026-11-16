@@ -23,16 +23,22 @@ using Swag, Core, Core.Errors
             if channels == 2 and sampleRate == 44_100 do
                 Swag.require(config[0] == 0x12 and config[1] == 0x10)
 
-            var file: Array'u8
+            var file:    Array'u8
             var packets: Array'SoundPacket
             for 3
             {
                 packets.add({file.count, cast(u32, packet.count), encoder.packetFrames()})
                 file.add(packet)
             }
+
             discard expect File.writeAllBytes(path.toString(), file.toSlice())
-            let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, sampleRate, channels,
-                                                          3 * encoder.packetFrames(), packets.toSlice(), config)
+            let sound = expect SoundFile.openPacketStream(path.toString(),
+                                                          .AacLc,
+                                                          sampleRate,
+                                                          channels,
+                                                          3 * encoder.packetFrames(),
+                                                          packets.toSlice(),
+                                                          config)
             var decoded: Array's16
             expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
             {
@@ -50,12 +56,12 @@ using Swag, Core, Core.Errors
 #test
 {
     let encoder = expect Aac.SilenceEncoder.create(44_100, 2)
-    let path = Path.combine(Env.getSpecialDirectory(.Temp),
-                            Format.toString("aac-silence-after-sound-%.aac", Guid128.random()))
+    let path    = Path.combine(Env.getSpecialDirectory(.Temp),
+                               Format.toString("aac-silence-after-sound-%.aac", Guid128.random()))
     defer discard catch File.delete(path)
 
     let source = expect File.readAllBytes(audioGetTestDataPath("aac-lc-stereo-44100.aac"))
-    var file: Array'u8
+    var file:    Array'u8
     var packets: Array'SoundPacket
     var offset = 0'u64
     for 4
@@ -69,14 +75,15 @@ using Swag, Core, Core.Errors
         file.add(source.toSlice()[offset + 7 until offset + size])
         offset += size
     }
+
     for 3
     {
         packets.add({file.count, cast(u32, encoder.packet().count), encoder.packetFrames()})
         file.add(encoder.packet())
     }
+
     discard expect File.writeAllBytes(path.toString(), file.toSlice())
-    let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 44_100, 2,
-                                                  7 * 1_024, packets.toSlice(), encoder.decoderConfig())
+    let sound = expect SoundFile.openPacketStream(path.toString(), .AacLc, 44_100, 2, 7 * 1_024, packets.toSlice(), encoder.decoderConfig())
     var decoded: Array's16
     expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
     {

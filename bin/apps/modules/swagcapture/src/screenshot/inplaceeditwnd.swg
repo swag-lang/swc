@@ -41,7 +41,6 @@ func inPlaceEditTools()->[11] InPlaceEditTool
             InPlaceEditTool{.Pixelate, .Pixelate, texts.tip_InpPixelate}]
 }
 
-
 // The editor shown over a fresh capture, where the zone is annotated before it leaves the screen.
 //
 // The desktop stays dimmed and the zone stands in full light, its edges still movable. The kind
@@ -67,12 +66,12 @@ struct InPlaceEditWnd
     late source:      *MainWnd     // The application window the capture was started from.
     late newMain:     *MainWnd
     editMode:         InPlaceEditMode = .Arrow
-    pictureMode:      InPlaceEditMode = .Arrow // Tool to restore after recording options.
-    editColor:        Color = Argb.Red
-    editColorHilight: Color = Argb.Yellow
-    captureScale:     f32   = 1          // DPI scale of the monitor the capture sits on
-    barRoom:          Math.Rectangle     // Captured monitor in overlay-local logical units.
-    kindButtonWidth:  f32                // Stable width for the three translated kind names.
+    pictureMode:      InPlaceEditMode = .Arrow     // Tool to restore after recording options.
+    editColor:        Color           = Argb.Red
+    editColorHilight: Color           = Argb.Yellow
+    captureScale:     f32             = 1     // DPI scale of the monitor the capture sits on
+    barRoom:          Math.Rectangle          // Captured monitor in overlay-local logical units.
+    kindButtonWidth:  f32     // Stable width for the three translated kind names.
 }
 
 // Returns the DPI scale of the monitor the captured area sits on.
@@ -167,9 +166,9 @@ impl InPlaceEditWnd
     // Keeps the selected kind beside the size chip, above the captured zone.
     mtd createKindButton()
     {
-        let metrics = .themeMetrics()
-        let main    = .source
-        var width = 0'f32
+        let metrics     = .themeMetrics()
+        let main        = .source
+        var width       = 0'f32
         with let button = IconButton.createQuiet(.editWnd.editView, menu: true)
         {
             .setIcon(kindIcon(main, .theme(), g_CaptureMedia))
@@ -186,7 +185,7 @@ impl InPlaceEditWnd
             .sigPressed += func|editor = me|(btn) { editor.showKindMenu(assume cast(*IconButton, btn)) }
         }
 
-        .kindButton = button
+        .kindButton      = button
         .kindButtonWidth = width
         .editWnd.editView.inPlaceKindButton = button
         .updateKindButton()
@@ -195,9 +194,9 @@ impl InPlaceEditWnd
     // Keeps the label and glyph in step with the selected kind without changing the chip width.
     mtd updateKindButton()
     {
-        let metrics = .themeMetrics()
-        let width   = .kindButtonWidth
-        let main    = .source
+        let metrics     = .themeMetrics()
+        let width       = .kindButtonWidth
+        let main        = .source
         with let button = unwrap .kindButton
         {
             .setIcon(kindIcon(main, .theme(), g_CaptureMedia))
@@ -287,7 +286,7 @@ impl InPlaceEditWnd
     // Opens the kind list from the control beside the size chip.
     mtd showKindMenu(button: *IconButton)
     {
-        let main = .source
+        let main      = .source
         with let menu = MenuCtrl.createPopup(me)
         {
             for media in KindMedia do
@@ -326,10 +325,9 @@ impl InPlaceEditWnd
 
         if g_CaptureMedia == .Animation
         {
-            with let rate = createRecordOption(.bar, .theme().icon(.PlaybackSpeed),
-                                               Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), false, toggle: false)
+            with let rate = createRecordOption(.bar, .theme().icon(.PlaybackSpeed), Format.toString(texts.ui_AimRate, options.recordRate.framesPerSecond()), false, toggle: false)
             {
-                .toolTip = texts.tip_AimRate
+                .toolTip    = texts.tip_AimRate
                 .sigPressed += func|editor = me, rate|(_)
                 {
                     let next = editor.source.captureOptions.recordRate.next()
@@ -337,8 +335,10 @@ impl InPlaceEditWnd
                     rate.setText(Format.toString(appStrings().ui_AimRate, next.framesPerSecond()))
                 }
             }
+
             .bar.addItem(rate)
         }
+
         .bar.addSeparator()
         if g_CaptureMedia == .Animation
         {
@@ -353,12 +353,14 @@ impl InPlaceEditWnd
                 {
                     .sigCheckedChanged += func|editor = me, microphone|(_) { editor.source.captureOptions.recordMicrophone = microphone.isChecked }
                 }
+
                 .bar.addItem(microphone)
 
                 with let system = createRecordOption(.bar, .theme().icon(.Volume), texts.ui_AimSystemSound, options.recordSystemSound)
                 {
                     .sigCheckedChanged += func|editor = me, system|(_) { editor.source.captureOptions.recordSystemSound = system.isChecked }
                 }
+
                 .bar.addItem(system)
             }
             else do
@@ -385,14 +387,16 @@ impl InPlaceEditWnd
             exitWithResult(true)
             return
         }
+
         .editWnd.editView.endTextEdit()
         if let capture = .capture
         {
             capture.stopDrag(.editWnd.editView)
             capture.selection.clear()
-            capture.hotForm = Swag.U64.Max
+            capture.hotForm     = Swag.U64.Max
             capture.drawSelRect = false
         }
+
         let previous = g_CaptureMedia
         g_CaptureMedia = media
         if media != .Picture
@@ -636,7 +640,7 @@ impl InPlaceEditWnd
     // Aligns the kind button with the size reading in the same chip above the captured zone.
     mtd placeKindButton()
     {
-        let view = .editWnd.editView
+        let view    = .editWnd.editView
         let capture = unwrap view.capture
         let metrics = .themeMetrics()
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
@@ -644,7 +648,7 @@ impl InPlaceEditWnd
         let text    = Format.toString("% × %", capture.width, capture.height)
         let chip    = view.inPlaceSizeChipRect(view.getCaptureRect(), Painter.measureString(text, font).width, font.height, pad)
         let height  = Math.min(chip.height, metrics.quiet_Height)
-        let button = unwrap .kindButton
+        let button  = unwrap .kindButton
         button.setPosition(Math.Rectangle{chip.x + pad * 0.5,
                                           chip.y + (chip.height - height) * 0.5,
                                           .kindButtonWidth, height})
@@ -657,6 +661,7 @@ impl InPlaceEditWnd
                 x = Math.max(view.clientRect().x, chip.right() - link.position.width)
                 y = chip.y - link.position.height - metrics.menuPopup_IconTextMargin
             }
+
             link.move(x, y)
         }
     }
@@ -678,6 +683,7 @@ impl InPlaceEditWnd
                 }
             }
         }
+
         if let link = .linkButton do
             link.show(g_CaptureMedia != .Picture and g_CaptureWindow.nativeWindow != 0)
     }
@@ -695,12 +701,14 @@ impl IActionUI for InPlaceRecordingActions
             return false
         return mainWndOf(cxt).inPlaceEdit and g_CaptureMedia != .Picture
     }
+
     mtd impl update(_: ActionContext, evt: *CommandStateEvent)->bool
     {
-        evt.disabled = true
+        evt.disabled      = true
         evt.updatedFields |= .Disabled
         return true
     }
+
     mtd impl execute(_: ActionContext)->bool => true
 }
 
@@ -725,7 +733,7 @@ impl IWnd for InPlaceEditWnd
         {
         case evt.key == .Escape: exitWithResult(false)
         case evt.key == .Return and evt.modifiers == .None and recording:   .record()
-        case evt.key == .Return and evt.modifiers == .None:                 .copy()
+        case evt.key == .Return and evt.modifiers == .None: .copy()
         case evt.key == .S and evt.modifiers == .Control and not recording: .save()
         default: return
         }

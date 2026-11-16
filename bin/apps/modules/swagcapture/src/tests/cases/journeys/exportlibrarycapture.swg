@@ -10,7 +10,7 @@ using Core, Gui, Pixel
     var journey: CaptureJourney
     journey.setup()
     let source = journey.newCapture(41, 29)
-    let main = journey.main
+    let main   = journey.main
     journey.openLibrary(1)
     main.libWnd.view.setFocusItem(0)
 

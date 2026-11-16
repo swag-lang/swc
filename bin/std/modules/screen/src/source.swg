@@ -11,44 +11,43 @@ internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCoun
         return
     }
 
-    let chunkSize = 1_048_576'u64
+    let chunkSize  = 1_048_576'u64
     let chunkCount = (byteCount + chunkSize - 1) / chunkSize
     parallel for |destination, source, byteCount, chunkSize| chunk in chunkCount
     {
         let offset = chunk * chunkSize
-        Memory.copy(destination + offset, source + offset,
-                    Math.min(chunkSize, byteCount - offset))
+        Memory.copy(destination + offset, source + offset, Math.min(chunkSize, byteCount - offset))
     }
 }
 
 // One physical desktop area to capture; dimensions must be positive.
 struct SourceOptions
 {
-    public x:             s32     // Left edge in physical desktop pixels.
-    public y:             s32     // Top edge in physical desktop pixels.
-    public width:         s32     // Width in physical pixels.
-    public height:        s32     // Height in physical pixels.
-    public includeCursor: bool    // Includes the pointer when the native source supports it.
+    public x:             s32      // Left edge in physical desktop pixels.
+    public y:             s32      // Top edge in physical desktop pixels.
+    public width:         s32      // Width in physical pixels.
+    public height:        s32      // Height in physical pixels.
+    public includeCursor: bool     // Includes the pointer when the native source supports it.
 }
 
 // Cumulative acquisition costs for one [[Screen.Source]], in microseconds.
 struct SourceMetrics
 {
-    public acquiredFrames:       u64 // Desktop frames returned by the native source.
-    public unchangedFrames:      u64 // Polls with no newer desktop pixels.
-    public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
-    public acquireMicroseconds:  u64 // Time waiting for a native frame.
-    public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
-    public readbackMicroseconds: u64 // CPU time submitting and waiting for native pixel readbacks.
-    public maxReadbackMicroseconds: u64 // Longest single readback, including deferred CPU waits.
-    public deferredReadbacks:     u64 // Readback polls deferred while the GPU still owned the pixels.
-    public copyMicroseconds:     u64 // Time copying native pixels into owned storage.
-    public outputMicroseconds:   u64 // Native cache-output time, zero for current backends.
-    public composeMicroseconds:  u64 // Time joining outputs and copying pixels into the caller's image.
-    public partialFrames:        u64 // Frames read through a region smaller than the selected output.
-    public multiRectFrames:      u64 // Frames read through several bounded desktop update regions.
-    public copiedPixels:         u64 // Pixels copied from mapped native storage, including full frames.
-    public mirroredPixels:       u64 // Pixels incrementally copied from the native cache into a stable caller image.
+    public acquiredFrames:          u64     // Desktop frames returned by the native source.
+    public unchangedFrames:         u64     // Polls with no newer desktop pixels.
+    public coalescedUpdates:        u64     // Desktop updates combined before acquisition, when reported by the source.
+    public acquireMicroseconds:     u64     // Time waiting for a native frame.
+    public maxAcquireMicroseconds:  u64     // Longest single native acquisition wait.
+    public readbackMicroseconds:    u64     // CPU time submitting and waiting for native pixel readbacks.
+    public maxReadbackMicroseconds: u64     // Longest single readback, including deferred CPU waits.
+    public deferredReadbacks:       u64     // Readback polls deferred while the GPU still owned the pixels.
+    public copyMicroseconds:        u64     // Time copying native pixels into owned storage.
+    public outputMicroseconds:      u64     // Native cache-output time, zero for current backends.
+    public composeMicroseconds:     u64     // Time joining outputs and copying pixels into the caller's image.
+    public partialFrames:           u64     // Frames read through a region smaller than the selected output.
+    public multiRectFrames:         u64     // Frames read through several bounded desktop update regions.
+    public copiedPixels:            u64     // Pixels copied from mapped native storage, including full frames.
+    public mirroredPixels:          u64     // Pixels incrementally copied from the native cache into a stable caller image.
 }
 
 // Owns a live desktop source and its most recent image.
@@ -61,15 +60,15 @@ struct Source
 {
     internal
     {
-        options:  SourceOptions
-        sources:  Array'(*NativeSource)
-        pictures: Array'Image
-        composed: Image
+        options:             SourceOptions
+        sources:             Array'(*NativeSource)
+        pictures:            Array'Image
+        composed:            Image
         composeMicroseconds: u64
-        mirroredPixels:       u64
-        mirroredImage:        u64
-        mirroredStorage:      u64
-        mirrorReady:          bool
+        mirroredPixels:      u64
+        mirroredImage:       u64
+        mirroredStorage:     u64
+        mirrorReady:         bool
     }
 }
 
@@ -86,15 +85,15 @@ impl Source
         result.options = options
         #static if #os == Swag.TargetOs.Windows
         {
-            let right = cast(s64, options.x) + options.width
+            let right  = cast(s64, options.x) + options.width
             let bottom = cast(s64, options.y) + options.height
             var covered: u64
             for monitor in Env.getMonitors()
             {
-                let bounds = monitor.physicalBounds
-                let left = Math.max(cast(s64, options.x), cast(s64, bounds.x))
-                let top = Math.max(cast(s64, options.y), cast(s64, bounds.y))
-                let partRight = Math.min(right, cast(s64, bounds.right()))
+                let bounds     = monitor.physicalBounds
+                let left       = Math.max(cast(s64, options.x), cast(s64, bounds.x))
+                let top        = Math.max(cast(s64, options.y), cast(s64, bounds.y))
+                let partRight  = Math.min(right, cast(s64, bounds.right()))
                 let partBottom = Math.min(bottom, cast(s64, bounds.bottom()))
                 if partRight <= left or partBottom <= top do
                     continue
@@ -104,6 +103,7 @@ impl Source
                 try result.addPart(part)
                 covered += cast(u64, part.width) * cast(u64, part.height)
             }
+
             if covered == 0 do
                 fail UnsupportedFormatError{"screen capture area has no available display"}
         }
@@ -111,6 +111,7 @@ impl Source
         {
             try result.addPart(options)
         }
+
         return result
     }
 
@@ -131,6 +132,7 @@ impl Source
             Memory.delete(native)
             fail Swag.err
         }
+
         .sources.add(native)
         .pictures.add({})
     }
@@ -145,36 +147,44 @@ impl Source
     // successive grabs into the same unmodified target may update only changed regions after
     // the first complete frame. Replacing or resizing the target causes a complete copy.
     // The target remains owned by the caller.
-    mtd grabInto(target: *Image, copyUnchanged: bool = true,
-                 updateChangedOnly: bool = false)->bool fail
+    mtd grabInto(target: *Image, copyUnchanged: bool = true, updateChangedOnly: bool = false)->bool fail
     {
         #static if #os == Swag.TargetOs.Linux
         {
             if .sources.count == 1
             {
                 let native = .sources[0]
-                if native.options.x == .options.x and native.options.y == .options.y and
-                   native.options.width == .options.width and native.options.height == .options.height do
+                if native.options.x == .options.x and
+                   native.options.y == .options.y and
+                   native.options.width == .options.width and
+                   native.options.height == .options.height do
                     return try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
             }
         }
-        let first = .composed.width != .options.width or .composed.height != .options.height or
+
+        let first = .composed.width != .options.width or
+                    .composed.height != .options.height or
                     .composed.pixelFormat != .BGRA8
         if first
         {
             .composed = Image.create(.options.width, .options.height, .BGRA8)
             Memory.set(.composed.pixels.storage(), 0, .composed.byteCount)
         }
+
         let incremental = updateChangedOnly and not copyUnchanged
-        var mirroring = false
+        var mirroring   = false
         #static if #os == Swag.TargetOs.Windows
         {
-            mirroring = incremental and .mirrorReady and not first and
-                        target.width == .options.width and target.height == .options.height and
+            mirroring = incremental and
+                        .mirrorReady and
+                        not first and
+                        target.width == .options.width and
+                        target.height == .options.height and
                         target.pixelFormat == .BGRA8 and
                         cast(u64, target) == .mirroredImage and
                         cast(u64, target.pixels.storage()) == .mirroredStorage
         }
+
         .mirrorReady = false
         var fresh = false
         #static if #os == Swag.TargetOs.Windows
@@ -186,46 +196,54 @@ impl Source
             for index in .sources.count
             {
                 let nativeSource = .sources[index]
-                let x = cast(u64, nativeSource.options.x - .options.x)
-                let bottom = cast(u64, .options.height - (nativeSource.options.y - .options.y) - nativeSource.options.height)
-                let changed = try nativeSource.grabInto(&.pictures[index], true)
+                let x            = cast(u64, nativeSource.options.x - .options.x)
+                let bottom       = cast(u64, .options.height - (nativeSource.options.y - .options.y) - nativeSource.options.height)
+                let changed      = try nativeSource.grabInto(&.pictures[index], true)
                 fresh = changed or fresh
                 if not first and not changed do
                     continue
-                let part = &.pictures[index]
-                let rowBytes = cast(u64, part.width) * 4
+                let part             = &.pictures[index]
+                let rowBytes         = cast(u64, part.width) * 4
                 let partComposeStart = Time.monotonicMicroseconds()
                 for row in cast(u64, part.height)
                 {
                     Memory.copy(.composed.pixels.storage() + (bottom + row) * cast(u64, .composed.rowStride) + x * 4,
-                                part.pixels.storage() + row * rowBytes, rowBytes)
+                                part.pixels.storage() + row * rowBytes,
+                                rowBytes)
                 }
+
                 .composeMicroseconds += Time.monotonicMicroseconds() - partComposeStart
             }
         }
+
         if not fresh and not copyUnchanged
         {
             .mirrorReady = mirroring
             return false
         }
+
         if mirroring
         {
             .mirrorReady = true
             return fresh
         }
-        if target.width != .options.width or target.height != .options.height or target.pixelFormat != .BGRA8 do
+
+        if target.width != .options.width or
+           target.height != .options.height or
+           target.pixelFormat != .BGRA8 do
             target[] = Image.create(.options.width, .options.height, .BGRA8)
         let composeStart = Time.monotonicMicroseconds()
-        let destination = target.pixels.storage()
-        let source = .composed.pixels.storage()
+        let destination  = target.pixels.storage()
+        let source       = .composed.pixels.storage()
         copyFrameBytes(destination, source, target.byteCount)
         .composeMicroseconds += Time.monotonicMicroseconds() - composeStart
         if incremental
         {
-            .mirroredImage = cast(u64, target)
+            .mirroredImage   = cast(u64, target)
             .mirroredStorage = cast(u64, target.pixels.storage())
-            .mirrorReady = true
+            .mirrorReady     = true
         }
+
         return fresh
     }
 
@@ -234,25 +252,26 @@ impl Source
     {
         var result: SourceMetrics
         result.composeMicroseconds = .composeMicroseconds
-        result.mirroredPixels = .mirroredPixels
+        result.mirroredPixels      = .mirroredPixels
         for source in .sources
         {
-            result.acquiredFrames += source.metrics.acquiredFrames
-            result.unchangedFrames += source.metrics.unchangedFrames
-            result.coalescedUpdates += source.metrics.coalescedUpdates
-            result.acquireMicroseconds += source.metrics.acquireMicroseconds
+            result.acquiredFrames         += source.metrics.acquiredFrames
+            result.unchangedFrames        += source.metrics.unchangedFrames
+            result.coalescedUpdates       += source.metrics.coalescedUpdates
+            result.acquireMicroseconds    += source.metrics.acquireMicroseconds
             result.maxAcquireMicroseconds = Math.max(result.maxAcquireMicroseconds,
                                                      source.metrics.maxAcquireMicroseconds)
-            result.readbackMicroseconds += source.metrics.readbackMicroseconds
+            result.readbackMicroseconds    += source.metrics.readbackMicroseconds
             result.maxReadbackMicroseconds = Math.max(result.maxReadbackMicroseconds,
                                                       source.metrics.maxReadbackMicroseconds)
-            result.deferredReadbacks += source.metrics.deferredReadbacks
-            result.copyMicroseconds += source.metrics.copyMicroseconds
+            result.deferredReadbacks  += source.metrics.deferredReadbacks
+            result.copyMicroseconds   += source.metrics.copyMicroseconds
             result.outputMicroseconds += source.metrics.outputMicroseconds
-            result.partialFrames += source.metrics.partialFrames
-            result.multiRectFrames += source.metrics.multiRectFrames
-            result.copiedPixels += source.metrics.copiedPixels
+            result.partialFrames      += source.metrics.partialFrames
+            result.multiRectFrames    += source.metrics.multiRectFrames
+            result.copiedPixels       += source.metrics.copiedPixels
         }
+
         return result
     }
 

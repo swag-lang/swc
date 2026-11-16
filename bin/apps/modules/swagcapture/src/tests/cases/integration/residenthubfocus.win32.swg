@@ -13,8 +13,8 @@ using Core, Gui, Pixel, Win32
     // A dedicated child owns the small window; the test never takes over a user's application.
     const title = "Swag Capture Cross Process Focus Fixture"
     let script = "Add-Type -AssemblyName System.Windows.Forms; $f=New-Object Windows.Forms.Form; $f.Text='Swag Capture Cross Process Focus Fixture'; $f.StartPosition='Manual'; $f.SetBounds(20,20,110,85); $f.TopMost=$true; $f.ShowInTaskbar=$false; [Windows.Forms.Application]::Run($f)"
-    var peer = expect Env.startProcess("powershell.exe",
-                                       ["-NoProfile", "-Sta", "-WindowStyle", "Hidden", "-Command", script])
+    var peer   = expect Env.startProcess("powershell.exe",
+                                         ["-NoProfile", "-Sta", "-WindowStyle", "Hidden", "-Command", script])
     defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
 
     var watch: Time.Stopwatch
@@ -25,6 +25,7 @@ using Core, Gui, Pixel, Win32
         journey.app.runFrame()
         peerWindow = Win32.FindWindowA(null, title.buffer)
     }
+
     Swag.require(peerWindow != null, "the owned external window did not appear")
     var peerProcessId: Win32.DWORD
     discard Win32.GetWindowThreadProcessId(peerWindow, &peerProcessId)
@@ -42,7 +43,7 @@ using Core, Gui, Pixel, Win32
     var bounds: Win32.RECT
     Swag.require(Win32.GetWindowRect(peerWindow, &bounds))
     let point = Math.Point{(bounds.left + bounds.right) * 0.5, (bounds.top + bounds.bottom) * 0.5}
-    let hit = Win32.WindowFromPoint(Win32.POINT{cast(s32, point.x), cast(s32, point.y)})
+    let hit   = Win32.WindowFromPoint(Win32.POINT{cast(s32, point.x), cast(s32, point.y)})
     Swag.require(Win32.GetAncestor(hit, Win32.GA_ROOT) == peerWindow,
                  "another desktop window covers the external click target")
     input.clickDesktopPoint(point)

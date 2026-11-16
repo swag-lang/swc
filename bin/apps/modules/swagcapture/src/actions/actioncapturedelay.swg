@@ -44,8 +44,8 @@ impl IActionUI for ActionCaptureDelay
         if cxt.id == ActionCaptureDelay.Delay
         {
             evt.updatedFields |= .Icon | .Name
-            evt.icon          = cxt.wnd!.theme().icon(.HourGlass)
-            evt.name          = delay == 0 ? appStrings().act_DelayBefore : Format.toString(appStrings().act_DelayDuration, captureDelayName(delay))
+            evt.icon = cxt.wnd!.theme().icon(.HourGlass)
+            evt.name = delay == 0 ? appStrings().act_DelayBefore : Format.toString(appStrings().act_DelayDuration, captureDelayName(delay))
             return true
         }
 

@@ -18,15 +18,21 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     if not surface.presentedFrame do
         return false
 
-    let drawable = try surface.xcbDrawable()
-    let context  = try LinuxDesktop.ensure()
+    let drawable   = try surface.xcbDrawable()
+    let context    = try LinuxDesktop.ensure()
     let connection = unwrap context.connection
-    let width  = surface.rc.width
-    let height = surface.rc.height
-    let reply = context.xcb_get_image_reply(connection,
-                                            context.xcb_get_image(connection, 2, drawable.window, 0, 0,
-                                                                  cast(u16, width), cast(u16, height), 0xFFFFFFFF),
-                                            null)
+    let width      = surface.rc.width
+    let height     = surface.rc.height
+    let reply      = context.xcb_get_image_reply(connection,
+                                                 context.xcb_get_image(connection,
+                                                                       2,
+                                                                       drawable.window,
+                                                                       0,
+                                                                       0,
+                                                                       cast(u16, width),
+                                                                       cast(u16, height),
+                                                                       0xFFFFFFFF),
+                                                 null)
     if not reply do
         fail Errors.InvalidFormatError{Errors.mkString("cannot read the X11 window for presentation verification")}
     defer Linux.free(reply)

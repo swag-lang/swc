@@ -73,7 +73,7 @@ using Core, Pixel
     let reference = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
     for index in saved.byteCount do
         Swag.require(Math.abs(cast(s32, saved.pixels[index]) - reference.pixels[index]) <= 1,
-                    "native presentation differs from its render target")
+                     "native presentation differs from its render target")
     Swag.require(expect Testing.verifyNativePresentation(surface))
     if Env.variable("SWAG_GUI_NATIVE_CAPTURE") == "1"
     {
@@ -229,7 +229,7 @@ struct NativeInputProbe
     Swag.require(probe.returns == 1 and probe.pageDown == 1 and probe.capsLock == 2)
     Swag.require(probe.screenshot == 1, "the native Print Screen shortcut did not reach its command target")
     Swag.require(probe.shiftA == 1 and probe.controlA == 1 and probe.characters == 1 and probe.character == 'A',
-                Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
+                 Format.toString("shift=%, control=%, characters=%, rune=%", probe.shiftA, probe.controlA, probe.characters, cast(u32, probe.character)))
 }
 
 // A pointer grab the server refuses, as it does for a window it does not show yet, leaves the

@@ -18,13 +18,13 @@ struct TrayNotice
 
         readonly
         {
-            optionCheck: *CheckButton?     // Optional preference control, or `null` when no label was given.
-            late closeButton: *IconButton  // Dismisses this notice without changing the preference.
+            optionCheck:      *CheckButton?     // Optional preference control, or `null` when no label was given.
+            late closeButton: *IconButton       // Dismisses this notice without changing the preference.
         }
     }
 
     late dot: *Label
-    timer: *Timer?
+    timer:    *Timer?
 }
 
 impl IWnd for TrayNotice
@@ -47,6 +47,7 @@ impl IWnd for TrayNotice
             .dot.setIconColor(.themeColors().arc)
             .closeButton.setIconColor(.themeColors().label_TextFaint)
         }
+
         evt.accepted = false
     }
 }
@@ -60,8 +61,7 @@ impl TrayNotice
     // returned notice is owned by its new surface and becomes invalid after `sigDismissed`.
     // On desktops without icon geometry, the notice stands near the pointer's screen edge.
     #[Swag.Discardable]
-    func open(iconOwner: *Surface, title, message: string, dontShowAgainLabel: string? = null,
-              lifetime: Time.Duration = 10's)->*TrayNotice?
+    func open(iconOwner: *Surface, title, message: string, dontShowAgainLabel: string? = null, lifetime: Time.Duration = 10's)->*TrayNotice?
     {
         Swag.assert(lifetime.seconds > 0, "a tray notice needs a positive lifetime")
 
@@ -69,8 +69,7 @@ impl TrayNotice
         let hasIcon = iconOwner.trayIconBounds(&icon)
         let anchor  = hasIcon ? Math.Point{icon.horzCenter(), icon.vertCenter()} : Input.mousePosition()
         let work    = Env.monitorForPoint(anchor).physicalWorkArea
-        let surface = catch iconOwner.app.createSurface(cast(s32, anchor.x), cast(s32, anchor.y),
-                                                         420, 180, .ToolWindow | .TopMost)
+        let surface = catch iconOwner.app.createSurface(cast(s32, anchor.x), cast(s32, anchor.y), 420, 180, .ToolWindow | .TopMost)
         {
             return null
         }
@@ -90,21 +89,23 @@ impl TrayNotice
         {
             .backgroundStyle = .Transparent
         }
+
         with let card = FloatingPanel.create(result)
         {
             .dockStyle = .Center
             .setShadow(false)
         }
 
-        let dotSize   = metrics.embInfo_DotSize
-        let closeSize = metrics.embInfo_CloseSize
-        let titleX    = inset + dotSize + gap
-        let titleWidth = content - dotSize - closeSize - 2 * gap
+        let dotSize         = metrics.embInfo_DotSize
+        let closeSize       = metrics.embInfo_CloseSize
+        let titleX          = inset + dotSize + gap
+        let titleWidth      = content - dotSize - closeSize - 2 * gap
         with let titleLabel = Label.create(card, title, {titleX, inset, titleWidth, 0})
         {
             .style.setFont(theme.createDefaultFont(metrics.defaultFontSize, .Bold), .Regular)
             .setTextHorizontalAlignment(.Left)
         }
+
         let titleHeight = Math.max(titleLabel.itf.measureContent({titleWidth, 0}).y, closeSize)
         titleLabel.resize(titleWidth, titleHeight, false)
         with result.dot = Label.create(card, "", Math.Rectangle{x: inset, y: inset, width: dotSize, height: titleHeight})
@@ -112,19 +113,23 @@ impl TrayNotice
             .setIcon(theme.icon(.Dot, dotSize))
             .setIconColor(result.themeColors().arc)
         }
-        with result.closeButton = IconButton.create(card, theme.icon(.WndClose, metrics.embInfo_CloseGlyph),
-                                                     {width - inset - closeSize, inset, closeSize, closeSize}, flags: .Flat)
+
+        with result.closeButton = IconButton.create(card,
+                                                    theme.icon(.WndClose, metrics.embInfo_CloseGlyph),
+                                                    {width - inset - closeSize, inset, closeSize, closeSize},
+                                                    flags: .Flat)
         {
             .setIconColor(result.themeColors().label_TextFaint)
             .sigPressed += func|notice = result|(_) { notice.dismissSoon() }
         }
 
-        let bodyY = inset + titleHeight + gap
+        let bodyY     = inset + titleHeight + gap
         with let body = Label.create(card, message, {inset, bodyY, content, 0}, flags: .WordWrap | .SecondaryText)
         {
             .setTextHorizontalAlignment(.Left)
             .setTextVerticalAlignment(.Top)
         }
+
         let bodyHeight = body.itf.measureContent({content, 0}).y
         body.resize(content, bodyHeight, false)
 
@@ -133,7 +138,7 @@ impl TrayNotice
         {
             let choiceY = bodyY + bodyHeight + gap
             result.optionCheck = CheckButton.create(card, caption, {inset, choiceY, content, 0})
-            let choice = result.optionCheck
+            let choice       = result.optionCheck
             let choiceHeight = choice.itf.measureContent({content, 0}).y
             choice.resize(content, choiceHeight, false)
             choice.sigChanged += func|notice = result|(button)
@@ -143,17 +148,20 @@ impl TrayNotice
                 if checked do
                     notice.dismissSoon()
             }
+
             height = choiceY + choiceHeight + inset
         }
 
         surface.setView(result)
+
         // A native surface reserves the reach of its shadow inside its outer rectangle.
         let physicalWidth  = (width + 2 * shadow) * scale
         let physicalHeight = (height + 2 * shadow) * scale
         let margin         = inset * scale
         let x              = Math.clamp(anchor.x - physicalWidth * 0.5,
-                                        work.x + margin, Math.max(work.right() - physicalWidth - margin, work.x + margin))
-        var y              = hasIcon ? icon.y - physicalHeight - margin : work.bottom() - physicalHeight - margin
+                                        work.x + margin,
+                                        Math.max(work.right() - physicalWidth - margin, work.x + margin))
+        var y = hasIcon ? icon.y - physicalHeight - margin : work.bottom() - physicalHeight - margin
         if y < work.y + margin and hasIcon do
             y = icon.bottom() + margin
         y = Math.clamp(y, work.y + margin, Math.max(work.bottom() - physicalHeight - margin, work.y + margin))

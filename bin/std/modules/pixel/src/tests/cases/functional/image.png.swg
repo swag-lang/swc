@@ -791,15 +791,15 @@ func buildRgbTransparencyPng(width: u32)->Array'u8
     const animationControl: [8] u8 = [0, 0, 0, 1, 0, 0, 0, 0]
 
     var frameControl: ConcatBuffer
-    addPngU32Be(&frameControl, 0) // sequence number
-    addPngU32Be(&frameControl, 1) // width
-    addPngU32Be(&frameControl, 1) // height
-    addPngU32Be(&frameControl, 0) // x
-    addPngU32Be(&frameControl, 0) // y
-    addPngU16Be(&frameControl, 1) // delay numerator
-    addPngU16Be(&frameControl, 10) // delay denominator
-    frameControl.addNative(0'u8) // dispose
-    frameControl.addNative(0'u8) // blend
+    addPngU32Be(&frameControl, 0)      // sequence number
+    addPngU32Be(&frameControl, 1)      // width
+    addPngU32Be(&frameControl, 1)      // height
+    addPngU32Be(&frameControl, 0)      // x
+    addPngU32Be(&frameControl, 0)      // y
+    addPngU16Be(&frameControl, 1)      // delay numerator
+    addPngU16Be(&frameControl, 10)     // delay denominator
+    frameControl.addNative(0'u8)       // dispose
+    frameControl.addNative(0'u8)       // blend
 
     const rawRgbRow: [4] u8 = [0, 17, 34, 51]
     var encoded: ConcatBuffer
@@ -1043,16 +1043,16 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 // bKGD must be unique, precede IDAT, have the color type's sample layout, and follow PLTE for indexed images.
 #test
 {
-    const grayRow:       [2] u8 = [0, 10]
-    const trueColorRow:  [4] u8 = [0, 10, 20, 30]
-    const indexedRow:    [2] u8 = [0, 0]
-    const palette:       [3] u8 = [10, 20, 30]
-    const grayBg:        [2] u8 = [0, 12]
-    const trueColorBg:   [6] u8 = [0, 10, 0, 20, 0, 30]
-    const indexedBg:     [1] u8 = [0]
-    const badGrayBg:     [1] u8 = [0]
-    const badColorBg:    [2] u8 = [0, 1]
-    const invalidIndex:  [1] u8 = [1]
+    const grayRow:      [2] u8 = [0, 10]
+    const trueColorRow: [4] u8 = [0, 10, 20, 30]
+    const indexedRow:   [2] u8 = [0, 0]
+    const palette:      [3] u8 = [10, 20, 30]
+    const grayBg:       [2] u8 = [0, 12]
+    const trueColorBg:  [6] u8 = [0, 10, 0, 20, 0, 30]
+    const indexedBg:    [1] u8 = [0]
+    const badGrayBg:    [1] u8 = [0]
+    const badColorBg:   [2] u8 = [0, 1]
+    const invalidIndex: [1] u8 = [1]
 
     var validGray: ConcatBuffer
     addPngSignature(&validGray)

@@ -18,11 +18,8 @@ using Swag, Core, Core.Errors, Pixel
         {
             let path = videoTempPath("h264-repeat", "mp4")
             defer discard catch File.delete(path)
-            var encoder = expect H264.Encoder.create(50, 34, keyInterval: 3,
-                                                      quantizationQp: qp,
-                                                      sliceCount: sliceCount)
-            var writer = expect Mp4.FragmentedWriter.create(path, 50, 34, 90_000,
-                                                             encoder.decoderConfig())
+            var encoder = expect H264.Encoder.create(50, 34, keyInterval: 3, quantizationQp: qp, sliceCount: sliceCount)
+            var writer  = expect Mp4.FragmentedWriter.create(path, 50, 34, 90_000, encoder.decoderConfig())
             var rejected: Swag.Error
             discard catch encoder.repeatPrevious(0, 3_000) as rejected
             Swag.require(rejected.value() is BadParameterError)
@@ -34,11 +31,12 @@ using Swag, Core, Core.Errors, Pixel
                 Swag.require(packet.isKeyFrame == (index == 3))
                 expect writer.addPacket(packet)
             }
+
             expect writer.end()
 
             var reader = expect Reader.open(path)
             Swag.require(reader.frameCount() == 5)
-            var first: PlanarFrame
+            var first:   PlanarFrame
             var decoded: PlanarFrame
             expect reader.decodeFramePlanesInto(&first, 0)
             for index in 1'u64 until 5
@@ -48,6 +46,7 @@ using Swag, Core, Core.Errors, Pixel
                 Swag.require(Slice.equals(first.chromaB.toSlice(), decoded.chromaB.toSlice()))
                 Swag.require(Slice.equals(first.chromaR.toSlice(), decoded.chromaR.toSlice()))
             }
+
             expect reader.decodeFramePlanesInto(&decoded, 4)
             Swag.require(Slice.equals(first.luma.toSlice(), decoded.luma.toSlice()))
         }

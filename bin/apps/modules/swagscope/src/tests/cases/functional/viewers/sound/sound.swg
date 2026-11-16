@@ -375,7 +375,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     defer discard catch File.delete(fileName)
     Swag.require(not Sound.localSleeve(fileName).isValid())
 
-    let sleeve = Path.combine(folder, "cover.png")
+    let sleeve  = Path.combine(folder, "cover.png")
     let picture = expect File.readAllBytes(scopeTestDataPath("title.png"))
     expect File.writeAllBytes(sleeve, picture.toSlice())
     defer discard catch File.delete(sleeve)

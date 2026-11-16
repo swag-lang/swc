@@ -19,17 +19,17 @@ struct TaskStrip
 
     late
     {
-        leading:       *StackLayoutCtrl     // Capture, its modes, and the library.
-        trailing:      *StackLayoutCtrl     // Save and copy the picture, while the editor shows one.
-        captureChoice: *IconButton          // The chevron that opens the capture modes.
-        videoButton:   *IconButton          // Opens video area selection without the long command label.
-        libraryButton: *IconButton          // Swaps between the editor and the library.
-        saveButton:    *IconButton          // Saves the picture under a chosen name.
-        shortcutPanel:  *FloatingPanel      // Unavailable capture keys, anchored below Capture.
-        shortcutWarning: *IconButton        // Opens the unavailable key names.
-        frozenPanel:    *FloatingPanel      // Selection mode, anchored beside the inspector.
-        frozenButton:   *IconButton         // Releases the selection mode.
-        copyButton:    *PushButton          // Copy the finished picture: the primary action.
+        leading:         *StackLayoutCtrl     // Capture, its modes, and the library.
+        trailing:        *StackLayoutCtrl     // Save and copy the picture, while the editor shows one.
+        captureChoice:   *IconButton          // The chevron that opens the capture modes.
+        videoButton:     *IconButton          // Opens video area selection without the long command label.
+        libraryButton:   *IconButton          // Swaps between the editor and the library.
+        saveButton:      *IconButton          // Saves the picture under a chosen name.
+        shortcutPanel:   *FloatingPanel       // Unavailable capture keys, anchored below Capture.
+        shortcutWarning: *IconButton          // Opens the unavailable key names.
+        frozenPanel:     *FloatingPanel       // Selection mode, anchored beside the inspector.
+        frozenButton:    *IconButton          // Releases the selection mode.
+        copyButton:      *PushButton          // Copy the finished picture: the primary action.
     }
 }
 
@@ -119,6 +119,7 @@ impl IWnd for TaskStrip
             .shortcutPanel.setPosition({.leading.position.x, y, button.position.width + 2 * pad, metrics.quiet_Height + 2 * pad})
             button.setPosition({pad, pad, button.position.width, metrics.quiet_Height})
         }
+
         if .frozenPanel.isLocallyVisible()
         {
             let button = .frozenButton
@@ -238,6 +239,7 @@ impl TaskStrip
             .dockStyle = .Float
             .hide()
         }
+
         with result.shortcutWarning = IconButton.createQuiet(result.shortcutPanel, menu: false)
         {
             .owner       = main
@@ -254,6 +256,7 @@ impl TaskStrip
             .dockStyle = .Float
             .hide()
         }
+
         with result.frozenButton = IconButton.createQuiet(result.frozenPanel, menu: false)
         {
             .owner       = main

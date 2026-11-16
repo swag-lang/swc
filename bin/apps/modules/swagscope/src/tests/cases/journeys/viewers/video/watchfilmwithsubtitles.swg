@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = expect videoPreviewFileAt(Path.combine(journey.root, "lesson.y4m"), 20)
+    let file    = expect videoPreviewFileAt(Path.combine(journey.root, "lesson.y4m"), 20)
     let sidecar = Path.combine(journey.root, "lesson.en.srt")
     expect File.writeAllText(sidecar, "1\n00:00:00,000 --> 00:00:00,400\nOpening caption\n\n2\n00:00:00,500 --> 00:00:01,500\nSecond caption\n")
     let window = journey.window
@@ -18,8 +18,8 @@ using Core, Gui, Pixel, Viewers
     journey.waitForFile(file)
     let video = assume cast(*Film.Panel, window.currentView)
     journey.waitFor("sidecar found", func|video|()->bool => video.subtitleReady and
-                                                          video.subtitleSource == .Sidecar and
-                                                          video.subtitleOverlay.sidecars.count == 1)
+                                                            video.subtitleSource == .Sidecar and
+                                                            video.subtitleOverlay.sidecars.count == 1)
     if video.playing do
         video.togglePlayback()
     video.seekSeconds(0.75)

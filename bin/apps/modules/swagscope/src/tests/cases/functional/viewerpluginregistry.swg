@@ -93,7 +93,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     let registry = createViewerPluginRegistry()
     for plugin in registry.plugins where plugin.key != "archive"
     {
-        let file = viewerRegistryFixturePath(plugin.smokeFixture)
+        let file   = viewerRegistryFixturePath(plugin.smokeFixture)
         var host: Testing.HeadlessHost
         let window = framedViewerWindow(&host, file, false)
         Swag.require(window.choices.count != 0, plugin.key.toString())

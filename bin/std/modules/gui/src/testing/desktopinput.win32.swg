@@ -32,11 +32,11 @@ func isTrayIconInOverflow(surface: *Surface)->bool
     if not surface.trayIconScreenRect(&bounds) do
         return false
 
-    let point = POINT{(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2}
+    let point  = POINT{(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2}
     let window = GetAncestor(WindowFromPoint(point), GA_ROOT)
     var className: [128] CHAR
     let length = GetClassNameA(window, &className[0], cast(s32, className.count))
-    let name = String.from(Swag.makeString(&className[0], length))
+    let name   = String.from(Swag.makeString(&className[0], length))
     return name == "TopLevelWindowForOverflowXamlIsland" or name == "NotifyIconOverflowWindow"
 }
 
@@ -55,7 +55,7 @@ func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButt
     app.runFrame()
 
     let down = button == .Right ? 0x0008'u32 : 0x0002'u32
-    let up = button == .Right ? 0x0010'u32 : 0x0004'u32
+    let up   = button == .Right ? 0x0010'u32 : 0x0004'u32
     for count
     {
         var press = DesktopInputPacket{kind: 0, flags: down}
@@ -67,6 +67,7 @@ func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButt
             var release = DesktopInputPacket{kind: 0, flags: up}
             discard SendInput(1, &release, #sizeof(DesktopInputPacket))
         }
+
         app.runFrame()
         var release = DesktopInputPacket{kind: 0, flags: up}
         Swag.require(SendInput(1, &release, #sizeof(DesktopInputPacket)) == 1,
@@ -79,8 +80,8 @@ func clickTrayIcon(app: *Application, surface: *Surface, button: Input.MouseButt
 internal struct NativeDesktopInput
 {
     priorForeground: HWND
-    mousePressed: bool
-    pressedKey: u32
+    mousePressed:    bool
+    pressedKey:      u32
     heldControl, heldShift, heldAlt: bool
 }
 
@@ -107,15 +108,16 @@ impl DesktopInput
             var mouseUp = DesktopInputPacket{kind: 0, flags: 0x0004}
             discard SendInput(1, &mouseUp, #sizeof(DesktopInputPacket))
         }
+
         discard SetForegroundWindow(.priorForeground)
     }
 
     internal mtd focusNative()
     {
-        let foreground = GetForegroundWindow()
+        let foreground       = GetForegroundWindow()
         var processId: DWORD
         let foregroundThread = GetWindowThreadProcessId(foreground, &processId)
-        let currentThread = GetCurrentThreadId()
+        let currentThread    = GetCurrentThreadId()
         if foregroundThread != currentThread
         {
             Swag.require(AttachThreadInput(currentThread, foregroundThread, TRUE),
@@ -124,9 +126,11 @@ impl DesktopInput
             Swag.require(SetForegroundWindow(.surface.win32Handle()),
                          "Windows did not activate the test window")
         }
-        else do
+        else
+        {
             Swag.require(SetForegroundWindow(.surface.win32Handle()),
                          "Windows did not activate the test window")
+        }
     }
 
     internal mtd requireNativeFocus()
@@ -173,6 +177,7 @@ impl DesktopInput
         case .Alt:     code = 0x12
         default:       Swag.require(false, "desktop input does not support this modifier")
         }
+
         .sendRawKey(code, pressed)
         switch modifier
         {

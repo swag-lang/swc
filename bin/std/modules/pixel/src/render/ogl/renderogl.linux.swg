@@ -77,8 +77,11 @@ impl RenderOgl
     // The GUI render target may be padded beyond the current window size; this preserves texels.
     mtd blitRenderTargetToWindow(target: const *RenderTarget, width, height: s32)->bool fail
     {
-        if not target.colorBuffer.isValid() or width <= 0 or height <= 0 or
-           width > target.colorBuffer.width or height > target.colorBuffer.height do
+        if not target.colorBuffer.isValid() or
+           width <= 0 or
+           height <= 0 or
+           width > target.colorBuffer.width or
+           height > target.colorBuffer.height do
             return false
 
         let context = oglContext(.curRC)
@@ -112,9 +115,7 @@ impl RenderOgl
         glBindFramebuffer(GL_READ_FRAMEBUFFER, cast(GLuint, target.handle))
         glReadBuffer(GL_COLOR_ATTACHMENT0)
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0)
-        glBlitFramebuffer(0, target.colorBuffer.height - height,
-                          width, target.colorBuffer.height,
-                          0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST)
+        glBlitFramebuffer(0, target.colorBuffer.height - height, width, target.colorBuffer.height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST)
         return glGetError() == GL_NO_ERROR
     }
 }

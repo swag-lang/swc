@@ -9,11 +9,11 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    var source = journey.newCapture(37, 23)
-    let main = journey.main
+    var source   = journey.newCapture(37, 23)
+    let main     = journey.main
     let original = unwrap main.editWnd.getCapture()
     original.linkedImage = Path.combine(journey.root, "linked.png")
-    original.changed = true
+    original.changed     = true
     main.saveCapture(original)
 
     journey.openLibrary(1)

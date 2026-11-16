@@ -12,8 +12,8 @@ enum RuntimeEnumCastRatio: f32
     Fast   = 2.0
 }
 
-const invalidRuntimeEnumCast: RuntimeEnumCastColour = cast(RuntimeEnumCastColour, 99's32) // swc-expected-error {{sema_err_cannot_cast}}
-const validFloatEnumCast: RuntimeEnumCastRatio = cast(RuntimeEnumCastRatio, 2.0'f32)
+const invalidRuntimeEnumCast: RuntimeEnumCastColour = cast(RuntimeEnumCastColour, 99's32)     // swc-expected-error {{sema_err_cannot_cast}}
+const validFloatEnumCast:     RuntimeEnumCastRatio  = cast(RuntimeEnumCastRatio, 2.0'f32)
 
 func runtimeEnumCast(raw: s32)->RuntimeEnumCastColour
 {

@@ -351,14 +351,14 @@ func replaceNodeData(n: *UafNode)
     let oldData = node.data
     replaceNodeData(node)
     node.data[] = 2
-    oldData[] = 1     // swc-expected-error {{sanity_err_use_after_free}}
+    oldData[]   = 1     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
 #test
 {
     let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
-    node.data = cast(*s32, myAlloc(4))
+    node.data  = cast(*s32, myAlloc(4))
     node.other = cast(*s32, myAlloc(4))
     releaseNodeData(node)
     let other = node.other
@@ -381,7 +381,7 @@ func replaceNodeData(n: *UafNode)
     let node = cast(*UafNode, myAlloc(#sizeof(UafNode)))
     node.data = cast(*s32, myAlloc(4))
     replaceNodeData(node)
-    let live = node.data
+    let live  = node.data
     let value = live[]
     discard value
 }

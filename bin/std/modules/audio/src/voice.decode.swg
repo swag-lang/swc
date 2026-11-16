@@ -173,7 +173,7 @@ impl Voice
         var writtenBytes = 0'u64
         while .streamPacketIdx < file.packets.count
         {
-            let packet = file.packets[.streamPacketIdx]
+            let packet    = file.packets[.streamPacketIdx]
             let packetDecodedBytes = cast(u64, packet.sampleFrameCount) * file.channelCount * 2
             let trimBytes = .streamPacketIdx + 1 == file.packets.count ?
                             file.trailingTrim * file.channelCount * 2 : 0
@@ -187,8 +187,8 @@ impl Voice
             {
                 let discardFrames = Math.min(.seekDiscardFrames, packet.sampleFrameCount)
                 let audibleFrames = keptPacketBytes / (file.channelCount * 2)
-                let keptBytes = (audibleFrames - Math.min(cast(u64, discardFrames), audibleFrames)) *
-                                file.channelCount * 2
+                let keptBytes     = (audibleFrames - Math.min(cast(u64, discardFrames), audibleFrames)) *
+                                    file.channelCount * 2
                 Memory.clear(cast([*] u8, destination) + writtenBytes, keptBytes)
                 writtenBytes       += keptBytes
                 .seekDiscardFrames -= discardFrames
@@ -245,8 +245,8 @@ impl Voice
                         .packetScratch.resize(packetDecodedBytes)
                     output = .packetScratch.storage()
                 }
-                let producedBytes = try .packetCodec!.decodePacket(output, packetDecodedBytes,
-                                                                   .packetBuffer.toSlice())
+
+                let producedBytes = try .packetCodec!.decodePacket(output, packetDecodedBytes, .packetBuffer.toSlice())
                 if producedBytes != packetDecodedBytes do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
                 if trimBytes do

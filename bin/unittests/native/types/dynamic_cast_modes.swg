@@ -113,7 +113,7 @@ func(T) readCastValue(value: *T)->s32
 {
     var value: s32 = 44
     var boxed: any = value
-    let pointer = catch cast(*s32?, boxed)
+    let pointer    = catch cast(*s32?, boxed)
     Swag.require(pointer != null)
     pointer[] = 45
     Swag.require(value == 45)

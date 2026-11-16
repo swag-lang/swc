@@ -9,9 +9,9 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    let main = journey.main
+    let main     = journey.main
     var original = journey.newCapture()
-    let capture = unwrap main.editWnd.getCapture()
+    let capture  = unwrap main.editWnd.getCapture()
     capture.title = "Original"
     journey.drawForm(ActionToolMode.Arrow, .Arrow, {5, 5}, {45, 30})
     capture.linkedImage = Path.combine(journey.root, "linked.png")
@@ -46,6 +46,7 @@ using Core, Gui, Pixel
         answered[] = true
         Swag.require(dialog.closeWithResult(Dialog.BtnOk))
     }
+
     main.sendCommandEvent(ActionFile.RenameCapture)
     Swag.require(answered)
     journey.waitFor("copy renamed", func|main|()->bool => main.editWnd.getCapture()!.title == "Reviewed copy")

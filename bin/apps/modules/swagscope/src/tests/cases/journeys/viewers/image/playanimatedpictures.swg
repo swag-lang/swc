@@ -9,9 +9,9 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let first = journey.copyData("imageset-animation.gif", "A-motion.gif")
+    let first  = journey.copyData("imageset-animation.gif", "A-motion.gif")
     let second = journey.copyData("imageset-animation.apng", "B-motion.apng")
-    let third = journey.copyData("imageset-animation.webp", "C-motion.webp")
+    let third  = journey.copyData("imageset-animation.webp", "C-motion.webp")
     let window = journey.window
 
     window.openFile(first)

@@ -9,14 +9,14 @@ using Core, Gui, Pixel, Win32
 {
     var otherApp: Application
     let otherSurface = expect otherApp.createSurface(40, 40, 280, 180)
-    let otherButton = PushButton.create(otherSurface.wnd.view, "Other window", {32, 32, 160, 38})
+    let otherButton  = PushButton.create(otherSurface.wnd.view, "Other window", {32, 32, 160, 38})
     otherSurface.show()
     defer otherSurface.destroy()
 
     var journey: CaptureJourney
     journey.setup()
     journey.surface.hide()
-    let panel = unwrap ResidentPanel.open(journey.main, .Centered)
+    let panel       = unwrap ResidentPanel.open(journey.main, .Centered)
     let panelHandle = panel.surface!.win32Handle()
     Swag.require(panelHandle != null)
     var hubInput = Gui.Testing.DesktopInput.create(journey.app, panel.surface)

@@ -68,6 +68,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
                          cast #bit(s16, cast(u16, (cast(u32, index) * 17_323 + 9_137) & 0xFFFF)))
             samples.add(value)
         }
+
         expect writer.addFrames(samples.toSlice())
         expect writer.end()
         assertFlacWriterSamples(path.toString(), samples.toSlice(), 1, 44_100)
@@ -133,6 +134,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
         expect split.addFrames(samples.toSlice()[frame * 2 until next * 2])
         frame = next
     }
+
     expect split.end()
 
     let wholeBytes = expect File.readAllBytes(wholePath)
@@ -183,6 +185,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
         committedSize = writer.writtenByteCount()
         expect writer.addFrames(samples.toSlice()[4_196 until 4_300])
     }
+
     var tail = expect ByteSink.openAppendFile(path.toString())
     expect tail.writeText("incomplete frame")
     expect tail.close()
@@ -211,7 +214,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     expect writer.addFrames(Swag.makeSlice(&Samples[0], Samples.count))
     expect writer.end()
     let original = expect File.readAllBytes(path)
-    var changed = original
+    var changed  = original
     changed[changed.count - 3] ^= 1
     discard expect File.writeAllBytes(path, changed.toSlice())
     var rejected: Swag.Error
@@ -219,21 +222,21 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     Swag.require(rejected.value() is InvalidFormatError)
     Swag.require((expect File.readAllBytes(path)).count == changed.count)
 
-    changed = original
+    changed     = original
     changed[50] = 0xFF
     discard expect File.writeAllBytes(path, changed.toSlice())
     discard catch Flac.Writer.resume(path.toString()) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
     Swag.require((expect File.info(path)).size == changed.count)
 
-    changed = original
+    changed     = original
     changed[26] ^= 1
     discard expect File.writeAllBytes(path, changed.toSlice())
     discard catch Flac.Writer.resume(path.toString()) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
     Swag.require((expect File.info(path)).size == changed.count)
 
-    changed = original
+    changed     = original
     changed[25] ^= 1
     discard expect File.writeAllBytes(path, changed.toSlice())
     discard catch Flac.Writer.resume(path.toString()) as rejected

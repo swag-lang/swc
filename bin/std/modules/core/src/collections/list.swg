@@ -91,7 +91,7 @@ impl ConstReversedList
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(item, node, index: u64))
     {
-        var node: const *ListEntry'T? = .source.tail
+        var node:  const *ListEntry'T? = .source.tail
         var index: u64
         scope(Up)
         while node
@@ -134,7 +134,7 @@ impl List
     {
         var entry = ListEntry'T{prev: null, next: null, value: #fwd value}
         let node  = cast(*ListEntry'T, Memory.alloc(#sizeof(ListEntry'T), alignment: #alignof(ListEntry'T)))
-        node[]    = #relocate entry
+        node[] = #relocate entry
         Swag.postMove(node, 1)
         return node
     }
@@ -259,7 +259,7 @@ impl List
     mtd addFront(value: #fwd T)->*ListEntry
     {
         let n = .createNode(#fwd value)
-        .count  += 1
+        .count += 1
 
         if .head
         {
@@ -281,7 +281,7 @@ impl List
     mtd addBack(value: #fwd T)->*ListEntry
     {
         let n = .createNode(#fwd value)
-        .count  += 1
+        .count += 1
 
         if .tail
         {
@@ -303,7 +303,7 @@ impl List
     mtd insertBefore(node: *ListEntry, value: #fwd T)->*ListEntry
     {
         let n = .createNode(#fwd value)
-        .count  += 1
+        .count += 1
 
         n.next = node
         n.prev = node.prev
@@ -322,7 +322,7 @@ impl List
     mtd insertAfter(node: *ListEntry, value: #fwd T)->*ListEntry
     {
         let n = .createNode(#fwd value)
-        .count  += 1
+        .count += 1
 
         n.prev = node
         n.next = node.next

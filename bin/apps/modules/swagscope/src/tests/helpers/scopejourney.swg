@@ -41,7 +41,7 @@ impl ScopeJourney
 
     mtd copyData(name: string, asName: string, loc: Swag.SourceCodeLocation = #callerlocation)->String
     {
-        let path = Path.combine(.root, asName)
+        let path  = Path.combine(.root, asName)
         let bytes = expect File.readAllBytes(scopeTestDataPath(name, loc))
         expect File.writeAllBytes(path, bytes.toSlice())
         return path
@@ -68,7 +68,8 @@ impl ScopeJourney
         let window = .window
         .waitFor("file loaded", func|window, path|()->bool
         {
-            if window.currentFile != path or window.currentView == null or
+            if window.currentFile != path or
+               window.currentView == null or
                window.activeChoiceIndex >= window.instances.count do
                 return false
             let instance = &window.instances[window.activeChoiceIndex]

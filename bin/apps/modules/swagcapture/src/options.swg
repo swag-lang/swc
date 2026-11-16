@@ -138,10 +138,10 @@ enum EditorLanguage
 // The order is the stored one, as for [[EditorLanguage]].
 enum StartupMode
 {
-    Hub        // The floating list of captures to take, with the recent ones.
+    Hub     // The floating list of captures to take, with the recent ones.
 
     #[Properties.Name("Notification Area")]
-    Tray       // Nothing: the application waits behind its notification-area icon.
+    Tray     // Nothing: the application waits behind its notification-area icon.
 
     Editor     // The editor, on the last capture.
 }

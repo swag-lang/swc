@@ -253,13 +253,13 @@ struct ThemeMetrics
         iconBar_ButtonsPadding: f32 = 4     // Inset around the buttons of an icon bar.
         iconBar_ButtonGap:      f32 = 8     // Air between neighboring buttons of an icon bar.
 
-        scrollBar_Size:       f32 = 8      // Thickness of every scroll bar: a four-pixel thumb and its air.
-        scrollBar_HitSize:    f32 = 16     // Width of the pointer target, expanded toward the view.
-        scrollBar_EdgeInset:  f32 = 8      // Clear space at the window edge for native resizing.
-        scrollBar_HoverSize:  f32 = 8      // Thickness while the pointer is over a scroll bar; the thumb keeps its resting width.
-        scrollBar_BoxPadding: f32 = 2      // Air between a scroll bar thumb and its track.
-        scrollBar_BoxMinSize: f32 = 20     // Shortest a scroll bar thumb gets.
-        scrollBar_RestPresence: f32 = 0.3  // Visibility of a quiet thumb after pointer motion stops.
+        scrollBar_Size:         f32 = 8       // Thickness of every scroll bar: a four-pixel thumb and its air.
+        scrollBar_HitSize:      f32 = 16      // Width of the pointer target, expanded toward the view.
+        scrollBar_EdgeInset:    f32 = 8       // Clear space at the window edge for native resizing.
+        scrollBar_HoverSize:    f32 = 8       // Thickness while the pointer is over a scroll bar; the thumb keeps its resting width.
+        scrollBar_BoxPadding:   f32 = 2       // Air between a scroll bar thumb and its track.
+        scrollBar_BoxMinSize:   f32 = 20      // Shortest a scroll bar thumb gets.
+        scrollBar_RestPresence: f32 = 0.3     // Visibility of a quiet thumb after pointer motion stops.
 
         comboBox_Width:          f32 = 150     // Default width of a combo box.
         comboBox_Height:         f32 = 32      // Height of a combo box.
@@ -331,14 +331,14 @@ struct ThemeMetrics
         label_Height: f32 = 24     // Height of a label created without one.
 
         // A notice: a dot in its tone before the words, and a faint dismiss cross after them.
-        embInfo_Padding:     f32 = 16     // Air between the leading edge of a notice and its dot.
-        embInfo_DotSize:     f32 = 7      // Side of the dot of a notice.
-        embInfo_DotGap:      f32 = 10     // Air between the dot and the words.
-        embInfo_CloseSize:   f32 = 28     // Side of the dismiss button.
-        embInfo_CloseGlyph:  f32 = 16     // Side of the dismiss glyph.
-        embInfo_CloseMargin: f32 = 6      // Air around the dismiss button.
-        trayNotice_Width:      f32 = 420    // Preferred width of a notification beside the notification-area icon.
-        trayNotice_MinWidth:   f32 = 220    // Narrowest width that keeps its title and close control usable.
+        embInfo_Padding:     f32 = 16      // Air between the leading edge of a notice and its dot.
+        embInfo_DotSize:     f32 = 7       // Side of the dot of a notice.
+        embInfo_DotGap:      f32 = 10      // Air between the dot and the words.
+        embInfo_CloseSize:   f32 = 28      // Side of the dismiss button.
+        embInfo_CloseGlyph:  f32 = 16      // Side of the dismiss glyph.
+        embInfo_CloseMargin: f32 = 6       // Air around the dismiss button.
+        trayNotice_Width:    f32 = 420     // Preferred width of a notification beside the notification-area icon.
+        trayNotice_MinWidth: f32 = 220     // Narrowest width that keeps its title and close control usable.
 
         separator_HairlineSize: f32 = 1     // Thickness of a hairline separator.
 

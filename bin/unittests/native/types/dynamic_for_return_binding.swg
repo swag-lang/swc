@@ -11,7 +11,7 @@ struct ForBindingMiddle
 struct ForBindingDerived
 {
     using middle: ForBindingMiddle
-    value: s32 = 42
+    value:        s32 = 42
 }
 
 func findForBinding(items: [..] *ForBindingBase)->*ForBindingDerived?

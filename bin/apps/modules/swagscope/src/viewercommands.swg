@@ -1230,6 +1230,7 @@ impl ViewerWindow
             .documentHost.applyLayout()
             .layoutViewerBar()
         }
+
         .layoutSearchBar()
     }
 

@@ -13,5 +13,4 @@ using FwdProvider
 }
 
 #main
-{
-}
+{}

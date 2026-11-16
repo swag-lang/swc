@@ -17,6 +17,7 @@ using Swag, Core, Core.Errors
         expect control.observe(1, 1, qp)
         picture += 1
     }
+
     Swag.require(control.fullnessBits == 5_001)
     Swag.require(control.fractionalBits == 0)
 }
@@ -49,7 +50,7 @@ using Swag, Core, Core.Errors
 {
     // Key/scene-cut bias cannot jump beyond the two-QP step from the last used QP.
     var control = expect H264.RateControl.create(8_000, 16_000, 1_000, 0, 51)
-    let first = control.chooseQp(false, false)
+    let first   = control.chooseQp(false, false)
     Swag.require(first == 25)
     expect control.observe(3_000, 1_000, first)
     Swag.require(control.chooseQp(false, false) == 27)
@@ -81,6 +82,7 @@ using Swag, Core, Core.Errors
     Swag.require(control.fullnessBits == 8_000 and control.fractionalBits == 0)
     Swag.require(control.chooseQp(false, false) == 22)
     expect control.observe(1, 1_000, 22)
+
     // A two-step change is legal; the next assertion checks a larger jump.
     expect control.observe(1, 1_000, 20)
     discard catch control.observe(1, 1_000, 24) as rejected
@@ -98,7 +100,7 @@ using Swag, Core, Core.Errors
     Swag.require(control.fullnessBits == 50 and control.fractionalBits == 0)
     Swag.require(control.chooseQp(false, false) == 25)
 
-    let rate = 2 * (Swag.U64.Max / 3) + 1
+    let rate       = 2 * (Swag.U64.Max / 3) + 1
     var fractional = expect H264.RateControl.create(rate, 100, 2, 0, 51)
     expect fractional.observe(0, 1, 25)
     Swag.require(fractional.fullnessBits == 100 and fractional.fractionalBits == 1)

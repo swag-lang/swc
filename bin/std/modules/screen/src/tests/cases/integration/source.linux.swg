@@ -16,7 +16,7 @@ private func openDescriptorCount()->u64
 
 private func sharedMappingCount()->u64 fail
 {
-    let maps = try File.readAllLines("/proc/self/maps")
+    let maps  = try File.readAllLines("/proc/self/maps")
     var count = 0'u64
     for line in maps where line.contains("/SYSV") do
         count += 1
@@ -34,7 +34,7 @@ private func sharedSegmentCount()->u64 fail
 #test
 {
     var capture = expect X11Capture.create()
-    let x = cast(s32, capture.desktopWidth())
+    let x       = cast(s32, capture.desktopWidth())
     var failure: Swag.Error
     discard catch Source.open({x, 0, 1, 1, false}) as failure
     Swag.require(failure.value() is Errors.BadParameterError)
@@ -58,9 +58,9 @@ private func sharedSegmentCount()->u64 fail
 #[Swag.TestTag("integration.host.linux")]
 #test
 {
-    let descriptors = openDescriptorCount()
-    let mappings = expect sharedMappingCount()
-    let segments = expect sharedSegmentCount()
+    let descriptors      = openDescriptorCount()
+    let mappings         = expect sharedMappingCount()
+    let segments         = expect sharedSegmentCount()
     var usedSharedMemory = false
     for 4
     {
@@ -76,9 +76,9 @@ private func sharedSegmentCount()->u64 fail
                 usedSharedMemory = true
                 Swag.require((expect sharedMappingCount()) == mappings + 1)
             }
-            let fileDescriptor = expect X11Capture.symbol'Linux.xcb_get_file_descriptor_fn(
-                unwrap capture.library, "xcb_get_file_descriptor")
-            let socket = fileDescriptor(unwrap capture.connection)
+
+            let fileDescriptor = expect X11Capture.symbol'Linux.xcb_get_file_descriptor_fn(unwrap capture.library, "xcb_get_file_descriptor")
+            let socket         = fileDescriptor(unwrap capture.connection)
             Swag.require(socket >= 0 and Linux.shutdown(socket, 0) == 0)
             var failure: Swag.Error
             discard catch source.grabInto(&image) as failure
@@ -87,15 +87,18 @@ private func sharedSegmentCount()->u64 fail
             discard expect source.grabInto(&image)
             Swag.require(image.pixels.storage() == storage)
         }
+
         Swag.require(openDescriptorCount() == descriptors)
         Swag.require((expect sharedMappingCount()) == mappings)
     }
+
     for 100
     {
         if (expect sharedSegmentCount()) == segments do
             break
         Threading.Thread.sleep(1'ms)
     }
+
     Swag.require((expect sharedSegmentCount()) == segments)
     Console.println("X11 socket recovery: shared memory=", usedSharedMemory)
 }

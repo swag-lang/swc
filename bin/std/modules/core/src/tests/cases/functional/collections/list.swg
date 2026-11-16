@@ -65,6 +65,7 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
         Swag.require(node.value == item[])
         total += item[] + cast(s32, index)
     }
+
     return total
 }
 

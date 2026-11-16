@@ -20,23 +20,23 @@ private const HeldPictures = 2'u64
 #[Swag.NoCopy]
 struct Stream
 {
-    decoder:      Decoder
-    config:       Array'u8
-    frames:       Array'SampleEntry     // Samples in decoding order.
-    sampleAtRank: Array'u32             // Sample of each display rank, by container time.
-    payload:      Array'u8
-    prefix:       Array'u8     // Bytes the container took off the front of every stored frame.
-    queue:        [HeldPictures] Picture
-    queued:       u64
-    emitRank:     u64     // Display rank of the next picture the queue gives up.
-    nextRank:     u64     // Display rank the next call returns.
-    nextDecode:   u64     // Decoding-order sample the decoder is about to read.
-    startTime:    s64     // Pictures before this sync point need references outside the window.
-    maxEmittedTime: s64  // Latest presentation time already returned to the caller.
-    hasEmittedTime: bool // A later append must not move an already returned rank.
-    started:      bool
-    width:        s32
-    height:       s32
+    decoder:        Decoder
+    config:         Array'u8
+    frames:         Array'SampleEntry     // Samples in decoding order.
+    sampleAtRank:   Array'u32             // Sample of each display rank, by container time.
+    payload:        Array'u8
+    prefix:         Array'u8     // Bytes the container took off the front of every stored frame.
+    queue:          [HeldPictures] Picture
+    queued:         u64
+    emitRank:       u64      // Display rank of the next picture the queue gives up.
+    nextRank:       u64      // Display rank the next call returns.
+    nextDecode:     u64      // Decoding-order sample the decoder is about to read.
+    startTime:      s64      // Pictures before this sync point need references outside the window.
+    maxEmittedTime: s64      // Latest presentation time already returned to the caller.
+    hasEmittedTime: bool     // A later append must not move an already returned rank.
+    started:        bool
+    width:          s32
+    height:         s32
 }
 
 impl Stream
@@ -82,10 +82,10 @@ impl Stream
     {
         .frames = #move frames
         .rebuildOrder()
-        .nextRank   = 0
-        .nextDecode = 0
-        .started    = false
-        .queued     = 0
+        .nextRank       = 0
+        .nextDecode     = 0
+        .started        = false
+        .queued         = 0
         .maxEmittedTime = 0
         .hasEmittedTime = false
         .decoder.reset()
@@ -244,7 +244,7 @@ impl Stream
                 else do
                     .maxEmittedTime = emittedTime
                 .hasEmittedTime = true
-                .nextRank += 1
+                .nextRank       += 1
                 return
             }
 

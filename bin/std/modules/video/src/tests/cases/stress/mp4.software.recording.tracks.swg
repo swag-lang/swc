@@ -15,18 +15,19 @@ using Swag, Core, Audio, Pixel
                                                 {48_000, 2, .Full},
                                                 {48_000, 1, .Full},
                                                 {48_000, 2, .Voice}]
-    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(
-        path, 1920, 1080, 90_000, Swag.makeSlice(&configs[0], configs.count), keyInterval: 120)
-    let pacer = expect FramePacer.create(expect FrameRate.create(60, 1), 48_000, 90_000)
-    var mono: [1_024] s16
+    var recorder = expect Mp4.SoftwareRecording.createWithAudioTracks(path, 1920, 1080, 90_000, Swag.makeSlice(&configs[0], configs.count), keyInterval: 120)
+    let pacer    = expect FramePacer.create(expect FrameRate.create(60, 1), 48_000, 90_000)
+    var mono:   [1_024] s16
     var stereo: [2 * 1_024] s16
     for frame in 1_024'u64
     {
-        mono[frame] = cast(s16, Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                               800.0 * frame / 48_000.0)))
-        stereo[frame * 2] = mono[frame]
-        stereo[frame * 2 + 1] = cast(s16, Math.round(6_000.0 * Math.sin(Math.ConstF64.TwoPi *
-                                                                        1_600.0 * frame / 48_000.0)))
+        mono[frame] = cast(s16,
+                           Math.round(8_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                         800.0 * frame / 48_000.0)))
+        stereo[frame * 2]     = mono[frame]
+        stereo[frame * 2 + 1] = cast(s16,
+                                     Math.round(6_000.0 * Math.sin(Math.ConstF64.TwoPi *
+                                                                   1_600.0 * frame / 48_000.0)))
     }
 
     var watch: Time.Stopwatch
@@ -44,10 +45,12 @@ using Swag, Core, Audio, Pixel
             audioBlocks += 1
         }
     }
+
     expect recorder.end()
     watch.stop()
     Console.printf("Software MP4 four audio tracks 1080p60: % us for 60 video and % audio packets\n",
-                   watch.elapsedMicroseconds(), (audioBlocks + 1) * 4)
+                   watch.elapsedMicroseconds(),
+                   (audioBlocks + 1) * 4)
     Swag.require(recorder.videoFrameCount() == 60 and recorder.audioTrackCount() == 4)
     for index in 4'u32
     {

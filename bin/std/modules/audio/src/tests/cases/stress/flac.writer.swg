@@ -10,7 +10,7 @@ using Swag, Core
     let path = Path.combine(Env.getSpecialDirectory(.Temp),
                             Format.toString("audio-flac-stress-%.flac", Guid128.random()))
     defer discard catch File.delete(path)
-    const Frames = 10'u64 * 60 * 48_000
+    const Frames      = 10'u64 * 60 * 48_000
     const BlockFrames = 4_096'u64
     var zeros: [BlockFrames * 2] s16
 
@@ -21,6 +21,7 @@ using Swag, Core
         if (index + 1) % 512 == 0 do
             expect writer.flush()
     }
+
     expect writer.addFrames(Swag.makeSlice(&zeros[0], (Frames % BlockFrames) * 2))
     expect writer.end()
     Swag.require(writer.sampleFrameCount() == Frames)

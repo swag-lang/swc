@@ -43,7 +43,6 @@ using Core, Gui, Pixel
             errorPresented = true
             break
         }
-
     }
 
     Swag.require(errorPresented, "the broken image never reached the native error surface")
@@ -72,7 +71,6 @@ using Core, Gui, Pixel
             documentPresented = true
             break
         }
-
     }
 
     if not documentPresented

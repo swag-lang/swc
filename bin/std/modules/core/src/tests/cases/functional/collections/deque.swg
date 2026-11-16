@@ -61,6 +61,7 @@ func assertConstDequeBorrow(values: const *Deque's32)->s32
         #assert(#typeof(item) == const *s32)
         total += item[] + cast(s32, index)
     }
+
     return total
 }
 

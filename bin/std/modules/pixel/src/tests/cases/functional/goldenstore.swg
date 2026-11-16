@@ -194,6 +194,7 @@ func gpuDifferences(reference, drawn: const *Image)->u64
 #test
 {
     let reference = paintGpuScene()
+
     func differences(reference, drawn: const *Image, acceptEdgeChoice: bool)->u64
     {
         return Testing.compareGpuImage(reference, drawn, {maxChannelDelta: 3, acceptEdgeChoice: acceptEdgeChoice}).differentPixels

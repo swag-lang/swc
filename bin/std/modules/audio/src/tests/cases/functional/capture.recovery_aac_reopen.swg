@@ -7,20 +7,20 @@ using Swag, Core
 func checkNativeReopen(channels: u16, sourceRate: u32, reopenedRate: u32)
 {
     const TickRate = 10_000_000'u64
-    var queue = expect CaptureQueue.create(48_000, channels, 0, TickRate,
-                                           blockFrames: 1_024, slots: 8, tolerance: 1)
-    var recovery = expect CaptureRecovery.create(&queue, 200_000)
-    var oldSource = expect CaptureResampledFeeder.create(&queue, sourceRate)
-    var track = expect CaptureAacTrack.create(&queue, .Voice)
+    var queue        = expect CaptureQueue.create(48_000, channels, 0, TickRate, blockFrames: 1_024, slots: 8, tolerance: 1)
+    var recovery     = expect CaptureRecovery.create(&queue, 200_000)
+    var oldSource    = expect CaptureResampledFeeder.create(&queue, sourceRate)
+    var track        = expect CaptureAacTrack.create(&queue, .Voice)
     let nativeFrames = sourceRate / 100
     var microphone: [960] s16
-    var outputMix: [960 * 2] f32
+    var outputMix:  [960 * 2] f32
     for index in nativeFrames
     {
-        microphone[index] = 8_000
-        outputMix[index * 2] = 0.25
+        microphone[index]        = 8_000
+        outputMix[index * 2]     = 0.25
         outputMix[index * 2 + 1] = -0.25
     }
+
     if channels == 1 do
         expect oldSource.pushPcm16(Swag.makeSlice(&microphone[0], nativeFrames), 0, 0)
     else do
@@ -32,14 +32,14 @@ func checkNativeReopen(channels: u16, sourceRate: u32, reopenedRate: u32)
     discard catch oldSource.finish()
     Swag.require(recovery.isLost() and queue.sourceIsLost() and queue.sampleEnd() == 480)
     var encoded: Array'u8
-    var info: CaptureAacPacket
+    var info:    CaptureAacPacket
     Swag.require(not expect track.nextPacket(&encoded, &info))
     Swag.require(not recovery.retryDue(299_999) and recovery.retryDue(300_000))
     expect recovery.retryFailed(300_000)
     Swag.require(queue.sampleEnd() == 1_440 and recovery.nextRetryTick() == 500_000)
     Swag.require(expect track.nextPacket(&encoded, &info))
     var packetCount = 1'u64
-    var synthetic = cast(u64, info.syntheticFrames)
+    var synthetic   = cast(u64, info.syntheticFrames)
     var interrupted = info.sourceInterrupted
 
     // A replacement endpoint may have another rate and resets its raw frame counter to zero.
@@ -49,39 +49,48 @@ func checkNativeReopen(channels: u16, sourceRate: u32, reopenedRate: u32)
     let resumedFrames = reopenedRate / 100
     for index in resumedFrames
     {
-        microphone[index] = 8_000
-        outputMix[index * 2] = 0.25
+        microphone[index]        = 8_000
+        outputMix[index * 2]     = 0.25
         outputMix[index * 2 + 1] = -0.25
     }
+
     for packet in 2
     {
-        let tick = 500_000'u64 + packet * 100_000
+        let tick       = 500_000'u64 + packet * 100_000
         let firstFrame = packet * resumedFrames
         if channels == 1 do
             expect reopened.pushPcm16(Swag.makeSlice(&microphone[0], resumedFrames),
-                                      tick, firstFrame)
+                                      tick,
+                                      firstFrame)
         else do
             expect reopened.pushFloat32(Swag.makeSlice(&outputMix[0], resumedFrames * 2),
-                                        tick, firstFrame)
+                                        tick,
+                                        firstFrame)
         while expect track.nextPacket(&encoded, &info)
         {
             Swag.require(info.startSample == packetCount * 1_024)
             packetCount += 1
-            synthetic += info.syntheticFrames
+            synthetic   += info.syntheticFrames
             interrupted = interrupted or info.sourceInterrupted
         }
     }
+
     expect reopened.finish()
     while expect track.finish(&encoded, &info)
     {
         Swag.require(info.startSample == packetCount * 1_024)
         packetCount += 1
-        synthetic += info.syntheticFrames
+        synthetic   += info.syntheticFrames
         interrupted = interrupted or info.sourceInterrupted
     }
-    Swag.require(not recovery.isLost() and not queue.sourceIsLost() and
-                 interrupted and synthetic >= 1_900 and synthetic < 2_100 and
-                 queue.sampleEnd() >= 3_360 and queue.sampleEnd() <= 3_361 and
+
+    Swag.require(not recovery.isLost() and
+                 not queue.sourceIsLost() and
+                 interrupted and
+                 synthetic >= 1_900 and
+                 synthetic < 2_100 and
+                 queue.sampleEnd() >= 3_360 and
+                 queue.sampleEnd() <= 3_361 and
                  track.inputFrameCount() == queue.sampleEnd() and
                  queue.droppedBlockCount() == 0)
 }

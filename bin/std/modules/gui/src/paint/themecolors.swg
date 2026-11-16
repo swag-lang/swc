@@ -669,11 +669,12 @@ impl ThemeColors
         // A resting field needs a clearer edge on Encre. Keep the general hairline quiet and lift
         // just this outline toward the ink.
         let fieldBorder = p.ground.relativeLuminance() <= 0.5 ? Color.lerpRgb(p.line, p.faintText, FieldBorderMix) : p.line
+
         // A popup needs a clear edge against its raised fill in both palettes.
-        let popupBorder = p.ground.relativeLuminance() <= 0.5 ? fieldBorder : Color.lerpRgb(p.line, p.faintText, FieldBorderMix)
+        let popupBorder  = p.ground.relativeLuminance() <= 0.5 ? fieldBorder : Color.lerpRgb(p.line, p.faintText, FieldBorderMix)
         let disabled     = Color.lerpRgb(p.ground, p.text, DisabledMix)
         let iconDisabled = Color.lerpRgb(p.ground, p.text, IconDisabledMix)
-        let faintLine   = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
+        let faintLine    = Color.lerpRgb(p.ground, p.line, DisabledLineMix)
 
         // A chosen segment is lifted when it is an opaque chip lighter than the raised frame it
         // stands in, as Papier's white one is; a wash, as on Encre, lies flat in its frame.

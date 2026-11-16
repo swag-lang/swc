@@ -25,10 +25,10 @@ func testSilentWav(seconds: u32)->Array'u8
     for index in bytes.count do
         bytes[index] = 0
 
-    const Riff: [4] u8 = [0x52, 0x49, 0x46, 0x46]
-    const Wave: [4] u8 = [0x57, 0x41, 0x56, 0x45]
+    const Riff:   [4] u8 = [0x52, 0x49, 0x46, 0x46]
+    const Wave:   [4] u8 = [0x57, 0x41, 0x56, 0x45]
     const Format: [4] u8 = [0x66, 0x6D, 0x74, 0x20]
-    const Data: [4] u8 = [0x64, 0x61, 0x74, 0x61]
+    const Data:   [4] u8 = [0x64, 0x61, 0x74, 0x61]
     for index in 4
     {
         bytes[index]      = Riff[index]
@@ -36,6 +36,7 @@ func testSilentWav(seconds: u32)->Array'u8
         bytes[12 + index] = Format[index]
         bytes[36 + index] = Data[index]
     }
+
     testWavU32(&bytes, 4, cast(u32, 36 + payload))
     testWavU32(&bytes, 16, 16)
     testWavU16(&bytes, 20, 1)

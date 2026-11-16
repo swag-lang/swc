@@ -39,8 +39,9 @@ internal func frameCrc16(bytes: const [..] u8)->u16
         checksum ^= cast(u16, byte) << 8
         for 8 do
             checksum = checksum & 0x8000 ? cast(u16, ((cast(u32, checksum) << 1) ^ 0x8005) & 0xFFFF) :
-                                          cast(u16, (cast(u32, checksum) << 1) & 0xFFFF)
+                       cast(u16, (cast(u32, checksum) << 1) & 0xFFFF)
     }
+
     return checksum
 }
 
@@ -208,11 +209,12 @@ internal func findFrameEnd(source: *ByteSource, start, limit: u64)->u64 fail
                 return start + scan
             scan += 1
         }
+
         if start + bytes.count >= limit
         {
             if bytes.count < 2 or
                frameCrc16(bytes[until bytes.count - 2]) !=
-                   (cast(u16, bytes[bytes.count - 2]) << 8 | bytes[bytes.count - 1]) do
+               (cast(u16, bytes[bytes.count - 2]) << 8 | bytes[bytes.count - 1]) do
                 fail InvalidFormatError{"FLAC frame checksum differs from its trailer"}
             return limit
         }

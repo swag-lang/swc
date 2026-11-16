@@ -261,7 +261,7 @@ namespace LinuxDrag
                         {
                             let name         = try stream.readSizedString(65535)
                             let selection    = target.selection
-                            let owner = target.source
+                            let owner        = target.source
                             let nativeTarget = try LinuxSelection.atom(Format.toString("application/x-swag-drag-content-%", index).toString())
                             target.data.addContent(name, func|selection, nativeTarget, owner|()->Array'u8
                             {

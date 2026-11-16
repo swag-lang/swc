@@ -474,7 +474,7 @@ impl PropWnd
             // The grid grows into the inspector's trailing room. It lends that same
             // room to its scroll child, so the editor width and leading edge stay fixed.
             .grid.padding.z = gutter
-            .grid.margin = {-GridRowInset, 0, 0, 0}
+            .grid.margin    = {-GridRowInset, 0, 0, 0}
             .grid.setRevertButtonsVisible(false)
 
             // Most specific first: a form edits its own fields (text, caps, round...)
@@ -484,7 +484,7 @@ impl PropWnd
             // The edges the panel marks follow the scroll (see `scrollEdges`), over the grid.
             prop.wndFlags.add(.AfterChildrenPaint)
             .grid.scrollWnd.sigScrollPositionChanged += func|prop|(_, _, _) { prop.invalidate() }
-            .grid.scrollWnd.sigScrollSizeChanged += func|prop|(_, _, _) { prop.invalidate() }
+            .grid.scrollWnd.sigScrollSizeChanged     += func|prop|(_, _, _) { prop.invalidate() }
 
             .main = main
             .grid.setNotify(prop)

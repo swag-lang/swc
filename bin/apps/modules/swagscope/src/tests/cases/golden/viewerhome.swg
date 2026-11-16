@@ -11,7 +11,7 @@ using Core, Pixel, Gui
 #test
 {
     let light  = true
-    var host: Testing.HeadlessHost
+    var host:  Testing.HeadlessHost
     let window = homeWindow(&host, light, height: 720)
     var point: ViewerResumePoint
     point.file     = window.recent[0]

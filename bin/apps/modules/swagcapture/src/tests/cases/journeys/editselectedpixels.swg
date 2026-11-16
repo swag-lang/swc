@@ -11,8 +11,8 @@ using Core, Gui, Pixel
     journey.setup()
     let main = journey.main
 
-    var path = journey.newCapture(120, 100)
-    let capture = unwrap main.editWnd.getCapture()
+    var path          = journey.newCapture(120, 100)
+    let capture       = unwrap main.editWnd.getCapture()
     var preset: IForm = main.quickWnd.qsPixSel.forms[0]
     main.quickWnd.applyPreset(preset)
     journey.drawForm(ActionToolMode.PixSel, .PixSel, {20, 20}, {60, 60})
@@ -54,7 +54,10 @@ using Core, Gui, Pixel
     journey.waitFor("reopen lifted pixels", func|main, &path|()->bool
     {
         let opened = main.editWnd.getCapture()
-        return not main.libraryMode and opened and opened.file == path and opened.forms.count == 1 and
+        return not main.libraryMode and
+               opened and
+               opened.file == path and
+               opened.forms.count == 1 and
                Swag.kindOf(opened.forms[0]) == FormImage
     })
 }

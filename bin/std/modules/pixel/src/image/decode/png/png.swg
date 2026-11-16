@@ -123,9 +123,9 @@ impl Decoder
 {
     // APNG fields live in chunk payloads whose addresses are not necessarily aligned.
     func read32Be(data: const [*] u8)->u32 => (cast(u32, data[0]) << 24) |
-                                                (cast(u32, data[1]) << 16) |
-                                                (cast(u32, data[2]) << 8) |
-                                                 cast(u32, data[3])
+                                              (cast(u32, data[1]) << 16) |
+                                              (cast(u32, data[2]) << 8) |
+                                              cast(u32, data[3])
 
     func safeDatas(chunk: DecodeChunk)->const [..] u8 => cast(const [..] u8, unwrap chunk.datas)
 

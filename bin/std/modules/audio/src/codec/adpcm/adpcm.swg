@@ -97,9 +97,9 @@ private impl MsChannel
     mtd expand(nibble: u32)->s16
     {
         let signedNibble = nibble & 8 ? cast(s32, nibble) - 16 : cast(s32, nibble)
-        var predicted = (cast(s64, .previousSample) * .previousCoefficient +
-                         cast(s64, .olderSample) * .olderCoefficient) / 256
-        predicted += cast(s64, signedNibble) * .delta
+        var predicted    = (cast(s64, .previousSample) * .previousCoefficient +
+                            cast(s64, .olderSample) * .olderCoefficient) / 256
+        predicted       += cast(s64, signedNibble) * .delta
         .olderSample    = .previousSample
         .previousSample = cast(s32, Math.clamp(predicted, -32_768's64, 32_767's64))
 

@@ -23,11 +23,11 @@ impl IActionUI for ActionTimeline
 
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
-        let main     = mainWndOf(cxt)
-        let capture  = main.getCapture()
-        let timed    = capture and capture.isTimed() and capture.frames and not main.libraryMode
-        let selected = timed and capture!.selection.count
-        let playhead = timed ? capture!.playheadTime() : 0
+        let main         = mainWndOf(cxt)
+        let capture      = main.getCapture()
+        let timed        = capture and capture.isTimed() and capture.frames and not main.libraryMode
+        let selected     = timed and capture!.selection.count
+        let playhead     = timed ? capture!.playheadTime() : 0
         var canShowFrom  = selected
         var canShowUntil = selected
         if selected

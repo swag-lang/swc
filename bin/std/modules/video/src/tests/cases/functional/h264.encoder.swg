@@ -15,9 +15,12 @@ func encoderFrame(width, height: s32, changeX = -1's32, changeY = -1's32)->Nv12F
             rgb[offset]     = cast(u8, (x * 7 + y * 3) & 255)
             rgb[offset + 1] = cast(u8, (x * 5 + y * 11) & 255)
             rgb[offset + 2] = cast(u8, (x * 13 + y * 2) & 255)
-            if changeX >= 0 and changeY >= 0 and
-               x >= cast(u64, changeX) and x < cast(u64, changeX + 4) and
-               y >= cast(u64, changeY) and y < cast(u64, changeY + 4)
+            if changeX >= 0 and
+               changeY >= 0 and
+               x >= cast(u64, changeX) and
+               x < cast(u64, changeX + 4) and
+               y >= cast(u64, changeY) and
+               y < cast(u64, changeY + 4)
             {
                 rgb[offset]     = 255
                 rgb[offset + 1] = 255
@@ -25,6 +28,7 @@ func encoderFrame(width, height: s32, changeX = -1's32, changeY = -1's32)->Nv12F
             }
         }
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -41,12 +45,13 @@ func encoderScrolledFrame(width, height, shiftX, shiftY: s32)->Nv12Frame fail
         {
             let sampleX = (x + cast(u64, shiftX)) % cast(u64, width)
             let sampleY = (y + cast(u64, shiftY)) % cast(u64, height)
-            let offset = (y * cast(u64, width) + x) * 3
+            let offset  = (y * cast(u64, width) + x) * 3
             rgb[offset]     = cast(u8, (sampleX * 7 + sampleY * 3) & 255)
             rgb[offset + 1] = cast(u8, (sampleX * 5 + sampleY * 11) & 255)
             rgb[offset + 2] = cast(u8, (sampleX * 13 + sampleY * 2) & 255)
         }
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -59,10 +64,11 @@ func encoderSolidFrame(width, height: s32, red, green, blue: u8)->Nv12Frame fail
     rgb.resize(cast(u64, width) * cast(u64, height) * 3)
     for pixel in cast(u64, width) * cast(u64, height)
     {
-        rgb[pixel * 3] = red
+        rgb[pixel * 3]     = red
         rgb[pixel * 3 + 1] = green
         rgb[pixel * 3 + 2] = blue
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -77,14 +83,16 @@ func encoderBrightnessTiles(width, height, bright: s32)->Nv12Frame fail
     {
         for x in cast(u64, width)
         {
-            let value = cast(u8, 30 + ((x / 4 * 17 + y / 4 * 31) % 160) +
-                                 cast(u64, bright))
+            let value = cast(u8,
+                             30 + ((x / 4 * 17 + y / 4 * 31) % 160) +
+                             cast(u64, bright))
             let offset = (y * cast(u64, width) + x) * 3
-            rgb[offset] = value
+            rgb[offset]     = value
             rgb[offset + 1] = value
             rgb[offset + 2] = value
         }
     }
+
     let image = Image.create(width, height, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -99,13 +107,14 @@ func encoderGrayPixel(x, y: s32)->Nv12Frame fail
     {
         for column in 16'u64
         {
-            let value = row == cast(u64, (15 - y)) and column == cast(u64, x) ? 102'u8 : 100'u8
+            let value  = row == cast(u64, (15 - y)) and column == cast(u64, x) ? 102'u8 : 100'u8
             let offset = (row * 16 + column) * 3
-            rgb[offset] = value
+            rgb[offset]     = value
             rgb[offset + 1] = value
             rgb[offset + 2] = value
         }
     }
+
     let image = Image.create(16, 16, .RGB8, rgb.toSlice())
     var result: Nv12Frame
     try result.convertFrom(&image)
@@ -120,13 +129,14 @@ func encoderGrayNoise(seed: u64)->Nv12Frame fail
     {
         for x in 32'u64
         {
-            let value = cast(u8, 30 + ((x * 73 + y * 47 + seed * 19 + x * y * 3) % 160))
+            let value  = cast(u8, 30 + ((x * 73 + y * 47 + seed * 19 + x * y * 3) % 160))
             let offset = (y * 32 + x) * 3
-            rgb[offset] = value
+            rgb[offset]     = value
             rgb[offset + 1] = value
             rgb[offset + 2] = value
         }
     }
+
     let image = Image.create(32, 32, .RGB8, rgb.toSlice())
     var frame: Nv12Frame
     try frame.convertFrom(&image)
@@ -139,8 +149,7 @@ func requireEncodedNv12(original: const *Nv12Frame, decoded: const *PlanarFrame)
     Swag.require(decoded.chromaShift == 1)
     Swag.require(decoded.matrix == .Bt709 and decoded.studioRange)
     Swag.require(decoded.luma.count == original.luma().count)
-    Swag.require(Memory.compare(decoded.luma.storage(), original.luma().buffer,
-                                decoded.luma.count) == 0)
+    Swag.require(Memory.compare(decoded.luma.storage(), original.luma().buffer, decoded.luma.count) == 0)
     let uv = original.chroma()
     for index in decoded.chromaB.count
     {
@@ -179,7 +188,7 @@ private impl Nv12Frame
             for column in width
             {
                 let offset = row * width + column
-                let shift = (row + column + row / 4 + column / 4) & 1 ? -delta : delta
+                let shift  = (row + column + row / 4 + column / 4) & 1 ? -delta : delta
                 .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + shift)
             }
         }
@@ -191,7 +200,7 @@ private impl Nv12Frame
         for index in (.bytes.count - start) / 2
         {
             let offset = start + index * 2
-            .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + deltaU)
+            .bytes[offset]     = cast(u8, cast(s32, .bytes[offset]) + deltaU)
             .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + deltaV)
         }
     }
@@ -231,7 +240,7 @@ private impl Nv12Frame
                     {
                         let offset = start + (by * 4 + row) * cast(u64, .width) +
                                      (bx * 4 + column) * 2
-                        .bytes[offset] = cast(u8, cast(s32, .bytes[offset]) + uDelta[block])
+                        .bytes[offset]     = cast(u8, cast(s32, .bytes[offset]) + uDelta[block])
                         .bytes[offset + 1] = cast(u8, cast(s32, .bytes[offset + 1]) + vDelta[block])
                     }
                 }
@@ -246,15 +255,14 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-dc", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderFrame(32, 32)
-    var tint = expect encoderFrame(32, 32)
+    let base     = expect encoderFrame(32, 32)
+    var tint     = expect encoderFrame(32, 32)
     var reversed = expect encoderFrame(32, 32)
     tint.encoderTint(1, -1)
     reversed.encoderTint(-1, 1)
     var encoder = expect H264.Encoder.create(32, 32)
-    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let positive = expect encoder.encode(&tint, 3_000, 3_000)
     Swag.require(positive.bytes.count < key.bytes.count / 4)
@@ -279,15 +287,14 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-mixed", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderBrightnessTiles(32, 32, 0)
-    var mixed = expect encoderBrightnessTiles(32, 32, 1)
+    let base       = expect encoderBrightnessTiles(32, 32, 0)
+    var mixed      = expect encoderBrightnessTiles(32, 32, 1)
     var nonuniform = expect encoderBrightnessTiles(32, 32, 1)
     mixed.encoderTint(2, -2)
     nonuniform.encoderChangeFirstChroma()
     var encoder = expect H264.Encoder.create(32, 32)
-    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let combined = expect encoder.encode(&mixed, 3_000, 3_000)
     Swag.require(combined.bytes.count < key.bytes.count / 2)
@@ -312,13 +319,12 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-quadrants", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderFrame(16, 16)
+    let base    = expect encoderFrame(16, 16)
     var changed = expect encoderFrame(16, 16)
     changed.encoderTintQuadrants()
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let quadrant = expect encoder.encode(&changed, 3_000, 3_000)
     Swag.require(quadrant.bytes.count < key.bytes.count / 2)
@@ -343,11 +349,10 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-ac-probe", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderFrame(16, 16)
+    let base    = expect encoderFrame(16, 16)
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     for delta in 1'u32 until 9
     {
@@ -360,6 +365,7 @@ private impl Nv12Frame
         let back = expect encoder.encode(&base, cast(u64, delta * 2) * 3_000, 3_000)
         expect writer.addPacket(back)
     }
+
     expect writer.end()
 
     var reader = expect Reader.open(path)
@@ -367,8 +373,10 @@ private impl Nv12Frame
     for index in 17'u64
     {
         expect reader.decodeFramePlanesInto(&decoded, index)
-        if index % 2 == 0 do
+        if index % 2 == 0
+        {
             requireEncodedNv12(&base, &decoded)
+        }
         else
         {
             var changed = expect encoderFrame(16, 16)
@@ -383,13 +391,12 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-chroma-ac-neighbors", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderFrame(32, 32)
+    let base    = expect encoderFrame(32, 32)
     var changed = expect encoderFrame(32, 32)
     changed.encoderChangeEachMbChroma(2)
     var encoder = expect H264.Encoder.create(32, 32)
-    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let partial = expect encoder.encode(&changed, 3_000, 3_000)
     Swag.require(partial.bytes.count < key.bytes.count / 4)
@@ -414,13 +421,12 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-mixed-ac", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderGrayPixel(-1, -1)
+    let base  = expect encoderGrayPixel(-1, -1)
     var mixed = expect encoderGrayPixel(0, 0)
     mixed.encoderChangeFirstChroma(2)
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let changed = expect encoder.encode(&mixed, 3_000, 3_000)
     Swag.require(changed.bytes.count < key.bytes.count / 2)
@@ -443,13 +449,12 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-alternating-dc", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderSolidFrame(16, 16, 128, 128, 128)
+    let base    = expect encoderSolidFrame(16, 16, 128, 128, 128)
     var changed = expect encoderSolidFrame(16, 16, 128, 128, 128)
     changed.encoderAlternatingBlockDc(80)
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let dc = expect encoder.encode(&changed, 3_000, 3_000)
     Swag.require(dc.bytes.count < key.bytes.count)
@@ -469,13 +474,12 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-checkerboard-ac", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderSolidFrame(16, 16, 128, 128, 128)
+    let base    = expect encoderSolidFrame(16, 16, 128, 128, 128)
     var changed = expect encoderSolidFrame(16, 16, 128, 128, 128)
     changed.encoderCheckerboardAc(80)
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     expect writer.addPacket(key)
     let ac = expect encoder.encode(&changed, 3_000, 3_000)
     Swag.require(ac.bytes.count < key.bytes.count)
@@ -498,8 +502,7 @@ private impl Nv12Frame
     let first   = expect encoderFrame(34, 18)
     let changed = expect encoderFrame(34, 18, 30, 14)
     var encoder = expect H264.Encoder.create(34, 18, keyInterval: 3)
-    var writer  = expect Mp4.FragmentedWriter.create(path, 34, 18, 90_000,
-                                                     encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 34, 18, 90_000, encoder.decoderConfig())
 
     let firstPacket = expect encoder.encode(&first, 0, 3_000)
     Swag.require(firstPacket.isKeyFrame)
@@ -533,10 +536,10 @@ private impl Nv12Frame
 // The encoder validates dimensions and times before changing its reference picture.
 #test
 {
-    var encoder = expect H264.Encoder.create(32, 16)
-    let frame   = expect encoderFrame(32, 16)
-    let wrong   = expect encoderFrame(34, 16)
-    let first   = expect encoder.encode(&frame, 0, 1_000)
+    var encoder   = expect H264.Encoder.create(32, 16)
+    let frame     = expect encoderFrame(32, 16)
+    let wrong     = expect encoderFrame(34, 16)
+    let first     = expect encoder.encode(&frame, 0, 1_000)
     let firstSize = first.bytes.count
     var rejected: Swag.Error
     discard catch encoder.encode(&wrong, 1_000, 1_000) as rejected
@@ -564,20 +567,19 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-mixed-skip", "mp4")
     defer discard catch File.delete(path)
-    let base   = expect encoderFrame(50, 34)
-    let start  = expect encoderFrame(50, 34, 0, 0)
-    let middle = expect encoderFrame(50, 34, 24, 20)
-    var encoder = expect H264.Encoder.create(50, 34, keyInterval: 10)
-    var writer  = expect Mp4.FragmentedWriter.create(path, 50, 34, 90_000,
-                                                     encoder.decoderConfig())
-    let first = expect encoder.encode(&base, 0, 3_000)
+    let base      = expect encoderFrame(50, 34)
+    let start     = expect encoderFrame(50, 34, 0, 0)
+    let middle    = expect encoderFrame(50, 34, 24, 20)
+    var encoder   = expect H264.Encoder.create(50, 34, keyInterval: 10)
+    var writer    = expect Mp4.FragmentedWriter.create(path, 50, 34, 90_000, encoder.decoderConfig())
+    let first     = expect encoder.encode(&base, 0, 3_000)
     let firstSize = first.bytes.count
     expect writer.addPacket(first)
     let changedStart = expect encoder.encode(&start, 3_000, 3_000)
     Swag.require(changedStart.bytes.count < firstSize / 2)
     expect writer.addPacket(changedStart)
     let changedMiddle = expect encoder.encode(&middle, 6_000, 3_000)
-    let changedSize = changedMiddle.bytes.count
+    let changedSize   = changedMiddle.bytes.count
     expect writer.addPacket(changedMiddle)
     let unchanged = expect encoder.encode(&middle, 9_000, 3_000)
     Swag.require(unchanged.bytes.count < changedSize / 20)
@@ -601,10 +603,9 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-tiny", "mp4")
     defer discard catch File.delete(path)
-    let frame = expect encoderFrame(2, 2)
+    let frame   = expect encoderFrame(2, 2)
     var encoder = expect H264.Encoder.create(2, 2)
-    var writer  = expect Mp4.FragmentedWriter.create(path, 2, 2, 1_000,
-                                                     encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 2, 2, 1_000, encoder.decoderConfig())
     expect writer.addPacket(expect encoder.encode(&frame, 0, 40))
     expect writer.addPacket(expect encoder.encode(&frame, 80, 40))
     expect writer.end()
@@ -621,16 +622,16 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-frame-number", "mp4")
     defer discard catch File.delete(path)
-    let frame = expect encoderFrame(16, 16)
+    let frame   = expect encoderFrame(16, 16)
     var encoder = expect H264.Encoder.create(16, 16, keyInterval: 255)
-    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 30_000,
-                                                     encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 30_000, encoder.decoderConfig())
     for index in 257'u64
     {
         let packet = expect encoder.encode(&frame, index * 1_000, 1_000)
         Swag.require(packet.isKeyFrame == (index == 0 or index == 255))
         expect writer.addPacket(packet)
     }
+
     expect writer.end()
 
     var reader = expect Reader.open(path)
@@ -647,15 +648,14 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-scroll", "mp4")
     defer discard catch File.delete(path)
-    let first = expect encoderScrolledFrame(128, 128, 0, 0)
-    let vertical = expect encoderScrolledFrame(128, 128, 0, 16)
-    let diagonal = expect encoderScrolledFrame(128, 128, 16, 16)
+    let first       = expect encoderScrolledFrame(128, 128, 0, 0)
+    let vertical    = expect encoderScrolledFrame(128, 128, 0, 16)
+    let diagonal    = expect encoderScrolledFrame(128, 128, 16, 16)
     let smallScroll = expect encoderScrolledFrame(128, 128, 16, 18)
-    var encoder = expect H264.Encoder.create(128, 128, keyInterval: 10)
-    var writer = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&first, 0, 3_000)
-    let keySize = key.bytes.count
+    var encoder     = expect H264.Encoder.create(128, 128, keyInterval: 10)
+    var writer      = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000, encoder.decoderConfig())
+    let key         = expect encoder.encode(&first, 0, 3_000)
+    let keySize     = key.bytes.count
     expect writer.addPacket(key)
     let movedDown = expect encoder.encode(&vertical, 3_000, 3_000)
     Swag.require(movedDown.bytes.count < keySize / 3)
@@ -690,12 +690,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-unmatched", "mp4")
     defer discard catch File.delete(path)
-    let first = expect encoderScrolledFrame(64, 64, 0, 0)
+    let first   = expect encoderScrolledFrame(64, 64, 0, 0)
     let changed = expect encoderScrolledFrame(64, 64, 1, 1)
     var encoder = expect H264.Encoder.create(64, 64)
-    var writer = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&first, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&first, 0, 3_000)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
     let fallback = expect encoder.encode(&changed, 3_000, 3_000)
@@ -713,12 +712,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-flat", "mp4")
     defer discard catch File.delete(path)
-    let first = expect encoderSolidFrame(128, 128, 30, 90, 200)
+    let first   = expect encoderSolidFrame(128, 128, 30, 90, 200)
     let changed = expect encoderSolidFrame(128, 128, 200, 50, 30)
     var encoder = expect H264.Encoder.create(128, 128, keyInterval: 2)
-    var writer = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&first, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&first, 0, 3_000)
     Swag.require(key.bytes.count < 2_000)
     expect writer.addPacket(key)
     let recolored = expect encoder.encode(&changed, 3_000, 3_000)
@@ -744,15 +742,14 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-dc-residual", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderBrightnessTiles(128, 128, 0)
-    let brighter = expect encoderBrightnessTiles(128, 128, 1)
+    let base      = expect encoderBrightnessTiles(128, 128, 0)
+    let brighter  = expect encoderBrightnessTiles(128, 128, 1)
     let brightest = expect encoderBrightnessTiles(128, 128, 2)
     let highlight = expect encoderBrightnessTiles(128, 128, 20)
-    var encoder = expect H264.Encoder.create(128, 128, keyInterval: 5)
-    var writer = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
-    let keySize = key.bytes.count
+    var encoder   = expect H264.Encoder.create(128, 128, keyInterval: 5)
+    var writer    = expect Mp4.FragmentedWriter.create(path, 128, 128, 90_000, encoder.decoderConfig())
+    let key       = expect encoder.encode(&base, 0, 3_000)
+    let keySize   = key.bytes.count
     expect writer.addPacket(key)
     let fade = expect encoder.encode(&brighter, 3_000, 3_000)
     Swag.require(fade.bytes.count < keySize / 3)
@@ -787,12 +784,11 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-dc-extremes", "mp4")
     defer discard catch File.delete(path)
-    let dark = expect encoderSolidFrame(16, 16, 0, 0, 0)
-    let light = expect encoderSolidFrame(16, 16, 255, 255, 255)
+    let dark    = expect encoderSolidFrame(16, 16, 0, 0, 0)
+    let light   = expect encoderSolidFrame(16, 16, 255, 255, 255)
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&dark, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&dark, 0, 3_000)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
     let up = expect encoder.encode(&light, 3_000, 3_000)
@@ -816,13 +812,12 @@ private impl Nv12Frame
 {
     let path = videoTempPath("h264-encoder-ac-single-pixel", "mp4")
     defer discard catch File.delete(path)
-    let base = expect encoderSolidFrame(16, 16, 100, 100, 100)
-    let first = expect encoderGrayPixel(0, 0)
-    let next = expect encoderGrayPixel(12, 4)
+    let base    = expect encoderSolidFrame(16, 16, 100, 100, 100)
+    let first   = expect encoderGrayPixel(0, 0)
+    let next    = expect encoderGrayPixel(12, 4)
     var encoder = expect H264.Encoder.create(16, 16)
-    var writer = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000,
-                                                    encoder.decoderConfig())
-    let key = expect encoder.encode(&base, 0, 3_000)
+    var writer  = expect Mp4.FragmentedWriter.create(path, 16, 16, 90_000, encoder.decoderConfig())
+    let key     = expect encoder.encode(&base, 0, 3_000)
     let keySize = key.bytes.count
     expect writer.addPacket(key)
     let partial = expect encoder.encode(&first, 3_000, 3_000)
@@ -847,13 +842,13 @@ private impl Nv12Frame
     let path = videoTempPath("h264-encoder-ac-varied", "mp4")
     defer discard catch File.delete(path)
     var encoder = expect H264.Encoder.create(32, 32, keyInterval: 7)
-    var writer = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 32, 32, 90_000, encoder.decoderConfig())
     for index in 16'u64
     {
         let frame = expect encoderGrayNoise(index)
         expect writer.addPacket(expect encoder.encode(&frame, index * 3_000, 3_000))
     }
+
     expect writer.end()
 
     var reader = expect Reader.open(path)

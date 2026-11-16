@@ -18,19 +18,21 @@ impl Decoder
         if .bitsLeft <= 0
         {
             let shift = cast(u32, (numBits + .bitsLeft))
-            .bitBuf           = rol(.bitBuf, shift)
+            .bitBuf = rol(.bitBuf, shift)
             .bitSyntheticMask = rol(.bitSyntheticMask, shift)
-            let c1 = .getChar()
+            let c1          = .getChar()
             let c1Synthetic = .lastCharSynthetic
-            let c2 = .getChar()
+            let c2          = .getChar()
             let c2Synthetic = .lastCharSynthetic
 
-            .bitBuf           = (.bitBuf & 0xFFFF) | (cast(u32, c1) << 24) | (cast(u32, c2) << 16)
-            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) | (c1Synthetic ? 0xFF000000'u32 : 0) | (c2Synthetic ? 0x00FF0000'u32 : 0)
-            let refillShift   = cast(u32, -.bitsLeft)
+            .bitBuf = (.bitBuf & 0xFFFF) | (cast(u32, c1) << 24) | (cast(u32, c2) << 16)
+            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
+                                (c1Synthetic ? 0xFF000000'u32 : 0) |
+                                (c2Synthetic ? 0x00FF0000'u32 : 0)
+            let refillShift = cast(u32, -.bitsLeft)
             .bitBuf           = rol(.bitBuf, refillShift)
             .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
-            .bitsLeft += 16
+            .bitsLeft         += 16
         }
         else
         {
@@ -50,7 +52,7 @@ impl Decoder
         if .bitsLeft <= 0
         {
             let shift = cast(u32, (numBits + .bitsLeft))
-            .bitBuf           = rol(.bitBuf, shift)
+            .bitBuf = rol(.bitBuf, shift)
             .bitSyntheticMask = rol(.bitSyntheticMask, shift)
 
             var c1, c2: u32
@@ -62,27 +64,29 @@ impl Decoder
             // refill and their two calls out of the inner decoding loop.
             if .inBufLeft >= 2 and inBufOfs[0] != 0xFF and inBufOfs[1] != 0xFF
             {
-                c1         = inBufOfs[0]
-                c2         = inBufOfs[1]
+                c1          = inBufOfs[0]
+                c2          = inBufOfs[1]
                 c1Synthetic = false
                 c2Synthetic = false
-                .inBufOfs  += 2
-                .inBufLeft -= 2
+                .inBufOfs   += 2
+                .inBufLeft  -= 2
             }
             else
             {
-                c1 = .getOctet()
+                c1          = .getOctet()
                 c1Synthetic = .lastOctetSynthetic
-                c2 = .getOctet()
+                c2          = .getOctet()
                 c2Synthetic = .lastOctetSynthetic
             }
 
-            .bitBuf           = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) | (c1Synthetic ? 0xFF000000'u32 : 0) | (c2Synthetic ? 0x00FF0000'u32 : 0)
-            let refillShift   = cast(u32, -.bitsLeft)
+            .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
+            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
+                                (c1Synthetic ? 0xFF000000'u32 : 0) |
+                                (c2Synthetic ? 0x00FF0000'u32 : 0)
+            let refillShift = cast(u32, -.bitsLeft)
             .bitBuf           = rol(.bitBuf, refillShift)
             .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
-            .bitsLeft += 16
+            .bitsLeft         += 16
         }
         else
         {
@@ -130,7 +134,7 @@ impl Decoder
             .prepareInBuffer()
             if not .inBufLeft
             {
-                paddingFlag[] = true
+                paddingFlag[]      = true
                 .lastCharSynthetic = true
                 let t = .temFlag
                 .temFlag ^= 1
@@ -140,7 +144,7 @@ impl Decoder
             }
         }
 
-        paddingFlag[] = false
+        paddingFlag[]      = false
         .lastCharSynthetic = false
         let inBufOfs = unwrap .inBufOfs
         let c        = inBufOfs[]
@@ -168,8 +172,8 @@ impl Decoder
         let inBufOfs = unwrap .inBufOfs
         let c        = inBufOfs[0]
         .lastCharSynthetic = false
-        .inBufOfs  += 1
-        .inBufLeft -= 1
+        .inBufOfs          += 1
+        .inBufLeft         -= 1
         return c
     }
 
@@ -186,6 +190,7 @@ impl Decoder
                 bytes += 1
                 c     = .getBits1(8)
             }
+
             prefixSynthetic = .lastBitsSynthetic
 
             while c == 0xFF

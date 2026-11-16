@@ -22,13 +22,13 @@ using Core, Pixel, Gui, Viewers
         let key = cast(u8, 60 + index % 12)
         bytes.add([0'u8, 0x90, key, 100, 1, 0x80, key, 0])
     }
+
     bytes.add([0'u8, 0xFF, 0x2F, 0])
     expect File.writeAllBytes(file, bytes.toSlice())
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    var session = openTestViewer(Midi.viewerPlugin(), &host.root, file,
-                                 commandParent: &host.root, infoParent: &host.root)
+    var session = openTestViewer(Midi.viewerPlugin(), &host.root, file, commandParent: &host.root, infoParent: &host.root)
     Swag.require(session.view != null)
     let view = assume cast(*Midi.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)
@@ -43,6 +43,7 @@ using Core, Pixel, Gui, Viewers
     view.roll.zoomIn()
     view.roll.setTrack(0)
     image = host.render(&host.root)
-    Swag.require(image.isValid() and not view.roll.fit and
+    Swag.require(image.isValid() and
+                 not view.roll.fit and
                  view.roll.selectedNoteCount() == NoteCount)
 }

@@ -105,7 +105,8 @@ impl IWnd for ToggleButton
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         evt.accepted = false
-        if evt.kind != .Pressed or evt.modifiers != .None or
+        if evt.kind != .Pressed or
+           evt.modifiers != .None or
            (evt.key == .Space and not .hasVisibleFocus()) do
             return
 

@@ -9,9 +9,9 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    let main = journey.main
+    let main    = journey.main
     let surface = journey.surface
-    let handle = surface.win32Handle()
+    let handle  = surface.win32Handle()
     Swag.require(handle != null)
     surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
     surface.hide()
@@ -33,6 +33,7 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel != null, "the tray menu must remain open through its focus watch")
     }
+
     menu.close()
 
     main.editorOptions.startup = .Hub
@@ -49,10 +50,11 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel != null, "the tray hub must remain open through its focus watch")
     }
+
     // Escape from the hub opens one nonmodal notification over the icon. Its checkbox disables
     // later reminders, even when an older saved notice count has reached zero.
     main.editorOptions.residentNotices = 0
-    main.editorOptions.language = .French
+    main.editorOptions.language        = .French
     main.setLanguage()
     var escape = KeyEvent{kind: .Pressed, key: .Escape}
     hub.sendEvent(&escape)
@@ -63,14 +65,18 @@ using Core, Gui, Pixel
     Swag.require(journey.app.surfaces.count == 2)
     let choice = unwrap notice.optionCheck
     Swag.require(not choice.isChecked())
-    let cardBounds = notice.children[0].surfaceRect()
+    let cardBounds   = notice.children[0].surfaceRect()
     let choiceBounds = choice.surfaceRect()
-    Swag.require(choiceBounds.x >= cardBounds.x and choiceBounds.right() <= cardBounds.right() and
-                 choiceBounds.y >= cardBounds.y and choiceBounds.bottom() <= cardBounds.bottom(),
+    Swag.require(choiceBounds.x >= cardBounds.x and
+                 choiceBounds.right() <= cardBounds.right() and
+                 choiceBounds.y >= cardBounds.y and
+                 choiceBounds.bottom() <= cardBounds.bottom(),
                  "the notification checkbox must fit inside its card")
     let closeBounds = notice.closeButton.surfaceRect()
-    Swag.require(closeBounds.x >= cardBounds.x and closeBounds.right() <= cardBounds.right() and
-                 closeBounds.y >= cardBounds.y and closeBounds.bottom() <= cardBounds.bottom(),
+    Swag.require(closeBounds.x >= cardBounds.x and
+                 closeBounds.right() <= cardBounds.right() and
+                 closeBounds.y >= cardBounds.y and
+                 closeBounds.bottom() <= cardBounds.bottom(),
                  "the notification close button must fit inside its card")
     var icon: Math.Rectangle
     if surface.trayIconBounds(&icon) do
@@ -84,6 +90,7 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel == null, "Escape must not reopen the tray hub")
     }
+
     watch.start()
     while (main.residentNotice != null or journey.app.surfaces.count != 1) and watch.elapsedMilliseconds() < 1000 do
         journey.app.runFrame()
@@ -103,7 +110,7 @@ using Core, Gui, Pixel
 {
     var journey: CaptureJourney
     journey.setup()
-    let main = journey.main
+    let main    = journey.main
     let surface = journey.surface
     surface.setTrayIcon(expect Image.decode(".png", AppIcon), ProductName)
     surface.hide()
@@ -120,6 +127,7 @@ using Core, Gui, Pixel
         while not Gui.Testing.isTrayIconInOverflow(surface) and opened.elapsedMilliseconds() < 500 do
             journey.app.runFrame()
     }
+
     var settle: Time.Stopwatch
     settle.start()
     while settle.elapsedMilliseconds() < 500 do
@@ -138,16 +146,17 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel == menu, "the desktop tray menu must stay open")
     }
+
     // Cursor and delay share one row and keep the pointer home open while they are chosen.
     scope
     {
-        var input = Gui.Testing.DesktopInput.create(journey.app, unwrap menu.surface)
-        let choices = assume cast(*StackLayoutCtrl, menu.menu.children[0])
-        let cursor = assume cast(*IconButton, choices.children[0])
+        var input          = Gui.Testing.DesktopInput.create(journey.app, unwrap menu.surface)
+        let choices        = assume cast(*StackLayoutCtrl, menu.menu.children[0])
+        let cursor         = assume cast(*IconButton, choices.children[0])
         let previousCursor = main.captureOptions.captureCursor
         input.click(cursor)
         journey.waitFor("cursor toggle", func|main, previousCursor|()->bool =>
-            main.captureOptions.captureCursor != previousCursor)
+                        main.captureOptions.captureCursor != previousCursor)
         let delay = assume cast(*IconButton, choices.children[3])
         input.click(delay)
         journey.waitFor("capture delay", func|main|()->bool => main.captureOptions.delay == 5)
@@ -156,6 +165,7 @@ using Core, Gui, Pixel
         // The same home owns Escape when opened as a pointer menu.
         input.shortcut(.Escape, .None)
     }
+
     watch.start()
     while main.residentPanel != null and watch.elapsedMilliseconds() < 3000 do
         journey.app.runFrame()
@@ -175,5 +185,6 @@ using Core, Gui, Pixel
         journey.app.runFrame()
         Swag.require(main.residentPanel != null, "the desktop tray hub must stay open")
     }
+
     main.residentPanel.close()
 }

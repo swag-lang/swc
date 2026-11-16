@@ -70,7 +70,7 @@ using Core, Gui, Viewers
 // The Normal font is identified by the built-in named style, independently of cell XF order.
 #test
 {
-    let theme = Package.OfficeTheme.defaults()
+    let theme  = Package.OfficeTheme.defaults()
     let source = "<styleSheet><fonts><font><sz val='24'/></font><font><sz val='9'/></font></fonts><cellStyleXfs><xf fontId='0'/><xf fontId='1'/></cellStyleXfs><cellXfs><xf fontId='0'/></cellXfs><cellStyles><cellStyle name='Normal' builtinId='0' xfId='1'/></cellStyles></styleSheet>"
     let styles = expect Xlsx.CellStyles.parse(source, &theme)
     Swag.require(styles.look(0).font.size == 24 and styles.normalFont.size == 9)

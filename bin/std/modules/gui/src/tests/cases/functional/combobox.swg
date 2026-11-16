@@ -386,7 +386,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
     host.setup(480, 120)
     let combo = ComboBox.create(&host.root, flags: .Segmented)
 
-    let styles = [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic]
+    let styles       = [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic]
     var contentWidth = 0'f32
     for style in styles
     {
@@ -397,7 +397,7 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
         contentWidth += Painter.measureString(item.name.text, face).width
     }
 
-    let metrics = combo.themeMetrics()
+    let metrics  = combo.themeMetrics()
     let expected = contentWidth + cast(f32, styles.count) * 2 * metrics.comboBox_Padding + 2 * metrics.comboBox_SegmentInset
     Swag.require(combo.measure({}).preferred.x >= expected)
 }

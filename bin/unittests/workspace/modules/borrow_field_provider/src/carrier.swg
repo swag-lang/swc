@@ -13,7 +13,7 @@ func create(borrowed: *s32)->*Carrier
 {
     let carrier = cast(*Carrier, allocate(#sizeof(Carrier)))
     carrier.borrowed = borrowed
-    carrier.owned = cast(*s32, allocate(#sizeof(s32)))
+    carrier.owned    = cast(*s32, allocate(#sizeof(s32)))
     return carrier
 }
 

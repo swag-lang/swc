@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = journey.copyData("viewer.console.exe", "sample-program.exe")
+    let file   = journey.copyData("viewer.console.exe", "sample-program.exe")
     let window = journey.window
 
     window.openFile(file)
@@ -27,5 +27,7 @@ using Core, Gui, Pixel, Viewers
 
     window.sendCommandEvent(ViewerCommands.Close)
     journey.waitFor("program returned to recent files", func|window|()->bool =>
-        window.home.isLocallyVisible() and window.currentView == null and window.recent.count == 1)
+                    window.home.isLocallyVisible() and
+                    window.currentView == null and
+                    window.recent.count == 1)
 }

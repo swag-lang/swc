@@ -3,39 +3,39 @@
 #foreignlib("kernel32")
 using Swag
 
-alias ATOM                   = u16
-alias HANDLE                 = const [*] void?
-alias HGLOBAL                = HANDLE
-alias HLOCAL                 = HANDLE
-alias HINSTANCE              = HANDLE
-alias HMODULE                = HANDLE
-alias LRESULT                = s64
-alias WORD                   = u16
-alias DWORD                  = u32
-alias BOOL                   = s32
-alias BOOLEAN                = u8
-alias BYTE                   = u8
-alias LPBYTE                 = *BYTE?
-alias LONG                   = s32
-alias ULONG                  = u32
-alias LPVOID                 = [*] void?
-alias LPCVOID                = const [*] void?
-alias LPCSTR                 = const [*] u8?
-alias PCSTR                  = const [*] u8?
-alias LPCWSTR                = const [*] u16?
-alias PCWSTR                 = const [*] u16?
-alias LPCTSTR                = const [*] u16?
-alias LPDWORD                = *DWORD?
-alias DWORD_PTR              = u64
-alias ULONG_PTR              = u64
-alias UINT                   = u32
-alias INT                    = s32
-alias SHORT                  = s16
-alias USHORT                 = u16
-alias LARGE_INTEGER          = s64
-alias ULARGE_INTEGER         = u64
-alias DWORD64                = u64
-alias ULONG64                = u64
+alias ATOM           = u16
+alias HANDLE         = const [*] void?
+alias HGLOBAL        = HANDLE
+alias HLOCAL         = HANDLE
+alias HINSTANCE      = HANDLE
+alias HMODULE        = HANDLE
+alias LRESULT        = s64
+alias WORD           = u16
+alias DWORD          = u32
+alias BOOL           = s32
+alias BOOLEAN        = u8
+alias BYTE           = u8
+alias LPBYTE         = *BYTE?
+alias LONG           = s32
+alias ULONG          = u32
+alias LPVOID         = [*] void?
+alias LPCVOID        = const [*] void?
+alias LPCSTR         = const [*] u8?
+alias PCSTR          = const [*] u8?
+alias LPCWSTR        = const [*] u16?
+alias PCWSTR         = const [*] u16?
+alias LPCTSTR        = const [*] u16?
+alias LPDWORD        = *DWORD?
+alias DWORD_PTR      = u64
+alias ULONG_PTR      = u64
+alias UINT           = u32
+alias INT            = s32
+alias SHORT          = s16
+alias USHORT         = u16
+alias LARGE_INTEGER  = s64
+alias ULARGE_INTEGER = u64
+alias DWORD64        = u64
+alias ULONG64        = u64
 
 const LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR = 0x00000100'u32
 const LOAD_LIBRARY_SEARCH_DEFAULT_DIRS = 0x00001000'u32
@@ -756,7 +756,7 @@ internal namespace Win32Priv
         func FlushFileBuffers(hFile: HANDLE)->BOOL
         func CreateFileMappingW(hFile: HANDLE, lpFileMappingAttributes: *SECURITY_ATTRIBUTES?, flProtect: DWORD, dwMaximumSizeHigh: DWORD, dwMaximumSizeLow: DWORD, lpName: LPCWSTR)->HANDLE
         func OpenFileMappingW(dwDesiredAccess: DWORD, bInheritHandle: BOOL, lpName: LPCWSTR)->HANDLE
-    func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID
+        func MapViewOfFile(hFileMappingObject: HANDLE, dwDesiredAccess: DWORD, dwFileOffsetHigh: DWORD, dwFileOffsetLow: DWORD, dwNumberOfBytesToMap: SIZE_T)->LPVOID
         func UnmapViewOfFile(lpBaseAddress: LPCVOID)->BOOL
         func FlushViewOfFile(lpBaseAddress: LPCVOID, dwNumberOfBytesToFlush: SIZE_T)->BOOL
         func DuplicateHandle(hSourceProcessHandle: HANDLE, hSourceHandle: HANDLE, hTargetProcessHandle: HANDLE, lpTargetHandle: *HANDLE, dwDesiredAccess: DWORD, bInheritHandle: BOOL, dwOptions: DWORD)->BOOL

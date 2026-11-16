@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = expect videoPreviewFileAt(Path.combine(journey.root, "film.y4m"), 32)
+    let file   = expect videoPreviewFileAt(Path.combine(journey.root, "film.y4m"), 32)
     let window = journey.window
     window.openFile(file)
     journey.waitForFile(file)

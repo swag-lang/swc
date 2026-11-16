@@ -115,18 +115,20 @@ public impl Xml
 
             if digit >= radix or value > (0x10FFFF - digit) / radix do
                 fail .getError("XML character reference is outside the Unicode range")
-            value = value * radix + digit
+            value  = value * radix + digit
             digits += 1
             .stream.advance()
         }
 
         if not digits do
             fail .getError("empty XML character reference")
-        .stream.advance() // semicolon
+        .stream.advance()     // semicolon
 
         // XML 1.0 Char: #x9 | #xA | #xD | [#x20-#xD7FF] |
         // [#xE000-#xFFFD] | [#x10000-#x10FFFF].
-        if not (value == 0x9 or value == 0xA or value == 0xD or
+        if not (value == 0x9 or
+                value == 0xA or
+                value == 0xD or
                 (0x20 <= value and value <= 0xD7FF) or
                 (0xE000 <= value and value <= 0xFFFD) or
                 (0x10000 <= value and value <= 0x10FFFF))
@@ -185,11 +187,13 @@ public impl Xml
         {
             let {c, eat} = Utf8.decodeRune(input[offset to])
             if (c < 0x20 and c != '\t' and c != '\n' and c != '\r') or
-               c == 0xFFFE or c == 0xFFFF
+               c == 0xFFFE or
+               c == 0xFFFF
             {
                 .stream.setPosition(offset)
                 fail .getError("XML document contains a character forbidden by XML 1.0")
             }
+
             offset += eat
         }
 
@@ -301,10 +305,15 @@ public impl Xml
                     if .stream.peekU8() == '\n' do
                         .stream.advance()
                 }
-                elif c == '&' do
+                elif c == '&'
+                {
                     result.append(try .readEntity())
-                else do
+                }
+                else
+                {
                     result += c
+                }
+
                 c = .stream.peekU8()
             }
 

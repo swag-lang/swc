@@ -17,8 +17,10 @@ func formattedWorkbookVariant(part: string, before, after: string, replacePart =
         if item.path == part
         {
             var text = String.from(cast(string, entry.plain.toSlice()))
-            if replacePart do text = after
-            else do text.replace(before, after)
+            if replacePart do
+                text = after
+            else do
+                text.replace(before, after)
             entry.plain.clear()
             entry.plain.add(text.toSlice())
         }
@@ -31,4 +33,3 @@ func formattedWorkbookVariant(part: string, before, after: string, replacePart =
     discard expect File.writeAllBytes(path, buildZipEntries(entries.toSlice()).toSlice())
     return path
 }
-

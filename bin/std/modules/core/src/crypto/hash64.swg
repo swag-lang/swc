@@ -41,6 +41,7 @@ private struct NativeStringView
     buffer: const [*] u8?
     count:  u64
 }
+
 #assert(#sizeof(NativeStringView) == #sizeof(string))
 
 private struct OwnedStringView

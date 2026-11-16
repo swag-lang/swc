@@ -54,9 +54,9 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
 // unreasonable count before expanding the track's sample-size array.
 #test
 {
-    var bytes: [12] u8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0x10, 0, 1]
+    var bytes:    [12] u8 = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0x10, 0, 1]
     var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
-    var track: Mp4.Track
+    var track:    Mp4.Track
     var rejected: Swag.Error
     discard catch track.parseSampleSizes(&source, bytes.count) as rejected
     Swag.require(rejected.value() is UnsupportedFormatError)
@@ -108,10 +108,10 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
     Swag.require(endTime == 300)
 
     var decoder: Mp4.Decoder
-    decoder.info.frameCount = times.count
-    decoder.info.frameRate = expect track.frameRate()
+    decoder.info.frameCount       = times.count
+    decoder.info.frameRate        = expect track.frameRate()
     decoder.presentationTimescale = track.timescale
-    decoder.presentationEndTime = endTime - times[0]
+    decoder.presentationEndTime   = endTime - times[0]
     for time in times do
         decoder.presentationTimes.add(time - times[0])
     Swag.require(decoder.presentationTimes[1] == 200)
@@ -245,7 +245,7 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
 // A version-zero single edit trims AAC priming and final padding on classic sample-table tracks.
 #test
 {
-    var bytes = expect File.readAllBytes(videoFixturePath("glint-aac-mjpeg.mp4").toString())
+    var bytes     = expect File.readAllBytes(videoFixturePath("glint-aac-mjpeg.mp4").toString())
     let firstEdit = mp4FindTag(bytes.toSlice(), "elst")
     Swag.require(firstEdit < bytes.count)
     let secondStart = firstEdit + 4
@@ -259,7 +259,7 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
     raw[secondEdit + 12] = 0
     raw[secondEdit + 13] = 0
     raw[secondEdit + 14] = 1
-    raw[secondEdit + 15] = 0x90 // 400 movie ticks = 17640 frames at 44.1 kHz / 1 kHz.
+    raw[secondEdit + 15] = 0x90     // 400 movie ticks = 17640 frames at 44.1 kHz / 1 kHz.
     raw[secondEdit + 16] = 0
     raw[secondEdit + 17] = 0
     raw[secondEdit + 18] = 4

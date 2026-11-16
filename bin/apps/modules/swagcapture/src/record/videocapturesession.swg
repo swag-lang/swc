@@ -1,18 +1,17 @@
 using Core, Core.Errors, Pixel, Video
 
 // Copies nearest-neighbour BGRA pixels between bottom-up, tightly packed images.
-internal func reduceBgraNearest(source: const *Image, destination: *Image,
-                                sourceColumns: const [*] u32)
+internal func reduceBgraNearest(source: const *Image, destination: *Image, sourceColumns: const [*] u32)
 {
-    let input = cast(const [*] u32, source.pixels.storage())
-    let output = cast([*] u32, destination.pixels.storage())
-    let inputWidth = cast(u64, source.width)
-    let outputWidth = cast(u64, destination.width)
-    let inputHeight = cast(u64, source.height)
+    let input        = cast(const [*] u32, source.pixels.storage())
+    let output       = cast([*] u32, destination.pixels.storage())
+    let inputWidth   = cast(u64, source.width)
+    let outputWidth  = cast(u64, destination.width)
+    let inputHeight  = cast(u64, source.height)
     let outputHeight = cast(u64, destination.height)
     parallel for |input, output, sourceColumns, inputWidth, outputWidth, inputHeight, outputHeight| row in outputHeight
     {
-        let inputRow = input + (row * inputHeight / outputHeight) * inputWidth
+        let inputRow  = input + (row * inputHeight / outputHeight) * inputWidth
         let outputRow = output + row * outputWidth
         for column in outputWidth do
             outputRow[column] = inputRow[sourceColumns[column]]
@@ -36,37 +35,37 @@ internal func reduceBgraNearest(source: const *Image, destination: *Image,
 #[Swag.NoCopy]
 struct VideoCaptureSession
 {
-    source:                   ScreenFrameSource
-    recording:                Mp4.SoftwareRecording
-    pacer:                    FramePacer
-    picture:                  Image
-    sourcePicture:            Image
-    sourceColumns:            Array'u32
-    scaled:                   bool
-    outputWidth:              s32
-    outputHeight:             s32
-    audioConfigs:             Array'Mp4.SoftwareAudioConfig
-    outputDirectory:          String
-    originTick:               u64
-    nextVideoTime:            u64
-    missedSlots:              u64
-    nextSpaceCheckTick:       u64
-    minimumFreeSpace:         u64
-    hasOrigin:                bool
-    lowStorageStop:           bool
-    sourceFailures:           u64
-    grabMicroseconds:         u64
-    maxGrabMicroseconds:      u64
-    scaleMicroseconds:        u64
-    maxScaleMicroseconds:     u64
-    producerWaitMicroseconds: u64
+    source:                      ScreenFrameSource
+    recording:                   Mp4.SoftwareRecording
+    pacer:                       FramePacer
+    picture:                     Image
+    sourcePicture:               Image
+    sourceColumns:               Array'u32
+    scaled:                      bool
+    outputWidth:                 s32
+    outputHeight:                s32
+    audioConfigs:                Array'Mp4.SoftwareAudioConfig
+    outputDirectory:             String
+    originTick:                  u64
+    nextVideoTime:               u64
+    missedSlots:                 u64
+    nextSpaceCheckTick:          u64
+    minimumFreeSpace:            u64
+    hasOrigin:                   bool
+    lowStorageStop:              bool
+    sourceFailures:              u64
+    grabMicroseconds:            u64
+    maxGrabMicroseconds:         u64
+    scaleMicroseconds:           u64
+    maxScaleMicroseconds:        u64
+    producerWaitMicroseconds:    u64
     maxProducerWaitMicroseconds: u64
-    firstMissedSlot:          u64
-    lastMissedSlot:           u64
-    freshFrames:              u64
-    submittedFrames:          u64
-    submittedRepeats:         u64
-    encoder:                  VideoCaptureEncoder
+    firstMissedSlot:             u64
+    lastMissedSlot:              u64
+    freshFrames:                 u64
+    submittedFrames:             u64
+    submittedRepeats:            u64
+    encoder:                     VideoCaptureEncoder
 }
 
 impl VideoCaptureSession
@@ -97,16 +96,17 @@ impl VideoCaptureSession
         result.minimumFreeSpace = minimumFreeSpace
         result.source           = try ScreenFrameSource.create(drawCursor, cast(s32, area.x), cast(s32, area.y), width, height)
         result.pacer            = try FramePacer.create(rate, 1_000_000, 90_000)
+
         // Complete video and sound fragments within about one second so a stopped recording
         // retains a recent playable prefix. The final index makes key-frame seeks direct.
         // A key picture costs as much as dozens of predicted ones, and on a screen at rest it is
         // all a recording costs: one every three seconds keeps seeking short and hours small.
         const Mp4Options = Mp4.FragmentedOptions{30, 4 * 1_024 * 1_024, 40, true}
-        result.recording        = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, keyInterval: 90, options: Mp4Options, quantizationQp: quantizationQp, sliceCount: sliceCount)
+        result.recording = try Mp4.SoftwareRecording.createWithAudioTracks(path, outputWidth, outputHeight, 90_000, audioConfigs, keyInterval: 90, options: Mp4Options, quantizationQp: quantizationQp, sliceCount: sliceCount)
         result.audioConfigs.add(audioConfigs)
-        result.picture = Image.create(outputWidth, outputHeight, .BGRA8)
-        result.scaled = outputWidth != width or outputHeight != height
-        result.outputWidth = outputWidth
+        result.picture      = Image.create(outputWidth, outputHeight, .BGRA8)
+        result.scaled       = outputWidth != width or outputHeight != height
+        result.outputWidth  = outputWidth
         result.outputHeight = outputHeight
         if result.scaled
         {
@@ -115,6 +115,7 @@ impl VideoCaptureSession
             for column in cast(u64, outputWidth) do
                 result.sourceColumns[column] = cast(u32, column * cast(u64, width) / cast(u64, outputWidth))
         }
+
         Memory.set(result.picture.pixels.storage(), 0, result.picture.pixels.count)
         return result
     }
@@ -134,7 +135,8 @@ impl VideoCaptureSession
 
     private mtd reducePicture()
     {
-        if .picture.width != .outputWidth or .picture.height != .outputHeight or
+        if .picture.width != .outputWidth or
+           .picture.height != .outputHeight or
            .picture.pixelFormat != .BGRA8 do
             .picture = Image.create(.outputWidth, .outputHeight, .BGRA8)
         reduceBgraNearest(&.sourcePicture, &.picture, .sourceColumns.storage())
@@ -192,6 +194,7 @@ impl VideoCaptureSession
                 .firstMissedSlot = slot.index - slot.skippedFrames
             .lastMissedSlot = slot.index - 1
         }
+
         .missedSlots += slot.skippedFrames
         if slot.skippedFrames <= 4
         {
@@ -218,7 +221,7 @@ impl VideoCaptureSession
             fail BadParameterError{"video capture gap did not align with the next frame"}
         let outputSlot = FrameSlot{.submittedFrames, .nextVideoTime,
                                    slot.duration, 0}
-        let grabStart = Time.monotonicMicroseconds()
+        let grabStart  = Time.monotonicMicroseconds()
         let grabTarget = .scaled ? &.sourcePicture : &.picture
         catch .source.grabInto(grabTarget, copyUnchanged: false)
         {
@@ -230,7 +233,7 @@ impl VideoCaptureSession
         }
 
         let grabDuration = Time.monotonicMicroseconds() - grabStart
-        .grabMicroseconds += grabDuration
+        .grabMicroseconds    += grabDuration
         .maxGrabMicroseconds = Math.max(.maxGrabMicroseconds, grabDuration)
         if not .source.fresh and .submittedFrames
         {
@@ -238,21 +241,23 @@ impl VideoCaptureSession
             .nextVideoTime += slot.duration
             return false
         }
+
         if .scaled
         {
             let scaleStart = Time.monotonicMicroseconds()
             .reducePicture()
             let scaleDuration = Time.monotonicMicroseconds() - scaleStart
-            .scaleMicroseconds += scaleDuration
+            .scaleMicroseconds    += scaleDuration
             .maxScaleMicroseconds = Math.max(.maxScaleMicroseconds, scaleDuration)
         }
+
         let encodeStart = Time.monotonicMicroseconds()
         try .writeFrame(outputSlot, false)
         let submitDuration = Time.monotonicMicroseconds() - encodeStart
-        .producerWaitMicroseconds += submitDuration
+        .producerWaitMicroseconds    += submitDuration
         .maxProducerWaitMicroseconds = Math.max(.maxProducerWaitMicroseconds, submitDuration)
-        .freshFrames   += 1
-        .nextVideoTime += slot.duration
+        .freshFrames                 += 1
+        .nextVideoTime               += slot.duration
         return true
     }
 

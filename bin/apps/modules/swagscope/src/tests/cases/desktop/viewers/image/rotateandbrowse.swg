@@ -17,16 +17,16 @@ using Core, Gui, Pixel, Viewers
     journey.waitForFile(first)
     Swag.require(window.choices[window.activeChoiceIndex].key == "image")
     let picture = assume cast(*Picture.Panel, window.currentView)
-    var input = Testing.DesktopInput.create(&journey.app, journey.surface)
+    var input   = Testing.DesktopInput.create(&journey.app, journey.surface)
     input.click(&picture.imageView.wnd)
     input.shortcut(.R, .None)
     journey.waitFor("native rotation shortcut", func|picture|()->bool =>
-        picture.imageView.rotationQuarterTurns == 1)
+                    picture.imageView.rotationQuarterTurns == 1)
     input.shortcut(.H, .None)
     journey.waitFor("native mirror shortcut", func|picture|()->bool => picture.imageView.isMirrored)
     input.shortcut(.R, .Control)
     journey.waitFor("native transform reset", func|picture|()->bool =>
-        picture.imageView.rotationQuarterTurns == 0 and not picture.imageView.isMirrored)
+                    picture.imageView.rotationQuarterTurns == 0 and not picture.imageView.isMirrored)
 
     input.shortcut(.Right, .None)
     journey.waitForFile(second)

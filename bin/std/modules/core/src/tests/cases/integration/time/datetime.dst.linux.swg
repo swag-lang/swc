@@ -34,7 +34,7 @@ func checkDaylightSavingTransition()
     var environment = Env.currentEnvironment()
     environment.set("TZ", "America/New_York")
     let arguments = ["--swag-dst-peer"]
-    let process = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: arguments,
-                                                     environment: &environment, standardOutput: .Pipe, standardError: .Pipe})
+    let process   = expect Env.runProcess(Env.StartInfo{fileName: Env.executablePath(), arguments: arguments,
+                                                        environment: &environment, standardOutput: .Pipe, standardError: .Pipe})
     Swag.require(process.exitCode() == 0, String.from(process.standardError()).toString())
 }

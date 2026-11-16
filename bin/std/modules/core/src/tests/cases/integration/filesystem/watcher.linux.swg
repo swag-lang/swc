@@ -16,7 +16,7 @@
     expect Directory.create(root)
     defer discard catch Directory.delete(root, recurse: true)
     var watcher = expect Directory.watch(root, {filter: .FileName})
-    let path = expect Path.nativePath(Path.combine(root, "cycle"))
+    let path    = expect Path.nativePath(Path.combine(root, "cycle"))
     for limit / 2 + 128
     {
         Swag.require(Linux.symlinkat("target".buffer, Linux.AT_FDCWD, path.storage()) == 0)
@@ -32,6 +32,7 @@
             overflow = true
             break
         }
+
         Swag.require(batch.status == .Changes, "watcher stopped before reporting kernel overflow")
     }
 

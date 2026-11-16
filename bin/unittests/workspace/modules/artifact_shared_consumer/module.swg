@@ -3,7 +3,7 @@
 #run
 {
     let cfg = unwrap Swag.compiler().getBuildCfg()
-    cfg.moduleNamespace = "SharedArtifactConsumer"
-    cfg.backendKind = .Executable
+    cfg.moduleNamespace     = "SharedArtifactConsumer"
+    cfg.backendKind         = .Executable
     cfg.publishDependencies = false
 }

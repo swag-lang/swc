@@ -20,6 +20,7 @@ using Swag, Core, Pixel
             discard testAddShape(fixture.capture, x, y, 18, 10)
         }
     }
+
     Swag.require(fixture.capture.forms.count == 320)
 
     for index in fixture.capture.forms.count do

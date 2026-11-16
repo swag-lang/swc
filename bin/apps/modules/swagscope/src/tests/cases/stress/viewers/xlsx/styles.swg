@@ -10,8 +10,9 @@ using Core, Viewers
     for table in ["fonts", "fills", "borders"]
     {
         var source = Format.toString("<styleSheet><%>", table)
-        let item = table == "fonts" ? "<font/>" : table == "fills" ? "<fill/>" : "<border/>"
-        for 4097 do source += item
+        let item   = table == "fonts" ? "<font/>" : table == "fills" ? "<fill/>" : "<border/>"
+        for 4097 do
+            source += item
         source += Format.toString("</%></styleSheet>", table)
         var error: Swag.Error
         discard catch Xlsx.CellStyles.parse(source, &theme) as error

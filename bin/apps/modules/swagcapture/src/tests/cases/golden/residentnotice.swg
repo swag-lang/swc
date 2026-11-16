@@ -22,6 +22,6 @@ using Swag, Core, Gui, Pixel
     main.setLanguage()
     Swag.require(main.noticeResident())
     let notice = unwrap main.residentNotice
-    var image = host.renderSurface(unwrap notice.surface)
+    var image  = host.renderSurface(unwrap notice.surface)
     Pixel.Testing.assertImageGolden(&image, "resident.notice.encre")
 }

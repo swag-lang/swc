@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let file = Path.combine(journey.root, "two-pages.pdf")
+    let file     = Path.combine(journey.root, "two-pages.pdf")
     var document = Pdf.Document.create()
     for title in ["First page", "Second page"]
     {
@@ -17,6 +17,7 @@ using Core, Gui, Pixel, Viewers
         page.addText(title, 32, 28, 24, Color.fromArgb(Argb.Black))
         document.addPage(#move page)
     }
+
     expect document.save(file)
 
     let window = journey.window
@@ -29,10 +30,10 @@ using Core, Gui, Pixel, Viewers
     var input = Testing.DesktopInput.create(&journey.app, journey.surface)
     input.click(&panel.nextButton.wnd)
     journey.waitFor("native next-page click", func|panel|()->bool => panel.pdfView.pageIndex == 1 and
-                                                            panel.previousButton.isEnabled() and
-                                                            not panel.nextButton.isEnabled())
+                                                                     panel.previousButton.isEnabled() and
+                                                                     not panel.nextButton.isEnabled())
     input.click(&panel.previousButton.wnd)
     journey.waitFor("native previous-page click", func|panel|()->bool => panel.pdfView.pageIndex == 0 and
-                                                                panel.nextButton.isEnabled() and
-                                                                not panel.previousButton.isEnabled())
+                                                                         panel.nextButton.isEnabled() and
+                                                                         not panel.previousButton.isEnabled())
 }

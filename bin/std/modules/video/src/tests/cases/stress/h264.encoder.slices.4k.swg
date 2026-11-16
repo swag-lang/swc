@@ -5,20 +5,21 @@ using Swag, Core, Pixel
 
 func sliceStressFrame(bright: u32)->Nv12Frame fail
 {
-    const Width = 3840'u64
+    const Width  = 3840'u64
     const Height = 2160'u64
     var image = Image.create(cast(s32, Width), cast(s32, Height), .RGB8)
     for y in Height
     {
         for x in Width
         {
-            let at = (y * Width + x) * 3
+            let at    = (y * Width + x) * 3
             let value = cast(u8, 32 + (x / 4 * 17 + y / 4 * 31) % 160 + bright)
-            image.pixels[at] = value
+            image.pixels[at]     = value
             image.pixels[at + 1] = value
             image.pixels[at + 2] = value
         }
     }
+
     var result: Nv12Frame
     try result.convertFrom(&image)
     return result
@@ -28,40 +29,38 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
 #[Swag.TestTag("stress")]
 #test
 {
-    let first = expect sliceStressFrame(0)
+    let first   = expect sliceStressFrame(0)
     let changed = expect sliceStressFrame(1)
     for count in [1'u32, 4, 8]
     {
         let path = videoTempPath("h264-encoder-slices-4k", "mp4")
         defer discard catch File.delete(path)
-        var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: 28,
-                                                  sliceCount: count)
-        var writer = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000,
-                                                        encoder.decoderConfig())
+        var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: 28, sliceCount: count)
+        var writer  = expect Mp4.FragmentedWriter.create(path, 3840, 2160, 90_000, encoder.decoderConfig())
         var watch: Time.Stopwatch
         watch.start()
         let idr = expect encoder.encode(&first, 0, 3_000)
         watch.stop()
         let idrMicros = watch.elapsedMicroseconds()
-        let idrBytes = idr.bytes.count
+        let idrBytes  = idr.bytes.count
         expect writer.addPacket(idr)
         watch.restart()
         let p = expect encoder.encode(&changed, 3_000, 3_000)
         watch.stop()
         let pMicros = watch.elapsedMicroseconds()
-        let pBytes = p.bytes.count
+        let pBytes  = p.bytes.count
         expect writer.addPacket(p)
         watch.restart()
         let staticPicture = expect encoder.encode(&changed, 6_000, 3_000)
         watch.stop()
         let staticMicros = watch.elapsedMicroseconds()
-        let staticBytes = staticPicture.bytes.count
+        let staticBytes  = staticPicture.bytes.count
         expect writer.addPacket(staticPicture)
         watch.restart()
         let held = expect encoder.repeatPrevious(9_000, 3_000)
         watch.stop()
         let heldMicros = watch.elapsedMicroseconds()
-        let heldBytes = held.bytes.count
+        let heldBytes  = held.bytes.count
         expect writer.addPacket(held)
         expect writer.end()
 
@@ -91,9 +90,18 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
         Swag.require(Slice.equals(decoded.chromaB.toSlice(), heldPicture.chromaB.toSlice()))
         Swag.require(Slice.equals(decoded.chromaR.toSlice(), heldPicture.chromaR.toSlice()))
         Console.printf("H264 4K % slices: IDR % us/% bytes, P % us/% bytes, static % us/% bytes, held % us/% bytes, Reader IDR % us/P % us/held % us\n",
-                       count, idrMicros, idrBytes, pMicros, pBytes,
-                       staticMicros, staticBytes, heldMicros, heldBytes,
-                       decodeIdrMicros, decodePMicros, decodeHeldMicros)
+                       count,
+                       idrMicros,
+                       idrBytes,
+                       pMicros,
+                       pBytes,
+                       staticMicros,
+                       staticBytes,
+                       heldMicros,
+                       heldBytes,
+                       decodeIdrMicros,
+                       decodePMicros,
+                       decodeHeldMicros)
     }
 }
 
@@ -101,14 +109,13 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
 #[Swag.TestTag("stress")]
 #test
 {
-    let first = expect sliceStressFrame(0)
+    let first   = expect sliceStressFrame(0)
     let changed = expect sliceStressFrame(1)
     for qp in [18'u32, 28]
     {
         for count in [4'u32, 8]
         {
-            var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: qp,
-                                                      sliceCount: count)
+            var encoder = expect H264.Encoder.create(3840, 2160, quantizationQp: qp, sliceCount: count)
             discard expect encoder.encode(&first, 0, 3_000)
             discard expect encoder.encode(&changed, 3_000, 3_000)
             var watch: Time.Stopwatch
@@ -117,12 +124,16 @@ func sliceStressFrame(bright: u32)->Nv12Frame fail
             for index in 100'u64
             {
                 let picture = index % 2 ? &changed : &first
-                let packet = expect encoder.encode(picture, (index + 2) * 3_000, 3_000)
+                let packet  = expect encoder.encode(picture, (index + 2) * 3_000, 3_000)
                 totalBytes += packet.bytes.count
             }
+
             watch.stop()
             Console.printf("H264 4K QP % % slices: 100 changing P pictures % us/% bytes\n",
-                           qp, count, watch.elapsedMicroseconds(), totalBytes)
+                           qp,
+                           count,
+                           watch.elapsedMicroseconds(),
+                           totalBytes)
             Swag.require(totalBytes > 0)
         }
     }

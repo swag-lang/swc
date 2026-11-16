@@ -234,9 +234,9 @@ impl Decoder
         if width > Swag.S32.Max or height > Swag.S32.Max do
             fail UnsupportedFormatError{"image is too big"}
 
-        let compression  = try readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
-        let photometric  = try readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
-        var orientation = 1'u32
+        let compression      = try readScalar(base, last, le, &ifd, TAG_COMPRESSION, COMPRESSION_NONE)
+        let photometric      = try readScalar(base, last, le, &ifd, TAG_PHOTOMETRIC, PHOTO_BLACK_IS_ZERO)
+        var orientation      = 1'u32
         let orientationEntry = ifd.find(TAG_ORIENTATION)
         if orientationEntry
         {
@@ -248,6 +248,7 @@ impl Decoder
             if orientation < 1 or orientation > 8 do
                 fail InvalidFormatError{"TIFF orientation value is out of range"}
         }
+
         let samples      = try readScalar(base, last, le, &ifd, TAG_SAMPLES_PER_PIXEL, 1)
         let planar       = try readScalar(base, last, le, &ifd, TAG_PLANAR_CONFIG, 1)
         let predictor    = try readScalar(base, last, le, &ifd, TAG_PREDICTOR, 1)
@@ -341,6 +342,7 @@ impl Decoder
                 result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
             return result
         }
+
         result.init(cast(s32, width), cast(s32, height), pf, alphaMode)
 
         // Palette (for photometric=palette)

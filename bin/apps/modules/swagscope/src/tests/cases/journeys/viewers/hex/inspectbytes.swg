@@ -26,11 +26,11 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Find)
     window.searchBox.setText("text:MARK")
     journey.waitFor("two byte matches", func|window, hex|()->bool => window.searchComplete and
-                                                                window.searchMatches.count == 2 and
-                                                                hex.grid.matchStart == 8)
+                                                                     window.searchMatches.count == 2 and
+                                                                     hex.grid.matchStart == 8)
     window.sendCommandEvent(ViewerCommands.FindNext)
     journey.waitFor("second byte match", func|window, hex|()->bool => window.searchIndex == 1 and
-                                                                  hex.grid.matchStart == 22)
+                                                                      hex.grid.matchStart == 22)
     Swag.require(hex.grid.goToTypedOffset("0x10") and hex.grid.caret == 16)
     Swag.require(hex.grid.matchStart == 22)
 }

@@ -13,6 +13,7 @@ using Swag, Core, Gui
         host.shutdown()
         g_Main = null
     }
+
     defer discard catch host.app.setLanguage(Gui.ReferenceLanguage)
 
     testAddMonitorAt(main, {1440, 0, 1440, 900})
@@ -21,7 +22,7 @@ using Swag, Core, Gui
     {
         expect host.app.setLanguage(language.tag)
         let centered = testOpenResidentPanel(&host, main, .Centered)
-        let pointer = testOpenResidentPanel(&host, main, .AtPointer)
+        let pointer  = testOpenResidentPanel(&host, main, .AtPointer)
         Swag.require(centered.listSize == pointer.listSize)
         Swag.require(centered.menu.items.count == pointer.menu.items.count)
         Swag.require(centered.recents != null and pointer.recents != null)
@@ -40,6 +41,7 @@ using Swag, Core, Gui
             if item.label and item.name.text == appStrings().lens_Recent do
                 Swag.require(optionsSeen)
         }
+
         Testing.assertContentFits(centered)
         Testing.assertContentFits(pointer)
 
@@ -70,8 +72,9 @@ using Swag, Core, Gui
         host.shutdown()
         g_Main = null
     }
-    let panel = testOpenResidentPanel(&host, main, .AtPointer)
-    let work = Env.monitorForPoint({}).physicalWorkArea
+
+    let panel  = testOpenResidentPanel(&host, main, .AtPointer)
+    let work   = Env.monitorForPoint({}).physicalWorkArea
     let anchor = Math.Point{work.right() - 8, work.bottom() - 8}
     panel.place(anchor)
     Swag.require(panel.recents == null)
@@ -124,14 +127,14 @@ using Swag, Core, Gui
     }
 
     main.recentWnd.addRecent("first.scc", testFramePicture(40, 8), front: false)
-    let panel = testOpenResidentPanel(&host, main, .Centered)
+    let panel   = testOpenResidentPanel(&host, main, .Centered)
     let surface = unwrap panel.surface
     let recents = unwrap panel.recents
     surface.show()
     host.app.runFrame()
-    let width = cast(s32, surface.position.width)
+    let width  = cast(s32, surface.position.width)
     let height = cast(s32, surface.position.height)
-    var first = host.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
+    var first  = host.app.renderer.readRenderTarget(&surface.rt, 0, 0, width, height)
 
     // Each decoded thumbnail must repaint the hub even after the file scan has started.
     main.recentWnd.loadDone = true
@@ -190,6 +193,7 @@ using Swag, Core, Gui
             Swag.require(recordingHeading)
             optionsHeading = true
         }
+
         if item.id == null and not item.separator and not item.label and not item.disabled do
             Swag.require(optionsHeading)
     }
@@ -230,7 +234,7 @@ using Swag, Core, Gui
         Swag.require(testPanelOffers(panel, ActionCapture.Area))
         Testing.assertContentFits(panel)
 
-        let cursor = assume cast(*IconButton, choices.children[0])
+        let cursor         = assume cast(*IconButton, choices.children[0])
         let previousCursor = main.captureOptions.captureCursor
         Swag.require(cursor.flags.has(.Toggle) and cursor.name.text == appStrings().ui_AimCursor)
         host.clickWnd(cursor)
@@ -312,7 +316,7 @@ using Swag, Core, Gui
 
     for index in 3 do
         main.recentWnd.addRecent(Format.toString("recent%.scc", index), testFramePicture(cast(u8, 40 * index), 8))
-    let panel = testOpenResidentPanel(&host, main, .Centered)
+    let panel   = testOpenResidentPanel(&host, main, .Centered)
     let recents = unwrap panel.recents
 
     var down        = KeyEvent{kind: .Pressed, key: .Down}
@@ -423,10 +427,10 @@ using Swag, Core, Gui
     }
 
     let surface = unwrap main.surface
-    main.editorOptions.residentNotices = 0
+    main.editorOptions.residentNotices    = 0
     main.editorOptions.showResidentNotice = true
     surface.hide()
-    let panel = testOpenResidentPanel(&host, main, .Centered)
+    let panel  = testOpenResidentPanel(&host, main, .Centered)
     var escape = KeyEvent{kind: .Pressed, key: .Escape}
     panel.sendEvent(&escape)
     Swag.require(escape.accepted and main.residentPanel == null)
@@ -434,12 +438,14 @@ using Swag, Core, Gui
     let notice = unwrap main.residentNotice
     Swag.require(host.app.surfaces.count == 2)
     Swag.require(notice.surface != surface)
-    let card = notice.children[0]
-    let cardBounds = card.surfaceRect()
-    let choice = unwrap notice.optionCheck
+    let card         = notice.children[0]
+    let cardBounds   = card.surfaceRect()
+    let choice       = unwrap notice.optionCheck
     let choiceBounds = choice.surfaceRect()
-    Swag.require(choiceBounds.x >= cardBounds.x and choiceBounds.right() <= cardBounds.right() and
-                 choiceBounds.y >= cardBounds.y and choiceBounds.bottom() <= cardBounds.bottom())
+    Swag.require(choiceBounds.x >= cardBounds.x and
+                 choiceBounds.right() <= cardBounds.right() and
+                 choiceBounds.y >= cardBounds.y and
+                 choiceBounds.bottom() <= cardBounds.bottom())
     Swag.require(not choice.isChecked())
     choice.toggle()
     Swag.require(not main.editorOptions.showResidentNotice)

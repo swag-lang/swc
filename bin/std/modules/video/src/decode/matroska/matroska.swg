@@ -437,9 +437,14 @@ private impl Layout
                 return Element{cluster.id, cluster.data, position, true}
 
             let child = try cursor.readElement(segmentEnd)
-            if child.id == SeekHeadId or child.id == InfoId or child.id == TracksId or
-               child.id == ClusterId or child.id == CuesId or child.id == AttachmentsId or
-               child.id == ChaptersId or child.id == TagsId do
+            if child.id == SeekHeadId or
+               child.id == InfoId or
+               child.id == TracksId or
+               child.id == ClusterId or
+               child.id == CuesId or
+               child.id == AttachmentsId or
+               child.id == ChaptersId or
+               child.id == TagsId do
                 return Element{cluster.id, cluster.data, position, true}
             if child.isUnknown do
                 fail InvalidFormatError{"Matroska Cluster contains an unknown-size child"}
@@ -1932,6 +1937,7 @@ private impl Decoder
         elif video.pictureKind() == PictureMpeg4
         {
             .info.codecName = "MPEG-4 Part 2"
+
             // The setup headers state the geometry outright.
             var probe: Mpeg4.Decoder
             try probe.configure(video.videoConfiguration())
@@ -1941,6 +1947,7 @@ private impl Decoder
         elif video.isHevcVideo()
         {
             .info.codecName = "H.265 / HEVC"
+
             // The stream answers its own geometry, so the parameter sets are read once here and
             // once more when the sample table exists.
             var probe: Hevc.HevcStream

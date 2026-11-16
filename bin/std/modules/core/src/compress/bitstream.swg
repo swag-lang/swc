@@ -64,7 +64,7 @@ impl BitStream
         {
             var chunk: u64
             Memory.copy(cast([*] void, &chunk), cast(const [*] void, unwrap .currentPointer()), #sizeof(chunk))
-            chunk = Math.littleEndianToNative(chunk)
+            chunk       = Math.littleEndianToNative(chunk)
             .codeBuffer |= chunk << #wrap .numBits
             let nbytes = (64 - cast(u64, .numBits)) >> 3
             .curByte += nbytes

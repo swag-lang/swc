@@ -9,7 +9,7 @@ using Core, Gui, Pixel, Viewers
 {
     var journey: ScopeJourney
     journey.setup()
-    let first = journey.copyData("viewer.srt", "A-dialogue.srt")
+    let first  = journey.copyData("viewer.srt", "A-dialogue.srt")
     let second = Path.combine(journey.root, "B-dialogue.vtt")
     expect File.writeAllText(second, "WEBVTT\n\n00:00:01.000 --> 00:00:03.000\nAgain in another file.\n")
     let window = journey.window
@@ -22,8 +22,8 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Find)
     window.searchBox.setText("second")
     journey.waitFor("caption found", func|window, captions|()->bool => window.searchComplete and
-                                                                  window.searchMatches.count == 1 and
-                                                                  captions.currentCue == 1)
+                                                                       window.searchMatches.count == 1 and
+                                                                       captions.currentCue == 1)
 
     window.sendCommandEvent(ViewerCommands.NextFile)
     journey.waitForFile(second)
@@ -32,5 +32,5 @@ using Core, Gui, Pixel, Viewers
     window.sendCommandEvent(ViewerCommands.Find)
     window.searchBox.setText("Again")
     journey.waitFor("next caption found", func|window|()->bool => window.searchComplete and
-                                                                 window.searchMatches.count == 1)
+                                                                  window.searchMatches.count == 1)
 }

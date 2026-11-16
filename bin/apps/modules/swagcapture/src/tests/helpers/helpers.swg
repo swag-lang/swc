@@ -137,6 +137,7 @@ impl HeadlessFixture
         discard g_CaptureSaves.flush()
         .gui.shutdown()
         g_Main = null
+
         // bindApplication lends the headless renderer and style to the global app.
         // Release those borrowed references before a native journey uses g_App.
         Swag.drop(&g_App, 1)
@@ -435,10 +436,10 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
 {
     f.gui.surfaceWnd.view = f.main
 
-    let metrics = f.main.themeMetrics()
-    let gutter = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
+    let metrics   = f.main.themeMetrics()
+    let gutter    = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
     let bodyWidth = metrics.inspector_Width - 2 * metrics.inspector_Padding + 2 * gutter
-    let body = Wnd.create'Wnd(f.main, {600, 0, bodyWidth, 650})
+    let body      = Wnd.create'Wnd(f.main, {600, 0, bodyWidth, 650})
     with f.main.quickWnd = QuickWnd.create(body, f.main)
     {
         .dockStyle = .Top

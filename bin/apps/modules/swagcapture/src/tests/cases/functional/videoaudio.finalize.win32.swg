@@ -9,28 +9,29 @@ using Core, Pixel, Video, Audio
     let path = Gui.Testing.tempFilePath("capture-audio-finalize-", ".mp4")
     defer discard catch File.delete(path)
     let configs = VideoRecordingAudio.configs(true, true)
-    var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16},
-                                                    expect FrameRate.create(30, 1), false, configs.toSlice())
+    var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16}, expect FrameRate.create(30, 1), false, configs.toSlice())
     discard expect session.captureAt(0)
     var audio: VideoRecordingAudio
     audio.microphoneQueue = expect CaptureQueue.create(48_000, 1, 0, 48_000, slots: 16)
-    audio.systemQueue = expect CaptureQueue.create(48_000, 2, 0, 48_000, slots: 16)
-    audio.microphonePump = expect VideoAudioPump.create(&session, &audio.microphoneQueue, 0)
-    audio.systemPump = expect VideoAudioPump.create(&session, &audio.systemQueue, 1)
+    audio.systemQueue     = expect CaptureQueue.create(48_000, 2, 0, 48_000, slots: 16)
+    audio.microphonePump  = expect VideoAudioPump.create(&session, &audio.microphoneQueue, 0)
+    audio.systemPump      = expect VideoAudioPump.create(&session, &audio.systemQueue, 1)
     audio.wantsMicrophone = true
-    audio.wantsSystem = true
-    var mono: [960] s16
+    audio.wantsSystem     = true
+    var mono:   [960] s16
     var stereo: [1920] s16
     for index in mono.count
     {
         mono[index] = cast(s16, index % 160 * 80)
         stereo[index * 2], stereo[index * 2 + 1] = mono[index]
     }
+
     for index in 12'u64
     {
         discard expect audio.microphoneQueue.push(mono, index * 960)
         discard expect audio.systemQueue.push(stereo, index * 960)
     }
+
     audio.close()
     Swag.require(audio.microphonePump.inputFrameCount() == 11_520)
     Swag.require(audio.systemPump.inputFrameCount() == 11_520)
@@ -50,27 +51,28 @@ using Core, Pixel, Video, Audio
 {
     let path = Gui.Testing.tempFilePath("capture-video-index-", ".mp4")
     defer discard catch File.delete(path)
-    var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16},
-                                                    expect FrameRate.create(30, 1), false)
+    var session = expect VideoCaptureSession.create(path, {0, 0, 16, 16}, expect FrameRate.create(30, 1), false)
     for frame in 181'u64 do
         discard expect session.captureAt(frame * 33_334)
     expect session.end()
 
     var cursor = expect Mp4.FragmentedPacketCursor.open(path)
-    var packet: Mp4.FragmentedCursorPacket
+    var packet:         Mp4.FragmentedCursorPacket
     var fragmentOffset: u64
-    var fragmentCount: u32
-    var frameCount: u64
+    var fragmentCount:  u32
+    var frameCount:     u64
     while expect cursor.nextPacket(&packet)
     {
         Swag.require(packet.isVideo)
         if packet.fragmentOffset != fragmentOffset
         {
             fragmentOffset = packet.fragmentOffset
-            fragmentCount += 1
+            fragmentCount  += 1
         }
+
         frameCount += 1
     }
+
     Swag.require(frameCount == 181 and fragmentCount == 7)
 
     var index = expect Mp4.FragmentedIndex.open(path)

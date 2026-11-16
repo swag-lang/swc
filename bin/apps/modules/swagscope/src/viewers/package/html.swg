@@ -10,11 +10,11 @@ func appendHtmlEscaped(result: *String, source: string)
     {
         switch value
         {
-        case '&':  result[] += "&amp;"
-        case '<':  result[] += "&lt;"
-        case '>':  result[] += "&gt;"
+        case '&': result[] += "&amp;"
+        case '<': result[] += "&lt;"
+        case '>': result[] += "&gt;"
         case '"': result[] += "&quot;"
-        default:   result[] += value
+        default:  result[] += value
         }
     }
 }

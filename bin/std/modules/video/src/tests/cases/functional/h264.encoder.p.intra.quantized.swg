@@ -7,7 +7,7 @@ private impl Nv12Frame
 {
     mtd fillPIntraPattern(width, height: s32)
     {
-        .width = width
+        .width  = width
         .height = height
         let count = cast(u64, width) * cast(u64, height)
         .bytes.resize(count + count / 2)
@@ -16,12 +16,13 @@ private impl Nv12Frame
             for x in cast(u64, width) do
                 .bytes[y * cast(u64, width) + x] = cast(u8, (x * 7 + y * 13 + x * y) & 255)
         }
+
         for y in cast(u64, height) / 2
         {
             for x in cast(u64, width) / 2
             {
                 let at = count + y * cast(u64, width) + x * 2
-                .bytes[at] = cast(u8, (x * 5 + y * 3) & 255)
+                .bytes[at]     = cast(u8, (x * 5 + y * 3) & 255)
                 .bytes[at + 1] = cast(u8, (x * 11 + y * 17) & 255)
             }
         }
@@ -29,7 +30,7 @@ private impl Nv12Frame
 
     mtd fillPIntraFlat(width, height: s32, valueY, valueU, valueV: u8)
     {
-        .width = width
+        .width  = width
         .height = height
         let count = cast(u64, width) * cast(u64, height)
         .bytes.resize(count + count / 2)
@@ -37,21 +38,21 @@ private impl Nv12Frame
             .bytes[index] = valueY
         for index in count / 4
         {
-            .bytes[count + index * 2] = valueU
+            .bytes[count + index * 2]     = valueU
             .bytes[count + index * 2 + 1] = valueV
         }
     }
 
     mtd setPIntraDecoded(frame: const *PlanarFrame)
     {
-        .width = frame.width
+        .width  = frame.width
         .height = frame.height
         let lumaSize = cast(u64, .width) * cast(u64, .height)
         .bytes.resize(lumaSize + lumaSize / 2)
         Memory.copy(.bytes.storage(), frame.luma.storage(), lumaSize)
         for pixel in lumaSize / 4
         {
-            .bytes[lumaSize + pixel * 2] = frame.chromaB[pixel]
+            .bytes[lumaSize + pixel * 2]     = frame.chromaB[pixel]
             .bytes[lumaSize + pixel * 2 + 1] = frame.chromaR[pixel]
         }
     }
@@ -59,7 +60,8 @@ private impl Nv12Frame
 
 private func samePIntraPicture(a, b: const *PlanarFrame)->bool
 {
-    return a.width == b.width and a.height == b.height and
+    return a.width == b.width and
+           a.height == b.height and
            Memory.compare(a.luma.storage(), b.luma.storage(), a.luma.count) == 0 and
            Memory.compare(a.chromaB.storage(), b.chromaB.storage(), a.chromaB.count) == 0 and
            Memory.compare(a.chromaR.storage(), b.chromaR.storage(), a.chromaR.count) == 0
@@ -77,8 +79,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
     flat.fillPIntraFlat(64, 64, 83, 117, 141)
     changed.fillPIntraFlat(64, 64, 91, 121, 137)
     var encoder = expect H264.Encoder.create(64, 64, 60, 28, 2)
-    var writer = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000, encoder.decoderConfig())
     expect writer.addPacket(expect encoder.encode(&key, 0, 3_000))
     let first = expect encoder.encode(&flat, 3_000, 3_000)
     Swag.require(first.bytes.count <= 512)
@@ -92,6 +93,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
         expect prefix.decodeFramePlanesInto(&decoded, 1)
         decodedSource.setPIntraDecoded(&decoded)
     }
+
     let held = expect encoder.encode(&flat, 6_000, 3_000)
     Swag.require(held.bytes.count <= 32)
     expect writer.addPacket(held)
@@ -121,8 +123,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
     key.fillPIntraPattern(64, 64)
     flat.fillPIntraFlat(64, 64, 83, 117, 141)
     var encoder = expect H264.Encoder.create(64, 64, 60, 36, 2)
-    var writer = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 64, 64, 90_000, encoder.decoderConfig())
     expect writer.addPacket(expect encoder.encode(&key, 0, 3_000))
     let first = expect encoder.encode(&flat, 3_000, 3_000)
     Swag.require(first.bytes.count < 1_000)
@@ -136,6 +137,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
         expect prefix.decodeFramePlanesInto(&decoded, 1)
         decodedSource.setPIntraDecoded(&decoded)
     }
+
     let held = expect encoder.encode(&flat, 6_000, 3_000)
     Swag.require(held.bytes.count <= 32)
     expect writer.addPacket(held)
@@ -156,6 +158,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
         let delta = cast(s32, p1.luma[index]) - cast(s32, flat.luma()[index])
         squaredError += cast(u64, delta * delta)
     }
+
     Swag.require(squaredError < p1.luma.count * 64)
 }
 
@@ -168,8 +171,7 @@ private func samePIntraPicture(a, b: const *PlanarFrame)->bool
     key.fillPIntraPattern(130, 74)
     flat.fillPIntraFlat(130, 74, 83, 117, 141)
     var encoder = expect H264.Encoder.create(130, 74, 60, 28, 2)
-    var writer = expect Mp4.FragmentedWriter.create(path, 130, 74, 90_000,
-                                                    encoder.decoderConfig())
+    var writer  = expect Mp4.FragmentedWriter.create(path, 130, 74, 90_000, encoder.decoderConfig())
     expect writer.addPacket(expect encoder.encode(&key, 0, 3_000))
     expect writer.addPacket(expect encoder.encode(&flat, 3_000, 3_000))
     expect writer.addPacket(expect encoder.encode(&flat, 6_000, 3_000))

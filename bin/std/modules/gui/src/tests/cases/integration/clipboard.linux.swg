@@ -155,6 +155,7 @@ func readSelectionPeer(mode: string)
         var peer = startSelectionPeer("offer")
         defer stopSelectionPeer(&peer)
         Swag.require(Clipboard.getString() == "étranger")
+
         // The server drops a dead owner's selection even when it never sent a clear request.
         stopSelectionPeer(&peer)
         let deadline = Time.monotonicMilliseconds() + 2000

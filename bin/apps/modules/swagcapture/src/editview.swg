@@ -15,15 +15,15 @@ const ZoomRefineDelay: Time.Duration = 180'ms
 
 struct EditView
 {
-    using wnd:   Wnd
-    late main:   *MainWnd
-    late scroll: *ScrollWnd
-    capture:     *Capture?
+    using wnd:         Wnd
+    late main:         *MainWnd
+    late scroll:       *ScrollWnd
+    capture:           *Capture?
     inPlaceKindButton: *IconButton?
-    zoom:        f32  = 1
-    viewMargin:  f32  = 32
-    firstPaint:  bool = true
-    zoomTimer:   *Gui.Timer?
+    zoom:              f32  = 1
+    viewMargin:        f32  = 32
+    firstPaint:        bool = true
+    zoomTimer:         *Gui.Timer?
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool
@@ -269,19 +269,20 @@ impl EditView
         painter.setParams(.Default)
         painter.drawRect(zone, Argb.White, 1)
 
-        let metrics = .themeMetrics()
-        let colors  = .themeColors()
-        let capture = unwrap .capture
-        let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
-        let text    = Format.toString("% × %", capture.width, capture.height)
-        let pad     = metrics.hintLine_KeyGap
+        let metrics   = .themeMetrics()
+        let colors    = .themeColors()
+        let capture   = unwrap .capture
+        let font      = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
+        let text      = Format.toString("% × %", capture.width, capture.height)
+        let pad       = metrics.hintLine_KeyGap
         let textWidth = Painter.measureString(text, font).width
         let chip      = .inPlaceSizeChipRect(zone, textWidth, font.height, pad)
-        var textX   = chip.x + pad
+        var textX     = chip.x + pad
         if .inPlaceKindButton
         {
             textX += .inPlaceKindButton.position.width + metrics.menuPopup_IconTextMargin + pad * 0.5
         }
+
         painter.setParams(.Antialiased)
         painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
         painter.drawString(textX, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
@@ -290,12 +291,12 @@ impl EditView
     // Gives the dimensions and kind control one chip at the capture's top edge.
     mtd inPlaceSizeChipRect(zone: Math.Rectangle, textWidth, textHeight, pad: f32)->Math.Rectangle
     {
-        let metrics = .themeMetrics()
+        let metrics     = .themeMetrics()
         let buttonWidth = .inPlaceKindButton ? .inPlaceKindButton.position.width : 0.0
-        let leading = buttonWidth > 0 ? buttonWidth + metrics.menuPopup_IconTextMargin + pad * 0.5 : 0.0
-        let width  = leading + textWidth + 2 * pad
-        let bounds = .clientRect()
-        let x = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
+        let leading     = buttonWidth > 0 ? buttonWidth + metrics.menuPopup_IconTextMargin + pad * 0.5 : 0.0
+        let width       = leading + textWidth + 2 * pad
+        let bounds      = .clientRect()
+        let x           = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
         return {x, zone.y - textHeight - pad - metrics.miniBar_Padding, width, textHeight + pad}
     }
 

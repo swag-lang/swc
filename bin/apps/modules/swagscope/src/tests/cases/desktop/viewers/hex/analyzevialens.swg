@@ -21,7 +21,7 @@ using Core, Gui, Pixel, Viewers
     Swag.require(hexIndex != Swag.U32.Max)
     window.selectViewer(hexIndex)
     journey.waitFor("hexadecimal viewer", func|window|()->bool =>
-        window.choices[window.activeChoiceIndex].key == "hex")
+                    window.choices[window.activeChoiceIndex].key == "hex")
     let hex = assume cast(*Hex.Panel, window.currentView)
     journey.waitFor("hexadecimal analysis ready", func|hex|()->bool => hex.analysisButton.isEnabled())
     Swag.require(not hex.analysisView.isVisible())
@@ -32,17 +32,17 @@ using Core, Gui, Pixel, Viewers
     for key in [Input.Key.A, .N, .A] do
         input.shortcut(key, .None)
     journey.waitFor("analysis command found", func|window, hex|()->bool =>
-        window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
+                    window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
     input.shortcut(.Return, .None)
     journey.waitFor("native analysis toggle", func|hex|()->bool =>
-        hex.analysisButton.isChecked and hex.analysisView.isVisible())
+                    hex.analysisButton.isChecked and hex.analysisView.isVisible())
     input.shortcut(.Space, .Control)
     journey.waitFor("native command lens reopened", func|window|()->bool => window.lens.isOpen())
     for key in [Input.Key.A, .N, .A] do
         input.shortcut(key, .None)
     journey.waitFor("analysis command found again", func|window, hex|()->bool =>
-        window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
+                    window.lens.chosenEntry() != null and window.lens.chosenEntry()!.title == hex.analysisButton.toolTip)
     input.shortcut(.Return, .None)
     journey.waitFor("native analysis close", func|hex|()->bool =>
-        not hex.analysisButton.isChecked and not hex.analysisView.isVisible())
+                    not hex.analysisButton.isChecked and not hex.analysisView.isVisible())
 }

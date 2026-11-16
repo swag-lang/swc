@@ -33,10 +33,10 @@ func runTextInputPeer(script, mode, saved: string)
         app.runFrame()
     surface.wnd.view.focusPolicy = .Click
     surface.wnd.view.setFocus()
-    var characters: String
+    var characters:        String
     var presses, releases: Array'Input.Key
     var letterPressModifiers, letterCharacterModifiers: Array'Input.KeyModifiers
-    var layoutChanges: u32
+    var layoutChanges:     u32
     surface.wnd.view.hookOnEvent = func|&characters, &presses, &releases, &letterPressModifiers, &letterCharacterModifiers, &layoutChanges|(_, event)->bool
     {
         if event is NotifyEvent as notice where notice.kind == .KeyboardLayoutChanged
@@ -44,6 +44,7 @@ func runTextInputPeer(script, mode, saved: string)
             layoutChanges += 1
             return false
         }
+
         if event is KeyEvent as key
         {
             if key.kind == .Character
@@ -58,8 +59,11 @@ func runTextInputPeer(script, mode, saved: string)
                 if key.key == .A do
                     letterPressModifiers.add(key.modifiers)
             }
-            elif key.kind == .Released do
+            elif key.kind == .Released
+            {
                 releases.add(key.key)
+            }
+
             return true
         }
 
@@ -71,7 +75,7 @@ func runTextInputPeer(script, mode, saved: string)
     for mode in ["send", "remap", "held-remap", "repeat", "modifiers"]
     {
         let priorCharacterCount = characters.count
-        let priorLayoutChanges = layoutChanges
+        let priorLayoutChanges  = layoutChanges
         var peer = expect Env.startProcess(Env.StartInfo{fileName: "python3", arguments: [script.toString(), mode, saved.toString(), id.toString()],
                                                          standardOutput: .Pipe, standardError: .Pipe})
         defer { discard catch peer.kill(); discard catch peer.waitForExit(); }
@@ -91,7 +95,7 @@ func runTextInputPeer(script, mode, saved: string)
         if mode == "remap"
         {
             let context = expect LinuxDesktop.ensure()
-            let mapped = LinuxDesktop.portableKey(context, 230, 0)
+            let mapped  = LinuxDesktop.portableKey(context, 230, 0)
             Swag.require(mapped == .B, Format.toString("mapped key after X11 change: %", mapped))
         }
 
@@ -121,11 +125,13 @@ func runTextInputPeer(script, mode, saved: string)
             let expectedText = mode == "send" ? "aéJ\u0301" : (mode == "remap" ? "aéJ\u0301b" : "aéJ\u0301bbc")
             Swag.require(characters == expectedText, Format.toString("text in %: %", mode, characters))
         }
+
         if mode == "held-remap"
         {
             Swag.require(presses[presses.count - 2] == .B and presses.back() == .C)
             Swag.require(releases[releases.count - 2] == .B and releases.back() == .C)
         }
+
         if mode == "repeat"
         {
             Swag.require(presses.back() == .A and releases.back() == .A)
@@ -139,11 +145,11 @@ func runTextInputPeer(script, mode, saved: string)
         app.runFrame()
     Swag.require(layoutChanges > 0, "XKB keymap replacement did not notify the surface")
     let changesBeforeGroupSwitch = layoutChanges
-    let countBeforeGroups = characters.count
-    let pressesBeforeGroups = presses.count
-    var groupPeer = expect Env.startProcess(Env.StartInfo{fileName: "python3",
-                                                          arguments: [script.toString(), "group-send", saved.toString(), id.toString()],
-                                                          standardOutput: .Pipe, standardError: .Pipe})
+    let countBeforeGroups        = characters.count
+    let pressesBeforeGroups      = presses.count
+    var groupPeer                = expect Env.startProcess(Env.StartInfo{fileName: "python3",
+                                                                         arguments: [script.toString(), "group-send", saved.toString(), id.toString()],
+                                                                         standardOutput: .Pipe, standardError: .Pipe})
     defer { discard catch groupPeer.kill(); discard catch groupPeer.waitForExit(); }
     let groupDeadline = Time.monotonicMilliseconds() + 4000
     while groupPeer.isRunning() and Time.monotonicMilliseconds() < groupDeadline
@@ -151,13 +157,16 @@ func runTextInputPeer(script, mode, saved: string)
         app.runFrame()
         discard expect groupPeer.tryWaitForExit(5'ms)
     }
+
     for 8 do
         app.runFrame()
     Swag.require(not groupPeer.isRunning() and groupPeer.exitCode() == 0, groupPeer.standardError())
     Swag.require(characters.count == countBeforeGroups + 2 and Utf8.endsWith(characters.toString(), "zy"),
                  Format.toString("XKB group text: %", characters))
     Swag.require(presses.count == pressesBeforeGroups + 2 and releases.count == presses.count)
-    Swag.require(presses[presses.count - 2] == .Y and presses.back() == .Y and
-                 releases[releases.count - 2] == .Y and releases.back() == .Y)
+    Swag.require(presses[presses.count - 2] == .Y and
+                 presses.back() == .Y and
+                 releases[releases.count - 2] == .Y and
+                 releases.back() == .Y)
     Swag.require(layoutChanges >= changesBeforeGroupSwitch + 2, "XKB group switches did not notify the surface")
 }

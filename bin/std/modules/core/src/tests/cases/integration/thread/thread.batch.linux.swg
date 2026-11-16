@@ -20,12 +20,13 @@ func linuxBatchDelayedThreadBody(thread: const *Threading.Thread)
 {
     Swag.require(not Swag.jit(), "run the native wait batch with --no-test-jit")
     var completed: Swag.AtomicValue'u32
-    var threads: [LinuxBatchThreadCount] Threading.Thread
+    var threads:   [LinuxBatchThreadCount] Threading.Thread
     for i in LinuxBatchThreadCount
     {
         let body = i + 1 == LinuxBatchThreadCount ? &linuxBatchDelayedThreadBody : &linuxBatchThreadBody
         expect threads[i].init(body, &completed)
     }
+
     for &thread in threads do
         expect thread.start()
 

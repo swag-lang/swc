@@ -108,7 +108,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
         try fault(0x06)
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let context = Swag.getContext()
-    let previousAllocator = context.allocator
+    let previousAllocator   = context.allocator
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
 

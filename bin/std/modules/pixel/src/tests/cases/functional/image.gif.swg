@@ -242,7 +242,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 #test
 {
     var bytes = expect File.readAllBytes(getTestDataPath("test.gif"))
-    var image: Image
+    var image:     Image
     var gceOffset: u64
     for i in bytes.count - 7
     {
@@ -254,7 +254,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     }
 
     Swag.require(gceOffset != 0)
-    bytes[gceOffset + 3] = bytes[gceOffset + 3] | 0x10  // Disposal methods 4..7 are reserved.
+    bytes[gceOffset + 3] = bytes[gceOffset + 3] | 0x10     // Disposal methods 4..7 are reserved.
     var disposalError: Swag.Error
     catch { image = try Image.decode("bad-control.gif", bytes.toSlice()) } as disposalError
     Swag.require(disposalError.value() != null)

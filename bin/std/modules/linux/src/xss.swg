@@ -20,5 +20,4 @@ alias XDefaultRootWindow_fn    = func(*void)->u64
 #[Swag.CallingConvention(.C)]
 alias XScreenSaverQueryInfo_fn = func(*void, u64, *XScreenSaverInfo)->s32
 
-
 #assert(#sizeof(XScreenSaverInfo) == 40)

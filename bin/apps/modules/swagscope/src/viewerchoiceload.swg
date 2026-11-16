@@ -49,7 +49,7 @@ impl ViewerChoiceLoad
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
-            operation.result.privacy = File.MountPrivacy.query(operation.result.absoluteFileName)
+            operation.result.privacy          = File.MountPrivacy.query(operation.result.absoluteFileName)
             operation.result.isDirectory      = Directory.exists(operation.result.absoluteFileName)
             operation.result.exists           = operation.result.isDirectory or File.exists(operation.result.absoluteFileName)
             if operation.result.exists and not operation.result.isDirectory

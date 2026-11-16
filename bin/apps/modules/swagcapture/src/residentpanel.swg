@@ -3,8 +3,8 @@ using Core, Pixel, Gui
 // Where the same resident home opens.
 enum ResidentPanelPlacement
 {
-    Centered     // Centered on the monitor, as at startup.
-    AtPointer    // Beside the pointer, as a menu of the notification-area icon.
+    Centered      // Centered on the monitor, as at startup.
+    AtPointer     // Beside the pointer, as a menu of the notification-area icon.
 }
 
 // The last captures, as one row of pictures in the hub. A click opens one in the editor.
@@ -15,10 +15,10 @@ struct HubRecents
 {
     using wnd: Wnd
 
-    late main: *MainWnd
-    hovered:   u64 = Swag.U64.Max
+    late main:     *MainWnd
+    hovered:       u64 = Swag.U64.Max
     keyboardIndex: u64 = Swag.U64.Max
-    chosen:    u64 = Swag.U64.Max     // The picture clicked, which the panel opens on its next watch.
+    chosen:        u64 = Swag.U64.Max     // The picture clicked, which the panel opens on its next watch.
 }
 
 impl IWnd for HubRecents
@@ -71,11 +71,15 @@ impl IWnd for HubRecents
         case .Left:
             .keyboardIndex = .keyboardIndex == Swag.U64.Max ? .count() - 1 :
                              (.keyboardIndex + .count() - 1) % .count()
+
         case .Right:
             .keyboardIndex = .keyboardIndex == Swag.U64.Max ? 0 : (.keyboardIndex + 1) % .count()
+
         case .Return, .Space:
             .chosen = .keyboardIndex == Swag.U64.Max ? 0 : .keyboardIndex
-        default: return
+
+        default:
+            return
         }
 
         .invalidate()
@@ -233,6 +237,7 @@ impl ResidentPanel
             if .floating do
                 return Win32.GetForegroundWindow() == .surface!.win32Handle()
         }
+
         return .app().isActivated
     }
 
@@ -266,8 +271,10 @@ impl ResidentPanel
                 if surface.win32Handle() do
                     discard Win32.SetForegroundWindow(surface.win32Handle())
             }
+
             result.setFocus()
         }
+
         result.watch = result.addTimer(WatchPeriod)
         return result
     }
@@ -351,9 +358,7 @@ impl ResidentPanel
             .addItem(ActionOptions.Options)
             .addSeparator()
 
-            .addItem(null, ActionGlobal.Minimize,
-                     rightName: Input.formatKeyShortcut(.None, .Escape),
-                     disabled: me.placement == .AtPointer)
+            .addItem(null, ActionGlobal.Minimize, rightName: Input.formatKeyShortcut(.None, .Escape), disabled: me.placement == .AtPointer)
             .addItem(ActionGlobal.Exit)
 
             .owner     = me.main
@@ -453,7 +458,7 @@ impl ResidentPanel
         let width   = (.listSize.x + 2 * shadow) * surface.dpiScale
         let height  = (.listSize.y + 2 * shadow) * surface.dpiScale
 
-        let area = Env.monitorForPoint(pointer).physicalWorkArea
+        let area   = Env.monitorForPoint(pointer).physicalWorkArea
         let corner = Math.Point{area.horzCenter() - width * 0.5, area.vertCenter() - height * 0.5}
 
         surface.setPosition({corner.x, corner.y, width, height})

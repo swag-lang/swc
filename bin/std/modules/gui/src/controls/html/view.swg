@@ -528,11 +528,17 @@ internal impl HtmlView
                             codeEnd != Swag.U64.Max and
                             Utf8.indexOf(probe.toString(), "<a href=#", codeEnd + 1, .Latin1NoCase) != Swag.U64.Max
 
-        .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + ("</head>").count])
-        if bodyEnd != Swag.U64.Max do
-            .virtualPrefix += probe.toString()[bodyStart to bodyEnd]
-        else do
+        // A valid page can omit both head tags. Keep its complete opening markup so every
+        // resident window inherits the same styles, metadata and body attributes.
+        if bodyEnd != Swag.U64.Max
+        {
+            .virtualPrefix = String.from(probe.toString()[0 to bodyEnd])
+        }
+        else
+        {
+            .virtualPrefix = headClose == Swag.U64.Max ? "<html><head></head>" : String.from(probe.toString()[0 until headClose + ("</head>").count])
             .virtualPrefix += "<body>"
+        }
 
         if sourceListing
         {

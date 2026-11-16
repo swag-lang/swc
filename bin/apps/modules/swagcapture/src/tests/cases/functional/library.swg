@@ -1018,3 +1018,46 @@ impl IAllocator for LibraryRejectAllocator
     view.sort()
     Swag.require(view.items[0] == across and view.items[1] == nearly and view.items[2] == down)
 }
+
+// A long page title takes room from the search before it is cut: the search narrows down to its
+// minimum, and the title never runs under the menus beside it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(1024, 600)
+    defer f.shutdown()
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let libWnd = f.main.libWnd
+    libWnd.setPosition({0, 0, 1024, 600})
+    libWnd.applyLayout()
+    Swag.require(libWnd.searchEdit.position.width == LibrarySearchWidth)
+
+    libWnd.titleLabel.setText("Bibliothèque de captures")
+    libWnd.fitTitleRow()
+    libWnd.applyLayout()
+    let label = libWnd.titleLabel
+    let title = Painter.measureString(label.text(), unwrap label.font().regular).width
+    Swag.require(libWnd.searchEdit.position.width < LibrarySearchWidth)
+    Swag.require(title <= label.position.width + 1 or libWnd.searchEdit.position.width == LibrarySearchMin)
+    Swag.require(label.position.right() <= libWnd.commandBar.position.x + 0.5)
+}
+
+// The quiet menus of the page take the width of their words again in another language, rather
+// than keeping the width of the English ones and cutting the French.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(1024, 600)
+    defer f.shutdown()
+    defer discard catch f.gui.app.setLanguage(Gui.ReferenceLanguage)
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let libWnd = f.main.libWnd
+    libWnd.setPosition({0, 0, 1024, 600})
+
+    expect f.gui.app.setLanguage("fr")
+    libWnd.applyLanguage()
+    libWnd.applyLayout()
+    Swag.require(libWnd.viewBtn.text() == appStrings().ui_BarView)
+    for button in [libWnd.viewBtn, libWnd.filterBtn, libWnd.folderBtn] do
+        Swag.require(button.position.width >= Math.floor(button.itf.measureContent({}).x))
+}

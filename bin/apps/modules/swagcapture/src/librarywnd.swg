@@ -238,6 +238,7 @@ impl IWnd for LibraryWnd
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
         .padding = {LibraryPageMargin - LibraryCellRing, .stripInset() + TaskStrip.bandHeight(me), LibraryPageMargin - LibraryCellRing, 0}
+        .fitTitleRow()
     }
 
     // The three drop-down buttons and the search placeholder take their wording once, when
@@ -260,9 +261,9 @@ impl LibraryWnd
         if .viewBtn == null do
             return
 
-        .viewBtn.setText(appStrings().ui_BarView)
-        .filterBtn.setText(appStrings().ui_BarFilter)
-        .folderBtn.setText(appStrings().ui_BarFolders)
+        .viewBtn.setQuietText(appStrings().ui_BarView)
+        .filterBtn.setQuietText(appStrings().ui_BarFilter)
+        .folderBtn.setQuietText(appStrings().ui_BarFolders)
         .folderBtn.toolTip = appStrings().tip_LibraryFolders
         .searchEdit.setPlaceholder(appStrings().ui_Search)
         .fillHintLine()

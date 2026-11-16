@@ -7,6 +7,7 @@ const LibraryTabsRow     = 40.0       // Height of the row of the folder tabs an
 const LibraryHeaderGap   = 24.0       // Air between the header and the first row of captures.
 const LibraryTopGap      = 16.0       // Air between the strip and the title.
 const LibrarySearchWidth = 280.0      // Width of the search field.
+const LibrarySearchMin   = 160.0      // Width the search field keeps when the title needs room.
 const LibraryMaxChips    = 6          // Tags offered as chips; the filter sheet offers every tag.
 
 impl LibraryWnd
@@ -55,6 +56,7 @@ impl LibraryWnd
             .dockStyle = .Center
             .style.setFont(titleFont)
             .setTextAlignment(.Left, .Center)
+            .updateFlags(.Ellipsis)
         }
 
         with let tabsRow = Wnd.create'Wnd(.header, {0, 0, 0, LibraryTabsRow})
@@ -169,6 +171,23 @@ impl LibraryWnd
             .titleLabel.setText(appStrings().act_RecycleBin)
         else do
             .titleLabel.setText(Path.fileName(folder) orelse folder.toString())
+        .fitTitleRow()
+    }
+
+    // Keeps the whole title of the page before the whole width of the search: a narrow window or
+    // a longer translation takes room from the search, down to its minimum, and only past that
+    // does the title end with an ellipsis rather than run under the menus.
+    mtd fitTitleRow()
+    {
+        if .titleLabel == null or .searchEdit == null or .commandBar == null do
+            return
+
+        let row   = .clientRect().width - .padding.x - .padding.z - 2 * LibraryCellRing
+        let menus = .commandBar.itf.measureContent({}).x
+        let title = Math.ceil(Painter.measureString(.titleLabel.text(), unwrap .titleLabel.font().regular).width)
+        let width = Math.clamp(row - menus - title, LibrarySearchMin, LibrarySearchWidth)
+        if .searchEdit.position.width != width do
+            .searchEdit.resize(width, .searchEdit.position.height)
     }
 
     // Lists the folders of the library as tabs, with the count of what each one holds: the whole

@@ -197,7 +197,7 @@ impl Volume
 
         for page in .metadataPages
         {
-            if page >= .blockCount do
+            if page >= .blockCount or used.get(page) do
                 fail volumeError(.Corrupted)
             used.set(page, true)
         }
@@ -211,7 +211,11 @@ impl Volume
                    mapping.count > .blockCount - mapping.physical do
                     fail volumeError(.Corrupted)
                 for physical in mapping.physical until mapping.physical + mapping.count do
+                {
+                    if used.get(physical) do
+                        fail volumeError(.Corrupted)
                     used.set(physical, true)
+                }
             }
         }
 

@@ -494,10 +494,12 @@ impl InPlaceEditWnd
     // Pins the zone with what is drawn on it on the screen, where it was taken, and closes.
     mtd pin()
     {
+        // The zone may have been moved or resized since it was selected: the pin takes its
+        // place and size now, as the image it shows does.
         let capture = unwrap .capture
-        let grab    = getGrabRect()
+        let zone    = capture.zoneScreenRect()
         capture.cropToGrab()
-        PinnedCapture.open(capture.toImage(), Math.Rectangle{g_DesktopX + grab.x, g_DesktopY + grab.y, grab.width, grab.height})
+        PinnedCapture.open(capture.toImage(), zone)
         g_Main?.confirm(appStrings().msg_Pinned)
         exitWithResult(false)
     }
@@ -731,6 +733,11 @@ impl IWnd for InPlaceEditWnd
 impl Capture
 {
     // Crops the capture to the area the in-place editor shows, and makes it an ordinary capture.
+    // Returns where the zone of an in-place capture stands on the screen, in physical pixels,
+    // as it stands now: its selection may have been moved or resized since it was drawn.
+    mtd const zoneScreenRect()->Math.Rectangle
+        => desktopToScreenRect({-.backImagePos.x, -.backImagePos.y, cast(f32, .width), cast(f32, .height)})
+
     mtd cropToGrab()
     {
         .backImg.crop(Math.Rectangle{-.backImagePos.x, -.backImagePos.y, .width, .height})

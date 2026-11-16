@@ -267,10 +267,15 @@ using Swag, Core
     Swag.require(f.main.copyJob == null and f.main.copyTimer != null)
 
     Swag.require(g_CaptureSaves.flush(secondPath).isEmpty())
+    // The timer starts the copy of the second capture. The pump that follows the timer may
+    // already have collected a quick one; the clipboard tells which capture was copied.
     f.gui.fireTimer(f.main.copyTimer)
-    Swag.require(f.main.copyJob and f.main.copyJob.file == secondPath)
-    f.main.copyJob.task.wait()
-    f.gui.pump()
+    if f.main.copyJob
+    {
+        Swag.require(f.main.copyJob.file == secondPath)
+        f.main.copyJob.task.wait()
+        f.gui.pump()
+    }
 
     let copied = Clipboard.getImage()
     Swag.require(copied.isValid() and copied.width == 13 and copied.height == 7)

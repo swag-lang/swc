@@ -3,26 +3,35 @@
 
 internal struct BootstrapAllocationHeader
 {
+    base:         *void?
     reservedSize: u64
-    _padding:     u64
 }
 
 internal const BootstrapAllocationHeaderSize = #sizeof(BootstrapAllocationHeader)
 
-internal func __bootstrapRoundedSize(size: u64)->u64
+internal func __bootstrapRoundedSize(size: u64, alignment: u32)->u64
 {
-    if size > Swag.U64.Max - BootstrapAllocationHeaderSize do
+    if alignment == 0 or (alignment & (alignment - 1)) != 0 do
         return 0
 
-    let total = size + BootstrapAllocationHeaderSize
+    let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(BootstrapAllocationHeader)))
+    let overhead           = BootstrapAllocationHeaderSize + cast(u64, effectiveAlignment) - 1
+    if size > Swag.U64.Max - overhead do
+        return 0
+
+    let total = size + overhead
     if total > Swag.U64.Max - (AllocatorHostCommitGranularity - 1) do
         return 0
     return (total + AllocatorHostCommitGranularity - 1) & ~(AllocatorHostCommitGranularity - 1)
 }
 
-internal func __bootstrapAlloc(size: u64)->[*] void?
+internal func __bootstrapAllocAligned(size: u64, alignment: u32)->[*] void?
 {
-    let reservedSize = __bootstrapRoundedSize(size)
+    if alignment == 0 or (alignment & (alignment - 1)) != 0 do
+        return null
+
+    let effectiveAlignment = Swag.max(alignment, cast(u32, #alignof(BootstrapAllocationHeader)))
+    let reservedSize       = __bootstrapRoundedSize(size, effectiveAlignment)
     if not reservedSize do
         return null
 
@@ -35,18 +44,22 @@ internal func __bootstrapAlloc(size: u64)->[*] void?
         return null
     }
 
-    let header = cast(*BootstrapAllocationHeader, base)
+    let alignment64          = cast(u64, effectiveAlignment)
+    let unalignedUserAddress = cast(u64, base) + BootstrapAllocationHeaderSize
+    let userAddress          = (unalignedUserAddress + alignment64 - 1) & ~(alignment64 - 1)
+    let header      = cast(*BootstrapAllocationHeader, userAddress - BootstrapAllocationHeaderSize)
+    header.base         = base
     header.reservedSize = reservedSize
-    header._padding     = 0
-    return cast([*] void, (base + BootstrapAllocationHeaderSize))
+    return cast([*] void, userAddress)
 }
+
+internal func __bootstrapAlloc(size: u64)->[*] void? => __bootstrapAllocAligned(size, cast(u32, #alignof(*void)))
 
 internal func __bootstrapFree(ptr: [*] void?)
 {
     if not ptr do
         return
 
-    let base   = cast([*] u8, ptr) - BootstrapAllocationHeaderSize
-    let header = cast(*BootstrapAllocationHeader, base)
-    __hostPageRelease(base, header.reservedSize)
+    let header = cast(*BootstrapAllocationHeader, (cast(u64, ptr) - BootstrapAllocationHeaderSize))
+    __hostPageRelease(header.base, header.reservedSize)
 }

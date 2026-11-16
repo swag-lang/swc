@@ -654,10 +654,15 @@ void CodeGenMemoryHelpers::emitGlobalVariableAddress(CodeGen& codeGen, MicroReg 
     const MicroReg sizeReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegImm(sizeReg, ApInt(static_cast<uint64_t>(symVar.threadLocalSize()), 64), MicroOpBits::B64);
 
+    const TypeInfo& typeInfo    = codeGen.typeMgr().get(symVar.typeRef());
+    const uint32_t  alignment   = std::max<uint32_t>(typeInfo.alignOf(codeGen.ctx()), 1);
+    const MicroReg  alignmentReg = codeGen.nextVirtualIntRegister();
+    builder.emitLoadRegImm(alignmentReg, ApInt(alignment, 32), MicroOpBits::B32);
+
     const MicroReg templateReg = codeGen.nextVirtualIntRegister();
     builder.emitLoadRegDataSegmentReloc(templateReg, symVar.globalStorageKind(), symVar.offset());
 
-    const MicroReg args[]   = {idSlotReg, sizeReg, templateReg};
+    const MicroReg args[]   = {idSlotReg, sizeReg, alignmentReg, templateReg};
     const Result   callSent = CodeGenCallHelpers::emitRuntimeCallWithDirectArgsToReg(codeGen, *tlsVarPtrFn, args, reg);
     SWC_ASSERT(callSent == Result::Continue);
     SWC_UNUSED(callSent);

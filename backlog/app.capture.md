@@ -25,11 +25,6 @@ referenced by the capture document, so a save never rewrites it; no memory grows
 duration; and the timeline, trimming and export work from indexes and streams, never from a
 whole recording loaded at once.
 
-### app.capture.039 — Remove global app dependencies from attached capture content
-
-- Evidence: native user journeys with an independently owned `Gui.Application` found that `Capture.toImage`, capture texture cleanup, and `FormText.resolveFace` read the global `g_App` instead of their attached view's app. Those paths now use the view when attached. `BaseForm` resolves its attached application once for theme access, `FormStep` refreshes its cached outline when that application's face changes, and `FormImage` records which application owns each uploaded texture so replacement and destruction release it through the matching renderer. Detached preset forms still use the module application. A two-application functional test exercises texture upload, owner switch, theme color and step face selection.
-- Done when: all attached capture forms render and release resources in an independent native application, with no global renderer or theme dependency.
-
 ### app.capture.009 — Let users rebind capture hotkeys and resolve conflicts
 
 - Next: persist shortcut choices in the existing options and add a conflict-resolution flow for
@@ -89,7 +84,7 @@ whole recording loaded at once.
   A 2341x1903 BGRA8 capture took a few hundred milliseconds on the old full-load path.
 - Next: move timed-media copy/export encoding away from the interface where renderer ownership
   permits. Preserve save ordering and failure reports.
-- Done when no user action decodes an inactive capture on the interface thread, and cancel,
+- Done when: no user action decodes an inactive capture on the interface thread, and cancel,
   failure and window-close paths release each background result.
 - Related: app.capture.025, language.parallelism.001
 

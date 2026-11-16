@@ -291,7 +291,7 @@ in its module backlog; a general request for better names is not a missing langu
 - Next: decide whether scalar `is/as` bindings should copy the value while aggregate bindings
   keep borrowing, and how a caller requests a mutable view. Check `where` guards, `const any`
   sources, and pointer-valued payloads before choosing syntax.
-- Done when the binding type and mutation rules are explicit in the reference and JIT/native tests,
+- Done when: the binding type and mutation rules are explicit in the reference and JIT/native tests,
   and the example can compare a scalar without an unexplained dereference.
 
 ### language.design.023 — A contextual `cast(value)` performs whatever conversion the target turns out to need

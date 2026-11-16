@@ -545,7 +545,7 @@ new language syntax.
   optimization; overlap, changing lengths, overflow, and guarded fallback cases remain correct.
   Existing local gaps remain with their existing entries.
 - Related: compiler.optimization.110, compiler.optimization.111, compiler.optimization.112,
-  compiler.optimization.020, compiler.optimization.105, compiler.safety.008.
+  compiler.optimization.020, compiler.safety.008.
 
 ### compiler.optimization.117 — Inline fast paths while sharing cold continuations
 
@@ -740,7 +740,7 @@ new language syntax.
 - Rejected: hoisting every invariant field load across a read-only call, and inlining
   `mapInit` to expose the mask constant. Both enlarged the probe or `main` with spills,
   frame reloads and jumps.
-- Regression lead: [protocol 3 csvagg samples](../bench/results/20261021-173259.json) put
+- Regression lead: [protocol 3 csvagg samples](../bench/results/windows/20261021-173259.json) put
   native Release at a 22.694 ms median against Odin's 20.861 ms. Earlier protocol 2 reports
   selected minima, so their displayed advantage is not a paired regression measurement.
   The preserved October 12 and October 19 timed row loops have 194 instructions and 60

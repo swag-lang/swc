@@ -139,7 +139,6 @@ is the current scorecard.
 - Done when: loop-bounded indices and invariant `late` values need no repeated guard, and
   the residual cost of runtime guards is measured on the affected loops with behavior
   preserved.
-- Related: compiler.optimization.105.
 
 ### compiler.safety.006 — Raw memory operations have no common unsafe opt-in
 

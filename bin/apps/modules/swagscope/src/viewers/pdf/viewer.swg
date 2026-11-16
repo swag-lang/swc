@@ -556,8 +556,9 @@ func createViewer(host: Viewer.Host)
     let commands = host.createCommandGroup(Viewer.pageControlWidth(host.contentParent().themeMetrics()))
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
-    view.outline = DocumentOutline.create(host)
+    view.outline             = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
+    view.outline.follow      = func|view|() { view.followReading() }
 
     // PDF text lives compressed inside the file, so the viewer extracts every page's text and
     // hands the host stable logical matches for counting and bidirectional navigation, a page at

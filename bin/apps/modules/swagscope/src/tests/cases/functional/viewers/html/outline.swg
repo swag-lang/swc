@@ -43,7 +43,11 @@ using Core, Gui, Gui.Testing, Viewers
 
     var chosen = 0
     outline.sigSelected += func|&chosen|(_, _) { chosen += 1 }
-    Swag.require(outline.markedTarget() == Swag.U64.Max)
+
+    // Opened over the top of the page, the outline marks its first heading before any scroll.
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == headings[0].sourceOffset and chosen == 0)
 
     Swag.require(panel.view.revealFileOffset(headings[4].sourceOffset, ""))
     Swag.require(outline.markedTarget() == headings[4].sourceOffset and chosen == 0)

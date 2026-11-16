@@ -405,14 +405,14 @@ integration around those engines.
   can be inspected separately; unsupported content remains explicit; navigation stays responsive
   and cancellation/package budgets hold on large and damaged documents.
 
-### app.scope.document.033 — A just-opened document marks no heading in its outline
+### app.scope.document.033 — EPUB contents do not follow the reading position
 
-- Evidence: `DocumentOutline.markReading` follows the Markdown, HTML and PDF reading position
-  from the reader's first move on. At open nothing is marked: the headings arrive from a worker
-  at no fixed moment relative to the first layout, so marking then would depend on which came
-  first. EPUB contents are addressed by chapter and fragment and are not followed at all.
-- Next: mark once both the headings and the first layout exist, record the outline goldens that
-  then show a marked heading, and map an EPUB reading position to its contents entry.
-- Done when: an outline opened on a document shows the heading in view before any scroll, in
-  every reader that has one, with its pictures recorded.
+- Evidence: `DocumentOutline.follow` marks the Markdown, HTML, DOCX, ODT and PDF heading in view
+  as soon as the headings are published or the outline is opened, and follows every scroll after
+  that. EPUB contents are addressed by chapter and fragment, and nothing maps the reading
+  position of the chapter shown back to its contents entry, so none is marked.
+- Next: map an EPUB reading position (chapter and source offset in its document) to the last
+  contents entry at or before it, and give the EPUB outline a `follow` callback.
+- Done when: an EPUB outline marks the entry being read at open and while scrolling and turning
+  chapters, with its picture recorded.
 - Related: app.scope.document.001, app.scope.document.021

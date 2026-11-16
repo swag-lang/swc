@@ -81,6 +81,7 @@ checksum; it does not record elapsed time.
 | Fuse loop-header discovery with live-bit marking | A temporary list of loop-header indices and its later readback | Headers are still visited in instruction order and each matching live row is marked once; the no-header path still returns before spill-slot allocation. | DevMode build; 1,715 C++ tests, full native suite (3/3 stages), and full compiler campaign (69/69 stages) passed. |
 | Build loop preload candidates from live bits | Testing every dense virtual register at each loop header to select only live candidates | Set-bit iteration visits candidates in ascending dense-index order, preserving the stable use-count sort and its tie order. | DevMode build; 1,715 C++ tests, full native suite (3/3 stages), full compiler campaign (69/69 stages), and all twelve static Micro task checksums matched. |
 | Cache loop back-edge ranges during copy coalescing | Rescanning predecessor lists up to every integer copy candidate inside a loop | The first query keeps its original CFG walk and records containing ranges in order; later queries scan only newly reached headers and cached ranges that still cover the copy. Strict shorter-span replacement preserves the selected range and ties. | DevMode build; full compiler campaign (69/69 stages, including 1,832 C++ tests and native), all twelve static Micro task checksums matched, and task-owned listings unchanged. |
+| Index repeated copy-coalescing pairs after eight candidates | Scanning every previously collected candidate for each additional eligible copy | A canonical packed dense-register pair maps to the original candidate-vector index; small candidate sets keep the linear lookup, while duplicate updates and first-seen vector order stay unchanged. | DevMode build; full compiler campaign (69/69 stages, including 1,832 C++ tests and native), all twelve static Micro task checksums matched, and task-owned listings unchanged. |
 
 Rejected experiment: storing `upperRegValues` directly in `SanitizerFlatMap`
 passed DevMode C++, safety, sanity and a 69-stage compiler campaign, but grew
@@ -113,4 +114,6 @@ and native), with all twelve checksums matching and every task-owned listing
 unchanged. The retained changes reduce repeated scans, size comparisons,
 table growth checks, and temporary header storage by construction. Their net
 speed and memory effects remain for the dedicated benchmark campaign to
-measure.
+measure. Indexing repeated copy-coalescing pairs preserves all twelve static
+Micro task checksums and task-owned listings, and passed another 69-stage
+compiler campaign including 1,832 C++ tests and native validation.

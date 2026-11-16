@@ -360,11 +360,17 @@ private impl RenderCpu
 
     func edge(a, b, p: Vector2)->f32 => Math.mulAdd(-(b.y - a.y), p.x - a.x, (b.x - a.x) * (p.y - a.y))
 
+    // Says whether the edge from `a` to `b` owns the pixel centres lying exactly on it.
+    //
+    // A left edge does, and of the two horizontal edges the lower one does. That is the fill rule
+    // of a GPU seen from this top-down surface: OpenGL applies its top-left rule in a window
+    // whose rows run upward, so the edge it calls the top one is the lower one here. A one-pixel
+    // rule drawn on a whole coordinate therefore lands on the same row on both renderers.
     func isTopLeft(a, b: Vector2)->bool
     {
         let dx = b.x - a.x
         let dy = b.y - a.y
-        return dy < 0 or (dy == 0 and dx > 0)
+        return dy < 0 or (dy == 0 and dx < 0)
     }
 
     // Preserve the rounded f32 edge value at the classification boundary. Auto-inlining this

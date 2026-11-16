@@ -423,17 +423,15 @@ ships; history lives in Git, not here.
 
 - Evidence: goldens are CPU references compared on CPU only, and the parity campaign compares
   the two renderers on dedicated scenes. `tools/coverage.bat -Suite parity -Sweep -Workspace apps`
-  draws the golden scenes on the GPU and still reports about forty of them, in families:
-  spreadsheet cell fills a flat fifteen levels apart (`viewer.xlsx.*`); one small hatched or
-  thin-stroked mark shared by `recent.bar`, `status.*`, `editor.menu.*` and `tasks.frame.fr.papier`
-  (160 pixels each), and the callout and shape marks of `presets*`, `edit.callout`,
-  `edit.shape.presets.paper`; pictures in `menus.image.*` (676 pixels each),
-  `imageset-real-review`, `viewer.image.transformed.paper`, `home.*` and Capture `area*`; the
-  strikeout of `viewer.markdown.document`; and `viewer.midi.vertical-zoom`,
-  `viewer.information.movie.encre`, `viewer.video.options*` (22 pixels).
-- Next: reduce one family at a time to a scene in a Pixel parity test, starting with the
-  spreadsheet fill and the hatched mark because each explains several scenes at once; watch the
-  scene fail, bring `RenderCpu` to the GPU result, keep the scene, and record the goldens it moves.
+  draws the golden scenes on the GPU and still reports about twenty of them, in three families:
+  one small mark shared by Capture `recent.bar`, `status.*`, `editor.menu.*`,
+  `tasks.frame.fr.papier` and `edit.shape.presets.paper` (106 to 168 pixels each); pictures in
+  Scope `menus.image.*` (676 pixels each), `imageset-real-review`,
+  `viewer.image.transformed.paper`, `home.*`, `viewer.comic.page` and
+  `viewer.information.movie.encre`; and a few pixels in `viewer.video.options*` and
+  `viewer.odt.reading.encre`.
+- Next: reduce the Capture mark, then the Scope picture, to a scene in a Pixel parity test; watch
+  it fail, bring `RenderCpu` to the GPU result, keep the scene, and record the goldens it moves.
 - Done when: the sweep reports nothing on the three applications, and each divergence it showed
   is held by a dedicated parity scene.
 

@@ -18,6 +18,13 @@
 
 SWC_BEGIN_NAMESPACE();
 
+void MicroPassHelpers::invalidateCfgAndSsa(MicroPassContext& context)
+{
+    if (context.ssaState)
+        context.ssaState->invalidate();
+    context.builder->invalidateControlFlowGraph();
+}
+
 bool MicroPassHelpers::isRegisterLiveAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg, bool ignoreImplicitBackedgeUses)
 {
     SWC_ASSERT(context.builder);

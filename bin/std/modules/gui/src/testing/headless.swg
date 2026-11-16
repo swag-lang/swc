@@ -261,6 +261,13 @@ impl HeadlessHost
         if not .initialized do
             return
         .initialized = false
+
+        // Work a test started may still be running, and it reports its end by posting to this
+        // application through the window that started it. It ends here, and its report is
+        // delivered, while that window and the application are alive: run later, it would post
+        // into the freed application of a host that no longer exists.
+        Swag.drainWork()
+        .pump()
         .app.renderer.setCurrentContext(.surface.rc)
 
         // A tip hangs off the surface window rather than the root view, so destroying the tree

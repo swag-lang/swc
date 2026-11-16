@@ -2296,8 +2296,10 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     const auto&    virtualRegs       = denseVirtualRegs_.regs();
     const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
-    usePositionsByDenseVirtual_.resize(virtualRegs.size());
-    concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
+    // Each new dense index already grows its side table in insertion order.
+    // Only the empty concrete case needs to discard a prior function's lists.
+    if (concreteRegs.empty())
+        concreteTouchPositionsByDenseIndex_.clear();
 
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);

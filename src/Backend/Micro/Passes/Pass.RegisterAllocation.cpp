@@ -140,15 +140,16 @@ namespace
         return false;
     }
 
-    void appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
+    bool appendUniqueDenseIndex(SmallVector<uint32_t, 4>& indices, const uint32_t value)
     {
         for (const auto existing : indices)
         {
             if (existing == value)
-                return;
+                return false;
         }
 
         indices.push_back(value);
+        return true;
     }
 
     void appendUniquePosition(std::vector<uint32_t>& positions, const uint32_t instructionIndex)
@@ -2149,6 +2150,15 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     // Include stack/frame roles even when they are outside the allocatable pools.
     denseConcreteRegs_.reserve(conv_->intRegs.size() + conv_->floatRegs.size() + 2);
 
+    // Populate per-register positions while each instruction's unique dense
+    // indices are already being collected. A second instruction pass would
+    // only revisit these same use/def lists to build the position tables.
+    for (auto& positions : usePositionsByDenseVirtual_)
+        positions.clear();
+    for (auto& positions : concreteTouchPositionsByDenseIndex_)
+        positions.clear();
+    definitionCounts_.clear();
+
     // clearState destroyed the previous per-instruction lists, so these new
     // entries are empty and need no per-instruction clearing below.
     useVirtualIndices_.resize(instructionCount_);
@@ -2169,12 +2179,20 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                usesV.addUnique(regIndex);
+                if (regIndex >= usePositionsByDenseVirtual_.size())
+                    usePositionsByDenseVirtual_.resize(regIndex + 1);
+                if (regIndex >= definitionCounts_.size())
+                    definitionCounts_.resize(regIndex + 1, 0);
+                if (usesV.addUnique(regIndex))
+                    usePositionsByDenseVirtual_[regIndex].push_back(idx);
             }
             else if (reg.isInt() || reg.isFloat())
             {
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                appendUniqueDenseIndex(usesC, regIndex);
+                if (regIndex >= concreteTouchPositionsByDenseIndex_.size())
+                    concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
+                if (appendUniqueDenseIndex(usesC, regIndex))
+                    appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
             }
         }
 
@@ -2183,12 +2201,20 @@ void MicroRegisterAllocationPass::analyzeLiveness()
             if (reg.isVirtual())
             {
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                defsV.addUnique(regIndex);
+                if (regIndex >= usePositionsByDenseVirtual_.size())
+                    usePositionsByDenseVirtual_.resize(regIndex + 1);
+                if (regIndex >= definitionCounts_.size())
+                    definitionCounts_.resize(regIndex + 1, 0);
+                if (defsV.addUnique(regIndex))
+                    ++definitionCounts_[regIndex];
             }
             else if (reg.isInt() || reg.isFloat())
             {
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                appendUniqueDenseIndex(defsC, regIndex);
+                if (regIndex >= concreteTouchPositionsByDenseIndex_.size())
+                    concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
+                if (appendUniqueDenseIndex(defsC, regIndex))
+                    appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
             }
         }
 
@@ -2212,13 +2238,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     states_.resize(virtualRegs.size());
     usePositionsByDenseVirtual_.resize(virtualRegs.size());
     concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
-    // Retain inner capacities, but do not clear lists that resize just destroyed.
-    // Runs without virtual registers never reach or query these buffers.
-    for (auto& positions : usePositionsByDenseVirtual_)
-        positions.clear();
-    for (auto& positions : concreteTouchPositionsByDenseIndex_)
-        positions.clear();
-    definitionCounts_.assign(virtualRegs.size(), 0);
 
     // Packed construction can consume scalar inputs. Keep those spill slots at
     // eight bytes unless another reader or definition needs the upper half.
@@ -2234,34 +2253,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         }
         for (const uint32_t denseIndex : defVirtualIndices_[wideScanIndex])
             states_[denseIndex].wideFloat = true;
-    }
-
-    // Each instruction's use lists are unique; a definition can repeat a use.
-    for (uint32_t idx = 0; idx < instructionCount_; ++idx)
-    {
-        for (const uint32_t denseIndex : useVirtualIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < usePositionsByDenseVirtual_.size());
-            usePositionsByDenseVirtual_[denseIndex].push_back(idx);
-        }
-
-        for (const uint32_t denseIndex : defVirtualIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < definitionCounts_.size());
-            definitionCounts_[denseIndex]++;
-        }
-
-        for (const uint32_t denseIndex : useConcreteIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
-            concreteTouchPositionsByDenseIndex_[denseIndex].push_back(idx);
-        }
-
-        for (const uint32_t denseIndex : defConcreteIndices_[idx])
-        {
-            SWC_ASSERT(denseIndex < concreteTouchPositionsByDenseIndex_.size());
-            appendUniquePosition(concreteTouchPositionsByDenseIndex_[denseIndex], idx);
-        }
     }
 
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);

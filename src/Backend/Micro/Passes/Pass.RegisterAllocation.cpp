@@ -2158,6 +2158,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     for (auto& positions : concreteTouchPositionsByDenseIndex_)
         positions.clear();
     definitionCounts_.clear();
+    states_.clear();
 
     // clearState destroyed the previous per-instruction lists, so these new
     // entries are empty and need no per-instruction clearing below.
@@ -2165,7 +2166,6 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     defVirtualIndices_.resize(instructionCount_);
     useConcreteIndices_.resize(instructionCount_);
     defConcreteIndices_.resize(instructionCount_);
-    SmallVector<uint32_t> wideInstructionPositions;
 
     for (uint32_t idx = 0; idx < instructionCount_; ++idx)
     {
@@ -2184,6 +2184,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
                     definitionCounts_.resize(regIndex + 1, 0);
+                    states_.resize(regIndex + 1);
                 }
                 if (usesV.addUnique(regIndex))
                     usePositionsByDenseVirtual_[regIndex].push_back(idx);
@@ -2209,6 +2210,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
                 {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
                     definitionCounts_.resize(regIndex + 1, 0);
+                    states_.resize(regIndex + 1);
                 }
                 if (defsV.addUnique(regIndex))
                     ++definitionCounts_[regIndex];
@@ -2232,7 +2234,16 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         const MicroInstrDef& info            = MicroInstr::info(inst->op);
         const bool           hasWideOperands = info.flags.has(MicroInstrFlagsE::Fixed128BitOperands) || (info.opBitsMask && inst->has128BitOperands(inst->ops(*operands_)));
         if (hasWideOperands)
-            wideInstructionPositions.push_back(idx);
+        {
+            // Packed inputs and wide definitions extend a virtual register's spill slot.
+            if (inst->packedFloatInputBits(inst->ops(*operands_)) == MicroOpBits::B128)
+            {
+                for (const uint32_t denseIndex : usesV)
+                    states_[denseIndex].wideFloat = true;
+            }
+            for (const uint32_t denseIndex : defsV)
+                states_[denseIndex].wideFloat = true;
+        }
     }
 
     const uint32_t virtualWordCount  = denseVirtualRegs_.wordCount();
@@ -2240,26 +2251,8 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     const auto&    virtualRegs       = denseVirtualRegs_.regs();
     const auto&    concreteRegs      = denseConcreteRegs_.regs();
 
-    states_.clear();
-    states_.resize(virtualRegs.size());
     usePositionsByDenseVirtual_.resize(virtualRegs.size());
     concreteTouchPositionsByDenseIndex_.resize(concreteRegs.size());
-
-    // Packed construction can consume scalar inputs. Keep those spill slots at
-    // eight bytes unless another reader or definition needs the upper half.
-    // Definitions stay wide even when they alias a narrow input: the same
-    // virtual register must hold the instruction's complete result afterwards.
-    for (const uint32_t wideScanIndex : wideInstructionPositions)
-    {
-        const MicroInstr* inst = instructions_->ptr(instructionRefs[wideScanIndex]);
-        if (inst->packedFloatInputBits(inst->ops(*operands_)) == MicroOpBits::B128)
-        {
-            for (const uint32_t denseIndex : useVirtualIndices_[wideScanIndex])
-                states_[denseIndex].wideFloat = true;
-        }
-        for (const uint32_t denseIndex : defVirtualIndices_[wideScanIndex])
-            states_[denseIndex].wideFloat = true;
-    }
 
     nextUsePositionCursor_.assign(virtualRegs.size(), 0);
     nextConcreteTouchCursor_.assign(concreteRegs.size(), 0);

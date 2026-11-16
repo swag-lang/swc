@@ -166,9 +166,11 @@ impl ToolDock
         return tool
     }
 
-    // Adds a tool to the group the cell `cell` stands for; the cell shows the tool it holds now
-    // until another of its group is chosen. The tool keeps its command and its key: the dock
-    // shows it in the cell when it becomes the active one through them ([[Gui.ToolDock.selectTool]]).
+    // Adds a tool to the group the cell `cell` stands for.
+    //
+    // The cell shows its current tool until another of its group is chosen. The tool keeps its
+    // command and key; the dock shows it in the cell when it becomes active through them
+    // ([[Gui.ToolDock.selectTool]]).
     mtd addToGroup(cell: *IconButton, icon: Icon, id: WndId? = null, toolTip: string? = null)
     {
         Swag.assert(.tools.contains(cell), "the cell belongs to another dock")
@@ -201,9 +203,10 @@ impl ToolDock
         .invalidate()
     }
 
-    // Makes the tool with the command `id` the active one, without emitting
-    // [[Gui.ToolDock.sigToolChanged]]: a tool of a group comes into the cell of its group. Returns
-    // false when no tool of the dock has that command.
+    // Makes the tool with command `id` active without emitting [[Gui.ToolDock.sigToolChanged]].
+    //
+    // For a grouped tool, it appears in its group's cell. Returns false when no dock tool has
+    // that command.
     mtd selectTool(id: WndId)->bool
     {
         for tool in .tools where tool.id == id
@@ -225,8 +228,9 @@ impl ToolDock
         return false
     }
 
-    // Lists the group of the cell `cell` beside it; the tool chosen there comes into the cell,
-    // becomes the active one, and posts its command.
+    // Opens the group of `cell` beside it.
+    //
+    // Choosing a tool in the list puts it in the cell, activates it, and posts its command.
     mtd openGroup(cell: *IconButton)
     {
         let group = .groupOf(cell)
@@ -254,8 +258,10 @@ impl ToolDock
         .chooseInGroup(cell, result)
     }
 
-    // Puts the tool of the group of `cell` with the command `id` in the cell, makes it the active
-    // one and posts its command, as choosing it in the list of the group does.
+    // Chooses the tool with command `id` in the group of `cell`.
+    //
+    // This puts the tool in the cell, activates it, and posts its command, as choosing it from
+    // the group list does.
     mtd chooseInGroup(cell: *IconButton, id: WndId)
     {
         let group = .groupOf(cell)

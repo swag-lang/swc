@@ -1265,16 +1265,19 @@ impl View
     // this leaves.
     mtd columnGeometry()->{x: f32, width: f32} => .documentGeometry()
 
-    // Returns the share of the document above the bottom of the view, from 0 at the top to 1
-    // at the end, as a reading progress shows it.
+    // Returns reading progress from 0 at the top to 1 at the end of the document.
+    //
+    // Progress measures the document above the bottom of the view.
     mtd readingProgress()->f32
     {
         let extent = Math.max(.scroll.scrollSize.y - .scroll.clientRect().height, 1)
         return Math.clamp(.scroll.scrollPosition().y / extent, 0, 1)
     }
 
-    // Returns the source byte offset of the block nearest the top reading inset, or `U64.Max`
-    // while no block is laid out; the heading being read is the last one before it.
+    // Returns the source byte offset of the block nearest the top reading inset.
+    //
+    // Returns `U64.Max` while no block is laid out. The heading being read is the last one before
+    // this offset.
     mtd readingOffset()->u64
     {
         let viewport = .scroll.paddedClientRect()

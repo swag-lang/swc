@@ -1351,8 +1351,10 @@ impl PdfView
         .invalidate()
     }
 
-    // Returns where the page the viewport shows stands across the view, in its local coordinates,
-    // for a host standing something in the margin beside it; zero wide without a document.
+    // Returns the visible page's horizontal bounds in view coordinates.
+    //
+    // A host can place content in the margin beside the page. Returns zero width without a
+    // document.
     mtd pageColumn()->{ x: f32, width: f32 }
     {
         var result: #returntype

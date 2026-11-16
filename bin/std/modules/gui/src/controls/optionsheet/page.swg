@@ -126,8 +126,9 @@ impl Page
         .rows.add(#move row)
     }
 
-    // Adds a setting that is on or off; `toggle` receives the state the reader asked for.
-    // An optional `icon` leads the label.
+    // Adds an on/off setting and calls `toggle` with the requested state.
+    //
+    // An optional `icon` appears before the label.
     mtd addToggle(label: string, on: bool, toggle: func||(bool), disabled = false, icon: Icon = {})
     {
         with var row: Row

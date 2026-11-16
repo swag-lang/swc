@@ -407,8 +407,10 @@ impl Label
         .invalidate()
     }
 
-    // Returns the first visible URL span's bounds in label coordinates, or an empty rectangle.
-    // Use this after layout when anchoring a popup to an inline action.
+    // Returns the first visible URL span's bounds in label coordinates.
+    //
+    // Returns an empty rectangle when there is no visible URL. Use after layout when anchoring a
+    // popup to an inline action.
     mtd firstLinkRect()->Math.Rectangle
     {
         var result: Math.Rectangle

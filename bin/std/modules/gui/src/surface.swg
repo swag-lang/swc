@@ -188,8 +188,9 @@ impl Surface
     // multiply by [[Gui.Surface.dpiScale]] to obtain physical pixels.
     mtd const size()->Math.Point => Math.Point{.position.width / .dpiScale, .position.height / .dpiScale}
 
-    // Writes the notification-area icon bounds in physical screen pixels when available.
-    // Returns false for a missing icon or a tray manager without icon geometry.
+    // Writes the notification-area icon bounds in physical screen pixels.
+    //
+    // Returns false when there is no icon or the tray manager does not provide its geometry.
     mtd trayIconBounds(bounds: *Math.Rectangle)->bool
     {
         discard bounds
@@ -348,8 +349,10 @@ impl Surface
         .invalidate()
     }
 
-    // Changes the surface title, or clears it when `name` is `null`. The strip draws it, and the
-    // task bar and the window switcher name the window by it.
+    // Sets the surface title, or clears it when `name` is `null`.
+    //
+    // The title strip displays it, and the task bar and window switcher use it to name the
+    // window.
     mtd setTitle(name: string?)
     {
         .wnd.name.set(name)

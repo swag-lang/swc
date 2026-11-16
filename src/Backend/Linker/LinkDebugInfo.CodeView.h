@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Debug/DebugPdbLocal.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/Utf8.h"
 
@@ -19,15 +20,7 @@ struct LinkDebugLineBlock
     std::vector<uint32_t> lines;         // 1-based source line, parallel to codeOffsets
 };
 
-// A local variable or parameter, addressed relative to a frame register.
-struct LinkDebugLocal
-{
-    Utf8     name;
-    uint32_t typeIndex   = 0; // CodeView TPI type index (0 = T_NOTYPE)
-    int32_t  frameOffset = 0;
-    uint16_t cvRegister  = 0; // CodeView register enum for the frame base
-    bool     isParam     = false;
-};
+using LinkDebugLocal = DebugPdbLocal;
 
 // A function with code in the image. The writer resolves symbolName to its final address.
 struct LinkDebugFunction

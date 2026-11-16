@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Debug/DebugPdbLocal.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Native/NativeSection.h"
 #include "Backend/RuntimeBase.h"
@@ -95,15 +96,7 @@ struct DebugInfoObjectResult
     std::vector<DebugInfoDefinedSymbol> symbols;
 };
 
-// A lowered local variable or parameter, ready for an S_REGREL32 record in a PDB module stream.
-struct DebugInfoPdbLocal
-{
-    Utf8     name;
-    uint32_t typeIndex   = 0;
-    int32_t  frameOffset = 0;
-    uint16_t cvRegister  = 0; // CodeView register that addresses the frame
-    bool     isParam     = false;
-};
+using DebugInfoPdbLocal = DebugPdbLocal;
 
 // Per-function lowered type/frame data, parallel to DebugInfoObjectRequest::functions.
 struct DebugInfoPdbFunction

@@ -42,6 +42,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Swag.require(Utf8.contains(result.details, "HTML"))
     let view = assume cast(*Html.Panel, result.view)
     finishHtmlViewer(&host, &result)
+    Swag.require(view.children.count == 1 and view.children[0] == cast(*Wnd, view.view))
     Swag.require(result.view != null and
                  result.revealMatch != null and
                  result.searchBounds != null and

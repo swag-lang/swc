@@ -595,8 +595,7 @@ the screen to its work.
 ![Reading](imgs/scope.read.png) ![Video](imgs/scope.video.png)
 
 - Reading: the document alone in a centred column. Markdown has no persistent footer, progress
-  thread or action strip; its current section is marked in the quiet heading margin when the
-  window is wide. `Ctrl Space` opens the lens for file, view and reading actions; `I` opens file
+  thread or action strip. `Ctrl Space` opens the lens for file, view and reading actions; `I` opens file
   and reading details. A quiet outline glyph in the top strip, `Ctrl Shift O` and the lens open
   the full outline on demand. It remains a scrollable list beside the page, without an
   information card.
@@ -642,9 +641,8 @@ the screen to its work.
 - Video: picture edge to edge; on hover a top veil with title, a bottom veil with the timeline
   (Arc progress, white knob, chapter ticks, hover time), time in mono, chips for subtitles,
   audio, speed.
-- Markdown: a reading column, the current section marked in the left margin when the window is
-  wide (active entry with an Arc left rule), and a full outline opened on demand in the opposite
-  margin. No footer or progress thread stays on the page.
+- Markdown: a centred reading column and a full outline opened on demand beside the document.
+  No footer or progress thread stays on the page.
 - Hex: structure as text tabs, an airy grid, Arc selection, Voltage cursor byte, a floating
   inspector with the value under the cursor in large type.
 - Font: a large specimen, the family name, style tabs, a glyph grid with the chosen glyph on the
@@ -688,9 +686,8 @@ the screen to its work.
 - Image: the picture alone, centred on the ground; a mini-bar on movement (previous, next,
   zoom, fit, rotate, adjustments); the reading line gives name, size, format, weight and the
   rank in the folder; the zoom stands at the right of it.
-- PDF: pages on the ground with the paper shadow, the outline in the left margin with the
-  current part on an Arc rule, the position thread at the right, page and zoom in the reading
-  line.
+- PDF: pages on the ground with the paper shadow, the full outline opened on demand, the position
+  thread at the right, page and zoom in the reading line.
 - Sound: the cover, the title large, artist, album and year, then the waveform with what is
   played in Arc and the times in mono; transport on a mini-bar; the format in the reading line.
 
@@ -702,8 +699,8 @@ the screen to its work.
   header with the column name and its inferred type in faint mono; numbers right-aligned in
   mono; hairlines between rows; the chosen row on the Arc ground; a sum of the chosen numeric
   column in the reading line.
-- HTML: the page rendered in a reading column, its address in faint mono above, its outline in
-  the right margin; source and rendering are two views of the lens.
+- HTML: the page rendered in a centred reading column, preserving its authored layout. The full
+  outline opens on demand; source and rendering are two views of the lens.
 
 ![Subtitles](imgs/scope.subtitle.png) ![Binary](imgs/scope.binary.png) ![Text](imgs/scope.text.paper.png)
 

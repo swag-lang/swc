@@ -148,6 +148,9 @@ using Swag, Core, Pixel
         Swag.require(colors.btnPush_Border != colors.btnPush_HotBorder)
         Swag.require(colors.edit_Border != colors.edit_HotBorder)
         Swag.require(colors.edit_HotBorder != colors.edit_FocusBorder)
+        Swag.require(colors.scrollBar_Bk.a > 0 and colors.scrollBar_Bk.a < colors.scrollBar_HotBk.a)
+        Swag.require(colors.scrollBar_HotBk.a <= 0x20 and colors.scrollBar_DisabledBk.a <= colors.scrollBar_Bk.a)
+        Swag.require(colors.scrollBar_Box != colors.scrollBar_HotBox and colors.scrollBar_HotBox != colors.scrollBar_PressedBox)
         Swag.require(colors.btnCheck_CheckedBk != colors.btnCheck_CheckedHotBk)
         Swag.require(colors.btnToggle_OnBk != colors.btnToggle_OnHotBk)
         Swag.require(colors.btnPush_DestructiveText == colors.critical)
@@ -217,6 +220,9 @@ using Swag, Core, Pixel
     Swag.require(metrics.progressBar_TrackSize == 4)
     Swag.require(metrics.focusRing_Size == 2 and metrics.focusRing_Offset == 2)
     Swag.require(metrics.scrollBar_Size - 2 * metrics.scrollBar_BoxPadding == 4)
+    Swag.require(metrics.scrollBar_HoverSize == metrics.scrollBar_Size)
+    Swag.require(metrics.scrollBar_HitSize > metrics.scrollBar_Size)
+    Swag.require(metrics.scrollBar_RestPresence == 0.3)
 
     for rect in [rects.btnPush_Normal, rects.btnPush_NormalBorder, rects.edit_SquareBk, rects.edit_SquareBorder,
                  rects.edit_SquareStrongBorder, rects.btnIcon_SquareBk, rects.btnIcon_RoundSquareBk, rects.tabBar_RoundBk,

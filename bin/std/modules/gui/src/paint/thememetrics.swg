@@ -256,10 +256,10 @@ struct ThemeMetrics
         scrollBar_Size:       f32 = 8      // Thickness of every scroll bar: a four-pixel thumb and its air.
         scrollBar_HitSize:    f32 = 16     // Width of the pointer target, expanded toward the view.
         scrollBar_EdgeInset:  f32 = 8      // Clear space at the window edge for native resizing.
-        scrollBar_HoverSize:  f32 = 12     // Thickness while the pointer is over a scroll bar.
+        scrollBar_HoverSize:  f32 = 8      // Thickness while the pointer is over a scroll bar; the thumb keeps its resting width.
         scrollBar_BoxPadding: f32 = 2      // Air between a scroll bar thumb and its track.
         scrollBar_BoxMinSize: f32 = 20     // Shortest a scroll bar thumb gets.
-        scrollBar_RestPresence: f32 = 0.72 // Visibility of a thumb after pointer motion stops.
+        scrollBar_RestPresence: f32 = 0.3  // Visibility of a quiet thumb after pointer motion stops.
 
         comboBox_Width:          f32 = 150     // Default width of a combo box.
         comboBox_Height:         f32 = 32      // Height of a combo box.

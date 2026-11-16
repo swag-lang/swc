@@ -236,8 +236,8 @@ be noticed: if a viewer remembers an animation, it was too much.
 - **Input never waits.** Focus, hit testing and the keyboard reach the final state at once; an
   animation running when the next change arrives retargets from what is on screen. Typing, the
   caret, the selection in a list, the focus ring and an error appear instantly.
-- **Scroll bars rest.** They show while the view scrolls or the pointer is over them, and fade
-  out 600 ms after the last movement.
+- **Scroll bars rest.** Their thin thumb gains contrast while the view scrolls or the pointer is
+  over them, and fades to 30% opacity 600 ms after the last movement. The track remains translucent.
 - **Reduced motion is honoured.** When the system asks for reduced motion, decorative motion
   completes immediately; progress keeps moving.
 
@@ -518,8 +518,9 @@ its failure tone; the status words remain in body ink. Both follow the current p
 - **Notices**: a tinted ground of the tone, an 7 px dot in the tone, bold first phrase, no
   border, no icon tile.
 - **Tooltip**: surface (Papier: ink with paper text), corner 6, 12 px.
-- **Scrollbars**: one thickness, 8 px with a 4 px thumb; they rest invisible and show while the
-  view scrolls or the pointer is over them.
+- **Scrollbars**: a 4 px thumb in an 8 px cell and a 16 px pointer target. The track is a
+  translucent tint (4%, 8% on hover), never an opaque strip over the content. The thumb rests at
+  30% opacity and gains contrast while the view scrolls or the pointer is over it, without growing wider.
 
 ## Property grid
 

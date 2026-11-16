@@ -487,8 +487,14 @@ impl MainWnd
             return
         }
 
-        capture.changed        = true
-        capture.linkedUpToDate = true
+        // Writing the linked image brings the capture in step with it. An export to another file
+        // leaves a stale linked image stale.
+        if Path.equals(nameFile, capture.linkedImage)
+        {
+            capture.changed        = true
+            capture.linkedUpToDate = true
+        }
+
         .saveCapture(capture)
         if .recentWnd != null do
             .recentWnd.updateRecent()

@@ -308,6 +308,38 @@ func testHasCaptureFileMetadata(img: Image, captureFile: String)->bool
     Swag.require(testHasCaptureFileMetadata(saved, capturePath))
 }
 
+// Saving the picture to another file leaves a stale linked image stale; saving it over the linked
+// image brings the capture back in step.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    testRegisterIoActions(f.main)
+
+    f.capture.width   = 32
+    f.capture.height  = 20
+    f.capture.backImg = Gui.Testing.indexedImage(32, 20)
+    let capturePath = testPrepareSavedCapture(f.capture)
+    defer discard catch File.delete(capturePath)
+    let linkedPath = Gui.Testing.tempFilePath("linked-", ".png")
+    defer discard catch File.delete(linkedPath)
+    let otherPath = Gui.Testing.tempFilePath("other-", ".png")
+    defer discard catch File.delete(otherPath)
+
+    f.capture.linkedImage    = linkedPath
+    f.capture.linkedUpToDate = false
+    f.main.doSaveAsImage(otherPath)
+    f.gui.pump()
+    Swag.require(File.exists(otherPath))
+    Swag.require(not f.capture.linkedUpToDate)
+
+    f.main.doSaveAsImage(linkedPath)
+    f.gui.pump()
+    Swag.require(File.exists(linkedPath))
+    Swag.require(f.capture.linkedUpToDate)
+}
+
 // The Save As Image command drives the real file dialog before writing the PNG.
 #test
 {

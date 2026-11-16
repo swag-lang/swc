@@ -386,7 +386,14 @@ internal func writeTempFile(suffix: string, bytes: const [..] u8)->String
 
     var options: OptionSheet.Page
     view.describeOptions(&options)
-    Swag.require(options.rows[2].value == "UTF-16 LE")
+    var encodingRows = 0
+    for row in options.rows where row.label == PlainText.texts().ui_Encoding
+    {
+        Swag.require(row.value == "UTF-16 LE")
+        encodingRows += 1
+    }
+
+    Swag.require(encodingRows == 1)
 }
 
 // A single-byte page has no mark to announce it, and every byte decodes, so the accented byte is

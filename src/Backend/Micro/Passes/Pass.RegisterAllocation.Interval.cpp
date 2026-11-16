@@ -2482,15 +2482,16 @@ bool MicroRegisterAllocationPass::coalesceSameValueCopies()
         const uint32_t copyDepth = depthAt(idx);
         const bool     confined  = !copyDepth || srcReg.isVirtualFloat() || sourceStaysInCopyLoop(idx, src);
         Candidate*     known   = nullptr;
-        const uint64_t pairKey = candidatePairKey(dst, src);
+        uint64_t       pairKey = 0;
         if (candidateIndexByPair.empty() && candidates.size() < K_CANDIDATE_LOOKUP_THRESHOLD)
         {
-            const auto it = std::ranges::find_if(candidates, [&](const Candidate& c) { return candidatePairKey(c.dst, c.src) == pairKey; });
+            const auto it = std::ranges::find_if(candidates, [&](const Candidate& c) { return (c.dst == dst && c.src == src) || (c.dst == src && c.src == dst); });
             if (it != candidates.end())
                 known = &*it;
         }
         else
         {
+            pairKey = candidatePairKey(dst, src);
             if (candidateIndexByPair.empty())
             {
                 candidateIndexByPair.reserve(candidates.size());

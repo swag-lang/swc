@@ -323,8 +323,9 @@ impl Label
         return sf
     }
 
-    // Creates a label showing the literal text `name`, with optional wrapping, sizing, and link
-    // behavior.
+    // Creates a label showing the literal text `name`.
+    //
+    // `flags` controls wrapping, automatic sizing, emphasis, ellipsis, and link actions.
     #[Swag.Discardable]
     func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: LabelFlags = .None)->*Label
     {

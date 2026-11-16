@@ -79,7 +79,15 @@ impl IWnd for ToolDock
         let bounds  = parent.clientRect()
         let body    = .bodySize()
         let x       = bounds.x + metrics.floating_Inset
-        let y       = Math.round(bounds.vertCenter() - body.y * 0.5)
+        var y       = Math.round(bounds.vertCenter() - body.y * 0.5)
+
+        // Centred on the work while it fits with the floating air around it. A shorter parent
+        // keeps the dock whole between the strip and its foot, and one shorter still keeps the
+        // first tools, the ones a hand reaches for most, rather than pushing them under the strip.
+        let top    = bounds.y + parent.stripInset()
+        let bottom = bounds.bottom()
+        if y < top + metrics.floating_Inset or y + body.y > bottom - metrics.floating_Inset do
+            y = Math.round(top + Math.max(bottom - top - body.y, 0) * 0.5)
         liftFloating(me)
         .setPosition(Math.Rectangle{x, y, body.x, body.y})
 

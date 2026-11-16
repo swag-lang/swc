@@ -1144,12 +1144,19 @@ impl LibraryView
         .invalidate()
     }
 
+    // Scrolls the least that shows the whole focused cell and its ring. A key walking past an edge
+    // of the view moves the grid by the row it entered, and a cell the edge cuts comes into view.
     mtd scrollToFocus()
     {
-        if .focusItem == Swag.U32.Max do
+        if .focusItem >= .items.count do
             return
-        if .items[.focusItem].visible do
-            return
-        .scrollWnd.setScrollPos(0, .items[.focusItem].rect.y - 4)
+        let rect   = .items[.focusItem].rect
+        let pos    = .scrollWnd.scrollPosition()
+        let top    = rect.y - LibraryCellRing
+        let bottom = rect.bottom() + LibraryCellRing
+        if top < pos.y do
+            .scrollWnd.setScrollPos(pos.x, top)
+        elif bottom > pos.y + .position.height do
+            .scrollWnd.setScrollPos(pos.x, bottom - .position.height)
     }
 }

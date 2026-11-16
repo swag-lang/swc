@@ -15,7 +15,7 @@ func anchorSplit(delta: s32, cell: u64)->{before: s32, after: s32}
     switch cell
     {
     case 0:  return {before: 0, after: delta}
-    case 1:  return {before: delta / 2, after: delta / 2}
+    case 1:  return {before: delta / 2, after: delta - delta / 2}
     default: return {before: delta, after: 0}
     }
 }
@@ -209,7 +209,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let w = catch StrConv.toS32(edt.text())
-                let h = Math.max(1, cast(s32, w / ratio))
+                let h = Math.max(1, Math.roundS32(w / ratio))
                 edit1.setText(Format.toString("%", h), notify: false)
             }
         }
@@ -219,7 +219,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let h = catch StrConv.toS32(edt.text())
-                let w = Math.max(1, cast(s32, h * ratio))
+                let w = Math.max(1, Math.roundS32(h * ratio))
                 edit0.setText(Format.toString("%", w), notify: false)
             }
         }
@@ -402,26 +402,26 @@ impl MainWnd
         var maxX = 0'f32
         var maxY = 0'f32
 
+        let width  = cast(f32, capture.width)
+        let height = cast(f32, capture.height)
         for f, idx in capture.forms
         {
+            // A form wholly outside the canvas is removed, and widens nothing.
             let r = f.boundRect()
-            if r.x > 0 do
-                minX = Math.min(minX, r.x)
-            if r.y > 0 do
-                minY = Math.min(minY, r.y)
-            if r.right() < capture.width do
-                maxX = Math.max(maxX, r.right())
-            if r.bottom() < capture.height do
-                maxY = Math.max(maxY, r.bottom())
-
-            // Select forms outside capture
             if r.right() < 0 or
                r.bottom() < 0 or
-               r.x >= capture.width or
-               r.y >= capture.height
+               r.x >= width or
+               r.y >= height
             {
                 capture.selection.add(idx)
+                continue
             }
+
+            // A form across an edge counts for the part the canvas shows.
+            minX = Math.min(minX, Math.max(r.x, 0))
+            minY = Math.min(minY, Math.max(r.y, 0))
+            maxX = Math.max(maxX, Math.min(r.right(), width))
+            maxY = Math.max(maxY, Math.min(r.bottom(), height))
         }
 
         // The opaque pixels of the image inside the canvas widen the box too.

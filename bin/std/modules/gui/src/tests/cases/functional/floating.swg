@@ -47,6 +47,13 @@ var ToolDockDynamicId:   String
     // The dock follows the window, and takes no room from the work beside it.
     host.root.resize(480, 300)
     Swag.require(Math.abs(dock.position.y + body.y * 0.5 - 150) <= 1)
+
+    // Too short for the air around it, the dock stays whole inside the window; shorter than the
+    // dock, it keeps its first tools inside.
+    host.root.resize(480, body.y + metrics.floating_Inset)
+    Swag.require(dock.position.y >= host.root.stripInset() and dock.position.bottom() <= host.root.position.height)
+    host.root.resize(480, body.y * 0.75)
+    Swag.require(dock.position.y == host.root.stripInset())
 }
 
 // The mini-bar stands above the selection, centred on it, and goes below it near the top edge.

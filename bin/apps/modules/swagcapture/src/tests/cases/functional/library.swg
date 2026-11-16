@@ -173,7 +173,8 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     Swag.require(evt.disabled)
 
-    f.main.libWnd.view.focusItem = 0
+    // With a capture in the grid, the arrows are ready before one is chosen.
+    discard testAddLibraryItem(f.main.libWnd.view, "capture", 10, 1)
     evt = Gui.Testing.commandState(ActionLibSel.Right)
     Swag.require(Gui.Testing.actionUpdate'ActionLibSel(libWnd, ActionLibSel.Right, &evt))
     Swag.require(not evt.disabled)
@@ -1060,4 +1061,125 @@ impl IAllocator for LibraryRejectAllocator
     Swag.require(libWnd.viewBtn.text() == appStrings().ui_BarView)
     for button in [libWnd.viewBtn, libWnd.filterBtn, libWnd.folderBtn] do
         Swag.require(button.position.width >= Math.floor(button.itf.measureContent({}).x))
+}
+
+// Runs one keyboard command of the library grid as its shortcut does: only when it is enabled.
+func testLibraryKey(lib: *Wnd, id: WndId)
+{
+    var state = Gui.Testing.commandState(id)
+    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(lib, id, &state))
+    if not state.disabled do
+        Swag.require(Gui.Testing.actionExecute'ActionLibSel(lib, id))
+}
+
+// The arrows walk the library grid by cell and by row. With no capture chosen, the first arrow
+// starts on the first one; Down over a shorter last row lands on its last capture; Home and End
+// need no chosen capture.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    let lib  = f.setupLibraryWnd()
+    let wnd  = cast(*Wnd, lib)
+    let view = lib.view
+    let n    = view.numImagesPerLine()
+    Swag.require(n >= 2)
+    for index in n * 2 + 1 do
+        discard testAddLibraryItem(view, Format.toString("capture-%", index), 10, 1)
+    let last = n * 2
+
+    testLibraryKey(wnd, ActionLibSel.Right)
+    Swag.require(view.focusItem == 0 and view.selModel.isSelected(0))
+    testLibraryKey(wnd, ActionLibSel.Right)
+    Swag.require(view.focusItem == 1 and view.selModel.isSelected(1) and not view.selModel.isSelected(0))
+    testLibraryKey(wnd, ActionLibSel.Down)
+    Swag.require(view.focusItem == n + 1)
+    testLibraryKey(wnd, ActionLibSel.Down)
+    Swag.require(view.focusItem == last)
+    testLibraryKey(wnd, ActionLibSel.Down)
+    Swag.require(view.focusItem == last)
+    testLibraryKey(wnd, ActionLibSel.Right)
+    Swag.require(view.focusItem == last)
+    testLibraryKey(wnd, ActionLibSel.Up)
+    Swag.require(view.focusItem == n)
+    testLibraryKey(wnd, ActionLibSel.Left)
+    Swag.require(view.focusItem == n - 1)
+    testLibraryKey(wnd, ActionLibSel.Home)
+    Swag.require(view.focusItem == 0)
+    testLibraryKey(wnd, ActionLibSel.Up)
+    testLibraryKey(wnd, ActionLibSel.Left)
+    Swag.require(view.focusItem == 0)
+
+    view.clearSelection()
+    testLibraryKey(wnd, ActionLibSel.End)
+    Swag.require(view.focusItem == last and view.selModel.isSelected(last))
+    view.clearSelection()
+    testLibraryKey(wnd, ActionLibSel.Down)
+    Swag.require(view.focusItem == 0)
+
+    // An empty grid has nothing to walk, and Open needs a chosen capture.
+    var state = Gui.Testing.commandState(ActionLibSel.Open)
+    view.clearSelection()
+    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(wnd, ActionLibSel.Open, &state))
+    Swag.require(state.disabled)
+    view.items.clear()
+    state = Gui.Testing.commandState(ActionLibSel.Home)
+    Swag.require(Gui.Testing.actionUpdate'ActionLibSel(wnd, ActionLibSel.Home, &state))
+    Swag.require(state.disabled)
+}
+
+// Walking the grid with the keyboard scrolls the least that shows the whole chosen capture: one
+// row at a time going down, and back as little going up.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.gui.surfaceWnd.view = f.main
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+    let wnd = cast(*Wnd, lib)
+    lib.setPosition({0, 0, 900, 600})
+    lib.applyLayout()
+    for index in 30 do
+        discard testAddLibraryItem(lib.view, Format.toString("capture-%", index), 10, 1)
+
+    let wasDirty = g_DirtyList
+    defer g_DirtyList = wasDirty
+    g_DirtyList = false
+    discard f.gui.render(lib)
+
+    let view   = lib.view
+    let scroll = view.scrollWnd
+    let rows   = (30 + view.numImagesPerLine() - 1) / view.numImagesPerLine()
+    testLibraryKey(wnd, ActionLibSel.Home)
+    Swag.require(scroll.scrollPosition().y == 0)
+
+    func shown(view: *LibraryView)->bool
+    {
+        let rect = view.items[view.focusItem].rect
+        let top  = view.scrollWnd.scrollPosition().y
+        return rect.y - LibraryCellRing >= top - 0.5 and rect.bottom() + LibraryCellRing <= top + view.position.height + 0.5
+    }
+
+    var previous = 0'f32
+    for rows - 1
+    {
+        testLibraryKey(wnd, ActionLibSel.Down)
+        discard f.gui.render(lib)
+        Swag.require(shown(view))
+        let top = scroll.scrollPosition().y
+        Swag.require(top - previous <= view.items[view.focusItem].rect.height + LibraryRowGap + 0.5)
+        previous = top
+    }
+    Swag.require(previous > 0)
+
+    for rows - 1
+    {
+        testLibraryKey(wnd, ActionLibSel.Up)
+        discard f.gui.render(lib)
+        Swag.require(shown(view))
+    }
+    Swag.require(scroll.scrollPosition().y == 0)
 }

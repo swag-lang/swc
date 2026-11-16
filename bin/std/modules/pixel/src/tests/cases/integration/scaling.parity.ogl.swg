@@ -155,3 +155,63 @@ func assertScalingParity(scene: ScaledScene, name: string)
 // A video frame is sampled plane by plane, and scales like the picture it carries.
 #[Swag.TestTag("integration.renderer.opengl")]
 #test { assertScalingParity(&renderScaledFrame, "scaling.parity.frame") }
+
+const PhotoWidth  = 301
+const PhotoHeight = 201
+
+// A picture with detail at every frequency, the way a photograph has: a smooth ramp carrying
+// fine grain. Reduced several times over, each destination pixel reads texels far apart, so a
+// sampler that places its footprint differently shows over the whole surface.
+func makePhoto()->Image
+{
+    var result = Image.create(PhotoWidth, PhotoHeight, .BGRA8)
+    for y in result.height
+    {
+        for x in result.width
+        {
+            // Changes from one texel to the next on both axes, with no period a reduction hits.
+            let grain = (x * 73 + y * 151 + (x * y) % 97) % 127 - 64
+            let pixel = result.pixels.storage() + cast(u64, ((result.height - y - 1) * result.rowStride + x * 4))
+            pixel[0] = cast(u8, Math.clamp(60 + x / 3 + grain, 0, 255))
+            pixel[1] = cast(u8, Math.clamp(120 + y / 4 - grain, 0, 255))
+            pixel[2] = cast(u8, Math.clamp(200 - x / 4 + grain / 2, 0, 255))
+            pixel[3] = 255
+        }
+    }
+
+    return result
+}
+
+func renderReducedPhoto(renderer: IRenderer, scale: f32)->Image
+{
+    var texture = renderer.addImage(makePhoto())
+    defer renderer.removeTexture(&texture)
+
+    var target = renderer.createRenderTarget(ScaledTargetWidth, ScaledTargetHeight)
+    defer renderer.deleteRenderTarget(&target)
+
+    var painter = Painter.create(renderer)
+    painter.begin()
+    painter.bindRenderTarget(&target)
+    painter.setColorMaskFull()
+    painter.setBlendingMode(.Copy)
+    painter.clear(Color.fromArgb(255'u8, 18'u8, 22'u8, 30'u8))
+    painter.setInterpolationMode(.Linear)
+    painter.drawTexture({3, 2, PhotoWidth * scale, PhotoHeight * scale}, texture)
+    painter.unbindRenderTarget()
+    painter.end()
+    expect renderer.draw(&painter)
+    return renderer.readRenderTarget(&target, 0, 0, ScaledTargetWidth, ScaledTargetHeight)
+}
+
+// A photograph reduced several times over is filtered from the same texels on both renderers.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    for scale in [0.47'f32, 0.31, 0.19]
+    {
+        let scene: RenderParityScene = func|scale|(renderer: IRenderer)->Image => renderReducedPhoto(renderer, scale)
+        let label = Format.toString("scaling.parity.photo.%", cast(s32, (scale * 100)))
+        assertSceneParity(scene, label.toString(), ScaledTargetWidth, ScaledTargetHeight)
+    }
+}

@@ -1069,8 +1069,9 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         SWC_ASSERT(idx == instructionCount_);
     }
 
-    for (const uint32_t header : labelIndices)
+    for (size_t headerLabelIndex = 0; headerLabelIndex < labelIndices.size(); ++headerLabelIndex)
     {
+        const uint32_t header = labelIndices[headerLabelIndex];
         if (predecessors_[header].empty())
             continue;
 
@@ -1096,9 +1097,11 @@ void MicroRegisterAllocationPass::collectLoopRegions(SmallVector<LoopRegion>& ou
         SWC_ASSERT(tail < instructionCount_);
 
         bool sealed = true;
-        for (auto innerLabel = std::ranges::upper_bound(labelIndices, header); innerLabel != labelIndices.end() && *innerLabel <= tail && sealed; ++innerLabel)
+        for (size_t innerLabelIndex = headerLabelIndex + 1;
+             innerLabelIndex < labelIndices.size() && labelIndices[innerLabelIndex] <= tail && sealed;
+             ++innerLabelIndex)
         {
-            const uint32_t inner = *innerLabel;
+            const uint32_t inner = labelIndices[innerLabelIndex];
             for (const uint32_t pred : predecessors_[inner])
                 sealed = sealed && pred >= header && pred <= tail;
         }

@@ -402,26 +402,26 @@ impl MainWnd
         var maxX = 0'f32
         var maxY = 0'f32
 
+        let width  = cast(f32, capture.width)
+        let height = cast(f32, capture.height)
         for f, idx in capture.forms
         {
+            // A form wholly outside the canvas is removed, and widens nothing.
             let r = f.boundRect()
-            if r.x > 0 do
-                minX = Math.min(minX, r.x)
-            if r.y > 0 do
-                minY = Math.min(minY, r.y)
-            if r.right() < capture.width do
-                maxX = Math.max(maxX, r.right())
-            if r.bottom() < capture.height do
-                maxY = Math.max(maxY, r.bottom())
-
-            // Select forms outside capture
             if r.right() < 0 or
                r.bottom() < 0 or
-               r.x >= capture.width or
-               r.y >= capture.height
+               r.x >= width or
+               r.y >= height
             {
                 capture.selection.add(idx)
+                continue
             }
+
+            // A form across an edge counts for the part the canvas shows.
+            minX = Math.min(minX, Math.max(r.x, 0))
+            minY = Math.min(minY, Math.max(r.y, 0))
+            maxX = Math.max(maxX, Math.min(r.right(), width))
+            maxY = Math.max(maxY, Math.min(r.bottom(), height))
         }
 
         // The opaque pixels of the image inside the canvas widen the box too.

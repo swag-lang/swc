@@ -239,3 +239,32 @@ using Swag, Core
     Swag.require(f.capture.backImg.width == 100)
     Swag.require(f.capture.backImg.height == 80)
 }
+
+// Trimming keeps the part of a form the canvas shows when the form crosses an edge, and a form
+// wholly outside, which it removes, widens nothing.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 400
+    f.capture.height  = 300
+    f.capture.backImg = Image.create(400, 300, .BGRA8)
+    f.capture.backImg.fill(Argb.Zero)
+
+    let across = testAddShape(f.capture, -20, 50, 100, 40)
+    let inside = testAddShape(f.capture, 200, 100, 50, 50)
+    discard testAddShape(f.capture, 300, -100, 20, 20)
+
+    f.main.sendCommandEvent(ActionImage.TrimCapture)
+    Swag.require(f.capture.forms.count == 2)
+    Swag.require(f.capture.width == 250)
+    Swag.require(f.capture.height == 100)
+    Gui.Testing.assertRect(across.IForm.boundRect(), -20, 0, 100, 40)
+    Gui.Testing.assertRect(inside.IForm.boundRect(), 200, 50, 50, 50)
+    Swag.require(f.capture.backImg.width == 250 and f.capture.backImg.height == 100)
+
+    f.capture.undo()
+    Swag.require(f.capture.forms.count == 3)
+    Swag.require(f.capture.width == 400 and f.capture.height == 300)
+}

@@ -19,13 +19,13 @@ func finishManualSubtitle(view: *Film.Panel)
 // Absolute timestamps and relative seconds reject malformed, overflowing and out-of-range input.
 #test
 {
-    Swag.require(Film.parseTimeAddress("12:34", 100, 10_000) == 754)
-    Swag.require(Film.parseTimeAddress("1:02:30", 100, 10_000) == 3_750)
-    Swag.require(Film.parseTimeAddress(" +30 ", 100, 200) == 130)
-    Swag.require(Film.parseTimeAddress("-10", 100, 200) == 90)
-    Swag.require(Film.parseTimeAddress("0:00.25", 0, 1) == 0.25)
+    Swag.require(Viewer.parseTimeAddress("12:34", 100, 10_000) == 754)
+    Swag.require(Viewer.parseTimeAddress("1:02:30", 100, 10_000) == 3_750)
+    Swag.require(Viewer.parseTimeAddress(" +30 ", 100, 200) == 130)
+    Swag.require(Viewer.parseTimeAddress("-10", 100, 200) == 90)
+    Swag.require(Viewer.parseTimeAddress("0:00.25", 0, 1) == 0.25)
     for input in ["", "+", "1:60", "1:60:00", "1::2", "1:2:3:4", "nan", "inf", "1e3", "-101", "+101", "9999999999999999999999999999999999999999"] do
-        Swag.require(Film.parseTimeAddress(input, 100, 200) < 0, input)
+        Swag.require(Viewer.parseTimeAddress(input, 100, 200) < 0, input)
 }
 
 // The time control opens a validated dialog; jumping and undo keep a paused or playing transport.

@@ -85,7 +85,7 @@ impl Panel
         let dialog = EditDlg.createSingleLine(unwrap .surface, options)
         let check  = func|origin, duration, dialog|(edit: *EditBox)->EditBoxCheckResult
         {
-            let valid = parseTimeAddress(edit.text(), origin, duration) >= 0
+            let valid = Viewer.parseTimeAddress(edit.text(), origin, duration) >= 0
             dialog.setMessage(valid ? texts().ui_TimeHelp : texts().ui_TimeError)
             return valid ? .Valid : .InvalidVisible
         }
@@ -95,7 +95,7 @@ impl Panel
         {
             if result != Dialog.BtnOk do
                 return true
-            let target = parseTimeAddress(dialog.text(), origin, duration)
+            let target = Viewer.parseTimeAddress(dialog.text(), origin, duration)
             if target < 0
             {
                 discard dialog.edit!.revalidate()

@@ -483,3 +483,38 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
         view.sendEvent(&faster)
     Swag.require(view.playbackRate == Viewer.PlaybackRates[Viewer.PlaybackRates.count - 1])
 }
+
+// A colon and an instant, or a displacement in seconds, in the lens move a recording there; an
+// instant past its end offers nothing.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("pacman_beginning.wav"), false)
+    let view   = assume cast(*Sound.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForSoundOpen(&host, view)
+    Swag.require(view.playButton.isEnabled() and view.duration > 3)
+
+    window.lens.open(":0:02")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:02"))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    Swag.require(Math.abs(view.elapsed - 2) < 0.05)
+
+    window.lens.open(":+1")
+    host.finishAnimations()
+    Swag.require((unwrap window.lens.results.sections[0]).entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:03 (+1)"))
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":59:00")
+    host.finishAnimations()
+    Swag.require(window.lens.results.sections.isEmpty())
+    window.lens.close()
+    host.finishAnimations()
+}

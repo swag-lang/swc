@@ -1426,3 +1426,25 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     waitForVideoFrame(view)
     Swag.require(view.frameIndex == 12)
 }
+
+// A colon and an instant in the lens move a film there, as Go to Time does, remembering the jump.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, videoMatroskaFixturePath(), false)
+    let view   = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
+    waitForVideoFrame(view)
+    Swag.require(view.playButton.isEnabled())
+
+    window.lens.open(":0:00")
+    host.finishAnimations()
+    let section = unwrap window.lens.results.sections[0]
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToTime, "0:00"))
+    section.entries[0].run!()
+    window.lens.close()
+    host.finishAnimations()
+    waitForVideoFrame(view)
+    Swag.require(view.previousSeek >= 0 and view.currentSeconds() < 0.5)
+}

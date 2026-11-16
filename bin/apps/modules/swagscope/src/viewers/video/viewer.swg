@@ -957,6 +957,15 @@ private impl Panel
         let texts = appStrings()
         let ready = .playButton.isEnabled()
 
+        // `:` and an instant, or a displacement in seconds, go there.
+        if entries.results.prefix == .Line
+        {
+            let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), .currentSeconds(), .video.durationInSeconds()) : -1
+            if target >= 0 do
+                entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.jumpTo(target) })
+            return
+        }
+
         // At rest the lens offers what the film can use without a search query.
         if entries.query.isEmpty()
         {

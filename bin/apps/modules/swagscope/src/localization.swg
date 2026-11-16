@@ -233,6 +233,7 @@ struct AppStrings
     lens_InFile:          string = "In This File"              // Lens section listing the lines of the open file that hold the query.
     lens_GoToLine:        string = "Go to Line %"              // Lens row going to the line typed after a colon.
     lens_GoToPage:        string = "Go to Page %"              // Lens row going to the page typed after a colon.
+    lens_GoToTime:        string = "Go to %"                   // Lens row moving playback to the instant typed after a colon.
     cmd_Open:             string = "Open…"                     // Command choosing a file to open.
     cmd_OpenChosen:       string = "Open"                      // Command opening the item chosen in the explored folder.
     cmd_ExtractAll:       string = "Extract All…"              // Command extracting the whole explored archive to a folder.

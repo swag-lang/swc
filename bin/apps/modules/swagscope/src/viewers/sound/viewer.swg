@@ -727,6 +727,16 @@ impl Panel
     {
         let texts = appStrings()
         let ready = .playButton.isEnabled()
+
+        // `:` and an instant, or a displacement in seconds, go there.
+        if entries.results.prefix == .Line
+        {
+            let target = ready ? Viewer.parseTimeAddress(entries.query.toString(), cast(f64, .elapsed), cast(f64, .duration)) : -1
+            if target >= 0 do
+                entries.add(Viewer.timeJumpText(target, entries.query.toString()), .GoTo, func|view = me, target|() { view.seekSeconds(cast(f32, target)) })
+            return
+        }
+
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
         entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .stopButton.isEnabled())
         entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))

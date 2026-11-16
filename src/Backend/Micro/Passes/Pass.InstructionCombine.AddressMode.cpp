@@ -685,8 +685,7 @@ namespace InstructionCombine
         if (!ctx.areCpuFlagsDeadAfter(ref))
             return false;
 
-        ctx.ensureVirtualIndices();
-        if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+        if (!ctx.ensureAvailableVirtualIntReg())
             return false;
         if (!ctx.claimAll({ref}))
             return false;
@@ -766,8 +765,7 @@ namespace InstructionCombine
             MicroReg base = peel.source;
             if (!base.isValid())
             {
-                ctx.ensureVirtualIndices();
-                if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+                if (!ctx.ensureAvailableVirtualIntReg())
                     return false;
             }
             if (!ctx.claimAll({ref, shift.instRef}))

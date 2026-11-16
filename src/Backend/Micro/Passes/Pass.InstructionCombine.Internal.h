@@ -77,6 +77,23 @@ namespace InstructionCombine
             MicroPassHelpers::computeNextVirtualRegIndices(*passContext, nextVirtualIntRegIndex, nextVirtualFloatRegIndex);
         }
 
+        bool ensureAvailableVirtualIntReg()
+        {
+            ensureVirtualIndices();
+            return nextVirtualIntRegIndex < MicroReg::K_MAX_INDEX;
+        }
+
+        bool emitClearReg(MicroInstrRef ref, MicroReg dst, MicroOpBits opBits)
+        {
+            if (!claimAll({ref}))
+                return false;
+            MicroInstrOperand clearOps[2];
+            clearOps[0].reg    = dst;
+            clearOps[1].opBits = opBits;
+            emitRewrite(ref, MicroInstrOpcode::ClearReg, clearOps);
+            return true;
+        }
+
         enum class FloatReadFit : uint8_t
         {
             Unknown,

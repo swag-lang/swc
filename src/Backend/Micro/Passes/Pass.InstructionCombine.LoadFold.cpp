@@ -289,8 +289,7 @@ namespace InstructionCombine
         MicroReg scaledIndex = index;
         if (!fits)
         {
-            ctx.ensureVirtualIndices();
-            if (ctx.nextVirtualIntRegIndex >= MicroReg::K_MAX_INDEX)
+            if (!ctx.ensureAvailableVirtualIntReg())
                 return false;
             scaledIndex = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
 

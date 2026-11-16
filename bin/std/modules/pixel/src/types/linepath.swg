@@ -153,6 +153,7 @@ public impl LinePath
         .isClosed   = false
         .isDirty    = true
         .isPolyOnly = false
+        .serial     = 0
         .startPoint = Vector2{startX, startY}
         .endPoint   = .startPoint
     }

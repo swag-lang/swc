@@ -15,7 +15,7 @@ func anchorSplit(delta: s32, cell: u64)->{before: s32, after: s32}
     switch cell
     {
     case 0:  return {before: 0, after: delta}
-    case 1:  return {before: delta / 2, after: delta / 2}
+    case 1:  return {before: delta / 2, after: delta - delta / 2}
     default: return {before: delta, after: 0}
     }
 }

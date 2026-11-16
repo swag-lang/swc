@@ -207,6 +207,41 @@ using Swag, Core
     Swag.require(f.capture.height == 20)
 }
 
+// Centred, an expansion by an odd number of pixels gives the odd one to the right and the bottom:
+// the image and the canvas take exactly the size asked for.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 30
+    f.capture.height  = 20
+    f.capture.backImg = Gui.Testing.indexedImage(30, 20)
+
+    let split = anchorSplit(11, 1)
+    Swag.require(split.before == 5 and split.after == 6)
+    let shrink = anchorSplit(-7, 1)
+    Swag.require(shrink.before + shrink.after == -7)
+
+    let resizeMode = g_ResizeMode
+    defer g_ResizeMode = resizeMode
+    g_ResizeMode = 5
+    f.gui.app.sigFrame += func|host = &f.gui|(_)
+    {
+        g_Width  = 41
+        g_Height = 27
+        discard host.clickModalButton(Dialog.BtnOk)
+    }
+
+    f.main.sendCommandEvent(ActionImage.ExpandImage)
+    f.gui.pump()
+    Swag.require(f.capture.backImg.width == 41 and f.capture.backImg.height == 27)
+
+    f.main.sendCommandEvent(ActionImage.ExpandCapture)
+    f.gui.pump()
+    Swag.require(f.capture.width == 41 and f.capture.height == 27)
+}
+
 // Trim Capture finds the opaque pixels of the image: the canvas shrinks to the box they cover, and
 // a part of the image outside the canvas does not count.
 #test

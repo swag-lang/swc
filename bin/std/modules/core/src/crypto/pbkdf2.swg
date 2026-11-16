@@ -7,6 +7,7 @@ using Core.Errors
 //
 // `iterations` must be at least 1; zero fails with [[Core.Errors.BadParameterError]]. An empty
 // `destination` succeeds without writing. Intermediate digests are cleared before returning.
+// `password` may overlap `destination`; its original bytes are preserved for every output block.
 func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
     #[Swag.Inline]
@@ -23,6 +24,19 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
         return
     if salt.count > Swag.U64.Max - 4 do
         fail OverflowError{"PBKDF2 salt is too large"}
+
+    // A destination write for one block must not change the password used for later blocks.
+    var passwordCopy: Array'u8
+    var passwordInput = password
+    let passwordStart    = cast(u64, password.buffer)
+    let destinationStart = cast(u64, destination.buffer)
+    if passwordStart < destinationStart + destination.count and
+       destinationStart < passwordStart + password.count
+    {
+        passwordCopy.add(password)
+        passwordInput = passwordCopy.toSlice()
+    }
+    defer secureClear(passwordCopy.toSlice())
 
     const DigestSize = #sizeof(HmacSha256Digest)
     let blockCount = ((destination.count - 1) / DigestSize) + 1
@@ -44,11 +58,11 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
         input[suffix + 2] = Math.byteAt(blockIndex, 1)
         input[suffix + 3] = Math.byteAt(blockIndex, 0)
 
-        var current = HmacSha256.compute(password, input.toSlice())
+        var current = HmacSha256.compute(passwordInput, input.toSlice())
         var result  = current
         for iterations - 1
         {
-            current = HmacSha256.compute(password, current)
+            current = HmacSha256.compute(passwordInput, current)
             accumulateDigest(result.buffer, current.buffer)
         }
 

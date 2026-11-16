@@ -244,7 +244,8 @@ impl HashTable
 
             let storageBytes = .capacity * #sizeof(HashTableEntry'(K, V))
             let oldTable     = .tablePtr()
-            let newTable     = cast([*] HashTableEntry'(K, V), Memory.alloc(storageBytes, .allocator))
+            let newTable     = cast([*] HashTableEntry'(K, V),
+                                    Memory.alloc(storageBytes, .allocator, #alignof(HashTableEntry'(K, V))))
             #static if Reflection.hasDynamicStorage(HashTableEntry'(K, V)) do
                 Swag.init(newTable, .capacity)
             else do
@@ -472,7 +473,8 @@ impl HashTable
 
         if not .allocator do
             .allocator = Swag.getContext().allocator
-        .table = cast([*] HashTableEntry'(K, V), Memory.alloc(newCapacityBytes, .allocator))
+        .table = cast([*] HashTableEntry'(K, V),
+                      Memory.alloc(newCapacityBytes, .allocator, #alignof(HashTableEntry'(K, V))))
         .count, .deleted = 0
         let table = .tablePtr()
 

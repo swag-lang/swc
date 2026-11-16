@@ -127,8 +127,9 @@ func openWrite(fullName: string)->FileStream fail => try open(fullName, .Create,
 
 // Reads a whole UTF-8 file and returns its text.
 //
-// A leading byte-order mark is skipped. When `normalizeEol` is true, every line ends with a
-// single `\n`, including the last one.
+// A leading byte-order mark is skipped. Invalid UTF-8 fails with
+// [[Core.Errors.InvalidFormatError]]. When `normalizeEol` is true, every line ends with a single
+// `\n`, including the last one.
 func readAllText(fullName: string, normalizeEol = false)->String fail
 {
     var reader: TextReader
@@ -148,6 +149,9 @@ func readAllText(fullName: string, normalizeEol = false)->String fail
 }
 
 // Reads a whole UTF-8 file and returns its lines, without their end-of-line characters.
+//
+// A leading byte-order mark is skipped. Invalid UTF-8 fails with
+// [[Core.Errors.InvalidFormatError]].
 func readAllLines(fullName: string)->Array'String fail
 {
     var reader: TextReader
@@ -162,8 +166,9 @@ func readAllLines(fullName: string)->Array'String fail
 
 // Runs `stmt` for each line of a UTF-8 file, read one at a time.
 //
-// The block receives `line`, the address of a buffer reused from one line to the next: copy the
-// text to keep it beyond the iteration.
+// A leading byte-order mark is skipped. Invalid UTF-8 fails with
+// [[Core.Errors.InvalidFormatError]]. The block receives `line`, the address of a buffer reused
+// from one line to the next: copy the text to keep it beyond the iteration.
 #[Swag.Macro]
 func readEachLine(fullName: string, stmt: #code(var line: *String)) fail
 {

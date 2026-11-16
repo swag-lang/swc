@@ -38,6 +38,7 @@ enum AppearanceTheme
     System = 2     // Encre or Papier, following the light or dark setting of the operating system.
 }
 
+// Themes in persisted index order: Dark, Light, System.
 const AppearanceThemeValues: [3] AppearanceTheme = [.Dark, .Light, .System]
 
 // Owns GUI resources, top-level surfaces, input state, and the event loop.

@@ -286,7 +286,10 @@ consumer that activates the changed behavior.
   is the one brought to it), keep the scene as the regression test, and record again the goldens
   the fix moves. `-Suite parity -Sweep` finds such divergences in real scenes: it draws the golden
   scenes on the GPU and compares them with their CPU references without recording. What it
-  reports is a lead to reduce, never the regression test itself.
+  reports is a lead to reduce, never the regression test itself. The sweep accepts a boundary one
+  pixel off, because a real layout draws pictures at sizes where a pixel centre meets a texel
+  boundary and OpenGL leaves that side to the implementation; a dedicated parity scene stays
+  strict and avoids such ties, with odd picture sizes and positions off the pixel centres.
 - A golden mismatch fails its test through `Swag.check`, which lets the test go on: one run
   writes every `.actual` a change moved, and the run stays red until each is promoted or fixed.
 - Inspect every produced `.actual.txt` or `.actual.png` before promotion. A changed pixel outside

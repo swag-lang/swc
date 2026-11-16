@@ -448,11 +448,11 @@ struct NotifyEvent
         // Identifies the semantic notification sent by a control.
         enum Kind
         {
-            ChildFocusChanged     // A descendant gained or lost keyboard focus.
-            ThemeChanged          // The resolved theme or inherited style changed.
-            LanguageChanged       // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
-            PressedElsewhere      // A press went where no window of the application hears it: in another application, or on the ground or the edge the system moves or sizes a window by; sent to the global hooks only.
-            KeyboardLayoutChanged // The system's active keyboard layout or keymap changed.
+            ChildFocusChanged         // A descendant gained or lost keyboard focus.
+            ThemeChanged              // The resolved theme or inherited style changed.
+            LanguageChanged           // The active language of [[Gui.strings]] changed; text set at construction must be refreshed.
+            PressedElsewhere          // A press outside the application's windows, including on the system's window move or resize area; sent to global hooks only.
+            KeyboardLayoutChanged     // The system's active keyboard layout or keymap changed.
         }
 
         kind: Kind      // Notification kind.

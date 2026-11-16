@@ -419,23 +419,22 @@ ships; history lives in Git, not here.
 
 ---
 
-### std.pixel.038 — The parity sweep still reports ten application scenes
+### std.pixel.038 — A hatch has a different period on the two renderers at a fractional content scale
 
-- Evidence: `tools/coverage.bat -Suite parity -Sweep -Workspace apps` draws the golden scenes on
-  the GPU against their CPU references and still reports ten of them. `imageset-real-review`
-  differs by five to twelve levels over the textured parts of an animated picture shown after
-  its frame index went to the last frame and back to the first; a still photograph reduced or
-  enlarged in linear mode agrees on both renderers, so the lead is the texture update of a
-  frame, not the filter. `viewer.information.movie.encre` (one row of a video frame),
-  `viewer.video.options*`, `home.*`, `menus.home.clear`, `viewer.comic.page` and
-  `viewer.odt.reading.encre` differ along one row or column of a picture: a pixel centre that
-  maps exactly onto a texel boundary in pixel mode, a tie OpenGL leaves to the implementation.
-  `tasks.frame.fr.papier` keeps 53 pixels not yet looked at.
-- Next: for `imageset-real-review`, draw one texture, update it with a second image and back,
-  on both renderers in a Pixel parity scene. For the ties, decide whether the comparison should
-  recognise a one-texel choice along a picture edge, or the views should avoid sizes that put a
-  pixel centre on a texel boundary.
-- Done when: the sweep reports nothing on the three applications, and each divergence it showed
-  is held by a dedicated parity scene or by a stated rule of the comparison.
+- Evidence: `tools/coverage.bat -Suite parity -Sweep -Workspace apps` now reports two scenes
+  besides those being changed elsewhere. Capture `tasks.frame.fr.papier` shows a
+  `DiagonalForwardLight` chip on a scaled display: `RenderCpu` lays the pattern out in path
+  units, so its eight-unit period covers ten device pixels at 1.25 and lands unevenly, while the
+  GPU draws it with an even eight-pixel period. The scene of `hatch.parity.ogl.swg` reproduces it
+  when the painter is given `setContentScale(1.25)` and the cells are divided by that scale:
+  424 pixels differ. `RenderCpu.samplePaintBatch` takes `floor(paintPos - boundRect) mod 8`; the
+  OpenGL tile path divides the same path-space distance by the texture size, which should give
+  the same ten-pixel period, so where the GPU loses the scale is not understood yet. Scope
+  `viewer.odt.reading.encre` differs on five pixels at the end of a one-pixel rule.
+- Next: find which side follows the contract of a hatch brush at a content scale that is not one,
+  starting from the uniforms the OpenGL tile path receives for that draw; fix the other side and
+  add the scaled scene to `hatch.parity.ogl.swg`.
+- Done when: the sweep reports nothing on the three applications and the scaled hatch scene
+  passes in the parity campaign.
 
 ---

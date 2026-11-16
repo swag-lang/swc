@@ -27,7 +27,9 @@ const ApplicationId     = "swagvault"
 
     #static if #hastag("vault.hidden-copy")
     {
-        discard catch runHiddenCopy() { Console.println(caughtMessage(Swag.err)) }
+        var copyErrorOutcome: Swag.Error
+        discard catch runHiddenCopy() as copyErrorOutcome { Console.println(caughtMessage(Swag.err)) }
+        let copyError = copyErrorOutcome.value()
         Env.exit(copyError == null ? 0 : 1)
     }
 

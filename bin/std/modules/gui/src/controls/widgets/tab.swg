@@ -804,8 +804,9 @@ impl Tab
         .invalidateLayout()
     }
 
-    // Sets the reading after the label of one tab, such as a count, or removes it with `null`,
-    // and measures the bar again.
+    // Sets a reading after a tab label, such as a count, or removes it with `null`.
+    //
+    // Resizes the tab bar to fit the new reading.
     mtd setItemCount(index: u32, count: string?)
     {
         Swag.assert(index < .items.count)

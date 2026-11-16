@@ -23,7 +23,7 @@ private func(T) storeParsedNumber(destination: *u8, parsed: {value: T, eat: u32,
 //   and `,` between two values is accepted.
 //
 // When `type` is a static array or a [[Core.Array]] of those types, `buf` holds several values
-// separated with blanks, up to its end or a '#'.
+// separated with blanks, up to its end or a '#'. Each array element parser must consume input.
 public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
 {
     let patch = cast(*u8, addr)
@@ -37,7 +37,10 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         while one.count and one[0] != '#'
         {
             let addrVal = Reflection.appendDynamicArrayElement(addr, safeValueType)
+            let previousCount = one.count
             one = try parseValue(addrVal, safeValueType, one)
+            if one.count >= previousCount do
+                fail InvalidFormatError{"array value parser did not consume input"}
             one = Tokenize.eatSpaces(one)
         }
 
@@ -54,7 +57,10 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         {
             if cpt == arrayType.totalCount do
                 fail InvalidFormatError{"too many static array values"}
+            let previousCount = one.count
             one     = try parseValue(addrVal, arrayType.finalType, one)
+            if one.count >= previousCount do
+                fail InvalidFormatError{"array value parser did not consume input"}
             one     = Tokenize.eatSpaces(one)
             addrVal += arrayType.finalType.sizeof
             cpt     += 1

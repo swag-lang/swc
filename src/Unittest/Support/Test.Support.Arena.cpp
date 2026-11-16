@@ -57,6 +57,52 @@ SWC_TEST_BEGIN(Arena_MoveAndResetDestroyOwnedObjectsOnce)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Arena_RejectsInvalidAndOverflowingSizes)
+{
+    Arena arena(64);
+    bool  rejectedZeroAlignment    = false;
+    bool  rejectedOverflowingSize  = false;
+    bool  rejectedOverflowingBlock = false;
+    bool  rejectedOverflowingArray = false;
+    try
+    {
+        arena.allocate(1, 0);
+    }
+    catch (const std::bad_alloc&)
+    {
+        rejectedZeroAlignment = true;
+    }
+    try
+    {
+        arena.allocate(std::numeric_limits<std::size_t>::max());
+    }
+    catch (const std::bad_alloc&)
+    {
+        rejectedOverflowingSize = true;
+    }
+    try
+    {
+        arena.allocate(std::numeric_limits<std::size_t>::max() - 16, 16);
+    }
+    catch (const std::bad_alloc&)
+    {
+        rejectedOverflowingBlock = true;
+    }
+    try
+    {
+        arena.makeArray<uint64_t>(std::numeric_limits<std::size_t>::max());
+    }
+    catch (const std::bad_array_new_length&)
+    {
+        rejectedOverflowingArray = true;
+    }
+
+    if (!rejectedZeroAlignment || !rejectedOverflowingSize || !rejectedOverflowingBlock ||
+        !rejectedOverflowingArray || !arena.allocate(8))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Arena_FailedArrayConstructionDestroysOnlyCompletedElements)
 {
     ArenaThrowingElement::attempts  = 0;

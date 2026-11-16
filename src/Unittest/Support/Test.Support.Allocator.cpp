@@ -2,9 +2,26 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Support/Memory/Heap.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
+
+SWC_TEST_BEGIN(Heap_AllocationFailurePropagates)
+{
+    bool failed = false;
+    try
+    {
+        (void) heapAlloc(std::numeric_limits<std::size_t>::max());
+    }
+    catch (const std::bad_alloc&)
+    {
+        failed = true;
+    }
+    if (!failed)
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(Allocator_AlignedBlocksSurviveAllocatingThreadExit)
 {

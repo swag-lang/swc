@@ -403,9 +403,9 @@ impl PopupListCtrl
         view.close(view.hotIdx)
     }
 
-    // Returns the width the widest worded entry needs, its lanes and the frame included, so a
-    // list opened under a narrow field still shows each entry whole. An entry painted by its
-    // own painter is a sample, as wide as the list makes it, and is not measured.
+    // Returns the width needed to show the widest worded entry, including its lanes and frame.
+    //
+    // Entries with their own painter are not measured; their painter receives the list's width.
     mtd contentWidth()->f32
     {
         let metrics = .themeMetrics()

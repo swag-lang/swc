@@ -15,6 +15,7 @@ enum LineCapStyle
     RoundAnchor      // Add a centered circular anchor.
 }
 
+// Line-cap styles in enum order, for settings and other ordinal-indexed mappings.
 const LineCapStyleValues: [8] LineCapStyle = [
     .None, .Triangle, .Round, .Square, .ArrowAnchor, .ArrowAnchor2, .SquareAnchor, .RoundAnchor]
 
@@ -47,6 +48,7 @@ enum DashStyle
     DashDot     // Alternate built-in dash and dot segments.
 }
 
+// Dash styles in enum order, for settings and other ordinal-indexed mappings.
 const DashStyleValues: [5] DashStyle = [.None, .Pattern, .Dot, .Dash, .DashDot]
 
 // Selects how a stroke is positioned relative to a closed contour.
@@ -67,6 +69,11 @@ enum BorderPos
 // stroke.
 struct Pen
 {
+    internal
+    {
+        dashStartHalf: bool     // A promoted built-in dash keeps its open-path half-segment start.
+    }
+
     public
     {
         size:  f32 = 1     // Stroke width, in pixels.

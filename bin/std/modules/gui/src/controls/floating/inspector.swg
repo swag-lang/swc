@@ -282,8 +282,9 @@ impl Inspector
         return content
     }
 
-    // Removes the title, the actions and every row, destroying their editors. The content set by
-    // [[Gui.Inspector.setContent]] stays.
+    // Removes the title, actions, and rows, destroying their editors.
+    //
+    // The content set by [[Gui.Inspector.setContent]] stays.
     mtd clear()
     {
         for row in .rows where row.editor do

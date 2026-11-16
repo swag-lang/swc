@@ -218,9 +218,10 @@ impl Image
     }
 
     // Convolves the image with a predefined kernel, in place.
-    // Normalized kernels with non-negative weights filter visible colors using the source alpha
-    // while preserving each destination pixel's alpha. Kernels with negative weights preserve
-    // alpha and filter the color channels directly.
+    //
+    // Normalized kernels with non-negative weights filter visible colors using source alpha while
+    // preserving each destination pixel's alpha. Kernels with negative weights preserve alpha and
+    // filter color channels directly.
     public mtd applyKernel(kernel: Kernel)
     {
         Swag.assert(.pixels.buffer != null)
@@ -230,9 +231,10 @@ impl Image
     }
 
     // Returns a copy of the image convolved with a predefined kernel.
-    // Normalized kernels with non-negative weights filter visible colors using the source alpha
-    // while preserving each destination pixel's alpha. Kernels with negative weights preserve
-    // alpha and filter the color channels directly.
+    //
+    // Normalized kernels with non-negative weights filter visible colors using source alpha while
+    // preserving each destination pixel's alpha. Kernels with negative weights preserve alpha and
+    // filter color channels directly.
     public mtd withKernelApplied(kernel: Kernel)->Image
     {
         Swag.assert(.pixels.buffer != null)

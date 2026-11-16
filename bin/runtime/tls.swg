@@ -57,7 +57,7 @@ private func __tlsCreatePtr(id: u64)->*void?
 //
 // `idSlot` is module storage holding the host slot for that global. The copy uses bootstrap
 // allocation because the normal Swag allocator itself reaches this path.
-func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
+func __tlsVarPtr(idSlot: *u64, size: u64, alignment: u32, init: const *void)->*void?
 {
     var id = Swag.atomicCompareExchange(idSlot, 0, 0)
     if id == 0
@@ -82,7 +82,7 @@ func __tlsVarPtr(idSlot: *u64, size: u64, init: const *void)->*void?
     if known do
         return known
 
-    let created = __bootstrapAlloc(size)
+    let created = __bootstrapAllocAligned(size, alignment)
     if not created do
         return null
 

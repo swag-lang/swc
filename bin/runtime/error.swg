@@ -311,10 +311,19 @@ private func catchPanicHook(message: string?, loc: SourceCodeLocation)
     __hostResume(&frame.resumeStorage[0])
 }
 
-private func __allocateErrMemory(allocator: IAllocator, size: u64)->*void
+private func __runtimeTypeAlignment(size: u32)->u32
+{
+    var result = 1'u32
+    while result < size and result <= Swag.U32.Max / 2 do
+        result *= 2
+    return result
+}
+
+private func __allocateErrMemory(allocator: IAllocator, size: u64, alignment: u32 = 0)->*void
 {
     var request: AllocatorRequest
     request.size = Swag.max(size, 1'u64)
+    request.alignment = alignment
     allocator.alloc(&request)
     if not request.address do
         Swag.panic("cannot allocate error storage", #curlocation)
@@ -548,7 +557,7 @@ private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*
         messages.references.add(1)
     }
 
-    let ptr = __allocateErrMemory(allocator, cast(u64, type.sizeof))
+    let ptr = __allocateErrMemory(allocator, cast(u64, type.sizeof), __runtimeTypeAlignment(type.sizeof))
     Swag.memcpy(ptr, data, cast(u64, type.sizeof))
     if type is Swag.TypeInfoStruct as info
     {

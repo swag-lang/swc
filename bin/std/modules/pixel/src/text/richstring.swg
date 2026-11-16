@@ -510,7 +510,9 @@ impl RichString
     }
 
     // Returns the complete visible text of the link identified by [[Pixel.RichChunk.urlStart]].
-    // A link can contain several styled runs or wrapped words. An unknown offset returns empty.
+    //
+    // A link can contain several styled runs or wrapped words. Returns empty for an unknown
+    // offset.
     mtd urlText(start: u64)->String
     {
         .compute()

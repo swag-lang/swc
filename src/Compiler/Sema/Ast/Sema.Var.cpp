@@ -118,15 +118,46 @@ namespace
         const TypeRef   storageTypeRef  = storageTypeInfo.typeRef();
 
         const uint64_t sizeU64 = storageTypeInfo.sizeOf(ctx);
-        if (!sizeU64)
-            return Result::Continue;
-        SWC_ASSERT(sizeU64 <= std::numeric_limits<uint32_t>::max());
-        const uint32_t size      = static_cast<uint32_t>(sizeU64);
         uint32_t       alignment = storageTypeInfo.alignOf(ctx);
         if (!alignment)
             alignment = 1;
 
         const bool      isCompilerGlobal   = symVar.attributes().hasRtFlag(RtAttributeFlagsE::Compiler);
+
+        // The runtime copies a TLS value without running its drop lifecycle. Reject such a
+        // declaration before the zero-sized-type fast path too, where no ordinary storage is
+        // otherwise needed.
+        if (!isCompilerGlobal && symVar.isDeclaredThreadLocal() &&
+            ctx.typeMgr().hasLifecycleOperator(ctx, storageTypeRef, &SymbolStruct::opDrop))
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tls_global_with_drop, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, storageTypeRef);
+            diag.report(ctx);
+            return Result::Error;
+        }
+
+        if (!sizeU64)
+        {
+            if (!isCompilerGlobal && symVar.isDeclaredThreadLocal())
+            {
+                // Even an empty value has a per-thread address. Keep one byte of template
+                // storage so codegen can materialize its source address, and allocate a TLS
+                // slot even though there are no payload bytes to copy.
+                const auto [offset, storage] = ctx.compiler().globalZeroSegment().reserveBytes(1, alignment, true);
+                SWC_UNUSED(storage);
+                symVar.setGlobalStorage(DataSegmentKind::GlobalZero, offset);
+
+                const auto [tlsIdOffset, tlsIdStorage] = ctx.compiler().globalZeroSegment().reserve<uint64_t>();
+                if (tlsIdStorage)
+                    *tlsIdStorage = 0;
+                symVar.setThreadLocalStorage(tlsIdOffset, 0);
+            }
+
+            return Result::Continue;
+        }
+
+        SWC_ASSERT(sizeU64 <= std::numeric_limits<uint32_t>::max());
+        const uint32_t size               = static_cast<uint32_t>(sizeU64);
         const bool      hasInitializerData = symVar.cstRef().isValid();
         const bool      hasFunctionInit    = symVar.globalFunctionInit() != nullptr;
         DataSegmentKind storageKind        = isCompilerGlobal ? DataSegmentKind::Compiler : DataSegmentKind::GlobalZero;
@@ -206,18 +237,6 @@ namespace
         // starts at zero and the runtime reads "not claimed yet" from it.
         if (!isCompilerGlobal && symVar.isDeclaredThreadLocal())
         {
-            // The per-thread block is released by the thread-exit destructor, which frees bytes
-            // without knowing their type, and shutdown cannot stand in for it: it runs on one
-            // thread and would drop an arbitrary copy. A value with a drop lifecycle would
-            // therefore leak once per thread, silently.
-            if (ctx.typeMgr().hasLifecycleOperator(ctx, storageTypeRef, &SymbolStruct::opDrop))
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_tls_global_with_drop, sema.curNodeRef());
-                diag.addArgument(Diagnostic::ARG_TYPE, storageTypeRef);
-                diag.report(ctx);
-                return Result::Error;
-            }
-
             const auto [tlsIdOffset, tlsIdStorage] = ctx.compiler().globalZeroSegment().reserve<uint64_t>();
             if (tlsIdStorage)
                 *tlsIdStorage = 0;

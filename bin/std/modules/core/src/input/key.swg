@@ -209,6 +209,7 @@ public enum Key
 }
 
 // Returns the key whose stored enum value matches an index into keyboard state arrays.
+//
 // Reading a compiler-declared enum value avoids constructing an enum from a runtime integer.
 public func keyFromStorageIndex(index: u64)->Key
 {

@@ -151,8 +151,9 @@ impl HintLine
         return result
     }
 
-    // Appends a key and what it opens, or with an empty `key`, words alone, such as what the tool
-    // in hand does.
+    // Appends a key and what it opens.
+    //
+    // With an empty `key`, shows words alone, such as what the tool in hand does.
     mtd addHint(key: string, text: string)
     {
         .hints.add(HintLineItem{key, text})
@@ -173,8 +174,10 @@ impl HintLine
         .relayout()
     }
 
-    // Stands the line on the floating ground, for a line over a busy picture such as a frozen
-    // screen, where words on the bare picture cannot be read.
+    // Shows or hides the floating ground behind the line.
+    //
+    // Use it over a busy picture, such as a frozen screen, when words on the picture are hard to
+    // read.
     mtd setGrounded(grounded: bool)
     {
         .grounded = grounded

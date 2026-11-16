@@ -21,6 +21,9 @@ impl StaticArray
     #[Inline]
     mtd const opCount()->u64 => .count
 
+    // Drops the initialized elements without traversing unused capacity.
+    mtd opDrop() { .clear() }
+
     // Returns a constant pointer to the first element.
     #[Inline]
     mtd opData()->const *T => &.buffer[0]

@@ -11,6 +11,7 @@ struct ImageGoldenOptions
         maxChannelDelta:    u8       // Maximum absolute difference accepted for each ARGB channel.
         maxDifferentPixels: u64      // Maximum number of pixels allowed outside the channel tolerance.
         cpuRendered:        bool     // Whether the image comes from the CPU renderer whatever renderer the run selected.
+        acceptEdgeChoice:   bool     // Whether a renderer comparison accepts a boundary between two areas sitting one pixel off.
     }
 }
 
@@ -117,6 +118,15 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // [[Pixel.Testing.ImageGoldenOptions.maxChannelDelta]] raises the rounding slack and
 // [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] accepts that many pixels of difference.
 //
+// [[Pixel.Testing.ImageGoldenOptions.acceptEdgeChoice]] also accepts a boundary between two
+// areas that sits exactly one pixel off. That is what a picture drawn in pixel mode shows where
+// a pixel centre maps onto a texel boundary: OpenGL leaves the side to the implementation, so
+// one row or column of the picture reads the neighbouring texel. A boundary two pixels off, and
+// a rule or stem that is missing rather than moved, stay differences. The option cannot tell
+// such a tie from a filled shape whose edge really moved by one pixel, so a dedicated parity
+// scene leaves it off and avoids the tie instead; the parity sweep, which draws real
+// application scenes, turns it on.
+//
 // A difference writes `<name>.parity.cpu.png` and `<name>.parity.gpu.png` in the goldens folder
 // of the calling test, reports its first pixel, and fails the test through [[Swag.check]]
 // without stopping it. Neither file is a golden: a real divergence is fixed in the renderer.
@@ -188,7 +198,10 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
             return
         }
 
-        assertRenderersAgree(&reference, image, name, options, loc)
+        // A real scene sizes its pictures as the layout asks, ties included.
+        var sweep = options
+        sweep.acceptEdgeChoice = true
+        assertRenderersAgree(&reference, image, name, sweep, loc)
         return
     }
 
@@ -365,6 +378,30 @@ private
         return Math.max(high[0] - low[0], high[1] - low[1], high[2] - low[2], high[3] - low[3])
     }
 
+    // Says whether `(x, y)` only shows a boundary between two areas sitting one pixel off.
+    //
+    // The reference pixel then continues the area on one side, and the drawn pixel already shows
+    // the area on the other side: the boundary between them moved across this pixel and no
+    // further. A rule or a stem one pixel thick matches neither of its neighbours in the
+    // reference, so losing it is never such a choice.
+    func isEdgeChoice(expected, actual: ComparisonPixels, x, y: s32, slack: u8)->bool
+    {
+        let reference = expected.at(x, y)
+        let drawn     = actual.at(x, y)
+        let stepX: [4] s32 = [0, 0, 1, -1]
+        let stepY: [4] s32 = [1, -1, 0, 0]
+        for side in 4
+        {
+            let dx = stepX[side]
+            let dy = stepY[side]
+            if channelDelta(reference, expected.at(x - dx, y - dy)) <= slack and
+               channelDelta(drawn, expected.at(x + dx, y + dy)) <= slack do
+                return true
+        }
+
+        return false
+    }
+
     // Compares what a GPU drew against a CPU reference, the way two graphics devices differ.
     //
     // A pixel is accepted while its largest channel difference stays within
@@ -399,6 +436,8 @@ private
 
                 let contrast = localContrast(expectedPixels, actualPixels, x, y)
                 if cast(f32, delta) <= options.maxChannelDelta + GpuContrastShare * contrast do
+                    continue
+                if options.acceptEdgeChoice and isEdgeChoice(expectedPixels, actualPixels, x, y, options.maxChannelDelta) do
                     continue
 
                 rejected[cast(u64, y) * cast(u64, width) + cast(u64, x)] = true

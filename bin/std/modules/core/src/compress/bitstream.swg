@@ -52,8 +52,11 @@ impl BitStream
     }
 
     // Refills the bit buffer until it holds more than `width` bits, unless the source ends first.
+    // `width` must be at most 56 so the slow path can append one full byte to the 64-bit buffer.
     mtd refill(width = 24'u8)
     {
+        Swag.assert(width <= 56, "bit refill width exceeds 56 bits")
+
         // Fast path: a single unaligned 64-bit load refills the buffer to at least
         // 56 bits at once, as long as 8 bytes remain so the load stays in bounds.
         // This avoids the per-byte loop for the bulk of the stream.

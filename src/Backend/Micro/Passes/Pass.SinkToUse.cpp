@@ -211,8 +211,9 @@ namespace
                     if (!def.isVirtual())
                         continue;
 
-                    const uint32_t denseIndex = scratch.virtualRegs.ensure(def);
-                    if (denseIndex == scratch.regCounts.size())
+                    bool           inserted = false;
+                    const uint32_t denseIndex = scratch.virtualRegs.ensure(def, &inserted);
+                    if (inserted)
                         scratch.regCounts.emplace_back();
                     ++scratch.regCounts[denseIndex].definitions;
                 }
@@ -221,8 +222,9 @@ namespace
                     if (!used.isVirtual())
                         continue;
 
-                    const uint32_t denseIndex = scratch.virtualRegs.ensure(used);
-                    if (denseIndex == scratch.regCounts.size())
+                    bool           inserted = false;
+                    const uint32_t denseIndex = scratch.virtualRegs.ensure(used, &inserted);
+                    if (inserted)
                         scratch.regCounts.emplace_back();
                     ++scratch.regCounts[denseIndex].uses;
                     scratch.regCounts[denseIndex].onlyUseIndex = i;

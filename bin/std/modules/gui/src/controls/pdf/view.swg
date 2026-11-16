@@ -39,6 +39,30 @@ enum PdfZoomMode
     Free         // The scale [[Gui.PdfView.setZoom]] set is kept, whatever the viewport does.
 }
 
+// A place in a PDF document, with the scale it was read at.
+//
+// Capture with [[Gui.PdfView.readingPosition]] and restore with
+// [[Gui.PdfView.restoreReadingPosition]]. It holds no view or document pointers and may outlive
+// the view. It names a place in the same unchanged document only; it is not a persistent
+// serialization format. A default value has no location.
+#[Swag.Opaque]
+struct PdfReadingPosition
+{
+    internal
+    {
+        pageIndex: u64         = Swag.U64.Max
+        point:     Math.Point
+        zoomMode:  PdfZoomMode = .FitPage
+        zoom:      f32         = 1
+    }
+}
+
+impl PdfReadingPosition
+{
+    // Reports whether this value contains a captured place.
+    mtd const isValid()->bool => .pageIndex != Swag.U64.Max
+}
+
 // One position in a document's text: a page, and a byte offset in that page's text.
 internal struct PdfTextPosition
 {
@@ -1413,6 +1437,50 @@ impl PdfView
         .scroll.setScrollPos(page.x + point.x * scale - PageMargin, page.y + point.y * scale - PageMargin)
         .updateCurrentPage()
         .invalidate()
+    }
+
+    // Captures the place at the top-left corner of the viewport, and the scale it is read at.
+    //
+    // The place is a page and a point of it in displayed page points, so it stays the same place
+    // whatever the window, the zoom, or the page layout become. The result is invalid while no
+    // document is open.
+    mtd const readingPosition()->PdfReadingPosition
+    {
+        var result: #returntype
+        if not .hasDocument do
+            return result
+
+        // The corner [[Gui.PdfView.showPosition]] brings a point to, so a restore lands where
+        // the capture was taken.
+        let corner = .documentPointAt(Math.Point{PageMargin, PageMargin})
+        let size   = .pageSizes[corner.pageIndex]
+        result.pageIndex = corner.pageIndex
+        result.point     = {Math.clamp(corner.point.x, 0, size.x), Math.clamp(corner.point.y, 0, size.y)}
+        result.zoomMode  = .zoomMode
+        result.zoom      = .zoom
+        return result
+    }
+
+    // Returns to a captured place at the scale it was read at.
+    //
+    // Returns false without changing anything when the position is invalid, no document is
+    // open, or the document has no such page. The page layout, selection, and search are kept.
+    //
+    // ```swag
+    // let place = view.readingPosition()
+    // view.showPage(bookmarkPage)
+    // discard view.restoreReadingPosition(place)
+    // ```
+    mtd restoreReadingPosition(position: PdfReadingPosition)->bool
+    {
+        if not .hasDocument or position.pageIndex >= .pageSizes.count do
+            return false
+        if position.zoomMode != .Free do
+            .setZoomMode(position.zoomMode)
+        elif .zoomMode != .Free or .zoom != position.zoom do
+            .applyZoom(position.zoom)
+        .showPosition(position.pageIndex, position.point)
+        return true
     }
 
     // Shows the next page when one exists.

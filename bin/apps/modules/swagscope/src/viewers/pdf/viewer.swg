@@ -144,6 +144,7 @@ struct Panel
     bookmarks:     Array'Pdf.OutlineEntry
     margin:        *OutlineMargin?
     marginParts:   Array'u64     // Indices of the bookmarks the margin lists.
+    history:       Viewer.History'PdfReadingPosition
 
     late
     {
@@ -200,6 +201,7 @@ private impl IWnd for Panel
         }
 
         .pdfView.exchangeDocument(&content.reader, &content.page)
+        .history.clear()
         .bookmarks = #move content.outline
         if .outline
         {
@@ -230,6 +232,9 @@ private impl IWnd for Panel
             evt.accepted = false
             return
         }
+
+        if .handleHistoryKey(evt) do
+            return
 
         switch evt.key
         {
@@ -330,17 +335,57 @@ private impl Panel
            not parsed.value or
            parsed.value > .pdfView.pageCount() do
             return false
+        .history.visit(.pdfView.readingPosition())
         .pdfView.showPage(parsed.value - 1)
         return true
     }
 
+    // Shows the place a bookmark names, remembering the one the reader leaves. A bookmark that
+    // only groups others, or whose destination the document does not resolve, moves nothing.
+    internal mtd showBookmark(index: u64)
+    {
+        if index >= .bookmarks.count do
+            return
+        let entry = &.bookmarks[index]
+        if entry.pageIndex >= .pdfView.pageCount() do
+            return
+        .history.visit(.pdfView.readingPosition())
+        .pdfView.showPosition(entry.pageIndex, entry.position)
+    }
+
+    // Returns to the place the last jump left, at the zoom it was read at.
+    internal mtd goBack()
+    {
+        if .history.canGoBack() do
+            discard .pdfView.restoreReadingPosition(.history.back(.pdfView.readingPosition()))
+    }
+
+    // Undoes the last return.
+    internal mtd goForward()
+    {
+        if .history.canGoForward() do
+            discard .pdfView.restoreReadingPosition(.history.forward(.pdfView.readingPosition()))
+    }
+
+    mtd handleHistoryKey(evt: const *KeyEvent)->bool
+    {
+        let direction = Viewer.historyKeyDirection(evt)
+        if direction < 0 do
+            .goBack()
+        elif direction > 0 do
+            .goForward()
+        return direction != 0
+    }
+
     // Gives the lens the pages and the zoom of the document.
-    mtd describeLens(entries: *Viewer.LensEntries)
+    internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
         entries.add(strings.ui_Previous, .ChevronLeft, func|view = me|() { view.pdfView.previousPage() }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
         entries.add(strings.ui_Next, .ChevronRight, func|view = me|() { view.pdfView.nextPage() }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
+        entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
+        entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
         entries.add(strings.ui_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(strings.ui_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
@@ -412,6 +457,8 @@ private impl Panel
         {
             if evt is KeyEvent as key
             {
+                if view.handleHistoryKey(key) do
+                    return true
                 let direction = Viewer.pageKeyDirection(key)
                 if direction < 0 do
                     view.pdfView.previousPage()
@@ -429,11 +476,8 @@ private impl Panel
             .label     = texts().ui_Contents
             .sigChosen += func|view = result|(_, row)
             {
-                if row < view.marginParts.count
-                {
-                    let entry = &view.bookmarks[view.marginParts[row]]
-                    view.pdfView.showPosition(entry.pageIndex, entry.position)
-                }
+                if row < view.marginParts.count do
+                    view.showBookmark(view.marginParts[row])
             }
         }
 
@@ -538,14 +582,7 @@ func createViewer(host: Viewer.Host)
     let view     = Panel.create(host.contentParent(), info, commands, host.fileName(), services)
     host.attachView(view)
     view.outline = DocumentOutline.create(host)
-    view.outline.sigSelected += func|view|(_, index)
-    {
-        if index < view.bookmarks.count
-        {
-            let entry = &view.bookmarks[index]
-            view.pdfView.showPosition(entry.pageIndex, entry.position)
-        }
-    }
+    view.outline.sigSelected += func|view|(_, index) { view.showBookmark(index) }
 
     // PDF text lives compressed inside the file, so the viewer extracts every page's text and
     // hands the host stable logical matches for counting and bidirectional navigation, a page at

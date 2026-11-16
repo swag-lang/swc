@@ -33,16 +33,16 @@ integration around those engines.
   and back/forward restores a reading location without retaining the whole source.
 - Related: std.gui.markdown.005, app.scope.viewers.003
 
-### app.scope.document.013 — PDF bookmark navigation has no back/forward history
+### app.scope.document.013 — PDF page links do not join the back/forward history
 
-- Evidence: `PdfDocument.Panel` fills the shared `DocumentOutline` from `Pdf.Reader.loadOutline`
-  and navigates through `PdfView.showPosition`. The shared panel provides text filtering, but
-  the PDF adapter retains no back/forward state. Page-link annotations are not exposed by the
-  engine (std.gui.pdf.017).
-- Next: add bounded page/position/zoom history to the existing bookmark panel,
-  then route supported page links through the same navigation contract when the engine exposes them.
-- Done when: bookmark filtering preserves hierarchy, back/forward restores page coordinates
-  and zoom, and supported local links share the same behavior while invalid targets remain visible.
+- Evidence: bookmark, margin and typed-page jumps record their place in `Viewer.History` and
+  Alt+arrows or the lens restore its page point and zoom. Page-link annotations are not exposed
+  by the engine (std.gui.pdf.017), so a link inside a page cannot be followed or returned from,
+  and a search reveal is not recorded as a jump.
+- Next: when the engine exposes link annotations, route supported page links through
+  `PdfDocument.Panel.showBookmark`'s navigation contract and name an unresolved target in place.
+- Done when: supported local links share the bookmark history behavior while invalid targets
+  remain visible.
 - Related: std.gui.pdf.017
 
 ### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics

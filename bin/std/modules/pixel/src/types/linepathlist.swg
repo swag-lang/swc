@@ -95,6 +95,7 @@ impl LinePathList
     mtd const memoryUsage()->u64
     {
         var result = cast(u64, #sizeof(LinePathList))
+        result += .paths.capacity * #sizeof(*LinePath)
         for path in .paths do
             result += path.memoryUsage()
         result += .fillCacheStamps.capacity * #sizeof(u64)

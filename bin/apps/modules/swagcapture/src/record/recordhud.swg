@@ -203,14 +203,6 @@ impl RecordHud
         var gap          = Math.ceil(RecordHudGap * barScale)
         let workArea     = monitor.physicalWorkArea
 
-        // An X11 root capture records whatever covers the area, the shadow of the pill included,
-        // so a pill whose shadow margin reached into the area had to be unmapped for every frame:
-        // it flickered and lost the clicks meant for Stop. Its margin stays outside the frame.
-        #static if #os == Swag.TargetOs.Linux
-        {
-            gap = Math.max(gap, Math.ceil(g_App.theme.floatingShadowMargin() * barScale))
-        }
-
         if otherScreen
         {
             let margin = Math.ceil(g_App.theme.floatingShadowMargin() * barScale)
@@ -220,6 +212,14 @@ impl RecordHud
             let y = Math.clamp(frame.vertCenter() - height * 0.5,
                                workArea.y + inset, workArea.bottom() - height - inset)
             return {x - margin, y - margin, width + 2 * margin, height + 2 * margin}
+        }
+
+        // An X11 root capture records whatever covers the area, the shadow of the pill included,
+        // so a pill whose shadow margin reached into the area had to be unmapped for every frame:
+        // it flickered and lost the clicks meant for Stop. Beside the frame, its margin stays out.
+        #static if #os == Swag.TargetOs.Linux
+        {
+            gap = Math.max(gap, Math.ceil(g_App.theme.floatingShadowMargin() * barScale))
         }
 
         var place = Math.Rectangle{frame.right() - width, frame.bottom() + gap, width, height}

@@ -406,9 +406,7 @@ namespace
 
         if (ctx.cmdLine().targetOs == Runtime::TargetOs::Linux)
         {
-            addInfoEntry(entries, "Object format", "ELF64 (x86-64)");
-            addInfoEntry(entries, "Compiler driver", "cc (from PATH at link time)");
-            addInfoEntry(entries, "Archive writer", "ar (from PATH at link time)");
+            CommandPrint::addLinuxNativeToolchainEntries(entries);
         }
         else
             CommandPrint::addNativeToolchainEntries(entries, nativePreview.toolchainResult, nativePreview.toolchain);

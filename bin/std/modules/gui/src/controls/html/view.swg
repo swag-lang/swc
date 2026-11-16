@@ -120,6 +120,14 @@ private struct HtmlRegionScrollState
     top:  f32
 }
 
+// Names what decided the encoding an HTML document is read with.
+enum HtmlEncodingSource
+{
+    Content           // The bytes themselves, read by [[Core.Text.detectEncoding]].
+    ByteOrderMark     // A byte-order mark opening the file.
+    Declaration       // A `charset` label declared in the head of the document.
+}
+
 // Handles a link activation in an HTML view; true consumes it, false permits default navigation.
 alias HtmlLinkHandler = func||(*HtmlView, string)->bool
 
@@ -160,8 +168,10 @@ struct HtmlView
 
         readonly
         {
-            documentStyle: HtmlStyle     // Typography a document inherits before its own CSS applies.
-            failureReason: String        // File-loading explanation, or empty while loading remains valid.
+            documentStyle:  HtmlStyle              // Typography a document inherits before its own CSS applies.
+            failureReason:  String                 // File-loading explanation, or empty while loading remains valid.
+            encoding:       Text.Encoding          // Encoding the bytes of a file are read with; in-memory source is UTF-8.
+            encodingSource: HtmlEncodingSource     // What decided `encoding` for the file being shown.
         }
     }
 
@@ -188,7 +198,6 @@ struct HtmlView
 
         stream:      File.FileStream
         fileName:    String
-        encoding:    Text.Encoding
         fileSize:    u64
         bytesRead:   u64
         sourceDone:  bool
@@ -661,15 +670,20 @@ internal impl HtmlView
 
         var result       = Text.detectEncoding(probe.toSlice())
         var contentStart = 0'u64
+        .encodingSource = .Content
         if Text.hasBom(probe.toSlice(), result)
         {
-            contentStart = Text.bomLength(result)
+            contentStart    = Text.bomLength(result)
+            .encodingSource = .ByteOrderMark
         }
         else
         {
             let declared = htmlDeclaredEncoding(cast(string, probe.toSlice()))
-            if declared.matched do
+            if declared.matched
+            {
                 result = declared.encoding
+                .encodingSource = .Declaration
+            }
         }
 
         // A stream that cannot rewind cannot stream the document; the next read reports that

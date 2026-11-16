@@ -93,15 +93,16 @@ integration around those engines.
   synchronize in either direction, search results map across modes, and large files stay streamed.
 - Related: std.gui.markdown.005
 
-### app.scope.document.005 — HTML encoding decisions have no inspection or override controls
+### app.scope.document.005 — HTML encoding decisions have no override or conflict warnings
 
-- Evidence: `HtmlView.detectDocumentEncoding` honors a BOM, scans early charset labels, and falls
-  back to `Text.detectEncoding`, but the viewer exposes no detected encoding, decision source,
-  manual override, or byte mapping for decoding failures.
-- Next: expose the detected encoding and its provenance, then add an override using the text
-  viewer's supported encoding choices and explicit restart behavior.
-- Done when: the reader can inspect the chosen encoding, late or conflicting declarations
-  warn, invalid bytes remain traceable, and an override re-renders safely.
+- Evidence: the information sheet names the encoding in force and what decided it (byte-order
+  mark, declared label, or the bytes) from `HtmlView.encoding` and `encodingSource`. There is no
+  manual override, no warning for a late or conflicting declaration, and no byte mapping for
+  decoding failures.
+- Next: add an override using the text viewer's supported encoding choices with explicit restart
+  behavior, then report a declaration that arrives after the probe or contradicts a mark.
+- Done when: late or conflicting declarations warn, invalid bytes remain traceable, and an
+  override re-renders safely.
 - Related: app.scope.text.004
 
 ### app.scope.document.007 — HTML source and rendered views have no shared position or split layout

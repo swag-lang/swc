@@ -219,8 +219,16 @@ func findNthTag(document: const *HtmlDocument, tag: HtmlTag, wanted: u32)->u32
     return HtmlNoNode
 }
 
-// Writes `bytes` to a temporary file, loads it whole through a view, and returns its text.
-func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, tag: string)->String
+// What a document loaded from bytes read as: its text, and how the view decided to decode it.
+struct LoadedDocument
+{
+    text:     String
+    encoding: Text.Encoding
+    source:   HtmlEncodingSource
+}
+
+// Writes `bytes` to a temporary file, loads it whole through a view, and returns what it read.
+func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, tag: string)->LoadedDocument
 {
     let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("gui_html_charset_%_%.html", tag, Guid64.random()).toString())
     discard expect File.writeAllBytes(fileName, bytes)
@@ -238,7 +246,7 @@ func loadTemporaryDocument(host: *Testing.HeadlessHost, bytes: const [..] u8, ta
     }
 
     Swag.require(not view.isLoading())
-    return view.document.textContent(0)
+    return {view.document.textContent(0), view.encoding, view.encodingSource}
 }
 
 struct HtmlLinkHit
@@ -1646,15 +1654,17 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     declared += "<p>caf"
     declared.append(0xE9'u8)
     declared += "</p></body></html>"
-    let declaredText = loadTemporaryDocument(&host, declared.bytes(), "declared")
-    Swag.require(Utf8.contains(declaredText.toString(), "café"))
+    let declaredPage = loadTemporaryDocument(&host, declared.bytes(), "declared")
+    Swag.require(Utf8.contains(declaredPage.text, "café"))
+    Swag.require(declaredPage.encoding == .Windows1252 and declaredPage.source == .Declaration)
 
     // No declaration: the byte pattern itself says code page 1252.
     var plain: String = "<html><body><p>tr"
     plain.append(0xE8'u8)
     plain += "s vite</p></body></html>"
-    let plainText = loadTemporaryDocument(&host, plain.bytes(), "plain")
-    Swag.require(Utf8.contains(plainText.toString(), "très vite"))
+    let plainPage = loadTemporaryDocument(&host, plain.bytes(), "plain")
+    Swag.require(Utf8.contains(plainPage.text, "très vite"))
+    Swag.require(plainPage.encoding == .Windows1252 and plainPage.source == .Content)
 
     // UTF-16 LE behind its byte-order mark, which is content in no encoding.
     var wide: Array'u8
@@ -1666,9 +1676,10 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
         wide.add(0)
     }
 
-    let wideText = loadTemporaryDocument(&host, wide.toSlice(), "wide")
-    Swag.require(Utf8.contains(wideText.toString(), "wide text"))
-    Swag.require(not Utf8.contains(wideText.toString(), "ÿþ"))
+    let widePage = loadTemporaryDocument(&host, wide.toSlice(), "wide")
+    Swag.require(Utf8.contains(widePage.text, "wide text"))
+    Swag.require(not Utf8.contains(widePage.text, "ÿþ"))
+    Swag.require(widePage.encoding == .Utf16Le and widePage.source == .ByteOrderMark)
 }
 
 // Misnested formatting keeps its formatting: the close that pops an inline ancestor reopens the

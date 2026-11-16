@@ -3,3 +3,6 @@
 ui_ZoomMenu Zoom…
 ui_Details  HTML
 ui_OnThisPage Sur cette page
+ui_EncodingMarked   indicateur d’ordre des octets
+ui_EncodingDeclared déclaré par la page
+ui_EncodingDetected déduit des octets

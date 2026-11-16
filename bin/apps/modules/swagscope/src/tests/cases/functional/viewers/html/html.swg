@@ -98,6 +98,55 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     Testing.assertContentFits(&host.root)
 }
 
+// The information sheet names the encoding the page is really read with and what decided it,
+// in the reader's language: a legacy page is not reported as UTF-8.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
+
+    let fileName = Gui.Testing.tempFilePath("scope-html-legacy-", ".html")
+    defer discard catch File.delete(fileName)
+    var legacy: String = "<html><head><meta charset=\"iso-8859-1\"></head><body><p>caf"
+    legacy.append(0xE9'u8)
+    legacy += "</p></body></html>"
+    expect File.writeAllBytes(fileName, legacy.bytes())
+
+    var legacyResult = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
+    let legacyView   = assume cast(*Html.Panel, legacyResult.view)
+    finishHtmlViewer(&host, &legacyResult)
+    Swag.require(legacyView.encodingText() == "Windows-1252 · declared by the page")
+
+    // Without a label or a mark, the bytes are all there is to decide from.
+    let bareName = Gui.Testing.tempFilePath("scope-html-bare-", ".html")
+    defer discard catch File.delete(bareName)
+    expect File.writeAllBytes(bareName, "<html><body><p>plain page</p></body></html>")
+
+    var result = openTestViewer(Html.viewerPlugin(), &host.root, bareName)
+    let view   = assume cast(*Html.Panel, result.view)
+    finishHtmlViewer(&host, &result)
+    Swag.require(view.encodingText() == "UTF-8 · detected from the bytes")
+
+    // A byte-order mark answers before anything the page says.
+    let markedName = Gui.Testing.tempFilePath("scope-html-marked-", ".html")
+    defer discard catch File.delete(markedName)
+    var marked: Array'u8
+    marked.add([0xEF'u8, 0xBB, 0xBF])
+    marked.add("<html><body><p>marked page</p></body></html>")
+    expect File.writeAllBytes(markedName, marked.toSlice())
+
+    var markedResult = openTestViewer(Html.viewerPlugin(), &host.root, markedName)
+    let markedView   = assume cast(*Html.Panel, markedResult.view)
+    finishHtmlViewer(&host, &markedResult)
+    Swag.require(markedView.encodingText() == "UTF-8 · byte-order mark")
+
+    expect host.app.setLanguage("fr")
+    Swag.require(legacyView.encodingText() == "Windows-1252 · déclaré par la page")
+    Swag.require(view.encodingText() == "UTF-8 · déduit des octets")
+    Swag.require(markedView.encodingText() == "UTF-8 · indicateur d’ordre des octets")
+}
+
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.
 #test
 {

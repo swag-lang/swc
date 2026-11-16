@@ -82,6 +82,7 @@ def cpp_stage(compiler, options, full=True):
 
 
 def source_stages(compiler, bin_root, suite, options, output_root=None):
+    output_root = output_root or bin_root / 'unittests/.output'
     flags = {'lexer': ['--lex-only'], 'parser': ['--syntax-only'], 'sema': ['--sema-only'],
              'jit': ['--no-output'], 'safety': ['--no-output', '--tag', 'Swag.AllocatorSafety'],
              'sanity': ['--no-output'], 'native': []}[suite]
@@ -98,10 +99,9 @@ def source_stages(compiler, bin_root, suite, options, output_root=None):
         stage_options = without_options(options, ('-j', '--num-cores')) if directory == 'errors/sema' else options
         command = [str(compiler), 'test', '--directory', str(bin_root / 'unittests' / directory),
                    '--module-namespace', suite.capitalize(), '--artifact-kind', 'executable',
-                   '--num-cores', workers, *flags, *stage_options]
-        if output_root:
-            command += ['--out-dir', str(output_root / 'out' / directory),
-                        '--work-dir', str(output_root / 'work' / directory)]
+                   '--num-cores', workers, *flags,
+                   '--out-dir', str(output_root / 'out' / directory),
+                   '--work-dir', str(output_root / 'work' / directory), *stage_options]
         stages.append(Stage(directory.replace('/', '-'), command))
     return stages
 

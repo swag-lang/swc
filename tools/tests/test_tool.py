@@ -102,6 +102,31 @@ class ToolTests(unittest.TestCase):
         self.invoke(['unittests', 'native', '--no-test-native'])
         self.assertEqual([stage.name for stage in self.stages], ['native'])
 
+    def test_source_suites_keep_generated_files_under_common_output_root(self):
+        source_root = self.root / 'bin/unittests'
+        output_root = source_root / '.output'
+        for windows in (False, True):
+            for suite in tool.SOURCE_SUITES:
+                self.invoke(['unittests', suite], windows=windows)
+                for stage in self.stages:
+                    directory = Path(tool.option_value(stage.command, ('--directory',), '')).relative_to(source_root)
+                    self.assertEqual(Path(tool.option_value(stage.command, ('--out-dir',), '')),
+                                     output_root / 'out' / directory)
+                    self.assertEqual(Path(tool.option_value(stage.command, ('--work-dir',), '')),
+                                     output_root / 'work' / directory)
+
+    def test_source_output_defaults_preserve_explicit_paths_and_isolation_root(self):
+        self.invoke(['unittests', 'native', '--out-dir', 'custom output', '--work-dir', 'custom work'])
+        for stage in self.stages:
+            self.assertEqual(tool.option_value(stage.command, ('--out-dir',), ''), 'custom output')
+            self.assertEqual(tool.option_value(stage.command, ('--work-dir',), ''), 'custom work')
+        isolated = self.root / 'isolated'
+        stages = tool.source_stages(self.root / 'bin/swc', self.root / 'bin', 'native', [], output_root=isolated)
+        for stage in stages:
+            for option, folder in (('--out-dir', 'out'), ('--work-dir', 'work')):
+                path = Path(tool.option_value(stage.command, (option,), ''))
+                self.assertTrue(path.is_relative_to(isolated / folder))
+
     def test_expected_error_sema_corpus_keeps_one_worker(self):
         for worker_option in (['--num-cores', '3'], ['-j', '2'], ['--num-cores=3']):
             self.invoke(['unittests', 'dm', 'sema', '-bc', 'devmode', *worker_option])

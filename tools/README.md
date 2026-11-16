@@ -41,6 +41,10 @@ failure and preserves the failing exit status. Dynamic-library fixtures use the 
 WinFsp packaging runs only on Windows. Python routing tests cover both host command plans;
 the PowerShell probes under `tools/tests` exercise the Windows entry points themselves.
 
+Compiler input suites keep their generated artifacts and intermediates under
+`bin/unittests/.output`, separated by suite. Explicit `--out-dir` and `--work-dir` options override
+those defaults.
+
 ## Local Linux session from Windows
 
 With Ubuntu WSL 2 installed and a clone at `~/swag/swc`, open `tools\linux.bat` to enter

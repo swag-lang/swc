@@ -276,6 +276,8 @@ impl Volume
         var previousFree: Array'FreeExtent
         previousFree.add(.blocks.free.toSlice())
         let previousFreeBlocksCount = .blocks.freeBlocksCount
+        let previousMetadataSize     = .metadataSize
+        let previousSequence         = .sequence
 
         var committed = false
         defer
@@ -285,6 +287,8 @@ impl Volume
                 .blocks.free   = #move previousFree
                 .blocks.freeBlocksCount = previousFreeBlocksCount
                 .metadataPages = #move previousPages
+                .metadataSize  = previousMetadataSize
+                .sequence      = previousSequence
             }
         }
 

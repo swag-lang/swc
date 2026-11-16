@@ -1731,6 +1731,11 @@ impl MainWnd
         .registerKeyShortcut(.Control, .Subtract, ActionZoom.ZoomOut)
         .registerKeyShortcut(.Control, .NumPad0, ActionZoom.Zoom1)
 
+        // A laptop has no keypad: the zoom also answers the keys of the main row.
+        .registerKeyShortcut(.Control, .OemPlus, ActionZoom.ZoomIn)
+        .registerKeyShortcut(.Control, .OemMinus, ActionZoom.ZoomOut)
+        .registerKeyShortcut(.Control, .D0, ActionZoom.Zoom1)
+
         // Each tool answers a letter, the one the dock and the lens name: inside a field the
         // letter is typed, so a field keeps it.
         .registerKeyShortcut(.None, .V, ActionToolMode.Selection)

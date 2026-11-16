@@ -193,7 +193,7 @@ func lcm(a, b: s64)->s64 fail
 }
 
 #[ConstExpr]
-func integerMagnitude(value: s64)->u64
+private func integerMagnitude(value: s64)->u64
 {
     if value >= 0 do
         return cast(u64, value)

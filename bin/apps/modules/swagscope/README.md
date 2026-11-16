@@ -248,6 +248,14 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   mute, volume, and matching keyboard controls. The options button groups playback settings;
   the track button groups audio and subtitles. The 0.25x-2x playback rate changes pitch, and its
   time labels stay in source time. These controls share the same bottom panel as other viewers.
+  Clicking the time, or pressing Ctrl+G, opens a validated source-time address: `mm:ss`,
+  `hh:mm:ss`, plain seconds, or a relative `+30` / `-10` seconds. Playback keeps its paused or
+  playing state. Return Before Last Jump in the options or lens returns to the previous position.
+  Subtitles can be loaded from the track menu or dropped on the picture, including a file whose
+  name differs from the film's. Loading runs in the background; a damaged replacement leaves
+  the current subtitles and playback intact. Timing adjusts by 50 ms per step, separately for
+  each film's reading state; subtitle appearance remains shared. The introductory shortcut
+  hints leave after three playback gestures and can be shown again through the options or lens.
   It indexes packets without decoding the file up front and keeps bounded picture and audio
   queues alongside codec reference buffers.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.

@@ -15,6 +15,7 @@ struct ViewerPrivacy
 {
     late window:  *ViewerWindow
     sources:      Array'ViewerPrivacySource
+    scan:         ViewerPrivacyScan
     dirty:        bool
     cleanup:      Viewer.BackgroundOperation
     queue:        Array'String
@@ -235,6 +236,8 @@ impl ViewerPrivacy
     // Complete all pending cleanup before the window and its worker state are released.
     mtd flush()
     {
+        .scan.task.cancel()
+        .scan.wait()
         while .cleanup.started or not .queue.isEmpty()
         {
             .cleanup.wait()
@@ -314,23 +317,116 @@ impl ViewerPrivacy
         .musicChoices.add(choice)
     }
 
-    // Loaded history and dialog state can refer to mounts the current document has never used.
+    private mtd knows(path: string)->bool
+    {
+        for &source in .sources where Path.equals(source.path, path) do
+            return true
+        return not path.count
+    }
+
+    // Unresolved saved paths remain in memory, but cannot be persisted until their policy arrives.
+    private mtd mayPersist(path: string)->bool => .knows(path) and not .forgetPrivatePath(path)
+
+    private mtd queueSource(path: string)
+    {
+        if .knows(path) do
+            return
+        for &source in .scan.sources where Path.equals(source.path, path) do
+            return
+        .scan.sources.add({path: path})
+    }
+
+    // Loading or saving history never opens its paths, including aliases and disconnected drives.
     mtd sanitize()
     {
-        for &path in .window.recent do
-            .track(path[])
-        for &entry in .window.folderHistory do
-            .track(entry.file)
-        for &path in .window.exploredFolders do
-            .track(path[])
-        for &state in .window.folderViews do
-            .track(state.path)
-        for &entry in .window.musicChoices do
-            .track(entry.path)
-        .track(.window.fileDlgState.currentFolder)
-        for &path in .window.fileDlgState.recentFolders do
-            .track(path[])
         discard .refresh()
+        if .scan.started do
+            return
+        .scan.sources.clear()
+        for &path in .window.recent do
+            .queueSource(path[])
+        for &entry in .window.folderHistory do
+            .queueSource(entry.file)
+        for &path in .window.exploredFolders do
+            .queueSource(path[])
+        for &state in .window.folderViews do
+            .queueSource(state.path)
+        for &entry in .window.musicChoices do
+            .queueSource(entry.path)
+        for &point in .window.resumePoints do
+            .queueSource(point.file)
+        .queueSource(.window.fileDlgState.currentFolder)
+        for &path in .window.fileDlgState.recentFolders do
+            .queueSource(path[])
+        .scan.start(.window)
+    }
+
+    mtd finishScan()
+    {
+        .scan.wait()
+        for &source in .scan.sources where not .knows(source.path) do
+            .track(source.path, source.policy)
+        .scan.sources.clear()
+        .dirty = true
+        .sanitize()
+    }
+
+    // Serialize verified copies; filtering must not erase unresolved entries from the live window.
+    mtd serializeState(serializer: *Serialization.Serializer)
+    {
+        let window  = .window
+        var recent  = window.recent
+        var opened  = window.recentOpened
+        var folders = window.exploredFolders
+        var history = window.folderHistory
+        var views   = window.folderViews
+        var music   = window.musicChoices
+        var resume  = window.resumePoints
+        var dialog  = window.fileDlgState
+        if not serializer.isReading()
+        {
+            opened.resize(recent.count)
+            for index in reversed(recent.count) where not .mayPersist(recent[index])
+            {
+                recent.removeAtOrdered(index)
+                opened.removeAtOrdered(index)
+            }
+
+            for index in reversed(folders.count) where not .mayPersist(folders[index]) do
+                folders.removeAtOrdered(index)
+            for index in reversed(history.count) where not .mayPersist(history[index].file) do
+                history.removeAtOrdered(index)
+            for index in reversed(views.count) where not .mayPersist(views[index].path) do
+                views.removeAtOrdered(index)
+            for index in reversed(music.count) where not .mayPersist(music[index].path) do
+                music.removeAtOrdered(index)
+            for index in reversed(resume.count) where not .mayPersist(resume[index].file) do
+                resume.removeAtOrdered(index)
+            if not .mayPersist(dialog.currentFolder) do
+                dialog.currentFolder.clear()
+            for index in reversed(dialog.recentFolders.count) where not .mayPersist(dialog.recentFolders[index]) do
+                dialog.recentFolders.removeAtOrdered(index)
+        }
+
+        catch serializer.serialize("ViewerWindow.fileDlgState", &dialog)
+        catch serializer.serialize("ViewerWindow.recent", &recent)
+        catch serializer.serialize("ViewerWindow.recentOpened", &opened)
+        catch serializer.serialize("ViewerWindow.folderHistory", &history)
+        catch serializer.serialize("ViewerWindow.resumePoints", &resume)
+        catch serializer.serialize("ViewerWindow.exploredFolders", &folders)
+        catch serializer.serialize("ViewerWindow.folderViews", &views)
+        catch serializer.serialize("ViewerWindow.musicChoices", &music)
+        if serializer.isReading()
+        {
+            window.fileDlgState    = #move dialog
+            window.recent          = #move recent
+            window.recentOpened    = #move opened
+            window.folderHistory   = #move history
+            window.resumePoints    = #move resume
+            window.exploredFolders = #move folders
+            window.folderViews     = #move views
+            window.musicChoices    = #move music
+        }
     }
 
     private mtd queueCacheClear(channel: string)

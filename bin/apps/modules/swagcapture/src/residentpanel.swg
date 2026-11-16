@@ -351,7 +351,9 @@ impl ResidentPanel
             .addItem(ActionOptions.Options)
             .addSeparator()
 
-            .addItem(ActionGlobal.Minimize).rightName.set(Input.formatKeyShortcut(.None, .Escape))
+            .addItem(null, ActionGlobal.Minimize,
+                     rightName: Input.formatKeyShortcut(.None, .Escape),
+                     disabled: me.placement == .AtPointer)
             .addItem(ActionGlobal.Exit)
 
             .owner     = me.main

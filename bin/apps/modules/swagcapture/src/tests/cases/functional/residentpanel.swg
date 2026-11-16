@@ -30,7 +30,11 @@ using Swag, Core, Gui
         {
             let other = unwrap pointer.menu.items[index]
             Swag.require(item!.id == other.id and item.name.text == other.name.text)
-            Swag.require(item.checked == other.checked and item.disabled == other.disabled)
+            Swag.require(item.checked == other.checked)
+            if item.id == ActionGlobal.Minimize do
+                Swag.require(not item.disabled and other.disabled)
+            else do
+                Swag.require(item.disabled == other.disabled)
             if item.label and item.name.text == appStrings().ui_MenuCaptureSetup do
                 optionsSeen = true
             if item.label and item.name.text == appStrings().lens_Recent do
@@ -75,6 +79,8 @@ using Swag, Core, Gui
     var tick: TimerEvent
     panel.IWnd.onTimerEvent(&tick)
     Swag.require(panel.recents != null and panel.anchor == anchor)
+    for item in panel.menu.items where item and item.id == ActionGlobal.Minimize do
+        Swag.require(item.disabled)
     let bounds = panel.surface!.position
     Swag.require(bounds.right() >= anchor.x and bounds.bottom() >= anchor.y)
     panel.close()

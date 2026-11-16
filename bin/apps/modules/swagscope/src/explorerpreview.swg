@@ -74,7 +74,7 @@ struct ExplorerPreview
 
 impl ExplorerPreview
 {
-    mtd start(owner: *Wnd, durationHint: u64 = 0)
+    mtd start(owner: *Wnd, durationHint: u64 = 0, executor: *Swag.Executor? = null)
     {
         .durationHint = durationHint
         .image        = {}
@@ -87,7 +87,8 @@ impl ExplorerPreview
             catch operation.produce() { operation.error = Viewer.failureText(Swag.err) }
         },
                 owner,
-                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background)
+                priority: .opening ? Swag.TaskPriority.Normal : Swag.TaskPriority.Background,
+                executor: executor)
     }
 
     private mtd produce() fail

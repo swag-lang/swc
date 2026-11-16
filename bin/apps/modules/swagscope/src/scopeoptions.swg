@@ -120,7 +120,6 @@ impl ViewerWindow
         .onlineMovies = media.onlineMovies
         .onlineMusic  = media.onlineMusic
         Viewers.Film.g_MovieDetectionSettings = media.movieDetection
-        Viewers.Film.g_SubtitleSettings.sanitize()
         Viewers.Film.g_MovieDetectionSettings.sanitize()
         Viewers.MarkdownText.g_ViewerSettings.sanitize()
         Viewers.Midi.g_ViewerSettings.sanitize()

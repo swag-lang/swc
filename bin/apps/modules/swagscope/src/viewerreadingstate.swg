@@ -35,6 +35,7 @@ struct ViewerReadingState
     muted:         bool
     volume:        f32  = 1
     playbackRate:  f64  = 1
+    subtitleDelay: f64
 }
 
 impl ViewerReadingState
@@ -95,11 +96,12 @@ impl ViewerReadingState
             .muted   = view.muted
 
         case Viewers.Film.Panel as view:
-            .seconds      = view.currentSeconds()
-            .playing      = view.playing
-            .volume       = view.volume
-            .muted        = view.muted
-            .playbackRate = view.playbackRate
+            .seconds       = view.currentSeconds()
+            .playing       = view.playing
+            .volume        = view.volume
+            .muted         = view.muted
+            .playbackRate  = view.playbackRate
+            .subtitleDelay = view.subtitleDelay
         }
 
         if key == "markdown" and session.info do
@@ -174,6 +176,7 @@ impl ViewerReadingState
             view.setVolume(.volume)
             view.setMuted(.muted)
             view.setPlaybackRate(.playbackRate)
+            view.subtitleDelay = .subtitleDelay
             view.seekSeconds(.seconds)
             if view.playing != .playing do
                 view.togglePlayback()

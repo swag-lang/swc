@@ -8,14 +8,19 @@ const ProductName   = "Swag Scope"
 const ApplicationId = "swagscope"
 const SurfaceId     = "swag.scope"
 
-// Returns the first command-line argument that names an existing file or folder, or an empty string.
+// Selects a path without touching its drive; classification happens after the first frame.
 func viewerStartupFile(arguments: const [..] string)->String
 {
     if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 to] where Path.isValidPathName(argument) and (File.exists(argument) or Directory.exists(argument)) do
-        return argument
+    for argument in arguments[1 to]
+    {
+        let runtimeSetting = argument == "swag.sandbox" or argument == "swag.test" or Utf8.startsWith(argument, "swag.") and Utf8.contains(argument, "=")
+        if not runtimeSetting and not Utf8.startsWith(argument, "--") and Path.isValidPathName(argument) do
+            return argument
+    }
+
     return {}
 }
 
@@ -68,6 +73,8 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
     surface.setTitle(ProductName)
 
     let window = ViewerWindow.create(surface.wnd, #move index)
+    window.home.useSystemPlaces = true
+    window.home.refresh()
 
     // The file is queued before the window shows, so the first frame is the surface that
     // file is about to fill rather than the hint to drop one.

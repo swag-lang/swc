@@ -885,24 +885,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             auto diag = SemaError::report(sema, diagId, sema.curNodeRef());
             diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
             diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, candidate.typeRef);
-            if (diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
-            {
-                const Utf8 availableFields = formatStructMemberList(sema, candidate.typeRef);
-                if (!availableFields.empty())
-                {
-                    diag.addNote(DiagnosticId::sema_note_available_struct_fields);
-                    diag.last().addArgument(Diagnostic::ARG_VALUES, availableFields);
-                }
-            }
-            else if (diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value)
-            {
-                const Utf8 availableValues = SemaError::formatEnumValueList(sema.ctx(), typeInfo.payloadSymEnum());
-                if (!availableValues.empty())
-                {
-                    diag.addNote(DiagnosticId::sema_note_available_enum_values);
-                    diag.last().addArgument(Diagnostic::ARG_VALUES, availableValues);
-                }
-            }
+            SemaError::addAutoScopeMemberNotes(diag, sema, sema.ctx(), diagId, candidate.typeRef);
             diag.report(sema.ctx());
 
             return Result::Error;

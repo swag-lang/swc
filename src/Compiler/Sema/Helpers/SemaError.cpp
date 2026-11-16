@@ -500,6 +500,29 @@ Utf8 SemaError::formatEnumValueList(const TaskContext& ctx, const SymbolEnum& sy
     return result;
 }
 
+void SemaError::addAutoScopeMemberNotes(Diagnostic& diag, Sema& sema, const TaskContext& ctx, const DiagnosticId diagId, const TypeRef typeRef)
+{
+    if (diagId == DiagnosticId::sema_err_auto_scope_missing_struct_member)
+    {
+        const Utf8 availableFields = formatStructMemberList(sema, typeRef);
+        if (!availableFields.empty())
+        {
+            diag.addNote(DiagnosticId::sema_note_available_struct_fields);
+            diag.last().addArgument(Diagnostic::ARG_VALUES, availableFields);
+        }
+    }
+    else if (diagId == DiagnosticId::sema_err_auto_scope_missing_enum_value)
+    {
+        const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
+        const Utf8      availableValues = formatEnumValueList(ctx, typeInfo.payloadSymEnum());
+        if (!availableValues.empty())
+        {
+            diag.addNote(DiagnosticId::sema_note_available_enum_values);
+            diag.last().addArgument(Diagnostic::ARG_VALUES, availableValues);
+        }
+    }
+}
+
 Utf8 SemaError::formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct)
 {
     Utf8   result;

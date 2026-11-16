@@ -68,12 +68,14 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 ### compiler.core.107 — Reject invalid closure captures without a host exception
 
 - Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.
-- Linux DevMode reductions: a by-reference capture of a `let string` and an unqualified
-  `.main` capture initializer now have standalone expected-diagnostic fixtures. Both report
-  their source error without a host exception; the Windows failure is not reproduced here.
-- Next: run each fixture under Windows Release and DevMode, identify which one triggers the
-  host exception, and inspect that closure-capture diagnostic path.
-- Done when: each invalid form yields its intended diagnostic without a host exception under the Release and DevMode compilers.
+- Reductions: a by-reference capture of a `let string` and an unqualified `.main` capture
+  initializer have standalone expected-diagnostic fixtures. Both report their intended error
+  under Linux DevMode and both Windows compilers; neither reproduces the original combination.
+- Next: recover the original journey or combine its by-reference `let String` capture and
+  unqualified `.main` initializer in one bounded reduction. Capture the diagnostic context and
+  matching compiler artifacts if the host exception recurs.
+- Done when: the original mixed-capture failure is explained and a regression protects its
+  source diagnostics under both compiler executables.
 
 ### compiler.core.108 — Preserve generic parameters across an incremental app build
 

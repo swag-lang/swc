@@ -10,9 +10,11 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Logger.h"
@@ -22,6 +24,17 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Backend::Unittest
 {
+    const SymbolVariable* findRegularGlobal(const NativeBackendBuilder& nativeBuilder, TaskContext& ctx, const std::string_view name)
+    {
+        for (const SymbolVariable* symbol : nativeBuilder.regularGlobals)
+        {
+            if (symbol && symbol->name(ctx) == name)
+                return symbol;
+        }
+
+        return nullptr;
+    }
+
     Result executeMicroCase(TaskContext& ctx, MicroBuilder& builder, uint64_t* values)
     {
         X64Encoder encoder(ctx);

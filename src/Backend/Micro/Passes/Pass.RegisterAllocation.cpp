@@ -2178,18 +2178,21 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
+                const uint32_t registerCount = static_cast<uint32_t>(denseVirtualRegs_.regs().size());
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                if (regIndex >= usePositionsByDenseVirtual_.size())
+                if (regIndex == registerCount)
+                {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
-                if (regIndex >= definitionCounts_.size())
                     definitionCounts_.resize(regIndex + 1, 0);
+                }
                 if (usesV.addUnique(regIndex))
                     usePositionsByDenseVirtual_[regIndex].push_back(idx);
             }
             else if (reg.isInt() || reg.isFloat())
             {
+                const uint32_t registerCount = static_cast<uint32_t>(denseConcreteRegs_.regs().size());
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                if (regIndex >= concreteTouchPositionsByDenseIndex_.size())
+                if (regIndex == registerCount)
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(usesC, regIndex))
                     appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);
@@ -2200,18 +2203,21 @@ void MicroRegisterAllocationPass::analyzeLiveness()
         {
             if (reg.isVirtual())
             {
+                const uint32_t registerCount = static_cast<uint32_t>(denseVirtualRegs_.regs().size());
                 const uint32_t regIndex = denseVirtualRegs_.ensure(reg);
-                if (regIndex >= usePositionsByDenseVirtual_.size())
+                if (regIndex == registerCount)
+                {
                     usePositionsByDenseVirtual_.resize(regIndex + 1);
-                if (regIndex >= definitionCounts_.size())
                     definitionCounts_.resize(regIndex + 1, 0);
+                }
                 if (defsV.addUnique(regIndex))
                     ++definitionCounts_[regIndex];
             }
             else if (reg.isInt() || reg.isFloat())
             {
+                const uint32_t registerCount = static_cast<uint32_t>(denseConcreteRegs_.regs().size());
                 const uint32_t regIndex = denseConcreteRegs_.ensure(reg);
-                if (regIndex >= concreteTouchPositionsByDenseIndex_.size())
+                if (regIndex == registerCount)
                     concreteTouchPositionsByDenseIndex_.resize(regIndex + 1);
                 if (appendUniqueDenseIndex(defsC, regIndex))
                     appendUniquePosition(concreteTouchPositionsByDenseIndex_[regIndex], idx);

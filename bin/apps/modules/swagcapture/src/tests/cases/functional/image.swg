@@ -87,6 +87,28 @@ using Swag, Core
     Swag.require(f.capture.height == 20)
 }
 
+// With the ratio kept, the resize box gives the other side the nearest whole size.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(registerHeadlessCommands: true)
+    defer f.shutdown()
+    f.capture.width   = 300
+    f.capture.height  = 200
+    f.capture.backImg = Gui.Testing.indexedImage(300, 200)
+
+    let keepRatio = g_KeepRatio
+    defer g_KeepRatio = keepRatio
+    g_KeepRatio = true
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    f.gui.withModalEdit("Width", "100")
+    f.main.sendCommandEvent(ActionImage.ResizeImage)
+    f.gui.pump()
+
+    Swag.require(f.gui.autoHandled)
+    Swag.require(f.capture.width == 100 and f.capture.height == 67)
+}
+
 // Dialog-backed image actions can now run through a real headless modal surface.
 // The frame callback supplies the dialog result deterministically; no OS dialog or
 // filesystem interaction is involved.

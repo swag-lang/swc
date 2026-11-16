@@ -209,7 +209,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let w = catch StrConv.toS32(edt.text())
-                let h = Math.max(1, cast(s32, w / ratio))
+                let h = Math.max(1, Math.roundS32(w / ratio))
                 edit1.setText(Format.toString("%", h), notify: false)
             }
         }
@@ -219,7 +219,7 @@ impl MainWnd
             if btnRatio.isChecked()
             {
                 let h = catch StrConv.toS32(edt.text())
-                let w = Math.max(1, cast(s32, h * ratio))
+                let w = Math.max(1, Math.roundS32(h * ratio))
                 edit0.setText(Format.toString("%", w), notify: false)
             }
         }

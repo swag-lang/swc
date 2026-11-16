@@ -1211,27 +1211,71 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
         const size_t cap         = forFloat ? (totalFloatRegs > K_RESIDENT_MIN_FREE_FLOAT ? totalFloatRegs - K_RESIDENT_MIN_FREE_FLOAT : 0)
                                             : (totalIntRegs > K_RESIDENT_MIN_FREE_INT ? totalIntRegs - K_RESIDENT_MIN_FREE_INT : 0);
         size_t       mappedCount = forFloat ? mappedFloatRegs : mappedIntRegs;
+        const bool cacheUseCounts = mappedCount > cap && mappedCount - cap > 1;
+        SmallVector<std::pair<uint32_t, uint32_t>, 32> useCounts;
+        if (cacheUseCounts)
+        {
+            // The mapped list is bounded by the physical-register pool. When
+            // more than one value must be shed, count each loop's uses once;
+            // dropping a value below mirrors unmapVirtReg's swap-with-last so
+            // equal-use ties keep the same selection order.
+            for (const uint32_t denseIndex : mappedVirtualIndices_)
+            {
+                uint32_t useCount = 0;
+                if (states_[denseIndex].phys.isFloat() == forFloat)
+                {
+                    const auto& positions = usePositionsByDenseVirtual_[denseIndex];
+                    for (auto it = std::ranges::lower_bound(positions, region.header); it != positions.end() && *it <= region.tail; ++it)
+                        ++useCount;
+                }
+                useCounts.emplace_back(denseIndex, useCount);
+            }
+        }
         while (mappedCount > cap)
         {
             uint32_t worstDense = std::numeric_limits<uint32_t>::max();
             uint32_t worstUses  = std::numeric_limits<uint32_t>::max();
-            for (const uint32_t denseIndex : mappedVirtualIndices_)
+            if (cacheUseCounts)
             {
-                if (states_[denseIndex].phys.isFloat() != forFloat)
-                    continue;
-                const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
-                uint32_t    useCount     = 0;
-                for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
-                    ++useCount;
-                if (useCount < worstUses)
+                for (const auto& [denseIndex, useCount] : useCounts)
                 {
-                    worstUses  = useCount;
-                    worstDense = denseIndex;
+                    if (states_[denseIndex].phys.isFloat() != forFloat)
+                        continue;
+                    if (useCount < worstUses)
+                    {
+                        worstUses  = useCount;
+                        worstDense = denseIndex;
+                    }
+                }
+            }
+            else
+            {
+                for (const uint32_t denseIndex : mappedVirtualIndices_)
+                {
+                    if (states_[denseIndex].phys.isFloat() != forFloat)
+                        continue;
+                    const auto& usePositions = usePositionsByDenseVirtual_[denseIndex];
+                    uint32_t    useCount     = 0;
+                    for (auto it = std::ranges::lower_bound(usePositions, region.header); it != usePositions.end() && *it <= region.tail; ++it)
+                        ++useCount;
+                    if (useCount < worstUses)
+                    {
+                        worstUses  = useCount;
+                        worstDense = denseIndex;
+                    }
                 }
             }
             if (worstDense == std::numeric_limits<uint32_t>::max())
                 break;
+            const uint32_t removedIndex = states_[worstDense].mappedListIndex;
             dropMappedVirtualNoStore(worstDense);
+            if (cacheUseCounts)
+            {
+                SWC_ASSERT(removedIndex < useCounts.size());
+                if (removedIndex + 1 < useCounts.size())
+                    useCounts[removedIndex] = useCounts.back();
+                useCounts.pop_back();
+            }
             --mappedCount;
         }
     }

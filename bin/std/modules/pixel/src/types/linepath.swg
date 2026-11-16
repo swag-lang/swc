@@ -269,6 +269,23 @@ public impl LinePath
     // ```
     mtd transform(transform: Math.Transform2)
     {
+        if .isPolyOnly
+        {
+            .startPoint = transform.transformPoint(.startPoint)
+            .endPoint   = transform.transformPoint(.endPoint)
+            for &point in .polygon.points do
+                point[] = transform.transformPoint(point[])
+            .polygon.recompute()
+            .triangles.clear()
+            .triangleOffsets.clear()
+            .minBounds        = .polygon.minBounds
+            .maxBounds        = .polygon.maxBounds
+            .isDirty          = false
+            .isFlatten        = true
+            .revision         = nextContourRevision()
+            return
+        }
+
         .rewriteArcsAsBeziers()
         .startPoint = transform.transformPoint(.startPoint)
         .endPoint   = transform.transformPoint(.endPoint)

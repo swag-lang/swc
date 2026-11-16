@@ -250,6 +250,9 @@ struct Capture
         // schema and a save would not preserve everything it held.
         loadIssues: u32
 
+        // Loaded for the library: its metadata and its preview, without its pictures.
+        previewOnly: bool
+
         // Encoded SCC thumbnail retained by the library until a visible cell needs pixels.
         previewBytes: Array'u8
 
@@ -381,6 +384,7 @@ struct CaptureMetadataJob
     hasTags:     bool
     hasFavorite: bool
     hasRating:   bool
+    unlink:      bool
     error:       Swag.Error
 }
 

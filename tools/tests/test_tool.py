@@ -46,9 +46,13 @@ class ToolTests(unittest.TestCase):
         (folder / 'image.actual.png').write_bytes(b'reviewed image')
         (folder / 'text.actual.txt').write_text('reviewed text')
         (folder / 'keep.actual.bin').write_bytes(b'unrelated')
+        # What a GPU drew is a diagnostic: only a CPU render becomes a reference.
+        (folder / 'image.actual.gpu.png').write_bytes(b'gpu image')
         with redirect_stdout(io.StringIO()):
             self.assertEqual(self.invoke(['goldens', 'accept']), 0)
         self.assertEqual((folder / 'image.png').read_bytes(), b'reviewed image')
+        self.assertEqual((folder / 'image.actual.gpu.png').read_bytes(), b'gpu image')
+        self.assertFalse((folder / 'image.gpu.png').exists())
         self.assertEqual((folder / 'text.txt').read_text(), 'reviewed text')
         self.assertEqual((folder / 'keep.actual.bin').read_bytes(), b'unrelated')
         self.assertFalse(list(folder.glob('*.actual.png')))

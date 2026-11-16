@@ -12,6 +12,7 @@ riderModule.iml
 __pycache__/
 /vscode/node_modules/
 *.actual.png
+*.actual.gpu.png
 *.actual.txt
 
 # Disposable benchmark builds and prepared platform sources.

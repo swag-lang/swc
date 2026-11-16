@@ -1573,9 +1573,11 @@ private impl RenderCpu
         var result = batch.solidPaint ? vertexColor : Color.multiply(vertexColor, .samplePaintBatch(batch, paintPos))
         if .program == CpuProgram_Font
         {
+            // With no atlas bound the font program covers the whole primitive, the way a white
+            // texture does: a text decoration is drawn between two glyph runs in that state.
             let atlas = batch.atlas
             if not atlas do
-                return Color.fromArgb(Argb.Zero)
+                return result
 
             // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
             // lookup table replaces the per-pixel pow with the factor it would have computed.
@@ -1591,7 +1593,7 @@ private impl RenderCpu
         {
             let atlas = batch.atlas
             if not atlas do
-                return Color.fromArgb(Argb.Zero)
+                return result
             result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy, atlas)
         }
         elif .program == CpuProgram_Default

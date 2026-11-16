@@ -418,3 +418,23 @@ ships; history lives in Git, not here.
 - Related: std.pixel.008, std.pixel.009
 
 ---
+
+### std.pixel.038 — The GPU golden campaign fails against its CPU references
+
+- Evidence: a PNG golden is recorded and moved from a CPU render only, and every golden whose
+  source is committed was re-recorded that way. Against those references the default GPU run
+  fails 24 GUI, 3 Vault, about 60 Capture and 67 Scope goldens: the comparison accepts a channel
+  delta of two and nothing else, while a GPU antialiases thin strokes, blends blurred materials
+  and filters scaled pictures a few levels apart, up to a full contrast on isolated edge pixels.
+  Twenty-eight goldens were left as their GPU recording because their sources are being changed:
+  Capture `area*`, `inplace*`, `resident.*` and `recordhud*`, Scope `viewer.video.*`,
+  `menus.video.*`, `menus.home.clear`, `options.paper`, `pictured.image` and
+  `viewer.information.*`, GUI `scroll.*`, `markdownview.scrollbar` and `htmlview.pixel-api`.
+- Next: compare a GPU image with a tolerance that follows local contrast, so a different
+  antialiasing passes while a moved, missing or recolored shape fails; confirm each remaining
+  GPU difference with a CPU render of the same test, which either moves the reference or names
+  a renderer divergence; re-record the twenty-eight goldens from CPU with their sources.
+- Done when: every PNG golden under `bin/` comes from a CPU render and the default GPU golden
+  campaign passes against them on more than one graphics device.
+
+---

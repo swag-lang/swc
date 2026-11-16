@@ -5,7 +5,8 @@ Run fast functional, stress, golden, full, or GPU parity coverage for standard m
 GPU hosts are the default for every suite. Use -Renderer cpu explicitly for CI or cloud hosts
 without a usable OpenGL device. Fast excludes golden and stress tests. Stress selects scale-boundary
 tests. Full includes all ordinary tests, stress and goldens. Goldens and parity select complete
-visual and renderer-integration campaigns.
+visual and renderer-integration campaigns. PNG goldens are CPU references: a GPU run only compares
+against them, and -Renderer cpu is the only run that records or moves one.
 .EXAMPLE
 tools\coverage.bat -Workspace apps -Module swagcapture
 .EXAMPLE

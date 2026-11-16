@@ -8,8 +8,9 @@ struct ImageGoldenOptions
 {
     public
     {
-        maxChannelDelta:    u8      // Maximum absolute difference accepted for each ARGB channel.
-        maxDifferentPixels: u64     // Maximum number of pixels allowed outside the channel tolerance.
+        maxChannelDelta:    u8       // Maximum absolute difference accepted for each ARGB channel.
+        maxDifferentPixels: u64      // Maximum number of pixels allowed outside the channel tolerance.
+        cpuRendered:        bool     // Whether the image comes from the CPU renderer whatever renderer the run selected.
     }
 }
 
@@ -70,7 +71,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
     if expected.toString() == text do
         return
 
-    let actual = actualPath(path.toString(), ".txt")
+    let actual = actualPath(path.toString(), ".txt", ".actual.txt")
     writeText(actual.toString(), text)
     reportDiff(name, path.toString(), actual.toString(), expected.toString(), text)
     Swag.check(false, "the text differs from its golden", loc)
@@ -107,23 +108,44 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 
 // Compares owned pixels against the PNG golden named `name`.
 //
-// Goldens live under `src/tests/goldens/<name>.png`. A missing golden is created
-// and passes, like [[Pixel.Testing.assertGolden]]. A mismatch writes `<name>.actual.png`, reports its
-// first differing pixel, and fails the test through [[Swag.check]], which lets it compare its other
-// goldens. [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or
-// raster differences; both limits default to exact comparison.
-// The check remains active when Pixel is built as a release dependency. Goldens are recorded from
-// devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased
-// samples slightly differently: a release build also accepts a channel delta of two and four
-// pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase. GPU-hosted
-// test runs also accept a channel delta of two, with no pixels outside that tolerance.
+// Goldens live under `src/tests/goldens/<name>.png`. A PNG golden is a CPU reference: only
+// [[Pixel.RenderCpu]] produces the same pixels on every machine, so only an image it rendered
+// may record or replace one. An image is a reference when the run selected the CPU renderer
+// (`SWAG_TEST_RENDERER=cpu`) or when [[Pixel.Testing.ImageGoldenOptions.cpuRendered]] says the
+// test rendered it with the CPU backend itself. A GPU-hosted run, which is the default, only
+// compares against that reference.
+//
+// From a reference image, a missing golden is created and passes, like
+// [[Pixel.Testing.assertGolden]], and a mismatch writes `<name>.actual.png`, the file
+// `tools/goldens.bat accept` promotes. From a GPU image, a missing golden fails without recording
+// anything, and a mismatch writes `<name>.actual.gpu.png`: a diagnostic of what that machine
+// drew, which nothing promotes. Either mismatch reports its first differing pixel and fails the
+// test through [[Swag.check]], which lets it compare its other goldens.
+//
+// [[Pixel.Testing.ImageGoldenOptions]] can tolerate bounded codec or raster differences; both
+// limits default to exact comparison. The check remains active when Pixel is built as a release
+// dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add
+// into FMA, which rounds antialiased samples slightly differently: a release build also accepts
+// a channel delta of two and four pixels beyond it, for a glyph that crosses into its
+// neighbouring quarter-pixel phase. A GPU image also accepts a channel delta of two, with no
+// pixels outside that tolerance.
 func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
 {
     Swag.require(image != null and image.isValid(), "image golden needs allocated pixels")
-    let path = goldenPath(name, ".png", loc)
+    let path      = goldenPath(name, ".png", loc)
+    let reference = isReferenceImage(options)
 
     if not File.exists(path)
     {
+        if not reference
+        {
+            Console.println("[golden] missing ", name, " -- a GPU run cannot record it")
+            Console.println("         ", path)
+            reportCpuRecording()
+            Swag.check(false, "the golden is missing and only a CPU render can record it", loc)
+            return
+        }
+
         if not writeImage(image, path.toString())
         {
             Swag.check(false, "the golden cannot be recorded", loc)
@@ -142,23 +164,45 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    let tolerance  = releaseGoldenOptions(options)
+    let tolerance  = goldenTolerance(options, reference)
     let difference = compareImages(&expected, image, tolerance)
     if isWithinTolerance(&difference, tolerance) do
         return
 
-    let actual = actualPath(path.toString(), ".png")
+    // Only a reference image leaves a file that can be promoted. What a GPU drew is kept under a
+    // name the promotion ignores, so it can be looked at but never becomes the golden.
+    let actual = actualPath(path.toString(), ".png", reference ? ".actual.png" : ".actual.gpu.png")
     discard writeImage(image, actual.toString())
 
-    Console.println("[golden] pixels differ for ", name)
+    if reference
+    {
+        Console.println("[golden] pixels differ for ", name)
+        Console.println("         golden : ", path)
+        Console.println("         actual : ", actual)
+        reportImageDifference(&difference, &expected, image)
+        Swag.check(false, "the pixels differ from the golden", loc)
+        return
+    }
+
+    Console.println("[golden] GPU pixels differ from the CPU golden for ", name)
     Console.println("         golden : ", path)
-    Console.println("         actual : ", actual)
+    Console.println("         gpu    : ", actual)
     reportImageDifference(&difference, &expected, image)
-    Swag.check(false, "the pixels differ from the golden", loc)
+    reportCpuRecording()
+    Swag.check(false, "the GPU pixels differ from the CPU golden", loc)
 }
 
-// Widens `options` by the rounding a release build may add to a golden recorded from devmode.
-private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptions
+// Says whether an image compared under `options` comes from the CPU renderer.
+//
+// A headless GUI host selects the GPU when the setting is absent as well as when it is explicit,
+// so only an explicit CPU selection makes a hosted image a reference.
+private func isReferenceImage(options: ImageGoldenOptions)->bool
+{
+    return options.cpuRendered or Env.variable("SWAG_TEST_RENDERER") == "cpu"
+}
+
+// Widens `options` by what separates the compared image from a golden recorded on CPU in devmode.
+private func goldenTolerance(options: ImageGoldenOptions, reference: bool)->ImageGoldenOptions
 {
     var result = options
     #static if #cfg == "release"
@@ -167,11 +211,17 @@ private func releaseGoldenOptions(options: ImageGoldenOptions)->ImageGoldenOptio
         result.maxDifferentPixels = Math.max(result.maxDifferentPixels, 4)
     }
 
-    // HeadlessHost selects the GPU when the setting is absent as well as when it is explicit.
-    if Env.variable("SWAG_TEST_RENDERER") != "cpu" do
+    if not reference do
         result.maxChannelDelta = Math.max(result.maxChannelDelta, 2)
 
     return result
+}
+
+// Names the only run that can record or move a PNG golden.
+private func reportCpuRecording()
+{
+    Console.println("         a PNG golden moves only from a CPU render: when the reference is the one")
+    Console.println("         to change, run the test again with SWAG_TEST_RENDERER=cpu")
 }
 
 private
@@ -382,12 +432,12 @@ private
         return Path.combine(folder.toString(), file.toString())
     }
 
-    func actualPath(path, extension: string)->String
+    // Replaces the `extension` of a golden path with the `suffix` of what a run produced instead.
+    func actualPath(path, extension, suffix: string)->String
     {
         var result = String.from(path)
         result.removeBack(extension.count)
-        result += ".actual"
-        result += extension
+        result += suffix
         return result
     }
 

@@ -425,7 +425,7 @@ tools\coverage.bat -DevMode -Suite full
 | `fast` (default) | GPU hosts by default; all ordinary standard-module and application tests except `golden` and `stress` | Workstation or CI, frequent iteration |
 | `gpu` | Same functional selection using offscreen OpenGL hosts | GPU backend validation and focused rendering scenarios |
 | `stress` | Selected GPU or CPU hosts; tests tagged `stress`, including large inputs and scale boundaries | Scheduled or focused performance and scale checks |
-| `goldens` | Complete repository `golden` campaign on the selected renderer | Controlled CI environment, rendering changes and scheduled runs |
+| `goldens` | Complete repository `golden` campaign: the selected renderer compared against the CPU references | Controlled CI environment, rendering changes and scheduled runs; `-Renderer cpu` to record |
 | `parity` | Pixel tests tagged `integration.renderer.opengl`, including CPU/GPU comparisons | GPU machine, renderer changes and scheduled runs |
 | `full` | All standard-module and application tests, including goldens and stress, on the selected renderer | Complete functional/visual pass before integration |
 
@@ -440,8 +440,23 @@ keep their explicit launchers; `full` is not the compiler or privileged integrat
 machines without a usable graphics device; direct compiler test commands can set
 `SWAG_TEST_RENDERER=cpu`. GPU uses an invisible drawable and render targets, with no desktop
 presentation. OpenGL must initialize successfully; there is no automatic CPU fallback. Pixel's
-explicit CPU renderer tests continue testing CPU in either environment. Goldens run on the selected
-renderer, so review and update references only after investigating a mismatch.
+explicit CPU renderer tests continue testing CPU in either environment.
+
+A PNG golden is a CPU reference: only the CPU renderer draws the same pixels on every machine. A
+GPU run compares what it drew against that reference, within a channel delta of two, and never
+writes one. On a mismatch it leaves `<name>.actual.gpu.png`, a diagnostic that nothing promotes;
+on a missing golden it fails without recording. Only a CPU render records a golden or writes the
+`<name>.actual.png` that `goldens.bat accept` promotes, so a reference that must move is produced
+by running its test again on CPU:
+
+```text
+set SWAG_TEST_RENDERER=cpu
+tools\std.bat dm test gui --test-tag golden --test-file menu.swg
+tools\coverage.bat -DevMode -Suite goldens -Renderer cpu
+```
+
+Investigate a GPU mismatch before moving anything: a difference the CPU run does not reproduce
+is a renderer divergence, not a stale reference.
 
 Keep test surfaces proportional to the assertion. Decoder and cache tests should use compact
 images and scenes that still exercise every branch and keep all compared content visible.
@@ -524,7 +539,7 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 | `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
 | `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
 | `goldens.bat [dm] test [options...]` | Run tests tagged `golden` |
-| `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
+| `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and CPU-rendered `.actual.png` under `bin/`; a GPU `.actual.gpu.png` is never promoted |
 | `bench.bat [options...]` | Run the Python benchmark campaign |
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |

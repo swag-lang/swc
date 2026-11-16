@@ -809,6 +809,20 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     let one = Clipboard.getString()
     Swag.require(Utf8.contains(one.toSlice(), ".text"))
     Swag.require(not Utf8.contains(one.toSlice(), "swagExport"))
+
+    // The lens offers the same copies as the context menu.
+    discard catch Clipboard.resetFake()
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Binary", host.theme)
+    view.describeLens(&entries)
+    var copies = 0
+    for &entry in results.sections[0]!.entries where entry.title == Binary.texts().ui_MenuCopyAll
+    {
+        entry.run!()
+        copies += 1
+    }
+
+    Swag.require(copies == 1 and Utf8.contains(Clipboard.getString().toSlice(), "swagExport"))
 }
 
 // Search indexes the decoded report, outlines the exact text, and reaches folded structures.

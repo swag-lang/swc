@@ -7,6 +7,10 @@ using Core
 #[Swag.TestTag("integration.fonts")]
 #test
 {
+    // This case is about the installed fonts themselves, which a test run otherwise never sees.
+    FontFamily.setSystemFontAccess(true)
+    defer FontFamily.setSystemFontAccess(false)
+
     let families = FontFamily.enumerateSystemFonts()
     let names    = FontFamily.enumerateSystemFontNames()
 

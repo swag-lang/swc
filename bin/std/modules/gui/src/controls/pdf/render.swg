@@ -28,6 +28,8 @@ using Core.Math
 // A substitute that ignores the requested shape is what makes a rendered page read as the
 // wrong document: a serif paper set in a sans face changes every line of it. Each row is
 // tried in order, so a machine missing the first name still gets the closest match it has.
+// A machine offering none of them, like every test run, draws with the faces compiled into
+// this module, so a page never fails for want of an installed font.
 private const SubstituteSerif: [4] string = ["Times New Roman", "DejaVu Serif", "Liberation Serif", "Georgia"]
 private const SubstituteSans:  [4] string = ["Arial", "Segoe UI", "DejaVu Sans", "Liberation Sans"]
 private const SubstituteMono:  [4] string = ["Courier New", "Consolas", "DejaVu Sans Mono", "Liberation Mono"]
@@ -73,7 +75,7 @@ private func substituteTypeface(fallbackFontFile: string, resource: const *FontR
             return face
     }
 
-    fail Errors.UnsupportedFormatError{"no substitute font is available"}
+    return try embeddedTypeFace(fixedPitch, FontFamilyStyleValues[style])
 }
 
 // How far a substituted run may be condensed or expanded to fit the widths the document
@@ -477,6 +479,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     for itemIndex in page.items.count
     {
         let item = page.itemAt(itemIndex)
+
         // Text is the one kind whose extent the page cannot state on its own, so it is always
         // recorded; everything else answers for the box its marks cannot leave.
         if item.kind != .Text

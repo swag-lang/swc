@@ -100,6 +100,18 @@ Passing `false` limits lookup to the supplied faces. System discovery and rune l
 cached; Linux shares one installed-font snapshot across family enumeration, selected-family
 loading, and missing-character lookup. The first such request initializes the snapshot.
 
+## Keep tests off the installed fonts
+
+What a test draws must be the same on every machine, so a test run never sees the installed
+fonts. In a process started with the `swag.test` argument,
+[[Pixel.FontFamily.hasSystemFontAccess]] is false: family enumeration is empty, every family
+name is absent, and a missing character is not looked up on the machine. A test supplies the
+faces it needs from files or memory, and gives a cache its fallback faces with
+[[Pixel.FontCache.setFallbackTypeFaces]].
+
+Only a test of the system font boundary itself turns the access on, with
+[[Pixel.FontFamily.setSystemFontAccess]], and off again when it ends.
+
 ## Rich text
 
 A [[Pixel.RichString]] holds a text and the runs that style parts of it. Text given through

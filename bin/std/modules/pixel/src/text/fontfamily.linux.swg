@@ -48,8 +48,11 @@ impl FontFamily
     // unsupported files are skipped; no readable faces produces an empty array. Each slot
     // selects the closest installed slant, width, and weight using [[Pixel.FontCatalog.findFace]].
     // Fontconfig aliases are not resolved. Later filesystem changes do not refresh this snapshot.
+    // Without [[Pixel.FontFamily.hasSystemFontAccess]] the array is empty.
     public func enumerateSystemFonts()->Array'SystemFontFamilyInfo
     {
+        if not hasSystemFontAccess() do
+            return {}
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
         var result: #returntype
@@ -76,9 +79,12 @@ impl FontFamily
     // Finds an installed Linux family by typographic or legacy name, ignoring case.
     //
     // Uses the same discovery snapshot as [[Pixel.FontFamily.enumerateSystemFonts]]. Returns
-    // an empty descriptor when absent; otherwise each slot owns its closest installed face.
+    // an empty descriptor when absent, as every family is without
+    // [[Pixel.FontFamily.hasSystemFontAccess]]; otherwise each slot owns its closest installed face.
     public func findSystemFont(fontFamily: string)->SystemFontFamilyInfo
     {
+        if not hasSystemFontAccess() do
+            return {}
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()
         var result: #returntype
@@ -146,7 +152,7 @@ impl FontFamily
 
     internal func findSystemFallback(c: rune, bold, italic: bool)->*TypeFace?
     {
-        if not isFontFallbackRune(c) do
+        if not isFontFallbackRune(c) or not hasSystemFontAccess() do
             return null
         Sync.scopedLock(&g_LinuxFontFallbackLock)
         ensureSystemFontCatalog()

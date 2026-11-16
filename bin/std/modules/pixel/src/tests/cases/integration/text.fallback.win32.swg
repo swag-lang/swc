@@ -4,8 +4,13 @@
 using Swag
 
 // A cold ordinary fallback must not enumerate every installed family before trying Segoe UI.
+#[Swag.TestTag("integration.fonts")]
 #test
 {
+    // This case is about the installed fonts themselves, which a test run otherwise never sees.
+    FontFamily.setSystemFontAccess(true)
+    defer FontFamily.setSystemFontAccess(false)
+
     var cache: SystemFontFallbackCache
     for c in [0'rune, '\t'rune, '\n'rune, '\r'rune, '\u007F'rune, '\u0085'rune, '\u009F'rune]
     {
@@ -25,8 +30,13 @@ using Swag
 }
 
 // An exhausted preferred list still falls through to all installed fonts exactly once.
+#[Swag.TestTag("integration.fonts")]
 #test
 {
+    // This case is about the installed fonts themselves, which a test run otherwise never sees.
+    FontFamily.setSystemFontAccess(true)
+    defer FontFamily.setSystemFontAccess(false)
+
     var cache: SystemFontFallbackCache
     cache.preferredReady = true
     let face = cache.find('A'rune, .Regular)

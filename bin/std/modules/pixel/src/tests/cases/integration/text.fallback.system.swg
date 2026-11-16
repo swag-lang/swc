@@ -8,6 +8,10 @@ using Core
 #[Swag.TestTag("integration.fonts")]
 #test
 {
+    // This case is about the installed fonts themselves, which a test run otherwise never sees.
+    FontFamily.setSystemFontAccess(true)
+    defer FontFamily.setSystemFontAccess(false)
+
     var cache: FontCache
     let font  = cache.createFont(expect fallbackTestFace(false), 19, .Bitmap, true, true)
     let arrow = font.resolveRune('\u2192'rune)

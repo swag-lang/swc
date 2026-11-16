@@ -149,14 +149,15 @@ public impl TypeFace
 
         if File.exists(fullName) do
             return true
-        return File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullName))
+        return FontFamily.hasSystemFontAccess() and File.exists(Path.combine(Env.realSpecialDirectory(.Font), fullName))
     }
 
     // Returns the shared typeface for a font file, loading it on first use.
     //
     // `fullName` is a file path; when no such file exists, it is looked up in the system font
-    // directory. The typeface is cached process-wide under `fullName`; never delete it. File and
-    // parsing errors are reported through `fail`.
+    // directory, unless [[Pixel.FontFamily.hasSystemFontAccess]] is false, as in a test run. The
+    // typeface is cached process-wide under `fullName`; never delete it. File and parsing errors
+    // are reported through `fail`.
     func load(fullName: string)->*TypeFace fail => try loadAt(fullName, 0)
 
     // Returns the shared typeface for one zero-based face of a font file or collection.
@@ -189,8 +190,9 @@ public impl TypeFace
         //
         // The installed fonts belong to the machine, not to the program, so this looks past
         // any sandbox: a sandboxed run has no fonts of its own and would find nothing.
+        // A name that is no file is an installed font, where the machine's fonts may answer.
         var buffer: Array'u8
-        if not File.exists(fullName)
+        if not File.exists(fullName) and FontFamily.hasSystemFontAccess()
         {
             let p = Path.combine(Env.realSpecialDirectory(.Font), fullName)
             buffer = try File.readAllBytes(p)

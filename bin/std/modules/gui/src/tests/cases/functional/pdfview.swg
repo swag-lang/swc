@@ -175,6 +175,22 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(width >= view.effectiveZoom())
 }
 
+// Text set in a font the document does not carry draws in a face compiled into the module when
+// the machine offers none, which is what every test run sees: a page never fails, and never
+// reads differently, for want of an installed font.
+#test
+{
+    let fileName = pdfViewFixture()
+    defer discard catch File.delete(fileName)
+    Swag.require(not FontFamily.hasSystemFontAccess())
+
+    var reader = expect Reader.open(fileName)
+    var page   = expect reader.loadPage(0)
+    var image  = expect page.render({scale: 2})
+    let shown  = countPageEvidence(&image)
+    Swag.require(shown.paper > 0 and shown.ink > 100)
+}
+
 // Zoomed out, the column shows several pages at once: that is what makes it a document rather
 // than a stack of independent views.
 #test

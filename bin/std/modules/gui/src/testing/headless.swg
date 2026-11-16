@@ -3,6 +3,10 @@
 
 using Swag, Core
 
+// The only faces a headless host falls back to: see `fonts/README.md`.
+private const FallbackCjk   = #include("fonts/fallback-cjk.otf")
+private const FallbackEmoji = #include("fonts/fallback-emoji.ttf")
+
 // One labelled edit box of a modal to fill before accepting it.
 struct AutoEdit
 {
@@ -97,6 +101,12 @@ impl HeadlessHost
     // `SWAG_TEST_RENDERER=cpu` uses [[Pixel.RenderCpu]]; unset or `gpu` uses
     // [[Pixel.RenderOgl]] with invisible context hosts. An unavailable GPU fails setup rather
     // than silently changing the backend. Access the selected renderer through `app.renderer`.
+    //
+    // What the host draws does not depend on the fonts of the machine. Its font cache never
+    // falls back to an installed face: a character the interface faces lack comes from two small
+    // faces compiled into this module, covering the Japanese word and the emoji the shared
+    // fixtures use, and any other one draws the missing glyph. A test needing more gives the
+    // cache its own faces with [[Pixel.FontCache.setFallbackTypeFaces]] after this call.
     mtd setup(width, height: f32, dpiScale = 1.0'f32)
     {
         // The clipboard is already faked by the sandbox; start each host from an empty one so
@@ -128,6 +138,11 @@ impl HeadlessHost
         .surface.bindPainterToRenderer(.app.renderer)
         .app.renderer.setCurrentContext(.surface.rc)
         .app.renderer.init()
+
+        // The installed fonts stay out of every picture a host renders.
+        let cjk   = expect TypeFace.create("gui-testing-fallback-cjk", FallbackCjk)
+        let emoji = expect TypeFace.create("gui-testing-fallback-emoji", FallbackEmoji)
+        .app.renderer.fontCache().setFallbackTypeFaces([cjk, emoji], false)
 
         // Spin up the shared worker pool, the way `Application.createSurface` does for a real
         // window. A host builds its surface by hand and never goes through that path, so without

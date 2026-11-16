@@ -640,24 +640,28 @@ impl Properties
         .edView.sendResizeEvent()
     }
 
-    // Sets the height of a row and the air between two rows, for a grid denser or looser than its
-    // kind, such as the settings of an inspector. Set it before the first row is added.
+    // Sets the row height and gap for a grid denser or looser than its kind.
+    //
+    // Set these metrics before adding the first row.
     mtd setRowMetrics(height: f32, gap: f32)
     {
         .gridLineHeight = height
         .gridLineMargin = cast(s32, gap)
     }
 
-    // Shows or hides the hairline after a section label of a panel, for a column whose other
-    // sections are labels alone, such as an inspector.
+    // Shows or hides the rule after a section label in a panel.
+    //
+    // This is useful when the panel's other sections are labels alone, such as in an inspector.
     mtd setSectionRules(visible: bool)
     {
         .sectionRules = visible
         .invalidate()
     }
 
-    // Shows or hides the ground behind the focused and the hovered rows. An inspector, whose rows
-    // are the controls themselves, leaves it out: the ground would only show behind the labels.
+    // Shows or hides the ground behind focused and hovered rows.
+    //
+    // An inspector whose rows are controls may leave it out; the ground would only show behind
+    // the labels.
     mtd setRowGrounds(visible: bool)
     {
         .rowGrounds = visible
@@ -901,8 +905,9 @@ impl Properties
         .updateStates()
     }
 
-    // Counts the fields the text filter found: visible rows holding a value whose own name or
-    // description contains the filter. Zero when no text filter is set.
+    // Counts visible rows whose value name or description contains the text filter.
+    //
+    // Returns zero when no text filter is set.
     mtd matchCount()->u32
     {
         if .stringFilter.isEmpty() do

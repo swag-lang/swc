@@ -294,8 +294,10 @@ impl PropertiesCtrl
         .fillSections()
     }
 
-    // Gives one section of the navigation list or tab bar its icon, including after a view-mode rebuild.
-    // The icon borrows its atlas from the caller for the lifetime of this control.
+    // Gives one section of the navigation list or tab bar its icon.
+    //
+    // The icon borrows its atlas from the caller for the lifetime of this control and remains set
+    // after a view-mode rebuild.
     mtd setSectionIcon(section: string, icon: Icon)
     {
         for &entry in .sectionIcons where entry.name == section

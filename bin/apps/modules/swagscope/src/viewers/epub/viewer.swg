@@ -186,6 +186,7 @@ private impl Panel
 
                 .fragment        = fragment
                 .pendingPosition = {}
+                .followReading()
             }
 
             return
@@ -215,6 +216,12 @@ private impl Panel
             .sigDocumentChanged += func|panel = me|(_)
             {
                 panel.restorePendingPosition()
+                panel.followReading()
+            }
+
+            .sigScrolled += func|panel = me|(_)
+            {
+                panel.followReading()
             }
 
             .sigLoadFailed += func|panel = me|(_, reason)
@@ -233,6 +240,46 @@ private impl Panel
         .applyLayout()
         discard .view.navigateToFragment(Format.toString("#%", fragment))
         .refreshNavigation()
+        .followReading()
+    }
+
+    // Marks in the outline the contents entry being read: the last one in an earlier chapter, at
+    // the start of this one, or at a fragment of this one standing at or before the text at the
+    // top of the view. A fragment not read yet does not count.
+    //
+    // At the end of a chapter a passage cannot rise to the top, so the one the reader went to
+    // counts as read there.
+    mtd followReading()
+    {
+        if not .view or .chapter >= .book.chapters.count do
+            return
+
+        let reading = .view.readingOffset()
+        let atEnd   = .view.readingProgress() >= 1
+        var entry   = Swag.U64.Max
+        for content, index in .contents
+        {
+            if content.chapter < .chapter or (content.chapter == .chapter and content.fragment.isEmpty())
+            {
+                entry = index
+                continue
+            }
+
+            if content.chapter != .chapter do
+                continue
+            if atEnd and content.fragment == .fragment
+            {
+                entry = index
+                continue
+            }
+
+            let offset = reading != Swag.U64.Max ? .view.fragmentOffset(content.fragment) : Swag.U64.Max
+            if offset != Swag.U64.Max and offset <= reading do
+                entry = index
+        }
+
+        if entry != Swag.U64.Max do
+            .outline.markReading(entry, atEnd: atEnd)
     }
 
     // A book link stays inside its spine. External URLs and escaping paths never reach the OS.
@@ -416,8 +463,9 @@ func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)
     host.attachView(view)
-    view.outline = DocumentOutline.create(host)
+    view.outline             = DocumentOutline.create(host)
     view.outline.sigSelected += func|view|(_, target) { view.selectContents(target) }
+    view.outline.follow      = func|view|() { view.followReading() }
     view.load.start(host.fileName(), &Book.load, view)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     with var lifecycle: Viewer.LifecycleApi

@@ -117,3 +117,18 @@ func assertReadingPassage(view: *HtmlView, position: HtmlReadingPosition)
     view.resize(700, 400)
     Swag.require(not view.readingPosition().isValid())
 }
+
+// A fragment's offset addresses the source as the reading offset does, so a reader below it reads
+// an offset at or after it; an identifier the document lacks has none.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(900, 500)
+    let source: string = "<html><body><h1 id='top'>Top</h1><p>Words.</p><h2 id=\"later\">Later</h2><p>More words.</p></body></html>"
+    let view = HtmlView.createText(&host.root, source)
+    view.resize(900, 500)
+    Swag.require(view.fragmentOffset("top") == Utf8.indexOf(source, "<h1"))
+    Swag.require(view.fragmentOffset("later") == Utf8.indexOf(source, "<h2"))
+    Swag.require(view.fragmentOffset("missing") == Swag.U64.Max and view.fragmentOffset("") == Swag.U64.Max)
+    Swag.require(view.readingOffset() < view.fragmentOffset("later"))
+}

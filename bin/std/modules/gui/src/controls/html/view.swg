@@ -887,6 +887,16 @@ internal impl HtmlView
         return HtmlNoNode
     }
 
+    // Returns the source byte offset of the element carrying the identifier `id`, or `U64.Max`
+    // when the document read so far has none. It addresses the source as
+    // [[Gui.HtmlView.readingOffset]] does, so a reader can tell whether a fragment lies before the
+    // text being read.
+    public mtd const fragmentOffset(id: string)->u64
+    {
+        let node = .elementById(id)
+        return node == HtmlNoNode ? Swag.U64.Max : .document.constNode(node).sourceOffset
+    }
+
     // Scrolls to the element a document-internal reference names.
     //
     // Returns false when the reference points outside the document, which is what tells the

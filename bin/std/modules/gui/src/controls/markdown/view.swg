@@ -1267,10 +1267,14 @@ impl View
 
     // Returns the share of the document above the bottom of the view, from 0 at the top to 1
     // at the end, as a reading progress shows it. A document that fits the view is at its end.
+    //
+    // A scroll position is a whole pixel while the extent is not, so a view scrolled as far as it
+    // goes can stop half a pixel short of the extent: it is at the end all the same.
     mtd readingProgress()->f32
     {
-        let extent = .scroll.scrollSize.y - .scroll.clientRect().height
-        return extent > 0 ? Math.clamp(.scroll.scrollPosition().y / extent, 0, 1) : 1
+        let extent   = .scroll.scrollSize.y - .scroll.clientRect().height
+        let position = .scroll.scrollPosition().y
+        return extent > 0 and extent - position > 0.5 ? Math.clamp(position / extent, 0, 1) : 1
     }
 
     // Returns the source byte offset of the block nearest the top reading inset.

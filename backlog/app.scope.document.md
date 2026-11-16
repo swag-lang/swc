@@ -404,15 +404,3 @@ integration around those engines.
 - Done when: genuine LibreOffice files retain common authored layout and components; notes
   can be inspected separately; unsupported content remains explicit; navigation stays responsive
   and cancellation/package budgets hold on large and damaged documents.
-
-### app.scope.document.033 — EPUB contents do not follow the reading position
-
-- Evidence: `DocumentOutline.follow` marks the Markdown, HTML, DOCX, ODT and PDF heading in view
-  as soon as the headings are published or the outline is opened, and follows every scroll after
-  that. EPUB contents are addressed by chapter and fragment, and nothing maps the reading
-  position of the chapter shown back to its contents entry, so none is marked.
-- Next: map an EPUB reading position (chapter and source offset in its document) to the last
-  contents entry at or before it, and give the EPUB outline a `follow` callback.
-- Done when: an EPUB outline marks the entry being read at open and while scrolling and turning
-  chapters, with its picture recorded.
-- Related: app.scope.document.001, app.scope.document.021

@@ -101,6 +101,34 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.chapter == 0)
 }
 
+// The contents mark the entry being read from the start, and follow passages, links and turns:
+// an entry whose passage is above the text being read is behind the reader.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), false)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    var chosen = 0
+    view.outline.sigSelected += func|&chosen|(_, _) { chosen += 1 }
+    Swag.require(view.outline.markedTarget() == 0)
+
+    view.followLink("one.xhtml#passage")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 0 and view.outline.markedTarget() == 1)
+
+    // The second chapter's only entry is a passage further down: its start still reads the first.
+    view.turn(1)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 1 and view.outline.markedTarget() == 1)
+    view.followLink("two.xhtml#arrival")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.outline.markedTarget() == 2)
+
+    view.turn(-1)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(view.chapter == 0 and view.outline.markedTarget() == 0 and chosen == 0)
+}
+
 // Book-owned link navigation updates the chapter counter and keeps external targets local.
 #test
 {

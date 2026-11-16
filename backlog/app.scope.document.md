@@ -409,11 +409,10 @@ integration around those engines.
 
 - Evidence: `DocumentOutline.markReading` follows the Markdown, HTML and PDF reading position
   from the reader's first move on. At open nothing is marked: the headings arrive from a worker
-  at no fixed moment relative to the first layout, and marking then would change every outline
-  picture, which only the reference GPU renderer can record. EPUB contents are addressed by
-  chapter and fragment and are not followed at all.
-- Next: mark once both the headings and the first layout exist, record the outline goldens again
-  on the reference renderer, then map an EPUB reading position to its contents entry.
+  at no fixed moment relative to the first layout, so marking then would depend on which came
+  first. EPUB contents are addressed by chapter and fragment and are not followed at all.
+- Next: mark once both the headings and the first layout exist, record the outline goldens that
+  then show a marked heading, and map an EPUB reading position to its contents entry.
 - Done when: an outline opened on a document shows the heading in view before any scroll, in
   every reader that has one, with its pictures recorded.
 - Related: app.scope.document.001, app.scope.document.021

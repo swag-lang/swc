@@ -70,11 +70,9 @@ remain available in the Binary viewer.
   the header stays fixed. The keyboard can be compact, standard, or wide; labels can use scientific C4
   names or MIDI key numbers, with both preferences persisted. The tooltip explains C4 = MIDI 60.
   When every note shown is on channel 10 (a selected drum track, or a drums-only piece), each key
-  row tall enough for text names its General MIDI percussion sound. The rows still span the
-  whole piece's range, so a drum track needs a vertical zoom before its names fit; scale overlays
-  are absent.
-- Next: fit the key range to the selected track, then add optional key-signature and scale
-  highlighting.
+  row tall enough for text names its General MIDI percussion sound, and the rows span the keys of
+  the selected track. Scale overlays are absent.
+- Next: add optional key-signature and scale highlighting.
 - Done when: vertical fit and zoom preserve selected notes, MIDI key number and chosen note name
   are visible, octave convention is declared, channel-10 drum maps can replace pitch names, and
   key-signature/scale highlighting is optional and accessible.

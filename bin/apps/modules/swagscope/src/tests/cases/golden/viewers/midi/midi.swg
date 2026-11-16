@@ -20,7 +20,8 @@ using Core, Pixel, Gui, Viewers
 }
 
 // A drum track read by pitch names each key by the General MIDI sound it plays, not by a pitch no
-// drum has; the whole piece, which also holds pitched tracks, keeps its pitch names.
+// drum has, over rows fitted to the keys it strikes; the whole piece, which also holds pitched
+// tracks, keeps its pitch names.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -41,9 +42,8 @@ using Core, Pixel, Gui, Viewers
     view.roll.setTrack(drums)
     Swag.require(view.roll.showsPercussion())
 
-    // Rows tall enough for a line of text, on the keys the drums strike.
-    view.roll.applyPitchZoom(2)
-    view.roll.scroll.setScrollPos(0, view.roll.plotTop + cast(f32, view.roll.highKey - 51) * view.roll.rowHeight - view.roll.clientRect().height * 0.5)
+    // The rows span the drums' own keys, tall enough for their names without a zoom.
+    Swag.require(view.roll.lowKey >= 33 and view.roll.highKey <= 83)
 
     var image = host.render(&host.surfaceWnd)
     assertScopeImageGolden(&image, "viewer.midi.drums.encre")

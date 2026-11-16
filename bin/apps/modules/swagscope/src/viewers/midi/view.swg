@@ -196,8 +196,19 @@ impl RollView
     {
         let client = .clientRect()
         .collectLanes()
-        .lowKey  = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
-        .highKey = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
+
+        // The rows span the keys of the notes shown: a chosen track has its own range, so a drum
+        // track fills the view rather than a sliver of the range of the whole piece.
+        var low  = .document.minKey
+        var high = .document.maxKey
+        for lane in .lanes where lane.track == .selectedTrack and lane.lowKey <= lane.highKey
+        {
+            low  = lane.lowKey
+            high = lane.highKey
+        }
+
+        .lowKey  = cast(u8, Math.max(cast(s32, low) - 2, 0))
+        .highKey = cast(u8, Math.min(cast(s32, high) + 2, 127))
         .plotTop = HeaderHeight + AxisHeight
         let fittedRowHeight = Math.max((client.height - .plotTop - ContentInset) / cast(f32, .keyCount()), 3)
         .rowHeight = Math.max(fittedRowHeight * .pitchZoom, 3)
@@ -233,7 +244,7 @@ impl RollView
     mtd setTrack(index: u32)
     {
         .selectedTrack = index
-        .invalidate()
+        .refreshLayout()
     }
 
     mtd setPitchLabelMode(mode: PitchLabelMode)

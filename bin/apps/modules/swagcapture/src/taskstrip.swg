@@ -1,7 +1,8 @@
 using Core, Gui
 
-// The room the title keeps between the groups of the strip, enough to name the window.
-const TaskStripTitleRoom = 64.0
+// The room the title keeps between the groups of the strip: the start of the window's name,
+// as the minimum width leaves it with the shortest capture name.
+const TaskStripTitleRoom = 48.0
 
 // The repeated capture and output gestures of the window, set in its top strip.
 //

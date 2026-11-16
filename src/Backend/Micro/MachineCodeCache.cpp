@@ -19,6 +19,7 @@
 #include "Main/FileSystem.h"
 #include "Main/WorkspaceLayout.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -150,19 +151,39 @@ namespace
         return relocation.targetAddress <= std::numeric_limits<uint32_t>::max() && segment.findAllocation(out, static_cast<uint32_t>(relocation.targetAddress));
     }
 
+    struct ConstantLeaf
+    {
+        std::string_view payload;
+        uint32_t         alignment;
+        uint32_t         hash;
+
+        bool operator==(const ConstantLeaf& other) const
+        {
+            return alignment == other.alignment && payload == other.payload;
+        }
+    };
+
+    struct ConstantLeafHash
+    {
+        size_t operator()(const ConstantLeaf& leaf) const noexcept { return leaf.hash; }
+    };
+
     // Data pointers in constants are edges, not bytes. Number allocations in traversal
     // order to preserve sharing and cycles without persisting shard offsets or addresses.
     // A pointer-free allocation is numbered by its bytes instead: constant shards intern
     // their own copy of a string, and which copy a constant points to is not an input.
     struct InputIdentity
     {
-        TaskContext*                                        ctx = nullptr;
-        std::unordered_map<uint64_t, uint32_t>              allocations;
-        std::unordered_map<std::string, uint32_t>           leaves;
-        uint32_t                                            numAllocations = 0;
-        std::unordered_map<const SymbolFunction*, uint32_t> functions;
-        std::unordered_map<uint64_t, uint32_t>              sources;
-        std::unordered_map<uint64_t, uint32_t>              globals;
+        TaskContext*                                                 ctx = nullptr;
+        std::unordered_map<uint64_t, uint32_t>                       allocations;
+        std::unordered_map<ConstantLeaf, uint32_t, ConstantLeafHash> leaves;
+        uint32_t                                                     numAllocations = 0;
+        std::unordered_map<const SymbolFunction*, uint32_t>          functions;
+        std::unordered_map<uint64_t, uint32_t>                       sources;
+        std::unordered_map<uint64_t, uint32_t>                       globals;
+        // Valid source refs cannot pack to the all-ones sentinel.
+        uint64_t lastSourceBinding = std::numeric_limits<uint64_t>::max();
+        uint32_t lastSourceIndex   = 0;
 
         void appendSource(ByteArray& out, const DebugSourceInfo& source)
         {
@@ -173,9 +194,16 @@ namespace
             // Cached ranges are rebound by input index. Preserve source-sharing
             // topology, including the declaration fallback, rather than paths
             // or token offsets that change when an API is republished.
+            // Lowering often emits several instructions at one source point.
+            // Its ordinal stays fixed once inserted, including across invalid refs.
             const uint64_t binding = sourceKey(source.sourceCodeRef);
-            const auto     entry   = sources.emplace(binding, static_cast<uint32_t>(sources.size())).first;
-            out.appendLe32(entry->second);
+            if (binding != lastSourceBinding)
+            {
+                const auto entry  = sources.emplace(binding, static_cast<uint32_t>(sources.size())).first;
+                lastSourceBinding = binding;
+                lastSourceIndex   = entry->second;
+            }
+            out.appendLe32(lastSourceIndex);
         }
 
         // A global is the allocation it lies in, numbered in traversal order, and the offset
@@ -222,10 +250,11 @@ namespace
             bool inserted                        = unseen;
             if (unseen && !segment.hasRelocations(allocation.offset, allocation.size))
             {
-                std::string content(sizeof(uint32_t), '\0');
-                std::memcpy(content.data(), &allocation.align, sizeof(uint32_t));
-                content.append(segment.ptr<char>(allocation.offset), allocation.size);
-                const auto [leafEntry, added] = leaves.emplace(std::move(content), numAllocations);
+                // Constant payloads stay immutable throughout this input walk. Keep
+                // a view and its hash so table growth never copies or rehashes bytes.
+                const std::string_view payload{segment.ptr<char>(allocation.offset), allocation.size};
+                const ConstantLeaf     leaf{payload, allocation.align, Math::hash(payload, allocation.align)};
+                const auto [leafEntry, added] = leaves.emplace(leaf, numAllocations);
                 allocationEntry->second       = leafEntry->second;
                 inserted                      = added;
             }

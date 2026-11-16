@@ -818,8 +818,12 @@ new language syntax.
   show no pre-RA/post-RA stops in the two benchmark probes, but frequent changing final
   pre-prologue sweeps. Reducing SLP depth from 512 to 32 doubles a supported deep chain's Micro
   instructions. Timing controls remain too noisy to select a replacement default or O3 multiplier.
-- Next: correlate `--optimizer-stats` with function listings and add function/sweep attribution
-  for late useful rewrites and SLP rejection reasons. Cover remaining analysis budgets where
+- Workspace `build --optimizer-stats` reports zero pipelines even when module compilers ran
+  the optimizer: each `CompilerInstance` owns its totals, and the driver report does not include
+  the module instances that performed the work.
+- Next: aggregate module profiles into the workspace report, then correlate `--optimizer-stats`
+  with function listings and add function/sweep attribution for late useful rewrites and SLP
+  rejection reasons. Cover remaining analysis budgets where
   observed work warrants it; distinguish retained plan size from failed exploration. Evaluate
   cached tuple reuse before depth rejection and measure selected policies on a quiet machine,
   keeping convergence guards, optional work, output growth and pressure independent.

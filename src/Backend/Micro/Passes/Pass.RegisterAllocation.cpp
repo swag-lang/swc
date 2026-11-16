@@ -2015,29 +2015,32 @@ void MicroRegisterAllocationPass::preallocateLoopCarriedSlots()
     if (loopHeaders.empty())
         return;
 
-    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    // Mark loop-carried values by visiting only live bits in loop-header rows.
+    // The old register-by-header probe repeated one bit test for every pair.
+    for (const uint32_t header : loopHeaders)
     {
-        const MicroReg vreg = vregs[denseIndex];
-
-        auto& regState = states_[denseIndex];
-        if (regState.pinned)
-            continue;
-
-        bool loopCarried = false;
-        for (const uint32_t header : loopHeaders)
+        const auto row = liveInVirtualBits_.row(header);
+        for (size_t wordIndex = 0; wordIndex < row.words.size(); ++wordIndex)
         {
-            const auto liveRow = liveInVirtualBits_.row(header);
-            if (liveRow.contains(denseIndex))
+            uint64_t wordBits = row.words[wordIndex];
+            while (wordBits)
             {
-                loopCarried = true;
-                break;
+                const uint32_t denseIndex = static_cast<uint32_t>((row.firstWord + wordIndex) * 64ull + std::countr_zero(wordBits));
+                wordBits &= wordBits - 1ull;
+                if (denseIndex < vregs.size() && !states_[denseIndex].pinned)
+                    states_[denseIndex].loopCarriedHome = true;
             }
         }
-        if (!loopCarried)
+    }
+
+    // Keep spill-slot assignment in dense-register order, as before.
+    for (uint32_t denseIndex = 0; denseIndex < vregs.size(); ++denseIndex)
+    {
+        auto& regState = states_[denseIndex];
+        if (!regState.loopCarriedHome)
             continue;
 
-        regState.loopCarriedHome = true;
-        ensureSpillSlot(regState, vreg.isVirtualFloat());
+        ensureSpillSlot(regState, vregs[denseIndex].isVirtualFloat());
     }
 }
 

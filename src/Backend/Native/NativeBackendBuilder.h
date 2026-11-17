@@ -276,6 +276,7 @@ public:
 private:
     struct NativeTestProgressContext;
 
+    Result      remapRDataReference(NativeSectionData& section, NativeSectionRelocation& relocation, const ScopedSymbolNames& names);
     static void forwardNativeTestProgress(void* userData, std::string_view line);
     void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
     size_t      selectedNativeTestCount() const;

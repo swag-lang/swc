@@ -10,6 +10,7 @@ func scoreCMapFormat(format: u16)->s32
     switch format
     {
     case 12: return 5000
+    case 8:  return 4600
     case 10: return 4500
     case 4:  return 4000
     case 6:  return 3000
@@ -101,6 +102,51 @@ func lookupCMap10(cmap: const [..] u8, charCode: u32)->u32
         return 0
 
     return peekU16(cmap, 20 + cast(u64, index) * 2)
+}
+
+// Format 8 mixes single UTF-16 units with packed surrogate pairs in its groups.
+func lookupCMap8(cmap: const [..] u8, charCode: u32)->u32
+{
+    if charCode > 0x10FFFF or (charCode >= 0xD800 and charCode <= 0xDFFF) do
+        return 0
+
+    var mappedCode = charCode
+    if charCode > 0xFFFF
+    {
+        let scalar = charCode - 0x10000
+        let high   = 0xD800'u32 + (scalar >> 10)
+        let low    = 0xDC00'u32 + (scalar & 0x3FF)
+        let bit    = cast(u8, 0x80 >> (high & 7))
+        if (peekU8(cmap, 12 + cast(u64, high >> 3)) & bit) == 0 do
+            return 0
+        mappedCode = (high << 16) | low
+    }
+
+    let numGroups = peekU32(cmap, 8204)
+    var left      = 0'u32
+    var right     = numGroups
+    while left < right
+    {
+        let mid       = left + (right - left) / 2
+        let base      = 8208'u64 + cast(u64, mid) * 12
+        let startCode = peekU32(cmap, base)
+        let endCode   = peekU32(cmap, base + 4)
+        if mappedCode < startCode
+        {
+            right = mid
+            continue
+        }
+
+        if mappedCode > endCode
+        {
+            left = mid + 1
+            continue
+        }
+
+        return peekU32(cmap, base + 8) + (mappedCode - startCode)
+    }
+
+    return 0
 }
 
 func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32
@@ -315,6 +361,7 @@ func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
     case 0:  return lookupCMap0(cmap, charCode)
     case 4:  return lookupCMap4(cmap, charCode)
     case 6:  return lookupCMap6(cmap, charCode)
+    case 8:  return lookupCMap8(cmap, charCode)
     case 10: return lookupCMap10(cmap, charCode)
     case 12: return lookupCMap12(cmap, charCode)
     case 13: return lookupCMap13(cmap, charCode)

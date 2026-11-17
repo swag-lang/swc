@@ -590,7 +590,22 @@ internal func wslDpiScale()->f32
         [SwagDpi.Monitor]::GetDpiForSystem()
         """
     const arguments: [6]string = ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", command]
-    let process = catch Env.runProcess("powershell.exe", arguments) { return 0 }
+    let info = Env.StartInfo{fileName: "powershell.exe",
+                             arguments: arguments,
+                             standardOutput: .Pipe,
+                             standardError: .Discard}
+    var process = catch Env.startProcess(info) { return 0 }
+    // Window preference queries must not wait indefinitely on the Windows interop bridge.
+    let finished = catch process.tryWaitForExit(Time.Duration.fromSeconds(2))
+    {
+        discard catch process.kill()
+        return 0
+    }
+    if not finished
+    {
+        discard catch process.kill()
+        return 0
+    }
     if process.exitCode() != 0 do
         return 0
 

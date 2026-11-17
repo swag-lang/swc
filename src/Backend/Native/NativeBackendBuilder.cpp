@@ -1469,19 +1469,23 @@ const NativeBackendBuilder::ScopedSymbolNames& NativeBackendBuilder::scopedSymbo
     return scopedSymbolNames_;
 }
 
+Result NativeBackendBuilder::remapRDataReference(NativeSectionData& section, NativeSectionRelocation& relocation, const ScopedSymbolNames& names)
+{
+    if (relocation.symbolName != names.rdataBase)
+        return Result::Continue;
+    const auto* allocation = relocation.addend <= UINT32_MAX ? tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend)) : nullptr;
+    if (!allocation)
+        return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, section.name);
+    relocation.symbolName = rdataAllocationSymbol(*allocation);
+    relocation.addend -= allocation->emittedOffset;
+    return Result::Continue;
+}
+
 Result NativeBackendBuilder::remapRDataReferences(NativeSectionData& section)
 {
     const auto& names = scopedSymbolNames();
     for (NativeSectionRelocation& relocation : section.relocations)
-    {
-        if (relocation.symbolName != names.rdataBase)
-            continue;
-        const auto* allocation = relocation.addend <= UINT32_MAX ? tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend)) : nullptr;
-        if (!allocation)
-            return reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, section.name);
-        relocation.symbolName = rdataAllocationSymbol(*allocation);
-        relocation.addend -= allocation->emittedOffset;
-    }
+        SWC_RESULT(remapRDataReference(section, relocation, names));
     return Result::Continue;
 }
 
@@ -1514,6 +1518,7 @@ Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& sect
     section.requireAlignment(allocation.align);
     section.bytes.append(allocationBytes);
 
+    const auto& names = scopedSymbolNames();
     for (auto it = first; it != relocations.end(); ++it)
     {
         const NativeSectionRelocation& sourceRelocation = *it;
@@ -1522,10 +1527,11 @@ Result NativeBackendBuilder::buildRDataAllocationSection(NativeSectionData& sect
 
         NativeSectionRelocation relocation = sourceRelocation;
         relocation.offset -= allocation.emittedOffset;
+        SWC_RESULT(remapRDataReference(section, relocation, names));
         section.relocations.push_back(std::move(relocation));
     }
 
-    return remapRDataReferences(section);
+    return Result::Continue;
 }
 
 Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation)

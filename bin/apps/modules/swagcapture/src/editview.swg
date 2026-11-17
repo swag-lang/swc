@@ -275,27 +275,29 @@ impl EditView
         let font    = .theme().createDefaultFontFs(metrics.defaultFontSize - 1)
         let text    = Format.toString("% × %", capture.width, capture.height)
         let pad     = metrics.hintLine_KeyGap
-        let textWidth = Painter.measureString(text, font).width
-        let chip      = .inPlaceSizeChipRect(zone, textWidth, font.height, pad)
-        var textX   = chip.x + pad
-        if .inPlaceKindButton
-        {
-            textX += .inPlaceKindButton.position.width + metrics.menuPopup_IconTextMargin + pad * 0.5
-        }
+        let chip    = .inPlaceSizeChipRect(zone, Painter.measureString(text, font).width, font.height, pad)
+        let textX   = chip.x + pad + .inPlaceChipLeading(pad)
         painter.setParams(.Antialiased)
         painter.fillRoundRect(chip, metrics.corner_Chip, metrics.corner_Chip, colors.surface)
         painter.drawString(textX, font.opticalLineTop(chip.vertCenter()), text, font, colors.text)
+    }
+
+    // Returns the room the kind button and its gap take before the size in the chip, if any.
+    mtd inPlaceChipLeading(pad: f32)->f32
+    {
+        let buttonWidth = .inPlaceKindButton ? .inPlaceKindButton.position.width : 0.0
+        if buttonWidth <= 0 do
+            return 0
+        return buttonWidth + .themeMetrics().menuPopup_IconTextMargin + pad * 0.5
     }
 
     // Gives the dimensions and kind control one chip at the capture's top edge.
     mtd inPlaceSizeChipRect(zone: Math.Rectangle, textWidth, textHeight, pad: f32)->Math.Rectangle
     {
         let metrics = .themeMetrics()
-        let buttonWidth = .inPlaceKindButton ? .inPlaceKindButton.position.width : 0.0
-        let leading = buttonWidth > 0 ? buttonWidth + metrics.menuPopup_IconTextMargin + pad * 0.5 : 0.0
-        let width  = leading + textWidth + 2 * pad
-        let bounds = .clientRect()
-        let x = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
+        let width   = .inPlaceChipLeading(pad) + textWidth + 2 * pad
+        let bounds  = .clientRect()
+        let x       = Math.clamp(zone.x, bounds.x, Math.max(bounds.x, bounds.right() - width))
         return {x, zone.y - textHeight - pad - metrics.miniBar_Padding, width, textHeight + pad}
     }
 

@@ -146,6 +146,8 @@ msg_FailedExportCaptures Impossible d'exporter les captures sélectionnées
 msg_ExportingCaptures Export des captures sélectionnées…
 msg_ExportedCaptures Captures sélectionnées exportées
 msg_FailedMoveCaptures Certaines captures n'ont pas pu être déplacées. Elles sont restées à leur place.
+msg_FailedDeleteCaptures Certaines captures n'ont pas pu être supprimées. Elles sont toujours dans la corbeille.
+msg_FailedRestoreCaptures Certaines captures n'ont pas pu être restaurées. Elles sont toujours dans la corbeille.
 msg_ShortcutsUnavailableHelp Une autre application utilise peut-être ces touches. Relancez Swag Capture pour réessayer.
 msg_ResidentTitle      Swag Capture reste actif.
 msg_ResidentText       Double-cliquez sur son icône dans la zone de notification pour l'ouvrir, clic droit pour le menu.

@@ -239,6 +239,10 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             subTableLength = try readU16(remaining, 2)
             minimumLength  = 10
 
+        case 8:
+            subTableLength = try readU32(remaining, 4)
+            minimumLength  = 8208
+
         case 10:
             subTableLength = try readU32(remaining, 4)
             minimumLength  = 20
@@ -263,6 +267,13 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         {
             let charCount = try readU32(subTable, 16)
             if cast(u64, charCount) > (subTable.count - 20) / 2 do
+                try fault(0x03)
+        }
+
+        if format == 8
+        {
+            let groupCount = try readU32(subTable, 8204)
+            if cast(u64, groupCount) > (subTable.count - 8208) / 12 do
                 try fault(0x03)
         }
 

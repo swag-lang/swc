@@ -153,10 +153,24 @@ using Core, Pixel
 #[Swag.TestTag("integration.host.windows")]
 #test
 {
-    let width = Env.getSystemMetric(.DesktopWidth)
-    let height = Env.getSystemMetric(.DesktopHeight)
-    if width <= 0 or height <= 0 do
+    let monitors = Env.getMonitors()
+    if not monitors.count do
         return
+    let first = monitors[0].physicalBounds
+    var left = first.x
+    var top = first.y
+    var right = first.right()
+    var bottom = first.bottom()
+    for monitor in monitors
+    {
+        let bounds = monitor.physicalBounds
+        left = Math.min(left, bounds.x)
+        top = Math.min(top, bounds.y)
+        right = Math.max(right, bounds.right())
+        bottom = Math.max(bottom, bounds.bottom())
+    }
+    let width = cast(s32, right - left)
+    let height = cast(s32, bottom - top)
     var source = expect Source.openDesktop()
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false,

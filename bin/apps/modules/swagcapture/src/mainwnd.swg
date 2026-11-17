@@ -10,6 +10,72 @@ const AppIcon                = #include("../datas/appicon.png")
 // The editor tool, which decides what a drag on the capture creates.
 enum EditMode { Shape, Arrow, Line, Polygon, Text, Favorites, Draw, Highlight, Selection, Step, Image, PixSel, Callout }
 
+impl EditMode
+{
+    // Returns the name of the tool, as the inspector heads the properties it edits.
+    func name(me)->string
+    {
+        switch #complete me
+        {
+        case .Shape:     return appStrings().act_Shape
+        case .Arrow:     return appStrings().act_Arrow
+        case .Line:      return appStrings().act_Line
+        case .Polygon:   return appStrings().act_Polygon
+        case .Text:      return appStrings().act_Text
+        case .Callout:   return appStrings().act_Callout
+        case .Draw:      return appStrings().act_Draw
+        case .Highlight: return appStrings().act_Highlight
+        case .Step:      return appStrings().act_Step
+        case .Image:     return appStrings().ui_MenuImage
+        case .PixSel:    return appStrings().act_PixSel
+        case .Favorites: return appStrings().act_Favorites
+        case .Selection: return appStrings().act_Select
+        }
+    }
+
+    // Returns the glyph of the tool, as the dock and the layers of the inspector show it.
+    func glyph(me)->CaptureIcons
+    {
+        switch #complete me
+        {
+        case .Shape:     return CaptureIcons.Shape
+        case .Arrow:     return CaptureIcons.Arrow
+        case .Line:      return CaptureIcons.Line
+        case .Polygon:   return CaptureIcons.Polygon
+        case .Text:      return CaptureIcons.Text
+        case .Callout:   return CaptureIcons.Text
+        case .Draw:      return CaptureIcons.Draw
+        case .Highlight: return CaptureIcons.Highlight
+        case .Step:      return CaptureIcons.Step
+        case .Image:     return CaptureIcons.Image
+        case .PixSel:    return CaptureIcons.PixSel
+        case .Favorites: return CaptureIcons.Favorites
+        case .Selection: return CaptureIcons.Select
+        }
+    }
+
+    // Returns the command that takes the tool in hand.
+    func command(me)->WndId
+    {
+        switch #complete me
+        {
+        case .Shape:     return ActionToolMode.Shape
+        case .Arrow:     return ActionToolMode.Arrow
+        case .Line:      return ActionToolMode.Line
+        case .Polygon:   return ActionToolMode.Poly
+        case .Text:      return ActionToolMode.Text
+        case .Callout:   return ActionToolMode.Callout
+        case .Draw:      return ActionToolMode.Draw
+        case .Highlight: return ActionToolMode.Highlight
+        case .Step:      return ActionToolMode.Step
+        case .Image:     return ActionToolMode.Img
+        case .PixSel:    return ActionToolMode.PixSel
+        case .Favorites: return ActionToolMode.Favorites
+        case .Selection: return ActionToolMode.Selection
+        }
+    }
+}
+
 // What the mini-bar beside the selection carries: nothing without a selection, the colour of one
 // object, the face of a text, the counter of a step, or the alignment of several objects.
 enum MiniBarKind { None, Single, Text, Step, Multi }
@@ -1135,7 +1201,7 @@ impl MainWnd
 
         // The tool in use stands in the dock, in the cell of its group when it has one.
         if .dock != null do
-            discard .dock.selectTool(toolCommand(.editMode))
+            discard .dock.selectTool(.editMode.command())
         .updateCommandState()
         if .taskStrip != null
         {
@@ -1416,7 +1482,6 @@ impl MainWnd
         discard menu.doModal(button, autoDestroy: true)
     }
 
-    // Returns the name of a tool, as the inspector heads the properties it edits.
     // Reports whether `title` fits the head of the inspector before its actions.
     mtd titleFits(title: string)->bool
     {
@@ -1497,26 +1562,6 @@ impl MainWnd
         return texts.count_Object
     }
 
-    func editModeName(mode: EditMode)->string
-    {
-        switch #complete mode
-        {
-        case .Shape:     return appStrings().act_Shape
-        case .Arrow:     return appStrings().act_Arrow
-        case .Line:      return appStrings().act_Line
-        case .Polygon:   return appStrings().act_Polygon
-        case .Text:      return appStrings().act_Text
-        case .Callout:   return appStrings().act_Callout
-        case .Draw:      return appStrings().act_Draw
-        case .Highlight: return appStrings().act_Highlight
-        case .Step:      return appStrings().act_Step
-        case .Image:     return appStrings().ui_MenuImage
-        case .PixSel:    return appStrings().act_PixSel
-        case .Favorites: return appStrings().act_Favorites
-        case .Selection: return appStrings().act_Select
-        }
-    }
-
     // Confirms what the hand just did in a toast at the foot of the window: `message`, a name or
     // a path in `detail`, and an `action` word that runs `onAction` when clicked.
     mtd confirm(message: string, detail: string = "", action: string = "", onAction: (func||())? = null)
@@ -1557,27 +1602,6 @@ impl MainWnd
         .toast.show(message, tone: .None)
     }
 
-    // Returns the glyph of a tool, as the dock and the layers of the inspector show it.
-    func editModeIcon(mode: EditMode)->CaptureIcons
-    {
-        switch #complete mode
-        {
-        case .Shape:     return .Shape
-        case .Arrow:     return .Arrow
-        case .Line:      return .Line
-        case .Polygon:   return .Polygon
-        case .Text:      return .Text
-        case .Callout:   return .Text
-        case .Draw:      return .Draw
-        case .Highlight: return .Highlight
-        case .Step:      return .Step
-        case .Image:     return .Image
-        case .PixSel:    return .PixSel
-        case .Favorites: return .Favorites
-        case .Selection: return .Select
-        }
-    }
-
     // Names what the inspector edits: the selected objects and their count, or the tool whose
     // next objects take these settings; and offers Duplicate and Delete for a selection.
     mtd updateInspectorTitle()
@@ -1590,7 +1614,7 @@ impl MainWnd
         let count   = capture ? capture.selection.count : 0
         if count == 0
         {
-            .inspector.setTitle(editModeName(.getEditMode()), appStrings().ui_NextObjects)
+            .inspector.setTitle(.getEditMode().name(), appStrings().ui_NextObjects)
             return
         }
 
@@ -1605,7 +1629,7 @@ impl MainWnd
             let base: *BaseForm = form
             if .isPixelSelection()
             {
-                .inspector.setTitle(editModeName(.PixSel), Format.toString("% × %", base.w, base.h))
+                .inspector.setTitle(EditMode.PixSel.name(), Format.toString("% × %", base.w, base.h))
                 duplicates = false
             }
             elif form is FormImage as image where image.kind != .Image
@@ -1616,7 +1640,7 @@ impl MainWnd
             }
             else
             {
-                .inspector.setTitle(editModeName(formToolMode(form)), appStrings().ui_OneObject)
+                .inspector.setTitle(formToolMode(form).name(), appStrings().ui_OneObject)
             }
         }
         else

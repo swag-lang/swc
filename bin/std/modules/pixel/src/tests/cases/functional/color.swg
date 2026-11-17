@@ -55,6 +55,11 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
     Swag.require(weak.a == 91)
     Swag.require(weak.contrastRatio(Color.fromRgb(140, 140, 140)) > initialRatio)
 
+    let source = Color.fromArgb(91, 128, 128, 128)
+    let result = source.ensuredContrast(Color.fromRgb(140, 140, 140), 4.5)
+    Swag.require(source == Color.fromArgb(91, 128, 128, 128))
+    Swag.require(result.a == source.a and result.contrastRatio(Color.fromRgb(140, 140, 140)) > initialRatio)
+
     var unchanged = Color.fromArgb(127, 128, 128, 128)
     let originalUnchanged = unchanged
     unchanged.ensureContrast(white, maxSteps: 0)

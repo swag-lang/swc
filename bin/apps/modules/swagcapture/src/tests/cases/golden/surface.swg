@@ -1027,7 +1027,7 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         Swag.require(quick.layout.children.count > 1)
         if mode == .Shape do
             hoverCell = quick.rowCells()[0]
-        Label.create(panel, MainWnd.editModeName(mode), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
+        Label.create(panel, mode.name(), Math.Rectangle{x, y, LabelWidth, QuickChipHeight}, flags: .SecondaryText)
         y += quick.position.height + metrics.inspector_RowGap
         Swag.require(y <= panel.position.height)
     }

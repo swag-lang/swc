@@ -158,23 +158,23 @@ workers (`--num-cores 3` on the compiler and on the tool), or a lower stage-spec
 checkout-local compilers (`bin\swc.exe`, `bin\swc.dm.exe`). Keep
 `SWC_BUILD_NUM` unchanged.
 
-START ON MASTER, FROM A CLEAN STATE - ONCE
+START ON MASTER, RECORD THE BASELINE - ONCE
 
 Work directly on `master` in the main checkout. Record the starting commit,
 `git status --short --branch`, and the toolchain versions. Preserve and record any pre-existing
 local change; never reset it away.
 
-Then, once, before anything else:
-  - Remove every Swag build artifact: `bin\swc.exe clean --workspace <ws>` for each workspace
-    (apps, examples, reference, std, unittests, unittests/workspace), `clean --module` for the
-    script folders that hold a `.tmp` (bin/examples/scripts, bin/help/tools),
-    and `bin\swc.exe clean --cache`. Preview with `--dry-run` first and confirm the targets are
-    gone afterwards.
-  - Rebuild both compilers from fresh objects with MSBuild `/t:Rebuild` (DevMode, then Release,
-    `/m:3` and `SwcCompileJobs=3`; never `tools/release.bat`).
+Record the hashes of both checkout-local compilers and check whether their existing objects and
+artifacts belong to this checkout and source revision. Reuse a sound baseline; do not discard
+working artifacts merely to create a clean start. If a specific cache or object set is stale or
+corrupt, isolate or clear only that set and record why. A full workspace clean or compiler
+`/t:Rebuild` requires evidence that a focused rebuild cannot repair the affected state; preview
+every clean target first. Never run `tools/release.bat` for this campaign.
 
-This clean start is the only one. After a fix, build incrementally (`/t:Build`) only the compiler
-the fix affects; never rebuild from scratch or clean the workspaces again mid-campaign.
+After a completed code batch, build incrementally (`/t:Build`, `/m:1`,
+`SwcCompileJobs=3`) only the compiler the batch affects. A Swag-stage `--rebuild` does not rebuild
+C++ objects; use it only when that stage's artifacts need regeneration. Do not clean or rebuild
+from scratch after a later fix unless a newly diagnosed defect makes that necessary.
 
 FINAL EXHAUSTIVE LADDER — RUN ONCE AFTER THE FINISHING STEPS BELOW
 
@@ -188,22 +188,44 @@ FINAL EXHAUSTIVE LADDER — RUN ONCE AFTER THE FINISHING STEPS BELOW
 
 DIAGNOSE AND FIX IN BATCHES; DO NOT REPEAT GREEN WORK
 
+- Before starting a build, collect the known failures and remaining unvisited independent inputs
+  for that subsystem. Inspect source, logs, diffs and existing artifacts first. Reduce failures
+  with the current binary; reserve an early build for a question that genuinely requires new
+  compiler output. Record each root cause and owning files in a short batch plan. Complete and
+  review all related edits, fixtures and header changes before crossing one build barrier. Do not
+  compile after each discovery, edit, agent result or commit.
+- Have one integrator control writes and build barriers. Parallel agents may inspect independent
+  logs, files and platforms and prepare patches outside the checkout. Merge their related fixes
+  before the next build. Do not run heavy local builds concurrently merely to keep agents busy;
+  admit each through the shared-machine load check and account for contention between Windows
+  and WSL. Prefer one compiler configuration for focused diagnosis, then build the other only
+  when the batch is stable or that configuration has distinct behavior.
 - Start walking the ladder to discover failures, stopping at the first failing input. From that
   stage, run the unvisited independent files, modules or configurations once to collect its full
   failure set. Do not repeat green inputs to gather diagnostics. Fix that set as one coherent batch.
-- Between fixes, use the smallest reproducer and the narrowest build and test that cover the
-  changed behavior. A compiler fix gets an incremental MSBuild `/t:Build` of each affected
-  compiler, an isolated cache or forced rebuild for its affected artifacts, its owning compiler
-  suite and a focused consumer. A standard-module fix gets its module and affected consumers. A
-  launcher fix gets its own unit tests and the exact failing command. A test, fixture, golden or
-  application-local fix gets its owning test file or module. Do not restart the full ladder here.
-- Keep a gate result with the compiler binary, program configuration, scope and source inputs that
-  produced it. A later edit invalidates only results that consume those inputs; a change in a
-  compiler or standard module does not, by itself, call for repeating every unrelated suite.
+  If a focused check reveals another defect in the same subsystem, add it to the open batch and
+  finish its edits before another build when its reproducer can be understood from existing output.
+- At a build barrier, run the smallest incremental MSBuild `/t:Build` for affected compiler
+  configurations. Check the log's compiled C++ translation units: source-only edits should touch
+  those units, while shared-header edits may fan out. Investigate an unexpected full compile or
+  PCH rebuild before proceeding. Then run isolated-cache or forced-artifact focused checks for
+  the owning compiler suite and consumer. A standard-module fix gets its module and affected
+  consumers. A launcher fix gets its own unit tests and the exact failing command. A test,
+  fixture, golden or application-local fix gets its owning test file or module. Do not restart
+  the full ladder here.
+- Keep a gate ledger keyed by compiler binary hash, program configuration, test scope and source
+  inputs. A later edit invalidates only results that consume those inputs; a change in a compiler
+  or standard module does not, by itself, call for repeating every unrelated suite. A runner must
+  not skip a gate merely because its name once passed on an older binary or source revision.
 - Once the retained code fixes are stable and the finishing steps below are complete, run the
   exhaustive ladder above once. If a final gate fails, fix its root and rerun that gate plus any
   later or earlier gates that consume the changed inputs. Do not restart at step 1 by category
   alone. The final ladder still verifies both compiler executables and both program configurations.
+- Budget the session before the first expensive stage: estimate each build and gate from recent
+  timings, reserve time for one final ladder, and report when the remaining work cannot fit. Do
+  not spend the budget replaying green gates or launching another broad pass to seek diagnostics.
+  If the budget expires, retain the gate ledger and exact open batch for continuation; report the
+  reset as incomplete rather than presenting a partial campaign as green.
 - For an intermittent failure, use a bounded, focused reproducer with diagnostic capture. Do not
   loop an entire application suite to wait for chance. If the failure remains unexplained, keep
   it open and report the reset as incomplete; a green retry is not a repair.

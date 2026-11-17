@@ -472,4 +472,11 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
         cast(Simd.F64x2, [0'f64, 5]), Simd.splat(0'f64), Simd.splat(10'f64),
         Simd.splat(-1'f64), Simd.splat(1'f64))
     Swag.require(mapped[0] == -1 and mapped[1] == 0)
+
+    let values64 = cast(Simd.F64x2, [-1'f64, 3])
+    let wave64 = Math.pingPong(values64, Simd.splat(2'f64))
+    Swag.require(wave64[0] == 1 and wave64[1] == 1)
+    let smooth64 = Math.smoothstep(
+        Simd.splat(0'f64), Simd.splat(10'f64), cast(Simd.F64x2, [0'f64, 5]))
+    Swag.require(smooth64[0] == 0 and smooth64[1] == 0.5)
 }

@@ -26,7 +26,6 @@ No CPU fallback is selected. Native Wayland contexts are not provided.
 #static if #os == Swag.TargetOs.Windows
 {
     #import("win32")
-    #import("gdi32")
 }
 
 #static if #os == Swag.TargetOs.Linux

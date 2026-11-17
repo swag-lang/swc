@@ -1,5 +1,9 @@
-// Wrappers for Microsoft Windows Sdk Libraries.
-// 10.0.19041.0
+/*
+Windows SDK bindings used by the standard workspace, including Win32, GDI,
+GDI+, XInput, and related system APIs. The API-specific namespaces
+`Win32.Gdi32`, `Win32.Gdiplus`, and `Win32.XInput` preserve their upstream
+boundaries for callers that need a particular surface.
+*/
 
 #run
 {

@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Core.Errors, Pixel, Win32, Gdi32
+using Core, Core.Errors, Pixel, Win32, Win32.Gdi32
 
 // Reads successive frames from one physical screen area into reusable BGRA8 storage.
 // The GDI bitmap and memory DC remain selected until close or reopen.

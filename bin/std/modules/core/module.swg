@@ -68,7 +68,6 @@ let preview = try reader.readChunk(previewId)
 #static if #os == Swag.TargetOs.Windows
 {
     #import("win32")
-    #import("xinput")
 }
 
 #static if #os == Swag.TargetOs.Linux

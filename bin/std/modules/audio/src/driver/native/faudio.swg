@@ -1,4 +1,11 @@
-#global export
+#global if #os == Swag.TargetOs.Linux
+#global internal
+#global namespace FAudio
+
+/*
+Raw FAudio C ABI declarations, based on FAudio 25.05. The Audio Linux backend
+loads `libFAudio.so.0` before resolving its entry points.
+*/
 
 alias FAudio      = void
 alias FAudioVoice = void

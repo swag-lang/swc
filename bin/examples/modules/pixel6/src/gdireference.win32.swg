@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Gdiplus, Pixel
+using Core, Win32.Gdiplus, Pixel
 
 var g_GdiToken: u64
 var g_GdiText:  [SampleCount] Texture

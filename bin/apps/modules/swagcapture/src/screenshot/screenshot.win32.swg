@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Gdi32
+using Core, Win32, Win32.Gdi32
 
 // DWM removes these owned floating controls from desktop captures while leaving them visible
 // to the person recording. The affinity is tied to the HWND and disappears with it.

@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Win32, Core, Pixel, Gdi32
+using Win32, Core, Pixel, Win32.Gdi32
 
 // Windows storage embedded by [[Gui.Application]].
 #[Swag.Opaque]

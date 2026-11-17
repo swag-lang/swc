@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test and #os == Swag.TargetOs.Windows
 #global private
 
-using Swag, Win32
+using Swag, Win32, Win32.Gdi32
 
 // A missing font table returns GDI_ERROR without necessarily setting a last-error code.
 #test

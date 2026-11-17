@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Core.Errors, Pixel, Win32, Gdi32
+using Core, Core.Errors, Pixel, Win32, Win32.Gdi32
 
 private const MaxSplitRects = 8'u32
 

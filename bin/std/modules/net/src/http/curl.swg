@@ -1,5 +1,11 @@
 #global if #os == Swag.TargetOs.Linux
-#global export
+#global internal
+#global namespace Curl
+
+/*
+Raw libcurl C ABI declarations. Function pointers borrow the loaded library;
+the Net backend loads `libcurl.so.4` before resolving its entry points.
+*/
 
 const CURLE_OK                         = 0's32
 const CURLE_FAILED_INIT                = 2's32

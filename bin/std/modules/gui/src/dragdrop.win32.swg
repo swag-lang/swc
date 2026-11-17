@@ -1,7 +1,7 @@
 #global public
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Pixel, Gdi32
+using Core, Win32, Win32.Gdi32, Pixel
 
 // OLE drop target of one surface.
 //

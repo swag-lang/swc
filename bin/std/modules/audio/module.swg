@@ -63,10 +63,8 @@ encodings fail instead of being guessed.
 */
 
 #import("core")
-#static if #os == Swag.TargetOs.Linux do
-    #import("faudio")
 #static if #os == Swag.TargetOs.Windows do
-    #import("xaudio2")
+    #import("win32")
 
 #run
 {

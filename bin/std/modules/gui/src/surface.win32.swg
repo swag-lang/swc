@@ -1,7 +1,7 @@
 #global public
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Gdi32, Ogl
+using Core, Win32, Win32.Gdi32, Ogl
 
 // Defines htclient.
 private const HTCLIENT = 1

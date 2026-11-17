@@ -1,7 +1,7 @@
 #global if WINDOWS
 #global namespace Input
 
-using XInput, Win32, Core.Errors
+using Win32, Win32.XInput, Core.Errors
 
 private func rawButtons(buttons: u16)->RawGamepadButtons
 {

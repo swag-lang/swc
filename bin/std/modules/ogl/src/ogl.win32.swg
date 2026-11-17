@@ -2,7 +2,7 @@
 #global if #os == Swag.TargetOs.Windows
 
 #foreignlib("opengl32")
-using Swag, Core, Win32, Gdi32
+using Swag, Core, Win32, Win32.Gdi32
 
 alias HGLRC = const *void?
 alias getExtensionAddress = wglGetProcAddress

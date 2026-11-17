@@ -438,7 +438,9 @@ private impl Panel
             let chapter = catch StrConv.toU64(typed) { return; }
             if not chapter or chapter > .book.chapters.count do
                 return
-            entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
+            let entry = entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
+            if entry do
+                entry.lead = Format.toString("%", chapter)
             return
         }
 

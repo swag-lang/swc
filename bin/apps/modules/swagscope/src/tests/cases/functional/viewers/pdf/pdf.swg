@@ -222,7 +222,7 @@ internal func createPdfFixture()->String
     window.lens.open(":ii")
     windowHost.finishAnimations()
     let row = (unwrap window.lens.results.sections[0]).entries[0]
-    Swag.require(row.title == Format.toString(appStrings().lens_GoToPage, "ii (3)"))
+    Swag.require(row.title == Format.toString(appStrings().lens_GoToPage, "ii (3)") and row.lead == "3")
     row.run!()
     window.lens.close()
     windowHost.finishAnimations()

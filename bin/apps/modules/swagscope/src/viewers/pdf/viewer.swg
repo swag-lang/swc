@@ -473,8 +473,11 @@ private impl Panel
                 view.history.visit(view.pdfView.readingPosition())
                 view.pdfView.showPage(index)
             })
+
+            // The row leads with the page's position, as the other numbered jump rows do: a label
+            // with its position would not fit the narrow column before the title.
             if entry do
-                entry.lead = named
+                entry.lead = Format.toString("%", index + 1)
             return
         }
 

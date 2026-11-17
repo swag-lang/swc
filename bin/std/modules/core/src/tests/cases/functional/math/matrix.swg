@@ -5,6 +5,25 @@ using Swag
 
 #test
 {
+    let identity = Math.Matrix2x2.createIdentity()
+    let rotation = Math.Matrix2x2.createRotation(Math.Angle.fromRadians(Math.ConstF32.PiBy2))
+    Swag.require(rotation.transformVector(Math.Vector2.UnitX).isEqualEpsilon(Math.Vector2.UnitY, 0.001))
+    let scaled = Math.Matrix2x2.createScale({2, 3}).multiplied(rotation)
+    Swag.require(scaled.transformVector({1, 0}).isEqualEpsilon({0, 2}, 0.001))
+    Swag.require(identity.m[0, 0] == 1 and identity.m[1, 1] == 1)
+
+    let value = Math.Matrix2x2{[[1, 2], [3, 4]]}
+    Swag.require(value.determinant() == -2)
+    let inverse = value.inverted()
+    let product = value.multiplied(inverse)
+    Swag.require(Math.isEqualEpsilon(product.m[0, 0], 1'f32, 0.001))
+    Swag.require(Math.isZeroEpsilon(product.m[0, 1], 0.001))
+    Swag.require(Math.isZeroEpsilon(product.m[1, 0], 0.001))
+    Swag.require(Math.isEqualEpsilon(product.m[1, 1], 1'f32, 0.001))
+}
+
+#test
+{
     let identity = Math.Matrix3x3.createIdentity()
     Swag.require(identity.m[0, 0] == 1)
     Swag.require(identity.m[1, 1] == 1)

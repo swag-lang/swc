@@ -47,6 +47,8 @@ using Swag
     Swag.require(not state.pressed[RightThumbstickRight])
     Swag.require(state.pressed[LeftTrigger])
     Swag.require(state.pressed[RightTrigger])
+    Swag.require(state.position[LeftTrigger].y == 1)
+    Swag.require(state.position[RightTrigger].y == 230 / 255.0'f32)
 
     raw.leftStickX   = cast(s16, (0.95 * 32767))
     raw.leftStickY   = 0
@@ -94,6 +96,23 @@ using Swag
     Swag.require(state.pressed[DPadDown])
     Swag.require(state.pressed[DPadLeft])
     Swag.require(state.pressed[DPadRight])
+
+    raw.buttons = .None
+    state.update(raw)
+    Swag.require(not state.pressed[A])
+    Swag.require(not state.pressed[B])
+    Swag.require(not state.pressed[X])
+    Swag.require(not state.pressed[Y])
+    Swag.require(not state.pressed[LeftStick])
+    Swag.require(not state.pressed[RightStick])
+    Swag.require(not state.pressed[Start])
+    Swag.require(not state.pressed[Back])
+    Swag.require(not state.pressed[LeftShoulder])
+    Swag.require(not state.pressed[RightShoulder])
+    Swag.require(not state.pressed[DPadUp])
+    Swag.require(not state.pressed[DPadDown])
+    Swag.require(not state.pressed[DPadLeft])
+    Swag.require(not state.pressed[DPadRight])
 }
 
 #test

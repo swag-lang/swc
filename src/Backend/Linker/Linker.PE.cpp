@@ -22,7 +22,6 @@
 #include "Main/Global.h"
 #include "Main/Version.h"
 #include "Support/Math/Hash.h"
-#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 

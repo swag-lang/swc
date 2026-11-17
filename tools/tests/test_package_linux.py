@@ -72,6 +72,25 @@ class LinuxPackageTests(unittest.TestCase):
         self.assertIn('Refusing to replace existing archive', result.stderr)
         self.assertFalse(target.exists())
 
+    def test_rejects_links_through_unpublished_siblings(self):
+        (self.build / 'libfixture.so.1').write_bytes(b'shared library')
+        for target in ('.hidden.so', 'intermediary'):
+            with self.subTest(target=target):
+                intermediary = self.build / target
+                intermediary.symlink_to('libfixture.so.1')
+                link = self.build / 'libfixture.so'
+                link.symlink_to(target)
+                output = self.root / f'{target}.tar.gz'
+
+                try:
+                    result = self.package(output)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertFalse(output.exists())
+                finally:
+                    link.unlink()
+                    intermediary.unlink()
+
 
 if __name__ == '__main__':
     unittest.main()

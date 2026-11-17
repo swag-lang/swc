@@ -62,7 +62,8 @@ def package(app: str, build_dir: Path, output: Path, prefix: PurePosixPath, chec
                     target = dependency.resolve(strict=True)
                 except (OSError, RuntimeError):
                     raise SystemExit(f'Dependency symlink has no usable target: {dependency}') from None
-                if (link_target.is_absolute() or len(link_target.parts) != 1 or not target.is_file() or
+                if (link_target.is_absolute() or len(link_target.parts) != 1 or
+                        link_target.name.startswith('.') or '.so' not in link_target.name or not target.is_file() or
                         target.parent != build_root or '.so' not in target.name):
                     raise SystemExit(f'Dependency symlink target is not a packaged sibling library: {dependency}')
                 (destination / dependency.name).symlink_to(link_target)

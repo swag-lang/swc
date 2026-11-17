@@ -43,6 +43,9 @@ replace the allocator; a similar architecture alone does not establish comparabl
   `trim()` can collect remote frees while they are arriving and later retire the empty page and
   segment. This exercises remote-free publication on Linux, where the native `CreateThread`
   allocator stress tests are not built.
+- Validation on Linux: the full `core` suite passed 1,130 tests in devmode/native and 1,129 in
+  release-safe/native. The native allocator suite passed 73 tests in devmode and 49 in
+  release-safe; the targeted concurrency case also passes JIT and native execution.
 - Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
   allocators and a default-allocator fast implementation. Preserve frees summaries and
   `SanityRelease` behavior for both direct and interface dispatch, and compare generated code to

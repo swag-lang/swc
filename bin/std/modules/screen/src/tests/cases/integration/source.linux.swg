@@ -130,7 +130,8 @@ private func sharedSegmentCount()->u64 fail
         Swag.require(byte == 0x5A, "an unchanged grab should leave a reusable target untouched")
     Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     let repeatedMetrics = source.metrics()
-    Swag.require(repeatedMetrics.acquiredFrames == 2 and repeatedMetrics.unchangedFrames == 1)
+    Swag.require(repeatedMetrics.acquiredFrames == 2 and repeatedMetrics.unchangedFrames == 1 and
+                 repeatedMetrics.changeDetectionMicroseconds > 0)
 
     image = Image.create(8, 8, .RGBA8)
     let replacementFresh = expect source.grabInto(&image, copyUnchanged: false)
@@ -152,6 +153,7 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(resetMetrics.acquiredFrames == 0 and resetMetrics.unchangedFrames == 0 and
                  resetMetrics.acquireMicroseconds == 0 and resetMetrics.readbackMicroseconds == 0 and
                  resetMetrics.copyMicroseconds == 0 and resetMetrics.composeMicroseconds == 0 and
+                 resetMetrics.changeDetectionMicroseconds == 0 and
                  resetMetrics.copiedPixels == 0 and resetMetrics.mirroredPixels == 0)
     Swag.require(source.sources[0].capture.nativeConnection() == capture and
                  source.lastFrameCaptureMicroseconds() == firstCaptureTime)

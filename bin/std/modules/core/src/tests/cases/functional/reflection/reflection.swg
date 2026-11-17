@@ -275,6 +275,35 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
 
 #test
 {
+    let pointerType = #typeof(*s32)
+    let arrayType   = #typeof([2] s32)
+    var values: Array's32
+    let sliceType = #typeof(values.toSlice())
+
+    Swag.require(Reflection.isNative(#typeof(s32)))
+    Swag.require(Reflection.isInteger(#typeof(s32)))
+    Swag.require(Reflection.isSimpleNative(#typeof(s32)))
+    Swag.require(Reflection.isFloat(#typeof(f64)))
+    Swag.require(not Reflection.isInteger(#typeof(f64)))
+    Swag.require(Reflection.isBool(#typeof(bool)))
+    Swag.require(Reflection.isString(#typeof(string)))
+    Swag.require(Reflection.isRune(#typeof(rune)))
+    Swag.require(Reflection.isAny(#typeof(any)))
+    Swag.require(Reflection.isSimpleNative(#typeof(bool)))
+    Swag.require(not Reflection.isSimpleNative(#typeof(string)))
+    Swag.require(not Reflection.isSimpleNative(#typeof(any)))
+    Swag.require(Reflection.isPointer(pointerType))
+    Swag.require(Reflection.isStaticArray(arrayType))
+    Swag.require(Reflection.isSlice(sliceType))
+    Swag.require(Reflection.isEnum(#typeof(ProbeState)))
+    Swag.require(Reflection.isStruct(#typeof(ReflectionProbe)))
+    Swag.require(Reflection.isInterface(#typeof(IReflectionScore)))
+    Swag.require(not Reflection.isNative(null))
+    Swag.require(not Reflection.isPointer(null))
+}
+
+#test
+{
     // The array holds views: the literals are static, so the elements stay valid. A
     // temporary 'String' here would leave every element pointing at a freed buffer.
     var values: Array'string

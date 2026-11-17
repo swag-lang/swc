@@ -86,8 +86,19 @@ resource `lang/<tag>/<file>.tweak`. A key the file omits keeps its reference
 value, so a translation only carries what it changes.
 [[Gui.Application.setLanguage]] retargets every registered table and sends a
 `LanguageChanged` notification through every surface; command-driven controls
-pick the new wording up on their next update, while text set once at
-construction must listen for the notification or be rebuilt.
+pick the new wording up on their next update. Bind a label to a string-table
+field with [[Gui.Label.setLocalizedText]] so it reads the field again after each
+language change, without a label-specific notification handler:
+
+```swag
+let cancel = Gui.Label.create(parent)
+cancel.setLocalizedText(&Gui.strings().dlg_Cancel)
+```
+
+The table must outlive the label. Calling [[Gui.Label.setText]],
+[[Gui.Label.setMarkup]], or [[Gui.Label.setRichText]] replaces the bound value
+and detaches the binding; other construction-time text still needs a notification
+handler or a rebuild.
 
 ## Languages
 

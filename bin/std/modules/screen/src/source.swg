@@ -63,6 +63,7 @@ struct SourceMetrics
     public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
     public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
+    public changeDetectionMicroseconds: u64 // CPU time checking pixels or metadata for selected-image changes.
     public readbackMicroseconds: u64 // CPU time submitting and waiting for native pixel readbacks.
     public maxReadbackMicroseconds: u64 // Longest single readback, including deferred CPU waits.
     public deferredReadbacks:     u64 // Readback polls deferred while the GPU still owned the pixels.
@@ -240,9 +241,9 @@ impl Source
         .pictures.add({})
     }
 
-    // Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.
+    // Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.
     //
-    // False means no new image is available yet, either because the desktop and cursor did not
+    // False means the backend reports no new image yet, either because the selected image and cursor did not
     // change or because a video readback is still pending. It is not a source failure.
     // By default the previous picture is copied to `target`. Set `copyUnchanged` to false
     // when the caller will reuse its previous encoded picture instead. A reusable target stays
@@ -271,9 +272,16 @@ impl Source
                     var frameFresh = false
                     if captured
                     {
-                        frameFresh = not hasCachedFrame or
-                                     Memory.compare(cached.pixels.storage(), .composed.pixels.storage(),
-                                                    .composed.byteCount) != 0
+                        if hasCachedFrame
+                        {
+                            let detectionStart = Time.monotonicMicroseconds()
+                            frameFresh = Memory.compare(cached.pixels.storage(), .composed.pixels.storage(),
+                                                        .composed.byteCount) != 0
+                            native.metrics.changeDetectionMicroseconds +=
+                                Time.monotonicMicroseconds() - detectionStart
+                        }
+                        else do
+                            frameFresh = true
                         if frameFresh
                         {
                             Core.swap(cached, &.composed)
@@ -438,6 +446,7 @@ impl Source
             result.unchangedFrames += source.metrics.unchangedFrames
             result.coalescedUpdates += source.metrics.coalescedUpdates
             result.acquireMicroseconds += source.metrics.acquireMicroseconds
+            result.changeDetectionMicroseconds += source.metrics.changeDetectionMicroseconds
             result.maxAcquireMicroseconds = Math.max(result.maxAcquireMicroseconds,
                                                      source.metrics.maxAcquireMicroseconds)
             result.readbackMicroseconds += source.metrics.readbackMicroseconds
@@ -453,7 +462,7 @@ impl Source
         return result
     }
 
-    // Resets cumulative acquisition and composition counters without reopening the source.
+    // Resets cumulative SourceMetrics counters without reopening the source.
     // The native capture handles, cached frame and last frame capture time are preserved.
     mtd resetMetrics()
     {

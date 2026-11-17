@@ -45,16 +45,22 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32,
 
     var baseRecord = 0'u64
     var foundBase = false
+    var previousBaseGlyph = 0'u16
+    var hasPreviousBaseGlyph = false
     for index in baseGlyphCount
     {
         let record = baseRecordsOffset + cast(u64, index) * 6
         let glyph = try readU16(colr, record)
+        if glyph >= faceData.face.glyphCount or
+           (hasPreviousBaseGlyph and glyph <= previousBaseGlyph) do
+            try fault(0x08)
         if glyph == baseGlyph
         {
             baseRecord = record
             foundBase = true
-            break
         }
+        previousBaseGlyph = glyph
+        hasPreviousBaseGlyph = true
     }
     if not foundBase do
         return result
@@ -86,6 +92,9 @@ func readColorGlyphLayers(faceData: const *FaceImpl, baseGlyph: u32,
     try assertRange(cpal, colorRecordsOffset, cast(u64, colorRecordCount) * 4)
 
     let paletteFirstColor = try readU16(cpal, 12 + cast(u64, paletteIndex) * 2)
+    if cast(u32, paletteFirstColor) + cast(u32, paletteEntryCount) > colorRecordCount do
+        try fault(0x08)
+
     for layerIndex in layerCount
     {
         let record = layerRecordsOffset + (cast(u64, firstLayer) + layerIndex) * 4

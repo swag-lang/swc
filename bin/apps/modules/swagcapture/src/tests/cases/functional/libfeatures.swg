@@ -82,6 +82,45 @@ using Swag, Core
     Swag.require(f.gui.autoHandled)
 }
 
+// A folder tab keeps its count until its folder is written to or the library index changes,
+// instead of listing the folder and asking the decoders about every file on each refresh.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+    testUseScratchLibrary()
+
+    let sub = Path.combine(Library.getFolder(), "tab-counts")
+    expect Directory.create(sub)
+    defer discard catch Directory.delete(sub, recurse: true)
+    discard expect File.writeAllText(Path.combine(sub, "one.scc"), "capture")
+
+    g_Library.loaded = true
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+
+    func countOf(lib: *LibraryWnd, folder: string)->String
+    {
+        for path, i in lib.tabFolders where path[] == folder do
+            return lib.folderTabs.items[i]!.count
+        return ""
+    }
+
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "1")
+
+    // A count the folder has not outdated is reused as it is.
+    for &cached in lib.folderCounts where cached.folder == sub do
+        cached.count = 7
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "7")
+
+    g_Library.revision += 1
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "1")
+}
+
 // Registering a capture the index already holds refreshes its entry instead of listing it twice:
 // the recent strip registers what it shows while a fill may already have indexed it.
 #test

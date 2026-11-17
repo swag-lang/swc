@@ -45,6 +45,7 @@ impl LibraryWnd
         }
 
         catch .view.fill()
+        .updateFolderTabs()
         .invalidate()
         if failed do
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedRestoreCaptures)
@@ -62,6 +63,7 @@ impl LibraryWnd
         }
 
         catch .view.fill()
+        .updateFolderTabs()
         .invalidate()
         if failed do
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedDeleteCaptures)

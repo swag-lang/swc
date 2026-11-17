@@ -26,7 +26,6 @@ func assertMarkdownSilence(light: bool, appearance: u32, golden: string)
     let zoom = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     if zoom.outline!.load.isPending() do
         completeViewerBackgroundLoad(&host, &zoom.outline.load)
-    zoom.reportStatistics()
     host.surface.setTitle("Reading quietly.md")
     window.applyLayout()
     host.settleAnimations(window)

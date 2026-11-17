@@ -251,3 +251,25 @@ func sectionAt(offsets: const [..] u64, reading: u64)->u64
     Swag.require(outline.markedTarget() == sectionAt(offsets.toSlice(), view.readingOffset()))
     Swag.require(outline.markedTarget() >= offsets[8])
 }
+
+// The outline reads in the document's appearance from the start, not once the text is counted.
+#test
+{
+    let previous = MarkdownText.g_ViewerSettings
+    defer MarkdownText.g_ViewerSettings = previous
+    MarkdownText.g_ViewerSettings = {themeIndex: 3}
+
+    let fileName = Testing.tempFilePath("scope-markdown-colors-", ".md")
+    defer discard catch File.delete(fileName)
+    discard writeSections(fileName)
+
+    var host: HeadlessHost
+    host.setup(880, 560)
+    var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
+    let view    = assume cast(*Markdown.View, session.view)
+    let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
+    Swag.require(zoom.statisticsLoad.isPending())
+    Swag.require(zoom.outline!.list.themeColors().listItem_Text == view.themeColors().label_Text)
+    completeViewerBackgroundLoad(&host, &zoom.statisticsLoad)
+    completeViewerBackgroundLoad(&host, &zoom.outline.load)
+}

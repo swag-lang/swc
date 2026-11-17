@@ -13,6 +13,21 @@ func pushAllocatorAcceptsNull()->bool
     return false
 }
 
+var g_MemoryArrayDropCount: u32
+
+struct MemoryArrayDropProbe
+{
+    value: s32
+}
+
+impl MemoryArrayDropProbe
+{
+    mtd opDrop()
+    {
+        g_MemoryArrayDropCount += 1
+    }
+}
+
 #test
 {
     var src: [4] u8 = [1, 2, 3, 4]
@@ -76,6 +91,17 @@ func pushAllocatorAcceptsNull()->bool
     let released = Swag.catchPanic(func|value, count|() { Memory.delete(value, count) })
     Swag.require(released.raised)
     Swag.require(released.message() == "memory region size exceeds addressable range")
+}
+
+#test
+{
+    g_MemoryArrayDropCount = 0
+    let values = Memory.new'MemoryArrayDropProbe(3)
+    for index in 3 do
+        values[index].value = cast(s32, index)
+
+    Memory.delete(values, 3)
+    Swag.require(g_MemoryArrayDropCount == 3)
 }
 
 #test

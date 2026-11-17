@@ -345,6 +345,36 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_CleanModuleDoesNotRequireSetupFile)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_CleanRejectsWorkspaceModulePaths)
+{
+    NewCommandTestDirectory directory("CleanRejectsWorkspaceModulePaths");
+    std::error_code         ec;
+    fs::create_directories(directory.path(), ec);
+    if (ec)
+        return Result::Error;
+
+    for (const std::string_view moduleName : {"/tmp", "../tmp"})
+    {
+        CommandLine parserCmdLine;
+        parserCmdLine.silent = true;
+        char        arg0[]   = "swc.dm";
+        char        arg1[]   = "clean";
+        char        arg2[]   = "--workspace";
+        std::string workspace = directory.path().string();
+        char        arg4[]    = "--workspace-module";
+        std::string module(moduleName);
+        char*       argv[] = {arg0, arg1, arg2, workspace.data(), arg4, module.data()};
+
+        const uint64_t errorsBefore = Stats::getNumErrors();
+        CommandLineParser parser(const_cast<Global&>(ctx.global()), parserCmdLine);
+        const Result      result = parser.parse(std::size(argv), argv);
+        Stats::get().numErrors.store(errorsBefore, std::memory_order_relaxed);
+        if (result != Result::Error)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

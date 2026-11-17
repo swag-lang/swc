@@ -1584,7 +1584,13 @@ namespace
                 return nullptr;
 
             const SymbolVariable* receiver = identifierVariable(sema, sema.resolvedNodeRef(arg.argRef));
-            if (!receiver || !receiver->hasExtraFlag(SymbolVariableFlagsE::Let))
+            if (!receiver)
+                return nullptr;
+
+            // A mutable binding is concrete only while its storage cannot be reassigned
+            // or exposed through an alias. Writes and address-taking mark it addressable.
+            if (!receiver->hasExtraFlag(SymbolVariableFlagsE::Let) &&
+                (!receiver->isFrameVariable() || receiver->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage)))
                 return nullptr;
 
             const auto* declaration = receiver->declAs<AstSingleVarDecl>();

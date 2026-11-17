@@ -11,6 +11,9 @@ private var g_LineNumbers: bool
 // Whether basic text marks its spaces and tabulations. The choice follows the reader from file to file.
 private var g_Blanks: bool
 
+// Width of a tab stop in basic text, in spaces. The choice follows the reader from file to file.
+private var g_TabWidth: s32 = 4
+
 // Stable identity and smoke input of the text plugin.
 const ViewerKey    = "text"
 const SmokeFixture = "comprehensive.txt"
@@ -127,6 +130,7 @@ struct Panel
     wrapping:           bool = true
     lineNumbers:        bool
     blanks:             bool
+    tabWidth:           s32  = 4
     windowLine:         u64     // Number of the resident window's first line, or zero when it is not counted.
     lines:              Viewer.LineCounter
     zoomPercent:        u32  = 100
@@ -536,6 +540,7 @@ impl Panel
             flags.add(.LineNumbers)
         if .blanks do
             flags.add(.DrawBlanks)
+        .editor.tabSize = .tabWidth
         .editor.setFlags(flags)
         .scheduleMore()
     }
@@ -567,6 +572,14 @@ impl Panel
     {
         .blanks  = not .blanks
         g_Blanks = .blanks
+        .updateWrap()
+    }
+
+    // Sets the tab stops of the text every `width` spaces.
+    mtd setTabWidth(width: s32)
+    {
+        .tabWidth  = width
+        g_TabWidth = width
         .updateWrap()
     }
 
@@ -735,6 +748,7 @@ impl Panel
         result.contentStart = probed.contentStart
         result.lineNumbers  = g_LineNumbers
         result.blanks       = g_Blanks
+        result.tabWidth     = g_TabWidth
 
         result.createReadingControls(host)
         result.createEditor()
@@ -804,6 +818,10 @@ impl Panel
         entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, shortcut: Input.formatKeyShortcut(.Control, .W))
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers)
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks)
+
+        // The tab stops answer a query rather than fill the empty lens; the options list them too.
+        for width in Viewer.TabWidths where entries.query.count do
+            entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width)
         for encoding in Encodings
         {
             let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
@@ -816,7 +834,8 @@ impl Panel
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
     }
 
-    // Opens how the text is laid out and decoded: wrapping, line numbers, and the encoding.
+    // Opens how the text is laid out and decoded: wrapping, line numbers, tab stops, and the
+    // encoding.
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
@@ -829,6 +848,14 @@ impl Panel
         page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() }, icon: .theme().icon(.Wrap, themeRowIconSize(.themeMetrics())))
         page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() }, icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
         page.addToggle(strings.ui_Blanks, .blanks, func|view = me|(_) { view.toggleBlanks() }, icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
+        page.addLink(strings.ui_TabWidth,
+                     Format.toString("%", .tabWidth),
+                     func|view = me|(widths)
+                     {
+                         for width in Viewer.TabWidths do
+                             widths.addChoice(Format.toString("%", width), width == view.tabWidth, func|view, width|() { view.setTabWidth(width) })
+                     },
+                     icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.

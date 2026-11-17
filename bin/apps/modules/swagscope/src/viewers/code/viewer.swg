@@ -8,6 +8,9 @@ private var g_ZoomPercent: u32 = 100
 // Whether source code marks its spaces and tabulations. The choice follows the reader from file to file.
 private var g_Blanks: bool
 
+// Width of a tab stop in source code, in spaces. The choice follows the reader from file to file.
+private var g_TabWidth: s32 = 4
+
 private func pluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and shebang(cast(string, content.head)).found
 
 // Describes the source-code viewer to the host.
@@ -321,6 +324,19 @@ impl Panel
         .editor.setFlags(.editor.flags)
     }
 
+    // Sets the tab stops of the source every `width` spaces.
+    mtd setTabWidth(width: s32)
+    {
+        g_TabWidth = width
+        .applyTabWidth()
+    }
+
+    mtd applyTabWidth()
+    {
+        .editor.tabSize = g_TabWidth
+        .editor.setFlags(.editor.flags)
+    }
+
     // Gives the lens the whitespace marks and the zoom of the source.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
@@ -341,6 +357,10 @@ impl Panel
         }
 
         entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks))
+
+        // The tab stops answer a query, as the languages do, rather than fill the empty lens.
+        for width in Viewer.TabWidths where entries.query.count do
+            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .editor.tabSize == width)
     }
 
     mtd showZoomMenu()
@@ -376,6 +396,7 @@ impl Panel
         result.applyLayout()
         result.setZoom(g_ZoomPercent)
         result.applyBlanks()
+        result.applyTabWidth()
         result.scheduleMore()
         return result
     }

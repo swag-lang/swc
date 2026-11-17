@@ -360,6 +360,57 @@ struct CodeLanguageSample
     Swag.require(next.editor.flags.has(.DrawBlanks))
 }
 
+// The tab stops of source code are a lens choice: the tabulation of the line widens with them,
+// and the choice follows the reader to the next source file.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-tabs-", ".c")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "int main()\n{\n\treturn 0;\n}\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var first = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view  = assume cast(*Code.Panel, first.view)
+    Swag.require(view.editor.tabSize == 4)
+    discard host.render(view)
+    let four = view.editor.cursorDisplayPosition({2, 1}).x
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
+    view.describeLens(&entries)
+    for &entry in results.sections[0]!.entries do
+        Swag.require(not Utf8.startsWith(entry.title, Code.texts().ui_TabWidth), "an empty lens lists no tab stops")
+    var tabResults: Lens.Results
+    var tabs = Viewer.LensEntries.create(&tabResults, "Code", host.theme)
+    tabs.query = "tab"
+    view.describeLens(&tabs)
+    var checked: Array'String
+    var found = false
+    for &entry in tabResults.sections[0]!.entries
+    {
+        if entry.checked do
+            checked.add(entry.title)
+        if entry.title == Viewer.tabWidthRowText(Code.texts().ui_TabWidth, 8)
+        {
+            entry.run!()
+            found = true
+        }
+    }
+
+    defer view.setTabWidth(4)
+    Swag.require(found and
+                 Slice.contains(checked.toSlice(), Viewer.tabWidthRowText(Code.texts().ui_TabWidth, 4)) and
+                 not Slice.contains(checked.toSlice(), Viewer.tabWidthRowText(Code.texts().ui_TabWidth, 8)))
+    discard host.render(view)
+    let eight = view.editor.cursorDisplayPosition({2, 1}).x
+    Swag.require(view.editor.tabSize == 8 and eight > four, Format.toString("% then %", four, eight))
+
+    var second = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let next   = assume cast(*Code.Panel, second.view)
+    Swag.require(next.editor.tabSize == 8)
+}
+
 // A typed language name in the lens colors the source as that language, whatever its name says;
 // the summary names the language in force, and an empty query offers no language list.
 #test

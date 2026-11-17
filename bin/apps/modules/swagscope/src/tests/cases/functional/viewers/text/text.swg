@@ -120,6 +120,14 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     defer if view.blanks do
         view.toggleBlanks()
     Swag.require(view.editor.flags.has(.DrawBlanks) and view.editor.flags.has(.LineNumbers))
+
+    // The tab stops are a choice of the same sheet, carried by the editor and to the next file.
+    Swag.require(options.rows[3].label == PlainText.texts().ui_TabWidth and options.rows[3].value == "4")
+    view.setTabWidth(2)
+    defer view.setTabWidth(4)
+    Swag.require(view.editor.tabSize == 2 and view.editor.flags.has(.DrawBlanks))
+    var next = openTestViewer(PlainText.viewerPlugin(), &host.root, textViewerFixturePath(), commandParent: &host.root)
+    Swag.require(assume cast(*PlainText.Panel, next.view).editor.tabSize == 2)
     view.toggleWrap()
     Swag.require(view.editor.flags.has(.LineNumbers) and not view.editor.flags.has(.WordWrap))
     view.toggleWrap()

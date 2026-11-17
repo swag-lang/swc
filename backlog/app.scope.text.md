@@ -170,8 +170,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.042 — Text layout cannot control tab width, wrap column, or reading ruler
 
-- Evidence: Basic text exposes wrap on/off and zoom only. A tab always inherits the widget default,
-  wrapped lines follow the viewport rather than a chosen column, and there is no column ruler,
+- Evidence: Basic text exposes wrap on/off, zoom and the tab stops. Basic text and Code place a tab
+  stop every 2, 4 or 8 spaces, chosen in the lens when a query is typed and, for basic text, in its
+  options; the choice follows the reader from file to file within a session but is not saved and
+  is not read from the file or an `.editorconfig`. Wrapped lines follow the viewport rather than a
+  chosen column, and there is no column ruler,
   horizontal guide, line-spacing choice, or explicit fixed-font identity to explain alignment.
 - Next: define presentation-only text layout settings shared with Code, keeping every source
   position independent of visual lines and glyph metrics.

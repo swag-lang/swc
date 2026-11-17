@@ -22,6 +22,15 @@ using Swag, Core
     Swag.require(commands[0].op is .MoveTo)
     Swag.require(commands[1].op is .ConicTo)
     Swag.require(commands[2].op is .LineTo)
+
+    let bounds = outline.bounds()
+    Swag.require(bounds.xMin == 0 and bounds.yMin == 0)
+    Swag.require(bounds.xMax == 128 and bounds.yMax == 64)
+
+    var empty: Outline
+    let emptyBounds = empty.bounds()
+    Swag.require(emptyBounds.xMin == 0 and emptyBounds.yMin == 0)
+    Swag.require(emptyBounds.xMax == 0 and emptyBounds.yMax == 0)
 }
 
 #test
@@ -79,9 +88,9 @@ using Swag, Core
     Swag.require(counter.moves > 0)
     Swag.require(counter.lines + counter.conics > 0)
 
-    let bounds0 = getOutlineBounds(&face.glyph.outline)
+    let bounds0 = face.glyph.outline.bounds()
     face.glyph.outline.translate(64, 0)
-    let bounds1 = getOutlineBounds(&face.glyph.outline)
+    let bounds1 = face.glyph.outline.bounds()
     Swag.require(bounds1.xMin == bounds0.xMin + 64)
     Swag.require(bounds1.xMax == bounds0.xMax + 64)
 
@@ -96,9 +105,9 @@ using Swag, Core
     Swag.require(transformPts[transformIdx].y == beforeTransformY * 2)
 
     discard expect face.loadChar('A')
-    let bounds2 = getOutlineBounds(&face.glyph.outline)
+    let bounds2 = face.glyph.outline.bounds()
     discard expect face.glyph.outline.embolden(64)
-    let bounds3 = getOutlineBounds(&face.glyph.outline)
+    let bounds3 = face.glyph.outline.bounds()
     Swag.require(bounds3.xMax - bounds3.xMin >= bounds2.xMax - bounds2.xMin)
 
     // Emboldening a glyph with a counter ('o') must add ink: the outer contour

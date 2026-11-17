@@ -128,6 +128,7 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(not repeatedFresh, "identical X11 pixels should not be a fresh frame")
     for byte in image.pixels do
         Swag.require(byte == 0x5A, "an unchanged grab should leave a reusable target untouched")
+    Swag.require(source.lastFrameCaptureMicroseconds() == firstCaptureTime)
     let repeatedMetrics = source.metrics()
     Swag.require(repeatedMetrics.acquiredFrames == 1 and repeatedMetrics.unchangedFrames == 1)
 
@@ -137,6 +138,13 @@ private func sharedSegmentCount()->u64 fail
                  "a replacement target should receive the cached X11 frame")
     Swag.require(Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(),
                                 image.byteCount) == 0)
+
+    Memory.set(image.pixels.storage(), 0xA5, image.byteCount)
+    let copiedFresh = expect source.grabInto(&image)
+    Swag.require(not copiedFresh and
+                 Memory.compare(image.pixels.storage(), source.pictures[0].pixels.storage(),
+                                image.byteCount) == 0,
+                 "default unchanged grabs should copy the cached frame")
 
     let capture = source.sources[0].capture.nativeConnection()
     source.resetMetrics()

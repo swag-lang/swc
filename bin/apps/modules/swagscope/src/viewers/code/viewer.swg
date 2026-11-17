@@ -11,6 +11,24 @@ private var g_Blanks: bool
 // Width of a tab stop in source code, in spaces. The choice follows the reader from file to file.
 private var g_TabWidth: s32 = 4
 
+// Reports whether `c` opens or closes a pair the source viewer matches: (), [] or {}.
+func isDelimiter(c: rune)->bool => c == '(' or c == ')' or c == '[' or c == ']' or c == '{' or c == '}'
+
+// Returns the delimiter that closes or opens the pair `c` belongs to.
+func delimiterPartner(c: rune)->rune
+{
+    switch c
+    {
+    case '(': return ')'
+    case ')': return '('
+    case '[': return ']'
+    case ']': return '['
+    case '{': return '}'
+    }
+
+    return '{'
+}
+
 private func pluginProbe(content: Viewer.ProbeContent)->bool => not content.claimed and shebang(cast(string, content.head)).found
 
 // Describes the source-code viewer to the host.
@@ -337,6 +355,94 @@ impl Panel
         .editor.setFlags(.editor.flags)
     }
 
+    // Returns where the delimiter at the caret stands — the one after it, or else the one before
+    // it — or an invalid cursor when neither is a parenthesis, a bracket or a brace.
+    mtd delimiterAtCaret()->RichEditCursor
+    {
+        var cp = .editor.cursorFromLogicalPosition(.editor.cursorLogicalLineIndex(), .editor.cursorLogicalCharPos())
+        if isDelimiter(.editor.runeAt(cp).char) do
+            return cp
+        if cp.charPosInLine
+        {
+            cp.charPosInLine -= 1
+            if isDelimiter(.editor.runeAt(cp).char) do
+                return cp
+        }
+
+        return {Swag.U64.Max, 0}
+    }
+
+    // Moves the caret to the delimiter that pairs with the one at the caret, within the text read
+    // so far. Only delimiters drawn in the same style count, so one inside a string or a comment
+    // pairs with neither code nor another string. Returns false when there is no pair to reach.
+    mtd goToMatchingDelimiter()->bool
+    {
+        let start = .delimiterAtCaret()
+        if start.lineIndex == Swag.U64.Max do
+            return false
+
+        // Lines are colored as they are painted; the pair may lie on lines never shown.
+        .editor.lexAll()
+        let first   = .editor.runeAt(start)
+        let partner = delimiterPartner(first.char)
+        let forward = first.char == '(' or first.char == '[' or first.char == '{'
+
+        var cp    = start
+        var depth = 0'u64
+        while true
+        {
+            if not (forward ? .stepForward(&cp) : .stepBackward(&cp)) do
+                return false
+            let at = .editor.runeAt(cp)
+            if at.style != first.style do
+                continue
+            if at.char == first.char
+            {
+                depth += 1
+            }
+            elif at.char == partner
+            {
+                if not depth
+                {
+                    .editor.setCursorPos(cp)
+                    .editor.ensureCaretIsVisible(center: true)
+                    .editor.invalidate()
+                    return true
+                }
+
+                depth -= 1
+            }
+        }
+
+        return false
+    }
+
+    // Moves `cp` to the next rune of the text; the end of a line reads as a line feed.
+    private mtd stepForward(cp: *RichEditCursor)->bool
+    {
+        cp.charPosInLine += 1
+        if .editor.runeAt(cp[]).char do
+            return true
+        cp[] = {cp.lineIndex + 1, 0}
+        return .editor.runeAt(cp[]).char != 0
+    }
+
+    // Moves `cp` to the previous rune of the text; the end of a line reads as a line feed.
+    private mtd stepBackward(cp: *RichEditCursor)->bool
+    {
+        if cp.charPosInLine
+        {
+            cp.charPosInLine -= 1
+            return true
+        }
+
+        if not cp.lineIndex do
+            return false
+        cp[] = {cp.lineIndex - 1, 0}
+        .editor.moveCursorEndLine(cp)
+        return true
+    }
+
     // Gives the lens the whitespace marks and the zoom of the source.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
@@ -356,6 +462,9 @@ impl Panel
             }
         }
 
+        // The pair is offered only when the caret stands by a bracket, which is when it means something.
+        if .delimiterAtCaret().lineIndex != Swag.U64.Max do
+            entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, shortcut: Input.formatKeyShortcut(.Control, .Oem6))
         entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks))
 
         // The tab stops answer a query, as the languages do, rather than fill the empty lens.
@@ -569,6 +678,10 @@ impl Panel
                 view.repositioning = true
                 view.editor.keyPressed(.Home, .Control)
                 view.repositioning = false
+                return true
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Oem6 and keyEvt.modifiers == .Control:
+                discard view.goToMatchingDelimiter()
                 return true
 
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):

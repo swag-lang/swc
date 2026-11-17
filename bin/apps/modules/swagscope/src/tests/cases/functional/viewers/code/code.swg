@@ -445,3 +445,48 @@ struct CodeLanguageSample
 
     Swag.require(chosen == 1 and view.languageName == "Python")
 }
+
+// Ctrl+] moves the caret to the bracket pairing with the one at it, either way, and a brace inside
+// a string pairs with nothing in the code around it.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-pairs-", ".c")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "int f(int a)\n{\n    if (a) { return \"}\"; }\n    return 0;\n}\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Code.Panel, result.view)
+    discard host.render(view)
+
+    view.editor.setCursorPos({1, 0})
+    Swag.require(view.goToMatchingDelimiter())
+    Swag.require(view.editor.cursorLogicalLineIndex() == 4 and view.editor.cursorLogicalCharPos() == 0, Format.toString("% %", view.editor.cursorLogicalLineIndex(), view.editor.cursorLogicalCharPos()))
+
+    // Just after a closing bracket, the caret goes back to the one that opens it.
+    view.editor.setCursorPos({4, 1})
+    Swag.require(view.goToMatchingDelimiter())
+    Swag.require(view.editor.cursorLogicalLineIndex() == 1 and view.editor.cursorLogicalCharPos() == 0)
+
+    view.editor.setCursorPos({0, 5})
+    Swag.require(view.goToMatchingDelimiter() and
+                 view.editor.cursorLogicalLineIndex() == 0 and
+                 view.editor.cursorLogicalCharPos() == 11)
+
+    view.editor.setCursorPos({3, 2})
+    Swag.require(not view.goToMatchingDelimiter())
+
+    // The lens offers the pair only beside a bracket.
+    for line, index in [3'u64, 1'u64]
+    {
+        view.editor.setCursorPos({line, index == 0 ? 2'u64 : 0'u64})
+        var results: Lens.Results
+        var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
+        view.describeLens(&entries)
+        var offered = false
+        for &entry in results.sections[0]!.entries where entry.title == Code.texts().ui_MatchingDelimiter do
+            offered = true
+        Swag.require(offered == (index == 1))
+    }
+}

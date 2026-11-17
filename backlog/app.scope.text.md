@@ -102,8 +102,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.031 — Source structure has no sticky scope, indentation guides, or delimiter matching
 
-- Evidence: lexical color is the only structural cue inside the code surface. There is no sticky
-  scope, indentation guide or delimiter-pair view independent of project semantics.
+- Evidence: lexical color is the only structural cue inside the code surface. Ctrl+], or the lens
+  while the caret stands by a bracket, moves the caret to the parenthesis, bracket or brace that
+  pairs with it within the resident text, counting only delimiters drawn in the same style, so one
+  in a string or a comment pairs with no code. Pairs are not highlighted, an unmatched delimiter
+  is not marked, and there is no sticky scope or indentation guide.
 - Next: derive indentation, delimiter pairs, and sticky headings from the same bounded lexical and
   outline ranges planned by app.scope.text.006 and .010.
 - Done when: the current scope path remains visible and navigable, indentation guides survive

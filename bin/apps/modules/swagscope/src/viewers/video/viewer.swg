@@ -262,7 +262,9 @@ struct Panel
     playbackRate:     f64  = 1
     optionsOpen:      bool
     volume:           f32  = 1
-    details:          String     // What the footer reads under the film.
+    details:          String        // What the footer reads under the film.
+    factsRate:        FrameRate     // The rate the footer and the sheet were last given.
+    factsDuration:    f64  = -1     // The length they were last given, negative before the first.
     metadataReady:    bool
     audioReady:       bool
     timelineReady:    bool
@@ -804,8 +806,8 @@ private impl IWnd for Panel
 private impl Panel
 {
     // Refreshes the snapshot when progressive indexing discovers stream or track properties, and
-    // tells the host, whose sheet gives them. A change the counts do not show, such as a replaced
-    // subtitle file, clears `informationReady` first.
+    // tells the host, whose sheet gives them. A change the counts do not show, such as a corrected
+    // rate or a replaced subtitle file, clears `informationReady` first.
     mtd refreshInformation()
     {
         if not .video.isOpen() do
@@ -960,7 +962,6 @@ private impl Panel
         try .finishMetadata()
 
         .refreshTransport()
-        .refreshDetails()
         discard .showFrame(0)
         .services.loadingChanged(me)
     }
@@ -968,11 +969,24 @@ private impl Panel
     // Applies what progressive indexing has discovered so far to the information panel, the timeline, the summary, and the sound.
     mtd finishMetadata() fail
     {
+        let duration  = .video.durationInSeconds()
+        let frameRate = .video.frameRate()
+        let rate      = frameRate.framesPerSecond()
+
+        // Progressive indexing corrects a rate the container misstated once it has read the times
+        // the pictures carry, and the length of a stream can follow the count it learns. The
+        // footer and the sheet both give them.
+        if frameRate != .factsRate or duration != .factsDuration
+        {
+            .factsRate        = frameRate
+            .factsDuration    = duration
+            .informationReady = false
+            .refreshDetails()
+        }
+
         .refreshInformation()
-        let duration = .video.durationInSeconds()
-        let rate     = .video.frameRate().framesPerSecond()
-        let step     = rate > 0 ? 1 / rate : 0.01
-        let count    = .video.frameCount()
+        let step  = rate > 0 ? 1 / rate : 0.01
+        let count = .video.frameCount()
         if not .timelineReady
         {
             if duration > 0 do
@@ -987,7 +1001,6 @@ private impl Panel
             if duration > 0 do
                 .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
             .timeline.enable(duration > 0 and count > 1)
-            .refreshDetails()
         }
 
         let audioCount = .video.audioTrackCount()

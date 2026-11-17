@@ -66,6 +66,39 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     Swag.require(Utf8.contains(information, " Hz · ") and not Utf8.contains(information, "Subtitle tracks"))
 }
 
+// A container can misstate its rate. The reader corrects it from the times its first pictures
+// carry, long before it knows how many there are, and the footer and the sheet follow it.
+#test
+{
+    // The picture track's DefaultDuration declares 40 ms; one millisecond reads as 1000 fps.
+    var bytes = expect File.readAllBytes(videoMatroskaFixturePath().toString())
+    const Declared: [8] u8 = [0x23, 0xE3, 0x83, 0x84, 0x02, 0x62, 0x5A, 0x00]
+    Swag.require(Slice.equals(bytes.toSlice()[356 until 364], Declared))
+    bytes[360] = 0x00
+    bytes[361] = 0x0F
+    bytes[362] = 0x42
+    bytes[363] = 0x40
+    let fileName = Testing.tempFilePath("scope-video-misstated-", ".mkv")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName)
+    Swag.require(result.view != null)
+    let view = assume cast(*Film.Panel, result.view)
+
+    // A parked film decodes the picture it stands on and nothing more, so the count stays unknown.
+    view.autoPlayPending = false
+    waitForVideoFrame(view)
+    Swag.require(view.video.frameCount() == 0 and Math.isEqualEpsilon(view.video.frameRate().framesPerSecond(), 25, 0.01))
+    Swag.require(Utf8.contains(view.details, " · 25.00 fps · "), view.details)
+    let information = videoInformationText(view, &host.root)
+    Swag.require(Utf8.contains(information, "Frame rate\n25") and not Utf8.contains(information, "1000"), information)
+}
+
 // The first lively picture is kept without decoding the other positions: contrast decides, a flat
 // colour or a mostly dark frame does not qualify.
 #test

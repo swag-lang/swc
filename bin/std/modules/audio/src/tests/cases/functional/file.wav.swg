@@ -222,6 +222,38 @@ using Swag, Core
     Swag.require(Slice.equals(file.data.toSlice(), [0x34, 0x12, 0xFE, 0xFF]))
 }
 
+// Unknown RIFF chunks with an odd payload include one padding byte before the next chunk header.
+#test
+{
+    let source = expect File.readAllBytes(audioGetTestDataPath("pcm16_stereo.wav"))
+    var bytes  = Array'u8{}
+    bytes.add(source.toSlice()[0 until 36]) // RIFF and fmt chunks.
+    bytes.add(cast(const [..] u8, "JUNK"))
+    bytes.add([1'u8, 0, 0, 0, 0x7F, 0]) // One-byte payload and its pad byte.
+    bytes.add(source.toSlice()[36 until source.count])
+
+    var writer = ByteStream.openWrite(&bytes)
+    writer.setPosition(4)
+    writer.writeLittleEndian(cast(u32, bytes.count - 8))
+    let temporary = Path.combine(Env.getSpecialDirectory(.Temp),
+                                 Format.toString("audio-wav-odd-chunk-%.wav", Guid64.random()))
+    defer discard catch File.delete(temporary)
+    expect File.writeAllBytes(temporary, bytes.toSlice())
+
+    let file = expect SoundFile.load(temporary)
+    Swag.require(file.encoding == .Pcm16 and file.frameCount == 2)
+    Swag.require(file.dataOffset == 54)
+    var decoded: Array's16
+    expect file.decodePcm16(func|decoded = &decoded|(samples: const [..] s16)->bool
+    {
+        decoded.add(samples)
+        return true
+    })
+    Swag.require(decoded.count == 4)
+    Swag.require(decoded[0] == Swag.S16.Min and decoded[1] == -1 and
+                 decoded[2] == 0 and decoded[3] == Swag.S16.Max)
+}
+
 #test
 {
     const Files: [11] string = ["clip.wav", "clip.flac", "clip.mp3", "clip.aac", "clip.ac3", "clip.eac3", "clip.ec3", "clip.dts", "clip.ogg", "clip.oga", "clip.opus"]

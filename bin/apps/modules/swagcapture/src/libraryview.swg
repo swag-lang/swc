@@ -499,18 +499,20 @@ impl IWnd for LibraryView
             // Retrieve the loaded capture if it exists
             .mutexLoaded.lock()
             let capture    = it.capture
-            let image      = it.image
             let itemLoaded = it.loaded
             .mutexLoaded.unlock()
 
+            // The loader writes the image before it marks the item loaded, and never again after,
+            // so a loaded item's image is read in place: a copy would duplicate its pixels on
+            // every frame the cell is shown.
             if capture and not it.texture.isValid()
             {
                 if not .uploadThumbnail(it, capture, evt.paintContext.renderer, &decodeBudget) do
                     decodesRemain = true
             }
-            elif it.kind == .Image and not it.texture.isValid() and image.isValid()
+            elif it.kind == .Image and itemLoaded and not it.texture.isValid() and it.image.isValid()
             {
-                it.texture = evt.paintContext.renderer.addImage(image)
+                it.texture = evt.paintContext.renderer.addImage(it.image)
             }
 
             if .paintItem(painter, it, i, capture, itemLoaded) do
@@ -748,6 +750,36 @@ impl LibraryView
             if item.fi.fullName == selection.focused do
                 .focusItem = cast(u32, i)
         }
+    }
+
+    // Drops the cell of `file`, which left the library. The selection and the focus stay on the
+    // files they were on, since every cell after the removed one moves back by one; the focus of
+    // the removed cell passes to the cell taking its place, so the keys go on from there. The
+    // caller filters the grid again and resumes the loader.
+    mtd removeFile(file: string)
+    {
+        // The loader walks its own list of the items. Join it before one of them is deleted.
+        .stopLoading()
+
+        let selection = .rememberSelection()
+        var removedAt = Swag.U64.Max
+        for item, i in .items where item.fi.fullName == file
+        {
+            removedAt = i
+            .items.removeAtOrdered(i)
+            break
+        }
+
+        for item, i in .allItems where item!.fi.fullName == file
+        {
+            .allItems.deleteAt(i)
+            break
+        }
+
+        .hotItem = Swag.U32.Max
+        .restoreSelection(selection)
+        if selection.focused == file and removedAt < .items.count do
+            .focusItem = cast(u32, removedAt)
     }
 
     // Whether the date of `it` falls on the year, month, and day the sidebar picked; a zero picks

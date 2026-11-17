@@ -322,26 +322,7 @@ impl LibraryWnd
         {
             g_Library.onDeleteFile += func|libWnd = me|(file)
             {
-                // The loader owns a temporary pointer list. Join it before deleting the
-                // corresponding ArrayPtr element, then resume any pending previews.
-                libWnd.view.stopLoading()
-
-                for item, i in libWnd.view.items
-                {
-                    if item.fi.fullName == file
-                    {
-                        libWnd.view.selModel.unselect(cast(i))
-                        libWnd.view.items.removeAtOrdered(i)
-                        break
-                    }
-                }
-
-                for item, i in libWnd.view.allItems where item!.fi.fullName == file
-                {
-                    libWnd.view.allItems.deleteAt(i)
-                    break
-                }
-
+                libWnd.view.removeFile(file)
                 libWnd.filledRevision = g_Library.revision
                 libWnd.view.filter()
                 libWnd.refreshAutomaticFilters(force: true)

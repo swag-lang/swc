@@ -8,20 +8,12 @@ class DenseBits
 public:
     static std::span<uint64_t> row(std::vector<uint64_t>& bits, uint32_t rowIndex, uint32_t rowWordCount)
     {
-        if (!rowWordCount)
-            return {};
-
-        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
-        return {bits.data() + offset, rowWordCount};
+        return makeRow(bits, rowIndex, rowWordCount);
     }
 
     static std::span<const uint64_t> row(const std::vector<uint64_t>& bits, uint32_t rowIndex, uint32_t rowWordCount)
     {
-        if (!rowWordCount)
-            return {};
-
-        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
-        return {bits.data() + offset, rowWordCount};
+        return makeRow(bits, rowIndex, rowWordCount);
     }
 
     static void set(std::span<uint64_t> bits, uint32_t bitIndex)
@@ -55,6 +47,17 @@ public:
     }
 
     static bool copyIfChanged(std::span<uint64_t> outDst, std::span<const uint64_t> src);
+
+private:
+    template<typename Vector>
+    static std::span<std::conditional_t<std::is_const_v<Vector>, const uint64_t, uint64_t>> makeRow(Vector& bits, uint32_t rowIndex, uint32_t rowWordCount)
+    {
+        if (!rowWordCount)
+            return {};
+
+        const size_t offset = static_cast<size_t>(rowIndex) * rowWordCount;
+        return {bits.data() + offset, rowWordCount};
+    }
 };
 
 SWC_END_NAMESPACE();

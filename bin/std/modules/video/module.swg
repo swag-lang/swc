@@ -76,7 +76,8 @@ Four codecs ship in the box:
   variable-rate playback and coded display reordering.
   [[Video.H264.AnnexBAccessUnit]] converts start-code-delimited H.264 encoder output into the
   length-prefixed packets and `avcC` configuration the fragmented MP4 writer consumes.
-  [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder.
+  [[Video.Nv12Frame]] converts packed RGB images into BT.709 NV12 surfaces for a video encoder,
+  and converts matching decoded 4:2:0 BT.709 planes directly without a packed RGB intermediate.
   [[Video.H264.Encoder]] produces Constrained Baseline packets from those surfaces with flat
   intra blocks, exact inter copies for small screen movements, luma and chroma residuals,
   P-skip for unchanged blocks, and PCM fallback. QP zero retains exact output; an optional

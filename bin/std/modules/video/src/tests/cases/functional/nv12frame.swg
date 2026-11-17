@@ -61,3 +61,44 @@ using Swag, Core, Core.Errors, Pixel
     Swag.require(frame.width == 2 and frame.height == 2)
     Swag.require(Memory.compare(frame.bytes.storage(), &Expected[0], Expected.count) == 0)
 }
+
+// A decoded BT.709 4:2:0 picture converts directly, respecting padded planar rows.
+#test
+{
+    const Luma: [22] u8 = [16, 17, 18, 19, 0, 0,
+                           26, 27, 28, 29, 0, 0,
+                           36, 37, 38, 39, 0, 0,
+                           46, 47, 48, 49]
+    const Cb: [5] u8 = [100, 110, 0, 130, 140]
+    const Cr: [5] u8 = [150, 140, 0, 120, 110]
+    const Expected: [24] u8 = [16, 17, 18, 19,
+                               26, 27, 28, 29,
+                               36, 37, 38, 39,
+                               46, 47, 48, 49,
+                               100, 150, 110, 140,
+                               130, 120, 140, 110]
+
+    var planar: PlanarFrame
+    planar.resize(4, 4)
+    planar.strideLuma = 6
+    planar.strideChroma = 3
+    planar.luma.resize(Luma.count)
+    planar.chromaB.resize(Cb.count)
+    planar.chromaR.resize(Cr.count)
+    Memory.copy(planar.luma.storage(), &Luma[0], Luma.count)
+    Memory.copy(planar.chromaB.storage(), &Cb[0], Cb.count)
+    Memory.copy(planar.chromaR.storage(), &Cr[0], Cr.count)
+    planar.matrix = .Bt709
+
+    var frame: Nv12Frame
+    expect frame.convertFrom(&planar)
+    Swag.require(frame.width == 4 and frame.height == 4)
+    Swag.require(frame.luma().count == 16 and frame.chroma().count == 8)
+    Swag.require(Memory.compare(frame.bytes.storage(), &Expected[0], Expected.count) == 0)
+
+    planar.matrix = .Bt601
+    var rejected: Swag.Error
+    discard catch frame.convertFrom(&planar) as rejected
+    Swag.require(rejected.value() is UnsupportedFormatError)
+    Swag.require(Memory.compare(frame.bytes.storage(), &Expected[0], Expected.count) == 0)
+}

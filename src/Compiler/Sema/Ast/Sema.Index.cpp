@@ -597,14 +597,18 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
     if (indexedType.isArrayOrSlice() || indexedType.isAnyVariadic())
     {
-        const uint32_t maxIndexCount = resolveMaxSequentialIndexCount(sema, indexedTypeRef);
-        if (children.size() > maxIndexCount)
+        const uint32_t directIndexCount = indexedType.isArray() ? static_cast<uint32_t>(indexedType.payloadArrayDims().size()) : 1;
+        if (children.size() > directIndexCount)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[maxIndexCount]);
-            diag.addArgument(Diagnostic::ARG_COUNT, maxIndexCount);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(children.size()));
-            diag.report(sema.ctx());
-            return Result::Error;
+            const uint32_t maxIndexCount = resolveMaxSequentialIndexCount(sema, indexedTypeRef);
+            if (children.size() > maxIndexCount)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[maxIndexCount]);
+                diag.addArgument(Diagnostic::ARG_COUNT, maxIndexCount);
+                diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(children.size()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
         }
     }
 

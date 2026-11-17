@@ -348,6 +348,116 @@ impl Voice
 
         return 0
     }
+
+    mtd setPanNative(pan: f32, batchId: u32 = 0) fail
+    {
+        if pan == 0 and .panValue == 0 do
+            return
+        switch g_Driver.kind
+        {
+        case .NoSound:
+            try .setPanNoSound(pan, batchId)
+
+        case .XAudio2:
+            #static if #os == Swag.TargetOs.Windows
+            {
+                try .setPanXAudio2(pan, batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .setPanFAudio(pan, batchId)
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
+        }
+    }
+
+    mtd validatePanRouteNative(buses: const [..] *Bus) fail
+    {
+        if .panValue == 0 do
+            return
+        let file           = unwrap .file
+        let sourceChannels = file.numChannels()
+        if sourceChannels == 0 or sourceChannels > 2 do
+            fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        if buses.count
+        {
+            for bus in buses
+            {
+                if bus.channelCount != 2 do
+                    fail BadParameterError{"stereo pan requires a stereo output route"}
+            }
+            return
+        }
+
+        switch g_Driver.kind
+        {
+        case .NoSound:
+            return
+
+        case .XAudio2:
+            #static if #os == Swag.TargetOs.Windows
+            {
+                try .validatePanMasterXAudio2()
+            }
+            else do
+                fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .validatePanMasterFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
+        }
+    }
+
+    mtd validatePanCurrentRouteNative(pan: f32) fail
+    {
+        if pan == 0 do
+            return
+        let file           = unwrap .file
+        let sourceChannels = file.numChannels()
+        if sourceChannels == 0 or sourceChannels > 2 do
+            fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        if .routingBusCount
+        {
+            for i in .routingBusCount
+            {
+                let bus = unwrap .routingBuses[i]
+                if bus.channelCount != 2 do
+                    fail BadParameterError{"stereo pan requires a stereo output route"}
+            }
+            return
+        }
+
+        switch g_Driver.kind
+        {
+        case .NoSound:
+            return
+
+        case .XAudio2:
+            #static if #os == Swag.TargetOs.Windows
+            {
+                try .validatePanMasterXAudio2()
+            }
+            else do
+                fail UnsupportedFormatError{"XAudio2 is not available"}
+
+        case .FAudio:
+            #static if #os == Swag.TargetOs.Linux
+            {
+                try .validatePanMasterFAudio()
+            }
+            else do
+                fail UnsupportedFormatError{"FAudio is not available"}
+        }
+    }
 }
 
 public impl Voice
@@ -490,6 +600,9 @@ public impl Voice
             if not bus.handle do
                 fail BadParameterError{"routing contains an invalid bus"}
         }
+        if buses.count > .routingBuses.count do
+            fail BadParameterError{"too many output buses"}
+        try .validatePanRouteNative(buses)
 
         switch g_Driver.kind
         {
@@ -512,6 +625,15 @@ public impl Voice
             else do
                 fail UnsupportedFormatError{"FAudio is not available"}
         }
+        for i in .routingBusCount
+        {
+            if i >= buses.count do
+                .routingBuses[i] = null
+        }
+        .routingBusCount = cast(u32, buses.count)
+        for i in buses.count do
+            .routingBuses[i] = buses[i]
+        try .setPanNative(.panValue)
     }
 }
 

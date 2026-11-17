@@ -1521,6 +1521,7 @@ private impl Codec
         var produced      = 0'u64
         var lastGranule   = Ogg.NoGranule
         var firstSequence = Swag.U32.Max
+        var endsStream    = false
         var offset        = 0'u64
         .packet.clear()
         while offset < run.count
@@ -1533,6 +1534,7 @@ private impl Codec
             {
                 if firstSequence == Swag.U32.Max do
                     firstSequence = page.sequence
+                endsStream = endsStream or (page.flags & Ogg.LastPage) != 0
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
                 let body = run[offset + page.headerBytes until offset + pageBytes]
@@ -1582,10 +1584,12 @@ private impl Codec
         if known and produced > expected
         {
             let excess = produced - expected
-            if firstSequence == .firstAudioSequence
+            if firstSequence == .firstAudioSequence and not endsStream
             {
-                // A first page whose granule position falls short of its samples asks for the
-                // start of the stream to be cut, which is how an encoder states a negative offset.
+                // A non-final first page whose granule position falls short of its decoded
+                // samples asks for the start of the stream to be cut, which is how an encoder
+                // states a negative offset. When this run also ends the stream, the final granule
+                // trims packet padding at the end instead.
                 let keep = expected * .channels
                 let skip = excess * .channels
                 for index in keep do

@@ -39,3 +39,9 @@ variants use decibels, where `0 dB` is unity gain and `-100 dB` maps to silence.
 Pitch control is expressed as a frequency ratio and requires
 [[Audio.VoiceCreateFlags.PitchControl]] on backends that need that capability
 declared when the voice is created.
+
+[[Audio.Voice.setPan]] places mono playback between the left and right speakers
+with equal-power gains. For stereo playback it balances the left and right
+channels. Pan ranges from `-1` (left) through `0` (center) to `1` (right); values
+outside that range are clamped. Nonzero pan requires a mono or stereo source and
+stereo output routes.

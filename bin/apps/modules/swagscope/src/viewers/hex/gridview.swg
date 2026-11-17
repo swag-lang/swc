@@ -1085,7 +1085,7 @@ impl IWnd for GridView
 
         switch evt.kind
         {
-        case .Wheel where evt.modifiers.has(.Control):
+        case .Wheel where Viewer.isZoomWheel(evt):
             if evt.delta.y > 0 do
                 .adjustFontSize(1)
             elif evt.delta.y < 0 do
@@ -1186,19 +1186,14 @@ impl IWnd for GridView
         case .G where control:
             .sendCommandEvent(Action.GoTo)
 
-        case .Add, .OemPlus:
-            if control do
-                .adjustFontSize(1)
-            else do
-                evt.accepted = false
+        // The size answers the zoom chord of every other viewer, Ctrl alone.
+        case .Add, .OemPlus where evt.modifiers == .Control:
+            .adjustFontSize(1)
 
-        case .Subtract, .OemMinus:
-            if control do
-                .adjustFontSize(-1)
-            else do
-                evt.accepted = false
+        case .Subtract, .OemMinus where evt.modifiers == .Control:
+            .adjustFontSize(-1)
 
-        case .D0 where control:
+        case .D0 where evt.modifiers == .Control:
             .resetFontSize()
 
         default:

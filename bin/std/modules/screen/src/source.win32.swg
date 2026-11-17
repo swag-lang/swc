@@ -356,8 +356,10 @@ impl NativeSource
         // device. Restrict metadata updates to selections covering most of an output.
         if .hasLast and selectedPixels * 4 >= outputWidth * outputHeight * 3
         {
+            let detectionStart = Time.monotonicMicroseconds()
             let changed = .changedBounds(duplication, info.TotalMetadataBufferSize,
                                          cast(s32, x), cast(s32, y))
+            .metrics.changeDetectionMicroseconds += Time.monotonicMicroseconds() - detectionStart
             if changed.known
             {
                 if not changed.changed

@@ -83,7 +83,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">40</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">41</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#TrueType_Bitmap_row">Bitmap.row</a></li>
@@ -111,6 +111,7 @@
 <li><a href="#TrueType_Face_load">Face.load</a></li>
 <li><a href="#TrueType_Face_loadAt">Face.loadAt</a></li>
 <li><a href="#TrueType_Face_loadChar">Face.loadChar</a></li>
+<li><a href="#TrueType_Face_loadColorGlyph">Face.loadColorGlyph</a></li>
 <li><a href="#TrueType_Face_loadGlyph">Face.loadGlyph</a></li>
 <li><a href="#TrueType_Face_loadSubset">Face.loadSubset</a></li>
 <li><a href="#TrueType_Face_metadataAt">Face.metadataAt</a></li>
@@ -145,7 +146,7 @@
 
 <span class="SKwd">let</span> bitmap = &amp;face.glyph.bitmap
 <span class="SCmt">// bitmap.buffer remains valid until this face loads or renders another glyph.</span></span></div>
-<p>The module covers TrueType <span class="code-inline">glyf</span> outlines, OpenType and bare CFF programs, Type 1 programs, <span class="code-inline">ttcf</span> collections, Unicode character maps including variation sequences, kerning from <span class="code-inline">GPOS</span> and from the legacy <span class="code-inline">kern</span> table, ordered COLR v0 layers with CPAL v0 palette colors, grayscale rasterization, and single- or multi-channel signed-distance fields. Faces with <span class="code-inline">vhea</span> and <span class="code-inline">vmtx</span> expose optional vertical glyph advances and top side bearings. <a href="#TrueType_Face_loadSubset">TrueType.Face.loadSubset</a> also accepts rendering-only document subsets whose family identity is supplied outside the font program.</p>
+<p>The module covers TrueType <span class="code-inline">glyf</span> outlines, OpenType and bare CFF programs, Type 1 programs, <span class="code-inline">ttcf</span> collections, Unicode character maps including variation sequences, kerning from <span class="code-inline">GPOS</span> and from the legacy <span class="code-inline">kern</span> table, source-over RGBA rendering for COLR v0 / CPAL v0 color glyphs, grayscale rasterization, and single- or multi-channel signed-distance fields. Faces with <span class="code-inline">vhea</span> and <span class="code-inline">vmtx</span> expose optional vertical glyph advances and top side bearings. <a href="#TrueType_Face_loadSubset">TrueType.Face.loadSubset</a> also accepts rendering-only document subsets whose family identity is supplied outside the font program.</p>
 <p>It does not shape text. Ligatures, mark attachment and script-specific reordering need <span class="code-inline">GSUB</span> and the rest of <span class="code-inline">GPOS</span>, so Arabic, Indic and Thai are positioned incorrectly rather than imperfectly. WOFF1 containers are reconstructed to sfnt before parsing; WOFF2 containers remain unsupported.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Loading_fonts_and_glyphs">Loading fonts and glyphs</h2>
@@ -360,6 +361,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_loadChar">Face.loadChar</a></td><td><p>Resolves and loads a Unicode scalar value into the reusable slot.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#TrueType_Face_loadColorGlyph">Face.loadColorGlyph</a></td><td><p>Loads and composites a COLR v0 glyph into an RGBA color bitmap.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_loadGlyph">Face.loadGlyph</a></td><td><p>Loads a glyph by index into the face's reusable slot.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_loadSubset">Face.loadSubset</a></td><td><p>Loads a rendering-only TrueType subset from an in-memory font program.</p>
@@ -473,7 +476,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Bitmap" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Bitmap</span> <a class="api-item-permalink" href="#TrueType_Bitmap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L88">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Bitmap" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Bitmap</span> <a class="api-item-permalink" href="#TrueType_Bitmap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L90">src</a></div>
 <p>Describes the borrowed pixels produced for the current glyph.</p>
 <p>The buffer belongs to the parent <a href="#TrueType_Face">TrueType.Face</a>. Its address and contents may change after another load or render operation, and become invalid when the face is destroyed. Use <a href="#TrueType_Bitmap_row">TrueType.Bitmap.row</a> to read one row without pitch padding.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Bitmap">Bitmap</a></span></span></div>
@@ -650,6 +653,8 @@
 <tr><td class="code-type"><a href="#TrueType_Face_loadAt">loadAt</a></td><td><p>Loads one face of a TrueType collection by index.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_loadChar">loadChar</a></td><td><p>Resolves and loads a Unicode scalar value into the reusable slot.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TrueType_Face_loadColorGlyph">loadColorGlyph</a></td><td><p>Loads and composites a COLR v0 glyph into an RGBA color bitmap.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_loadGlyph">loadGlyph</a></td><td><p>Loads a glyph by index into the face's reusable slot.</p>
 </td></tr>
@@ -989,9 +994,11 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td id="TrueType_PixelMode_ColorRgba" class="code-type">ColorRgba</td><td><p>Four bytes represent color in red, green, blue, alpha byte order.</p>
+</td></tr>
 <tr><td id="TrueType_PixelMode_Gray" class="code-type">Gray</td><td><p>One byte represents each grayscale or SDF pixel.</p>
 </td></tr>
-<tr><td id="TrueType_PixelMode_Rgba" class="code-type">Rgba</td><td><p>Four bytes represent the RGB multi-channel field and alpha distance.</p>
+<tr><td id="TrueType_PixelMode_Rgba" class="code-type">Rgba</td><td><p>Four bytes represent an RGB multi-channel distance field and alpha distance (MSDF).</p>
 </td></tr>
 </tbody>
 </table>
@@ -1029,7 +1036,7 @@
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Bitmap_row" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bitmap.row</span> <a class="api-item-permalink" href="#TrueType_Bitmap_row" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L36">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Bitmap_row" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bitmap.row</span> <a class="api-item-permalink" href="#TrueType_Bitmap_row" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L38">src</a></div>
 <p>Returns one borrowed row without its trailing pitch padding.</p>
 <p><span class="code-inline">y</span> is zero-based from the first stored row. The slice contains <span class="code-inline">width * [[TrueType.PixelMode.bytesPerPixel]]</span> bytes and remains valid until the owning face loads or renders another glyph. The pitch must be non-negative and at least as large as the row, and non-empty data requires a non-null buffer.</p>
 <p>Invalid rows or inconsistent bitmap layouts fail with an invalid-argument error.</p>
@@ -1149,7 +1156,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasVariant</span>(charCode, selector: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_hintVertical" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hintVertical</span> <a class="api-item-permalink" href="#TrueType_Face_hintVertical" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L685">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_hintVertical" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hintVertical</span> <a class="api-item-permalink" href="#TrueType_Face_hintVertical" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L700">src</a></div>
 <p>Aligns important vertical zones of the current outline to whole pixels.</p>
 <p>The operation mutates the reusable outline to keep horizontal stems crisp. It does nothing when the font lacks x-height data. Apply it before grayscale rendering, but not before size-independent SDF or MSDF generation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hintVertical</span>() <span class="SKwd">fail</span></span></div>
@@ -1199,6 +1206,13 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadChar</span>(charCode: <span class="STpe">rune</span>, loadFlags = <span class="SCst"><a href="#TrueType_LoadFlag">LoadFlag</a></span>.<span class="SCst"><a href="#TrueType_LoadFlag_Default">Default</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="TrueType_Face_loadColorGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadColorGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_loadColorGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L683">src</a></div>
+<p>Loads and composites a COLR v0 glyph into an RGBA color bitmap.</p>
+<p>Layers are rasterized in their declared order using the active pixel size and source-over alpha composition. CPAL colors use <span class="code-inline">paletteIndex</span>; COLR's foreground entries use <span class="code-inline">foregroundArgb</span>, defaulting to opaque black. The slot's outline and metrics describe <span class="code-inline">baseGlyph</span>, while its bitmap uses <a href="#TrueType_PixelMode_ColorRgba">TrueType.PixelMode.ColorRgba</a> with bytes in red, green, blue, alpha order. This replaces the slot's current outline and bitmap, like <a href="#TrueType_Face_loadGlyph">TrueType.Face.loadGlyph</a>. It fails if the glyph has no color layers.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadColorGlyph</span>(baseGlyph: <span class="STpe">u32</span>, paletteIndex: <span class="STpe">u16</span> = <span class="SNum">0</span>,
+                   foregroundArgb: <span class="STpe">u32</span> = <span class="SNum">0xFF000000</span>) <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="TrueType_Face_loadGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_loadGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L656">src</a></div>
 <p>Loads a glyph by index into the face's reusable slot.</p>
 <p>The active pixel size controls scaling. Existing outline and bitmap pointers from this face are invalidated. Add <span class="code-inline">.Render</span> to produce a grayscale bitmap in the same operation.</p>
@@ -1221,19 +1235,19 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">metadataAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#TrueType_FaceMetadata">FaceMetadata</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L678">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L693">src</a></div>
 <p>Rasterizes the current outline into an 8-bit grayscale bitmap.</p>
 <p>The result is stored in <a href="#TrueType_GlyphSlot_bitmap">TrueType.GlyphSlot.bitmap</a> and replaces any previous bitmap from this face.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyph</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphMsdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphMsdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphMsdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L730">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphMsdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphMsdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphMsdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L745">src</a></div>
 <p>Renders the current outline as a multi-channel signed-distance field.</p>
 <p><span class="code-inline">spread</span> is clamped to 1 through 64. The resulting four-byte pixels store the multi-channel field in RGB and a true signed distance in alpha; the bitmap reports <a href="#TrueType_PixelMode_Rgba">TrueType.PixelMode.Rgba</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphSdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphSdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphSdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L723">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphSdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphSdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphSdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L738">src</a></div>
 <p>Renders the current outline as a single-channel signed-distance field.</p>
 <p><span class="code-inline">spread</span> is the pixel distance mapped across the field transition and is clamped to 1 through 64. The result uses <a href="#TrueType_PixelMode_Gray">TrueType.PixelMode.Gray</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphSdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
@@ -1288,7 +1302,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translate</span>(xOffset, yOffset: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_PixelMode_bytesPerPixel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelMode.bytesPerPixel</span> <a class="api-item-permalink" href="#TrueType_PixelMode_bytesPerPixel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L15">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_PixelMode_bytesPerPixel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelMode.bytesPerPixel</span> <a class="api-item-permalink" href="#TrueType_PixelMode_bytesPerPixel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L16">src</a></div>
 <p>Returns the number of bytes occupied by one pixel in this mode.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bytesPerPixel</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
@@ -1673,8 +1687,9 @@
 "k|TrueType.OutlineCommandKind.LineTo|TrueType_OutlineCommandKind_LineTo|Adds a straight segment ending at p0.",
 "k|TrueType.OutlineCommandKind.MoveTo|TrueType_OutlineCommandKind_MoveTo|Starts a new contour at p0.",
 "e|TrueType.PixelMode|TrueType_PixelMode|Identifies the storage layout of a rendered TrueType.Bitmap.",
+"k|TrueType.PixelMode.ColorRgba|TrueType_PixelMode_ColorRgba|Four bytes represent color in red, green, blue, alpha byte order.",
 "k|TrueType.PixelMode.Gray|TrueType_PixelMode_Gray|One byte represents each grayscale or SDF pixel.",
-"k|TrueType.PixelMode.Rgba|TrueType_PixelMode_Rgba|Four bytes represent the RGB multi-channel field and alpha distance.",
+"k|TrueType.PixelMode.Rgba|TrueType_PixelMode_Rgba|Four bytes represent an RGB multi-channel distance field and alpha distance (MSDF).",
 "e|TrueType.StyleFlag|TrueType_StyleFlag|Describes style traits declared by a font face.",
 "k|TrueType.StyleFlag.Bold|TrueType_StyleFlag_Bold|The face declares a bold weight.",
 "k|TrueType.StyleFlag.Italic|TrueType_StyleFlag_Italic|The face declares an italic style.",
@@ -1705,6 +1720,7 @@
 "f|TrueType.Face.load|TrueType_Face_load|Loads a TrueType face from an in-memory font file.",
 "f|TrueType.Face.loadAt|TrueType_Face_loadAt|Loads one face of a TrueType collection by index.",
 "f|TrueType.Face.loadChar|TrueType_Face_loadChar|Resolves and loads a Unicode scalar value into the reusable slot.",
+"f|TrueType.Face.loadColorGlyph|TrueType_Face_loadColorGlyph|Loads and composites a COLR v0 glyph into an RGBA color bitmap.",
 "f|TrueType.Face.loadGlyph|TrueType_Face_loadGlyph|Loads a glyph by index into the face's reusable slot.",
 "f|TrueType.Face.loadSubset|TrueType_Face_loadSubset|Loads a rendering-only TrueType subset from an in-memory font program.",
 "f|TrueType.Face.metadataAt|TrueType_Face_metadataAt|Reads a face's names, weight, width class, style, and fixed-pitch flag without loading its glyphs.",

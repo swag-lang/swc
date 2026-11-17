@@ -239,12 +239,13 @@ JobResult CodeGenJob::execImpl()
         bodyEmitted_ = true;
     }
 
-    SmallVector<SymbolFunction*> finalDeps;
-    symbolFunc_->appendCallDependencies(finalDeps);
+    // The pre-codegen snapshot is no longer used; reuse its storage for the final graph.
+    dependencies.clear();
+    symbolFunc_->appendCallDependencies(dependencies);
 
     // Join every dependency seen after codegen, including newly discovered
     // helpers. Each must be lowered before this function is complete.
-    for (SymbolFunction* dep : finalDeps)
+    for (SymbolFunction* dep : dependencies)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)

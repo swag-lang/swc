@@ -109,7 +109,9 @@ impl Matrix3x3
         return Vector2{transformed.x, transformed.y}
     }
 
-    // Transforms a 2D normal with the inverse transpose of this matrix's linear part.
+    // Transforms a 2D normal with the inverse transpose of this affine matrix's linear part.
+    //
+    // The matrix must be invertible.
     mtd const transformNormal(normal: Vector2)->Vector2
     {
         let transformed = .inverted().transposed().transformDirection(normal)

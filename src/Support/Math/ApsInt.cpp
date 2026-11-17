@@ -91,9 +91,7 @@ int ApsInt::compare(const ApsInt& other) const
 
 uint32_t ApsInt::hash() const
 {
-    uint32_t h = ApInt::hash();
-    h          = Math::hashCombine(h, unsigned_);
-    return h;
+    return Math::hashCombine(ApInt::hash(), unsigned_);
 }
 
 ApsInt ApsInt::minValue(uint32_t bitWidth, bool isUnsigned)

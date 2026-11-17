@@ -124,6 +124,7 @@ struct FaceImpl
     outlineTags:     Array'u8
     outlineContours: Array's16
     bitmapPixels:    Array'u8
+    colorBitmapPixels: Array'u8
 
     // Horizontal kerning pairs from the legacy 'kern' table (format 0).
     // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.
@@ -156,6 +157,7 @@ impl FaceImpl
         .outlineTags.free()
         .outlineContours.free()
         .bitmapPixels.free()
+        .colorBitmapPixels.free()
         .kernPairs.free()
         .gposPairSubtables.free()
         .postNameToGid.free()

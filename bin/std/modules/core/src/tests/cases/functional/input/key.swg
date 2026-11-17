@@ -243,3 +243,44 @@ func assertKey(key: Input.Key, index: u32)
     Swag.require(Input.formatKeyShortcut(.None, .Subtract) == "-")
     Swag.require(Input.formatKeyShortcut(.None, .F10) == "F10")
 }
+
+#test
+{
+    for index in Input.Key.count do
+        Swag.require(cast(u64, Input.keyFromStorageIndex(index)) == index)
+
+    let failure = Swag.catchPanic(func||()
+    {
+        discard Input.keyFromStorageIndex(Input.Key.count)
+    })
+    Swag.require(failure.raised)
+    Swag.require(failure.message() == "invalid keyboard storage index")
+}
+
+#test
+{
+    Swag.require(Input.formatKeyShortcut(.None, .D1) == "1")
+    Swag.require(Input.formatKeyShortcut(.None, .D2) == "2")
+    Swag.require(Input.formatKeyShortcut(.None, .D3) == "3")
+    Swag.require(Input.formatKeyShortcut(.None, .D4) == "4")
+    Swag.require(Input.formatKeyShortcut(.None, .D5) == "5")
+    Swag.require(Input.formatKeyShortcut(.None, .D6) == "6")
+    Swag.require(Input.formatKeyShortcut(.None, .D7) == "7")
+    Swag.require(Input.formatKeyShortcut(.None, .D8) == "8")
+    Swag.require(Input.formatKeyShortcut(.None, .D9) == "9")
+
+    Swag.require(Input.formatKeyShortcut(.None, .OemComma) == ",")
+    Swag.require(Input.formatKeyShortcut(.None, .OemPeriod) == ".")
+    Swag.require(Input.formatKeyShortcut(.None, .Oem4) == "[")
+    Swag.require(Input.formatKeyShortcut(.None, .Oem6) == "]")
+    Swag.require(Input.formatKeyShortcut(.None, .Oem2) == "/")
+    Swag.require(Input.formatKeyShortcut(.None, .Multiply) == "*")
+    Swag.require(Input.formatKeyShortcut(.None, .Divide) == "/")
+    Swag.require(Input.formatKeyShortcut(.None, .Decimal) == ".")
+    Swag.require(Input.formatKeyShortcut(.None, .Return) == "Enter")
+    Swag.require(Input.formatKeyShortcut(.None, .Escape) == "Esc")
+    Swag.require(Input.formatKeyShortcut(.None, .Back) == "Backspace")
+    Swag.require(Input.formatKeyShortcut(.None, .Delete) == "Del")
+    Swag.require(Input.formatKeyShortcut(.None, .PageUp) == "Page Up")
+    Swag.require(Input.formatKeyShortcut(.None, .PageDown) == "Page Down")
+}

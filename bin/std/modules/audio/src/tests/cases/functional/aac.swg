@@ -400,6 +400,36 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
                  sound.decoderConfig[1] == 0xB0)
 }
 
+// An incomplete trailing header or frame is ignored; all complete AAC packets remain indexed.
+#test
+{
+    let sourcePath = audioGetTestDataPath("aac-lc-stereo-44100.aac")
+    let source     = expect File.readAllBytes(sourcePath)
+    let reference  = expect SoundFile.load(sourcePath)
+    let last       = expect reference.packet(reference.packetCount() - 1)
+    let directory  = Env.getSpecialDirectory(.Temp)
+    let shortHeaderPath = Path.combine(directory.toString(),
+        Format.toString("audio-aac-short-tail-%.aac", Guid64.random()).toString())
+    let shortFramePath = Path.combine(directory.toString(),
+        Format.toString("audio-aac-short-frame-%.aac", Guid64.random()).toString())
+    defer discard catch File.delete(shortHeaderPath)
+    defer discard catch File.delete(shortFramePath)
+
+    var shortHeader = source
+    shortHeader.add([0xFF'u8, 0xF1, 0x50, 0x80, 0, 0])
+    expect File.writeAllBytes(shortHeaderPath, shortHeader.toSlice())
+    let headerSound = expect SoundFile.load(shortHeaderPath.toString())
+    Swag.require(headerSound.packetCount() == reference.packetCount())
+    Swag.require(headerSound.sampleFrameCount() == reference.sampleFrameCount())
+
+    var shortFrame = source
+    shortFrame.resize(shortFrame.count - 1)
+    expect File.writeAllBytes(shortFramePath, shortFrame.toSlice())
+    let frameSound = expect SoundFile.load(shortFramePath.toString())
+    Swag.require(frameSound.packetCount() == reference.packetCount() - 1)
+    Swag.require(frameSound.sampleFrameCount() == reference.sampleFrameCount() - last.sampleFrameCount)
+}
+
 // The reader rejects ADTS packets with multiple raw data blocks, which the packet decoder cannot decode.
 #test
 {

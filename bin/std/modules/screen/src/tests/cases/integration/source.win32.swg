@@ -4,6 +4,52 @@
 
 using Core, Pixel
 
+// Cursor-only motion produces a new image without leaving the previous cursor behind.
+#[Swag.TestTag("integration.host.windows")]
+#test
+{
+    let monitors = Env.getMonitors()
+    if not monitors.count do
+        return
+    let bounds = monitors[0].physicalBounds
+    if bounds.width < 64 or bounds.height < 64 do
+        return
+
+    var cursor: CURSORINFO
+    cursor.cbSize = #sizeof(CURSORINFO)
+    if not GetCursorInfo(&cursor) or not (cursor.flags & CURSOR_SHOWING) do
+        return
+    let originalX = cursor.ptScreenPos.x
+    let originalY = cursor.ptScreenPos.y
+    defer SetCursorPos(originalX, originalY)
+
+    var source = expect Source.open({cast(s32, bounds.x), cast(s32, bounds.y),
+                                     cast(s32, bounds.width), cast(s32, bounds.height), true})
+    SetCursorPos(cast(s32, bounds.x) + cast(s32, bounds.width / 4),
+                 cast(s32, bounds.y) + cast(s32, bounds.height / 4))
+    var image: Image
+    Swag.require(expect source.grabInto(&image))
+    var previous = Image.create(image.width, image.height, image.pixelFormat)
+    Memory.copy(previous.pixels.storage(), image.pixels.storage(), image.byteCount)
+
+    SetCursorPos(cast(s32, bounds.x) + cast(s32, bounds.width * 3 / 4),
+                 cast(s32, bounds.y) + cast(s32, bounds.height * 3 / 4))
+    let fresh = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(fresh, "cursor movement should make the captured image fresh")
+    Swag.require(Memory.compare(previous.pixels.storage(), image.pixels.storage(), image.byteCount) != 0,
+                 "moving the cursor should change the captured image")
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
+                                image.byteCount) == 0,
+                 "moving the cursor should redraw from cursorless desktop pixels")
+
+    image = Image.create(1, 1, .BGRA8)
+    discard expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(image.width == cast(s32, bounds.width) and image.height == cast(s32, bounds.height))
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
+                                image.byteCount) == 0,
+                 "a replacement target should receive the current cursor-composited frame")
+}
+
 // Split readbacks copy only the selected top-down regions into bottom-up image storage.
 #[Swag.TestTag("integration.host.windows")]
 #test

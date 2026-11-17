@@ -188,6 +188,19 @@ func audioStartNoSoundEngine()
     voice.destroy()
 }
 
+// The convenience overload creates, registers, and starts a voice in one operation.
+#test
+{
+    audioStartNoSoundEngine()
+    defer destroyEngine()
+
+    var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
+    let voice = expect Voice.play(&file, .Default, .Loop)
+    let handle = cast(*NoSoundVoice, unwrap voice.handle)
+    Swag.require(voice.isPlaying() and handle.isPlaying)
+    voice.destroy()
+}
+
 #test
 {
     audioStartNoSoundEngine()

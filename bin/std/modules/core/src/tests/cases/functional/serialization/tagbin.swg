@@ -1158,6 +1158,25 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(Utf8.contains(Errors.message(err), "unsupported TagBin format version"))
 }
 
+// A stream with the wrong first four bytes is rejected before its version or body is read.
+#test
+{
+    let bytes = encodeTagBin(makeTagBinPayload())
+    var patched: Array'u8
+    patched.add(bytes.toSlice())
+
+    var writer = ByteStream.openWrite(&patched)
+    writer.setPosition(0)
+    writer.writeNative(0'u32)
+
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var errorOutcome: Swag.Error
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errorOutcome
+    let error = errorOutcome.value()
+    Swag.require(error is Errors.SerializationError)
+    Swag.require(Errors.message(error) == "invalid root signature")
+}
+
 // Field keys are compared as text. These two deliberately share one CRC32, so a
 // hash-only format would silently conflate them.
 #test

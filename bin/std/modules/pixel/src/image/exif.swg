@@ -159,6 +159,78 @@ func orientationOf(metadata: const [..] ImageMetadata)->u32
     return 1
 }
 
+// Resets an inline EXIF Orientation field after the corresponding pixels are made upright.
+// Unknown records and every other EXIF byte are preserved.
+internal func resetOrientation(metadata: *Array'ImageMetadata)
+{
+    for recordIndex in metadata[].count
+    {
+        let record = &metadata[][recordIndex]
+        if record.signature != 1 or not record.isTag("Exif") do
+            continue
+
+        let bytes = record.value.toSlice()
+        var tiffStart = 0'u64
+        while tiffStart + 2 <= bytes.count and bytes[tiffStart] != 'I' and bytes[tiffStart] != 'M' do
+            tiffStart += 1
+        if tiffStart + 8 > bytes.count do
+            continue
+
+        let littleEndian = bytes[tiffStart] == 'I' and bytes[tiffStart + 1] == 'I'
+        if not littleEndian and (bytes[tiffStart] != 'M' or bytes[tiffStart + 1] != 'M') do
+            continue
+        if rawNumber(bytes, tiffStart + 2, 2, littleEndian) != 42 do
+            continue
+
+        let firstDirectory = rawNumber(bytes, tiffStart + 4, 4, littleEndian)
+        if firstDirectory < 8 or firstDirectory > bytes.count - tiffStart - 2 do
+            continue
+        let directory = tiffStart + firstDirectory
+        let entryCount = rawNumber(bytes, directory, 2, littleEndian)
+        if entryCount > 1024 or entryCount > (bytes.count - directory - 2) / 12 do
+            continue
+
+        for entryIndex in entryCount
+        {
+            let entry = directory + 2 + entryIndex * 12
+            if rawNumber(bytes, entry, 2, littleEndian) != 0x0112 do
+                continue
+            if rawNumber(bytes, entry + 2, 2, littleEndian) != 3 do
+                continue
+
+            let valueCount = rawNumber(bytes, entry + 4, 4, littleEndian)
+            if valueCount == 0 do
+                continue
+            let valueOffset = valueCount * 2 <= 4 ? entry + 8 : (tiffStart + rawNumber(bytes, entry + 8, 4, littleEndian))
+            if valueOffset > bytes.count - 2 do
+                continue
+
+            if littleEndian
+            {
+                record.value[valueOffset] = 1
+                record.value[valueOffset + 1] = 0
+            }
+            else
+            {
+                record.value[valueOffset] = 0
+                record.value[valueOffset + 1] = 1
+            }
+        }
+    }
+}
+
+private func rawNumber(bytes: const [..] u8, offset, size: u64, littleEndian: bool)->u64
+{
+    var result = 0'u64
+    for index in size
+    {
+        let shift = littleEndian ? index * 8 : (size - 1 - index) * 8
+        result |= cast(u64, bytes[offset + index]) << shift
+    }
+
+    return result
+}
+
 private struct Reader
 {
     bytes:        const [..] u8

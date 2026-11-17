@@ -35,7 +35,7 @@ struct SourceOptions
     public y:             s32     // Top edge in physical desktop pixels.
     public width:         s32     // Width in physical pixels.
     public height:        s32     // Height in physical pixels.
-    public includeCursor: bool    // Includes the pointer when the native source supports it.
+    public includeCursor: bool    // Composites the pointer over the captured desktop pixels.
 }
 
 // Cumulative acquisition costs for one [[Screen.Source]], in microseconds.
@@ -78,6 +78,19 @@ struct Source
         mirroredImage:        u64
         mirroredStorage:      u64
         mirrorReady:          bool
+        #static if #os == Swag.TargetOs.Windows
+        {
+            cursorDC:       Win32.HDC
+            cursorBitmap:   Win32.HBITMAP
+            cursorOldBitmap: Gdi32.HGDIOBJ
+            cursorPixels:   *void?
+            cursorRenderedPixels: Array'u8
+            cursorRenderedLeft, cursorRenderedTop: s32
+            cursorRenderedRight, cursorRenderedBottom: s32
+            cursorTargetImage:   u64
+            cursorTargetStorage: u64
+            cursorTargetReady:   bool
+        }
     }
 }
 
@@ -192,15 +205,17 @@ impl Source
         .pictures.add({})
     }
 
-    // Writes a bottom-up BGRA8 image, returning true when a new desktop frame was acquired.
+    // Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.
     //
-    // False means no new pixels are available yet, either because the desktop did not
+    // False means no new image is available yet, either because the desktop and cursor did not
     // change or because a video readback is still pending. It is not a source failure.
     // By default the previous picture is copied to `target`. Set `copyUnchanged` to false
-    // when the caller will reuse its previous encoded picture instead; on a false return,
-    // `target` is then left untouched. With `updateChangedOnly` and `copyUnchanged` false,
+    // when the caller will reuse its previous encoded picture instead. A reusable target stays
+    // untouched on a false return; a new or resized target receives a complete current frame.
+    // With `updateChangedOnly` and `copyUnchanged` false,
     // successive grabs into the same unmodified target may update only changed regions after
     // the first complete frame. Replacing or resizing the target causes a complete copy.
+    // Windows cursor composition rebuilds the selected area each poll to account for pointer-only changes.
     // The target remains owned by the caller.
     mtd grabInto(target: *Image, copyUnchanged: bool = true,
                  updateChangedOnly: bool = false)->bool fail
@@ -227,7 +242,7 @@ impl Source
             .composed = Image.create(.options.width, .options.height, .BGRA8)
             Memory.set(.composed.pixels.storage(), 0, .composed.byteCount)
         }
-        let incremental = updateChangedOnly and not copyUnchanged
+        let incremental = updateChangedOnly and not copyUnchanged and not .options.includeCursor
         var mirroring = false
         #static if #os == Swag.TargetOs.Windows
         {
@@ -265,10 +280,37 @@ impl Source
                 .composeMicroseconds += Time.monotonicMicroseconds() - partComposeStart
             }
         }
-        if not fresh and not copyUnchanged
+        if not fresh and not copyUnchanged and not .options.includeCursor
         {
             .mirrorReady = mirroring
             return false
+        }
+#static if #os == Swag.TargetOs.Windows
+        {
+        if .options.includeCursor
+        {
+            let cursorChanged = try .drawCursor()
+            let outputFresh = fresh or cursorChanged
+            let targetReusable = .cursorTargetReady and
+                                 target.width == .options.width and target.height == .options.height and
+                                 target.pixelFormat == .BGRA8 and
+                                 cast(u64, target) == .cursorTargetImage and
+                                 cast(u64, target.pixels.storage()) == .cursorTargetStorage
+            if outputFresh or copyUnchanged or not targetReusable
+            {
+                if target.width != .options.width or target.height != .options.height or target.pixelFormat != .BGRA8 do
+                    target[] = Image.create(.options.width, .options.height, .BGRA8)
+                let outputStart = Time.monotonicMicroseconds()
+                copyFrameBytes(target.pixels.storage(), cast(const [*] u8, .cursorPixels), target.byteCount)
+                .composeMicroseconds += Time.monotonicMicroseconds() - outputStart
+                .cursorTargetImage = cast(u64, target)
+                .cursorTargetStorage = cast(u64, target.pixels.storage())
+                .cursorTargetReady = true
+            }
+            if outputFresh do
+                .lastFrameCaptureTime = Time.monotonicMicroseconds()
+            return outputFresh
+        }
         }
         if mirroring
         {
@@ -299,7 +341,8 @@ impl Source
     //
     // The value uses the same microsecond clock as [[Core.Time.monotonicMicroseconds]]. It records when
     // `grabInto` received a fresh frame, not the display's presentation time, and remains unchanged when
-    // a grab returns false. A successful reopen resets it to zero; failed attempts preserve it.
+    // a grab returns false. With cursor composition enabled, cursor-only image changes also update it.
+    // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
     // Returns cumulative native and composition timing since this source was opened.
@@ -358,6 +401,10 @@ impl Source
     // Releases the native capture handles and cached frames on the opening thread.
     mtd opDrop()
     {
+#static if #os == Swag.TargetOs.Windows
+        {
+        .closeCursorOverlay()
+        }
         for source in .sources do
             Memory.delete(source)
     }

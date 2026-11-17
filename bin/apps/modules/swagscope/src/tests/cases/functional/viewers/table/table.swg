@@ -297,6 +297,10 @@ using Core, Pixel, Gui, Viewers
     Swag.require(Utf8.contains(text, "Columns\nname\ntext\nprice\ndecimal · 1.50 to 2.25 · mean 1.88 · 1 empty"), text)
     Swag.require(Utf8.contains(text, "qty\ninteger · 3 to 7 · mean 5.00 · 1 empty"), text)
     Swag.require(Table.groupThousands(1.999, true) == "2.00" and Table.groupThousands(1234567, false) == "1 234 567")
+
+    // A whole number is rounded rather than cut, and a value that rounds to nothing has no sign.
+    Swag.require(Table.groupThousands(6.7, false) == "7" and Table.groupThousands(-1234.5, true) == "-1 234.50")
+    Swag.require(Table.groupThousands(-0.001, true) == "0.00" and Table.groupThousands(-0.4, false) == "0")
 }
 
 // The foot sums the first column of quantities while the focus moves from row to row, and the

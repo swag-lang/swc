@@ -338,13 +338,15 @@ func isThousands(text: string)->bool
     return true
 }
 
-// Writes `value` with its thousands grouped by a narrow space, two decimals when `decimal`.
+// Writes `value` with its thousands grouped by a narrow space, rounded to two decimals when
+// `decimal` and to a whole number otherwise.
 func groupThousands(value: f64, decimal: bool)->String
 {
-    // Cents are rounded before the whole part is taken, so 1.999 reads 2.00 rather than 1.100.
-    let negative = value < 0
+    // Cents are rounded before the whole part is taken, so 1.999 reads 2.00 rather than 1.100. A
+    // value that rounds to nothing has no sign: -0.001 reads 0.00, not -0.00.
     let cents    = cast(u64, Math.round(Math.abs(value) * 100))
-    let whole    = decimal ? cents / 100 : cast(u64, Math.abs(value))
+    let whole    = decimal ? cents / 100 : cast(u64, Math.round(Math.abs(value)))
+    let negative = value < 0 and (decimal ? cents : whole) != 0
     var digits   = Format.toString("%", whole)
     var result: String
     for byte, at in digits.toString()

@@ -149,6 +149,43 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     Swag.require(eac3.numChannels() == 3 and eac3.speakerChannelMask() == 0x0103)
 }
 
+// E-AC-3 rejects frames too short to contain their six-byte sync header.
+#test
+{
+    var frame: [8] u8
+    frame[0] = 0x0B
+    frame[1] = 0x77
+    frame[3] = 0 // frame size code zero declares only two bytes.
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("dolby-short-eac3-%.eac3", Guid128.random()))
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, frame)
+
+    var error: Swag.Error
+    discard catch SoundFile.load(path.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
+// The reserved reduced E-AC-3 sample-rate index is rejected by the reader.
+#test
+{
+    var frame: [8] u8
+    frame[0] = 0x0B
+    frame[1] = 0x77
+    frame[3] = 3 // Eight-byte frame, enough to reach the sampling-rate fields.
+    frame[4] = 0xF0 // fscod 3, reserved fscod2 3.
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("dolby-eac3-rate-%.eac3", Guid128.random()))
+    defer discard catch File.delete(path)
+    discard expect File.writeAllBytes(path, frame)
+
+    var error: Swag.Error
+    discard catch SoundFile.load(path.toString()) as error
+    Swag.require(error.value() is InvalidFormatError)
+}
+
 // Reserved AC-3 bandwidth codes must fail before their exponent groups exceed the 256-bin arrays.
 #test
 {

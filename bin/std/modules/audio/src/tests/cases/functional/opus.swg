@@ -93,6 +93,42 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(total == 48_000 + 312)
 }
 
+// All four RFC 6716 frame-packing codes accept empty DTX frames and preserve their sample counts.
+#test
+{
+    let configSound = expect SoundFile.load(audioGetTestDataPath("opus-mono-silk.opus").toString())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp),
+                            Format.toString("audio-opus-frame-codes-%.bin", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+
+    var bytes:   Array'u8
+    var packets: Array'SoundPacket
+    const Frames: [4] u32 = [960, 1920, 1920, 1920]
+    const Codes:  [4] [2] u8 = [[0x08, 0], [0x09, 0], [0x0A, 0], [0x0B, 2]]
+    const Sizes:  [4] u32 = [1, 1, 2, 2]
+    for index in Frames.count
+    {
+        let offset = bytes.count
+        bytes.add(Swag.makeSlice(&Codes[index][0], Sizes[index]))
+        packets.add(SoundPacket{offset, Sizes[index], Frames[index]})
+    }
+    expect File.writeAllBytes(path.toString(), bytes.toSlice())
+
+    const TotalFrames = 6_720'u64
+    let sound = expect SoundFile.openPacketStream(path.toString(), .Opus, 48_000, 1,
+                                                   TotalFrames, packets.toSlice(),
+                                                   configSound.decoderConfig.toSlice())
+    var decoded: Array's16
+    expect sound.decodePcm16(func|decoded = &decoded|(part: const [..] s16)->bool
+    {
+        decoded.add(part)
+        return true
+    })
+    Swag.require(decoded.count == TotalFrames)
+    for sample in decoded do
+        Swag.require(sample == 0)
+}
+
 // A voice restarts on the run before the target and discards up to it, so the samples heard after
 // a seek are the ones a decode from the start reaches at that position.
 #test

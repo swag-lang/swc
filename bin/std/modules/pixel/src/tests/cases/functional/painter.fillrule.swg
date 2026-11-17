@@ -61,6 +61,32 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
     return renderCpu(40, 40, &painter)
 }
 
+// Cleaning a counterclockwise concave contour for fill does not rewrite its cached winding.
+#test
+{
+    var path: LinePath
+    path.start(4, 4)
+    path.lineTo(4, 28)
+    path.lineTo(12, 28)
+    path.lineTo(12, 12)
+    path.lineTo(28, 12)
+    path.lineTo(28, 4)
+    path.close()
+    Swag.require(not path.polygon.isClockwise and not path.polygon.isConvex)
+
+    var painter: Painter
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Argb.Zero)
+    painter.fillPolygon(&path, Argb.Red)
+    painter.end()
+
+    Swag.require(not path.polygon.isClockwise)
+    let image = renderCpu(40, 40, &painter)
+    assertPixel(image, 8, 20, Argb.Red)
+    assertPixel(image, 20, 20, Argb.Zero)
+}
+
 // A simple concave contour is borrowed only while recording. Its cached tessellation survives
 // repeated fills, and the recorded vertices remain valid after the source contour is dropped.
 #test

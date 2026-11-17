@@ -186,6 +186,11 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     var source = Image.create(37, 29, .BGRA8)
     for index in source.byteCount do
         source.pixels[index] = cast(u8, ((index * 53 + 11) & 0xFF))
+    var metadata: ImageMetadata
+    metadata.signature = 42
+    metadata.tag       = "opaque"
+    metadata.value.add(0x5A'u8)
+    source.metadata.add(#move metadata)
 
     var target = Image.create(5, 7, .RGB8)
     for mode in [Image.ResizeMode.Nearest, Image.ResizeMode.Bilinear, Image.ResizeMode.Bicubic]
@@ -194,6 +199,8 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
         source.resizedInto(&target, 19, 0, mode)
         assertImage(target, expected.width, expected.height, .BGRA8)
         Swag.require(target.alphaMode == source.alphaMode)
+        Swag.require(target.metadata.count == 1 and target.metadata[0].value[0] == 0x5A)
+        Swag.require(expected.metadata.count == target.metadata.count)
         Swag.require(Memory.compare(target.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
     }
 

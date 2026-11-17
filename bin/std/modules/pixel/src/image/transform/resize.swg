@@ -62,14 +62,15 @@ public impl Image
         using ResizeTools
         var result: #returntype = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
         ResizeTools.doResize(&result, me, mode)
+        result.metadata = .metadata
         return result
     }
 
     // Writes a resized copy into `target`, reusing its pixel storage when it can.
     //
     // The result is the image [[Pixel.Image.resized]] returns for the same arguments, including
-    // the aspect-preserving zero dimension. `target` takes this image's pixel format and alpha
-    // mode, and its previous pixels are replaced. Its storage is kept when it already has the
+    // the aspect-preserving zero dimension. `target` takes this image's pixel format, alpha mode
+    // and metadata, and its previous pixels are replaced. Its storage is kept when it already has the
     // resulting size, format and alpha mode, so resizing successive frames into one target
     // allocates no picture after the first. `target` must not be this image; use
     // [[Pixel.Image.resize]] to resize in place.
@@ -86,6 +87,7 @@ public impl Image
         {
             target[] = create(nw, nh, .pixelFormat, alphaMode: me.alphaMode)
         }
+        target.metadata = .metadata
 
         if nw == .width and nh == .height
         {

@@ -92,7 +92,8 @@ Four codecs ship in the box:
   sequential frame slots, zero through four separately encoded sound tracks, arbitrary PCM
   chunks, AAC priming when audio is present, and fragmented MP4 finalization.
   Its optional [[Video.Mp4.SoftwareVideoRateControl]] adapts per-picture QP toward an average
-  video rate and reports the selected QP; it does not promise a fixed packet size or file size.
+  video rate and reports the selected QP and cumulative H.264 packet bytes; it does not promise a
+  fixed packet size or file size.
   [[Video.FramePacer]] assigns monotonic capture timestamps to exact constant-rate video slots
   and reports skipped frames without retaining pictures.
 - Matroska (`.mkv`) reads H.264, H.265, MPEG-4 Part 2, and RealVideo 4 pictures and exposes every AAC-LC, AC-3,

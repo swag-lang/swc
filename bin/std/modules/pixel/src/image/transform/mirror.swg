@@ -70,6 +70,7 @@ impl Image
         Swag.assert(.pixels.buffer != null)
         var result: #returntype = create(.width, .height, .pixelFormat, alphaMode: me.alphaMode)
         .doMirror(&result)
+        result.metadata = .metadata
         return result
     }
 }

@@ -388,8 +388,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   readback; codec-only timing does not choose the end-to-end slice count.
   `Mp4.SoftwareRecording` now accepts an optional `SoftwareVideoRateControl` with a target rate,
   reservoir capacity and bounded QP range. It feeds each completed packet's byte count and exact
-  frame-slot duration back into the controller, exposes the chosen QP, and prevalidates budget
-  arithmetic before encoding. Focused tests cover QP adaptation and bounds, repeated capture
+  frame-slot duration back into the controller, exposes the chosen QP and cumulative H.264 packet
+  bytes, and prevalidates budget arithmetic before encoding. Focused tests cover QP adaptation and
+  bounds, repeated capture
   slots, and a finalized fragmented MP4. This controls average rate; it cannot bound one packet or
   guarantee a file size when even QP 51 falls back to PCM, and the recorder has no scene-cut
   detection. Treat a failed MP4 packet submission as terminal or make submission transactional.

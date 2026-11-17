@@ -37,6 +37,14 @@ impl Plane3
         return Plane3{unitNormal, unitNormal.dot(point)}
     }
 
+    // Creates the plane through three non-collinear points.
+    func fromPoints(a, b, c: Vector3)->Plane3
+    {
+        let normal = (b - a).cross(c - a).normalizedOrZero()
+        Swag.assert(not normal.isZero())
+        return Plane3{normal, normal.dot(a)}
+    }
+
     // Returns the signed distance of `point` from this plane.
     mtd const signedDistanceTo(point: Vector3)->f32 => .normal.dot(point) - .distance
 
@@ -91,6 +99,13 @@ impl Sphere3
             return false
         return .center.distanceSquaredTo(bounds.closestPoint(.center)) <= .radius * .radius
     }
+
+    // Returns whether this sphere touches or crosses `plane`.
+    mtd const intersects(plane: Plane3)->bool
+    {
+        Swag.assert(.radius >= 0)
+        return Math.abs(plane.signedDistanceTo(.center)) <= .radius
+    }
 }
 
 // An axis-aligned 3D box described by inclusive minimum and maximum corners.
@@ -108,6 +123,39 @@ impl Bounds3
 
     // Returns whether every minimum component is no greater than its matching maximum.
     mtd const isValid()->bool => .min.x <= .max.x and .min.y <= .max.y and .min.z <= .max.z
+
+    // Returns the side lengths, or zero for an invalid box.
+    mtd const size()->Vector3
+    {
+        if not .isValid() do
+            return Vector3.Zero
+        return .max - .min
+    }
+
+    // Returns the midpoint, or zero for an invalid box.
+    mtd const center()->Vector3
+    {
+        if not .isValid() do
+            return Vector3.Zero
+        return (.min + .max) * 0.5
+    }
+
+    // Returns half of each side length, or zero for an invalid box.
+    mtd const extents()->Vector3 => .size() * 0.5
+
+    // Returns the volume, or zero for an invalid box.
+    mtd const volume()->f32
+    {
+        let dimensions = .size()
+        return dimensions.x * dimensions.y * dimensions.z
+    }
+
+    // Returns the total surface area, or zero for an invalid box.
+    mtd const surfaceArea()->f32
+    {
+        let dimensions = .size()
+        return 2 * (dimensions.x * dimensions.y + dimensions.y * dimensions.z + dimensions.z * dimensions.x)
+    }
 
     // Returns whether this box contains `point`, including its boundary.
     mtd const contains(point: Vector3)->bool
@@ -128,6 +176,19 @@ impl Bounds3
 
     // Returns whether this box overlaps `sphere`, including tangency.
     mtd const intersects(sphere: Sphere3)->bool => sphere.intersects(me)
+
+    // Returns whether this box touches or crosses `plane`.
+    mtd const intersects(plane: Plane3)->bool
+    {
+        if not .isValid() do
+            return false
+        let center = .center()
+        let extents = .extents()
+        let projectedRadius = Math.abs(plane.normal.x) * extents.x +
+                              Math.abs(plane.normal.y) * extents.y +
+                              Math.abs(plane.normal.z) * extents.z
+        return Math.abs(plane.signedDistanceTo(center)) <= projectedRadius
+    }
 
     // Returns the nearest point in this box to `point`; an invalid box returns `point` unchanged.
     mtd const closestPoint(point: Vector3)->Vector3

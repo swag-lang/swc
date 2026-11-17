@@ -416,8 +416,8 @@ impl Source
     // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
-    // Returns the age of the latest delivered frame in monotonic microseconds. Zero means no frame has been delivered
-    // or less than one microsecond has elapsed; check lastFrameCaptureMicroseconds() to distinguish those cases.
+    // Returns the latest fresh frame's age in monotonic microseconds; zero can mean no frame or an age under one microsecond.
+    // Check lastFrameCaptureMicroseconds() to distinguish those cases.
     // Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.
     mtd const frameAgeMicroseconds()->u64 => frameAgeAt(Time.monotonicMicroseconds(), .lastFrameCaptureTime)
 

@@ -3239,7 +3239,7 @@ impl RenderCpu
     // the caller handed over.
     internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
-        if view.width <= 0 or view.height <= 0 do
+        if not view.isValidLayout() do
             return {}
 
         var image = Image.create(view.width, view.height, .RGB8)
@@ -3260,7 +3260,7 @@ impl RenderCpu
     // Converts a planar picture into the surface that holds it.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
-        if not texture.isValid() or view.width != texture.width or view.height != texture.height do
+        if not view.isValidLayout() or not texture.isValid() or view.width != texture.width or view.height != texture.height do
             return false
         if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
            (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or

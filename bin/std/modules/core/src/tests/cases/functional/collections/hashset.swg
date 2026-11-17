@@ -143,6 +143,24 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
     Swag.require(values.contains(1) and values.contains(2) and values.contains(3))
 }
 
+// Clearing after a removal drops tombstones and leaves the allocated table reusable.
+#test
+{
+    var values: HashSet's32
+    values.add(1)
+    values.add(2)
+    values.add(3)
+    values.remove(2)
+    let capacity = values.capacity
+
+    values.clear()
+    Swag.require(values.isEmpty() and values.capacity == capacity)
+    Swag.require(not values.contains(1) and not values.contains(2) and not values.contains(3))
+
+    values.add(2)
+    Swag.require(values.count == 1 and values.contains(2))
+}
+
 #test
 {
     var moved: String = "beta"

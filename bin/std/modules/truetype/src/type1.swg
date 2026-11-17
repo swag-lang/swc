@@ -237,7 +237,7 @@ private func isHexPrivateSection(data: const [..] u8)->bool
 }
 
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
-private func readCharstringData(data: const [..] u8, from: u64, lenIV: u64)->{ bytes: Array'u8, next: u64 } fail
+func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Array'u8, next: u64 } fail
 {
     var result: #returntype
     let length = readPostScriptNumber(data, from)
@@ -257,12 +257,16 @@ private func readCharstringData(data: const [..] u8, from: u64, lenIV: u64)->{ b
         return result
     }
 
-    result.bytes = eexecDecrypt(try getSlice(data, start, size), EexecCharstringKey, lenIV)
+    let encrypted = try getSlice(data, start, size)
+    if lenIV < 0 do
+        result.bytes.add(encrypted)
+    else do
+        result.bytes = eexecDecrypt(encrypted, EexecCharstringKey, cast(u64, lenIV))
     result.next  = start + size
     return result
 }
 
-private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: u64) fail
+private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: s32) fail
 {
     let marker = findBytes(data, 0, "/Subrs")
     if marker >= data.count do
@@ -293,7 +297,7 @@ private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: u64) 
 // The name every font reserves for the glyph drawn in place of one it does not have.
 private const NotDefName = ".notdef"
 
-private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV: u64) fail
+private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV: s32) fail
 {
     var pos = findBytes(data, 0, "/CharStrings")
     if pos >= data.count do
@@ -496,13 +500,13 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
     let decrypted = privateSection.toSlice()
 
     // Charstrings carry random padding of their own; the private section states how much.
-    var lenIV  = 4'u64
+    var lenIV  = 4's32
     let lenPos = findBytes(decrypted, 0, "/lenIV")
     if lenPos < decrypted.count
     {
         let value = readPostScriptNumber(decrypted, lenPos + 6)
-        if value.value >= 0 and value.value <= 16 do
-            lenIV = cast(u64, value.value)
+        if value.value == -1 or (value.value >= 0 and value.value <= 255) do
+            lenIV = cast(s32, value.value)
     }
 
     try parseType1Subrs(&result, decrypted, lenIV)

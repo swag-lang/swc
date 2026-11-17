@@ -9,6 +9,8 @@ const TAG_GPOS = imageTag('G'u32, 'P'u32, 'O'u32, 'S'u32)
 const TAG_HEAD = imageTag('h'u32, 'e'u32, 'a'u32, 'd'u32)
 const TAG_HHEA = imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32)
 const TAG_HMTX = imageTag('h'u32, 'm'u32, 't'u32, 'x'u32)
+const TAG_VHEA = imageTag('v'u32, 'h'u32, 'e'u32, 'a'u32)
+const TAG_VMTX = imageTag('v'u32, 'm'u32, 't'u32, 'x'u32)
 const TAG_LOCA = imageTag('l'u32, 'o'u32, 'c'u32, 'a'u32)
 const TAG_MAXP = imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
 const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
@@ -62,6 +64,7 @@ struct FaceImpl
     fontData:         Array'u8
     tables:           Array'TableRecord
     glyphMetrics:     Array'GlyphMetric
+    verticalGlyphMetrics: Array'GlyphVerticalMetrics
     glyphLocations:   Array'u32
     late chosenCMap:  const [..] u8
     cmapFormat:       u16
@@ -69,6 +72,7 @@ struct FaceImpl
     numLongMetrics:   u16
     lineGap:          s16
     macStyle:         u16
+    hasVerticalMetrics: bool
     indexToLocFormat: s16
 
     // Format-14 subtable holding the Unicode variation sequences, when the face
@@ -117,6 +121,7 @@ impl FaceImpl
         .fontData.free()
         .tables.free()
         .glyphMetrics.free()
+        .verticalGlyphMetrics.free()
         .glyphLocations.free()
         .outlinePoints.free()
         .outlineTags.free()

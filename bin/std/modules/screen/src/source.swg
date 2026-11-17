@@ -2,6 +2,13 @@
 
 using Core, Core.Errors, Pixel
 
+// Validates dimensions before a native source or image storage is allocated.
+internal func validateSourceOptions(options: SourceOptions) fail
+{
+    if options.width <= 0 or options.height <= 0 or options.width > 0x7FFFFFFF's32 / 4 do
+        fail BadParameterError{"screen source needs positive dimensions"}
+}
+
 #[Swag.Inline]
 internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCount: u64)
 {
@@ -66,6 +73,7 @@ struct Source
         pictures: Array'Image
         composed: Image
         composeMicroseconds: u64
+        lastFrameCaptureTime: u64
         mirroredPixels:       u64
         mirroredImage:        u64
         mirroredStorage:      u64
@@ -80,8 +88,7 @@ impl Source
     // Rejects invalid dimensions, unavailable displays and capture permission failures.
     func open(options: SourceOptions)->Source fail
     {
-        if options.width <= 0 or options.height <= 0 or options.width > 0x7FFFFFFF's32 / 4 do
-            fail BadParameterError{"screen source needs positive dimensions"}
+        try validateSourceOptions(options)
         var result: #returntype
         result.options = options
         #static if #os == Swag.TargetOs.Windows
@@ -112,6 +119,21 @@ impl Source
             try result.addPart(options)
         }
         return result
+    }
+
+    // Opens a source for one currently enumerated physical monitor.
+    //
+    // `monitorIndex` uses the current order from [[Core.Env.getMonitors]] and is not a persistent display identifier.
+    // The source captures that monitor's full physical bounds and can fail if the display is unavailable.
+    // `includeCursor` requests pointer composition where supported and defaults to false.
+    func openMonitor(monitorIndex: u64, includeCursor: bool = false)->Source fail
+    {
+        let monitors = Env.getMonitors()
+        if monitorIndex >= monitors.count do
+            fail BadParameterError{"screen monitor index is unavailable"}
+        let bounds = monitors[monitorIndex].physicalBounds
+        return try .open({cast(s32, bounds.x), cast(s32, bounds.y), cast(s32, bounds.width),
+                          cast(s32, bounds.height), includeCursor})
     }
 
     private mtd addPart(options: SourceOptions) fail
@@ -154,8 +176,13 @@ impl Source
             {
                 let native = .sources[0]
                 if native.options.x == .options.x and native.options.y == .options.y and
-                   native.options.width == .options.width and native.options.height == .options.height do
-                    return try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
+                   native.options.width == .options.width and native.options.height == .options.height
+                {
+                    let captured = try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
+                    if captured do
+                        .lastFrameCaptureTime = Time.monotonicMicroseconds()
+                    return captured
+                }
             }
         }
         let first = .composed.width != .options.width or .composed.height != .options.height or
@@ -211,6 +238,8 @@ impl Source
         if mirroring
         {
             .mirrorReady = true
+            if fresh do
+                .lastFrameCaptureTime = Time.monotonicMicroseconds()
             return fresh
         }
         if target.width != .options.width or target.height != .options.height or target.pixelFormat != .BGRA8 do
@@ -226,8 +255,17 @@ impl Source
             .mirroredStorage = cast(u64, target.pixels.storage())
             .mirrorReady = true
         }
+        if fresh do
+            .lastFrameCaptureTime = Time.monotonicMicroseconds()
         return fresh
     }
+
+    // Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.
+    //
+    // The value uses the same microsecond clock as [[Core.Time.monotonicMicroseconds]]. It records when
+    // `grabInto` received a fresh frame, not the display's presentation time, and remains unchanged when
+    // a grab returns false. Reopening the source resets it to zero.
+    mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
     // Returns cumulative native and composition timing since this source was opened.
     mtd const metrics()->SourceMetrics
@@ -259,6 +297,7 @@ impl Source
     // Reopens a source after a display change or native access loss.
     mtd reopen() fail
     {
+        .lastFrameCaptureTime = 0
         #static if #os == Swag.TargetOs.Windows
         {
             for index in .sources.count do

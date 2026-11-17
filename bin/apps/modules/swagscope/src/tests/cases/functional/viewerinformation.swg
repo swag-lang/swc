@@ -298,3 +298,54 @@ func assertInformationParity(name: string)
     Swag.require(window.information.entry.size == (expect File.info(file)).size)
     Swag.require(Utf8.contains(window.infoSheet.text(), "2 lines"))
 }
+
+private var g_ProbeDescriptions: u32
+private var g_ProbeServices:     Viewer.HostServices
+
+// A viewer that only counts how often the host has it describe the information sheet.
+private func createProbeViewer(host: Viewer.Host)
+{
+    host.attachView(Wnd.create'Wnd(host.contentParent()))
+    host.setDetails("Probe")
+    host.setInformation(func||(_) { g_ProbeDescriptions += 1 })
+    g_ProbeServices = host.services()
+}
+
+// A summary repeated as it stands leaves an open sheet alone. A new summary, or a viewer saying
+// its contribution changed, has the sheet described again.
+#test
+{
+    var registry = createViewerPluginRegistry()
+    with var plugin: Viewer.Plugin
+    {
+        .key          = "probe"
+        .staticName   = "Probe"
+        .iconAtlas    = viewerIcons()
+        .create       = &createProbeViewer
+        .smokeFixture = "sample.probe"
+        .addSelectors(".probe")
+    }
+
+    expect registry.register(#move plugin)
+    let file = Testing.tempFilePath("scope-information-probe-", ".probe")
+    defer discard catch File.delete(file)
+    discard expect File.writeAllText(file, "probe")
+    var host: Testing.HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, #move registry)
+    window.openFile(file, remember: false)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "probe")
+    window.toggleInformation()
+    Swag.require(window.infoSheet.isLocallyVisible() and g_ProbeDescriptions != 0)
+
+    let view   = unwrap window.instances[window.activeChoiceIndex].view
+    let opened = g_ProbeDescriptions
+    g_ProbeServices.showDetails(view, "Probe")
+    Swag.require(g_ProbeDescriptions == opened)
+    g_ProbeServices.informationChanged(view)
+    Swag.require(g_ProbeDescriptions > opened)
+    let marked = g_ProbeDescriptions
+    g_ProbeServices.showDetails(view, "Probe 2")
+    Swag.require(g_ProbeDescriptions > marked)
+}

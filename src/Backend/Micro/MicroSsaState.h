@@ -208,6 +208,8 @@ private:
     MicroPassHelpers::NaturalLoopMap loops_;
     // Reused across builds: every entry is cleared before it is read.
     std::vector<SmallVector4<uint32_t>> defBlocksByReg_;
+    // Registers with collected frontier-relevant definitions; cleared at the next placement.
+    std::vector<uint32_t> phiActiveDefRegs_;
     // Phi placement and renaming overwrite these workspaces on every build.
     std::vector<uint32_t> phiInWorkStamps_;
     std::vector<uint32_t> phiHasPhiStamps_;

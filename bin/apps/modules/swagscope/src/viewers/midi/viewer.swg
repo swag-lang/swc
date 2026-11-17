@@ -107,11 +107,15 @@ struct Panel
 
 private impl Panel
 {
-    // Writes the horizontal scale: a whole score fitted to the window says so, since the share of
-    // an arbitrary reference width it stands at means nothing to a reader.
+    // Returns the horizontal scale of the roll in percent, as the zoom readout shows it: 100 % is
+    // the timeline at its natural width, which a whole score fitted to the window never exceeds.
+    mtd zoomPercent()->u32 => cast(u32, Math.round(.roll.zoom * 100))
+
+    // Writes the horizontal scale, as a number even while the score is fitted, as every other
+    // viewer's readout does.
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Viewer.zoomText(cast(u32, Math.round(.roll.zoom * 100))))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent()))
     }
 
     mtd retranslate()
@@ -142,17 +146,20 @@ private impl Panel
         .services.showDetails(me, .details)
     }
 
+    // Offers the zoom presets and the fit, with the level in use and the fit checked, as the lens
+    // checks them.
     mtd showZoomMenu()
     {
         if not .hasRoll() do
             return
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100 %", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200 %", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        let menu    = MenuCtrl.createPopup(me, owner: me)
+        let percent = .zoomPercent()
+        menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 25)
+        menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
+        menu.addItem("100 %", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
+        menu.addItem("200 %", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .roll.fit)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.midi.zoom25":  .roll.applyZoom(0.25)
@@ -215,9 +222,9 @@ impl Panel
     {
         let missing = not .hasRoll()
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
-        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, disabled: missing or not .roll.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing or not .roll.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, checked: not missing and .zoomPercent() == 100, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .D0))
         entries.add(texts().ui_Fit, .FitView, func|view = me|() { view.roll.zoomToFit() }, checked: not missing and .roll.fit, disabled: missing, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() }, disabled: missing)
     }

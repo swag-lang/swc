@@ -52,6 +52,8 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
 {
     for &instance in embeddedViewerFor(view).instances where instance.view == view
     {
+        // The sheet gives the summary, so only a new one is worth describing it again.
+        let changed = instance.details != details
         instance.details = details
         let embedded = embeddedViewerFor(view)
         if embedded.currentView == view
@@ -60,13 +62,24 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
             embedded.titleLabel.toolTip = details
         }
 
-        if embedded.informationOnly
+        if changed and embedded.informationOnly
         {
             let information = embedded.owner.information
             information.postRefresh()
         }
 
         return
+    }
+}
+
+// Describes the owner's sheet again when it presents this viewer's contribution.
+private func reportEmbeddedInformationChanged(view: *Wnd)
+{
+    let embedded = embeddedViewerFor(view)
+    if embedded.informationOnly
+    {
+        let information = embedded.owner.information
+        information.postRefresh()
     }
 }
 
@@ -94,10 +107,11 @@ private func embeddedHostServices()->Viewer.HostServices
 {
     with var result: #returntype
     {
-        .reportFailure        = &reportEmbeddedFailure
-        .reportDetails        = &reportEmbeddedDetails
-        .reportChromeChanged  = &reportEmbeddedChromeChanged
-        .reportLoadingChanged = &reportEmbeddedLoadingChanged
+        .reportFailure            = &reportEmbeddedFailure
+        .reportDetails            = &reportEmbeddedDetails
+        .reportInformationChanged = &reportEmbeddedInformationChanged
+        .reportChromeChanged      = &reportEmbeddedChromeChanged
+        .reportLoadingChanged     = &reportEmbeddedLoadingChanged
     }
 
     return result

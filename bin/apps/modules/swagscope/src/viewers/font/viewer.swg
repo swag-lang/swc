@@ -345,7 +345,7 @@ private impl IWnd for Panel
 
         .document            = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
         .document.pageStarts = #move content.pageStarts
-        .document.sigMarked  += func|view = me|(_) { view.services.showDetails(view, view.details) }
+        .document.sigMarked  += func|view = me|(_) { view.services.informationChanged(view) }
         content.face         = null
         .details             = #move content.details
         .facts               = content.facts

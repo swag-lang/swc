@@ -40,23 +40,23 @@ impl Capture
         return result
     }
 
-    // Returns the box around the selected forms, or around `editForm` when it is given.
+    // Returns the box around the selected forms, or around `editForm` when it is given. An empty
+    // selection has an empty box.
     mtd getSelectionBoundRect(editForm: IForm? = null)->Math.Rectangle
     {
         if editForm do
             return editForm.boundRect()
 
-        var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
+        var result: #returntype
         foreachSelected'BaseForm(me, .selection)
         {
-            let r = itf.boundRect()
-            bound.x = Math.min(bound.x, r.x)
-            bound.y = Math.min(bound.y, r.y)
-            bound.setRight(Math.max(bound.right(), r.right()))
-            bound.setBottom(Math.max(bound.bottom(), r.bottom()))
+            if idx == 0 do
+                result = itf.boundRect()
+            else do
+                result.combine(itf.boundRect())
         }
 
-        return bound
+        return result
     }
 
     // The coordinates a moved point can snap to: the canvas edges and middle, and the edges or

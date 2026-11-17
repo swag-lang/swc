@@ -2,11 +2,12 @@
 
 using Swag, Core
 
-// Builds a planar 4:2:0 picture of one flat colour, in the studio range a codec produces.
-func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, chromaR: u8)->YuvPlanarView
+// Builds a planar 4:2:0 or 4:4:4 picture of one flat colour in the studio range.
+func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, chromaR: u8, chromaShift: s32 = 1)->YuvPlanarView
 {
-    let chromaWidth  = cast(u64, ((width + 1) / 2))
-    let chromaHeight = cast(u64, ((height + 1) / 2))
+    let divisor      = 1's32 << chromaShift
+    let chromaWidth  = cast(u64, (width / divisor + (width % divisor != 0 ? 1 : 0)))
+    let chromaHeight = cast(u64, (height / divisor + (height % divisor != 0 ? 1 : 0)))
     let lumaSize     = cast(u64, width) * cast(u64, height)
     let chromaSize   = chromaWidth * chromaHeight
 
@@ -22,7 +23,8 @@ func flatPlanarPicture(storage: *Array'u8, width, height: s32, luma, chromaB, ch
         lumaStride: cast(u64, width),
         chromaStride: chromaWidth,
         width: width,
-        height: height}
+        height: height,
+        chromaShift: chromaShift}
 }
 
 // Returns what the conversion answers for one sample, which is what a drawn picture must show.
@@ -106,7 +108,7 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
 {
     var storage: Array'u8
     storage.resize(3)
-    var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage(), chromaR: storage.storage(), lumaStride: 1, chromaStride: 1, width: 4, height: 6}
+    var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage(), chromaR: storage.storage(), lumaStride: Swag.S32.Max, chromaStride: 1_073_741_824, width: 4, height: 6}
     Swag.require(view.chromaWidth() == 2 and view.chromaHeight() == 3)
     view.width  = 5
     view.height = 7
@@ -301,8 +303,8 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     var pixels = renderer.readTexturePixels(texture, .RGB8)
     Swag.require(pixels.count == original.count and Memory.compare(pixels.storage(), original.storage(), original.count) == 0)
 
-    var differentChroma = flatPlanarPicture(&secondStorage, 2, 2, 235, 128, 128)
-    differentChroma.chromaShift = 0
+    var differentChroma = flatPlanarPicture(&secondStorage, 2, 2, 235, 128, 128, 0)
+    Swag.require(differentChroma.isValidLayout())
     Swag.require(not renderer.updateTexture(texture, &differentChroma))
     pixels = renderer.readTexturePixels(texture, .RGB8)
     Swag.require(pixels.count == original.count and Memory.compare(pixels.storage(), original.storage(), original.count) == 0)
@@ -311,4 +313,27 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     Swag.require(renderer.updateTexture(texture, &compatible))
     pixels = renderer.readTexturePixels(texture, .RGB8)
     Swag.require(pixels.count == original.count and pixels[0] >= 250)
+
+    var unsupportedLayout = flatPlanarPicture(&firstStorage, 2, 2, 235, 128, 128)
+    unsupportedLayout.chromaShift = 2
+    Swag.require(not unsupportedLayout.isValidLayout())
+    let rejected = renderer.addImage(&unsupportedLayout)
+    Swag.require(not rejected.isValid())
+}
+
+// Only 4:2:0 and 4:4:4 layouts may reach the plane address calculations.
+#test
+{
+    var storage: Array'u8
+    var view = flatPlanarPicture(&storage, 4, 4, 120, 128, 128)
+    Swag.require(view.isValidLayout())
+
+    view.chromaShift = -1
+    Swag.require(not view.isValidLayout())
+    view.chromaShift = 2
+    Swag.require(not view.isValidLayout())
+
+    view.chromaShift = 1
+    view.chromaStride -= 1
+    Swag.require(not view.isValidLayout())
 }

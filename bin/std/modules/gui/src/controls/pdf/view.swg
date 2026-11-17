@@ -216,10 +216,6 @@ struct PdfView
 
 internal impl PdfView
 {
-    // One PDF point shown at actual size covers 96/72 logical units: a point is 1/72 inch and
-    // a logical unit is 1/96 inch.
-    const ActualSizeZoom = 96.0'f32 / 72.0
-
     // The size a page whose own boxes cannot be read is laid out at, in PDF points, when no page
     // before it gave a usable one: US Letter, which is what a reader expects of a page it is
     // shown nothing about.
@@ -399,6 +395,15 @@ internal impl PdfView
         .updateCurrentPage()
         .publishZoom()
         .invalidate()
+    }
+
+    // Zooms to `target`, one step from the scale shown, unless the step heads past a limit the
+    // pages already stand at. Any explicit zoom is clamped inside the limits, so a page fitted
+    // beyond one would otherwise move the other way: a zoom in that shrinks it.
+    mtd stepZoom(target: f32, anchor: const *Math.Point? = null)
+    {
+        if target > .effectiveZoom() ? .canZoomIn() : .canZoomOut() do
+            .applyZoom(target, anchor)
     }
 
     // Recomputes the page the viewport shows, and reports it when it changed.
@@ -1172,7 +1177,7 @@ internal impl IWnd for PdfCanvas
             if evt.modifiers.has(.Control)
             {
                 let factor = evt.delta.y > 0 ? 1.12'f32 : 1.0'f32 / 1.12
-                owner.applyZoom(owner.effectiveZoom() * factor, &local)
+                owner.stepZoom(owner.effectiveZoom() * factor, &local)
                 return
             }
 
@@ -1268,6 +1273,13 @@ impl PdfView
     const MinZoom         = 0.05'f32     // Smallest supported scale, in logical units per PDF point.
     const MaxZoom         = 64.0'f32     // Largest supported scale, in logical units per PDF point.
     const WheelScrollStep = 60.0'f32     // Logical units scrolled per wheel notch and per arrow key.
+
+    // Scale of [[Gui.PdfView.actualSize]], in logical units per PDF point.
+    //
+    // A point is 1/72 inch and a logical unit 1/96 inch, so one point covers 96/72 units. A host
+    // that reads the zoom out as a percentage divides [[Gui.PdfView.effectiveZoom]] by this
+    // scale, so that 100 % is the size the page would have printed.
+    const ActualSizeZoom = 96.0'f32 / 72.0
 
     // Creates an empty PDF viewer.
     #[Swag.Discardable]
@@ -1589,17 +1601,35 @@ impl PdfView
         .applyZoom(value)
     }
 
-    // Increases the page scale by one viewer step.
+    // Increases the page scale by one viewer step, up to [[Gui.PdfView.MaxZoom]].
+    //
+    // Nothing changes while [[Gui.PdfView.canZoomIn]] is false.
     mtd zoomIn()
     {
-        .applyZoom(.effectiveZoom() * 1.25)
+        .stepZoom(.effectiveZoom() * 1.25)
     }
 
-    // Decreases the page scale by one viewer step.
+    // Decreases the page scale by one viewer step, down to [[Gui.PdfView.MinZoom]].
+    //
+    // Nothing changes while [[Gui.PdfView.canZoomOut]] is false.
     mtd zoomOut()
     {
-        .applyZoom(.effectiveZoom() / 1.25)
+        .stepZoom(.effectiveZoom() / 1.25)
     }
+
+    // Reports whether [[Gui.PdfView.zoomIn]] would enlarge the pages: they are shown below
+    // [[Gui.PdfView.MaxZoom]].
+    //
+    // A host disables its zoom-in command when this is false. A small page fitted to a large
+    // viewport can already show past the limit.
+    mtd const canZoomIn()->bool => .effectiveZoom() < MaxZoom
+
+    // Reports whether [[Gui.PdfView.zoomOut]] would shrink the pages: they are shown above
+    // [[Gui.PdfView.MinZoom]].
+    //
+    // A host disables its zoom-out command when this is false. A large page fitted to a small
+    // viewport can already show below the limit.
+    mtd const canZoomOut()->bool => .effectiveZoom() > MinZoom
 
     // Fits a whole page inside the viewport and keeps it fitted as the viewport changes.
     mtd zoomToFit()

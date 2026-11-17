@@ -353,8 +353,7 @@ impl Panel
     }
 
     // Gives the host `details` unless they are what it shows already. The pointer sends many moves
-    // over one pixel, or beside the picture, and each report lays the footer out again and
-    // refreshes an open information sheet.
+    // over one pixel, or beside the picture, and the host would only set each repeat aside.
     mtd reportDetails(details: String)
     {
         if details == .reported do
@@ -532,9 +531,10 @@ impl Panel
 
         // The picture zooms by factors, far past the shared bounds, so only actual size, the 100 %
         // of the readout, is the shared row; it reads as chosen while the picture shows at it.
+        // The steps read as unavailable at the picture view's own limits.
         entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, checked: .imageView.isFitted, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, disabled: not .imageView.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, disabled: not .imageView.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.imageView.actualSize() })
         if .imageView.movie.frameCount > 1
         {
@@ -575,15 +575,18 @@ impl Panel
         }
     }
 
+    // Offers the zoom presets and the fit, with the level in use and the fit checked, as the lens
+    // checks them.
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25 %", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("50 %", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100 %", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200 %", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        let menu    = MenuCtrl.createPopup(me, owner: me)
+        let percent = .zoomPercent()
+        menu.addItem("25 %", "scope.image.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 25)
+        menu.addItem("50 %", "scope.image.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
+        menu.addItem("100 %", "scope.image.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
+        menu.addItem("200 %", "scope.image.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(texts().ui_TipFit, "scope.image.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .imageView.isFitted)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.image.zoom25":  .imageView.setZoom(0.25)

@@ -204,6 +204,24 @@ func assertReverseIntTableIteration(table: HashTable'(s32, s32))->bool
     Swag.require(table[1] == 100 and table[2] == 200 and table[3] == 300)
 }
 
+// Clearing after a removal resets tombstones and leaves the table reusable.
+#test
+{
+    var table: HashTable'(s32, s32)
+    table.add(1, 10)
+    table.add(2, 20)
+    table.add(3, 30)
+    table.remove(2)
+    let capacity = table.capacity
+
+    table.clear()
+    Swag.require(table.isEmpty() and table.capacity == capacity)
+    Swag.require(not table.contains(1) and not table.contains(2) and not table.contains(3))
+
+    table.add(2, 200)
+    Swag.require(table.count == 1 and table[2] == 200)
+}
+
 func assertTableStringValue(table: HashTable'(string, String), key: string, expected: string)->bool
 {
     let entry = table.tryFind(key)

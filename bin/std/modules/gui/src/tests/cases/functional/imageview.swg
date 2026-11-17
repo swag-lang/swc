@@ -98,11 +98,36 @@ using Swag, Core, Pixel
     Swag.require(zoomChanges == 1)
 
     view.setZoom(100)
-    Swag.require(view.effectiveZoom() == 64 and zoomChanges == 2)
+    Swag.require(view.effectiveZoom() == ImageView.MaxZoom and zoomChanges == 2)
+    Swag.require(not view.canZoomIn() and view.canZoomOut())
     view.zoomIn()
     Swag.require(zoomChanges == 2)
     host.mouseWheel({150, 100}, 1)
     Swag.require(zoomChanges == 2)
+
+    view.setZoom(0)
+    Swag.require(view.effectiveZoom() == ImageView.MinZoom and view.canZoomIn() and not view.canZoomOut())
+}
+
+// A tiny picture fitted to the view already shows past the largest zoom, so a zoom in leaves it
+// as it is instead of clamping it smaller, and a zoom out still shrinks it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 220)
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
+    var image = Image.create(2, 1, .RGBA8)
+    image.fill(Argb.White)
+    view.setImage(image)
+
+    let fitted = view.effectiveZoom()
+    Swag.require(view.isFitted and fitted > ImageView.MaxZoom)
+    Swag.require(not view.canZoomIn() and view.canZoomOut())
+    view.zoomIn()
+    host.mouseWheel({150, 100}, 1)
+    Swag.require(view.isFitted and view.effectiveZoom() == fitted)
+    view.zoomOut()
+    Swag.require(not view.isFitted and view.effectiveZoom() == ImageView.MaxZoom)
 }
 
 // The frame signal fires only when seeking changes the displayed frame.

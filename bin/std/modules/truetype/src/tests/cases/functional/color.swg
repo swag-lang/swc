@@ -95,6 +95,36 @@ func buildColorFont()->Array'u8
     return result
 }
 
+func buildTwoBaseColorFont(firstBase, secondBase: u16)->Array'u8
+{
+    var source = buildColorFont()
+    let colrRecord = colorTableRecord(&source, TAG_COLR)
+    let colrOffset = cast(u64, readBigU32(&source, colrRecord + 8))
+    let insertion = colrOffset + 32
+
+    var result: Array'u8
+    result.add(Swag.makeSlice(source.buffer, insertion))
+    result.resize(insertion + 8)
+    result.add(Swag.makeSlice(source.buffer + insertion, source.count - insertion))
+
+    let cpalRecord = colorTableRecord(&result, TAG_CPAL)
+    let cpalOffset = readBigU32(&result, cpalRecord + 8)
+    writeBigU32(&result, cpalRecord + 8, cpalOffset + 8)
+
+    var layerRecords: Array'u8
+    layerRecords.add(Swag.makeSlice(result.buffer + colrOffset + 20, 12))
+    writeColorU16(&result, colrOffset + 2, 2)
+    writeBigU32(&result, colrOffset + 8, 26)
+    writeColorU16(&result, colrOffset + 14, firstBase)
+    writeColorU16(&result, colrOffset + 20, secondBase)
+    writeColorU16(&result, colrOffset + 22, 0)
+    writeColorU16(&result, colrOffset + 24, 3)
+    Memory.copy(cast(*void, result.storage() + colrOffset + 26),
+                cast(const *void, unwrap layerRecords.buffer), 12)
+    writeBigU32(&result, colrRecord + 12, 38)
+    return result
+}
+
 func buildCompositeColorFont(firstGlyph, secondGlyph, thirdGlyph: u16)->Array'u8
 {
     var result = buildColorFont()
@@ -214,6 +244,37 @@ func blendExpectedColor(destination, source: u32, coverage: u8)->u32
     var badPaletteRange: Swag.Error
     discard catch paletteFace.getColorLayers(36) as badPaletteRange
     Swag.require(badPaletteRange.value() != null)
+
+    var emptyPaletteBytes = buildColorFont()
+    let emptyColrRecord = colorTableRecord(&emptyPaletteBytes, TAG_COLR)
+    let emptyColrOffset = cast(u64, readBigU32(&emptyPaletteBytes, emptyColrRecord + 8))
+    for index in 3 do
+        writeColorU16(&emptyPaletteBytes, emptyColrOffset + 22 + cast(u64, index) * 4, 0xFFFF)
+    let emptyCpalRecord = colorTableRecord(&emptyPaletteBytes, TAG_CPAL)
+    let emptyCpalOffset = cast(u64, readBigU32(&emptyPaletteBytes, emptyCpalRecord + 8))
+    writeColorU16(&emptyPaletteBytes, emptyCpalOffset + 12, 3)
+    let emptyPaletteFace = expect Face.load(emptyPaletteBytes.toSlice())
+    defer emptyPaletteFace.destroy()
+    var invalidEmptyPalette: Swag.Error
+    discard catch emptyPaletteFace.getColorLayers(36) as invalidEmptyPalette
+    Swag.require(invalidEmptyPalette.value() != null)
+}
+
+#test
+{
+    var duplicateBytes = buildTwoBaseColorFont(36, 36)
+    let duplicateFace = expect Face.load(duplicateBytes.toSlice())
+    defer duplicateFace.destroy()
+    var duplicate: Swag.Error
+    discard catch duplicateFace.getColorLayers(36) as duplicate
+    Swag.require(duplicate.value() != null)
+
+    var unsortedBytes = buildTwoBaseColorFont(37, 36)
+    let unsortedFace = expect Face.load(unsortedBytes.toSlice())
+    defer unsortedFace.destroy()
+    var unsorted: Swag.Error
+    discard catch unsortedFace.getColorLayers(36) as unsorted
+    Swag.require(unsorted.value() != null)
 }
 
 #test

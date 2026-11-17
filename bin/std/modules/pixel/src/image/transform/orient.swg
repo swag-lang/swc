@@ -35,4 +35,14 @@ impl Image
             .rotate(.Clockwise270)
         }
     }
+
+    // Returns an upright copy of the image for an EXIF `Orientation` value.
+    //
+    // The source is unchanged. Values outside 2 to 8 return an identical copy.
+    public mtd const oriented(orientation: u32)->Image
+    {
+        var result: #returntype = me
+        result.orient(orientation)
+        return result
+    }
 }

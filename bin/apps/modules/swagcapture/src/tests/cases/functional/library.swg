@@ -40,8 +40,8 @@ impl IAllocator for LibraryRejectAllocator
         contentBottom = Math.max(contentBottom, item.rect.bottom())
     Swag.require(scroll.scrollSize.y == contentBottom + LibraryCellRing)
     let metrics = scroll.themeMetrics()
-    var grip = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,
-                                                 scroll.clientRect().height * 0.65})
+    var grip    = scroll.localToSurface(Math.Point{scroll.clientRect().right() - metrics.scrollBar_EdgeInset - metrics.scrollBar_HitSize + 2,
+                                                   scroll.clientRect().height * 0.65})
     scroll.surface!.surfaceToScreen(&grip)
     f.gui.moveMouse(grip)
     f.gui.mouseDown(grip)
@@ -465,7 +465,7 @@ impl IAllocator for LibraryRejectAllocator
         let capture = Memory.new'Capture()
         capture.width, capture.widthOrg   = 8
         capture.height, capture.heightOrg = 6
-        capture.backImg                   = Gui.Testing.indexedImage(8, 6)
+        capture.backImg = Gui.Testing.indexedImage(8, 6)
         let path = testTempCapturePath()
         capture.file    = path
         capture.changed = true
@@ -492,6 +492,7 @@ impl IAllocator for LibraryRejectAllocator
             fi.lastWriteTime.month = 1
             fi.lastWriteTime.day   = 2
         }
+
         g_Library.files.add(fi)
         paths.add(path)
     }
@@ -527,7 +528,6 @@ impl IAllocator for LibraryRejectAllocator
     // A second fill of the same revision keeps the dates as they are.
     libWnd.fill()
     Swag.require(libWnd.dateFilters.count == 7)
-
 }
 
 // Source metadata, tags, favorites and ratings are first-class filters, and the sort
@@ -1083,6 +1083,7 @@ impl IAllocator for LibraryRejectAllocator
 
     let lib  = f.setupLibraryWnd()
     let view = lib.view
+
     func features(topLeft, topRight, bottomLeft, bottomRight: Color)->ImageStatistics.HaarFeatures
     {
         var image = Image.create(32, 32, .BGRA8)
@@ -1095,9 +1096,9 @@ impl IAllocator for LibraryRejectAllocator
     let down   = testAddLibraryItem(view, "down.scc", 10, 1)
     let nearly = testAddLibraryItem(view, "nearly.scc", 10, 1)
     let gray   = Color.fromRgb(24, 24, 24)
-    across.haar = features(Argb.Black, Argb.White, Argb.Black, Argb.White)
-    down.haar   = features(Argb.Black, Argb.Black, Argb.White, Argb.White)
-    nearly.haar = features(gray, Argb.White, gray, Argb.White)
+    across.haar    = features(Argb.Black, Argb.White, Argb.Black, Argb.White)
+    down.haar      = features(Argb.Black, Argb.Black, Argb.White, Argb.White)
+    nearly.haar    = features(gray, Argb.White, gray, Argb.White)
     lib.sortMethod = .Similar
 
     g_UpdatingLib = true
@@ -1226,7 +1227,7 @@ func testLibraryKey(lib: *Wnd, id: WndId)
     f.setup(registerHeadlessCommands: true)
     defer f.shutdown()
     f.gui.surfaceWnd.view = f.main
-    f.main.libWnd = LibraryWnd.create(f.main)
+    f.main.libWnd         = LibraryWnd.create(f.main)
     let lib = f.main.libWnd
     let wnd = cast(*Wnd, lib)
     lib.setPosition({0, 0, 900, 600})
@@ -1262,6 +1263,7 @@ func testLibraryKey(lib: *Wnd, id: WndId)
         Swag.require(top - previous <= view.items[view.focusItem].rect.height + LibraryRowGap + 0.5)
         previous = top
     }
+
     Swag.require(previous > 0)
 
     for rows - 1
@@ -1270,5 +1272,6 @@ func testLibraryKey(lib: *Wnd, id: WndId)
         discard f.gui.render(lib)
         Swag.require(shown(view))
     }
+
     Swag.require(scroll.scrollPosition().y == 0)
 }

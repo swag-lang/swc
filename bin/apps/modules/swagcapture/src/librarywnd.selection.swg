@@ -12,6 +12,7 @@ impl LibraryWnd
             if not g_Library.removeFile(name.toString()) do
                 failed = true
         }
+
         if failed do
             MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedMoveCaptures)
     }
@@ -265,7 +266,7 @@ impl LibraryWnd
 
     private mtd exportLoadedCapture(capture: *Capture, file: String, folder: String) fail
     {
-        var name  = String.from(Path.fileNameWithoutExtension(file) orelse "capture")
+        var name = String.from(Path.fileNameWithoutExtension(file) orelse "capture")
         capture.editView = .main.editWnd.editView
         switch capture.media
         {
@@ -326,6 +327,7 @@ impl LibraryWnd
             .main.reportProgress(appStrings().msg_ExportingCaptures)
             return
         }
+
         let files = .selectedCaptureFiles()
         if files.isEmpty() do
             return
@@ -379,12 +381,13 @@ impl LibraryWnd
         }
 
         let job = Memory.new'CaptureLoadJob()
-        job.file = file
+        job.file   = file
         .exportJob = job
         job.task.submit(func|job|()
         {
             catch { job.capture = try Capture.load(job.file) } as job.error
-        }, .taskNotifier(&job.task))
+        },
+                        .taskNotifier(&job.task))
     }
 
     private mtd finishExport(completed = false)

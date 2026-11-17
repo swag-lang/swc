@@ -160,7 +160,7 @@ impl IWnd for LibraryWnd
         if videoCopy and evt.task == &videoCopy.task
         {
             .videoCopyJob = null
-            let file = String.from(videoCopy.source)
+            let file   = String.from(videoCopy.source)
             let failed = not videoCopy.error.isEmpty()
             Memory.delete(videoCopy)
             if failed
@@ -173,8 +173,10 @@ impl IWnd for LibraryWnd
                 .exportIndex += 1
                 .startNextExport()
             }
+
             return
         }
+
         let job = .exportJob
         if not job or evt.task != &job.task
         {
@@ -198,21 +200,24 @@ impl IWnd for LibraryWnd
         {
             let name = Format.toString("%.mp4", Path.fileNameWithoutExtension(file) orelse "capture")
             let copy = Memory.new'CaptureVideoCopyJob()
-            copy.source = Capture.mediaPathOf(file, .Video)
-            copy.target = Library.uniqueName(.exportFolder, name)
+            copy.source   = Capture.mediaPathOf(file, .Video)
+            copy.target   = Library.uniqueName(.exportFolder, name)
             .videoCopyJob = copy
             copy.task.submit(func|copy|()
             {
                 catch exportOriginalVideo(copy.source, copy.target) as copy.error
-            }, .taskNotifier(&copy.task))
+            },
+                             .taskNotifier(&copy.task))
             return
         }
+
         catch .exportLoadedCapture(capture, file, .exportFolder)
         {
             .main.reportFailure(appStrings().msg_FailedExportCaptures, file)
             .finishExport()
             return
         }
+
         .exportIndex += 1
         .startNextExport()
     }
@@ -224,6 +229,7 @@ impl IWnd for LibraryWnd
             .wnd.IWnd.onTimerEvent(evt)
             return
         }
+
         .stopTimer(&.exportTimer)
         .startNextExport()
     }
@@ -239,6 +245,7 @@ impl IWnd for LibraryWnd
             job.task.wait()
             Memory.delete(job)
         }
+
         if .exportJob
         {
             let job = .exportJob
@@ -405,8 +412,11 @@ impl LibraryWnd
                 .hintLine.addHint(Input.formatKeyShortcut(.None, .Oem2), texts.hint_Filter)
                 .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_EmptySearchSpace)
             }
-            else do
+            else
+            {
                 .hintLine.addHint(Input.formatKeyShortcut(.Control, .Space), texts.hint_Space)
+            }
+
             return
         }
 

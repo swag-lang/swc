@@ -95,14 +95,22 @@ impl IActionUI for ActionFile
             evt.updatedFields |= .Name | .LongName | .Disabled | .Icon
             evt.name          = capture and capture.media == .Video ? appStrings().act_SaveVideo : appStrings().act_SaveImage
             evt.longName      = capture and capture.media == .Video ? appStrings().act_SaveAsVideo : appStrings().act_SaveAsImage
-            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing) or main.exportJob != null or not main.exportSource.isEmpty() or main.imageWriteJob != null
-            evt.icon          = main.theme().icon(.SaveAs)
+            evt.disabled      = not capture or
+                                (capture.media == .Video and capture.mediaMissing) or
+                                main.exportJob != null or
+                                not main.exportSource.isEmpty() or
+                                main.imageWriteJob != null
+            evt.icon = main.theme().icon(.SaveAs)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
             evt.name          = appStrings().act_SaveAsLinkedImage
-            evt.disabled      = not capture or capture.isTimed() or main.exportJob != null or not main.exportSource.isEmpty() or main.imageWriteJob != null
-            evt.icon          = main.theme().icon(.Export)
+            evt.disabled      = not capture or
+                                capture.isTimed() or
+                                main.exportJob != null or
+                                not main.exportSource.isEmpty() or
+                                main.imageWriteJob != null
+            evt.icon = main.theme().icon(.Export)
 
         case .OpenImage:
             evt.updatedFields |= .Name | .Icon
@@ -158,8 +166,8 @@ impl IActionUI for ActionFile
                 evt.name = appStrings().act_CopyAnimationToClipboard
             else do
                 evt.name = appStrings().act_CopyImageToClipboard
-            evt.disabled      = not capture or (capture.media == .Video and capture.mediaMissing)
-            evt.icon          = main.theme().icon(.Copy)
+            evt.disabled = not capture or (capture.media == .Video and capture.mediaMissing)
+            evt.icon     = main.theme().icon(.Copy)
 
         case .CaptureFileLocation:
             evt.updatedFields |= .Name | .Disabled | .Icon
@@ -255,6 +263,7 @@ impl IActionUI for ActionFile
                     MessageDlg.error(unwrap main.surface, appStrings().msg_FailedCopyCapture, Swag.err)
                     return true
                 }
+
                 main.confirm(appStrings().msg_Copied)
             }
 
@@ -564,7 +573,7 @@ impl MainWnd
     // can be written; empty when the reader cancels.
     mtd getSaveAsImageName()->String
     {
-        let capture = unwrap .getCapture()
+        let capture     = unwrap .getCapture()
         var initialName = String.from(Path.fileNameWithoutExtension(capture.file) orelse "")
         if capture.media == .Video do
             initialName += "-export"
@@ -578,6 +587,7 @@ impl MainWnd
             .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
             .initialName = initialName
         }
+
         if capture.media == .Video
         {
             opt.shortcuts.add({type: Env.SpecialDirectory.UserVideos, name: appStrings().ui_MyVideos})
@@ -634,6 +644,7 @@ impl MainWnd
             .requestLibraryExport(capture.file, fileName, linked)
             return
         }
+
         .saveLoadedAsImage(capture, fileName, linked)
     }
 
@@ -646,11 +657,13 @@ impl MainWnd
             MessageDlg.error(unwrap .surface, appStrings().msg_VideoExportDifferentFile)
             return
         }
+
         if capture.canCopyOriginalVideo()
         {
             .startVideoCopy(Capture.mediaPathOf(capture.file, .Video), fileName)
             return
         }
+
         Cursor.activateWait()
         if capture.media == .Video
         {

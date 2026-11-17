@@ -222,7 +222,9 @@ impl LibraryWnd
             var count   = Swag.U64.Max
             for cached in .folderCounts
             {
-                if cached.folder == d.fullName and cached.written == d.lastWriteTime and cached.revision == g_Library.revision
+                if cached.folder == d.fullName and
+                   cached.written == d.lastWriteTime and
+                   cached.revision == g_Library.revision
                 {
                     count = cached.count
                     break

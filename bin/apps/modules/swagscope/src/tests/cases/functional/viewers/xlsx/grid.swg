@@ -88,3 +88,17 @@ using Core, Gui, Gui.Testing, Viewers
     discard catch Xlsx.Workbook.load(path) as error
     Swag.require(error.value() is Errors.InvalidFormatError)
 }
+
+// A cell is painted as written: an angle bracket in its text gains no invisible companion.
+#test
+{
+    let source = "<worksheet><sheetData><row r='1'><c r='A1' t='inlineStr'><is><t>a&lt;b</t></is></c></row></sheetData></worksheet>"
+    let path   = formattedWorkbookVariant("xl/worksheets/one.xml", "", source, replacePart: true)
+    defer discard catch File.delete(path)
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, path, false)
+    let panel  = assume cast(*Xlsx.Panel, window.currentView)
+    let grid   = unwrap panel.grid
+    discard host.render(window)
+    Swag.require(grid.scratch.text == "a<b", grid.scratch.text)
+}

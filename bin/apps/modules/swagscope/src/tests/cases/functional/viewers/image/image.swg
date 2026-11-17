@@ -367,3 +367,25 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     if Clipboard.isFake() do
         Swag.require(Clipboard.getString() == code, Clipboard.getString())
 }
+
+// The information sheet says how much of a picture its alpha hides: wholly transparent pixels,
+// pixels that let the ground show through, or none at all.
+#test
+{
+    let mixed: [16] u8 = [0, 0, 0, 0, 9, 9, 9, 255, 9, 9, 9, 128, 9, 9, 9, 255]
+    let picture        = Image.create(4, 1, .RGBA8, mixed)
+    Swag.require(Picture.shareText(128, 255) == "50%" and Picture.shareText(1, 400) == "<1%")
+    Swag.require(Picture.transparencyText(&picture) == "25% transparent · 25% translucent", Picture.transparencyText(&picture))
+    let opaque: [8] u8 = [1, 2, 3, 255, 4, 5, 6, 255]
+    let solid = Image.create(2, 1, .RGBA8, opaque)
+    Swag.require(Picture.transparencyText(&solid) == Picture.texts().ui_Opaque)
+    let rgb = Image.create(2, 1, .RGB8)
+    Swag.require(Picture.transparencyText(&rgb).isEmpty())
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("title.png"), true)
+    let view   = assume cast(*Picture.Panel, window.instances[window.activeChoiceIndex].view)
+    let sheet  = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    Swag.require(Utf8.contains(sheet.text(), "Transparency\n"), sheet.text())
+}

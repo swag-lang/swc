@@ -127,9 +127,11 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 ### app.scope.image.002 — Image analysis has no histogram, channel, clipping, or transparency views
 
-- Evidence: the viewer renders the composite only. It cannot isolate R/G/B/A or luminance, show
-  per-channel histograms, mark clipped shadows/highlights, visualize alpha, or inspect indexed
-  palettes.
+- Evidence: the viewer renders the composite only. For a still picture with 8-bit alpha, the
+  information sheet says whether the alpha hides anything: none of it, or the share of pixels it
+  makes wholly transparent and the share it lets show through. It cannot isolate R/G/B/A or
+  luminance, show per-channel histograms, mark clipped shadows/highlights, visualize alpha, or
+  inspect indexed palettes.
 - Next: compute cancellable bounded histograms and add temporary channel/transparency overlays.
 - Done when: histogram scope states whole image or selection, high-bit-depth data is binned
   without forced 8-bit loss, channels and alpha can be inspected independently, clipping thresholds

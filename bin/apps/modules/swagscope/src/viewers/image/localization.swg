@@ -35,12 +35,15 @@ struct Texts
 
     // Reading of the point under the pointer, after the summary: its pixel, counted from the
     // top-left corner of the picture as stored, then its color and its opacity.
-    ui_ProbePixel: string = "x %, y %"
-    ui_ItemLevel:  string = "level %"        // Mipmap level of the texture item in view.
-    ui_ItemLayer:  string = "layer %"        // Array layer of the texture item in view.
-    ui_ItemFace:   string = "face %"         // Cube face of the texture item in view.
-    ui_FrameDelay: string = "delay % ms"     // How long the frame of a paused animation stays on screen.
-    ui_ProbeAlpha: string = "opacity %%"     // The value, then the percent sign.
+    ui_ProbePixel:  string = "x %, y %"
+    ui_ItemLevel:   string = "level %"           // Mipmap level of the texture item in view.
+    ui_ItemLayer:   string = "layer %"           // Array layer of the texture item in view.
+    ui_ItemFace:    string = "face %"            // Cube face of the texture item in view.
+    ui_FrameDelay:  string = "delay % ms"        // How long the frame of a paused animation stays on screen.
+    ui_ProbeAlpha:  string = "opacity %"         // The share of opacity, its percent sign included.
+    ui_Opaque:      string = "none, every pixel is opaque"     // Transparency reading of a picture whose alpha hides nothing.
+    ui_Transparent: string = "% transparent"     // Share of pixels the alpha hides wholly.
+    ui_Translucent: string = "% translucent"     // Share of pixels the alpha lets show through.
 }
 
 private const FrenchStringsName = "lang/fr/scope.image.tweak"

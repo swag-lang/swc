@@ -69,6 +69,7 @@ enum MediaInfoField
     LongestLine
     ControlCharacters
     Replacements
+    Transparency
     Bookmarks
     TextLayer
     Style
@@ -154,6 +155,7 @@ struct MediaInfoStrings
     longestLine:    string = "Longest line"
     controls:       string = "Control characters"
     replacements:   string = "Unreadable characters (U+FFFD)"
+    transparency:   string = "Transparency"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -299,6 +301,7 @@ impl MediaInfoRow
         case .LongestLine:       return s.longestLine
         case .ControlCharacters: return s.controls
         case .Replacements:      return s.replacements
+        case .Transparency:      return s.transparency
         case .Bookmarks:         return s.bookmarks
         case .TextLayer:         return s.textLayer
         case .Style:             return s.style

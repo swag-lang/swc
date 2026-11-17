@@ -140,17 +140,77 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         let dimensions  = Format.toString("% × % px", shown.width, shown.height)
         let pixelFormat = Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false)
         let depth       = Format.toString("%", frame.bitsPerPixel)
+        var transparency: String
+        if not animated and frame.pixelFormat.hasAlpha() do
+            transparency = transparencyText(shown)
         result.information.add(.Dimensions, dimensions)
         result.information.add(.PixelFormat, pixelFormat)
         result.information.add(.Depth, depth)
         if animated do
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount))
+        if transparency.count do
+            result.information.add(.Transparency, transparency)
 
         result.information.addImageMetadata(result.movie.frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
         if result.movie.frameCount <= 1 do
             result.movie.clear()
     }
 
+    return result
+}
+
+// Says how much of a picture its alpha channel hides: none of it, or the share of pixels it makes
+// wholly transparent and the share it lets show through. Read from 8-bit alpha only; empty for
+// other formats.
+func transparencyText(image: const *Image)->String
+{
+    var step = 4'u64
+    switch image.pixelFormat
+    {
+    case .RGBA8, .BGRA8: step = 4
+    case .GrayAlpha8:    step = 2
+    default: return {}
+    }
+
+    let offset = step - 1
+
+    var transparent, partial: u64
+    let bytes = image.pixels.toSlice()
+    var at    = offset
+    while at < bytes.count
+    {
+        let alpha = bytes[at]
+        if alpha == 0 do
+            transparent += 1
+        elif alpha != 255 do
+            partial += 1
+        at += step
+    }
+
+    if not transparent and not partial do
+        return String.from(texts().ui_Opaque)
+    let total = Math.max(cast(u64, image.width) * cast(u64, image.height), 1)
+    var result: String
+    if transparent do
+        result = Format.toString(texts().ui_Transparent, shareText(transparent, total))
+    if partial
+    {
+        if not result.isEmpty() do
+            result += " · "
+        result += Format.toString(texts().ui_Translucent, shareText(partial, total))
+    }
+
+    return result
+}
+
+// Writes `count` out of `total` as a whole percentage, or `<1%` for a share too small to round.
+func shareText(count, total: u64)->String
+{
+    let percent = count * 100 / total
+    if not percent do
+        return String.from("<1%")
+    var result = Format.toString("%", percent)
+    result += "%"
     return result
 }
 
@@ -848,7 +908,7 @@ private impl Panel
             let color = picture.pixelColor(pixel.x, pixel.y)
             result += Format.toString(" · #%{X02}%{X02}%{X02}", color.r, color.g, color.b)
             if color.a != 255 do
-                result += Format.toString(" · %", Format.toString(texts().ui_ProbeAlpha, cast(u32, Math.round(cast(f32, color.a) * 100 / 255)), "%"))
+                result += Format.toString(" · %", Format.toString(texts().ui_ProbeAlpha, shareText(color.a, 255)))
         }
 
         return result

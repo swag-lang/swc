@@ -70,6 +70,7 @@ tracks      Pistes
 longestLine Ligne la plus longue
 controls    Caractères de contrôle
 replacements Caractères illisibles (U+FFFD)
+transparency Transparence
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

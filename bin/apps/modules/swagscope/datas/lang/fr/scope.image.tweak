@@ -24,5 +24,8 @@ ui_ProbePixel    x %, y %
 ui_ItemLevel     niveau %
 ui_ItemLayer     couche %
 ui_ItemFace      face %
-ui_ProbeAlpha    opacité %%
+ui_ProbeAlpha    opacité %
 ui_FrameDelay    délai % ms
+ui_Opaque        aucune, chaque pixel est opaque
+ui_Transparent   % transparents
+ui_Translucent   % translucides

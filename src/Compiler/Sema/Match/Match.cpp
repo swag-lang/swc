@@ -154,7 +154,7 @@ namespace
         lookUpCxt.replaceWithSingleSymbol(own);
     }
 
-    void addPersistedUsingSymMaps(Sema& sema, SymMapLookup& lookup, const SymbolMap* symMap, const MatchPriority& priority)
+    void addPersistedUsingSymMaps(SymMapLookup& lookup, const SymbolMap* symMap, const MatchPriority& priority)
     {
         if (!symMap)
             return;
@@ -196,7 +196,7 @@ namespace
             return;
 
         addSymMap(lookup, symMap, priority);
-        addPersistedUsingSymMaps(sema, lookup, symMap, priority);
+        addPersistedUsingSymMaps(lookup, symMap, priority);
     }
 
     const SymbolMap* importedApiModuleRoot(Sema& sema, const SymbolMap* importRoot)
@@ -292,7 +292,7 @@ namespace
             }
 
             addSymMap(lookup, lookUpCxt.symMapHint, priority);
-            addPersistedUsingSymMaps(sema, lookup, lookUpCxt.symMapHint, priority);
+            addPersistedUsingSymMaps(lookup, lookUpCxt.symMapHint, priority);
 
             // Struct member lookup must also see members of `using` fields.
             if (lookUpCxt.symMapHint->isStruct() && !lookUpCxt.skipUsingFieldMembers)
@@ -319,7 +319,7 @@ namespace
                 {
                     const MatchPriority priority{.scopeDepth = scopeDepth, .visibility = VisibilityTier::LocalScope};
                     addSymMap(lookup, symMap, priority);
-                    addPersistedUsingSymMaps(sema, lookup, symMap, priority);
+                    addPersistedUsingSymMaps(lookup, symMap, priority);
                 }
             }
 
@@ -371,7 +371,7 @@ namespace
         {
             const MatchPriority fileRootPriority{.scopeDepth = static_cast<uint16_t>(scopeDepth + 1), .visibility = VisibilityTier::FileNamespace};
             addSymMap(lookup, fileNamespace, fileRootPriority);
-            addPersistedUsingSymMaps(sema, lookup, fileNamespace, fileRootPriority);
+            addPersistedUsingSymMaps(lookup, fileNamespace, fileRootPriority);
         }
 
         // Imported modules keep their namespace hierarchy under the import root.
@@ -391,14 +391,14 @@ namespace
         {
             const MatchPriority importedModuleRootPriority{.scopeDepth = moduleRootDepth++, .visibility = VisibilityTier::ModuleNamespace};
             addSymMap(lookup, importedModuleRoot, importedModuleRootPriority);
-            addPersistedUsingSymMaps(sema, lookup, importedModuleRoot, importedModuleRootPriority);
+            addPersistedUsingSymMaps(lookup, importedModuleRoot, importedModuleRootPriority);
         }
 
         if (!atNamespaceRoot)
         {
             const MatchPriority moduleRootPriority{.scopeDepth = moduleRootDepth, .visibility = VisibilityTier::ModuleNamespace};
             addSymMap(lookup, &sema.moduleNamespace(), moduleRootPriority);
-            addPersistedUsingSymMaps(sema, lookup, &sema.moduleNamespace(), moduleRootPriority);
+            addPersistedUsingSymMaps(lookup, &sema.moduleNamespace(), moduleRootPriority);
 
             // Expose imported module namespaces as siblings without importRoot's persisted usings.
             // Those combine all imported files and could shadow names with unrelated symbols.

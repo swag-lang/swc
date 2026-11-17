@@ -1053,6 +1053,10 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             return !loopBodyBreaksOut(sema, whileStmt.nodeBodyRef);
         }
 
+        // Attributes change the policy around their body, not its control flow.
+        case AstNodeId::AttributeList:
+            return stopsLocalFlow(sema, node.cast<AstAttributeList>().nodeBodyRef, stop);
+
         case AstNodeId::EmbeddedBlock:
             return compoundStopsLocalFlow(sema, node.cast<AstEmbeddedBlock>().spanChildrenRef, stop);
 

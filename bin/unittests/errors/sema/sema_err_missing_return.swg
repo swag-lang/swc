@@ -156,3 +156,23 @@ func voidNeedsNothing(flag: bool)
     Swag.require(endsInUnreachable(true) == 1)
     Swag.require((catch endsInFail(true)) == 1)
 }
+
+// Attributes preserve the body's paths; they do not turn a conditional exit into a total one.
+func attributedPartialReturn(flag: bool)->s32 // swc-expected-error {{sema_err_missing_return}}
+{
+    #[Swag.Warning("sema_warn_unreachable_code", .Warning)]
+    {
+        if flag do return 1
+    }
+}
+
+// A return in an attributed nested declaration belongs to that declaration.
+func attributedNestedFunction()->s32 // swc-expected-error {{sema_err_missing_return}}
+{
+    #[Swag.Safety(.BoundCheck, false)]
+    func nested()->s32
+    {
+        return 1
+    }
+    discard nested()
+}

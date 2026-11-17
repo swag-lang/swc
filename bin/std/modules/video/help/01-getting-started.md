@@ -81,7 +81,9 @@ try clip.save("capture.avi", Video.Avi.EncodeOptions{quality: 80})
 ```
 
 [[Avi.EncodeOptions]] and [[Mp4.EncodeOptions]] both select the JPEG quality of their Motion JPEG
-frames. YUV4MPEG2 writes one plane layout and one colour range and so has nothing to choose.
+frames. [[Y4m.EncodeOptions]] selects 4:2:0, 4:2:2, or 4:4:4 planar chroma output; the default is
+4:4:4. Subsampled output averages the source chroma over each 2x2 or horizontal 2-pixel group and
+needs even frame dimensions along every subsampled axis.
 
 The fragmented software H.264 recorder accepts [[Mp4.SoftwareVideoRateControl]] to steer its
 per-picture QP toward an average video rate. The reservoir smooths packet-size changes but does

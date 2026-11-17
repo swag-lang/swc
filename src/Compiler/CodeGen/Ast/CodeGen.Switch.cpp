@@ -1145,15 +1145,51 @@ namespace
         CodeGenCompareHelpers::emitConditionFalseJump(codeGen, wherePayload, whereView.typeRef(), failLabel);
     }
 
-    Result emitSwitchCaseWhereBodyGate(CodeGen& codeGen, AstNodeRef whereRef, MicroLabelRef matchLabel, MicroLabelRef failLabel, MicroLabelRef bodyLabel)
+    // Emits the tests that select a case, without its `where` guard. Control leaves for `failLabel`
+    // when the case does not match; otherwise it jumps to `matchLabel` or falls through to it.
+    Result emitSwitchCaseTests(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseRef, MicroLabelRef matchLabel, MicroLabelRef failLabel)
     {
-        if (!whereRef.isValid())
+        const AstSwitchCaseStmt& caseNode   = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
+        const AstNodeRef         bindingRef = caseNode.conditionBindingRef(codeGen.ast());
+        if (bindingRef.isValid())
+        {
+            TypeRef     conditionTypeRef = TypeRef::invalid();
+            const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, bindingRef);
+            CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, failLabel);
             return Result::Continue;
+        }
 
-        MicroBuilder& builder = codeGen.builder();
-        builder.placeLabel(matchLabel);
-        emitSwitchCaseWhereFalseJump(codeGen, whereRef, failLabel);
-        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, bodyLabel);
+        if (switchState.dynamicStructSwitch)
+            return emitDynamicStructSwitchCaseTests(codeGen, switchState, caseRef, matchLabel, failLabel);
+
+        MicroBuilder&                 builder      = codeGen.builder();
+        const SmallVector<AstNodeRef> caseExprRefs = collectSwitchNodeRefs(codeGen, caseNode.spanExprRef);
+        for (size_t index = 0; index < caseExprRefs.size(); ++index)
+        {
+            const AstNodeRef caseExprRef = caseExprRefs[index];
+            if (!switchState.hasExpression)
+            {
+                const CodeGenNodePayload& exprPayload = codeGen.payload(caseExprRef);
+                const SemaNodeView        exprView    = codeGen.viewType(caseExprRef);
+                emitConditionTrueJump(codeGen, exprPayload, exprView.typeRef(), matchLabel);
+            }
+            else if (const auto* rangeExpr = codeGen.node(caseExprRef).safeCast<AstRangeExpr>())
+            {
+                // A range that does not hold leaves the expressions written after it to test.
+                const bool          lastExpr  = index + 1 == caseExprRefs.size();
+                const MicroLabelRef missLabel = lastExpr ? failLabel : builder.createLabel();
+                emitSwitchRangeFailJumps(codeGen, switchState, *rangeExpr, missLabel);
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, matchLabel);
+                if (!lastExpr)
+                    builder.placeLabel(missLabel);
+            }
+            else
+            {
+                SWC_RESULT(emitSwitchValueEqualsJump(codeGen, switchState, caseExprRef, matchLabel));
+            }
+        }
+
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
         return Result::Continue;
     }
 
@@ -1385,14 +1421,18 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     const SwitchCaseCodeGenPayload& caseState = itCase->second;
     const MicroLabelRef             failLabel = caseState.hasNextCase ? caseState.nextTestLabel : (switchState->noMatchLabel.isValid() ? switchState->noMatchLabel : switchState->doneLabel);
 
-    MicroBuilder& builder = codeGen.builder();
+    // The walk hands over each child as resolved: a guard that sema substituted, such as an inlined
+    // call, arrives as its substitute and not as `nodeWhereRef`.
+    const AstNodeRef whereRef = codeGen.resolvedNodeRef(nodeWhereRef);
+    const AstNodeRef bodyRef  = codeGen.resolvedNodeRef(nodeBodyRef);
+    MicroBuilder&    builder  = codeGen.builder();
 
     // The dispatch emitted before the first case already compared every case value and jumped to the
     // body that matched, so nothing is left to test here, and the case expressions - constants, all
     // of them - are not even evaluated.
     if (switchState->dispatchOwnsTests)
     {
-        if (childRef != nodeBodyRef)
+        if (childRef != bodyRef)
             return Result::SkipChildren;
 
         builder.placeLabel(caseState.bodyLabel);
@@ -1400,122 +1440,34 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
         return Result::Continue;
     }
 
-    const AstNodeRef bindingRef = conditionBindingRef(codeGen.ast());
-    if (bindingRef.isValid())
+    // A typed case performs its cast in its own test, so the cast node is never emitted on its own.
+    if (switchState->dynamicStructSwitch && spanExprRef.isValid() && childRef != whereRef && childRef != bodyRef)
     {
-        if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
-        {
-            TypeRef     conditionTypeRef = TypeRef::invalid();
-            const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, bindingRef);
-            CodeGenCompareHelpers::emitConditionFalseJump(codeGen, conditionPayload, conditionTypeRef, failLabel);
-        }
-        if (childRef == nodeBodyRef)
-        {
-            emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
-            builder.placeLabel(caseState.bodyLabel);
-            codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
-        }
+        const auto* payload = codeGen.sema().semaPayload<DynamicStructSwitchCasePayload>(codeGen.curNodeRef());
+        SWC_ASSERT(payload);
+        for (const auto& expr : payload->expressions)
+            if (expr.caseExprRef == childRef && expr.castRef.isValid())
+                return Result::SkipChildren;
         return Result::Continue;
     }
 
-    if (switchState->dynamicStructSwitch && spanExprRef.isValid())
+    // The `where` guard is emitted where the walk reaches it, like any other child, so the tests that
+    // select the case go in front of it: the guard only runs, with its cost and its side effects, once
+    // the case matched.
+    const bool       hasWhere = whereRef.isValid();
+    const AstNodeRef testRef  = hasWhere ? whereRef : bodyRef;
+    if (childRef == testRef && spanExprRef.isValid())
     {
-        if (childRef != nodeWhereRef && childRef != nodeBodyRef)
-        {
-            const auto* payload = codeGen.sema().semaPayload<DynamicStructSwitchCasePayload>(codeGen.curNodeRef());
-            SWC_ASSERT(payload);
-            for (const auto& expr : payload->expressions)
-                if (expr.caseExprRef == childRef && expr.castRef.isValid())
-                    return Result::SkipChildren;
-            return Result::Continue;
-        }
-        if (childRef == nodeWhereRef)
-        {
-            const MicroLabelRef matchLabel = builder.createLabel();
-            SWC_RESULT(emitDynamicStructSwitchCaseTests(codeGen, *switchState, codeGen.curNodeRef(), matchLabel, failLabel));
+        const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
+        SWC_RESULT(emitSwitchCaseTests(codeGen, *switchState, codeGen.curNodeRef(), matchLabel, failLabel));
+        if (hasWhere)
             builder.placeLabel(matchLabel);
-            return Result::Continue;
-        }
-
-        if (childRef == nodeBodyRef)
-        {
-            if (!nodeWhereRef.isValid())
-            {
-                SWC_RESULT(emitDynamicStructSwitchCaseTests(codeGen, *switchState, codeGen.curNodeRef(), caseState.bodyLabel, failLabel));
-            }
-            else
-            {
-                emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
-            }
-
-            builder.placeLabel(caseState.bodyLabel);
-            codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
-        }
-
-        return Result::Continue;
     }
 
-    if (childRef != nodeBodyRef)
+    if (childRef != bodyRef)
         return Result::Continue;
 
-    if (switchState->hasExpression)
-    {
-        if (spanExprRef.isValid())
-        {
-            const auto caseExprRefs = collectSwitchNodeRefs(codeGen, spanExprRef);
-            const bool hasWhere     = nodeWhereRef.isValid();
-            // A `where` clause only runs after one case expression matched, so all successful tests funnel
-            // through a shared label before entering the body.
-            const MicroLabelRef matchLabel = hasWhere ? builder.createLabel() : caseState.bodyLabel;
-            for (const AstNodeRef caseExprRef : caseExprRefs)
-            {
-                if (codeGen.node(caseExprRef).is(AstNodeId::RangeExpr))
-                {
-                    const AstRangeExpr& rangeExpr = codeGen.node(caseExprRef).cast<AstRangeExpr>();
-                    emitSwitchRangeFailJumps(codeGen, *switchState, rangeExpr, failLabel);
-                    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, matchLabel);
-                }
-                else
-                {
-                    SWC_RESULT(emitSwitchValueEqualsJump(codeGen, *switchState, caseExprRef, matchLabel));
-                }
-            }
-
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
-            SWC_RESULT(emitSwitchCaseWhereBodyGate(codeGen, nodeWhereRef, matchLabel, failLabel, caseState.bodyLabel));
-        }
-        else
-        {
-            emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
-
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
-        }
-    }
-    else
-    {
-        if (spanExprRef.isValid())
-        {
-            const auto          caseExprRefs = collectSwitchNodeRefs(codeGen, spanExprRef);
-            const bool          hasWhere     = nodeWhereRef.isValid();
-            const MicroLabelRef matchLabel   = hasWhere ? builder.createLabel() : caseState.bodyLabel;
-            for (const AstNodeRef caseExprRef : caseExprRefs)
-            {
-                const CodeGenNodePayload& exprPayload = codeGen.payload(caseExprRef);
-                const SemaNodeView        exprView    = codeGen.viewType(caseExprRef);
-                emitConditionTrueJump(codeGen, exprPayload, exprView.typeRef(), matchLabel);
-            }
-
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
-            SWC_RESULT(emitSwitchCaseWhereBodyGate(codeGen, nodeWhereRef, matchLabel, failLabel, caseState.bodyLabel));
-        }
-        else
-        {
-            emitSwitchCaseWhereFalseJump(codeGen, nodeWhereRef, failLabel);
-
-            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, caseState.bodyLabel);
-        }
-    }
-
+    emitSwitchCaseWhereFalseJump(codeGen, whereRef, failLabel);
     builder.placeLabel(caseState.bodyLabel);
     codeGen.pushDeferScope(AstNodeRef::invalid(), switchRef, codeGen.curNodeRef());
     return Result::Continue;
@@ -1523,7 +1475,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
 
 Result AstSwitchCaseStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    if (childRef != nodeBodyRef)
+    if (childRef != codeGen.resolvedNodeRef(nodeBodyRef))
         return Result::Continue;
 
     SWC_RESULT(codeGen.popDeferScope());

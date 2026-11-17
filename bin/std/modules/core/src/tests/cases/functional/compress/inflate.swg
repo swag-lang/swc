@@ -352,3 +352,24 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 1) as errorOutcome
     Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
 }
+
+// Every strict prefix of a complete stored Deflate stream is rejected. This
+// includes an empty input and truncation in the block header, length, and data.
+#test
+{
+    let input: [5] u8 = [0x11, 0x22, 0x33, 0x44, 0x55]
+    var deflater: Compress.Deflate
+    deflater.init(.NoCompression)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, input)
+
+    for length in compressed.count
+    {
+        var inflater: Compress.Inflate
+        var decoded:  Array'u8
+        var errorOutcome: Swag.Error
+        catch inflater.decompress(&decoded, compressed.toSlice()[until length]) as errorOutcome
+        Swag.require(errorOutcome.value() is Errors.InvalidFormatError)
+        Swag.require(decoded.isEmpty())
+    }
+}

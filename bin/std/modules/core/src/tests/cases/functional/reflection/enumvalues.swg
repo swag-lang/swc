@@ -26,6 +26,7 @@ enum WideFlags: u64
     var present = ByteValue.Present
     var missing: u8 = 7
     Swag.require(Reflection.enumUnderlyingType(#typeof(ByteValue)) == u8)
+    Swag.require(Reflection.enumUnderlyingType(s32) == s32)
     Swag.require(Reflection.hasDeclaredValue(#typeof(ByteValue), &present))
     Swag.require(not Reflection.hasDeclaredValue(#typeof(ByteValue), &missing))
     Swag.require(not Reflection.hasDeclaredValue(null, &present))

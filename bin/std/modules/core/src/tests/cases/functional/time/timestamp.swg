@@ -138,6 +138,26 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
+    let maximumTicks = Time.dateToTicks(9999, 12, 31) + Time.TicksPerDay - 1
+    let maximum      = Time.Timestamp.fromTicks(maximumTicks)
+    Swag.require(maximum.ticks == maximumTicks)
+
+    let overflow = Swag.catchPanic(func|maximumTicks|()
+    {
+        discard Time.Timestamp.fromTicks(maximumTicks + 1)
+    })
+    Swag.require(overflow.raised)
+
+    let invalidDate = Time.DateTime{2024, 2, 30, 0, 0, 0, 0}
+    let invalid = Swag.catchPanic(func|invalidDate|()
+    {
+        discard Time.Timestamp.fromDateTime(invalidDate)
+    })
+    Swag.require(invalid.raised)
+}
+
+#test
+{
     var span = Time.Timestamp.fromDateTime({2020, 1, 1, 0, 0, 0, 0})
     span.addDays(1)
     span.addHours(2)
@@ -241,6 +261,23 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     })
     Swag.require(minimumOffset.raised and minimumOffset.message() == "ticks overflow")
     Swag.require(epoch.ticks == epochTicks)
+}
+
+#test
+{
+    var span = Time.Timestamp.fromDateTime({2020, 1, 1, 0, 0, 0, 0})
+    let originalTicks = span.ticks
+
+    let yearUnderflow = Swag.catchPanic(func|&span|() { span.addYears(Swag.S32.Min) })
+    let yearOverflow = Swag.catchPanic(func|&span|() { span.addYears(Swag.S32.Max) })
+    let monthUnderflow = Swag.catchPanic(func|&span|() { span.addMonths(Swag.S32.Min) })
+    let monthOverflow = Swag.catchPanic(func|&span|() { span.addMonths(Swag.S32.Max) })
+
+    Swag.require(yearUnderflow.raised and yearUnderflow.message() == "overflow")
+    Swag.require(yearOverflow.raised and yearOverflow.message() == "overflow")
+    Swag.require(monthUnderflow.raised and monthUnderflow.message() == "overflow")
+    Swag.require(monthOverflow.raised and monthOverflow.message() == "overflow")
+    Swag.require(span.ticks == originalTicks)
 }
 
 #test

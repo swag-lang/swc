@@ -43,10 +43,11 @@ one isolated pair, so it was not retained.
 
 ## Validation and limits
 
-The DevMode candidate from the earlier source revision passed 1,859 C++ tests. Microdiff output
-checksums matched for 12 tasks in DevMode and Release, although duplicate generic function names
-and `__run_expr` bodies left listing-level differences unresolved. These checks do not validate
-the latest remote source revision.
+The restored-default (`MI_ENABLE_LARGE_PAGES=1`) DevMode binary from `1eb0629d1d` passed the
+full C++ suite: 1,859 tests in 88.1 seconds. The earlier default-off candidate also passed 1,859
+C++ tests. Microdiff output checksums matched for 12 tasks in DevMode and Release, although
+duplicate generic function names and `__run_expr` bodies left listing-level differences
+unresolved. These checks do not validate the latest remote source revision.
 
 All memory figures here are Linux process RSS, not Windows working set or committed memory. The
 workspace did not have Wine, a Windows SDK, or Windows import libraries, so Windows Swag Capture

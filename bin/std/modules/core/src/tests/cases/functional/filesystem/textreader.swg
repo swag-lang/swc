@@ -63,6 +63,24 @@ using Swag
     Swag.require(totalSize == 200)
 }
 
+// Writing lines adds one LF after each item, preserves empty lines, and handles no items.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_textwriter_lines.tmp")
+    defer discard catch File.delete(fileName)
+
+    var lines: Array'(string)
+    lines.add("first")
+    lines.add("")
+    lines.add("third")
+    Swag.require(expect File.writeAllLines(fileName, lines) == 13)
+    Swag.require(expect File.readAllText(fileName) == "first\n\nthird\n")
+
+    var empty: Array'(string)
+    Swag.require(expect File.writeAllLines(fileName, empty) == 0)
+    Swag.require(expect File.readAllText(fileName).isEmpty())
+}
+
 // Normalizing line endings turns '\r\n' into '\n' and terminates the last line.
 #test
 {
@@ -120,6 +138,23 @@ using Swag
     var textError: Swag.Error
     discard catch reader.readToEnd() as textError
     Swag.require(textError.value() is Errors.InvalidFormatError)
+}
+
+// An empty file has no line, and both reader operations return empty results at end of file.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_textreader_empty.tmp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "")
+
+    var reader: File.TextReader
+    expect reader.open(fileName)
+    defer reader.close()
+
+    var line = String.from("stale")
+    Swag.require(not (expect reader.readLine(&line)))
+    Swag.require(line.isEmpty())
+    Swag.require(expect reader.readToEnd().isEmpty())
 }
 
 // Reading to the end after one line preserves the remaining line endings and text.

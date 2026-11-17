@@ -25,6 +25,14 @@ func timerTestCallback(_: *Time.Timer)
     Swag.require(zeroFailure.value() is Errors.BadParameterError)
     Swag.require(Errors.message(zeroFailure.value()) == "timer delay must be positive and finite")
 
+    var infiniteDelay = Time.Duration.fromSeconds(1)
+    let seconds = cast(*f64, &infiniteDelay)
+    seconds[] = Swag.F64.Inf
+    var infiniteFailure: Swag.Error
+    discard catch Time.Timer.create(infiniteDelay, &timerTestCallback) as infiniteFailure
+    Swag.require(infiniteFailure.value() is Errors.BadParameterError)
+    Swag.require(Errors.message(infiniteFailure.value()) == "timer delay must be positive and finite")
+
     let tooLong = Time.Duration.fromSeconds(cast(f64, Swag.U32.Max) / 1000.0)
     var rangeFailure: Swag.Error
     discard catch Time.Timer.create(tooLong, &timerTestCallback) as rangeFailure

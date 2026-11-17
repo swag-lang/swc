@@ -14,7 +14,12 @@ using Swag
 
     let value = Math.Matrix2x2{[[1, 2], [3, 4]]}
     Swag.require(value.determinant() == -2)
+    Swag.require(value.transposed().m[0, 1] == 3 and value.transposed().m[1, 0] == 2)
     let inverse = value.inverted()
+    var inPlace = value
+    inPlace.invert()
+    Swag.require(Math.isEqualEpsilon(inPlace.m[0, 0], inverse.m[0, 0], 0.001))
+    Swag.require(Math.isEqualEpsilon(inPlace.m[1, 1], inverse.m[1, 1], 0.001))
     let product = value.multiplied(inverse)
     Swag.require(Math.isEqualEpsilon(product.m[0, 0], 1'f32, 0.001))
     Swag.require(Math.isZeroEpsilon(product.m[0, 1], 0.001))

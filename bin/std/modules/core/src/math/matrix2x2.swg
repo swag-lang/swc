@@ -58,6 +58,12 @@ impl Matrix2x2
             .m[0, 1] * vector.x + .m[1, 1] * vector.y}
     }
 
+    // Returns this matrix with rows and columns exchanged.
+    mtd const transposed()->Matrix2x2
+    {
+        return Matrix2x2{[[.m[0, 0], .m[1, 0]], [.m[0, 1], .m[1, 1]]]}
+    }
+
     // Returns the determinant of this matrix.
     mtd const determinant()->f32 => .m[0, 0] * .m[1, 1] - .m[0, 1] * .m[1, 0]
 

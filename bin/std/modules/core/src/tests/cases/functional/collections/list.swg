@@ -236,6 +236,13 @@ func assertConstReversedListBorrows(values: const *List's32)->s32
     Swag.require(values.count == 0)
     Swag.require(values.head == null and values.tail == null)
 
+    var emptyVisits = 0
+    for _, _, _ in values do
+        emptyVisits += 1
+    for _, _, _ in values.reversed() do
+        emptyVisits += 1
+    Swag.require(emptyVisits == 0)
+
     values.addFront(4)
     values.addBack(5)
     let expected: [2] s32 = [4, 5]

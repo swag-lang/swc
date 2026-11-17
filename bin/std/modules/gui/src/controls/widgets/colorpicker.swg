@@ -406,10 +406,137 @@ impl IWnd for ColorPicker
             }
         }
     }
+
+    // Arrow keys nudge the component mapped to the corresponding gradient axis by one 8-bit step.
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        evt.accepted = false
+        if evt.kind != .Pressed or evt.modifiers != .None do
+            return
+
+        let oldColor = .color()
+        let step     = 1.0 / 255
+        switch evt.key
+        {
+        case .Left:
+            if not .nudgeHorizontal(-step) do
+                return
+
+        case .Right:
+            if not .nudgeHorizontal(step) do
+                return
+
+        case .Up:
+            if not .nudgeVertical(-step) do
+                return
+
+        case .Down:
+            if not .nudgeVertical(step) do
+                return
+
+        default:
+            return
+        }
+
+        .dirty = true
+        .computeXY()
+        .invalidate()
+        if .color() != oldColor do
+            .sigColorChanged.call(me)
+        evt.accepted = true
+    }
 }
 
 private impl ColorPicker
 {
+    // Nudges the component displayed on the horizontal axis, or reports that this mode has none.
+    mtd nudgeHorizontal(delta: f32)->bool
+    {
+        switch .mode
+        {
+        case .SaturationLightness:
+            .saturation = Math.clamp(.saturation + delta, 0, 1)
+            .computeRGB()
+        case .HueSaturation, .HueLightness, .HueHorizontal:
+            .hue = Math.clamp(.hue + delta, 0, 1)
+            .computeRGB()
+        case .GreenBlue:
+            .green = Math.clamp(.green + delta, 0, 1)
+            .computeHsl()
+        case .RedBlue, .RedGreen:
+            .red = Math.clamp(.red + delta, 0, 1)
+            .computeHsl()
+        case .LightnessHorizontal:
+            .lightness = Math.clamp(.lightness + delta, 0, 1)
+            .computeRGB()
+        case .SaturationHorizontal:
+            .saturation = Math.clamp(.saturation + delta, 0, 1)
+            .computeRGB()
+        case .AlphaHorizontal:
+            .alpha = Math.clamp(.alpha + delta, 0, 1)
+        case .RedHorizontal:
+            .red = Math.clamp(.red + delta, 0, 1)
+            .computeHsl()
+        case .GreenHorizontal:
+            .green = Math.clamp(.green + delta, 0, 1)
+            .computeHsl()
+        case .BlueHorizontal:
+            .blue = Math.clamp(.blue + delta, 0, 1)
+            .computeHsl()
+        default:
+            return false
+        }
+
+        return true
+    }
+
+    // Nudges the component displayed on the vertical axis, whose direction varies by gradient.
+    mtd nudgeVertical(delta: f32)->bool
+    {
+        switch .mode
+        {
+        case .SaturationLightness:
+            .lightness = Math.clamp(.lightness - delta, 0, 1)
+            .computeRGB()
+        case .HueSaturation:
+            .saturation = Math.clamp(.saturation - delta, 0, 1)
+            .computeRGB()
+        case .HueLightness:
+            .lightness = Math.clamp(.lightness - delta, 0, 1)
+            .computeRGB()
+        case .GreenBlue, .RedBlue:
+            .blue = Math.clamp(.blue + delta, 0, 1)
+            .computeHsl()
+        case .RedGreen:
+            .green = Math.clamp(.green + delta, 0, 1)
+            .computeHsl()
+        case .HueVertical:
+            .hue = Math.clamp(.hue + delta, 0, 1)
+            .computeRGB()
+        case .LightnessVertical:
+            .lightness = Math.clamp(.lightness + delta, 0, 1)
+            .computeRGB()
+        case .SaturationVertical:
+            .saturation = Math.clamp(.saturation + delta, 0, 1)
+            .computeRGB()
+        case .AlphaVertical:
+            .alpha = Math.clamp(.alpha + delta, 0, 1)
+        case .RedVertical:
+            .red = Math.clamp(.red + delta, 0, 1)
+            .computeHsl()
+        case .GreenVertical:
+            .green = Math.clamp(.green + delta, 0, 1)
+            .computeHsl()
+        case .BlueVertical:
+            .blue = Math.clamp(.blue + delta, 0, 1)
+            .computeHsl()
+        default:
+            return false
+        }
+
+        return true
+    }
+
     mtd computeXY()
     {
         let clientRect = .clientRect()
@@ -512,12 +639,16 @@ private impl ColorPicker
 impl ColorPicker
 {
     // Creates a saturation-lightness picker initialized to opaque red.
+    //
+    // It is a Tab stop with a visible focus ring. Arrow keys nudge the component mapped to the
+    // active gradient axis by `1/255`; the single-axis modes accept only the matching arrow pair.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ColorPicker
     {
         Swag.assert(parent != null)
         let result = Wnd.create'ColorPicker(parent, null, position, id)
-        result.focusPolicy = .Click
+        result.focusPolicy = .Tab
+        result.wndFlags    |= .FocusRing
         result.wndFlags    |= .AfterChildrenPaint
         result.setColor(Argb.Red, false)
         result.invalidatePadding = {-32, -32, -32, -32}

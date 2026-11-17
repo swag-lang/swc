@@ -263,8 +263,6 @@ gesture, with headless mixed-device tests.
 Add internal tab reorder and edge/stack docking with an overlay that shows the exact landing
 rectangle. Moving a pane transfers logical ownership, commands, and focus without destroying it.
 
-- Related: std.gui.025
-
 - Next: add tab reorder and edge/stack docking with an exact landing overlay while preserving pane
   ownership and focus.
 - Done when: Tab reorder and edge or stack docking show an accurate landing rectangle and transfer pane identity, commands, and focus without destroying the view, with interaction tests.
@@ -275,7 +273,7 @@ rectangle. Moving a pane transfers logical ownership, commands, and focus withou
 Move a pane into a floating surface and redock it while preserving identity, focus, and DPI-correct
 geometry.
 
-- Related: std.gui.025, std.gui.026, std.gui.028
+- Related: std.gui.026, std.gui.028
 
 - Next: move panes into floating surfaces and redock them with stable identity, focus, and
   DPI-correct geometry.
@@ -288,8 +286,6 @@ Add `DocumentHost` over a tab stack: active document, dirty marker, close veto/s
 close-others, reorder, and command routing to the active view. Lazily create or virtualize heavy
 pages, and test close veto and focus independently of docking. Swag Capture's open captures are the
 first consumer; Swag Vault does not need this merely as a demonstration.
-
-- Related: std.gui.025
 
 - Next: add a tab-stack `DocumentHost` with active/dirty state, close veto/save, reorder, and
   command routing, using Capture as the first consumer.
@@ -380,24 +376,6 @@ The native translation belongs to platform.portability.054.
   mouse events.
 - Done when: Two active pointers can hold independent capture owners, cancellation releases only the affected owner, and compatibility mouse messages do not trigger a second action in mixed-device tests.
 
-### std.gui.025 — No docking layout host
-
-
-The ingredients are present but not the model. `Tab` can select a page, `SplitterCtrl` can size
-known panes, and a `Surface` can own a window. Add the split-tree model whose leaves are tab stacks
-and whose panes have stable identity. Interaction, floating, persistence, and document semantics
-are std.gui.026, std.gui.027, std.gui.028, and std.gui.029 respectively.
-
-The proposed `DockHost` would own a split tree whose leaves are tab stacks, with close/hide and
-minimum sizes. Start with programmatic docked layout and stable pane
-identity; drag interaction, floating surfaces, and persistence have their own identifiers.
-
-- Related: std.gui.029, std.gui.026, std.gui.027, std.gui.028
-
-- Next: add the programmatic split-tree `DockHost` model with stable pane IDs, close/hide, and
-  minimum sizes.
-- Done when: A DockHost programmatically builds split leaves and tab stacks with stable pane IDs, close/hide, and minimum-size behavior, and layout tests cover nested splits without depending on drag, floating, or persistence.
-
 ### std.gui.045 — Verify the gui10 first-frame palette report
 
 - Recorded observation: a Palettes-page launch was reported to show neutral selector colors
@@ -422,7 +400,7 @@ identity; drag interaction, floating surfaces, and persistence have their own id
 Serialize stable pane identifiers, splits, active tabs, and floating rectangles. Restore constrains
 missing-monitor rectangles and ignores panes the application no longer registers.
 
-- Related: std.gui.025, platform.portability.084, std.gui.027
+- Related: platform.portability.084, std.gui.027
 
 - Next: serialize stable pane IDs, splits, active tabs, and floating rectangles with constrained
   restore and missing-pane handling.

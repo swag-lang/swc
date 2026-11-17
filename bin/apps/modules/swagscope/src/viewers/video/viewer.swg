@@ -803,7 +803,8 @@ private impl IWnd for Panel
 
 private impl Panel
 {
-    // Refreshes the snapshot when progressive indexing discovers stream or track properties.
+    // Refreshes the snapshot when progressive indexing discovers stream or track properties, and
+    // tells the host, whose sheet gives them.
     mtd refreshInformation()
     {
         if not .video.isOpen() do
@@ -884,6 +885,7 @@ private impl Panel
         }
 
         .information = #move data
+        .services.informationChanged(me)
     }
 
     // Rebuilds the footer in the active language and reports it: the facts of the film, then what
@@ -1008,7 +1010,6 @@ private impl Panel
         .subtitleLastSeconds = -1
         .refreshControls()
         .refreshInformation()
-        .refreshDetails()
     }
 
     // Enables the track choices and the time once a picture is on screen.

@@ -212,6 +212,18 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomReset, &actual)).checked)
     var unfitted: Lens.Results
     Swag.require(not (unwrap zoomRow(view, &host, Picture.texts().ui_TipFit, &unfitted)).checked)
+
+    // At the picture view's limits, the step that cannot be taken reads as unavailable.
+    var enlargeable: Lens.Results
+    Swag.require(not (unwrap zoomRow(view, &host, appStrings().cmd_ZoomIn, &enlargeable)).disabled)
+    view.imageView.setZoom(ImageView.MaxZoom)
+    var largest: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomIn, &largest)).disabled)
+    var shrinkable: Lens.Results
+    Swag.require(not (unwrap zoomRow(view, &host, appStrings().cmd_ZoomOut, &shrinkable)).disabled)
+    view.imageView.setZoom(ImageView.MinZoom)
+    var smallest: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomOut, &smallest)).disabled)
 }
 
 // A decoder refusal crosses the viewer boundary as data; the viewer creates no competing error UI.

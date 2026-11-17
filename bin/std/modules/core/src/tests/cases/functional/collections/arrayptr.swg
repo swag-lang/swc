@@ -216,6 +216,30 @@ impl ApTracked
     Swag.require(g_ApDropCount == 4)
 }
 
+// Bulk deletion releases only the requested range and preserves the order around it.
+#test
+{
+    g_ApDropCount = 0
+    var values: ArrayPtr'ApTracked
+    for id in 5 do
+        values.addNew().id = cast(s32, id)
+
+    values.deleteAt(1, 2)
+    Swag.require(values.count == 3 and g_ApDropCount == 2)
+    Swag.require(values[0]!.id == 0 and values[1]!.id == 3 and values[2]!.id == 4)
+
+    values.deleteAt(values.count, 0)
+    Swag.require(values.count == 3 and g_ApDropCount == 2)
+
+    #static if #safety(Swag.SafetyWhat.BoundCheck)
+    {
+        let failed = Swag.catchPanic(func|&values|() { values.deleteAt(2, 2) })
+        Swag.require(failed.raised)
+        Swag.require(values.count == 3 and g_ApDropCount == 2)
+        Swag.require(values[0]!.id == 0 and values[1]!.id == 3 and values[2]!.id == 4)
+    }
+}
+
 var g_ApTotal: u64
 
 struct ApFlagged

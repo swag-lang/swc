@@ -258,6 +258,17 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.require(evidence.paper > 10_000)
     Swag.require(not view.reportedPaintError)
 
+    // The steps stop at the limits, and the view says so before they are taken.
+    view.setZoom(PdfView.MaxZoom)
+    Swag.require(not view.canZoomIn() and view.canZoomOut())
+    view.zoomIn()
+    host.mouseWheel({320, 210}, 1, .Control)
+    Swag.require(view.effectiveZoom() == PdfView.MaxZoom)
+    view.setZoom(0)
+    Swag.require(view.effectiveZoom() == PdfView.MinZoom and view.canZoomIn() and not view.canZoomOut())
+    view.zoomOut()
+    Swag.require(view.effectiveZoom() == PdfView.MinZoom)
+
     // The plain wheel scrolls the document instead of zooming it, and it glides there: the
     // notch names where the document is heading, and the movement follows.
     view.zoomToFit()

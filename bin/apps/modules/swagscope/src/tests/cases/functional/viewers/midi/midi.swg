@@ -113,6 +113,37 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
 
     Swag.require(fitRows == 1 and viewer.roll.fit)
 
+    // At the roll's limits, the step that cannot be taken reads as unavailable.
+    for value in [1000.0'f32, 0.0'f32]
+    {
+        viewer.roll.applyZoom(value)
+        var limit: Lens.Results
+        var limitEntries = Viewer.LensEntries.create(&limit, "MIDI", host.theme)
+        viewer.describeLens(&limitEntries)
+        for &entry in limit.sections[0]!.entries
+        {
+            if entry.title == appStrings().cmd_ZoomIn do
+                Swag.require(entry.disabled == (value > 1))
+            elif entry.title == appStrings().cmd_ZoomOut do
+                Swag.require(entry.disabled == (value < 1))
+        }
+    }
+
+    // Actual size reads as chosen while the roll shows at it, as the readout's 100 %.
+    viewer.roll.applyZoom(1)
+    var actual: Lens.Results
+    var actualEntries = Viewer.LensEntries.create(&actual, "MIDI", host.theme)
+    viewer.describeLens(&actualEntries)
+    var actualRows = 0
+    for &entry in actual.sections[0]!.entries where entry.title == appStrings().cmd_ZoomReset
+    {
+        Swag.require(entry.checked)
+        actualRows += 1
+    }
+
+    Swag.require(actualRows == 1 and viewer.zoomLabel.text() == Viewer.zoomText(100))
+    viewer.roll.zoomToFit()
+
     host.root.applyLayout()
     Swag.require(viewer.optionsButton.parent == viewer.info and viewer.zoomLabel.parent == viewer.info)
     viewer.roll.refreshLayout()

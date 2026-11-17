@@ -7,6 +7,10 @@ using Core, Gui
 alias ReportFailure = func(*Wnd, string)
 
 // Hands format statistics that changed after creation back to the host information band.
+//
+// A summary equal to the one the host already holds changes nothing, so pointer probes and
+// timers may repeat it freely. It is not a way to refresh the information sheet; report that
+// with [[Viewer.ReportInformationChanged]].
 alias ReportDetails = func(*Wnd, string)
 
 // Describes a file in the shared information sheet.
@@ -14,6 +18,13 @@ alias ReportDetails = func(*Wnd, string)
 // The host completes the viewer's format readings with the same file identity, media enrichment
 // and pages in the document and Explorer presentations.
 alias DescribeInformation = func||(*InfoSheet)
+
+// Notifies the host that the plugin's [[Viewer.DescribeInformation]] would now write something
+// else, such as facts a background reader has just measured or a mark the reader has just made.
+//
+// The host describes an open information sheet again when it shows this plugin's file, and does
+// nothing otherwise. A closed sheet reads the contribution afresh when it opens.
+alias ReportInformationChanged = func(*Wnd)
 
 // Requests a re-measure after plugin-owned action or information content changes shape.
 alias ReportChromeChanged = func(*Wnd)
@@ -54,14 +65,15 @@ struct HostServices
 {
     public
     {
-        reportFailure:        ReportFailure?            // Reports a decoder failure discovered after creation.
-        reportDetails:        ReportDetails?            // Replaces the host-owned format summary.
-        reportChromeChanged:  ReportChromeChanged?      // Requests another contributed-group layout pass.
-        reportLoadingChanged: ReportLoadingChanged?     // Notifies the host of changed loading state.
-        navigateFile:         NavigateFile?             // Requests a neighboring file by signed direction.
-        reportFinished:       ReportFinished?           // Reports the end of a file that has one, and learns what follows.
-        reportShown:          ReportShown?              // Reports content with no end of its own, for a slideshow to time.
-        playback:             PlaybackApi               // Reads and changes the shared playback policy from viewer-owned controls.
+        reportFailure:            ReportFailure?                // Reports a decoder failure discovered after creation.
+        reportDetails:            ReportDetails?                // Replaces the host-owned format summary.
+        reportInformationChanged: ReportInformationChanged?     // Describes an open information sheet again.
+        reportChromeChanged:      ReportChromeChanged?          // Requests another contributed-group layout pass.
+        reportLoadingChanged:     ReportLoadingChanged?         // Notifies the host of changed loading state.
+        navigateFile:             NavigateFile?                 // Requests a neighboring file by signed direction.
+        reportFinished:           ReportFinished?               // Reports the end of a file that has one, and learns what follows.
+        reportShown:              ReportShown?                  // Reports content with no end of its own, for a slideshow to time.
+        playback:                 PlaybackApi                   // Reads and changes the shared playback policy from viewer-owned controls.
     }
 }
 
@@ -78,6 +90,14 @@ impl HostServices
     {
         if .reportDetails do
             .reportDetails(view, details)
+    }
+
+    // Tells the host that `view`'s contribution to the information sheet changed while its
+    // summary may not have; an open sheet showing its file is described again.
+    mtd informationChanged(view: *Wnd)
+    {
+        if .reportInformationChanged do
+            .reportInformationChanged(view)
     }
 
     mtd loadingChanged(view: *Wnd)

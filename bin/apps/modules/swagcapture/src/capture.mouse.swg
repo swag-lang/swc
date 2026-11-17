@@ -201,12 +201,21 @@ impl Capture
                 .selectionHasChanged()
             }
 
+            // The form that stood there may be gone, deleted or out of its time span.
             let result = .hitTests(localPos, false)
-            .lastSelectHit += 1
-            if .lastSelectHit >= result.count do
-                .lastSelectHit = 0
-            .hotForm = result[.lastSelectHit]
-            here     = .selection.contains(.hotForm)
+            if result.isEmpty()
+            {
+                .hotForm = Swag.U64.Max
+            }
+            else
+            {
+                .lastSelectHit += 1
+                if .lastSelectHit >= result.count do
+                    .lastSelectHit = 0
+                .hotForm = result[.lastSelectHit]
+            }
+
+            here = .selection.contains(.hotForm)
         }
         elif not ctrlPressed and not here and not .selection.isEmpty()
         {

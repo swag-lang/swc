@@ -50,3 +50,36 @@ using Swag, Core
     assertPixel(src, 0, 0, Color.fromArgb(200'u8, 170'u8, 180'u8, 190'u8))
     assertPixel(src, 3, 0, Color.fromArgb(85'u8, 55'u8, 65'u8, 75'u8))
 }
+
+// Scoring prefers a crop containing contrast, and multiscale search returns the requested aspect.
+#test
+{
+    var source = Image.create(64, 32, .Gray8)
+    for y in 8
+    {
+        for x in 8
+        {
+            source.pixels.storage()[(y + 4) * source.width + (x + 4)] = 255
+        }
+    }
+
+    var opts: Image.SmartCropSearchOpts = {}
+    opts.thirdsWeight = 0
+    opts.centerWeight = 0
+    opts.shrinkPrior  = 0
+    opts.edgePenalty  = 0
+    opts.maxSize      = 32
+
+    var focusedRect: Math.Rectangle = {width: 16, height: 16}
+    var emptyRect:   Math.Rectangle = {x: 16, width: 16, height: 16}
+    let focusedScore = source.evaluateCropScore(focusedRect, opts)
+    let emptyScore   = source.evaluateCropScore(emptyRect, opts)
+    Swag.require(focusedScore > emptyScore)
+
+    opts.maxSearchSteps = 1     // Values below the documented range still produce a valid search.
+    var target: Math.Rectangle = {width: 1, height: 1}
+    var cropped = source
+    cropped.smartCrop(target, opts)
+    Swag.require(cropped.width == cropped.height)
+    Swag.require(source.width == 64 and source.height == 32)
+}

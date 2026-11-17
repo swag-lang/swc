@@ -175,3 +175,64 @@ func(T) checkCompleteNumberConversion(overflowText: string)
     let narrowNegative = expect StrConv.parseS8("-999999999999999999999999")
     Swag.require(narrowNegative.value == Swag.S8.Min and narrowNegative.ovf)
 }
+
+// Unsigned parsing recognizes both prefixed bases, consumes only the digits, and saturates on overflow.
+#test
+{
+    let hexadecimal = expect StrConv.parseU64("0XfFtail")
+    Swag.require(hexadecimal.value == 255 and hexadecimal.eat == 4 and not hexadecimal.ovf)
+
+    let binary = expect StrConv.parseU64("0b10101!")
+    Swag.require(binary.value == 21 and binary.eat == 7 and not binary.ovf)
+
+    let overflow = expect StrConv.parseU64("0xFFFFFFFFFFFFFFFFF")
+    Swag.require(overflow.value == Swag.U64.Max and overflow.ovf and overflow.eat == 19)
+
+    var missingDigitsOutcome: Swag.Error
+    discard catch StrConv.parseU64("0x") as missingDigitsOutcome
+    Swag.require(missingDigitsOutcome.value() is Errors.SyntaxError)
+}
+
+// Boolean words are case-sensitive to three supported spellings, and parsing leaves suffixes alone.
+#test
+{
+    const TrueWords = ["1", "true", "TRUE", "True"]
+    for word in TrueWords
+    {
+        let parsed = expect StrConv.parseBool(word)
+        Swag.require(parsed.value and parsed.eat == word.count)
+    }
+
+    const FalseWords = ["0", "false", "FALSE", "False"]
+    for word in FalseWords
+    {
+        let parsed = expect StrConv.parseBool(word)
+        Swag.require(not parsed.value and parsed.eat == word.count)
+    }
+
+    let prefixed = expect StrConv.parseBool("true,rest")
+    Swag.require(prefixed.value and prefixed.eat == 4)
+
+    var invalidOutcome: Swag.Error
+    discard catch StrConv.parseBool("yes") as invalidOutcome
+    Swag.require(invalidOutcome.value() is Errors.SyntaxError)
+}
+
+#test
+{
+    let identifier = expect StrConv.parseIdentifier("_name9-rest")
+    Swag.require(identifier == "_name9")
+
+    var invalidOutcome: Swag.Error
+    discard catch StrConv.parseIdentifier("9name") as invalidOutcome
+    Swag.require(invalidOutcome.value() is Errors.SyntaxError)
+
+    const InvalidRune: [1] u8 = [0xFF]
+    let invalidText = Swag.makeString(&InvalidRune[0], InvalidRune.count)
+    let invalidRune = expect StrConv.parseRune(invalidText)
+    Swag.require(invalidRune.value == Utf8.RuneError and invalidRune.eat == 1)
+
+    var incompleteStringOutcome: Swag.Error
+    discard catch StrConv.parseString("\"unfinished") as incompleteStringOutcome
+    Swag.require(incompleteStringOutcome.value() is Errors.ParseIncompleteError)
+}

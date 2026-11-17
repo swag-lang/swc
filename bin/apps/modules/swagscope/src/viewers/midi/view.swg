@@ -340,6 +340,11 @@ impl RollView
     mtd zoomIn()  => .applyZoom(.zoom * 1.5)
     mtd zoomOut() => .applyZoom(.zoom / 1.5)
 
+    // Report whether a zoom step still widens or narrows the timeline, so the commands that take
+    // one can read as unavailable at the limits instead of doing nothing.
+    mtd canZoomIn()  => .zoom < MaxZoom
+    mtd canZoomOut() => .zoom > MinZoom
+
     mtd applyPitchZoom(value: f32)
     {
         let oldRowHeight = .rowHeight

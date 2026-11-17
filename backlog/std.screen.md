@@ -11,11 +11,13 @@ continues to own media frames and codecs, not desktop access.
   physical desktop area. `SourceMetrics` separates acquisition, readback, copying and composition;
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
-  cached-frame copy for a recorder that will emit a held picture. It does not yet publish source
-  presentation time or a borrowed GPU frame.
-- Next: add source presentation timestamps and a bounded borrowed-frame contract, monitor/window
-  targets, permission and source-loss results, and frame-age diagnostics. Keep pacing and encoding
-  outside the source.
+  cached-frame copy for a recorder that will emit a held picture. `Source` now exposes the
+  monotonic capture-completion time of its latest fresh frame and opens the full bounds of a monitor
+  selected from the current `Env.getMonitors` order. The index is only a snapshot; native presentation
+  timestamps, borrowed GPU frames, persistent monitor IDs, and window targets remain unavailable.
+- Next: expose native presentation time with a documented cross-platform clock and add a bounded
+  borrowed-frame contract, persistent monitor/window targets, permission and source-loss results.
+  Keep pacing and encoding outside the source.
 - Done when: callers can distinguish stale pixels, source age, readback delay and loss while
   retaining a frame safely across a consumer handoff on Windows and Linux.
 - Related: std.screen.002, std.screen.003, app.capture.011

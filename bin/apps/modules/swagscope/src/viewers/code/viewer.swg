@@ -750,7 +750,7 @@ impl IWnd for Panel
             return
         let error = .statisticsLoad.finish(&.statistics)
         .hasStatistics = error.isEmpty()
-        .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
+        .services.informationChanged(me)
     }
 
     // The column stays centred whatever the width of the window.

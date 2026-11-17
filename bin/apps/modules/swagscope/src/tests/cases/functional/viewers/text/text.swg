@@ -199,6 +199,37 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.require(view.zoomLabel.toolTip == PlainText.texts().ui_ZoomMenu)
 }
 
+// The encodings answer a query in the lens, the one in force checked, rather than fill the empty
+// lens: the options list them too.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 520)
+    var result = openTestViewer(PlainText.viewerPlugin(), &host.root, textViewerFixturePath(), commandParent: &host.root, infoParent: &host.root)
+    let view   = assume cast(*PlainText.Panel, result.view)
+
+    var empty: Lens.Results
+    var emptyEntries = Viewer.LensEntries.create(&empty, "Text", host.theme)
+    view.describeLens(&emptyEntries)
+    for &entry in empty.sections[0]!.entries do
+        Swag.require(not Utf8.startsWith(entry.title, PlainText.texts().ui_Encoding), "an empty lens lists no encodings")
+
+    var asked: Lens.Results
+    var askedEntries = Viewer.LensEntries.create(&asked, "Text", host.theme)
+    askedEntries.query = "encoding"
+    view.describeLens(&askedEntries)
+    var encodings = 0
+    var checked   = 0
+    for &entry in asked.sections[0]!.entries where Utf8.startsWith(entry.title, PlainText.texts().ui_Encoding)
+    {
+        encodings += 1
+        if entry.checked do
+            checked += 1
+    }
+
+    Swag.require(encodings == 6 and checked == 1)
+}
+
 // Encoding changes are requests, even if an earlier worker already finished. Only the last
 // interpretation reaches the document; neither the selector nor paint publishes stale text.
 #test

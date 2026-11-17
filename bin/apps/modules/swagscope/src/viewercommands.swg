@@ -348,9 +348,9 @@ impl ViewerWindow
 
     // Answers the lens with the lines of the open document that hold the query, under "In This
     // File", in the order of the file, each led by its number in mono; `:` and a number go to that
-    // line. Code, text and Markdown answer, as documents read line by line; a table, a workbook, a
-    // PDF, a comic, a film and a recording answer `:` themselves, with their rows, cells, pages and
-    // instants.
+    // line, and a second number after another colon to that column of it. Code, text and Markdown
+    // answer, as documents read line by line; a table, a workbook, a PDF, a comic, a film and a
+    // recording answer `:` themselves, with their rows, cells, pages and instants.
     private mtd describeFileLines(results: *Lens.Results)
     {
         if .isExploring() or .currentFile.isEmpty() do
@@ -380,15 +380,24 @@ impl ViewerWindow
         let texts   = appStrings()
         let content = cast(string, bytes.toSlice())
 
-        // A number after `:` is a line to go to.
-        var number = true
-        for c in query where not Latin1.isDigit(c) do
-            number = false
+        // A number after `:` is a line to go to, and a second one after another colon the column
+        // there, counted in characters from 1.
+        var number    = true
+        var separator = Swag.U64.Max
+        for c, at in query
+        {
+            if c == ':' and separator == Swag.U64.Max and at > 0 and at + 1 < query.count do
+                separator = at
+            elif not Latin1.isDigit(c) do
+                number = false
+        }
+
         if results.prefix == .Line and number
         {
-            let wanted = catch StrConv.toU64(query)
-            var line   = 1'u64
-            var start  = 0'u64
+            let lineText = separator == Swag.U64.Max ? query : query[0 until separator]
+            let wanted   = catch StrConv.toU64(lineText)
+            var line     = 1'u64
+            var start    = 0'u64
             for at in content.count where line < wanted and content[at] == '\n'
             {
                 line  += 1
@@ -397,11 +406,38 @@ impl ViewerWindow
 
             if not wanted or line != wanted do
                 return
-            let section    = results.addSection(texts.lens_InFile)
-            with let entry = section.addEntry(Format.toString(texts.lens_GoToLine, wanted))
+
+            let section = results.addSection(texts.lens_InFile)
+            if separator == Swag.U64.Max
             {
-                .lead = Format.toString("%", wanted)
-                .run  = func|window = me, start|() { window.revealLensOffset(start, 0) }
+                with let entry = section.addEntry(Format.toString(texts.lens_GoToLine, wanted))
+                {
+                    .lead = Format.toString("%", wanted)
+                    .run  = func|window = me, start|() { window.revealLensOffset(start, 0) }
+                }
+
+                return
+            }
+
+            // A column past the end of the line stops at its end, and the row says where.
+            let column  = catch StrConv.toU64(query[separator + 1 to])
+            var offset  = start
+            var reached = 1'u64
+            while reached < column and
+                  offset < content.count and
+                  content[offset] != '\n' and
+                  content[offset] != '\r'
+            {
+                offset += 1
+                while offset < content.count and (content[offset] & 0xC0) == 0x80 do
+                    offset += 1
+                reached += 1
+            }
+
+            with let entry = section.addEntry(Format.toString(texts.lens_GoToLineColumn, wanted, reached))
+            {
+                .lead = Format.toString("%:%", wanted, reached)
+                .run  = func|window = me, offset|() { window.revealLensOffset(offset, 0) }
             }
 
             return

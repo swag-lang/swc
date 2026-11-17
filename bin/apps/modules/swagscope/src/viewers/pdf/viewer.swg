@@ -275,7 +275,10 @@ private impl Panel
         {
             if not result.isEmpty() do
                 result += " · "
-            result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
+            if unreadable == 1 do
+                result += texts().ui_TextLayerOneUnreadable
+            else do
+                result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
         }
 
         return result
@@ -294,13 +297,18 @@ private impl Panel
         let pages = .pdfView.pageCount()
         if coverage.pictures == pages do
             result = texts().ui_NoTextLayer
+        elif coverage.pictures == 1 do
+            result = Format.toString(texts().ui_OneNoText, pages)
         elif coverage.pictures do
             result = Format.toString(texts().ui_SomeNoText, coverage.pictures, pages)
         if coverage.unreadable
         {
             if not result.isEmpty() do
                 result += " · "
-            result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
+            if coverage.unreadable == 1 do
+                result += texts().ui_OneUnreadable
+            else do
+                result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
         }
 
         return result

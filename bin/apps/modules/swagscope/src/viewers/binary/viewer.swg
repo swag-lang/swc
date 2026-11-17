@@ -556,7 +556,7 @@ impl Panel
     mtd copyReport()
     {
         let text = .doc.report.toText()
-        Clipboard.addString(text)
+        Clipboard.setString(text)
     }
 
     // Puts the visible cells of the selected row on the clipboard.
@@ -577,7 +577,7 @@ impl Panel
             text += item.name.text
         }
 
-        Clipboard.addString(text)
+        Clipboard.setString(text)
     }
 
     // Returns the file offset of the selected row, or zero when no selected row has one.

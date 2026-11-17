@@ -403,9 +403,14 @@ impl IWnd for ZoomButton
 
 impl ZoomButton
 {
-    mtd reportStatistics()
+    // Gives the outline beside the document the colors of the document's appearance.
+    mtd applyReadingColors()
     {
         .outline?.setReadingColors(viewerColors(g_ViewerSettings.themeIndex))
+    }
+
+    mtd reportStatistics()
+    {
         if not .hasStatistics
         {
             .services.showDetails(.view, texts().ui_Details)
@@ -574,7 +579,7 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
                          {
                              g_ViewerSettings.themeIndex = index
                              applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
-                             zoom.reportStatistics()
+                             zoom.applyReadingColors()
                              catch g_App.saveState()
                          })
                      }
@@ -582,7 +587,6 @@ func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomB
                  icon: view.theme().icon(.Appearance, themeRowIconSize(view.themeMetrics())))
 }
 
-// Creates the integrated Markdown view.
 // Describes a Markdown document in the information sheet: its lines, words and characters once
 // they are counted, then its format, its encoding and how its lines end.
 private func describeMarkdown(sheet: *InfoSheet, zoomButton: *ZoomButton)
@@ -596,6 +600,7 @@ private func describeMarkdown(sheet: *InfoSheet, zoomButton: *ZoomButton)
     data.describe(sheet)
 }
 
+// Creates the integrated Markdown view.
 func createViewer(host: Viewer.Host)
 {
     let view = Markdown.View.createFile(host.contentParent(), host.fileName(), Markdown.Style.theme())
@@ -620,6 +625,7 @@ func createViewer(host: Viewer.Host)
         .outline.sigSelected += func|zoomButton|(_, _) { zoomButton.rememberPlace() }
         .outline.bindMarkdown(view, host.fileName())
         .outline.startMarkdown()
+        .applyReadingColors()
     }
 
     optionsButton.sigPressed += func|view, zoomButton|(button)

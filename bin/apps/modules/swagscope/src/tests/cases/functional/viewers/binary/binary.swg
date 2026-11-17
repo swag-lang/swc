@@ -798,16 +798,20 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     host.setup(1100, 640)
 
     let view = binaryTestViewer(&host, fileName, 1100, 600)
+
+    // A copy replaces whatever the clipboard held, a picture included, so pasting gives the text.
+    Clipboard.addImage(Image.create(4, 4, .RGB8))
     view.copyReport()
     let all = Clipboard.getString()
-    Swag.require(Utf8.contains(all.toSlice(), "swagExport"))
+    Swag.require(Utf8.contains(all.toSlice(), "swagExport") and not Clipboard.hasImage())
 
     view.setExpandedAll(true)
     let revealed = view.revealOffset(FixtureTextAt)
     Swag.require(revealed)
+    Clipboard.addImage(Image.create(4, 4, .RGB8))
     view.copySelectedLine()
     let one = Clipboard.getString()
-    Swag.require(Utf8.contains(one.toSlice(), ".text"))
+    Swag.require(Utf8.contains(one.toSlice(), ".text") and not Clipboard.hasImage())
     Swag.require(not Utf8.contains(one.toSlice(), "swagExport"))
 
     // The lens offers the same copies as the context menu.

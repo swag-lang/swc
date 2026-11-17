@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Gdi32, TrueType
+using Core, Win32, Win32.Gdi32, TrueType
 
 // The `ttcf` table tag, in the byte order `GetFontData` reads a tag in.
 const TtcfTableTag = 0x66637474'u32

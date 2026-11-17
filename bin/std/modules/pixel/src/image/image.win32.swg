@@ -1,7 +1,7 @@
 #global if #os == Swag.TargetOs.Windows
 #global public
 
-using Swag, Core, Core.Errors, Win32, Gdi32
+using Swag, Core, Core.Errors, Win32, Win32.Gdi32
 
 impl Image
 {

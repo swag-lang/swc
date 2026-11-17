@@ -1,7 +1,7 @@
 #global if WINDOWS
 #global namespace Input
 
-using XInput, Win32
+using Win32, Win32.XInput
 
 public impl Gamepad
 {

@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Swag, Core, Win32, Ogl, Gdi32
+using Swag, Core, Win32, Win32.Gdi32, Ogl
 
 internal impl NativeRenderOgl
 {

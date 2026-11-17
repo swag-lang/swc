@@ -1,9 +1,8 @@
 #global export
 #global if #os == Swag.TargetOs.Windows
+#global namespace Gdiplus
 
 #foreignlib("gdiplus")
-using Win32
-
 #[Swag.Strict]
 {
     alias GpStatus       = s32

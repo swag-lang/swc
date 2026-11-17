@@ -1,8 +1,9 @@
 #global export
 #global if #os == Swag.TargetOs.Windows
+#global namespace Gdi32
 
 #foreignlib("gdi32")
-using Swag, Win32
+using Swag
 
 #[Swag.Strict]
 {

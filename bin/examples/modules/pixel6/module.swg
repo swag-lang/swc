@@ -1,5 +1,5 @@
 #import("pixel", location: "swag@std")
-#import("gdiplus", location: "swag@std")
+#import("win32", location: "swag@std")
 
 #run
 {

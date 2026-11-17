@@ -1,4 +1,4 @@
-using Core, Gdiplus, Pixel
+using Core, Win32.Gdiplus, Pixel
 
 const W                   = 1260
 const H                   = 940

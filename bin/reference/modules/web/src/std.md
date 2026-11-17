@@ -36,16 +36,12 @@ slots, and several drawing inputs borrow it.
 | Module | Namespace | Upstream surface |
 |---|---|---|
 | [std.ogl](std.ogl.html) | `Ogl` | OpenGL declarations and Windows context integration |
-| [std.win32](std.win32.html) | `Win32` | Windows SDK declarations used by the standard workspace |
-| [std.gdi32](std.gdi32.html) | `Gdi32` | Windows GDI declarations |
-| [std.gdiplus](std.gdiplus.html) | `Gdiplus` | Windows GDI+ flat API declarations |
-| [std.xinput](std.xinput.html) | `XInput` | Microsoft XInput declarations |
-| [std.xaudio2](std.xaudio2.html) | `XAudio2` | Microsoft XAudio2 declarations and COM-style interfaces |
+| [std.win32](std.win32.html) | `Win32`, `Win32.Gdi32`, `Win32.Gdiplus`, `Win32.XInput` | Windows SDK, GDI, GDI+, and XInput declarations |
 
 Binding pages are searchable declaration indices, not replacements for the
-upstream Microsoft or Khronos specifications. They document Swag-specific
-helpers and deviations, while names, flags, structures, and native functions
-retain their upstream contracts.
+upstream Microsoft or Khronos specifications. The Windows APIs share one page,
+with their upstream-specific namespaces intact. Names, flags, structures, and
+native functions retain their upstream contracts.
 
 ## Platform and build model
 

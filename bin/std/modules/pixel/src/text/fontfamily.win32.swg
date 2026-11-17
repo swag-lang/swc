@@ -1,6 +1,6 @@
 #global if #os == Swag.TargetOs.Windows
 
-using Core, Win32, Gdi32
+using Core, Win32, Win32.Gdi32
 
 private var g_SystemFallbackLock: Swag.Mutex
 private var g_SystemFallback:     SystemFontFallbackCache

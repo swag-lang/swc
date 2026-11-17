@@ -51,7 +51,6 @@ can decide which destinations are acceptable. [[Net.Http.get]] documents timeout
 #static if #os == Swag.TargetOs.Linux
 {
     #import("linux")
-    #import("curl")
 }
 
 #static if #os == Swag.TargetOs.Windows do

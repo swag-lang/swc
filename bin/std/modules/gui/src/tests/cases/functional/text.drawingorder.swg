@@ -64,6 +64,9 @@ func renderAfter(warm: string)->Image
 #test
 {
     let reference = renderAfter("")
+    // GPU filtering and framebuffer conversion can round antialiased coverage by one byte.
+    // Keep the CPU reference exact and allow only that single-level edge rounding on GPU.
+    let tolerance = Env.variable("SWAG_TEST_RENDERER") == "cpu" ? 0'u32 : 1'u32
     for warm in ["The quick brown fox jumps over the lazy dog, 0123456789.",
                  "erugif tpircsunaM",
                  "WAVE wave Typography: kerning, ligatures & glyphs!"]
@@ -75,7 +78,14 @@ func renderAfter(warm: string)->Image
             {
                 let expected = reference.pixelColor(x, y).argb
                 let actual   = image.pixelColor(x, y).argb
-                Swag.require(actual == expected, Format.toString("after \"%\": pixel (%, %) is % instead of %", warm, x, y, actual, expected).toString())
+                Swag.require((actual >> 24) == (expected >> 24), Format.toString("after \"%\": pixel (%, %) alpha is % instead of %", warm, x, y, actual, expected).toString())
+                for shift in [0'u32, 8, 16]
+                {
+                    let expectedChannel = (expected >> shift) & 0xFF
+                    let actualChannel   = (actual >> shift) & 0xFF
+                    let difference      = expectedChannel > actualChannel ? expectedChannel - actualChannel : actualChannel - expectedChannel
+                    Swag.require(difference <= tolerance, Format.toString("after \"%\": pixel (%, %) is % instead of %", warm, x, y, actual, expected).toString())
+                }
             }
         }
     }

@@ -49,10 +49,12 @@ struct AnalysisResult
     strings:          Array'AnalysisString     // Inferred runs in file order, at most `AnalysisStringLimit`.
     stringsTruncated: bool     // Whether more runs were found than `strings` keeps.
     cancelled:        bool
-    failureReason:    String     // Empty unless the file could not be read.
-    hasDigests:       bool       // Whether every byte of the range was read, so the digests below cover it.
-    crc32:            u32        // CRC-32 of the range, as ZIP and PNG compute it.
+    failureReason:    String                 // Empty unless the file could not be read.
+    hasDigests:       bool                   // Whether every byte of the range was read, so the digests below cover it.
+    crc32:            u32                    // CRC-32 of the range, as ZIP and PNG compute it.
     sha256:           Hash.Sha256.Digest     // SHA-256 of the range.
+    md5:              Hash.Md5.Digest        // MD5 of the range, which download pages still print.
+    sha1:             Hash.Sha1.Digest       // SHA-1 of the range.
 }
 
 impl AnalysisResult
@@ -60,19 +62,42 @@ impl AnalysisResult
     // Returns the CRC-32 of the range in hexadecimal, as checksum tools print it.
     mtd const crc32Text()->String => Format.toString("%{X08}", .crc32)
 
-    // Returns the SHA-256 of the range in lowercase hexadecimal, as checksum tools print it.
-    mtd const sha256Text()->String
+    // Returns the MD5 of the range in lowercase hexadecimal, as checksum tools print it.
+    mtd const md5Text()->String
     {
         const Digits = "0123456789abcdef"
         var result: String
-        for word in .sha256
+        for byte in .md5
         {
-            for shift in 8 do
-                result.append(cast(rune, Digits[(word >> (28 - shift * 4)) & 0xF]))
+            result.append(cast(rune, Digits[byte >> 4]))
+            result.append(cast(rune, Digits[byte & 0xF]))
         }
 
         return result
     }
+
+    // Returns the SHA-1 of the range in lowercase hexadecimal, as checksum tools print it.
+    mtd const sha1Text()->String => wordsText(.sha1)
+
+    // Returns every digest of the range, one per line, each after its algorithm.
+    mtd const digestsText()->String => Format.toString("CRC-32 %\nMD5 %\nSHA-1 %\nSHA-256 %", .crc32Text(), .md5Text(), .sha1Text(), .sha256Text())
+
+    // Returns the SHA-256 of the range in lowercase hexadecimal, as checksum tools print it.
+    mtd const sha256Text()->String => wordsText(.sha256)
+}
+
+// Writes the big-endian 32-bit words of a digest in lowercase hexadecimal.
+private func wordsText(words: const [..] u32)->String
+{
+    const Digits = "0123456789abcdef"
+    var result: String
+    for word in words
+    {
+        for shift in 8 do
+            result.append(cast(rune, Digits[(word >> (28 - shift * 4)) & 0xF]))
+    }
+
+    return result
 }
 
 // Readable run being accumulated in one encoding, flushed when a byte breaks it.
@@ -222,6 +247,8 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
     var bytes:       Array'u8
     var crc:         Hash.Crc32
     var sha:         Hash.Sha256
+    var md5:         Hash.Md5
+    var sha1:        Hash.Sha1
     var remaining = range.length
     while remaining
     {
@@ -248,6 +275,8 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         bytes.resize(count)
         crc.update(bytes.toSlice())
         sha.update(bytes.toSlice())
+        md5.update(bytes.toSlice())
+        sha1.update(bytes.toSlice())
         for value in bytes
         {
             let offset = range.offset + result.scanned
@@ -275,6 +304,8 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         result.hasDigests = true
         result.crc32      = crc.value()
         result.sha256     = sha.finalize()
+        result.md5        = md5.finalize()
+        result.sha1       = sha1.finalize()
     }
 
     return result

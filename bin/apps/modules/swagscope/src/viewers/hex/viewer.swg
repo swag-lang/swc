@@ -357,6 +357,8 @@ impl Panel
             if crc do
                 crc.detail = result.crc32Text()
             entries.add(texts().ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha256Text().toString()) })
+            entries.add(texts().ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.md5Text().toString()) })
+            entries.add(texts().ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha1Text().toString()) })
         }
     }
 

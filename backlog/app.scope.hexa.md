@@ -214,10 +214,11 @@ are what separate that capable grid from a professional binary-analysis viewer.
 
 ### app.scope.hexa.017 — Checksums stop at CRC-32 and SHA-256 of an analyzed range
 
-- Evidence: an analysis read in full (selection, or the whole file) computes the CRC-32 and the
-  SHA-256 of its range in the same streamed, cancellable pass, shows them in the analysis panel,
-  and offers each to the lens for copying. CRC-64, MD5, SHA-1, SHA-512 and BLAKE2 are absent, a
-  digest cannot be asked for without the rest of the analysis, and the copy omits the range.
+- Evidence: an analysis read in full (selection, or the whole file) computes the CRC-32, MD5,
+  SHA-1 and SHA-256 of its range in the same streamed, cancellable pass. The analysis panel shows
+  the CRC-32 and SHA-256 on one line whose tooltip gives all four whole, and the lens copies each.
+  CRC-64, SHA-512 and BLAKE2 are absent, a digest cannot be asked for without the rest of the
+  analysis, and the copy omits the range.
 - Next: let the panel choose the algorithms it computes, and copy a result with its algorithm and
   range.
 - Done when: checksum, CRC32/CRC64, MD5, SHA-1, SHA-256/SHA-512, and BLAKE2 can run over file or

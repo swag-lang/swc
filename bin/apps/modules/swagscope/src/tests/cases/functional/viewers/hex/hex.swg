@@ -219,6 +219,9 @@ internal func writeSampleFile()->String
     Swag.require(result.hasDigests and result.scanned == 3)
     Swag.require(result.crc32Text() == "352441C2")
     Swag.require(result.sha256Text() == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
+    Swag.require(result.md5Text() == "900150983cd24fb0d6963f7d28e17f72", result.md5Text())
+    Swag.require(result.sha1Text() == "a9993e364706816aba3e25717850c26c9cd0d89d", result.sha1Text())
+    Swag.require(Utf8.contains(result.digestsText(), "MD5 900150983cd24fb0d6963f7d28e17f72\nSHA-1 a9993e36"))
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)

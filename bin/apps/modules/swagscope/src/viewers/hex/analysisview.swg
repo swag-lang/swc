@@ -245,8 +245,12 @@ private impl AnalysisView
 
         // The checksums cover the range only once it has been read in full.
         .digestsLabel.show(.result.hasDigests)
-        if .result.hasDigests do
+        if .result.hasDigests
+        {
+            // The line cannot hold whole digests; its tooltip gives every one, MD5 and SHA-1 too.
             .digestsLabel.setText(Format.toString(texts().ui_AnalysisDigests, .result.crc32Text(), .result.sha256Text()))
+            .digestsLabel.toolTip = .result.digestsText()
+        }
 
         if .result.stringsTruncated do
             .stringsLabel.setText(Format.toString(texts().ui_AnalysisStringsLimited, .result.strings.count))

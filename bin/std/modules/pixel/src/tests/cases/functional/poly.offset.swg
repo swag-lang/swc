@@ -6,8 +6,8 @@ using Core, Core.Math, Pixel.Clipper
 func addOffsetRect(list: *Pixel.LinePathList, serial: s32, x, y: f32)
 {
     let path = list.newPath()
-    path.serial = serial
     path.setRect(x, y, 20, 12)
+    path.serial = serial
 }
 
 func assertOffsetCleanPreservesPathIdentity()

@@ -671,6 +671,21 @@ public impl Face
         try .loadGlyph(idx, loadFlags)
     }
 
+    // Loads and composites a COLR v0 glyph into an RGBA color bitmap.
+    //
+    // Layers are rasterized in their declared order using the active pixel size and
+    // source-over alpha composition. CPAL colors use `paletteIndex`; COLR's foreground
+    // entries use `foregroundArgb`, defaulting to opaque black. The slot's outline and
+    // metrics describe `baseGlyph`, while its bitmap uses [[TrueType.PixelMode.ColorRgba]]
+    // with bytes in red, green, blue, alpha order. This replaces the slot's current
+    // outline and bitmap, like [[TrueType.Face.loadGlyph]]. It fails if the glyph has no
+    // color layers.
+    mtd loadColorGlyph(baseGlyph: u32, paletteIndex: u16 = 0,
+                       foregroundArgb: u32 = 0xFF000000) fail
+    {
+        try renderColorGlyph(me, baseGlyph, paletteIndex, foregroundArgb)
+    }
+
     // Rasterizes the current outline into an 8-bit grayscale bitmap.
     //
     // The result is stored in [[TrueType.GlyphSlot.bitmap]] and replaces any

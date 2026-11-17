@@ -50,6 +50,7 @@ enum MediaInfoField
     Title
     Author
     Bookmarks
+    TextLayer
     Style
     UnitsPerEm
     Faces
@@ -114,6 +115,7 @@ struct MediaInfoStrings
     title:          string = "Title"
     author:         string = "Author"
     bookmarks:      string = "Bookmarks"
+    textLayer:      string = "Text layer"
     style:          string = "Style"
     unitsPerEm:     string = "Units per em"
     faces:          string = "Faces"
@@ -238,6 +240,7 @@ impl MediaInfoRow
         case .Title:          return s.title
         case .Author:         return s.author
         case .Bookmarks:      return s.bookmarks
+        case .TextLayer:      return s.textLayer
         case .Style:          return s.style
         case .UnitsPerEm:     return s.unitsPerEm
         case .Faces:          return s.faces

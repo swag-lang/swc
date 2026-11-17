@@ -63,11 +63,12 @@ integration around those engines.
 
 - Evidence: once the document's text has been extracted for search, `PdfView.textCoverage`
   counts pages with no text and pages whose text failed to decode, and a search that found
-  nothing says so beside its `0/0`. A search that does find words in a partly scanned document
-  still gives no hint that some pages were not searched, and the information sheet does not
-  report the text layer at all.
-- Next: report the pages without a text layer in the PDF information sheet, and mark the count
-  of a successful search over a partly scanned document.
+  nothing says so beside its `0/0`. The information sheet starts that extraction itself
+  (`PdfView.extractText`) and, once `PdfView.sigTextExtracted` reports it done, says whether the
+  pages carry text: on every page, none, or missing on how many, then how many could not be read.
+  A search that does find words in a partly scanned document still gives no hint that some pages
+  were not searched.
+- Next: mark the count of a successful search over a partly scanned document.
 - Done when: a reader can tell, without searching, that a document or some of its pages have no
   text layer, and a found count over such a document says which pages it could not cover.
 - Related: std.gui.pdf.040, std.gui.pdf.041, std.gui.pdf.042

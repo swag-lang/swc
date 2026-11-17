@@ -25,8 +25,9 @@ struct DocumentText
 
 impl DocumentText
 {
-    // Starts extracting the `pageCount` pages of `fileName` on a worker.
-    mtd start(fileName: string, pageCount: u64)
+    // Starts extracting the `pageCount` pages of `fileName` on a worker; `owner`, when given,
+    // receives a [[Gui.TaskEvent]] naming `task` once every page is published.
+    mtd start(fileName: string, pageCount: u64, owner: *Wnd? = null)
     {
         Swag.assert(not .started)
         .fileName = fileName
@@ -37,7 +38,7 @@ impl DocumentText
         .started = true
 
         let text = me
-        .task.submit(func|text|() { text.extract() })
+        .task.submit(func|text|() { text.extract() }, owner ? owner.taskNotifier(&.task) : null)
     }
 
     // Returns how many pages, from the first, have their text published.

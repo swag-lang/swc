@@ -51,6 +51,7 @@ fullScale   Pleine échelle
 title       Titre
 author      Auteur
 bookmarks   Signets
+textLayer   Couche de texte
 style       Style
 unitsPerEm  Unités par em
 faces       Faces

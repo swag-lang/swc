@@ -666,6 +666,18 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     view.showPage(1)
     Swag.require(view.documentText.started)
     Swag.require(view.findTextMatches("PDF").count == 1)
+
+    // Extraction can start without a search, and says when it is done.
+    view.close()
+    expect view.open(fileName.toString())
+    var extracted = 0
+    view.sigTextExtracted += func|counter = &extracted|(_) { counter[] += 1 }
+    view.extractText()
+    Swag.require(view.documentText.started)
+    view.documentText.wait()
+    host.pump()
+    let coverage = view.textCoverage()
+    Swag.require(extracted == 1 and coverage.complete and coverage.pictures == 0 and coverage.unreadable == 0, Format.toString("% % % %", extracted, coverage.complete, coverage.pictures, coverage.unreadable))
 }
 
 // The context menu reaches the same selection commands the keyboard binds.

@@ -265,3 +265,35 @@ internal func createPdfFixture()->String
     entry.run!()
     Swag.require(not Clipboard.getString().isEmpty())
 }
+
+// The information sheet says whether the pages carry text, without a search: once the text is
+// extracted, a scanned document reads as pictures and a written one as text on every page.
+#test
+{
+    for name, index in ["viewer.jpeg.pdf", "viewer.pdf"]
+    {
+        var host: HeadlessHost
+        host.setup(960, 680)
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        window.resize(960, 680)
+        window.openFile(scopeTestDataPath(name))
+        completeQueuedViewerFile(&host, window)
+        window.applyLayout()
+        window.toggleInformation()
+
+        let view     = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+        var attempts = 0
+        while not view.pdfView.textCoverage().complete and attempts < 5_000
+        {
+            Threading.Thread.sleep(1'ms)
+            host.pump()
+            attempts += 1
+        }
+
+        host.pump()
+        window.infoSheet.selectPage(1)
+        let text     = window.infoSheet.text()
+        let expected = index == 0 ? PdfDocument.texts().ui_TextLayerNone : PdfDocument.texts().ui_TextLayerAll
+        Swag.require(Utf8.contains(text, Format.toString("Text layer\n%", expected).toString()), text)
+    }
+}

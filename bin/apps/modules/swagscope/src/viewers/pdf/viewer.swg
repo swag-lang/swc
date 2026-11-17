@@ -259,6 +259,28 @@ private impl Panel
 
     mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool => .pdfView.revealTextMatch(PdfTextMatch{match.major, match.offset, match.length})
 
+    // Says which pages carry text: every one, none, or how many are pictures without it, then how
+    // many could not be read.
+    mtd textLayerText(pictures, unreadable: u64)->String
+    {
+        let pages = .pdfView.pageCount()
+        var result: String
+        if pictures == pages do
+            result = String.from(texts().ui_TextLayerNone)
+        elif pictures do
+            result = Format.toString(texts().ui_TextLayerSome, pictures, pages)
+        elif not unreadable do
+            result = String.from(texts().ui_TextLayerAll)
+        if unreadable
+        {
+            if not result.isEmpty() do
+                result += " · "
+            result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
+        }
+
+        return result
+    }
+
     // Says why a complete search found nothing when pages hold no searchable words: pictures of
     // pages without a text layer, which reading cannot tell from text, and pages whose text could
     // not be read. A document whose every page has text leaves the plain answer.
@@ -604,6 +626,12 @@ private impl Panel
                 view.refreshNavigation()
             }
 
+            // The text layer of every page is known; the information sheet can state it.
+            .sigTextExtracted += func|view = me|(_)
+            {
+                view.services.showDetails(view, view.details)
+            }
+
             .sigZoomChanged += func|view = me|(_)
             {
                 view.refreshZoom()
@@ -643,6 +671,13 @@ impl Panel
             data.add(.Author, .facts.author)
         if .bookmarks.count do
             data.add(.Bookmarks, Format.toString("%", .bookmarks.count))
+
+        // Whether the pages carry text is known once the text the search reads has been
+        // extracted, which the sheet starts and then waits for.
+        .pdfView.extractText()
+        let coverage = .pdfView.textCoverage()
+        if coverage.complete do
+            data.add(.TextLayer, .textLayerText(coverage.pictures, coverage.unreadable))
         data.describe(sheet)
     }
 }

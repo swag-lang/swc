@@ -241,9 +241,9 @@ impl Source
         .pictures.add({})
     }
 
-    // Writes a bottom-up BGRA8 image, returning true when a new selected frame is reported or the composed cursor changes.
+    // Writes a bottom-up BGRA8 image, returning true when the backend reports a fresh capture or the composed cursor changes.
     //
-    // False means no new selected frame is reported yet, either because the selected image and cursor did not
+    // False means the backend reports no new image yet, either because the selected image and cursor did not
     // change or because a video readback is still pending. It is not a source failure.
     // By default the previous picture is copied to `target`. Set `copyUnchanged` to false
     // when the caller will reuse its previous encoded picture instead. A reusable target stays

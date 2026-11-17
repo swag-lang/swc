@@ -528,6 +528,7 @@ public impl Voice
     // `1` preserves the source pitch, values below `1` lower it, and values
     // above `1` raise it. Create the voice with
     // [[Audio.VoiceCreateFlags.PitchControl]] before changing this value.
+    // The ratio must be finite and greater than zero.
     mtd setFrequencyRatio(ratio: f32, batchId: u32 = 0) fail
     {
         if not .handle do

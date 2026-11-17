@@ -25,15 +25,15 @@ struct InPlaceSizeChip
 
 struct EditView
 {
-    using wnd:   Wnd
-    late main:   *MainWnd
-    late scroll: *ScrollWnd
-    capture:     *Capture?
+    using wnd:         Wnd
+    late main:         *MainWnd
+    late scroll:       *ScrollWnd
+    capture:           *Capture?
     inPlaceKindButton: *IconButton?
-    zoom:        f32  = 1
-    viewMargin:  f32  = 32
-    firstPaint:  bool = true
-    zoomTimer:   *Gui.Timer?
+    zoom:              f32  = 1
+    viewMargin:        f32  = 32
+    firstPaint:        bool = true
+    zoomTimer:         *Gui.Timer?
 
     // Set by [EditView.setInPlaceEdit], which owns the zoom from then on.
     readonly inPlaceEdit: bool

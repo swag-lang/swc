@@ -618,7 +618,7 @@ using Swag, Core
 
     Gui.Testing.clearPendingRepaint(surface)
     f.gui.moveMouse(f.imagePoint({60, 45}))
-    let far = f.imagePoint({330, 240})
+    let far     = f.imagePoint({330, 240})
     let repaint = Gui.Testing.pendingRepaint(surface)
     Swag.require(repaint.dirty)
     Swag.require(repaint.rect.right() < far.x or repaint.rect.bottom() < far.y)

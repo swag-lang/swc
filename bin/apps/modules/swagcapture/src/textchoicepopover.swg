@@ -51,12 +51,11 @@ impl TextChoicePopover
         if kind == .Face and g_MiniBarFonts.isEmpty() do
             g_MiniBarFonts = FontFamily.enumerateSystemFonts()
 
-        let width = kind == .Face ? TextChoiceFaceWidth : TextChoiceSizeWidth
-        let count = kind == .Face ? g_MiniBarFonts.count + 1 : TextChoiceSizes.count
-        let frame = button.createAnchorPopup(width, heightForRows(kind, count, button.themeMetrics()))
+        let width  = kind == .Face ? TextChoiceFaceWidth : TextChoiceSizeWidth
+        let count  = kind == .Face ? g_MiniBarFonts.count + 1 : TextChoiceSizes.count
+        let frame  = button.createAnchorPopup(width, heightForRows(kind, count, button.themeMetrics()))
         let gutter = button.themeMetrics().scrollBar_HitSize + button.themeMetrics().scrollBar_EdgeInset
-        frame.setPadding(gutter, button.themeMetrics().frameWnd_RoundPadding,
-                         gutter, button.themeMetrics().frameWnd_RoundPadding)
+        frame.setPadding(gutter, button.themeMetrics().frameWnd_RoundPadding, gutter, button.themeMetrics().frameWnd_RoundPadding)
         with let result = Wnd.create'TextChoicePopover(frame, {})
         {
             .dockStyle       = .Center
@@ -83,8 +82,9 @@ impl TextChoicePopover
             {
                 .setPlaceholder(appStrings().ui_Search)
                 .sigTextChanged += func|popover = me|(_) { popover.fill() }
-                .hookOnEvent = func|popover = me|(_, evt)->bool => popover.filterKey(evt)
+                .hookOnEvent    = func|popover = me|(_, evt)->bool => popover.filterKey(evt)
             }
+
             listTop += TextChoiceFilterHeight + TextChoiceFilterGap
         }
 
@@ -93,20 +93,22 @@ impl TextChoicePopover
         {
             .setFrameForm(.Transparent)
             .padding.z = gutter
-            .scrollWnd.setPadding(0, .themeMetrics().list_Padding,
-                                  0, .themeMetrics().list_Padding)
+            .scrollWnd.setPadding(0, .themeMetrics().list_Padding, 0, .themeMetrics().list_Padding)
             .setLineHeight(TextChoiceRowHeight)
             .setFirstColumnIconMargin(false)
             .updateFlags(add: .HotTrack | .PreserveSelectionOnEmptyClick)
             .sigSelectionChanged += func|popover = me|(_) { popover.chooseSelected() }
-            .sigKeyPressed += func|popover = me|(_, key) { popover.listKey(key) }
+            .sigKeyPressed       += func|popover = me|(_, key) { popover.listKey(key) }
         }
+
         if .kind == .Face do
             .list.setEmptyText(appStrings().ui_NoMatchingFonts)
 
         .fill()
-        if .filter do
+        if .filter
+        {
             .filter.setFocus()
+        }
         else
         {
             .list.setFocus()
@@ -135,7 +137,7 @@ impl TextChoicePopover
             if .filter do
                 query = String.from(.filter.text()).toLower(.Unicode)
 
-            let defaultFace = .theme().res.defaultTypeFaceR.familyName()
+            let defaultFace  = .theme().res.defaultTypeFaceR.familyName()
             let defaultLower = String.from(defaultFace).toLower(.Unicode)
             if query.isEmpty() or Utf8.contains(defaultLower.toString(), query.toString())
             {
@@ -146,7 +148,7 @@ impl TextChoicePopover
 
             for &font, index in g_MiniBarFonts where font.name != defaultFace
             {
-                let name = font.name.toString()
+                let name  = font.name.toString()
                 let lower = String.from(name).toLower(.Unicode)
                 if not query.isEmpty() and not Utf8.contains(lower.toString(), query.toString()) do
                     continue
@@ -218,6 +220,7 @@ impl TextChoicePopover
             let size = cast(f32, value)
             .main.propWnd.pushTypedValue(cast #bit (u32, size), style.type, #nameof(FormText.fontSize), true)
         }
+
         .button.hidePopup()
     }
 
@@ -229,11 +232,20 @@ impl TextChoicePopover
             return false
         switch key.key
         {
-        case .Escape: .button.hidePopup()
-        case .Down:   .focusFirst()
-        case .Return: if .values.count do .choose(0)
-        default:      return false
+        case .Escape:
+            .button.hidePopup()
+
+        case .Down:
+            .focusFirst()
+
+        case .Return:
+            if .values.count do
+                .choose(0)
+
+        default:
+            return false
         }
+
         key.accepted = true
         return true
     }
@@ -255,25 +267,41 @@ impl TextChoicePopover
         let focused = .list.focusedLine()
         switch key.key
         {
-        case .Escape: .button.hidePopup()
+        case .Escape:
+            .button.hidePopup()
+
         case .Return, .Enter, .Space:
             if focused do
                 .choose(focused.index)
+
         case .Home, .End, .Up, .Down:
             if count
             {
                 var index = focused ? focused.index : 0'u32
                 switch key.key
                 {
-                case .Home: index = 0
-                case .End:  index = count - 1
-                case .Up:   if index > 0 do index -= 1
-                case .Down: if index + 1 < count do index += 1
+                case .Home:
+                    index = 0
+
+                case .End:
+                    index = count - 1
+
+                case .Up:
+                    if index > 0 do
+                        index -= 1
+
+                case .Down:
+                    if index + 1 < count do
+                        index += 1
                 }
+
                 .list.setFocusedIndex(index)
             }
-        default: return
+
+        default:
+            return
         }
+
         key.accepted = true
     }
 }

@@ -286,8 +286,8 @@ impl BaseForm
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
         let base: *BaseForm = itf
-        let formBound = itf.boundRect()
-        var pos       = Math.Vector2{pt.x, pt.y}
+        let formBound       = itf.boundRect()
+        var pos             = Math.Vector2{pt.x, pt.y}
         if base.isRotated()
         {
             let center = formBound.center() * z

@@ -180,3 +180,45 @@ using Core, Gui, Gui.Testing, Viewers
     window.lens.close()
     host.finishAnimations()
 }
+
+// The chapter rows of the lens stop at the ends of the spine, as the chapter buttons do.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    Swag.require(view.chapter == 0 and view.book.chapters.count == 2)
+
+    func chapterRows(window: *ViewerWindow, host: *HeadlessHost)->{previous: bool, next: bool}
+    {
+        var result: #returntype
+        window.lens.open()
+        host.finishAnimations()
+        defer
+        {
+            window.lens.close()
+            host.finishAnimations()
+        }
+
+        for section in window.lens.results.sections
+        {
+            for &entry in section!.entries
+            {
+                if entry.title == Epub.texts().ui_Previous do
+                    result.previous = not entry.disabled
+                elif entry.title == Epub.texts().ui_Next do
+                    result.next = not entry.disabled
+            }
+        }
+
+        return result
+    }
+
+    let first = chapterRows(window, &host)
+    Swag.require(not first.previous and first.next)
+
+    view.showChapter(1)
+    completeQueuedViewerFile(&host, window)
+    let last = chapterRows(window, &host)
+    Swag.require(last.previous and not last.next)
+}

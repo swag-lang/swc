@@ -147,6 +147,58 @@ SWC_TEST_END()
 
 #endif
 
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicPublicationPreservesLongTargetNames)
+{
+    const fs::path directory = Os::getTemporaryPath() / std::format("swc_atomic_long_p{}", Os::currentProcessId());
+    struct RemoveTestDirectory
+    {
+        const fs::path* path;
+        ~RemoveTestDirectory()
+        {
+            std::error_code error;
+            fs::remove_all(*path, error);
+        }
+    } cleanup{&directory};
+    std::error_code ec;
+    fs::create_directories(directory, ec);
+    if (ec)
+        return Result::Error;
+
+    size_t nameLength = 255;
+#ifdef _WIN32
+    // Leave room for the target, but not for a suffix appended to its complete path.
+    const size_t directoryLength = directory.native().size() + 1;
+    if (directoryLength >= 250)
+        return Result::Error;
+    nameLength = 250 - directoryLength;
+#endif
+    const fs::path          path = directory / std::string(nameLength, 'a');
+    FileSystem::IoErrorInfo error;
+    SWC_RESULT(FileSystem::writeBinaryFile(path, "old", 3, error));
+    SWC_RESULT(FileSystem::writeBinaryFileAtomic(path, "replacement", 11, error));
+    std::string contents;
+    SWC_RESULT(FileSystem::readTextFile(path, contents, error));
+    if (contents != "replacement" || !FileSystem::moveFileAside(path) || fs::exists(path, ec) || ec)
+        return Result::Error;
+
+    size_t asideCount = 0;
+    for (fs::directory_iterator it(directory, ec), end; !ec && it != end; it.increment(ec))
+    {
+        if (!FileSystem::isMovedAsidePath(it->path()))
+            return Result::Error;
+        SWC_RESULT(FileSystem::readTextFile(it->path(), contents, error));
+        if (contents != "replacement")
+            return Result::Error;
+        ++asideCount;
+    }
+    if (ec || asideCount != 1)
+        return Result::Error;
+    FileSystem::removeMovedAsideFiles(directory);
+    if (!fs::is_empty(directory, ec) || ec)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ConcurrentAtomicWritesKeepCompleteSnapshots)
 {
     const fs::path path = Os::getTemporaryPath() / std::format("swc_atomic_concurrent_p{}.bin", Os::currentProcessId());

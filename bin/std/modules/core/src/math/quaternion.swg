@@ -24,6 +24,8 @@ impl Quaternion
     // Returns the magnitude of this quaternion.
     mtd const length()->f32
     {
+        if Math.isNaN(.x) or Math.isNaN(.y) or Math.isNaN(.z) or Math.isNaN(.w) do
+            return Swag.F32.NaN
         let scale = Math.max(Math.max(Math.abs(.x), Math.abs(.y)), Math.max(Math.abs(.z), Math.abs(.w)))
         if scale == 0 do
             return 0
@@ -36,9 +38,11 @@ impl Quaternion
         return scale * sqrt(x * x + y * y + z * z + w * w)
     }
 
-    // Returns a unit quaternion, or identity when this quaternion has zero magnitude.
+    // Returns a unit quaternion, or identity for zero or non-finite components.
     mtd const normalized()->Quaternion
     {
+        if not Math.isFinite(.x) or not Math.isFinite(.y) or not Math.isFinite(.z) or not Math.isFinite(.w) do
+            return Identity
         let scale = Math.max(Math.max(Math.abs(.x), Math.abs(.y)), Math.max(Math.abs(.z), Math.abs(.w)))
         if scale == 0 or not Math.isFinite(scale) do
             return Identity
@@ -53,9 +57,11 @@ impl Quaternion
     // Returns the conjugate, which negates the vector part.
     mtd const conjugate()->Quaternion => Quaternion{-.x, -.y, -.z, .w}
 
-    // Returns the multiplicative inverse, or identity for a zero quaternion.
+    // Returns the multiplicative inverse, or identity for zero or non-finite components.
     mtd const inverse()->Quaternion
     {
+        if not Math.isFinite(.x) or not Math.isFinite(.y) or not Math.isFinite(.z) or not Math.isFinite(.w) do
+            return Identity
         let scale = Math.max(Math.max(Math.abs(.x), Math.abs(.y)), Math.max(Math.abs(.z), Math.abs(.w)))
         if scale == 0 or not Math.isFinite(scale) do
             return Identity
@@ -86,7 +92,7 @@ impl Quaternion
         return vector + twiceCross * q.w + imaginary.cross(twiceCross)
     }
 
-    // Converts this rotation to a column-major 4x4 matrix suitable for column-vector transforms.
+    // Converts this rotation to a row-major 4x4 matrix suitable for row-vector transforms.
     mtd const toMatrix4x4()->Matrix4x4
     {
         let q = .normalized()

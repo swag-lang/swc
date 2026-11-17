@@ -13,6 +13,37 @@ struct Matrix3x3
 
 impl Matrix3x3
 {
+    // Creates a 2D translation matrix for row-vector transforms.
+    func createTranslation(offset: Vector2)->Matrix3x3
+    {
+        var result = Matrix3x3.createIdentity()
+        result.m[2, 0] = offset.x
+        result.m[2, 1] = offset.y
+        return result
+    }
+
+    // Creates a 2D scale matrix.
+    func createScale(scale: Vector2)->Matrix3x3
+    {
+        var result = Matrix3x3.createIdentity()
+        result.m[0, 0] = scale.x
+        result.m[1, 1] = scale.y
+        return result
+    }
+
+    // Creates a 2D counterclockwise rotation matrix; `angle` is in radians.
+    func createRotation(angle: Angle)->Matrix3x3
+    {
+        let cosine = Math.cos(angle.radians)
+        let sine = Math.sin(angle.radians)
+        var result = Matrix3x3.createIdentity()
+        result.m[0, 0] = cosine
+        result.m[0, 1] = sine
+        result.m[1, 0] = -sine
+        result.m[1, 1] = cosine
+        return result
+    }
+
     // Creates an identity matrix.
     func createIdentity()->Matrix3x3
     {
@@ -61,6 +92,28 @@ impl Matrix3x3
             .m[0, 0] * vector.x + .m[1, 0] * vector.y + .m[2, 0] * vector.z,
             .m[0, 1] * vector.x + .m[1, 1] * vector.y + .m[2, 1] * vector.z,
             .m[0, 2] * vector.x + .m[1, 2] * vector.y + .m[2, 2] * vector.z}
+    }
+
+    // Transforms a 2D point and divides by its homogeneous component.
+    mtd const transformPoint(point: Vector2)->Vector2
+    {
+        let transformed = .transformVector(Vector3{point.x, point.y, 1})
+        Swag.assert(transformed.z != 0)
+        return Vector2{transformed.x / transformed.z, transformed.y / transformed.z}
+    }
+
+    // Transforms a 2D direction without applying translation.
+    mtd const transformDirection(direction: Vector2)->Vector2
+    {
+        let transformed = .transformVector(Vector3{direction.x, direction.y, 0})
+        return Vector2{transformed.x, transformed.y}
+    }
+
+    // Transforms a 2D normal with the inverse transpose of this matrix's linear part.
+    mtd const transformNormal(normal: Vector2)->Vector2
+    {
+        let transformed = .inverted().transposed().transformDirection(normal)
+        return transformed
     }
 
     // Returns this matrix with rows and columns exchanged.

@@ -454,3 +454,22 @@ const CoreSimdS64Min = -9_223_372_036_854_775_807's64 - 1
     let halfway = Math.lerpAngle(radiansStart, radiansEnd, Simd.splat(0.5'f32))
     Swag.require(Math.isEqualEpsilon(halfway[3], Math.toRadians(180'f32), 0.001))
 }
+
+// SIMD range, wave, and smoothstep helpers operate independently on each lane.
+#test
+{
+    let values = cast(Simd.F32x4, [-2'f32, 0, 2, 4])
+    let lengths = cast(Simd.F32x4, [3'f32, 3, 3, 3])
+    let wave = Math.pingPong(values, lengths)
+    Swag.require(wave[0] == 2 and wave[1] == 0 and wave[2] == 2 and wave[3] == 2)
+
+    let smooth = Math.smoothstep(
+        Simd.splat(0'f32), Simd.splat(1'f32), cast(Simd.F32x4, [-1'f32, 0, 0.5, 2]))
+    Swag.require(smooth[0] == 0 and smooth[1] == 0 and smooth[3] == 1)
+    Swag.require(Math.isEqualEpsilon(smooth[2], 0.5'f32, 0.001))
+
+    let mapped = Math.map(
+        cast(Simd.F64x2, [0'f64, 5]), Simd.splat(0'f64), Simd.splat(10'f64),
+        Simd.splat(-1'f64), Simd.splat(1'f64))
+    Swag.require(mapped[0] == -1 and mapped[1] == 0)
+}

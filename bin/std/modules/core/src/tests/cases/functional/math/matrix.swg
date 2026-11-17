@@ -82,6 +82,16 @@ using Swag
     let direction = affine.transformVector({2, 3, 0})
     Swag.require(position.x == 10 and position.y == 12 and position.z == 1)
     Swag.require(direction.x == 2 and direction.y == 3 and direction.z == 0)
+    Swag.require(affine.transformPoint({2, 3}).isEqualEpsilon({10, 12}, 0.001))
+    Swag.require(affine.transformDirection({2, 3}).isEqualEpsilon({2, 3}, 0.001))
+    let rotation = Math.Matrix3x3.createRotation(Math.Angle.fromRadians(Math.ConstF32.PiBy2))
+    Swag.require(rotation.transformDirection(Math.Vector2.UnitX).isEqualEpsilon(Math.Vector2.UnitY, 0.001))
+    let normalTransform = Math.Matrix3x3.createScale({2, 3}).transformNormal({1, 1})
+    Swag.require(Math.isEqualEpsilon(normalTransform.x, 0.5'f32, 0.001))
+    Swag.require(Math.isEqualEpsilon(normalTransform.y, 1'f32 / 3, 0.001))
+    let scaled = Math.Matrix3x3.createScale({2, 3}).multiplied(rotation)
+    let composed = scaled.multiplied(Math.Matrix3x3.createTranslation({4, 5}))
+    Swag.require(composed.transformPoint({1, 0}).isEqualEpsilon({4, 7}, 0.001))
 }
 
 #test

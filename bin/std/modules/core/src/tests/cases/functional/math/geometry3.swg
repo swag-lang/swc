@@ -28,6 +28,12 @@ func expectNear(actual, expected: f32)
     expectNear(axisAngle.angle, Math.ConstF32.PiBy2)
     expectVec3(Math.Quaternion.Identity.rotate({1, 2, 3}), {1, 2, 3})
     expectVec3(Math.Quaternion{0, 0, 0, 0}.normalized().rotate({2, 3, 4}), {2, 3, 4})
+    let invalidRotation = Math.Quaternion{Swag.F32.NaN, 0, 0, 1}
+    let safeRotation = invalidRotation.normalized()
+    Swag.require(safeRotation.x == 0 and safeRotation.y == 0 and safeRotation.z == 0 and safeRotation.w == 1)
+    Swag.require(Math.isNaN(invalidRotation.length()))
+    let infiniteRotation = Math.Quaternion{Swag.F32.Inf, 0, 0, 1}.inverse()
+    Swag.require(infiniteRotation.x == 0 and infiniteRotation.y == 0 and infiniteRotation.z == 0 and infiniteRotation.w == 1)
 
     let halfTurn = Math.Quaternion.fromAxisAngle(Math.Vector3.UnitY, Math.ConstF32.Pi - 0.01)
     let middle = Math.Quaternion.slerp(Math.Quaternion.Identity, halfTurn, 0.5)

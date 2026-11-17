@@ -337,3 +337,42 @@ func expectedPlanarColor(luma, chromaB, chromaR: u8, matrix = YuvMatrix.Bt601, s
     view.chromaStride -= 1
     Swag.require(not view.isValidLayout())
 }
+
+// Row conversion rejects mismatched destinations and ranges before it forms plane row pointers.
+#test
+{
+    var storage: Array'u8
+    var view = flatPlanarPicture(&storage, 4, 4, 120, 128, 128)
+    var target = Image.create(4, 4, .RGB8)
+    let viewPointer   = &view
+    let targetPointer = &target
+
+    let negativeStart = Swag.catchPanic(func|viewPointer, targetPointer|()
+    {
+        viewPointer[].convertRowsToRgb(targetPointer, -1, 2)
+    })
+    let reversedRange = Swag.catchPanic(func|viewPointer, targetPointer|()
+    {
+        viewPointer[].convertRowsToRgb(targetPointer, 3, 2)
+    })
+    let pastEnd = Swag.catchPanic(func|viewPointer, targetPointer|()
+    {
+        viewPointer[].convertRowsToRgb(targetPointer, 0, 5)
+    })
+    Swag.require(negativeStart.raised and reversedRange.raised and pastEnd.raised)
+
+    var wrongTarget = Image.create(4, 4, .RGBA8)
+    let wrongTargetPointer = &wrongTarget
+    let rejectedFormat = Swag.catchPanic(func|viewPointer, wrongTargetPointer|()
+    {
+        viewPointer[].convertRowsToRgb(wrongTargetPointer, 0, 4)
+    })
+    Swag.require(rejectedFormat.raised)
+
+    wrongTarget = Image.create(2, 2, .RGB8)
+    let rejectedSize = Swag.catchPanic(func|viewPointer, wrongTargetPointer|()
+    {
+        viewPointer[].convertRowsToRgb(wrongTargetPointer, 0, 4)
+    })
+    Swag.require(rejectedSize.raised)
+}

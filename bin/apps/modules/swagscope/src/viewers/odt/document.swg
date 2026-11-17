@@ -12,6 +12,7 @@ struct Document
     images:     u64
     omitted:    u64
     simplified: bool
+    properties: Package.DocumentProperties     // What the package says of the document.
 }
 
 private struct Inline
@@ -77,7 +78,7 @@ impl Document
     func load(fileName: string)->Document fail
     {
         let archive = try Odf.openPackage(fileName, "application/vnd.oasis.opendocument.text", texts().err_Invalid, texts().err_TooLarge, texts().err_Encrypted)
-        let parts = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
+        let parts   = Package.PartReader{fileName, &archive, texts().err_Invalid, texts().err_TooLarge}
         let content = try parts.text("content.xml")
         var reader: Reader
         reader.fileName = fileName
@@ -85,7 +86,9 @@ impl Document
         try reader.styles.read(try parts.text("styles.xml", required: false, limit: 8 * 1024 * 1024))
         try reader.styles.read(content)
         reader.styles.finish()
-        return try reader.read(content)
+        var result = try reader.read(content)
+        result.properties = Package.DocumentProperties.read(fileName, &archive)
+        return result
     }
 }
 

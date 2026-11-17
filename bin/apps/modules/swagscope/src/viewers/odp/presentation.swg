@@ -396,5 +396,6 @@ func load(fileName: string)->Pptx.Presentation fail
 
     if scan.damaged or result.slides.isEmpty() do
         fail Errors.InvalidFormatError{texts().err_Invalid}
+    result.properties = Package.DocumentProperties.read(fileName, &archive)
     return result
 }

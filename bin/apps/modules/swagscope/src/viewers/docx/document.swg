@@ -13,6 +13,7 @@ struct Document
     usePaperColors:   bool
     paperColor:       String
     stylesSimplified: bool
+    properties:       Package.DocumentProperties     // What the package says of the document.
 }
 
 impl Document
@@ -107,6 +108,8 @@ impl Document
         html += reader.document.html
         html += "</body></html>"
         reader.document.html = #move html
+
+        reader.document.properties = Package.DocumentProperties.read(fileName, &archive)
         return #move reader.document
     }
 }

@@ -18,6 +18,19 @@ using Core, Pixel, Gui, Viewers
     Swag.require(not Table.isNumericCell("") and not Table.isNumericCell("-") and not Table.isNumericCell("v2"))
 }
 
+// A quantity reads the same whether it is written plainly or with spaces, a percent sign, or a
+// comma grouping thousands or marking decimals.
+#test
+{
+    var value: f64
+    Swag.require(Table.quantityOf("-3.25", &value) and value == -3.25)
+    Swag.require(Table.quantityOf("1,5", &value) and value == 1.5)
+    Swag.require(Table.quantityOf("1,234", &value) and value == 1234)
+    Swag.require(Table.quantityOf("1,234.5", &value) and value == 1234.5)
+    Swag.require(Table.quantityOf("12 %", &value) and value == 12)
+    Swag.require(not Table.quantityOf("-", &value) and not Table.quantityOf("1.2.3", &value))
+}
+
 #test
 {
     Table.registerTexts(&g_App)

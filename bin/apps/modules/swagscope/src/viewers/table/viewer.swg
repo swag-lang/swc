@@ -395,6 +395,7 @@ func isNumericCell(text: string)->bool
 func quantityOf(text: string, result: *f64)->bool
 {
     var hasDot, commas, digitsAfterComma: u64
+    var dropped = false
     for byte in text
     {
         if byte == '.'
@@ -410,6 +411,19 @@ func quantityOf(text: string, result: *f64)->bool
         {
             digitsAfterComma += 1
         }
+        elif byte == ' ' or byte == '%'
+        {
+            dropped = true
+        }
+    }
+
+    // Sorting, summing and profiling read every cell of a column: a quantity written plainly is
+    // read where it stands rather than copied first.
+    if not commas and not dropped
+    {
+        let value = catch StrConv.toF64(text) { return false }
+        result[] = value
+        return true
     }
 
     let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3

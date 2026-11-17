@@ -559,12 +559,13 @@ impl ViewerWindow
                 break
             let folder = one.folder.toString()
             let name   = Path.fileName(folder) orelse folder
-            if not Lens.match(results.folded, name).matched do
+            var found  = Lens.match(results.folded, name)
+            if not found.matched do
                 continue
             if not section do
                 section = results.addSection(texts.ui_FolderHistory)
             let file       = one.file.toString()
-            with let entry = section.addEntry(name)
+            with let entry = section.addEntry(name, #move found)
             {
                 .glyph      = me.theme().icon(.Folder, me.themeMetrics().menuPopup_IconSize)
                 .detail     = folder
@@ -591,14 +592,15 @@ impl ViewerWindow
             let file = one.toString()
             if file == .currentFile.toString() do
                 continue
-            let name = Path.fileName(file) orelse file
-            if not Lens.match(results.folded, name).matched do
+            let name  = Path.fileName(file) orelse file
+            var found = Lens.match(results.folded, name)
+            if not found.matched do
                 continue
             if not section do
                 section = results.addSection(label)
 
             var pluginIndex = Swag.U64.Max
-            with let entry  = section.addEntry(name)
+            with let entry  = section.addEntry(name, #move found)
             {
                 .detail     = Path.directoryName(file) orelse ""
                 .monoDetail = true

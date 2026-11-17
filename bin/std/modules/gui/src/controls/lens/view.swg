@@ -42,9 +42,12 @@ using Core, Pixel
 //     .addSource(.Line, func|doc|(results)
 //     {
 //         let section = results.addSection("In this file")
-//         for line, index in doc.lines where Lens.match(results.query, line).matched
+//         for line, index in doc.lines
 //         {
-//             with let entry = section.addEntry(line)
+//             var found = Lens.match(results.folded, line)
+//             if not found.matched do
+//                 continue
+//             with let entry = section.addEntry(line, #move found)
 //             {
 //                 .lead      = Format.toString("%", index + 1)
 //                 .monoTitle = true

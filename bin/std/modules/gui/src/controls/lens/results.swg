@@ -127,6 +127,27 @@ impl Section
         return result
     }
 
+    // Appends a row titled `title` that the query answered as `found`, and returns it, to be
+    // filled further.
+    //
+    // `found` is what [[Gui.Lens.match]] answered for the folded query of the results and
+    // `title`. A source that matches the title to decide whether to add the row hands that answer
+    // over, and the lens ranks and marks the row from it instead of matching the title again. The
+    // pointer stays valid until the next row is added to this section.
+    #[Swag.Discardable]
+    mtd addEntry(title: string, found: #move Match)->*Entry
+    {
+        let result = .addEntry(title)
+        result.answered = true
+        if found.matched
+        {
+            result.score = Math.max(found.score, 0)
+            result.spans = #move found.spans
+        }
+
+        return result
+    }
+
     // Appends a picture to the strip of the section and returns it, to be filled further.
     //
     // The pointer stays valid until the next picture is added to this section.

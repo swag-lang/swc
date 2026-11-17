@@ -269,6 +269,11 @@ internal func createPdfFixture()->String
     var zoom: Lens.Results
     (unwrap row(view, &host, appStrings().cmd_ZoomIn, &zoom)).run!()
     Swag.require(view.pdfView.zoomMode == .Free)
+
+    // Actual size, which `Ctrl 0` reaches, has its row too: a point shown as the 1/72 inch it measures.
+    var actual: Lens.Results
+    (unwrap row(view, &host, appStrings().cmd_ZoomReset, &actual)).run!()
+    Swag.require(view.pdfView.zoomMode == .Free and view.pdfView.zoom == 96.0'f32 / 72.0)
 }
 
 // The information sheet says whether the pages carry text, without a search: once the text is

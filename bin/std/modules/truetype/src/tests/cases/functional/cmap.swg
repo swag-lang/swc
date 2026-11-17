@@ -184,6 +184,39 @@ using Swag, Core
     Swag.require(glyphOutside == 0)
 }
 
+// Format 10 maps a trimmed range in the supplementary planes through a glyph array.
+#test
+{
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F600) == 7)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F601) == 0)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F602) == 9)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F5FF) == 0)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F603) == 0)
+
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap10Fixture)
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+
+    discard expect parseCMap(&faceData, false)
+    Swag.require(faceData.cmapFormat == 10)
+    Swag.require(expect lookupGlyphIndex(&faceData, 0x1F602) == 9)
+
+    // The declared glyph array must fit within the format-10 subtable extent.
+    writeBigU32(&cmap, 28, 4)
+    var malformed: FaceImpl
+    malformed.fontData.add(cmap.toSlice())
+    malformed.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    var rejected: Swag.Error
+    discard catch parseCMap(&malformed, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // The subtable format outranks the platform score, so a Macintosh format-4 record
 // wins over a Windows format-0 one even though the platform prefers Windows.
 #test

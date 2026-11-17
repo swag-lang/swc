@@ -28,7 +28,8 @@ The module covers TrueType `glyf` outlines, OpenType and bare CFF programs,
 Type 1 programs, `ttcf` collections, Unicode character
 maps including variation sequences, kerning from `GPOS` and from the legacy
 `kern` table, grayscale rasterization, and single- or multi-channel
-signed-distance fields. [[TrueType.Face.loadSubset]] also accepts rendering-only
+signed-distance fields. Faces with `vhea` and `vmtx` expose optional vertical glyph
+advances and top side bearings. [[TrueType.Face.loadSubset]] also accepts rendering-only
 document subsets whose family identity is supplied outside the font program.
 
 It does not shape text. Ligatures, mark attachment and script-specific reordering

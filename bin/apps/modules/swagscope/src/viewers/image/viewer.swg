@@ -576,7 +576,8 @@ impl Panel
     }
 
     // Offers the zoom presets and the fit, with the level in use and the fit checked, as the lens
-    // checks them.
+    // checks them. A picture can be far larger than the window, so the levels reach down to 25 %
+    // rather than staying around 100 % as a document's do.
     mtd showZoomMenu()
     {
         let menu    = MenuCtrl.createPopup(me, owner: me)

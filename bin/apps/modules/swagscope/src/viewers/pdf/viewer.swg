@@ -536,7 +536,8 @@ private impl Panel
     }
 
     // Offers the zoom presets, fit to page or width, and the continuous or single-page layout, with
-    // the level in use, the fit and the layout checked.
+    // the level in use, the fit and the layout checked. A page is read near its actual size, so the
+    // levels stay around 100 % as the text viewers' do rather than reaching down as a picture's do.
     mtd showZoomMenu()
     {
         let menu    = MenuCtrl.createPopup(me, owner: me)

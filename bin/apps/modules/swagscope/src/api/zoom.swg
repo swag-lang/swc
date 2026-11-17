@@ -77,6 +77,9 @@ private struct ZoomPreset
     id:      string
 }
 
+// Text is read near its own size, so the levels stay around 100 % and inside the text zoom range.
+// A picture or a score can be far wider than the window and offers levels down to 25 % instead,
+// and a PDF page, read like text, keeps the levels near its actual size.
 private const ZoomPresets: [5] ZoomPreset = [
     ZoomPreset{75, "75 %", "scope.zoom75"},
     ZoomPreset{100, "100 %", "scope.zoom100"},

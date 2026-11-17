@@ -147,7 +147,8 @@ private impl Panel
     }
 
     // Offers the zoom presets and the fit, with the level in use and the fit checked, as the lens
-    // checks them.
+    // checks them. A score is often far wider than the window, so the levels reach down to 25 %, as
+    // a picture's do.
     mtd showZoomMenu()
     {
         if not .hasRoll() do

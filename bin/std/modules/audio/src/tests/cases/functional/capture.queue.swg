@@ -175,6 +175,8 @@ func produceCaptureBlocks(thread: const *Threading.Thread)
     Swag.require(rejected.value() is BadParameterError)
     discard catch CaptureQueue.create(0, 1, 0, 1_000) as rejected
     Swag.require(rejected.value() is BadParameterError)
+    discard catch CaptureQueue.create(1_000, 1, 0, 0) as rejected
+    Swag.require(rejected.value() is BadParameterError)
 
     var queue = expect CaptureQueue.create(1_000, 2, 100, 1_000, blockFrames: 2, tolerance: 0)
     const Stereo: [4] s16 = [1, 10, 2, 20]

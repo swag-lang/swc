@@ -118,6 +118,13 @@ impl YuvPlanarView
             Swag.panic("YUV planar view has an invalid layout", #curlocation)
         if not target.isValid() or target.pixelFormat != .RGB8 or target.width != .width or target.height != .height do
             Swag.panic("YUV conversion target must be a matching RGB8 image", #curlocation)
+        let targetRowBytes = cast(u64, target.width) * 3
+        if targetRowBytes > Swag.S32.Max or
+           target.bytesPerPixel != 3 or
+           target.rowStride != cast(s32, targetRowBytes) or
+           target.byteCount != targetRowBytes * cast(u64, target.height) or
+           target.pixels.count != target.byteCount do
+            Swag.panic("YUV conversion target has invalid pixel storage", #curlocation)
         if firstY < 0 or endY < firstY or endY > .height do
             Swag.panic("YUV conversion row range is outside the image", #curlocation)
 

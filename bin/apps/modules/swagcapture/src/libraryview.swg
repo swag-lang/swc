@@ -499,18 +499,20 @@ impl IWnd for LibraryView
             // Retrieve the loaded capture if it exists
             .mutexLoaded.lock()
             let capture    = it.capture
-            let image      = it.image
             let itemLoaded = it.loaded
             .mutexLoaded.unlock()
 
+            // The loader writes the image before it marks the item loaded, and never again after,
+            // so a loaded item's image is read in place: a copy would duplicate its pixels on
+            // every frame the cell is shown.
             if capture and not it.texture.isValid()
             {
                 if not .uploadThumbnail(it, capture, evt.paintContext.renderer, &decodeBudget) do
                     decodesRemain = true
             }
-            elif it.kind == .Image and not it.texture.isValid() and image.isValid()
+            elif it.kind == .Image and itemLoaded and not it.texture.isValid() and it.image.isValid()
             {
-                it.texture = evt.paintContext.renderer.addImage(image)
+                it.texture = evt.paintContext.renderer.addImage(it.image)
             }
 
             if .paintItem(painter, it, i, capture, itemLoaded) do

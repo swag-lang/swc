@@ -27,6 +27,18 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     return item.priority
 }
 
+// Empty queues reject every operation that needs a top element.
+#test
+{
+    var queue: PriorityQueue's32
+    let peekFailed    = Swag.catchPanic(func|&queue|() { discard queue.peek() })
+    let popFailed     = Swag.catchPanic(func|&queue|() { discard queue.pop() })
+    let pointerFailed = Swag.catchPanic(func|&queue|() { discard queue.peekPtr() })
+
+    Swag.require(peekFailed.raised and popFailed.raised and pointerFailed.raised)
+    Swag.require(queue.isEmpty())
+}
+
 #test
 {
     var queue: PriorityQueue's32

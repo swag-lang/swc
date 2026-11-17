@@ -42,7 +42,7 @@ selected by filename extension; both read and write through [[Core.ByteSource]] 
 Four codecs ship in the box:
 
 - YUV4MPEG2 (`.y4m`) reads progressive 8-bit monochrome, 4:2:0, 4:2:2 and 4:4:4
-  YCbCr frames and writes 4:4:4 ones. It does not compress, so it favors a small
+  YCbCr frames and writes 4:2:0, 4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
   implementation over the size of what it produces.
 - AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed frames, exposes integer PCM sound
   tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap

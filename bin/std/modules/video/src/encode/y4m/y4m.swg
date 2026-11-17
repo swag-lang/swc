@@ -1,11 +1,29 @@
 //! Format: YUV4MPEG2 (Y4M) encoder component.
-//! Supported: Progressive 8-bit 4:4:4 limited-range planar output from 8-bit RGB/BGR images.
-//! Not supported: Audio, alpha preservation, interlacing, alternative chroma modes, full-range output, and compression.
+//! Supported: Progressive 8-bit 4:4:4, 4:2:2, and 4:2:0 limited-range planar output from 8-bit RGB/BGR images.
+//! Not supported: Audio, alpha preservation, interlacing, monochrome output, full-range output, and compression.
 //! Role: This file owns stream headers, frame markers, RGB-to-planar conversion, and top-level encoding.
 //
 #global namespace Y4m
 
 using Core, Core.Errors, Pixel
+
+// Chroma sampling used for YUV4MPEG2 output.
+enum EncodeChromaMode
+{
+    Yuv420     // Average each aligned 2x2 group for each chroma plane.
+    Yuv422     // Average each aligned horizontal pair for each chroma plane.
+    Yuv444     // Preserve one chroma sample per pixel; this is the default.
+}
+
+// Configures the planar chroma layout written by the Y4M encoder.
+struct EncodeOptions
+{
+    public chroma = EncodeChromaMode.Yuv444
+}
+
+private func luma(r, g, b: s32)->u8 => clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
+private func cb(r, g, b: s32)->u8 => clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
+private func cr(r, g, b: s32)->u8 => clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
 
 // Returns the red, green and blue channels of one pixel, whatever order its format stores them in.
 //
@@ -24,15 +42,15 @@ private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s
 
 // Writes YUV4MPEG2 streams one frame at a time.
 //
-// The format carries no audio, and this encoder writes progressive 8-bit 4:4:4 limited-range
-// BT.601 planes: chroma is not subsampled, so what a frame is written with is what reading it
-// back returns, within the rounding of the color conversion itself.
+// The format carries no audio. This encoder writes progressive 8-bit limited-range BT.601 planes;
+// the selected 4:2:0 or 4:2:2 layout averages chroma over its sampling footprint.
 struct Encoder
 {
     internal
     {
         info:    StreamInfo     // Geometry and rate the stream was opened with.
         payload: Array'u8       // Scratch storage of one encoded frame.
+        options: EncodeOptions  // Chroma layout applied to every frame.
     }
 }
 
@@ -40,18 +58,33 @@ impl IEncoder for Encoder
 {
     mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
 
-    mtd impl begin(sink: *ByteSink, info: StreamInfo, _: any?) fail
+    mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
-        // The format has one plane layout here and one color range, so it has nothing to
-        // configure and ignores what it is handed.
-
         .info = info
-        let header = Format.toString("% W% H% F%:% Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n",
+        if options.buffer != null
+        {
+            Swag.assert(Swag.kindOf(options) == EncodeOptions)
+            .options = cast(const *EncodeOptions, unwrap options.buffer)[]
+        }
+        if .options.chroma != .Yuv444 and info.width & 1 do
+            fail BadParameterError{"Y4M 4:2:2 and 4:2:0 output needs an even frame width"}
+        if .options.chroma == .Yuv420 and info.height & 1 do
+            fail BadParameterError{"Y4M 4:2:0 output needs an even frame height"}
+
+        var chromaTag = "C444 XYSCSS=444"
+        switch .options.chroma
+        {
+            case .Yuv420: chromaTag = "C420jpeg XYSCSS=420JPEG"
+            case .Yuv422: chromaTag = "C422 XYSCSS=422"
+            case .Yuv444: chromaTag = "C444 XYSCSS=444"
+        }
+        let header = Format.toString("% W% H% F%:% Ip A0:0 % XCOLORRANGE=LIMITED\n",
                                      StreamSignature,
                                      info.width,
                                      info.height,
                                      info.frameRate.numerator(),
-                                     info.frameRate.denominator())
+                                     info.frameRate.denominator(),
+                                     chromaTag)
         try sink.writeText(header.toString())
     }
 
@@ -65,13 +98,18 @@ impl IEncoder for Encoder
         default: fail UnsupportedFormatError{"Y4M frames need an interleaved 8-bit RGB or BGR image"}
         }
 
-        let planeSize = cast(u64, .info.width) * cast(u64, .info.height)
-        if .payload.count != planeSize * 3 do
-            .payload.resize(planeSize * 3)
+        let width = cast(u64, .info.width)
+        let height = cast(u64, .info.height)
+        let lumaSize = width * height
+        let chromaWidth = .options.chroma == .Yuv444 ? width : width / 2
+        let chromaHeight = .options.chroma == .Yuv420 ? height / 2 : height
+        let chromaSize = chromaWidth * chromaHeight
+        if .payload.count != lumaSize + chromaSize * 2 do
+            .payload.resize(lumaSize + chromaSize * 2)
 
         let yPlane = .payload.storage()
-        let uPlane = yPlane + planeSize
-        let vPlane = uPlane + planeSize
+        let uPlane = yPlane + lumaSize
+        let vPlane = uPlane + chromaSize
         for y in image.height
         {
             let sourceRow = cast(u64, (image.height - y - 1)) * cast(u64, image.rowStride)
@@ -79,10 +117,34 @@ impl IEncoder for Encoder
             {
                 let source    = image.pixels.storage() + sourceRow + cast(u64, x) * image.bytesPerPixel
                 let {r, g, b} = readRgb(image, source)
-                let target    = cast(u64, y) * cast(u64, image.width) + cast(u64, x)
-                yPlane[target] = clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
-                uPlane[target] = clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
-                vPlane[target] = clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
+                yPlane[cast(u64, y) * width + cast(u64, x)] = luma(r, g, b)
+            }
+        }
+
+        let stepX = .options.chroma == .Yuv444 ? 1'u64 : 2'u64
+        let stepY = .options.chroma == .Yuv420 ? 2'u64 : 1'u64
+        for cy in chromaHeight
+        {
+            for cx in chromaWidth
+            {
+                var sumU, sumV: u32
+                for dy in stepY
+                {
+                    for dx in stepX
+                    {
+                        let x = cx * stepX + dx
+                        let y = cy * stepY + dy
+                        let sourceRow = (height - y - 1) * cast(u64, image.rowStride)
+                        let source = image.pixels.storage() + sourceRow + x * image.bytesPerPixel
+                        let {r, g, b} = readRgb(image, source)
+                        sumU += cast(u32, cb(r, g, b))
+                        sumV += cast(u32, cr(r, g, b))
+                    }
+                }
+                let samples = stepX * stepY
+                let target = cy * chromaWidth + cx
+                uPlane[target] = cast(u8, (sumU + cast(u32, samples / 2)) / cast(u32, samples))
+                vPlane[target] = cast(u8, (sumV + cast(u32, samples / 2)) / cast(u32, samples))
             }
         }
 

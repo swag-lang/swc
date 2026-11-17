@@ -123,6 +123,9 @@ impl Image
         let itf    = unwrap Swag.makeInterface(ptrDecoder, decoderType, IImageDecoder)
         var result = #move try itf.decode(bytes, options)
         try options.checkImage(result.width, result.height, result.pixelFormat)
+        if options.decodePixels and
+           (not result.pixels.buffer or result.byteCount == 0 or result.pixels.count != result.byteCount) do
+            fail InvalidFormatError{"decoder returned incomplete pixel storage"}
         return #move result
     }
 }

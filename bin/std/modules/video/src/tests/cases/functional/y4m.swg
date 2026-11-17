@@ -274,6 +274,58 @@ using Core, Core.Errors, Pixel
     videoAssertColor(frame1.pixelColor(1, 0), 16, 24, 32)
 }
 
+// The writer can select standard 4:2:0 and 4:2:2 output layouts and advertises their sampling.
+#test
+{
+    let rate = expect FrameRate.create(25, 1)
+    var source = expect Clip.create(2, 2, rate)
+    expect source.addFrame(videoTestImage(2, 2, [255'u8, 0, 0, 0, 255, 0,
+                                                0, 0, 255, 255, 255, 255]))
+
+    let full = expect source.encodeToBytes("full.y4m")
+    let fullHeader = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(full.buffer, fullHeader.count) == fullHeader)
+    let fullPayload = full.toSlice()[fullHeader.count until full.count]
+
+    let options420 = Y4m.EncodeOptions{chroma: .Yuv420}
+    let subsampled420 = expect source.encodeToBytes("420.y4m", options420)
+    let header420 = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C420jpeg XYSCSS=420JPEG XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(subsampled420.buffer, header420.count) == header420)
+    Swag.require(subsampled420.count == header420.count + 6)
+    let payload420 = subsampled420.toSlice()[header420.count until subsampled420.count]
+    for index in 4'u64 do
+        Swag.require(payload420[index] == fullPayload[index])
+    let meanU = (cast(u32, fullPayload[4]) + fullPayload[5] + fullPayload[6] + fullPayload[7] + 2) / 4
+    let meanV = (cast(u32, fullPayload[8]) + fullPayload[9] + fullPayload[10] + fullPayload[11] + 2) / 4
+    Swag.require(payload420[4] == meanU and payload420[5] == meanV)
+    var reader420 = expect Reader.openMemory("420.y4m", subsampled420.toSlice())
+    Swag.require(reader420.frameCount() == 1 and expect reader420.decodeFrame(0).isValid())
+
+    let options422 = Y4m.EncodeOptions{chroma: .Yuv422}
+    let subsampled422 = expect source.encodeToBytes("422.y4m", options422)
+    let header422 = "YUV4MPEG2 W2 H2 F25:1 Ip A0:0 C422 XYSCSS=422 XCOLORRANGE=LIMITED\nFRAME\n"
+    Swag.require(Swag.makeString(subsampled422.buffer, header422.count) == header422)
+    Swag.require(subsampled422.count == header422.count + 8)
+    let payload422 = subsampled422.toSlice()[header422.count until subsampled422.count]
+    for row in 2'u64
+    {
+        let fullChroma = row * 2
+        let reducedChroma = 4 + row
+        let meanRowU = (cast(u32, fullPayload[4 + fullChroma]) + fullPayload[5 + fullChroma] + 1) / 2
+        let meanRowV = (cast(u32, fullPayload[8 + fullChroma]) + fullPayload[9 + fullChroma] + 1) / 2
+        Swag.require(payload422[reducedChroma] == meanRowU and
+                     payload422[reducedChroma + 2] == meanRowV)
+    }
+    var reader422 = expect Reader.openMemory("422.y4m", subsampled422.toSlice())
+    Swag.require(reader422.frameCount() == 1 and expect reader422.decodeFrame(0).isValid())
+
+    var oddWidth = expect Clip.create(1, 2, rate)
+    expect oddWidth.addFrame(videoTestImage(1, 2, [0'u8, 0, 0, 255, 255, 255]))
+    var invalidOutcome: Swag.Error
+    discard catch oddWidth.encodeToBytes("invalid.y4m", options422) as invalidOutcome
+    Swag.require((invalidOutcome.value() is BadParameterError))
+}
+
 #test
 {
     let fileName = videoTempPath("roundtrip", "y4m")

@@ -18,7 +18,6 @@ class SourceFile;
 class SourceView;
 class TaskContext;
 class ConstantValue;
-struct SourceCodeRange;
 
 struct CloneContext
 {

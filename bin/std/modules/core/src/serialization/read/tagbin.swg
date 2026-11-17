@@ -157,6 +157,16 @@ struct TagBinDiagnostics
     }
 }
 
+impl TagBinDiagnostics
+{
+    // Returns how many fields, element types and payloads of the stream the decoded value lacks.
+    //
+    // It sums every counter except `recoveredFields`, whose fields reached the value through
+    // the fat. Zero means the value holds everything the stream wrote, so writing it back loses
+    // nothing.
+    mtd const lostCount()->u32 => .fieldErrors + .droppedStreamFields + .unknownTypes + .corruptPayloads
+}
+
 // One field entry of a section index, locating its payload and the shape entry that describes it.
 struct TagBinFieldRef
 {

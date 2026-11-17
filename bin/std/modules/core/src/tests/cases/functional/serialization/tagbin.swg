@@ -704,6 +704,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.require(decoder.serializer.diag.unknownTypes == 0)
     Swag.require(decoder.serializer.diag.recoveredFields == 0)
     Swag.require(decoder.serializer.diag.corruptPayloads == 0)
+    Swag.require(decoder.serializer.diag.lostCount() == 0)
 }
 
 // The root schema is readable in the header and prevents decoding a document through
@@ -785,6 +786,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     // diagnostics say so.
     Swag.require(decoder.serializer.diag.droppedStreamFields == 1)
     Swag.require(decoder.serializer.diag.fieldErrors == 0)
+    Swag.require(decoder.serializer.diag.lostCount() == 1)
 }
 
 #test

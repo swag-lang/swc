@@ -491,8 +491,7 @@ impl Capture
         decoder.flags |= .IgnoreStructFieldError
         let model = try decoder.readAll'CaptureFileModel(modelBytes.toSlice())
         defer Memory.delete(model)
-        let diag = decoder.serializer.diag
-        if diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads != 0 do
+        if decoder.serializer.diag.lostCount() != 0 do
             fail Core.Errors.InvalidFormatError{"Capture metadata update would discard document fields"}
 
         if title != null do
@@ -538,8 +537,7 @@ impl Capture
             var metadataDecoder: Decoder'Read.TagBin
             let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
             defer Memory.delete(metadata)
-            let metadataDiag = metadataDecoder.serializer.diag
-            if metadataDiag.fieldErrors + metadataDiag.droppedStreamFields + metadataDiag.unknownTypes + metadataDiag.corruptPayloads != 0 do
+            if metadataDecoder.serializer.diag.lostCount() != 0 do
                 fail Core.Errors.InvalidFormatError{"Capture metadata update would discard library fields"}
             if favorite do
                 metadata.favorite = favorite[]
@@ -588,8 +586,7 @@ impl Capture
             var decoder: Decoder'Read.TagBin
             let image = try decoder.readAll'Image(bytes.toSlice())
             defer Memory.delete(image)
-            let diag = decoder.serializer.diag
-            issues[] += diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads
+            issues[] += decoder.serializer.diag.lostCount()
             return #move image[]
         }
 
@@ -646,11 +643,7 @@ impl Capture
             defer Memory.delete(model)
             capture = fromFileModel(model)
 
-            let diag = decoder.serializer.diag
-            capture.loadIssues = diag.fieldErrors +
-                                 diag.droppedStreamFields +
-                                 diag.unknownTypes +
-                                 diag.corruptPayloads
+            capture.loadIssues = decoder.serializer.diag.lostCount()
         }
 
         // A chunk that cannot be read past this point leaves no capture to the caller.

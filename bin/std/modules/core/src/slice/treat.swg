@@ -31,6 +31,17 @@ func(T) reduce(values: const [..] T, combine: func||(T, T)->T)->T
     return result
 }
 
+// Combines elements from left to right, starting with `initial`.
+//
+// An empty slice returns `initial` unchanged. The accumulator may have a different type from the elements.
+func(T, A) fold(values: const [..] T, initial: A, combine: func||(A, T)->A)->A
+{
+    var result = initial
+    for value in values do
+        result = combine(result, value)
+    return result
+}
+
 // Returns the smallest element and its index.
 //
 // When several elements are the smallest, the first one is returned. The slice must not be empty.

@@ -3,6 +3,36 @@
 
 using Swag, Core.Errors
 
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_encoded_text.tmp")
+    defer discard catch File.delete(fileName)
+
+    let utf16Bytes = expect File.writeAllText(fileName, "A€", encoding: .Utf16Be, includeBom: true)
+    let utf16Expected: [6] u8 = [0xFE, 0xFF, 0, 'A', 0x20, 0xAC]
+    let writtenUtf16 = expect File.readAllBytes(fileName)
+    Swag.require(utf16Bytes == utf16Expected.count)
+    Swag.require(Slice.equals(writtenUtf16.toSlice(), utf16Expected))
+
+    let windowsBytes = expect File.writeAllText(fileName, "café €", encoding: .Windows1252, includeBom: true)
+    let windowsExpected: [6] u8 = ['c', 'a', 'f', 0xE9, ' ', 0x80]
+    let writtenWindows = expect File.readAllBytes(fileName)
+    Swag.require(windowsBytes == windowsExpected.count)
+    Swag.require(Slice.equals(writtenWindows.toSlice(), windowsExpected))
+}
+
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_encoding_failure.tmp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "keep this content")
+
+    var encodingFailure: Swag.Error
+    discard catch File.writeAllText(fileName, "😀", encoding: .Windows1252) as encodingFailure
+    Swag.require(encodingFailure.value() is InvalidFormatError)
+    Swag.require((expect File.readAllText(fileName)) == "keep this content")
+}
+
 // Both backends reject empty and unknown access or sharing flags.
 #test
 {

@@ -367,6 +367,7 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
     var services: Viewer.HostServices
     services.reportInformationChanged = &countVideoInformationChange
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
@@ -402,6 +403,16 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     Swag.require(Utf8.contains(information, "Subtitle tracks · 2\n"), information)
     let replacement = Format.toString("\n2 %\nWebVTT · External File", unwrap Path.fileNameWithoutExtension(replaced))
     Swag.require(Utf8.contains(information, replacement.toString()), information)
+
+    // A change of language rebuilds the sheet: where an attached file comes from is said anew.
+    let beforeLanguage = g_VideoInformationChanges
+    expect host.app.setLanguage("fr")
+    host.notify(.LanguageChanged)
+    information = videoInformationText(view, &host.root)
+    Swag.require(g_VideoInformationChanges > beforeLanguage)
+    Swag.require(Utf8.contains(information, "WebVTT · Fichier externe"), information)
+    expect host.app.setLanguage(ReferenceLanguage)
+    host.notify(.LanguageChanged)
     view.selectSubtitle(.Sidecar, 0)
     let trackName    = Film.subtitleTrackName(0, view.subtitleOverlay.sidecars[0])
     let languageText = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")

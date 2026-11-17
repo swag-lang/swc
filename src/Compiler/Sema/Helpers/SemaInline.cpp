@@ -859,6 +859,30 @@ namespace
         return true;
     }
 
+    struct InlineFunctionDecl
+    {
+        const AstFunctionDecl* decl    = nullptr;
+        const Ast*             declAst = nullptr;
+        bool                   valid   = false;
+    };
+
+    bool resolveInlineFunctionDecl(const Sema& sema, const SymbolFunction& fn, InlineFunctionDecl& info)
+    {
+        if (info.valid)
+            return true;
+
+        const AstFunctionDecl* decl    = nullptr;
+        const Ast*             declAst = nullptr;
+        if (!resolveFunctionDecl(sema, fn, decl, declAst))
+            return false;
+
+        info.decl    = decl;
+        info.declAst = declAst;
+        info.valid   = true;
+
+        return true;
+    }
+
     using AliasIdentifierArray = std::array<IdentifierRef, 10>;
     using AliasNameRefArray    = std::array<SourceCodeRef, 10>;
 
@@ -2702,16 +2726,14 @@ namespace
     // A cross-module callee's declaration belongs to another Ast, which may be under analysis on
     // another thread; the parser's verdict is written before any of that and never changes, so it
     // is the one thing safe to read from here.
-    bool declaresStaticStorage(const Sema& sema, const SymbolFunction& fn)
+    bool declaresStaticStorage(const Sema& sema, const SymbolFunction& fn, InlineFunctionDecl& info)
     {
-        const AstFunctionDecl* decl    = nullptr;
-        const Ast*             declAst = nullptr;
-        if (!resolveFunctionDecl(sema, fn, decl, declAst))
+        if (!resolveInlineFunctionDecl(sema, fn, info))
             return false;
-        return decl->ownsStaticStorage;
+        return info.decl->ownsStaticStorage;
     }
 
-    bool shouldAutoInline(Sema& sema, const SymbolFunction& fn)
+    bool shouldAutoInline(Sema& sema, const SymbolFunction& fn, InlineFunctionDecl& info)
     {
         if (fn.isGenericRoot() || fn.isGenericInstance())
             return false;
@@ -2739,10 +2761,10 @@ namespace
         if (fn.isFallible())
             return false;
 
-        const AstFunctionDecl* decl    = nullptr;
-        const Ast*             declAst = nullptr;
-        if (!resolveFunctionDecl(sema, fn, decl, declAst))
+        if (!resolveInlineFunctionDecl(sema, fn, info))
             return false;
+        const AstFunctionDecl* decl    = info.decl;
+        const Ast*             declAst = info.declAst;
         if (declAst != &sema.ast())
         {
             const SourceFile* sourceFile = sema.compiler().sourceViewFile(fn);
@@ -2859,8 +2881,13 @@ const SemaInlinePayload* SemaInline::expansionPayload(Sema& sema, AstNodeRef nod
     return payload && payload->inlineRootRef == nodeRef ? payload : nullptr;
 }
 
-bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
+bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn, const AstFunctionDecl** outDecl, const Ast** outDeclAst)
 {
+    if (outDecl)
+        *outDecl = nullptr;
+    if (outDeclAst)
+        *outDeclAst = nullptr;
+
     // Keep the runtime TLS lookup as a call until native lowering can select
     // the platform's direct slot load, with the function as its slow fallback.
     const IdentifierRef tlsGetValueId = sema.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::TlsGetValue);
@@ -2906,7 +2933,8 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
     // A body declaring `global` or `tls` owns one storage for the whole program, and inlining
     // clones a body rather than sharing it: each copy would allocate a storage of its own, so a
     // counter kept in a function-local `global` answered 1 at every call site.
-    if (declaresStaticStorage(sema, fn))
+    InlineFunctionDecl declInfo;
+    if (declaresStaticStorage(sema, fn, declInfo))
         return false;
 
     const Runtime::BuildCfgBackendInlineMode mode = sema.buildCfgBackend().inlineMode;
@@ -2915,11 +2943,25 @@ bool SemaInline::canInlineCall(Sema& sema, const SymbolFunction& fn)
 
     // Explicitly tagged functions inline in both MarkedOnly and Auto.
     if (attributes.hasRtFlag(RtAttributeFlagsE::Inline))
+    {
+        if (outDecl && declInfo.valid)
+            *outDecl = declInfo.decl;
+        if (outDeclAst && declInfo.valid)
+            *outDeclAst = declInfo.declAst;
         return true;
+    }
 
     // Auto additionally lets the compiler pick small, cheap callees.
     if (mode == Runtime::BuildCfgBackendInlineMode::Auto)
-        return shouldAutoInline(sema, fn);
+    {
+        if (!shouldAutoInline(sema, fn, declInfo))
+            return false;
+        if (outDecl)
+            *outDecl = declInfo.decl;
+        if (outDeclAst)
+            *outDeclAst = declInfo.declAst;
+        return true;
+    }
 
     return false;
 }
@@ -2930,7 +2972,9 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         return Result::Continue;
     if (isInlineRecursion(sema, fn))
         return Result::Continue;
-    if (!canInlineCall(sema, fn))
+    const AstFunctionDecl* decl    = nullptr;
+    const Ast*             declAst = nullptr;
+    if (!canInlineCall(sema, fn, &decl, &declAst))
         return Result::Continue;
 
     SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -3017,9 +3061,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         }
     }
 
-    const AstFunctionDecl* decl    = nullptr;
-    const Ast*             declAst = nullptr;
-    if (!resolveFunctionDecl(sema, fn, decl, declAst))
+    if ((!decl || !declAst) && !resolveFunctionDecl(sema, fn, decl, declAst))
         return Result::Continue;
     SWC_ASSERT(declAst != nullptr);
 

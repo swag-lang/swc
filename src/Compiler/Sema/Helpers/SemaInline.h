@@ -9,6 +9,8 @@
 SWC_BEGIN_NAMESPACE();
 
 class Sema;
+class Ast;
+struct AstFunctionDecl;
 class SymbolImpl;
 struct SemaInlinePayload;
 
@@ -16,7 +18,7 @@ namespace SemaInline
 {
     const SemaInlinePayload* expansionPayload(Sema& sema, AstNodeRef nodeRef);
 
-    bool   canInlineCall(Sema& sema, const SymbolFunction& fn);
+    bool   canInlineCall(Sema& sema, const SymbolFunction& fn, const AstFunctionDecl** outDecl = nullptr, const Ast** outDeclAst = nullptr);
     Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs = {});
 }
 

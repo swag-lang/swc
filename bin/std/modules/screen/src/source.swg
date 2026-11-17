@@ -172,6 +172,7 @@ impl Source
 
     // Opens the monitor containing a physical desktop point, or the nearest monitor in a gap.
     // Selection follows [[Core.Env.monitorForPoint]]'s physical-coordinate policy.
+    // `includeCursor` requests pointer composition and defaults to false.
     func openMonitorAt(point: Math.Point, includeCursor: bool = false)->Source fail
     {
         let monitor = Env.monitorForPoint(point)

@@ -863,11 +863,6 @@ namespace
         return result;
     }
 
-    bool hasCompletePossibleWriteSummary(const SymbolFunction& function)
-    {
-        return function.hasCompleteParamFieldWriteSummary();
-    }
-
     void collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const bool hasExportedBody, const Utf8& snippet, const SymbolFunction* fwdMoveVariant)
     {
         appendMissingFunctionAttribute(ioAttributes, symbolFunction, snippet.view(), RtAttributeFlagsE::Macro, "Macro");
@@ -916,9 +911,9 @@ namespace
         const std::string freedFieldOrigins            = encodeEffectFields(symbolFunction, fwdMoveVariant, false);
         const std::string writtenFieldOrigins          = encodeEffectFields(symbolFunction, fwdMoveVariant, true);
         const std::string possibleWriteFieldOrigins    = encodePossibleWriteFields(symbolFunction, fwdMoveVariant);
-        const bool        completePossibleWriteSummary = hasCompletePossibleWriteSummary(symbolFunction) && intoPairs == 0 && storesIndirectMask == 0 &&
+        const bool        completePossibleWriteSummary = symbolFunction.hasCompleteParamFieldWriteSummary() && intoPairs == 0 && storesIndirectMask == 0 &&
                                                   intoIndirectPairs == 0 &&
-                                                  (!fwdMoveVariant || (hasCompletePossibleWriteSummary(*fwdMoveVariant) && intoPairs == 0 && storesIndirectMask == 0 &&
+                                                  (!fwdMoveVariant || (fwdMoveVariant->hasCompleteParamFieldWriteSummary() && intoPairs == 0 && storesIndirectMask == 0 &&
                                                                        intoIndirectPairs == 0));
 
         if ((returnsMask != 0 ||

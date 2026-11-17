@@ -358,6 +358,57 @@ impl Voice
 
 internal impl Voice
 {
+    mtd validatePanMasterXAudio2() fail
+    {
+        let destination = cast(*IXAudio2Voice, cast(*void, unwrap g_Driver.xAudio2.masteringVoice))
+        var details: XAUDIO2_VOICE_DETAILS
+        destination.vtbl.getVoiceDetails(destination, &details)
+        if details.inputChannels != 2 do
+            fail BadParameterError{"stereo pan requires a stereo output route"}
+    }
+
+    mtd setPanXAudio2(pan: f32, batchId: u32 = 0) fail
+    {
+        if not .handle do
+            return
+        if pan == 0 and .panValue == 0 do
+            return
+        let file           = unwrap .file
+        let sourceChannels = file.numChannels()
+        if sourceChannels == 0 or sourceChannels > 2 do
+            fail BadParameterError{"stereo pan supports mono and stereo sources"}
+
+        let matrix = try voicePanMatrix(sourceChannels, pan)
+
+        let source = cast(*IXAudio2SourceVoice, .handle)
+        if .routingBusCount
+        {
+            for i in .routingBusCount
+            {
+                let bus = unwrap .routingBuses[i]
+                let destination = cast(*IXAudio2Voice, unwrap bus.handle)
+                let setMatrix   = source.vtbl.setOutputMatrix
+                let hr          = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination,
+                                            sourceChannels, bus.channelCount,
+                                            &matrix[0], batchId)
+                if hr != S_OK do
+                    fail SystemError{"setOutputMatrix", errorID: hresultErrorId(hr)}
+            }
+        }
+        else
+        {
+            let destination = cast(*IXAudio2Voice, cast(*void, unwrap g_Driver.xAudio2.masteringVoice))
+            var details: XAUDIO2_VOICE_DETAILS
+            destination.vtbl.getVoiceDetails(destination, &details)
+            let setMatrix = source.vtbl.setOutputMatrix
+            let hr        = setMatrix(cast(*IXAudio2Voice, cast(*void, source)), destination,
+                                      sourceChannels, details.inputChannels,
+                                      &matrix[0], batchId)
+            if hr != S_OK do
+                fail SystemError{"setOutputMatrix", errorID: hresultErrorId(hr)}
+        }
+    }
+
     // Sets this voice's XAudio2 gain as a linear value from `0` through `1`.
     mtd setVolumeXAudio2(volume: f32, batchId: u32 = 0) fail
     {

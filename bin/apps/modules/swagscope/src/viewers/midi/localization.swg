@@ -9,11 +9,9 @@ struct Texts
     ui_Track:            string = "Track"     // Option choosing which track the roll shows.
     ui_AllTracks:        string = "All Tracks"
     ui_TrackName:        string = "Track %"
-    ui_TrackChoice:      string = "% — %"
     ui_ZoomOut:          string = "Zoom Out"
     ui_ZoomIn:           string = "Zoom In"
     ui_Fit:              string = "Fit Complete Score"
-    ui_FitShort:         string = "Fit"
     ui_ZoomMenu:         string = "Zoom…"
     ui_PitchLabels:      string = "Pitch Labels"
     ui_PitchReference:   string = "C4 = MIDI 60"

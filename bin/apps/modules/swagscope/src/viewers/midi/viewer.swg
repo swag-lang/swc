@@ -6,7 +6,6 @@ using Core, Pixel, Gui
 // Offers the score surface for a Standard MIDI File, whatever it is called.
 private func pluginProbe(content: Viewer.ProbeContent)->bool => content.startsWith("MThd")
 
-// Describes the MIDI viewer to the host.
 // Draws the notes of a MIDI file as a small piano roll, time across and pitch up, its drums apart
 // in a softer tone, within `maxSide`.
 private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
@@ -38,6 +37,7 @@ private func loadThumbnail(fileName: string, maxSide: u32)->Image fail
     return try canvas.toImage()
 }
 
+// Describes the MIDI viewer to the host.
 func viewerPlugin()->Viewer.Plugin
 {
     with var result: #returntype
@@ -79,6 +79,9 @@ impl ViewerSettings
 
 var g_ViewerSettings: ViewerSettings
 
+// Widths of the piano keyboard, in pixels, for each `keyboardWidthMode`: compact, standard, wide.
+private const KeyboardWidths: [3] f32 = [56, 72, 112]
+
 private func addViewerOptions(grid: *PropertiesCtrl, section: string) => grid.addStruct(g_ViewerSettings, section)
 
 // Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
@@ -104,20 +107,23 @@ struct Panel
 
 private impl Panel
 {
-    // Writes the horizontal scale: a whole score fitted to the window says so, since the share of
-    // an arbitrary reference width it stands at means nothing to a reader.
+    // Returns the horizontal scale of the roll in percent, as the zoom readout shows it: 100 % is
+    // the timeline at its natural width, which a whole score fitted to the window never exceeds.
+    mtd zoomPercent()->u32 => cast(u32, Math.round(.roll.zoom * 100))
+
+    // Writes the horizontal scale, as a number even while the score is fitted, as every other
+    // viewer's readout does.
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Viewer.zoomText(cast(u32, Math.round(.roll.zoom * 100))))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent()))
     }
 
     mtd retranslate()
     {
         .optionsButton.toolTip = appStrings().ui_Options
         .zoomLabel.toolTip     = texts().ui_ZoomMenu
-        if .isLoading() do
-            return
-        .roll.invalidate()
+        if .hasRoll() do
+            .roll.invalidate()
     }
 
     mtd publishDocument(document: *Document)
@@ -125,7 +131,7 @@ private impl Panel
         .roll      = RollView.create(me, #move document[])
         .roll.mode = .Tracks
         .roll.setPitchLabelMode(.pitchLabelMode)
-        .roll.setKeyboardWidth(.keyboardWidthMode == 0 ? 56 : .keyboardWidthMode == 1 ? 72 : 112)
+        .roll.setKeyboardWidth(KeyboardWidths[.keyboardWidthMode])
         .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
         .applyLayout()
         .roll.refreshLayout()
@@ -140,15 +146,21 @@ private impl Panel
         .services.showDetails(me, .details)
     }
 
+    // Offers the zoom presets and the fit, with the level in use and the fit checked, as the lens
+    // checks them. A score is often far wider than the window, so the levels reach down to 25 %, as
+    // a picture's do.
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100 %", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200 %", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        if not .hasRoll() do
+            return
+        let menu    = MenuCtrl.createPopup(me, owner: me)
+        let percent = .zoomPercent()
+        menu.addItem("25 %", "scope.midi.zoom25", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 25)
+        menu.addItem("50 %", "scope.midi.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
+        menu.addItem("100 %", "scope.midi.zoom100", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
+        menu.addItem("200 %", "scope.midi.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
         menu.addSeparator()
-        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F")
+        menu.addItem(texts().ui_Fit, "scope.midi.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .roll.fit)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
         case "scope.midi.zoom25":  .roll.applyZoom(0.25)
@@ -161,6 +173,10 @@ private impl Panel
 
     // Reports whether the document is still being read in the background.
     mtd isLoading()->bool => .load.isPending()
+
+    // Reports whether the piano roll exists, which it does once the document has been read without
+    // failure; until then everything that shows or zooms the score has nothing to act on.
+    mtd hasRoll()->bool => not .isLoading() and .failureReason.isEmpty()
 
     // Requests teardown, and reports whether deferred GUI destruction may release this view.
     mtd retire()->bool
@@ -202,17 +218,20 @@ private impl IWnd for Panel
 
 impl Panel
 {
-    // Opens what the roll shows and how: the track, the names of the pitches, the keyboard width.
-    // Gives the lens the options and the zoom of the score.
+    // Gives the lens the options and the zoom of the score; the zoom waits for the roll.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
+        let missing = not .hasRoll()
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
-        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
-        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, shortcut: Input.formatKeyShortcut(.Control, .D0))
-        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.roll.zoomIn() }, disabled: missing or not .roll.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.roll.zoomOut() }, disabled: missing or not .roll.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.roll.applyZoom(1) }, checked: not missing and .zoomPercent() == 100, disabled: missing, shortcut: Input.formatKeyShortcut(.Control, .D0))
+        entries.add(texts().ui_Fit, .FitView, func|view = me|() { view.roll.zoomToFit() }, checked: not missing and .roll.fit, disabled: missing, shortcut: Input.formatKeyShortcut(.None, .F))
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() }, disabled: missing)
     }
 
+    // Opens what the roll shows and how: the track, the presentation, the names of the pitches,
+    // the keyboard width.
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
@@ -222,7 +241,7 @@ impl Panel
     mtd describeOptions(page: *OptionSheet.Page)
     {
         let strings = texts()
-        if not .isLoading() and .failureReason.isEmpty()
+        if .hasRoll()
         {
             let selected = .roll.selectedTrack
             let current  = selected == Swag.U32.Max ? strings.ui_AllTracks : .roll.document.tracks[selected].name.toString()
@@ -245,7 +264,7 @@ impl Panel
                          icon: .theme().icon(.AudioTracks, themeRowIconSize(.themeMetrics())))
         }
 
-        if not .isLoading() and .failureReason.isEmpty()
+        if .hasRoll()
         {
             let current = .roll.mode == .Tracks ? strings.ui_ByTrack : strings.ui_ByPitch
             page.addLink(strings.ui_Presentation,
@@ -282,7 +301,7 @@ impl Panel
     {
         .pitchLabelMode = mode
         g_ViewerSettings.pitchLabelMode = mode
-        if not .isLoading() and .failureReason.isEmpty() do
+        if .hasRoll() do
             .roll.setPitchLabelMode(mode)
     }
 
@@ -292,8 +311,8 @@ impl Panel
         Swag.assert(index < 3)
         .keyboardWidthMode = index
         g_ViewerSettings.keyboardWidthMode = index
-        if not .isLoading() and .failureReason.isEmpty() do
-            .roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)
+        if .hasRoll() do
+            .roll.setKeyboardWidth(KeyboardWidths[index])
     }
 
     // Builds the MIDI panel: the options button and the zoom button. Loads the file in the
@@ -302,7 +321,6 @@ impl Panel
     {
         let services = host.services()
         let info     = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
-
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
             .backgroundStyle   = .View
@@ -329,12 +347,14 @@ impl Panel
     }
 }
 
-// Creates the integrated MIDI score view and connects it to the host.
 impl Panel
 {
     // Describes the score in the information sheet: its length, tracks and notes, then its meter.
+    // A score still loading, or one that failed to load, has nothing to describe yet.
     mtd describeInformation(sheet: *InfoSheet)
     {
+        if not .hasRoll() do
+            return
         var data: MediaInfoData
         data.addFigure(.Duration, Viewer.durationText(.roll.document.durationSeconds))
         data.addFigure(.Custom, trackCountText(.roll.lanes.count))
@@ -346,24 +366,21 @@ impl Panel
         data.add(.Meter, .roll.document.meterChangesText())
         data.add(.KeySignature, .roll.document.keyChangesText())
 
-        // Each lane of the roll: its track, its channel, the instrument the track selects and its
-        // notes. The tenth channel is the drum kit whatever its program says.
+        // Each lane of the roll: its track, its channel, the instrument the track selects and the
+        // notes the lane draws. The tenth channel is the drum kit whatever its program says.
         if .roll.lanes.count
         {
             data.add(.Tracks, Format.toString("%", .roll.lanes.count), group: true)
             for &lane, index in .roll.lanes
             {
-                let track = &.roll.document.tracks[lane.track]
-                let name  = track.name.isEmpty() ? Format.toString(texts().ui_TrackName, lane.track + 1) : String.from(track.name)
-                var notes = 0'u64
-                for &note in .roll.document.notes where note.track == lane.track and note.channel == lane.channel do
-                    notes += 1
+                let track    = &.roll.document.tracks[lane.track]
+                let name     = track.name.isEmpty() ? Format.toString(texts().ui_TrackName, lane.track + 1) : String.from(track.name)
                 var measures = Format.toString(texts().ui_Channel, cast(u32, lane.channel) + 1)
                 if lane.channel == 9 do
                     measures += Format.toString(" · %", texts().ui_Percussion)
                 elif track.program >= 0 do
                     measures += Format.toString(" · %", instrumentName(cast(u8, track.program)))
-                measures += Format.toString(" · %", noteCountText(notes))
+                measures += Format.toString(" · %", noteCountText(lane.noteCount))
                 data.addTrack(index + 1, name, measures)
             }
         }
@@ -372,6 +389,7 @@ impl Panel
     }
 }
 
+// Creates the integrated MIDI score view and connects it to the host.
 func createViewer(host: Viewer.Host)
 {
     let view = Panel.create(host)

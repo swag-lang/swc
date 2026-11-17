@@ -201,12 +201,21 @@ impl Capture
                 .selectionHasChanged()
             }
 
+            // The form that stood there may be gone, deleted or out of its time span.
             let result = .hitTests(localPos, false)
-            .lastSelectHit += 1
-            if .lastSelectHit >= result.count do
-                .lastSelectHit = 0
-            .hotForm = result[.lastSelectHit]
-            here     = .selection.contains(.hotForm)
+            if result.isEmpty()
+            {
+                .hotForm = Swag.U64.Max
+            }
+            else
+            {
+                .lastSelectHit += 1
+                if .lastSelectHit >= result.count do
+                    .lastSelectHit = 0
+                .hotForm = result[.lastSelectHit]
+            }
+
+            here = .selection.contains(.hotForm)
         }
         elif not ctrlPressed and not here and not .selection.isEmpty()
         {
@@ -344,17 +353,20 @@ impl Capture
 
         let u = .newUndo(.OffsetSelection)
 
-        // Snap by bottom/right
-        var nx = newPosX
-        var ny = newPosY
-        .snap(&nx, &ny, true, true)
-        let saveSnapX = .snapX
-        let saveSnapY = .snapY
-
-        // Snap by top/left
-        var nx1 = newPosX
-        var ny1 = newPosY
-        .snap(&nx1, &ny1, false, false)
+        // Snap by the bottom/right corner, then by the top/left one, and keep the corner that
+        // snapped further. Both measure against the same box and guides, gathered once.
+        var nx, nx1 = newPosX
+        var ny, ny1 = newPosY
+        .snapX, .snapY = -1
+        var saveSnapX, saveSnapY = -1'f32
+        if .isSnapping()
+        {
+            let targets = .snapTargets(0, null)
+            .snapTo(targets, &nx, &ny, true, true)
+            saveSnapX = .snapX
+            saveSnapY = .snapY
+            .snapTo(targets, &nx1, &ny1, false, false)
+        }
 
         if Math.abs(nx - newPosX) > Math.abs(nx1 - newPosX)
         {

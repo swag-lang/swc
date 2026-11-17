@@ -1,8 +1,7 @@
 using Swag, Core
 
-// Ranks the subtable formats this module reads. Consecutive ranks are a thousand
-// apart and 'scoreNameRecord' never reaches seventy, so the format always outranks
-// the platform score and a rich map is never lost to a better-placed poor one.
+// Ranks the subtable formats this module reads. The format rank dominates the
+// platform score, so a rich map is never lost to a better-placed poor one.
 // Format 13 folds whole planes onto a single glyph, which is only ever the right
 // answer when nothing else is present.
 // A format the module cannot read scores below zero and is skipped.
@@ -11,6 +10,8 @@ func scoreCMapFormat(format: u16)->s32
     switch format
     {
     case 12: return 5000
+    case 8:  return 4600
+    case 10: return 4500
     case 4:  return 4000
     case 6:  return 3000
     case 0:  return 2000
@@ -86,6 +87,66 @@ func lookupCMap6(cmap: const [..] u8, charCode: u32)->u32
     if charCode < firstCode or charCode - firstCode >= entryCount do
         return 0
     return peekU16(cmap, 10 + cast(u64, (charCode - firstCode)) * 2)
+}
+
+// Format 10: a trimmed array of glyph IDs indexed by Unicode scalar value.
+func lookupCMap10(cmap: const [..] u8, charCode: u32)->u32
+{
+    let firstCode = peekU32(cmap, 12)
+    if charCode < firstCode do
+        return 0
+
+    let index     = charCode - firstCode
+    let charCount = peekU32(cmap, 16)
+    if index >= charCount do
+        return 0
+
+    return peekU16(cmap, 20 + cast(u64, index) * 2)
+}
+
+// Format 8 mixes single UTF-16 units with packed surrogate pairs in its groups.
+func lookupCMap8(cmap: const [..] u8, charCode: u32)->u32
+{
+    if charCode > 0x10FFFF or (charCode >= 0xD800 and charCode <= 0xDFFF) do
+        return 0
+
+    var mappedCode = charCode
+    if charCode > 0xFFFF
+    {
+        let scalar = charCode - 0x10000
+        let high   = 0xD800'u32 + (scalar >> 10)
+        let low    = 0xDC00'u32 + (scalar & 0x3FF)
+        let bit    = cast(u8, 0x80 >> (high & 7))
+        if (peekU8(cmap, 12 + cast(u64, high >> 3)) & bit) == 0 do
+            return 0
+        mappedCode = (high << 16) | low
+    }
+
+    let numGroups = peekU32(cmap, 8204)
+    var left      = 0'u32
+    var right     = numGroups
+    while left < right
+    {
+        let mid       = left + (right - left) / 2
+        let base      = 8208'u64 + cast(u64, mid) * 12
+        let startCode = peekU32(cmap, base)
+        let endCode   = peekU32(cmap, base + 4)
+        if mappedCode < startCode
+        {
+            right = mid
+            continue
+        }
+
+        if mappedCode > endCode
+        {
+            left = mid + 1
+            continue
+        }
+
+        return peekU32(cmap, base + 8) + (mappedCode - startCode)
+    }
+
+    return 0
 }
 
 func lookupCMap12(cmap: const [..] u8, charCode: u32)->u32
@@ -300,6 +361,8 @@ func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
     case 0:  return lookupCMap0(cmap, charCode)
     case 4:  return lookupCMap4(cmap, charCode)
     case 6:  return lookupCMap6(cmap, charCode)
+    case 8:  return lookupCMap8(cmap, charCode)
+    case 10: return lookupCMap10(cmap, charCode)
     case 12: return lookupCMap12(cmap, charCode)
     case 13: return lookupCMap13(cmap, charCode)
     }

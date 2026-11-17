@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Format/FormatOptionsLoader.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerTagRegistry.h"
 #include "Main/FileSystem.h"
@@ -24,6 +25,15 @@ namespace
     constexpr uint32_t         RSP_MAX_DEPTH          = 16;
     constexpr std::string_view CONFIG_FILE_LONG_FORM  = "--config-file";
     constexpr std::string_view CONFIG_FILE_SHORT_FORM = "-cf";
+
+    bool isSafeWorkspaceModuleName(const std::string_view name)
+    {
+        if (name.empty() || name == "." || name == ".." || name.find_first_of("/\\") != std::string_view::npos || name.find('\0') != std::string_view::npos)
+            return false;
+
+        const fs::path path(name);
+        return !path.has_root_path() && !path.has_parent_path() && path.filename() == path;
+    }
 
     void resolveModuleRelativeInput(const fs::path& baseDir, fs::path& path)
     {
@@ -517,6 +527,11 @@ Result CommandLineParser::applyConfigFile(TaskContext& ctx, const std::vector<Ut
 
     if (configPath.empty())
         return Result::Continue;
+
+    // A `.swc-format` holds formatter options, which `swc format` finds beside the sources by
+    // itself. Read as command-line options, its first key would only be reported as unknown.
+    if (configPath.filename() == fs::path(FormatOptionsLoader::CONFIG_FILE_NAME))
+        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_config_file_format_options, configPath);
 
     cmdLine_->configFile = configPath;
 
@@ -1166,6 +1181,14 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     {
         Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_module_requires_workspace);
         diag.addArgument(Diagnostic::ARG_ARG, "--workspace-module");
+        diag.report(ctx);
+        return Result::Error;
+    }
+
+    if (!cmdLine_->workspaceModuleFilter.empty() && !isSafeWorkspaceModuleName(cmdLine_->workspaceModuleFilter.view()))
+    {
+        Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_new_module_name_invalid);
+        diag.addArgument(Diagnostic::ARG_VALUE, cmdLine_->workspaceModuleFilter);
         diag.report(ctx);
         return Result::Error;
     }

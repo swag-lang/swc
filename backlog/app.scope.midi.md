@@ -150,9 +150,10 @@ remain available in the Binary viewer.
 ### app.scope.midi.007 — Tracks and channels cannot be muted, soloed, regrouped, or understood
 
 - Evidence: the selector shows All Tracks or one track by note count. The information sheet lists
-  each lane of the roll, a track on one channel, with its channel, the General MIDI instrument of
-  the first program its track selects (the tenth channel reads as percussion) and its notes. It
-  cannot mute/solo, rename session labels, show ports, banks or later program changes, or explain
+  each lane of the roll, one track, with the first channel it plays on, the General MIDI instrument
+  of the first program the track selects (the tenth channel reads as percussion) and the count of
+  the notes the lane draws, whatever their channel; the roll counts them once when it is created.
+  It cannot mute/solo, rename session labels, show ports, banks or later program changes, or explain
   format 0 channel mixtures.
 - Next: introduce a track/channel matrix with stable colors and diagnostic mute/solo state independent
   of source events.

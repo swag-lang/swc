@@ -77,6 +77,53 @@ private func flacWideStereoTestConfig()->Array'u8
     return config
 }
 
+private func flac24BitStereoTestConfig()->Array'u8
+{
+    var config: Array'u8
+    config.add(0)
+    config.add(1) // Min block size: one sample.
+    config.add(0)
+    config.add(6) // Max block size: six samples.
+    for 6 do
+        config.add(0) // Min/max frame sizes are unknown.
+    let description = (48_000'u64 << 44) | (1'u64 << 41) | (23'u64 << 36) | 6
+    for byte in 8 do
+        config.add(cast(u8, (description >> (56 - byte * 8)) & 0xFF))
+    for 16 do
+        config.add(0) // MD5 is not consulted by the frame decoder.
+    return config
+}
+
+private func flac24BitStereoTestFrame()->Array'u8
+{
+    let left:  [6] s32 = [0x007FFFFF, 0x007FFF00, 0x00000100, 0, -0x00000100, -0x00800000]
+    let right: [6] s32 = [-0x00800000, -0x007FFF00, -0x00000100, -1, 0x00000100, 0x007FFFFF]
+
+    var frame: Array'u8
+    frame.add(0xFF)
+    frame.add(0xF9) // Variable-block strategy.
+    frame.add(0x60) // Six-sample block size follows; sample rate from STREAMINFO.
+    frame.add(0x10) // Independent stereo, 24-bit samples from STREAMINFO.
+    frame.add(0)    // Sample number.
+    frame.add(5)    // Block size minus one.
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+    var bitCount = frame.count * 8
+    flacTestAppendBits(&frame, &bitCount, 0x02, 8) // Verbatim left subframe.
+    for value in left do
+        flacTestAppendBits(&frame, &bitCount, cast(u64, cast #wrap (u32, value) & 0x00FF_FFFF), 24)
+    flacTestAppendBits(&frame, &bitCount, 0x02, 8) // Verbatim right subframe.
+    for value in right do
+        flacTestAppendBits(&frame, &bitCount, cast(u64, cast #wrap (u32, value) & 0x00FF_FFFF), 24)
+    while bitCount & 7 do
+        flacTestAppendBits(&frame, &bitCount, 0, 1)
+
+    let checksum = Flac.frameCrc16(frame.toSlice())
+    frame.add(cast(u8, checksum >> 8))
+    frame.add(cast(u8, checksum & 0xFF))
+    return frame
+}
+
 private func flacWideMidSideFrame()->Array'u8
 {
     var frame: Array'u8
@@ -171,6 +218,27 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), 2 * #sizeof(s16), frame.toSlice())
     Swag.require(bytes == 2 * #sizeof(s16))
     Swag.require(decoded[0] == Swag.S16.Max and decoded[1] == Swag.S16.Min)
+}
+
+// 24-bit verbatim samples retain their sign and use the most significant sixteen bits at output.
+#test
+{
+    var codec: Flac.Codec
+    let decoder: IPacketCodec = &codec
+    let config = flac24BitStereoTestConfig()
+    expect decoder.initialize(config.toSlice(), 48_000, 2)
+
+    var decoded: [12] s16
+    let frame = flac24BitStereoTestFrame()
+    let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), 12 * #sizeof(s16), frame.toSlice())
+    Swag.require(bytes == 12 * #sizeof(s16))
+    audioAssertSamples(cast([..] u8, decoded), [
+        32767's16, -32768's16,
+        32767, -32767,
+        1, -1,
+        0, -1,
+        -1, 1,
+        -32768, 32767])
 }
 
 // 0xFE is FLAC's seven-byte number prefix; 0xFF is reserved and rejected.

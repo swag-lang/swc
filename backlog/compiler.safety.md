@@ -43,18 +43,17 @@ is the current scorecard.
 
 [README.md](README.md) defines the shared backlog conventions.
 
-### compiler.safety.032 — Restore native test recovery after a terminal expect
+### compiler.safety.032 — Confirm native terminal-expect reporting on Windows
 
-- Evidence: on Windows, `swc.dm unittest --dev-full --num-cores 3` fails
-  `Compiler_NativePanicReleasesCapturedErrorsBeforeRecovery` and
-  `Compiler_ExplicitExpectTerminatesThroughInlineExpansion`. The generated executable reports
-  the intended first-test error and one failed test, but never reaches the following recovery
-  test's completion marker. The fixtures live in `Test.Compiler.Failure.cpp`; they compile
-  standalone native test programs, independently of module API publication.
-- Next: reduce one fixture and trace terminal `expect`, the returning panic hook, and the native
-  test-runner boundary. Establish whether the runtime should recover or the tests assume an
-  obsolete contract. Preserve captured-error cleanup and local-context restoration either way.
-- Done when: both fixtures pass with the documented panic/test-recovery contract on Windows.
+- Evidence: commit `017485df` changed the fixtures to match the safe contract: a terminal panic
+  cleans up captured errors and records one failed test, then stops the native process instead of
+  running another test after its frame was abandoned. The current tests are
+  `Compiler_NativePanicReleasesCapturedErrorsBeforeStop` and
+  `Compiler_ExplicitExpectStopsThroughInlineExpansion`; both pass in the Linux DevMode C++
+  filesystem suite. Windows has not been rechecked against these updated expectations.
+- Next: run `swc.dm unittest --dev-full --num-cores 3` on Windows and verify both fixtures report
+  the failed tally before the native process stops.
+- Done when: both fixtures pass with the terminal panic contract on Windows.
 
 ### compiler.safety.031 — Preserve inline-string views across interface calls
 
@@ -63,7 +62,13 @@ is the current scorecard.
   in scope, and calling `w.print(rendered.toString())` directly fixed the log test. Longer,
   heap-backed messages did not reproduce the failure. Linux native DevMode and Release tests now
   pass for both a short inline `String` view passed through a local interface callback and
-  `Core.Log.print` with a short formatted result.
+  `Core.Log.print` with a short formatted result. A direct/interface comparison also found that
+  escape analysis diagnosed a concrete retaining call but missed the same call through an interface.
+  Concrete implementation summaries now cover statically known local and imported interface targets;
+  focused sanity and workspace consumer tests keep non-retaining calls silent and reject retained
+  local views. Mutable frame-local interface bindings also use the concrete summary while their
+  storage remains unaddressed; assignments, address-taking and by-reference captures invalidate
+  that proof.
 - Next: reproduce the original fourteen-byte failure on Windows with a regression that preserves
   the exact `StringBuilder` and writer call path. Then trace borrow/liveness analysis and generated
   code, and ensure an actual escaping view still receives its existing diagnostic.
@@ -159,7 +164,11 @@ is the current scorecard.
 
 - Evidence: caller-side use after a call can escape detection for receiver fields and globals.
   The body-local release/use check is already covered; this entry is only about what the caller can
-  prove after a callee returns.
+  prove after a callee returns. A focused `use_after_free.swg` probe with a global pointer and two
+  known helpers (one frees it; one frees and replaces it) confirms that caller aliases used after
+  either call currently receive no use-after-free diagnostic. Because a missing diagnostic lets
+  the test execute the invalid access, its regression must use a retaining allocator, as the
+  double-free corpus does, rather than freeing the block physically.
 - A release summary alone cannot prove the storage remains empty on return. An earlier prototype
   omitted that post-call write proof and failed the reset-safe sanity case. Establishing the proof
   requires excluding writes through aliases, so a release-only summary is insufficient.
@@ -202,10 +211,12 @@ is the current scorecard.
 - One `api_static_provider` Release-safe compile sample measured 1.42 s before and 1.52 s after
   projected-field forwarding, with peak compiler-session RSS of 261244 and 230592 KiB. This is a
   single run; repeat it before treating the small timing difference as a regression.
-- Next: extend the same before/after distinction to globals and unavailable bodies. Infer
-  guaranteed resets where control flow proves every return leaves valid storage; retain
-  conservative behavior whenever an incomplete write summary or unknown target prevents that
-  proof.
+- Next: add an exact global-storage identity to release/write summaries and the caller's alias
+  state, then consume it at known calls with the same before/after distinction used for fields.
+  Start with same-module functions and a retained-allocation regression proving a free marks old aliases released;
+  then add a free-and-replace case proving the new global pointee remains usable. Only after that
+  works, publish/import the effect through module APIs and infer guaranteed resets where every
+  return proves valid storage. Keep unknown targets and incomplete write summaries conservative.
 - Done when: caller-side releases through receiver fields and globals are diagnosed without
   rejecting a reset that restores valid storage, with both cases covered in
   `bin/unittests/sanity/use_after_free.swg`.

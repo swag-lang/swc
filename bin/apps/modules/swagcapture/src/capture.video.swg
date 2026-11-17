@@ -8,13 +8,10 @@ internal func exportOriginalVideo(source: string, path: string) fail
     if Path.equals(targetPath, sourcePath) do
         fail BadParameterError{"choose another file for the exported video"}
 
-    let temporary     = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
-    var ownsTemporary = true
-    defer if ownsTemporary do
-        discard catch File.delete(temporary)
+    let temporary = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
+    defer #fail discard catch File.delete(temporary)
     try File.duplicate(temporary, source)
     try File.move(path, temporary)
-    ownsTemporary = false
 }
 
 impl Capture
@@ -74,13 +71,8 @@ impl Capture
         }
 
         // Publish only a complete MP4. A failed export leaves an earlier destination intact.
-        let temporary     = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
-        var ownsTemporary = true
-        defer
-        {
-            if ownsTemporary do
-                discard catch File.delete(temporary)
-        }
+        let temporary = Format.toString("%.swag-export-%.tmp", path, Guid128.random())
+        defer #fail discard catch File.delete(temporary)
 
         // Precise trims and timed annotations keep every unaffected compressed passage.
         // Unsupported imported formats retain the rendering path below; I/O errors do not.
@@ -138,7 +130,6 @@ impl Capture
                 if copied
                 {
                     try File.move(path, temporary)
-                    ownsTemporary = false
                     return
                 }
             }
@@ -160,6 +151,9 @@ impl Capture
         let playhead  = .playhead
         defer catch .showFrame(playhead)
 
+        // An odd-sided capture is framed in an even picture whose extra column or row stays white:
+        // that picture is made once, and only the capture's rows are copied into it per frame.
+        var padded: Image
         var outputFrame: u64
         var outputTime:  u64
         for frame in frames.frameAt(start) until frames.frameCount()
@@ -178,10 +172,15 @@ impl Capture
             var image = .toImage()
             if not image.isValid() do
                 fail InvalidFormatError{"the video frame could not be rendered"}
+            var picture = &image
             if image.width != width or image.height != height
             {
-                var padded = Image.create(width, height, .BGRA8)
-                padded.fill(Argb.White)
+                if not padded.isValid()
+                {
+                    padded = Image.create(width, height, .BGRA8)
+                    padded.fill(Argb.White)
+                }
+
                 for row in cast(u64, image.height)
                 {
                     Memory.copy(padded.pixels.storage() + row * cast(u64, padded.rowStride),
@@ -189,13 +188,13 @@ impl Capture
                                 cast(u64, image.width) * 4)
                 }
 
-                image = #move padded
+                picture = &padded
             }
 
             while remaining
             {
                 let duration = cast(u32, Math.min(remaining, cast(u64, Swag.U32.Max)))
-                try recording.addFrame(&image, FrameSlot{outputFrame, outputTime, duration, 0})
+                try recording.addFrame(picture,FrameSlot{outputFrame, outputTime, duration, 0})
                 outputFrame += 1
                 outputTime  += duration
                 remaining   -= duration
@@ -213,7 +212,6 @@ impl Capture
 
         try recording.end()
         try File.move(path, temporary)
-        ownsTemporary = false
     }
 }
 

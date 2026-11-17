@@ -45,6 +45,15 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     SWC_RESULT(buildTextSection(description, textSection));
 
     std::vector<CoffSectionBuild> sections;
+    const size_t knownSectionCount =
+        1 +
+        static_cast<size_t>(description.includeMergedRData && !builder_->mergedRData.bytes.empty()) +
+        description.rdataAllocationCount +
+        static_cast<size_t>(description.includeData && !builder_->mergedData.bytes.empty()) +
+        static_cast<size_t>(description.includeData && builder_->mergedBss.bss);
+    // Archive members can contain one section per read-only allocation. Reserve that
+    // partition-known prefix once; runtime and debug sections are appended below.
+    sections.reserve(knownSectionCount);
     sections.push_back(std::move(textSection));
 
     if (description.includeMergedRData && !builder_->mergedRData.bytes.empty())

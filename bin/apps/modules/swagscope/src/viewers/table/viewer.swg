@@ -338,13 +338,15 @@ func isThousands(text: string)->bool
     return true
 }
 
-// Writes `value` with its thousands grouped by a narrow space, two decimals when `decimal`.
+// Writes `value` with its thousands grouped by a narrow space, rounded to two decimals when
+// `decimal` and to a whole number otherwise.
 func groupThousands(value: f64, decimal: bool)->String
 {
-    // Cents are rounded before the whole part is taken, so 1.999 reads 2.00 rather than 1.100.
-    let negative = value < 0
+    // Cents are rounded before the whole part is taken, so 1.999 reads 2.00 rather than 1.100. A
+    // value that rounds to nothing has no sign: -0.001 reads 0.00, not -0.00.
     let cents    = cast(u64, Math.round(Math.abs(value) * 100))
-    let whole    = decimal ? cents / 100 : cast(u64, Math.abs(value))
+    let whole    = decimal ? cents / 100 : cast(u64, Math.round(Math.abs(value)))
+    let negative = value < 0 and (decimal ? cents : whole) != 0
     var digits   = Format.toString("%", whole)
     var result: String
     for byte, at in digits.toString()
@@ -395,6 +397,7 @@ func isNumericCell(text: string)->bool
 func quantityOf(text: string, result: *f64)->bool
 {
     var hasDot, commas, digitsAfterComma: u64
+    var dropped = false
     for byte in text
     {
         if byte == '.'
@@ -410,6 +413,19 @@ func quantityOf(text: string, result: *f64)->bool
         {
             digitsAfterComma += 1
         }
+        elif byte == ' ' or byte == '%'
+        {
+            dropped = true
+        }
+    }
+
+    // Sorting, summing and profiling read every cell of a column: a quantity written plainly is
+    // read where it stands rather than copied first.
+    if not commas and not dropped
+    {
+        let value = catch StrConv.toF64(text) { return false }
+        result[] = value
+        return true
     }
 
     let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3
@@ -500,6 +516,11 @@ struct Panel
     load:          Viewer.BackgroundLoad'Document
     services:      Viewer.HostServices
     failureReason: String
+
+    // The sum the foot shows and the column it adds up. Moving the focus renames the row in the
+    // foot but leaves the sum alone, so the column is added up again only when it changes.
+    footSum:       String
+    footSumColumn: u64 = Swag.U64.Max
 }
 
 private impl IWnd for Panel
@@ -543,7 +564,7 @@ private impl IWnd for Panel
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
         if evt.kind == .Pressed and evt.modifiers == .Control and evt.key == .C do
-            Clipboard.addString(.selectionText())
+            Clipboard.setString(.selectionText())
         else do
             evt.accepted = false
     }
@@ -625,6 +646,7 @@ private impl Panel
 
         .order.clear()
         .rowLines.clear()
+        .footSumColumn = Swag.U64.Max
         .list.setVirtualCount(cast(u32, .document.rows.count))
         .applyLayout()
         .fitWidth()
@@ -683,8 +705,6 @@ private impl Panel
         return groupThousands(total, decimal)
     }
 
-    // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
-    // them: complete cell values separated by tabs, one row per line, in the order shown.
     // Returns the selected rows, or the focused one, as tab-separated text in the order on screen,
     // after the column names with `withNames`. A value holding a tab, a line break or a quote is
     // quoted, its quotes doubled, as spreadsheets read tab-separated text back.
@@ -716,7 +736,7 @@ private impl Panel
             result += "\n"
         }
 
-        let anySelected = .hasSelection()
+        let anySelected = .list.selectedLineCount() != 0
         for line in .document.rows.count
         {
             let selected = anySelected ? .list.isLineSelected(cast(u32, line)) : line == .list.focusIndex
@@ -736,14 +756,7 @@ private impl Panel
         return result
     }
 
-    mtd hasSelection()->bool
-    {
-        for line in .document.rows.count where .list.isLineSelected(cast(u32, line)) do
-            return true
-        return false
-    }
-
-    // Returns the document row shown at line `index`, and the line document row `row` is shown at.
+    // Returns the document row shown at line `index`.
     mtd documentRow(index: u64)->u64 => .order.count ? .order[index] : index
 
     // Returns the values of `column`, one per line in the order shown, an empty cell as an empty line.
@@ -762,6 +775,7 @@ private impl Panel
         return result
     }
 
+    // Returns the line document row `row` is shown at.
     internal mtd lineOfRow(row: u64)->u32 => .rowLines.count ? .rowLines[row] : cast(u32, row)
 
     // Orders the rows by `column`, ascending first and descending when the same column is chosen
@@ -810,6 +824,9 @@ private impl Panel
         if focused != Swag.U64.Max do
             .list.setFocusedIndex(.lineOfRow(focused))
         .list.invalidate()
+
+        // The focused row now stands on another line, and the foot sums the sorted column.
+        .refreshDetails()
     }
 
     // Reports structure, selected row and numeric summary together on the host's reading line.
@@ -831,7 +848,13 @@ private impl Panel
         let column = .sumColumn()
         if column != Swag.U64.Max and column < .document.columns.count
         {
-            let sum = Format.toString("Σ % %", .document.columns[column].toString(), .sumText(column))
+            if .footSumColumn != column
+            {
+                .footSum       = .sumText(column)
+                .footSumColumn = column
+            }
+
+            let sum = Format.toString("Σ % %", .document.columns[column].toString(), .footSum)
             foot = foot.isEmpty() ? sum : Format.toString("% · %", foot, sum)
         }
 
@@ -1017,8 +1040,8 @@ impl Panel
         if entries.results.prefix != .Line
         {
             let empty = not .document.rows.count
-            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.addString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
-            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.addString(view.selectionText(withNames: true)) }, disabled: empty)
+            entries.add(texts().ui_CopyRows, .Copy, func|view = me|() { Clipboard.setString(view.selectionText()) }, disabled: empty, shortcut: Input.formatKeyShortcut(.Control, .C))
+            entries.add(texts().ui_CopyRowsNames, .Copy, func|view = me|() { Clipboard.setString(view.selectionText(withNames: true)) }, disabled: empty)
 
             // The column the table is sorted on, its values one per line in the order shown.
             if .sortColumn < .document.columns.count do
@@ -1082,7 +1105,7 @@ private func fillVirtualLine(list: *ListCtrl, line: *ListLine?, index: u32)
     assume cast(*Panel, list.parent).fillLine(line, index)
 }
 
-// Creates the integrated CSV/TSV table view.
+// What the information sheet says of a table and of each of its columns.
 impl Panel
 {
     // Describes the table in the information sheet: its rows and columns, then how they are

@@ -88,14 +88,6 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   and playback recovers or stops according to that policy.
 - Related: std.audio.004, std.audio.005
 
-### std.audio.007 — No stereo pan control
-
-- Next: add backend-neutral stereo panning to `Voice` without requiring the listener and
-  distance model of platform.portability.063.
-- Done when: `Voice` exposes backend-neutral stereo panning without requiring the listener or
-  distance model.
-- Related: platform.portability.063
-
 ### std.audio.008 — No reverb effect
 
 - Next: expose a reverb effect independently of the basic voice filters and of a general

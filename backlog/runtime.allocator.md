@@ -23,10 +23,20 @@ replace the allocator; a similar architecture alone does not establish comparabl
   concurrent large blocks materially slower than mimalloc. Under `spreadrep:8`, threads still
   contend on the segment mutex for pages a class acquires beyond its retained spare. Inline
   `Memory.free` builds an `AllocatorRequest` and dispatches through `IAllocator.free`.
-  Allocation and free each read the context, and the page path also reads its thread-local
-  heap slot.
-- Next: reduce the request, dispatch, and thread-local lookup work, attributing each gain from
-  the emitted common path. A cold `Memory.alloc` request helper, dense current-page pointers,
+  A current Windows x64 Release Micro listing lowers `Core.Memory.free` from 91 to 44
+  instructions, but still reserves a 112-byte request frame and copies the caller location,
+  hint, address, and size before the interface call. The compiler emits its `SanityRelease`
+  marker at `IAllocator.free(&request)`, using `request.address`.
+- A `Allocator.freeAddress` prototype cut the emitted free path, but failed the inline lifecycle
+  sanity test: the released pointer was not marked as released after the helper call. The prototype
+  was removed rather than weakening the diagnostic. Before retrying this route, trace how the
+  compiler propagates freed-parameter summaries through concrete allocator methods and inline calls.
+- Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
+  allocators and a default-allocator fast implementation. Preserve frees summaries and
+  `SanityRelease` behavior for both direct and interface dispatch, and compare generated code to
+  ensure type selection costs less than request construction. Allocation and free each read the
+  context, and the page path also reads its thread-local heap slot. A cold `Memory.alloc` request
+  helper, dense current-page pointers,
   and a page-local Windows owner token with a direct native thread-id load did not improve
   mixed-size and concurrent workloads consistently. Attribute `Memory.free`'s request stores,
   dispatch, and code/data placement before retrying those shapes. Any owner token must live in

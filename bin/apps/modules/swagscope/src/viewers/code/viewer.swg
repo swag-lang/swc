@@ -90,6 +90,10 @@ struct Panel
 
     late editor: *RichEditCtrl
 
+    // Whether every line of the resident window is colored since the window last changed, which
+    // pairing brackets needs and a jump between brackets would otherwise redo every time.
+    lexed: bool
+
     info:              *Wnd?
     zoomLabel:         *IconButton?
     zoomPercent:       u32 = 100
@@ -229,6 +233,7 @@ impl Panel
         }
 
         .editor.addText(chunk)
+        .lexed = false
         var positionErrorOutcome: Swag.Error
         var position: #decltype(expect .stream.position())
         catch { position = try .stream.position() } as positionErrorOutcome
@@ -270,6 +275,7 @@ impl Panel
             let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
             .residentStart = actual
             .editor.setText(chunk)
+            .lexed = false
             .numberWindow()
             var positionErrorOutcome: Swag.Error
             var position: #decltype(expect .stream.position())
@@ -289,19 +295,19 @@ impl Panel
     }
 
     // Gives the line numbers of the resident window the count of the lines before it. A window too
-    // deep in the file to count without a visible pause is shown without numbers rather than wrong.
+    // deep in the file to count without a visible pause is shown without numbers rather than wrong,
+    // and the numbers come back with the next window that can be counted, as the text viewer does.
     mtd numberWindow()
     {
-        if not .editor.flags.has(.LineNumbers) do
-            return
         let line = .lines.lineAt(.fileName, .residentStart)
-        if line
-        {
+        if line do
             .editor.setFirstLineNumber(line)
+        if (line != 0) == .editor.flags.has(.LineNumbers) do
             return
-        }
-
-        .editor.flags.remove(.LineNumbers)
+        if line do
+            .editor.flags.add(.LineNumbers)
+        else do
+            .editor.flags.remove(.LineNumbers)
         .editor.setFlags(.editor.flags)
     }
 
@@ -382,7 +388,12 @@ impl Panel
             return false
 
         // Lines are colored as they are painted; the pair may lie on lines never shown.
-        .editor.lexAll()
+        if not .lexed
+        {
+            .editor.lexAll()
+            .lexed = true
+        }
+
         let first   = .editor.runeAt(start)
         let partner = delimiterPartner(first.char)
         let forward = first.char == '(' or first.char == '[' or first.char == '{'
@@ -622,6 +633,7 @@ impl Panel
         }
 
         .editor.lexAll()
+        .lexed = true
         .editor.invalidate()
         .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
     }
@@ -738,7 +750,7 @@ impl IWnd for Panel
             return
         let error = .statisticsLoad.finish(&.statistics)
         .hasStatistics = error.isEmpty()
-        .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
+        .services.informationChanged(me)
     }
 
     // The column stays centred whatever the width of the window.
@@ -794,7 +806,7 @@ impl IWnd for Panel
     }
 }
 
-// Creates the integrated syntax-colored source view.
+// What the information sheet says of a source file.
 impl Panel
 {
     // Describes the source in the information sheet: its lines once the whole file is counted,

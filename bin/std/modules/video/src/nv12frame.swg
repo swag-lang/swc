@@ -183,4 +183,50 @@ impl Nv12Frame
             }
         }
     }
+
+    // Converts a decoded planar picture directly into NV12 without a packed RGB intermediate.
+    //
+    // Accepts valid, even-sized 4:2:0 pictures with the BT.709 matrix and studio range. Rows may
+    // have padding; output planes are tightly packed and top-down. Invalid planes or odd dimensions
+    // fail with [[Core.Errors.BadParameterError]]. Other chroma layouts, matrices, or ranges fail
+    // with [[Core.Errors.UnsupportedFormatError]]. A failure leaves the previous picture intact.
+    mtd convertFrom(frame: const *PlanarFrame) fail
+    {
+        if not frame.isValid() or frame.width % 2 or frame.height % 2 do
+            fail BadParameterError{"NV12 conversion needs a valid planar picture with even dimensions"}
+        if frame.chromaShift != 1 or frame.matrix != .Bt709 or not frame.studioRange do
+            fail UnsupportedFormatError{"NV12 conversion needs BT.709 studio-range 4:2:0 planes"}
+
+        let width       = cast(u64, frame.width)
+        let height      = cast(u64, frame.height)
+        let lumaSize    = width * height
+        let chromaWidth = width / 2
+        let chromaRows  = height / 2
+        .bytes.resize(lumaSize + lumaSize / 2)
+        .width  = frame.width
+        .height = frame.height
+
+        let luma = frame.luma.storage()
+        let cb   = frame.chromaB.storage()
+        let cr   = frame.chromaR.storage()
+        let yOut = .bytes.storage()
+        let uvOut = yOut + lumaSize
+        for row in height do
+            Memory.copy(yOut + row * width,
+                        luma + row * cast(u64, frame.strideLuma),
+                        width)
+
+        for row in chromaRows
+        {
+            let sourceRow = row * cast(u64, frame.strideChroma)
+            let targetRow = row * width
+            for column in chromaWidth
+            {
+                let source = sourceRow + column
+                let target = targetRow + column * 2
+                uvOut[target]     = cb[source]
+                uvOut[target + 1] = cr[source]
+            }
+        }
+    }
 }

@@ -1,8 +1,23 @@
 impl LibraryWnd
 {
-    // Counts the loaded captures per source application, or per tag, for the sidebar groups.
-    mtd collectNamedFilters(applications: bool)->Array'LibraryNamedFilter
+    // Counts the loaded captures per source application and per tag, in one pass over the
+    // library, for the sidebar groups. Both lists are sorted by name.
+    mtd collectNamedFilters()->{applications: Array'LibraryNamedFilter, tags: Array'LibraryNamedFilter}
     {
+        // Counts one more capture under `name`, which the groups compare without case.
+        func count(entries: *Array'LibraryNamedFilter, name: string, executable: string)
+        {
+            for &entry in entries[] where Utf8.compare(entry.name.toSlice(), name, .Latin1NoCase) == 0
+            {
+                entry.count += 1
+                if entry.executable.isEmpty() and executable.count != 0 do
+                    entry.executable = executable
+                return
+            }
+
+            entries.add(LibraryNamedFilter{name, executable, 1})
+        }
+
         var result: #returntype
         for item in .view.allItems
         {
@@ -12,40 +27,14 @@ impl LibraryWnd
             if not capture do
                 continue
 
-            if applications
-            {
-                if capture.sourceApplication.isEmpty() do
-                    continue
-
-                var found = false
-                for &entry in result where Utf8.compare(entry.name.toSlice(), capture.sourceApplication, .Latin1NoCase) == 0
-                {
-                    entry.count += 1
-                    if entry.executable.isEmpty() and not capture.sourceExecutable.isEmpty() do
-                        entry.executable = capture.sourceExecutable
-                    found = true
-                }
-
-                if not found do
-                    result.add(LibraryNamedFilter{capture.sourceApplication, capture.sourceExecutable, 1})
-                continue
-            }
-
-            for tag in capture.tags
-            {
-                var found = false
-                for &entry in result where Utf8.compare(entry.name.toSlice(), tag[], .Latin1NoCase) == 0
-                {
-                    entry.count += 1
-                    found       = true
-                }
-
-                if not found do
-                    result.add(LibraryNamedFilter{tag[], "", 1})
-            }
+            if not capture.sourceApplication.isEmpty() do
+                count(&result.applications, capture.sourceApplication, capture.sourceExecutable)
+            for tag in capture.tags do
+                count(&result.tags, tag[], "")
         }
 
-        result.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
+        result.applications.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
+        result.tags.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))
         return result
     }
 
@@ -106,18 +95,26 @@ impl LibraryWnd
         .updateFolderTabs()
     }
 
+    // Counts the applications and the tags of the loaded captures again, which change as the
+    // previews stream in. Only the tag chips show them: the dates and the folder tabs follow the
+    // files, not what they hold, and listing the folders reads every one of them from disk, so
+    // they are rebuilt only when `force` says the files changed.
+    //
+    // A list is replaced only when it changed: the tag chips borrow the names of the tags.
     mtd refreshAutomaticFilters(force = false)
     {
-        let applications = .collectNamedFilters(true)
-        let tags         = .collectNamedFilters(false)
-        if not force and
-           Slice.equals(.sidebarApplications.toSlice(), applications.toSlice()) and
-           Slice.equals(.sidebarTags.toSlice(), tags.toSlice()) do
-            return
+        var filters = .collectNamedFilters()
+        if not Slice.equals(.sidebarApplications.toSlice(), filters.applications.toSlice()) do
+            .sidebarApplications = #move filters.applications
 
-        .sidebarApplications = applications
-        .sidebarTags         = tags
-        .rebuildSidebar()
+        let tagsChanged = not Slice.equals(.sidebarTags.toSlice(), filters.tags.toSlice())
+        if tagsChanged do
+            .sidebarTags = #move filters.tags
+
+        if force do
+            .rebuildSidebar()
+        elif tagsChanged do
+            .updateTagChips()
     }
 
     // Narrows the library to the captures of a date, or shows every date with a zero year.
@@ -151,6 +148,7 @@ impl LibraryWnd
         .describeFolderCommands(results, query)
         .describeFolders(results, query)
         .describeDates(results, query)
+        .lensNames.clear()
         .describeNamed(results, query, texts.act_Application, &.sidebarApplications, application: true)
         .describeNamed(results, query, texts.act_Tags, &.sidebarTags, application: false)
     }
@@ -170,26 +168,7 @@ impl LibraryWnd
         {
             let family  = texts.lens_Selection
             let focused = .view.items[.view.focusItem]
-            describeAction(results, "", family, texts.act_OpenSelected, .theme().icon(.OpenFile), func|libWnd = me, focused|() { libWnd.view.openItem(focused) }, Input.formatKeyShortcut(.None, .Return))
-            if focused.kind == .Image do
-                describeAction(results,
-                               "",
-                               family,
-                               texts.act_LocateImage,
-                               .theme().icon(.OpenExternal),
-                               func|focused|() { discard Env.showInFileExplorer(focused.fi.fullName) })
-            else
-            {
-                describeAction(results,
-                               "",
-                               family,
-                               texts.act_ExportSelected,
-                               .theme().icon(.Export),
-                               func|libWnd = me|() { libWnd.exportSelected() })
-                describeAction(results, "", family, texts.act_EditTags, .theme().icon(.Edit), func|libWnd = me|() { libWnd.editSelectedTags() })
-                describeAction(results, "", family, texts.act_FavoriteCapture, .theme().icon(.Star), func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
-            }
-
+            .describeItemActions(results, "", family, focused)
             describeAction(results, "", family, texts.act_MoveSelected, .commandFolderIcon(), func|libWnd = me|() { libWnd.moveSelected() })
             .describeCommands(results, "", family, [ActionFile.DeleteCapture])
 
@@ -201,20 +180,8 @@ impl LibraryWnd
                 let current = focused.capture ? focused.capture.rating : 0
                 for value in 6
                 {
-                    let stars      = cast(u8, value)
-                    with let entry = rating.addEntry(ratingLabel(stars))
-                    {
-                        .checked = stars == current
-                        .run     = func|libWnd = me, stars|() { libWnd.rateSelected(stars) }
-                        if stars != 0
-                        {
-                            .paintWidth = stars * (RatingStarSize + RatingStarGap) - RatingStarGap
-                            .paint      = func|libWnd = me, stars|(painter, rect) { libWnd.paintRatingStars(painter, rect, stars) }
-                        }
-
-                        .detail     = Input.formatKeyShortcut(.None, ratingKey(stars))
-                        .monoDetail = true
-                    }
+                    let stars = cast(u8, value)
+                    .addRatingEntry(rating, stars).checked = stars == current
                 }
             }
         }
@@ -292,10 +259,28 @@ impl LibraryWnd
         if .trashMode or .view.focusItem >= .view.items.count do
             return
 
-        let texts   = appStrings()
-        let family  = texts.act_Library
+        let family  = appStrings().act_Library
         let focused = .view.items[.view.focusItem]
-        describeAction(results, query, family, texts.act_OpenSelected, .theme().icon(.OpenFile), func|libWnd = me, focused|() { libWnd.view.openItem(focused) }, Input.formatKeyShortcut(.None, .Return))
+        .describeItemActions(results, query, family, focused)
+        if focused.kind == .Image do
+            return
+
+        for rating in 6 do
+            discard .addRatingEntry(sectionOf(results, family), cast(u8, rating))
+    }
+
+    // Adds what can be done with the focused cell and the selection, as far as the query names it,
+    // under `family`: open, then locate an image, or export, tag and favour the captures.
+    mtd describeItemActions(results: *Lens.Results, query: string, family: string, focused: *LibraryItem)
+    {
+        let texts = appStrings()
+        describeAction(results,
+                       query,
+                       family,
+                       texts.act_OpenSelected,
+                       .theme().icon(.OpenFile),
+                       func|libWnd = me, focused|() { libWnd.view.openItem(focused) },
+                       Input.formatKeyShortcut(.None, .Return))
         if focused.kind == .Image
         {
             describeAction(results,
@@ -310,22 +295,26 @@ impl LibraryWnd
         describeAction(results, query, family, texts.act_ExportSelected, .theme().icon(.Export), func|libWnd = me|() { libWnd.exportSelected() })
         describeAction(results, query, family, texts.act_EditTags, .theme().icon(.Edit), func|libWnd = me|() { libWnd.editSelectedTags() })
         describeAction(results, query, family, texts.act_FavoriteCapture, .theme().icon(.Star), func|libWnd = me|() { libWnd.toggleSelectedFavorite() })
-        for rating in 6
-        {
-            let value      = cast(u8, rating)
-            with let entry = sectionOf(results, family).addEntry(ratingLabel(value))
-            {
-                if value != 0
-                {
-                    .paintWidth = value * (RatingStarSize + RatingStarGap) - RatingStarGap
-                    .paint      = func|libWnd = me, value|(painter, rect) { libWnd.paintRatingStars(painter, rect, value) }
-                }
+    }
 
-                .detail     = Input.formatKeyShortcut(.None, ratingKey(value))
-                .monoDetail = true
-                .run        = func|libWnd = me, value|() { libWnd.rateSelected(value) }
+    // Adds the rating `stars` to `section`: its star score, its key, and the rating of the
+    // selection it sets.
+    mtd addRatingEntry(section: *Lens.Section, stars: u8)->*Lens.Entry
+    {
+        with let entry = section.addEntry(ratingLabel(stars))
+        {
+            if stars != 0
+            {
+                .paintWidth = stars * (RatingStarSize + RatingStarGap) - RatingStarGap
+                .paint      = func|libWnd = me, stars|(painter, rect) { libWnd.paintRatingStars(painter, rect, stars) }
             }
+
+            .detail     = Input.formatKeyShortcut(.None, ratingKey(stars))
+            .monoDetail = true
+            .run        = func|libWnd = me, stars|() { libWnd.rateSelected(stars) }
         }
+
+        return entry
     }
 
     // Adds the commands of the folder menu the query names.
@@ -414,6 +403,9 @@ impl LibraryWnd
     }
 
     // Adds the applications or the tags the query names; choosing one narrows the library to it.
+    //
+    // A row runs after a load may have replaced the sidebar lists, so it keeps its name in
+    // `lensNames`, which lives until the lens asks again, and finds it there by index.
     mtd describeNamed(results: *Lens.Results, query: string, family: string, values: *Array'LibraryNamedFilter, application: bool)
     {
         for value in values[]
@@ -421,13 +413,16 @@ impl LibraryWnd
             let name = value.name.toString()
             if not Lens.match(query, name).matched and not Lens.match(query, family).matched do
                 continue
+
+            let index = .lensNames.count
+            .lensNames.add(value.name)
             with let entry = sectionOf(results, family).addEntry(name)
             {
                 .lead = Format.toString("%", value.count)
                 if application do
-                    .run = func|libWnd = me, name|() { libWnd.setApplicationFilter(name) }
+                    .run = func|libWnd = me, index|() { libWnd.setApplicationFilter(String.from(libWnd.lensNames[index])) }
                 else do
-                    .run = func|libWnd = me, name|() { libWnd.setTagFilter(name) }
+                    .run = func|libWnd = me, index|() { libWnd.setTagFilter(String.from(libWnd.lensNames[index])) }
                 let active = application ? me.applicationFilter.toString() : me.tagFilter.toString()
                 if Utf8.compare(value.name.toSlice(), active, .Latin1NoCase) == 0 do
                     .detail = LensCheck
@@ -435,10 +430,15 @@ impl LibraryWnd
         }
     }
 
-    mtd uniqueFilterValues(applications: bool)->Array'String
+    // Returns the names of the applications, or of the tags, the loaded captures hold now. The
+    // sidebar lists are brought up to date first; the filter sheet keeps a copy, since its
+    // choices run after a load may have replaced them.
+    mtd currentFilterNames(applications: bool)->Array'String
     {
+        .refreshAutomaticFilters()
+        let names = applications ? &.sidebarApplications : &.sidebarTags
         var result: #returntype
-        for value in .collectNamedFilters(applications) do
+        for value in names[] do
             result.add(value.name)
         return result
     }
@@ -481,11 +481,11 @@ impl LibraryWnd
                      func|libWnd = me|(choices)
                      {
                          choices.addChoice(appStrings().act_AllApplications, libWnd.applicationFilter.isEmpty(), func|libWnd|() { libWnd.setApplicationFilter("") })
-                         for &one in libWnd.uniqueFilterValues(true)
+                         libWnd.applicationChoices = libWnd.currentFilterNames(applications: true)
+                         for one, index in libWnd.applicationChoices
                          {
-                             let name = one.toString()
-                             let on   = Utf8.compare(one.toSlice(), libWnd.applicationFilter, .Latin1NoCase) == 0
-                             choices.addChoice(name, on, func|libWnd, name|() { libWnd.setApplicationFilter(name) })
+                             let on = Utf8.compare(one.toSlice(), libWnd.applicationFilter, .Latin1NoCase) == 0
+                             choices.addChoice(one.toString(), on, func|libWnd, index|() { libWnd.setApplicationFilter(String.from(libWnd.applicationChoices[index])) })
                          }
                      },
                      icon: .theme().icon(.OpenExternal))
@@ -496,11 +496,11 @@ impl LibraryWnd
                      func|libWnd = me|(choices)
                      {
                          choices.addChoice(appStrings().act_AllTags, libWnd.tagFilter.isEmpty(), func|libWnd|() { libWnd.setTagFilter("") })
-                         for &one in libWnd.uniqueFilterValues(false)
+                         libWnd.tagChoices = libWnd.currentFilterNames(applications: false)
+                         for one, index in libWnd.tagChoices
                          {
-                             let name = one.toString()
-                             let on   = Utf8.compare(one.toSlice(), libWnd.tagFilter, .Latin1NoCase) == 0
-                             choices.addChoice(name, on, func|libWnd, name|() { libWnd.setTagFilter(name) })
+                             let on = Utf8.compare(one.toSlice(), libWnd.tagFilter, .Latin1NoCase) == 0
+                             choices.addChoice(one.toString(), on, func|libWnd, index|() { libWnd.setTagFilter(String.from(libWnd.tagChoices[index])) })
                          }
                      },
                      icon: .theme().icon(.Edit))
@@ -545,7 +545,7 @@ impl LibraryWnd
     }
 }
 
-// The library's 0â€“5 rating shortcuts, in the same order as `ratingLabel`.
+// The library's 0 to 5 rating shortcuts, in the same order as `ratingLabel`.
 func ratingKey(rating: u8)->Input.Key
 {
     switch rating

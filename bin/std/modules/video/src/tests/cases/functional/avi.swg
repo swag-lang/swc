@@ -200,6 +200,46 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(rejected.value() is InvalidFormatError)
 }
 
+// A frame chunk cannot claim payload bytes beyond the `movi` list that contains it.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("edited-no-index.avi"))
+    let raw = bytes.toSlice()
+    var frameList = 0'u64
+    while frameList + 4 <= raw.count and not aviHasId(raw, frameList, "movi") do
+        frameList += 1
+    Swag.require(frameList + 12 <= raw.count and aviHasId(raw, frameList + 4, "00dc"))
+
+    let chunkSize = frameList + 8
+    bytes[chunkSize]     = 0xFF
+    bytes[chunkSize + 1] = 0xFF
+    bytes[chunkSize + 2] = 0xFF
+    bytes[chunkSize + 3] = 0xFF
+
+    var rejected: Swag.Error
+    discard catch Reader.openMemory("oversized-frame.avi", bytes.toSlice()) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+}
+
+// An unusable `idx1` entry falls back to walking the frame list, preserving playable frames.
+#test
+{
+    var bytes = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
+    let raw = bytes.toSlice()
+    var index = 0'u64
+    while index + 24 <= raw.count and not aviHasId(raw, index, "idx1") do
+        index += 1
+    Swag.require(index + 24 <= raw.count)
+
+    let firstOffset = index + 16
+    for byteIndex in 4'u64 do
+        bytes[firstOffset + byteIndex] = 0xFF
+
+    var reader = expect Reader.openMemory("bad-index.avi", bytes.toSlice())
+    Swag.require(reader.frameCount() == 6)
+    videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
+}
+
 // A frame that carries no payload repeats the picture before it, which is how the container
 // holds a stream that pauses at a constant frame rate.
 #test

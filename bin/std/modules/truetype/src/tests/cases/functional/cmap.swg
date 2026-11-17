@@ -2,6 +2,40 @@
 
 using Swag, Core
 
+func makeCmap8Fixture(setSupplementaryFlag: bool)->Array'u8
+{
+    var cmap: #returntype
+    cmap.resize(12 + 8208 + 24)
+    cmap[3] = 1
+    cmap[7] = 4
+    cmap[11] = 12
+
+    let subTable = 12'u64
+    cmap[subTable + 1] = 8
+    writeBigU32(&cmap, subTable + 4, 8232)
+    writeBigU32(&cmap, subTable + 8204, 2)
+
+    let bmpGroup = subTable + 8208
+    writeBigU32(&cmap, bmpGroup, 'A'u32)
+    writeBigU32(&cmap, bmpGroup + 4, 'C'u32)
+    writeBigU32(&cmap, bmpGroup + 8, 7)
+
+    let supplementaryGroup = bmpGroup + 12
+    writeBigU32(&cmap, supplementaryGroup, 0xD83D_DE00)
+    writeBigU32(&cmap, supplementaryGroup + 4, 0xD83D_DE01)
+    writeBigU32(&cmap, supplementaryGroup + 8, 20)
+
+    if setSupplementaryFlag
+    {
+        let highSurrogate = 0xD83D'u32
+        let flagOffset    = subTable + 12 + cast(u64, highSurrogate >> 3)
+        let flag          = cast(u8, 0x80 >> (highSurrogate & 7))
+        cmap[flagOffset] |= flag
+    }
+
+    return cmap
+}
+
 #test
 {
     let glyphA = lookupCMap4(Cmap4Fixture, 'A'u32)
@@ -99,6 +133,38 @@ using Swag, Core
     Swag.require(rejected.value() != null)
 }
 
+// Format 8 groups BMP codes and packed UTF-16 surrogate pairs for supplementary scalars.
+#test
+{
+    var cmap = makeCmap8Fixture(true)
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+
+    discard expect parseCMap(&faceData, false)
+    Swag.require(faceData.cmapFormat == 8)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'B'u32) == 8)
+    Swag.require(expect lookupGlyphIndex(&faceData, 0x1F600) == 20)
+    Swag.require(expect lookupGlyphIndex(&faceData, 0x1F601) == 21)
+    Swag.require(expect lookupGlyphIndex(&faceData, 0x1F602) == 0)
+
+    var withoutFlag = makeCmap8Fixture(false)
+    var unflagged: FaceImpl
+    unflagged.fontData.add(withoutFlag.toSlice())
+    unflagged.tables.add({tag: TAG_CMAP, length: cast(u32, withoutFlag.count)})
+    discard expect parseCMap(&unflagged, false)
+    Swag.require(expect lookupGlyphIndex(&unflagged, 0x1F600) == 0)
+
+    var malformedCmap = makeCmap8Fixture(true)
+    writeBigU32(&malformedCmap, 12 + 8204, 3)
+    var malformed: FaceImpl
+    malformed.fontData.add(malformedCmap.toSlice())
+    malformed.tables.add({tag: TAG_CMAP, length: cast(u32, malformedCmap.count)})
+    var rejected: Swag.Error
+    discard catch parseCMap(&malformed, false) as rejected
+    Swag.require(rejected.value() != null)
+}
+
 // A declared format-12 extent may not run past the containing cmap table.
 #test
 {
@@ -182,6 +248,39 @@ using Swag, Core
 
     let glyphOutside = lookupCMap13(Cmap13Fixture, 'a'u32)
     Swag.require(glyphOutside == 0)
+}
+
+// Format 10 maps a trimmed range in the supplementary planes through a glyph array.
+#test
+{
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F600) == 7)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F601) == 0)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F602) == 9)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F5FF) == 0)
+    Swag.require(lookupCMap10(Cmap10Fixture, 0x1F603) == 0)
+
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap10Fixture)
+
+    var faceData: FaceImpl
+    faceData.fontData.add(cmap.toSlice())
+    faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+
+    discard expect parseCMap(&faceData, false)
+    Swag.require(faceData.cmapFormat == 10)
+    Swag.require(expect lookupGlyphIndex(&faceData, 0x1F602) == 9)
+
+    // The declared glyph array must fit within the format-10 subtable extent.
+    writeBigU32(&cmap, 28, 4)
+    var malformed: FaceImpl
+    malformed.fontData.add(cmap.toSlice())
+    malformed.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    var rejected: Swag.Error
+    discard catch parseCMap(&malformed, false) as rejected
+    Swag.require(rejected.value() != null)
 }
 
 // The subtable format outranks the platform score, so a Macintosh format-4 record

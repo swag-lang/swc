@@ -398,7 +398,7 @@ uint32_t PagedStore::SpanView::dataOffsetFromHdr(uint32_t hdrOffset, uint32_t el
 {
     constexpr uint32_t hdrSize = sizeof(SpanHdrRaw);
     // Chunk layouts require a nonzero power-of-two alignment.
-    return (hdrOffset + hdrSize + elemAlign - 1) & ~(elemAlign - 1);
+    return spanDataOffset(hdrOffset, hdrSize, elemAlign);
 }
 
 uint32_t PagedStore::SpanView::totalElems(const PagedStore* st, Ref hdrRef)

@@ -456,3 +456,25 @@ using Swag, Core
     Swag.require(nx == -42)
     Swag.require(ny == -42)
 }
+
+// A body drag snaps by whichever corner of the selection lands near a guide: here the right
+// edge of the moved form meets the right edge of the other one, and the move follows it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    discard testAddShape(f.capture, 20, 20, 40, 40)
+    let moving = testAddShape(f.capture, 100, 100, 20, 20)
+    f.main.snap = true
+
+    f.dragImage({110, 110}, {52, 110})
+    Swag.require(moving.x == 40)
+    Swag.require(moving.y == 100)
+
+    // Without snapping, the form goes where the pointer takes it.
+    f.main.snap = false
+    f.dragImage({50, 110}, {108, 110})
+    Swag.require(moving.x == 98)
+    Swag.require(moving.y == 100)
+}

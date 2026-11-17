@@ -19,8 +19,11 @@ struct LensEntries
         query:   String            // What the reader typed, without its prefix.
     }
 
-    theme:   *Theme
-    section: *Lens.Section?
+    theme:        *Theme
+    section:      *Lens.Section?
+    labelQuery:   String         // Query the label was last matched against.
+    folded:       Lens.Query     // That query folded once, to match every row against.
+    labelAnswers: bool           // Whether that query names the viewer, which brings every row.
 }
 
 impl LensEntries
@@ -37,13 +40,25 @@ impl LensEntries
     #[Swag.Discardable]
     mtd add(title: string, icon: ThemeIcons, run: func||(), checked = false, disabled = false, shortcut: string = "")->*Lens.Entry?
     {
-        if not Lens.match(.query, title).matched and not Lens.match(.query, .label).matched do
+        // A viewer adds dozens of rows for each keystroke, and the label is the same for all of
+        // them, so it is matched once per query rather than once per row, and the query is
+        // folded once for every row.
+        if .labelQuery != .query
+        {
+            .labelQuery   = .query
+            .folded       = Lens.Query.create(.query)
+            .labelAnswers = Lens.match(.folded, .label).matched
+        }
+
+        // The row takes the answer of its title along, so the lens does not match it again.
+        var found = Lens.match(.folded, title)
+        if not .labelAnswers and not found.matched do
             return null
         if not .section do
             .section = .results.addSection(.label)
 
         let glyph      = .theme.icon(icon, .theme.metrics.menuPopup_IconSize)
-        with let entry = .section.addEntry(title)
+        with let entry = .section.addEntry(title, #move found)
         {
             .glyph      = glyph
             .run        = run

@@ -16,6 +16,7 @@ struct Presentation
     omittedImages: u64
     width:         f32 = 960
     height:        f32 = 720
+    properties:    Package.DocumentProperties     // What the package says of the presentation.
 }
 
 private func readSlides(source, relationships: string)->Array'SlideReference fail
@@ -110,6 +111,7 @@ impl Presentation
                 fail Errors.UnsupportedFormatError{texts().err_TooLarge}
         }
 
+        result.properties = Package.DocumentProperties.read(fileName, &archive)
         return result
     }
 }

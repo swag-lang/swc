@@ -351,8 +351,10 @@ internal func writeSampleFile()->String
         .moveCaret(0x44, true)
     }
 
+    // A copy replaces whatever the clipboard held, a picture included, so pasting gives the bytes.
+    Clipboard.addImage(Image.create(4, 4, .RGB8))
     grid.copySelection(.Bytes)
-    Swag.require(Clipboard.getString() == "41 42 43 44")
+    Swag.require(Clipboard.getString() == "41 42 43 44" and not Clipboard.hasImage())
 
     grid.copySelection(.Text)
     Swag.require(Clipboard.getString() == "ABCD")
@@ -644,6 +646,13 @@ internal func writeSampleFile()->String
     Swag.require(Clipboard.getString() == "ABCD")
     run(&results, Hex.texts().ui_CopyBytes)
     Swag.require(Clipboard.getString() == "41 42 43 44")
+
+    // The zoom keys have their rows: one step larger, then back to the size of the theme.
+    let size = view.grid.fontSize
+    run(&results, appStrings().cmd_ZoomIn)
+    Swag.require(view.grid.fontSize == size + 1)
+    run(&results, appStrings().cmd_ZoomReset)
+    Swag.require(view.grid.fontSize == size)
 }
 
 // A colon and an offset in the lens, in the grammar of Go to Offset, move the caret there.

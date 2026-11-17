@@ -88,18 +88,6 @@ private
     const OpenFailed    = 2'u32
 }
 
-// The player is a black picture in either application theme. Its window chrome follows the same
-// dark ground so caption feedback and the outline remain legible against that picture.
-func videoChromePalette()->ThemePalette
-{
-    var result = ThemeColors.encrePalette()
-    result.ground  = 0xFF000000
-    result.surface = 0xFF000000
-    result.raised  = 0xFF000000
-    result.line    = 0xFF000000
-    return result
-}
-
 // Returns the decoded-picture count that fits the run-ahead budget.
 func prefetchSlotCount(width, height: s32, planar: bool)->u32
 {
@@ -274,7 +262,9 @@ struct Panel
     playbackRate:     f64  = 1
     optionsOpen:      bool
     volume:           f32  = 1
-    details:          String
+    details:          String        // What the footer reads under the film.
+    factsRate:        FrameRate     // The rate the footer and the sheet were last given.
+    factsDuration:    f64  = -1     // The length they were last given, negative before the first.
     metadataReady:    bool
     audioReady:       bool
     timelineReady:    bool
@@ -286,6 +276,10 @@ struct Panel
     // Pixel column the timeline thumb was last pushed to, so a value that would not move it is
     // not pushed at all.
     timelinePixel: s32 = -1
+
+    // Whole second and length the clock was last written with, for the same reason.
+    clockSecond: s64 = -1
+    clockLength: f64 = -1
 }
 
 private impl Panel
@@ -511,10 +505,17 @@ impl Panel
         .clock.restart()
     }
 
+    // Shows the state of the transport, then where playback stands. Every presented picture
+    // calls this, so the play icon, whose change lays the veil out again, follows only the state.
     mtd refreshTransport()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        let icon = .playing ? ThemeIcons.Pause : ThemeIcons.Play
+        if .playButton.icon.index != cast(s32, icon)
+        {
+            .playButton.setIcon(.theme().icon(icon, themeActionIconSize(.themeMetrics())))
+            .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        }
+
         .playButton.enable(.hasFrame)
         .refreshControls()
         .refreshTime()
@@ -552,7 +553,14 @@ impl Panel
             }
         }
 
-        .bottomVeil.setTime(Viewer.timeText(seconds), Viewer.durationText(duration))
+        // The clock reads whole seconds, so it is written again only when one of them changes.
+        let second = cast(s64, Math.floor(seconds))
+        if second != .clockSecond or duration != .clockLength
+        {
+            .clockSecond = second
+            .clockLength = duration
+            .bottomVeil.setTime(Viewer.timeText(seconds), Viewer.durationText(duration))
+        }
 
         // What the index has reached is what the timeline shows as read.
         let known = .video.frameCount()
@@ -797,7 +805,9 @@ private impl IWnd for Panel
 
 private impl Panel
 {
-    // Refreshes the snapshot when progressive indexing discovers stream or track properties.
+    // Refreshes the snapshot when progressive indexing discovers stream or track properties, and
+    // tells the host, whose sheet gives them. A change the counts do not show, such as a corrected
+    // rate or a replaced subtitle file, clears `informationReady` first.
     mtd refreshInformation()
     {
         if not .video.isOpen() do
@@ -853,50 +863,57 @@ private impl Panel
                 name = language.isEmpty() ? trackText(index + 1) : language
             elif not language.isEmpty() do
                 measures.add(language)
-            measures.add(String.from(audioEncodingText(track.sampleEncoding())))
+            measures.add(String.from(Sound.encodingText(track.sampleEncoding())))
             measures.add(Format.toString("% Hz", track.sampleRateHz()))
             measures.add(channelsText(cast(u32, track.numChannels())))
             data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
         }
 
-        if subtitles do
-            data.add(.Subtitles, Format.toString("%", subtitles), group: true)
+        // The tracks the film carries come first, then the files attached beside it, numbered on
+        // as the track menu lists them; an attached file says where it comes from.
+        func addSubtitle(data: *MediaInfoData, number: u64, track: const *Subtitle.Track, origin: string)
+        {
+            var measures: Array'String
+            let language = knownLanguage(track.language)
+            var name     = String.from(track.name)
+            if name.isEmpty() do
+                name = language.isEmpty() ? trackText(number) : language
+            elif not language.isEmpty() do
+                measures.add(language)
+            measures.add(String.from(subtitleFormatText(track.format)))
+            measures.add(String.from(origin))
+            data.addTrack(number, name, joinMeasures(measures.toSlice()))
+        }
+
+        let sidecars = .subtitleOverlay.sidecars.count
+        if subtitles or sidecars do
+            data.add(.Subtitles, Format.toString("%", subtitles + sidecars), group: true)
         for index in subtitles
         {
             let track = .video.subtitleTrack(index)
             if not track do
                 continue
-            var measures: Array'String
-            let language = knownLanguage(track.language)
-            var name     = String.from(track.name)
-            if name.isEmpty() do
-                name = language.isEmpty() ? trackText(index + 1) : language
-            elif not language.isEmpty() do
-                measures.add(language)
-            measures.add(String.from(subtitleFormatText(track.format)))
-            data.addTrack(index + 1, name, joinMeasures(measures.toSlice()))
+            addSubtitle(&data, index + 1, track, "")
         }
 
+        for track, index in .subtitleOverlay.sidecars do
+            addSubtitle(&data, subtitles + index + 1, track, texts().ui_SubtitleSidecar)
+
         .information = #move data
+        .services.informationChanged(me)
     }
 
-    // Rebuilds the host summary in the active language and reports it.
+    // Rebuilds the footer in the active language and reports it: the facts of the film, then what
+    // the reader has changed of its playback. An adjusted rate and a looped passage are part of
+    // what the reader is watching, so the footer declares them, as it does under a recording.
     mtd refreshDetails()
     {
-        .details = Format.toString(texts().ui_Details, .video.width(), .video.height(), frameCountText(.video.frameCount()), .video.frameRate().framesPerSecond(), Viewer.durationText(.video.durationInSeconds()))
-        if .audio do
-            .details = Format.toString("% · %", .details, audioDetailsText(.audio))
-
-        // An adjusted rate is part of what the reader is watching, so the summary declares it.
+        .details = .facts()
         if .playbackRate != 1 do
             .details = Format.toString("% · %", .details, Viewer.playbackRateText(.playbackRate))
-
-        // Technical facts use the host footer; the title only identifies the file. A looped
-        // passage is part of what the reader is watching, so the footer names it.
-        var facts = .facts()
         if .loopStart >= 0 and .loopEnd > .loopStart do
-            facts = Format.toString("% · %", facts, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
-        .services.showDetails(me, facts)
+            .details = Format.toString("% · %", .details, Format.toString(texts().ui_Loop, Viewer.timeText(.loopStart), Viewer.timeText(.loopEnd)))
+        .services.showDetails(me, .details)
     }
 
     // Returns the facts for the shared bottom reading line: the picture, its rate and its length.
@@ -945,7 +962,6 @@ private impl Panel
         try .finishMetadata()
 
         .refreshTransport()
-        .refreshDetails()
         discard .showFrame(0)
         .services.loadingChanged(me)
     }
@@ -953,11 +969,24 @@ private impl Panel
     // Applies what progressive indexing has discovered so far to the information panel, the timeline, the summary, and the sound.
     mtd finishMetadata() fail
     {
+        let duration  = .video.durationInSeconds()
+        let frameRate = .video.frameRate()
+        let rate      = frameRate.framesPerSecond()
+
+        // Progressive indexing corrects a rate the container misstated once it has read the times
+        // the pictures carry, and the length of a stream can follow the count it learns. The
+        // footer and the sheet both give them.
+        if frameRate != .factsRate or duration != .factsDuration
+        {
+            .factsRate        = frameRate
+            .factsDuration    = duration
+            .informationReady = false
+            .refreshDetails()
+        }
+
         .refreshInformation()
-        let duration = .video.durationInSeconds()
-        let rate     = .video.frameRate().framesPerSecond()
-        let step     = rate > 0 ? 1 / rate : 0.01
-        let count    = .video.frameCount()
+        let step  = rate > 0 ? 1 / rate : 0.01
+        let count = .video.frameCount()
         if not .timelineReady
         {
             if duration > 0 do
@@ -972,7 +1001,6 @@ private impl Panel
             if duration > 0 do
                 .timeline.setBounds(0, duration, cast(f32, Math.min(step, duration / 100)))
             .timeline.enable(duration > 0 and count > 1)
-            .refreshDetails()
         }
 
         let audioCount = .video.audioTrackCount()
@@ -1008,10 +1036,12 @@ private impl Panel
         .subtitleLastSeconds = -1
         .refreshControls()
         .refreshInformation()
-        .refreshDetails()
     }
 
-    // Enables the track choices once the film offers a sound or subtitle choice.
+    // Enables the track choices and the time once a picture is on screen.
+    //
+    // Every presented picture comes through here, and enabling a control moves nothing, so the
+    // veil is not laid out again: its size and the width of the time arrange it.
     mtd refreshControls()
     {
         if .optionsOpen do
@@ -1019,7 +1049,6 @@ private impl Panel
 
         .tracksButton.enable(.hasFrame)
         .bottomVeil.timeButton.enable(.hasFrame)
-        .bottomVeil.arrange()
     }
 
     // Gives the lens the transport, the frame steps, the sound and the options of the film.
@@ -1056,8 +1085,8 @@ private impl Panel
 
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
         entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
-        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Left))
+        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts.cmd_PreviousFrame, .ChevronLeft, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
         entries.add(texts.cmd_NextFrame, .ChevronRight, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))

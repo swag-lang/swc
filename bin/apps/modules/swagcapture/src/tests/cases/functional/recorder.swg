@@ -323,6 +323,8 @@ internal func testEndRecording()
     Swag.require(Capture.clockText(3_727_000_000) == "1:02:07")
     Swag.require(Capture.clockText(3_450_000, tenths: true) == "0:03.4")
     Swag.require(Capture.clockText(12_000_000) == "0:12")
+    Swag.require(Capture.clockText(4_259_950_000, tenths: true) == "1:10:59.9")
+    Swag.require(Capture.clockText(36_000_000_000) == "10:00:00")
 }
 
 // A video records even sides without dropping the last column or row of the selection: an odd

@@ -269,14 +269,11 @@ impl IForm for FormText
         pp.inflate(-bSize * 0.5)
 
         // Paint is a render path and must not mutate serialized document state: writing
-        // back into .text fights in-place editing and desyncs undo/serialization. Use a
-        // local fallback for drawing/measuring only, leaving .text untouched.
-        var renderText = .text
-        if renderText.isEmpty()
-        {
-            renderText = "A"
-            .isDirty   = true
-        }
+        // back into .text fights in-place editing and desyncs undo/serialization. An empty
+        // form draws and measures an "A" instead, leaving .text untouched.
+        let empty = .text.isEmpty()
+        if empty do
+            .isDirty = true
 
         let face = .resolveFace()
 
@@ -295,7 +292,7 @@ impl IForm for FormText
         if .isDirty
         {
             .isDirty = false
-            .rebuildOutlines(renderText, face, bSize, fSize, sSize)
+            .rebuildOutlines(empty ? "A" : .text.toString(), face, bSize, fSize, sSize)
         }
 
         let zscale  = z * (cxt.quickMode ? 1 : Math.map(.scale, 0, 100, 1'f32, 2'f32))

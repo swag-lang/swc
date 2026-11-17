@@ -17,7 +17,6 @@ struct Texts
     ui_Greek:             string = "Greek and Coptic"
     ui_Cyrillic:          string = "Cyrillic"
     ui_Symbols:           string = "General Punctuation and Symbols"
-    ui_Specimen:          string = "SPECIMEN"
     ui_Glyphs:            string = "Glyphs"
     ui_CharacterMap:      string = "Character Map"
     ui_NoCharacters:      string = "No mapped characters"

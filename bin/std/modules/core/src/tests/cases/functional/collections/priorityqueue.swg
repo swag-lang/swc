@@ -135,3 +135,19 @@ func borrowedPriority(queue: PriorityQueue'PriorityItem)->s32
     Swag.require(queue.pop() == 7)
     Swag.require(queue.isEmpty())
 }
+
+// Freeing releases the heap storage but preserves the comparator for later pushes.
+#test
+{
+    var queue = PriorityQueue's32.create(func(left, right: const *s32)->s32 => left[] <=> right[])
+    queue.push(4)
+    queue.push(1)
+    queue.free()
+    Swag.require(queue.isEmpty() and queue.capacity() == 0)
+
+    queue.push(3)
+    queue.push(2)
+    let first = queue.pop()
+    let last  = queue.pop()
+    Swag.require(first == 2 and last == 3)
+}

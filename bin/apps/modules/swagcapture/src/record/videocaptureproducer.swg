@@ -44,10 +44,12 @@ impl VideoCaptureProducer
                     continue
                 }
 
-                .positionMutex.lock()
-                .session.source.x = .x
-                .session.source.y = .y
-                .positionMutex.unlock()
+                scope
+                {
+                    Sync.scopedLock(&.positionMutex)
+                    .session.source.x = .x
+                    .session.source.y = .y
+                }
 
                 let fresh = try .session.captureAt(Time.monotonicMicroseconds())
                 Atomic.exchange(&.missedSlots, .session.missedFrameSlotCount())
@@ -70,10 +72,9 @@ impl VideoCaptureProducer
 
     mtd setPosition(x, y: s32)
     {
-        .positionMutex.lock()
+        Sync.scopedLock(&.positionMutex)
         .x = x
         .y = y
-        .positionMutex.unlock()
     }
 
     mtd setPaused(paused: bool)

@@ -250,3 +250,20 @@ using Swag, Core.Errors
     Swag.require(err is Errors.SandboxError)
     Swag.require(not File.exists(fileName.toString()))
 }
+
+// Duplicate replaces an existing destination with the source bytes.
+#test
+{
+    let source = CoreTests.makeFilesystemTestPath("core_file_duplicate_source.tmp")
+    let target = CoreTests.makeFilesystemTestPath("core_file_duplicate_target.tmp")
+    defer discard catch File.delete(source)
+    defer discard catch File.delete(target)
+
+    discard expect File.writeAllBytes(source, ['s'u8, 0, 'r'u8, 'c'u8])
+    discard expect File.writeAllText(target, "old destination")
+
+    expect File.duplicate(target, source)
+
+    let content = expect File.readAllBytes(target)
+    Swag.require(Slice.equals(content.toSlice(), ['s'u8, 0, 'r'u8, 'c'u8]))
+}

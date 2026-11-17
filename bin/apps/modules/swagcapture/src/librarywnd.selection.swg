@@ -31,28 +31,43 @@ impl LibraryWnd
         return result
     }
 
-    // Brings the selected captures back from the recycle bin into the library.
+    // Brings the selected captures back from the recycle bin into the library, and says when
+    // some of them stayed there.
     mtd restoreSelected()
     {
+        var failed = false
         for name in .selectedFiles()
         {
             let dst = Library.restoreFile(name)
-            if not dst.isEmpty() do
+            if dst.isEmpty() do
+                failed = true
+            else do
                 g_Library.addFile(dst)
         }
 
         catch .view.fill()
+        .updateFolderTabs()
         .invalidate()
+        if failed do
+            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedRestoreCaptures)
     }
 
-    // Erases the selected captures from the recycle bin for good.
+    // Erases the selected captures from the recycle bin for good, and says when some of them
+    // could not be erased.
     mtd deleteForeverSelected()
     {
-        for name in .selectedFiles() do
-            discard catch Capture.deleteFiles(name[])
+        var failed = false
+        for name in .selectedFiles()
+        {
+            catch Capture.deleteFiles(name[]) do
+                failed = true
+        }
 
         catch .view.fill()
+        .updateFolderTabs()
         .invalidate()
+        if failed do
+            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedDeleteCaptures)
     }
 
     mtd moveSelHome()
@@ -270,7 +285,6 @@ impl LibraryWnd
         }
     }
 
-    // Asks for a folder and writes each selected capture in its media format.
     // Moves the chosen captures to a folder the user picks: they leave the page, and the library
     // when the folder is outside it.
     mtd moveSelected()
@@ -305,6 +319,7 @@ impl LibraryWnd
             MessageDlg.error(.main.surface, appStrings().msg_FailedMoveCaptures)
     }
 
+    // Asks for a folder and writes each selected capture in its media format.
     mtd exportSelected()
     {
         if .exporting

@@ -335,19 +335,28 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
     outRelocations.clear();
     if (!size)
         return;
+    // The version starts at zero and never resets, so an untouched segment has no index to query.
+    if (!relocationVersion_.load(std::memory_order_acquire))
+        return;
 
     // Readers only ever take a shared lock: the query walks the sorted prefix plus the unsorted tail, so
     // no exclusive index rebuild is needed. This keeps concurrent readers off the writer's critical path.
     const std::shared_lock lock(relocationsMutex_);
 
     const RelocationOffsetProjection projection{.relocations = &relocations_};
-
-    auto       indexed     = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
-    auto       tail        = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
     const auto appendRange = [&](const std::vector<uint32_t>& index, auto it) {
         for (; it != index.end() && relocations_[*it].offset - offset < size; ++it)
             outRelocations.push_back(relocations_[*it]);
     };
+
+    if (relocationsTailByOffset_.empty())
+    {
+        appendRange(relocationsByOffset_, std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection));
+        return;
+    }
+
+    auto       indexed     = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    auto       tail        = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
     const bool tailRangeEmpty       = tail == relocationsTailByOffset_.end() || relocations_[*tail].offset - offset >= size;
     const bool rangesAlreadyOrdered = indexed == relocationsByOffset_.end() || tailRangeEmpty ||
                                       relocations_[relocationsByOffset_.back()].offset <= relocations_[*tail].offset;

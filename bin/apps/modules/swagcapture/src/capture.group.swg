@@ -10,6 +10,23 @@ impl Capture
         return b.groups[0]
     }
 
+    // Returns the box around every form of the outermost group `gid`.
+    mtd groupBoundRect(gid: u64)->Math.Rectangle
+    {
+        var result: #returntype
+        var first = true
+        for f in .forms where formOuterGroup(f) == gid
+        {
+            if first do
+                result = f.boundRect()
+            else do
+                result.combine(f.boundRect())
+            first = false
+        }
+
+        return result
+    }
+
     mtd newGroupId()->u64
     {
         let id = .nextGroupId
@@ -17,18 +34,37 @@ impl Capture
         return id
     }
 
+    // Returns the distinct outermost groups of the forms at `indices`, in the order they first
+    // appear; ungrouped forms add none.
+    mtd outerGroupsOf(indices: Array'u64)->Array'u64
+    {
+        var result: #returntype
+        for s in indices
+        {
+            let g = formOuterGroup(.forms[s])
+            if g != 0 and not result.contains(g) do
+                result.add(g)
+        }
+
+        return result
+    }
+
+    // Whether a group with a selected member also has a member left out of the selection.
+    mtd selectionSplitsGroup()->bool
+    {
+        let groups = .outerGroupsOf(.selection)
+        if groups.isEmpty() do
+            return false
+        for f, i in .forms where groups.contains(formOuterGroup(f)) and not .selection.contains(i) do
+            return true
+        return false
+    }
+
     // Grows a selection so that whenever one member of a group is selected, the entire
     // outermost group is too. Called after a click/lasso builds a raw set.
     mtd expandGroups(sel: *Array'u64)
     {
-        var ids: Array'u64
-        for s in sel[]
-        {
-            let g = formOuterGroup(.forms[s])
-            if g != 0 and not ids.contains(g) do
-                ids.add(g)
-        }
-
+        let ids = .outerGroupsOf(sel[])
         if ids.isEmpty() do
             return
 

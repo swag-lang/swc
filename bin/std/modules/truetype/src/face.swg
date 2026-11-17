@@ -36,6 +36,25 @@ public struct FaceMetadata
     }
 }
 
+// Holds one glyph's vertical advance and top side bearing in font design units.
+public struct GlyphVerticalMetrics
+{
+    public readonly
+    {
+        advanceHeight:   u16     // Vertical pen advance after drawing the glyph.
+        topSideBearing:  s16     // Distance from the glyph's top bound to its vertical origin.
+    }
+}
+
+public impl GlyphVerticalMetrics
+{
+    internal mtd set(advanceHeight: u16, topSideBearing: s16)
+    {
+        .advanceHeight  = advanceHeight
+        .topSideBearing = topSideBearing
+    }
+}
+
 // Owns one parsed TrueType font face and its reusable glyph workspace.
 //
 // Create a face with [[TrueType.Face.load]] and release it exactly once with
@@ -360,6 +379,23 @@ public impl Face
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         return not faceData.gposPairSubtables.isEmpty() or not faceData.kernPairs.isEmpty()
+    }
+
+    // Returns a glyph's vertical advance and top side bearing in font design units.
+    //
+    // The borrowed result remains valid until the face is destroyed. It is null when
+    // the face has no `vhea` and `vmtx` tables. An index outside
+    // [[TrueType.Face.glyphCount]] fails with an invalid-glyph error.
+    mtd const getVerticalMetrics(glyphIndex: u32)->const *GlyphVerticalMetrics? fail
+    {
+        if glyphIndex >= .glyphCount do
+            try fault(0x10)
+
+        let faceData = cast(const *FaceImpl, cast(const *void, me))
+        if not faceData.hasVerticalMetrics do
+            return null
+
+        return &faceData.verticalGlyphMetrics[glyphIndex]
     }
 
     // Returns horizontal kerning between two glyph indices.

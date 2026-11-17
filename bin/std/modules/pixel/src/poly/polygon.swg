@@ -505,7 +505,7 @@ impl Polygon
         {
         case .Round: joinType = .Round
         case .Bevel: joinType = .Square
-        case .Miter: joinType = .Miter
+        case .Miter, .MiterBevel: joinType = .Miter
         }
 
         var off: Clipper.Offset

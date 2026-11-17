@@ -343,14 +343,18 @@ whole recording loaded at once.
 ### app.capture.013 — Keep recorded sound available and synchronized over long sessions
 
 - Evidence: microphone and system-output loopback feed separate 48 kHz AAC tracks through bounded
-  timestamped queues and drift-correcting resampling. Source loss inserts silence while retrying;
+  timestamped queues and drift-correcting resampling. The microphone remains mono and now uses
+  AAC full bandwidth to Nyquist instead of the 4.1 kHz voice profile. Source loss inserts silence
+  while retrying;
   native system-output recording and editor output are covered by the short Windows browser
   integration. Microphone-device execution, sustained drift and device changes remain unverified.
-  The capture queue retains eight blocks of at most 1024 frames (about 171 ms at 48 kHz).
-  Audio pumping shares the interface thread with video encoding. Device-open/pump failures are
-  caught for recovery without a visible source-health indication, so a selected sound source can
-  silently contribute silence. `Recorder.advance` also returns before pumping audio when an
-  attached window is hidden; video pause/resume are no-ops. This case has no native regression.
+  Each sound queue holds up to 64 blocks of 1024 frames (about 1.37 seconds at 48 kHz; 384 KiB
+  for microphone and stereo loopback together). A WASAPI/resampler worker and a separate AAC/MP4
+  encoder worker keep source capture off both the interface and video-encoding threads; the UI
+  pump only observes worker errors. Audio continues while an attached window is hidden and its
+  video producer pauses, although the UI error poll waits for the window to resume. Device-open
+  and pump failures are caught for recovery without a visible source-health indication, so a
+  selected sound source can silently contribute silence. This case has no native regression.
   The existing resampler stress checks isolate four-hour clock arithmetic and synthetic drift;
   the browser's constant tone proves sound presence, not long-term audiovisual alignment.
 - Next: keep audio capture/draining active independently of window visibility and video work,

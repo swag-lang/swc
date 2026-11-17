@@ -441,6 +441,18 @@ impl Capture
         try rewriteFileMetadata(file, file, title, tags, favorite, rating, false, unlink)
     }
 
+    // Copies the frame and video files that stand beside the capture `source` to the names they
+    // take beside `target`.
+    private func duplicateMediaFiles(source: String, target: String) fail
+    {
+        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
+        {
+            let media = mediaPathOf(source, kind)
+            if File.exists(media) do
+                try File.duplicate(mediaPathOf(target, kind), media)
+        }
+    }
+
     // Duplicates a document with a fresh container identity, keeping encoded images and media
     // bytes while removing the copy's link to an external image.
     func duplicateDocument(source: String, target: String) fail
@@ -448,13 +460,7 @@ impl Capture
         if Path.equals(source, target) do
             fail Core.Errors.BadParameterError{"a capture cannot duplicate itself"}
         defer #fail discard catch deleteFiles(target)
-        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
-        {
-            let media = mediaPathOf(source, kind)
-            if File.exists(media) do
-                try File.duplicate(mediaPathOf(target, kind), media)
-        }
-
+        try duplicateMediaFiles(source, target)
         try rewriteFileMetadata(source, target, null, null, null, null, true, true)
     }
 
@@ -465,13 +471,7 @@ impl Capture
         if Path.equals(source, target) do
             fail Core.Errors.BadParameterError{"a capture cannot duplicate itself"}
         defer #fail discard catch deleteFiles(target)
-        for kind in [CaptureMedia.Animation, CaptureMedia.Video]
-        {
-            let media = mediaPathOf(source, kind)
-            if File.exists(media) do
-                try File.duplicate(mediaPathOf(target, kind), media)
-        }
-
+        try duplicateMediaFiles(source, target)
         try writeScc(snapshot)
     }
 
@@ -492,8 +492,7 @@ impl Capture
         decoder.flags |= .IgnoreStructFieldError
         let model = try decoder.readAll'CaptureFileModel(modelBytes.toSlice())
         defer Memory.delete(model)
-        let diag = decoder.serializer.diag
-        if diag.fieldErrors + diag.droppedStreamFields + diag.unknownTypes + diag.corruptPayloads != 0 do
+        if decoder.serializer.diag.lostCount() != 0 do
             fail Core.Errors.InvalidFormatError{"Capture metadata update would discard document fields"}
 
         if title != null do
@@ -541,8 +540,7 @@ impl Capture
             var metadataDecoder: Decoder'Read.TagBin
             let metadata = try metadataDecoder.readAll'CaptureLibraryMetadata(reader.manifest().profileData.toSlice())
             defer Memory.delete(metadata)
-            let metadataDiag = metadataDecoder.serializer.diag
-            if metadataDiag.fieldErrors + metadataDiag.droppedStreamFields + metadataDiag.unknownTypes + metadataDiag.corruptPayloads != 0 do
+            if metadataDecoder.serializer.diag.lostCount() != 0 do
                 fail Core.Errors.InvalidFormatError{"Capture metadata update would discard library fields"}
             if favorite do
                 metadata.favorite = favorite[]
@@ -582,6 +580,39 @@ impl Capture
         try writer.saveAtomic(target)
     }
 
+    // Decodes the background and the original pictures of a full load, adding what their
+    // decoders could not read to the load issues.
+    private mtd readBackgrounds(reader: *Scc.Reader) fail
+    {
+        func readImage(reader: *Scc.Reader, chunk: Guid128, issues: *u32)->Image fail
+        {
+            let bytes = try reader.readChunk(chunk)
+            var decoder: Decoder'Read.TagBin
+            let image = try decoder.readAll'Image(bytes.toSlice())
+            defer Memory.delete(image)
+            issues[] += decoder.serializer.diag.lostCount()
+            return #move image[]
+        }
+
+        let background = reader.findRole(backgroundRole())
+        if background do
+            .backImg = try readImage(reader, background.id, &.loadIssues)
+        let original = reader.findRole(originalRole())
+        if original do
+            .backImgOriginal = try readImage(reader, original.id, &.loadIssues)
+
+        // Pixels read without loss are those of the file, so a save that comes before any
+        // background change copies the stored chunks instead of encoding them again.
+        if .loadIssues == 0
+        {
+            .savedBackKnown = true
+            if background do
+                .savedBackChunk = background.id
+            if original do
+                .savedOrigChunk = original.id
+        }
+    }
+
     // Loads an SCC capture, or its library metadata and preview when `preview` is set.
     //
     // The caller owns the non-null result and releases it with [[Core.Memory.delete]].
@@ -616,53 +647,14 @@ impl Capture
             defer Memory.delete(model)
             capture = fromFileModel(model)
 
-            let diag = decoder.serializer.diag
-            capture.loadIssues = diag.fieldErrors +
-                                 diag.droppedStreamFields +
-                                 diag.unknownTypes +
-                                 diag.corruptPayloads
-
-            let background = reader.findRole(backgroundRole())
-            if background
-            {
-                var imageBytes = try reader.readChunk(background.id)
-                var imageDecoder: Decoder'Read.TagBin
-                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())
-                defer Memory.delete(image)
-                capture.backImg = #move image[]
-                let imageDiag = imageDecoder.serializer.diag
-                capture.loadIssues += imageDiag.fieldErrors +
-                                      imageDiag.droppedStreamFields +
-                                      imageDiag.unknownTypes +
-                                      imageDiag.corruptPayloads
-            }
-
-            let original = reader.findRole(originalRole())
-            if original
-            {
-                var imageBytes = try reader.readChunk(original.id)
-                var imageDecoder: Decoder'Read.TagBin
-                let image      = try imageDecoder.readAll'Image(imageBytes.toSlice())
-                defer Memory.delete(image)
-                capture.backImgOriginal = #move image[]
-                let imageDiag = imageDecoder.serializer.diag
-                capture.loadIssues += imageDiag.fieldErrors +
-                                      imageDiag.droppedStreamFields +
-                                      imageDiag.unknownTypes +
-                                      imageDiag.corruptPayloads
-            }
-
-            // Pixels read without loss are those of the file, so a save that comes before any
-            // background change copies the stored chunks instead of encoding them again.
-            if capture.loadIssues == 0
-            {
-                capture.savedBackKnown = true
-                if background do
-                    capture.savedBackChunk = background.id
-                if original do
-                    capture.savedOrigChunk = original.id
-            }
+            capture.loadIssues = decoder.serializer.diag.lostCount()
         }
+
+        // A chunk that cannot be read past this point leaves no capture to the caller.
+        defer #fail Memory.delete(capture)
+
+        if not preview do
+            try capture.readBackgrounds(&reader)
 
         let previewInfo = reader.findRole(previewRole())
         if previewInfo

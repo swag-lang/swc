@@ -3,70 +3,46 @@ using Core, Pixel, Audio, Video
 // The timeline of a timed capture, on a floating panel under the canvas: play and pause, the time
 // at the playhead against the length, and a track the playhead is dragged along. A picture has
 // none.
-const TimelineHeight     = 40.0      // Logical height of the bar.
-const TimelinePadding    = 8.0       // Air inside the bar.
-const TimelineButton     = 28.0      // Side of the play command.
-const TimelineTextWidth  = 104.0     // Room for the time reading.
-const TimelineGap        = 8.0       // Air between the bar and the hint line.
-const TimelineThumbnails = 6         // Fixed decoding budget for the visible passage.
-const TimelineVideoSlots = 5         // Five 4K YUV420 pictures stay below 64 MiB.
-
-struct TimelineVideoSlot
-{
-    index:  u64
-    planes: PlanarFrame
-}
+const TimelineHeight    = 40.0      // Logical height of the bar.
+const TimelinePadding   = 8.0       // Air inside the bar.
+const TimelineButton    = 28.0      // Side of the play command.
+const TimelineTextWidth = 104.0     // Room for the time reading.
+const TimelineGap       = 8.0       // Air between the bar and the hint line.
+const TimelineThumbnails = 6        // Fixed decoding budget for the visible passage.
 
 struct TimelineBar
 {
     using wnd: Wnd
 
-    late main:             *MainWnd
-    late panel:            *FloatingPanel     // The floating ground the bar stands on, placed by the main window.
-    late playButton:       *IconButton
-    playTimer:             *Gui.Timer?
-    seekTimer:             *Gui.Timer?
-    playStart:             u64     // Monotonic time playback started, in microseconds.
-    playFrom:              u64     // Capture time playback started from, in microseconds.
-    audioReader:           *Video.Reader?
-    audioVoices:           [2] (*Voice?)
-    audioVoiceCount:       u32
-    audioPath:             String
-    ownsAudioEngine:       bool
-    audioClockLast:        f64 = -1
-    isDragging:            bool
-    dragEdge:              TimelineEdge     // The selected form edge being dragged, if any.
-    dragFromStart:         u64     // Selected form's span when its end is dragged.
-    dragFromEnd:           u64
-    viewStart:             u64         // First time visible on the track.
-    zoom:                  f32 = 1     // One shows the whole recording.
-    readingFont:           *Font?      // The font and duration `readingWidth` was measured for.
-    readingDuration:       u64
-    readingWidth:          f32
-    viewCapture:           *Capture?
-    thumbReader:           *TimedReader?
-    thumbTextures:         [TimelineThumbnails] Texture
-    thumbStart:            u64
-    thumbSpan:             u64
-    thumbsReady:           bool
-    videoSlots:            [TimelineVideoSlots] TimelineVideoSlot
-    videoReady:            StaticArray'(u32, TimelineVideoSlots)
-    videoFree:             StaticArray'(u32, TimelineVideoSlots)
-    videoLock:             Swag.Mutex
-    videoWake:             Sync.Event
-    videoReleased:         Sync.Event
-    videoTask:             Swag.Task
-    videoExecutor:         Swag.Executor
-    videoPath:             String
-    videoGeneration:       u32
-    videoFrom:             u64
-    videoNext:             u64
-    videoCount:            u64
-    videoActive:           bool
-    videoFailed:           bool
-    videoBusy:             bool
-    videoBusySlot:         u32
-    videoReleaseRequested: bool
+    late main:       *MainWnd
+    late panel:      *FloatingPanel     // The floating ground the bar stands on, placed by the main window.
+    late playButton: *IconButton
+    playTimer:       *Gui.Timer?
+    seekTimer:       *Gui.Timer?
+    playStart:       u64     // Monotonic time playback started, in microseconds.
+    playFrom:        u64     // Capture time playback started from, in microseconds.
+    audioReader:     *Video.Reader?
+    audioVoices:     [2] (*Voice?)
+    audioVoiceCount: u32
+    audioPath:       String
+    ownsAudioEngine: bool
+    audioClockLast:   f64 = -1
+    isDragging:      bool
+    dragEdge:        TimelineEdge     // The selected form edge being dragged, if any.
+    dragFromStart:   u64     // Selected form's span when its end is dragged.
+    dragFromEnd:     u64
+    viewStart:       u64     // First time visible on the track.
+    zoom:            f32 = 1 // One shows the whole recording.
+    readingFont:     *Font?     // The font and duration `readingWidth` was measured for.
+    readingDuration: u64
+    readingWidth:    f32
+    viewCapture:     *Capture?
+    thumbReader:     *TimedReader?
+    thumbTextures:   [TimelineThumbnails] Texture
+    thumbStart:      u64
+    thumbSpan:       u64
+    thumbsReady:     bool
+    decoder:         TimelineVideoDecoder     // Decodes video pictures ahead of playback.
 }
 
 // What a press on the track drags.
@@ -85,16 +61,7 @@ impl IWnd for TimelineBar
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
         .stopTimer(&.seekTimer)
-        if .videoTask.isPending()
-        {
-            .videoTask.cancel()
-            .videoWake.signal()
-            .videoTask.wait()
-            .videoExecutor.close()
-            .videoWake.release()
-            .videoReleased.release()
-        }
-
+        .decoder.close()
         .disposeAudio()
         .clearThumbnails()
     }
@@ -252,13 +219,12 @@ impl IWnd for TimelineBar
         if evt.timer == .seekTimer
         {
             let capture = .capture()
-            if not capture or not capture.frames or .videoDecodeFailed()
+            if not capture or not capture.frames or .decoder.hasFailed()
             {
                 .stopTimer(&.seekTimer)
                 return
             }
-
-            if .presentVideoFrame(capture, .videoFrom)
+            if .decoder.present(capture, .decoder.firstFrame)
             {
                 .stopTimer(&.seekTimer)
                 .revealTime(capture.frames.timeOf(capture.playhead))
@@ -282,7 +248,7 @@ impl IWnd for TimelineBar
         let frames = capture.frames
         if capture.media == .Video and not Swag.jit()
         {
-            if .videoDecodeFailed()
+            if .decoder.hasFailed()
             {
                 .stop()
                 .main.reportFailure(appStrings().msg_RecordingPlaybackFailed, Capture.clockText(.playFrom, tenths: true))
@@ -291,7 +257,7 @@ impl IWnd for TimelineBar
 
             if not .playStart
             {
-                if not .videoBuffered() do
+                if not .decoder.isBuffered() do
                     return
                 catch .startAudio(.playFrom)
                 .playStart = Time.monotonicMicroseconds()
@@ -330,7 +296,7 @@ impl IWnd for TimelineBar
             if capture.media == .Video and not Swag.jit()
             {
                 .stopAudio()
-                .requestVideoFrames(capture, frames.frameAt(time))
+                .decoder.request(capture, frames.frameAt(time))
                 .playStart = 0
                 return
             }
@@ -342,7 +308,7 @@ impl IWnd for TimelineBar
         let frame = frames.frameAt(time)
         if capture.media == .Video and not Swag.jit()
         {
-            if .presentVideoFrame(capture, frame)
+            if .decoder.present(capture, frame)
             {
                 .revealTime(frames.timeOf(capture.playhead))
                 .invalidate()
@@ -390,15 +356,8 @@ impl TimelineBar
             .sigPressed += func|bar = result|(_) { bar.togglePlay() }
         }
 
-        if not Swag.jit()
-        {
-            result.videoWake.init()
-            result.videoReleased.init()
-            result.videoExecutor.start()
-            result.videoTask.submit(func|bar = result|() { runTimelineVideoDecoder(bar) },
-                                    result.taskNotifier(&result.videoTask),
-                                    executor: &result.videoExecutor)
-        }
+        if not Swag.jit() do
+            result.decoder.start(result.taskNotifier(&result.decoder.task))
 
         return result
     }
@@ -445,6 +404,22 @@ impl TimelineBar
         }
 
         return current
+    }
+
+    // Closes every reader of a capture before the library moves its media to the trash.
+    mtd releaseCaptureMedia(file: string)
+    {
+        let media     = Capture.mediaPathOf(file, .Video)
+        let displayed = .viewCapture and .viewCapture.isStoredIn(file)
+        if not displayed and not .decoder.isDecoding(media) and not Path.equals(.audioPath, media) do
+            return
+
+        .stop(materialize: false)
+        .disposeAudio()
+        .clearThumbnails()
+        .decoder.releaseReader()
+        if displayed do
+            .viewCapture = null
     }
 
     // Disposes the six visible thumbnails and their independent decoder.
@@ -513,12 +488,12 @@ impl TimelineBar
         if not capture or not capture.frames do
             return
 
-        let frame = .seekTimer ? .videoFrom : capture.playhead
+        let frame = .seekTimer ? .decoder.firstFrame : capture.playhead
         .playFrom = capture.frames.timeOf(frame)
         if capture.media == .Video and not Swag.jit()
         {
             .stopTimer(&.seekTimer)
-            .requestVideoFrames(capture, frame)
+            .decoder.request(capture, frame)
             .playStart = 0
         }
         else
@@ -538,7 +513,7 @@ impl TimelineBar
         .stopTimer(&.playTimer)
         .stopTimer(&.seekTimer)
         .stopAudio()
-        .stopVideoFrames()
+        .decoder.stop()
         let capture = .main.getCapture()
         if materialize and capture and capture == .viewCapture and capture.playbackPlanar do
             catch capture.showFrame(capture.playhead)
@@ -771,24 +746,19 @@ impl TimelineBar
         let edge = .dragEdge
         .dragEdge = .None
         let capture = .capture()
-        if edge == .None or not capture do
+        if edge == .None or not capture or capture.selection.count != 1 do
             return
 
-        if edge == .FormStart or edge == .FormEnd
-        {
-            if capture.selection.count != 1 do
-                return
-            let form: *BaseForm = capture.forms[capture.selection[0]]
-            let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
-            let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
-            if chosen == old do
-                return
-            form.timeStart = .dragFromStart
-            form.timeEnd   = .dragFromEnd
-            capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
-            .invalidate()
+        // The drag moved the form live; put its span back so the edit is recorded from it.
+        let form: *BaseForm = capture.forms[capture.selection[0]]
+        let chosen = edge == .FormStart ? form.timeStart : form.timeEnd
+        let old    = edge == .FormStart ? .dragFromStart : .dragFromEnd
+        if chosen == old do
             return
-        }
+        form.timeStart = .dragFromStart
+        form.timeEnd   = .dragFromEnd
+        capture.setSelectionSpanAt(edge == .FormStart, chosen ? chosen : capture.timeline.duration)
+        .invalidate()
     }
 
     // Moves the playhead to the frame shown at `x`, in local coordinates on the track.
@@ -802,7 +772,7 @@ impl TimelineBar
         let frame  = frames.frameAt(.timeAt(x))
         if capture.media == .Video and not Swag.jit()
         {
-            .requestVideoFrames(capture, frame)
+            .decoder.request(capture, frame)
             if .isPlaying()
             {
                 .stopAudio()
@@ -822,17 +792,8 @@ impl TimelineBar
         if .isPlaying()
         {
             .playFrom = frames.timeOf(frame)
-            if capture.media == .Video and not Swag.jit()
-            {
-                .stopAudio()
-                .requestVideoFrames(capture, frame)
-                .playStart = 0
-            }
-            else
-            {
-                catch .startAudio(.playFrom)
-                .playStart = Time.monotonicMicroseconds()
-            }
+            catch .startAudio(.playFrom)
+            .playStart = Time.monotonicMicroseconds()
         }
 
         .invalidate()

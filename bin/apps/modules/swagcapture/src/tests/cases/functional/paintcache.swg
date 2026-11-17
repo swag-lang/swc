@@ -315,3 +315,29 @@ func testPopulate(capture: *Capture)
     discard f.gui.render(f.main)
     Swag.require(f.capture.backTexture.width == 200 and f.capture.serialBackTexture == serial + 2)
 }
+
+// Typing the words of a form in place re-renders that form alone: its words leave it for the
+// fields, then come back when the typing ends. The other forms keep their retained renderings.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(520, 380)
+    defer f.shutdown()
+    testPopulate(f.capture)
+    discard f.gui.render(f.main)
+
+    let text      = f.capture.forms[4]
+    let textCache = unwrap f.capture.findFormCache(text)
+    let shape     = unwrap f.capture.findFormCache(f.capture.forms[0])
+    Swag.require(not textCache.dirty and not shape.dirty)
+
+    f.editView.beginTextEdit(text)
+    Swag.require(f.editView.isEditingText())
+    Swag.require(textCache.dirty and not shape.dirty)
+
+    discard f.gui.render(f.main)
+    Swag.require(not textCache.dirty)
+
+    f.editView.endTextEdit(keep: false)
+    Swag.require(textCache.dirty and not shape.dirty)
+}

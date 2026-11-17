@@ -451,7 +451,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1751</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1752</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1880,6 +1880,7 @@
 <li><a href="#Core_Serialization_Write_TagBin_writeNative">TagBin.writeNative</a></li>
 <li><a href="#Core_Serialization_Write_TagBin_writeVarint">TagBin.writeVarint</a></li>
 <li><a href="#Core_Serialization_Write_TagBin_writeVarintTo">TagBin.writeVarintTo</a></li>
+<li><a href="#Core_Serialization_Read_TagBinDiagnostics_lostCount">TagBinDiagnostics.lostCount</a></li>
 <li><a href="#Core_Text_bomLength">Text.bomLength</a></li>
 <li><a href="#Core_Text_decode">Text.decode</a></li>
 <li><a href="#Core_Text_detectEncoding">Text.detectEncoding</a></li>
@@ -6082,6 +6083,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <tr><td class="code-type"><a href="#Core_Serialization_Write_TagBin_writeVarint">TagBin.writeVarint</a></td><td><p>Writes an unsigned value as LEB128, the framing encoding of a version 1 stream.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Write_TagBin_writeVarintTo">TagBin.writeVarintTo</a></td><td><p>Writes <span class="code-inline">value</span> as LEB128 to <span class="code-inline">output</span>.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Core_Serialization_Read_TagBinDiagnostics_lostCount">TagBinDiagnostics.lostCount</a></td><td><p>Returns how many fields, element types and payloads of the stream the decoded value lacks.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Text_bomLength">Text.bomLength</a></td><td><p>Returns the length, in bytes, of the byte-order mark of <span class="code-inline">encoding</span>, or 0 when it has none.</p>
 </td></tr>
@@ -11075,7 +11078,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td id="Core_Env_Monitor_physicalWorkArea" class="code-type">physicalWorkArea</td><td class="code-type"><a href="#Core_Math_Rectangle">Core.Math.Rectangle</a></td><td><p>Physical-pixel bounds available to applications.</p>
 </td></tr>
-<tr><td id="Core_Env_Monitor_scaleFactor" class="code-type">scaleFactor</td><td class="code-type">f32</td><td><p>Ratio from logical coordinates to physical pixels.</p>
+<tr><td id="Core_Env_Monitor_scaleFactor" class="code-type">scaleFactor</td><td class="code-type">f32</td><td><p>Ratio from logical coordinates to physical pixels; one where no monitor is known.</p>
 </td></tr>
 <tr><td id="Core_Env_Monitor_workArea" class="code-type">workArea</td><td class="code-type"><a href="#Core_Math_Rectangle">Core.Math.Rectangle</a></td><td><p>Logical bounds available to applications.</p>
 </td></tr>
@@ -13878,8 +13881,16 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </td></tr>
 </tbody>
 </table>
+<h3 id="Core_Serialization_Read_TagBinDiagnostics_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Core_Serialization_Read_TagBinDiagnostics_lostCount">lostCount</a></td><td><p>Returns how many fields, element types and payloads of the stream the decoded value lacks.</p>
+</td></tr>
+</tbody>
+</table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinFieldRef" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinFieldRef</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinFieldRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L161">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinFieldRef" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinFieldRef</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinFieldRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L171">src</a></div>
 <p>One field entry of a section index, locating its payload and the shape entry that describes it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TagBinFieldRef</span></span></div>
 </section>
@@ -13896,7 +13907,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinOptions</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L210">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinOptions" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinOptions</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L220">src</a></div>
 <p>Selects how a <a href="#Core_Serialization_Read_TagBin">Core.Serialization.Read.TagBin</a> reacts to data it was not written for.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TagBinOptions</span></span></div>
 </section>
@@ -13909,7 +13920,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinSection" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinSection</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L189">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinSection" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinSection</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L199">src</a></div>
 <p>Tracks the decoding state of one open section.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TagBinSection</span></span></div>
 </section>
@@ -13946,7 +13957,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinShape" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinShape</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinShape" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L183">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinShape" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinShape</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinShape" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L193">src</a></div>
 <p>The field list of one struct type, stored once per version 1 stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TagBinShape</span></span></div>
 </section>
@@ -13959,7 +13970,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinShapeField" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinShapeField</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinShapeField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L172">src</a></div>
+<div class="api-item api-item-struct"><span id="Core_Serialization_Read_TagBinShapeField" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Read.TagBinShapeField</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinShapeField" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L182">src</a></div>
 <p>One field of a shape directory entry.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">TagBinShapeField</span></span></div>
 </section>
@@ -26170,7 +26181,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">pushContext</span>(cxt: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_Context">Context</a></span>, stmt: <span class="SItr">#code</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L998">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1008">src</a></div>
 <p>Opens the field <span class="code-inline">val</span> and returns whether the stream contains it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -26181,7 +26192,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginRoot</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L892">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginRoot</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L902">src</a></div>
 <p>Reads the stream header.</p>
 <p>Validates the root signature and the only supported format marker.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginRoot</span>() <span class="SKwd">fail</span></span></div>
@@ -26192,7 +26203,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginRoot</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSection</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L911">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSection</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L921">src</a></div>
 <p>Opens a section of kind <span class="code-inline">kind</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(kind: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>, <span class="SKwd">_</span> = <span class="SKwd">false</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -26202,7 +26213,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(kind: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1135">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1145">src</a></div>
 <p>Opens a sequence of <span class="code-inline">typeElem</span> values, stores its element count in <span class="code-inline">countElem</span>, and returns whether it read the elements in bulk.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(typeElem: <span class="STpe">typeinfo</span>?, data: *<span class="STpe">u8</span>?, countElem: *<span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -26212,7 +26223,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(typeElem: <span class="STpe">typeinfo</span>?, data: <span class="SKwd">const</span> *<span class="STpe">void</span>?, countElem: <span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L950">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L960">src</a></div>
 <p>Opens the struct <span class="code-inline">structType</span> and returns false, so the decoder reads its fields.</p>
 <p>Fails with <a href="#Core_Errors_InvalidVersion">Core.Errors.InvalidVersion</a> when the stream holds a newer version of the struct and <span class="code-inline">options.tryForward</span> is not set.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(structType: <span class="STpe">typeinfo</span>?, <span class="SKwd">_</span>: [*] <span class="STpe">u8</span>?)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
@@ -26223,7 +26234,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(structType: <span class="STpe">typeinfo</span>?, <span class="SKwd">_</span>: <span class="SKwd">const</span> [*] <span class="STpe">u8</span>?)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1129">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_beginValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.beginValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_beginValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1139">src</a></div>
 <p>Does nothing: TagBin values need no opening mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginValue</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -26233,7 +26244,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginValue</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1109">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1119">src</a></div>
 <p>Closes the current field and clears any pending conversion.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endElement</span>(<span class="SKwd">_</span>: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -26243,7 +26254,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endElement</span>(<span class="SKwd">_</span>: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endRoot</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L905">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endRoot</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L915">src</a></div>
 <p>Finishes reading the document.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endRoot</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -26254,7 +26265,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endRoot</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSection</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L914">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endSection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSection</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endSection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L924">src</a></div>
 <p>Closes the current section and moves past its end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -26264,7 +26275,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1272">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1282">src</a></div>
 <p>Does nothing: a TagBin sequence needs no closing mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSequence</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -26274,7 +26285,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSequence</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L992">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1002">src</a></div>
 <p>Closes the struct that <a href="#Core_Serialization_Read_TagBin_beginStruct">Core.Serialization.Read.TagBin.beginStruct</a> opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -26284,7 +26295,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1132">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_endValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.endValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_endValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1142">src</a></div>
 <p>Does nothing: TagBin values need no closing mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endValue</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -26294,7 +26305,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endValue</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_isTextual" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.isTextual</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_isTextual" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1284">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_isTextual" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.isTextual</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_isTextual" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1294">src</a></div>
 <p>Returns false, because TagBin is a binary format.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -26304,12 +26315,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.readNative</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1299">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.readNative</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1309">src</a></div>
 <p>Reads a value of type <span class="code-inline">NT</span>, converting it from the stored type when a conversion is armed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">NT</span>) <span class="SFct">readNative</span>()-&gt;<span class="SCst">NT</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_startRead" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.startRead</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_startRead" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L878">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_startRead" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.startRead</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_startRead" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L888">src</a></div>
 <p>Starts reading the borrowed <span class="code-inline">input</span> and resets the diagnostics.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startRead</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -26319,7 +26330,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">startWrite</span>(buf: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_toNextSequenceElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.toNextSequenceElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_toNextSequenceElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1275">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_toNextSequenceElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.toNextSequenceElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_toNextSequenceElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1285">src</a></div>
 <p>Returns whether another element remains, consuming one from <span class="code-inline">countElem</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">toNextSequenceElement</span>(countElem: *<span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -26330,7 +26341,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">typeCrcOf</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_version" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.version</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_version" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1287">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBin_version" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.version</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBin_version" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L1297">src</a></div>
 <p>Returns the version stored for the innermost struct being read, or zero outside any struct.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">version</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
@@ -26348,6 +26359,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="api-item api-item-func"><span id="Core_Serialization_Write_TagBin_writeVarintTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBin.writeVarintTo</span> <a class="api-item-permalink" href="#Core_Serialization_Write_TagBin_writeVarintTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/write/tagbin.swg#L249">src</a></div>
 <p>Writes <span class="code-inline">value</span> as LEB128 to <span class="code-inline">output</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeVarintTo</span>(output: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>, value: <span class="STpe">u64</span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_TagBinDiagnostics_lostCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TagBinDiagnostics.lostCount</span> <a class="api-item-permalink" href="#Core_Serialization_Read_TagBinDiagnostics_lostCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/tagbin.swg#L167">src</a></div>
+<p>Returns how many fields, element types and payloads of the stream the decoded value lacks.</p>
+<p>It sums every counter except <span class="code-inline">recoveredFields</span>, whose fields reached the value through the fat. Zero means the value holds everything the stream wrote, so writing it back loses nothing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lostCount</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Text_bomLength" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Text.bomLength</span> <a class="api-item-permalink" href="#Core_Text_bomLength" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/encoding.swg#L27">src</a></div>
@@ -28224,10 +28241,10 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">compress</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, level = <span class="SCst"><a href="#Core_Compress_Deflate">Deflate</a></span>.<span class="SCst"><a href="#Core_Compress_Deflate_CompressionLevel">CompressionLevel</a></span>.<span class="SCst"><a href="#Deflate_CompressionLevel_Default">Default</a></span>)-&gt;<span class="SFct"><a href="#Core_Array">Array</a></span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_ZLib_decompress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ZLib.decompress</span> <a class="api-item-permalink" href="#Core_Compress_ZLib_decompress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/zlib.swg#L57">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_ZLib_decompress" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ZLib.decompress</span> <a class="api-item-permalink" href="#Core_Compress_ZLib_decompress" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/zlib.swg#L58">src</a></div>
 <p>Decompresses the zlib stream in <span class="code-inline">buffer</span> and returns its content.</p>
-<p>A non-zero <span class="code-inline">hintSize</span> reserves that many output bytes up front, which avoids reallocations when the uncompressed size is known. Fails with <a href="#Core_Errors_InvalidFormatError">Core.Errors.InvalidFormatError</a> for a malformed stream or a checksum mismatch, and with <a href="#Core_Errors_UnsupportedFormatError">Core.Errors.UnsupportedFormatError</a> for a preset dictionary or a window larger than 32 KiB.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decompress</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, hintSize: <span class="STpe">u64</span> = <span class="SNum">0</span>)-&gt;<span class="SFct"><a href="#Core_Array">Array</a></span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+<p>A non-zero <span class="code-inline">hintSize</span> reserves that many output bytes up front, which avoids reallocations when the uncompressed size is known. <span class="code-inline">maxOutputSize</span> limits the bytes the call may produce; the hint must not exceed that limit. Fails with <a href="#Core_Errors_InvalidFormatError">Core.Errors.InvalidFormatError</a> for a malformed stream or a checksum mismatch, and with <a href="#Core_Errors_UnsupportedFormatError">Core.Errors.UnsupportedFormatError</a> for a preset dictionary, a window larger than 32 KiB, or output beyond the limit.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">decompress</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, hintSize: <span class="STpe">u64</span> = <span class="SNum">0</span>, maxOutputSize: <span class="STpe">u64</span> = <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#namespace_Swag_U64">U64</a></span>.<span class="SCst"><a href="swag.runtime.html#Swag_U64_Max">Max</a></span>)-&gt;<span class="SFct"><a href="#Core_Array">Array</a></span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 </article>
 <footer class="site-footer">
@@ -28953,7 +28970,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "v|Core.Env.Monitor.bounds|Core_Env_Monitor_bounds|Logical bounds in desktop coordinates.",
 "v|Core.Env.Monitor.physicalBounds|Core_Env_Monitor_physicalBounds|Physical-pixel bounds in desktop coordinates.",
 "v|Core.Env.Monitor.physicalWorkArea|Core_Env_Monitor_physicalWorkArea|Physical-pixel bounds available to applications.",
-"v|Core.Env.Monitor.scaleFactor|Core_Env_Monitor_scaleFactor|Ratio from logical coordinates to physical pixels.",
+"v|Core.Env.Monitor.scaleFactor|Core_Env_Monitor_scaleFactor|Ratio from logical coordinates to physical pixels; one where no monitor is known.",
 "v|Core.Env.Monitor.workArea|Core_Env_Monitor_workArea|Logical bounds available to applications.",
 "s|Core.Env.Process|Core_Env_Process|Owns a started child process, its pipes, and everything captured from it.",
 "v|Core.Env.Process.processId|Core_Env_Process_processId|Operating-system identifier of the started process.",
@@ -30960,6 +30977,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Serialization.Read.TagBin.startRead|Core_Serialization_Read_TagBin_startRead|Starts reading the borrowed input and resets the diagnostics.",
 "f|Core.Serialization.Read.TagBin.toNextSequenceElement|Core_Serialization_Read_TagBin_toNextSequenceElement|Returns whether another element remains, consuming one from countElem.",
 "f|Core.Serialization.Read.TagBin.version|Core_Serialization_Read_TagBin_version|Returns the version stored for the innermost struct being read, or zero outside any struct.",
+"f|Core.Serialization.Read.TagBinDiagnostics.lostCount|Core_Serialization_Read_TagBinDiagnostics_lostCount|Returns how many fields, element types and payloads of the stream the decoded value lacks.",
 "f|Core.Serialization.Read.Xml.beginElement|Core_Serialization_Read_Xml_beginElement|Reads the start tag of the element val and fails when it names another element.",
 "f|Core.Serialization.Read.Xml.beginRoot|Core_Serialization_Read_Xml_beginRoot|Skips an optional XML declaration, then reads the tag that opens the document.",
 "f|Core.Serialization.Read.Xml.beginSection|Core_Serialization_Read_Xml_beginSection|Reads the tag that opens a section.",

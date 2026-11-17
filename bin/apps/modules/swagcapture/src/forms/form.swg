@@ -163,6 +163,17 @@ impl BaseForm
         return Math.ceil(extent + 2)
     }
 
+    // Returns the form-space box the form paints into: its bound, at least one unit a side, grown
+    // by its [[BaseForm.paintOverdraw]].
+    func paintExtent(itf: IForm, quickMode: bool)->Math.Rectangle
+    {
+        var result = itf.boundRect()
+        result.width  = Math.max(result.width, 1)
+        result.height = Math.max(result.height, 1)
+        result.inflate(paintOverdraw(itf, quickMode))
+        return result
+    }
+
     func adaptSize(size: f32, minSize, maxSize: f32, cxt: FormPaintContext, dstMin: f32 = 2, dstMax: f32 = 5)->f32
     {
         if not cxt.quickMode do
@@ -263,9 +274,10 @@ impl BaseForm
         return result
     }
 
-    // In quick mode a translucent highlight is previewed by remapping its alpha to
-    // the full range (a checkerboard brush behind it shows the transparency).
-    mtd highlightAlpha()->u8 => cast(u8, Math.map(cast(f32, .alpha), 0, 100, 0, 255))
+    // Returns the opacity, a percentage, as an alpha from 0 to 255. The editor fades the layer of
+    // a form with it, and a quick-style preview, which has no such layer, fades the highlighter
+    // fill itself, over a checkerboard that shows the transparency.
+    mtd const opacityAlpha()->u8 => cast(u8, Math.map(cast(f32, .alpha), 0, 100, 0, 255))
 
     // Reports whether `pt` touches what the form actually paints at zoom `z`, by testing the
     // triangles it draws rather than its bounds.
@@ -274,24 +286,19 @@ impl BaseForm
         // The form paints into an un-rotated buffer (rotation is applied around the
         // center at draw time), so un-rotate the test point to match.
         let base: *BaseForm = itf
-        var pos = Math.Vector2{pt.x, pt.y}
+        let formBound = itf.boundRect()
+        var pos       = Math.Vector2{pt.x, pt.y}
         if base.isRotated()
         {
-            let br  = itf.boundRect()
-            let cx  = br.horzCenter() * z
-            let cy  = br.vertCenter() * z
-            let ang = -Math.toRadians(base.rotate)
-            let c   = Math.cos(ang)
-            let s   = Math.sin(ang)
-            let dx  = pos.x - cx
-            let dy  = pos.y - cy
-            pos.x = cx + (c * dx - s * dy)
-            pos.y = cy + (s * dx + c * dy)
+            let center = formBound.center() * z
+            let turned = GizmoRect.rotateVec(pt - center, -Math.toRadians(base.rotate))
+            pos.x = center.x + turned.x
+            pos.y = center.y + turned.y
         }
 
         // Cheap rejection before tessellating the whole form: nothing is painted
         // beyond the form's actual stroke/cap extent around the bound.
-        var bound = itf.boundRect() * z
+        var bound = formBound * z
         bound.inflate(BaseForm.paintOverdraw(itf, false) * z)
         if not bound.contains(pos.x, pos.y) do
             return false

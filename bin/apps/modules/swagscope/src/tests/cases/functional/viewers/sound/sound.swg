@@ -240,58 +240,140 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.require(Math.isEqualEpsilon(view.volumeSlider.value(), 0.4, 0.001))
 }
 
+// Reduces interleaved `samples` of `channels` channels to `pointCount` points in one chunk, the
+// way the viewer's worker reduces each chunk the decoder hands it.
+func reduceWaveform(samples: const [..] s16, channels: u32, pointCount: u64)->Array'Sound.WaveformPoint
+{
+    var result: Array'Sound.WaveformPoint
+    result.resize(pointCount)
+    var reducer = Sound.WaveformReducer{&result, samples.count / channels, pointCount, channels}
+    reducer.consume(samples)
+    reducer.finish()
+    Swag.require(reducer.readyCount == pointCount)
+    return result
+}
+
+// A payload is named the way its specification spells it, in the sheet of a recording as in the
+// sound tracks of a film.
 #test
 {
+    Swag.require(Sound.encodingText(.Pcm16) == "PCM 16-bit" and Sound.encodingText(.Float32) == "PCM float32")
+    Swag.require(Sound.encodingText(.Ac3) == "AC-3" and Sound.encodingText(.Eac3) == "E-AC-3")
+    Swag.require(Sound.encodingText(.Dts) == "DTS" and
+                 Sound.encodingText(.Flac) == "FLAC" and
+                 Sound.encodingText(.Mp3) == "MP3")
+    Swag.require(Sound.encodingText(.Vorbis) == "Vorbis" and
+                 Sound.encodingText(.Opus) == "Opus" and
+                 Sound.encodingText(.AdpcmIma) == "IMA ADPCM")
+}
+
+// One point per frame reads the level of that frame, whatever its sign.
+#test
+{
+    var samples: Array's16
     let fixture = expect File.readAllText(waveformFixturePath())
-    Swag.require(Utf8.contains(fixture, "1.0") and Utf8.contains(fixture, "-1.0"))
-    let samples = Sound.buildWaveform([0'u8, 128'u8, 255'u8], .Pcm8, 1)
-    Swag.require(samples.count == 3)
-    Swag.require(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
-    Swag.require(samples[0].body == samples[0].peak)
+    for line in Tokenize.split(fixture, '\n'u8)
+    {
+        let text = Latin1.trim(line)
+        if not text.count or text[0] == '#' do
+            continue
+        let value = expect StrConv.toF64(text)
+        samples.add(cast(s16, Math.clamp(Math.round(value * 32768), -32768, 32767)))
+    }
+
+    let points = reduceWaveform(samples.toSlice(), 1, samples.count)
+    Swag.require(points.count == 7)
+    Swag.require(points[0].peak == 0 and points[1].peak > 0.99 and points[4].peak == 1)
+    Swag.require(points[2].peak == 0.5 and points[3].peak == 0.5 and points[5].peak == 0.25)
+    Swag.require(points[1].body == points[1].peak)
 }
 
-#test
+// Reduces `samples` the way the reducer once did, working out the point of every frame on its own
+// from its offset, and reports in `ready` how many points it stored.
+func referenceWaveform(samples: const [..] s16, channels: u32, pointCount: u64, ready: *u64)->Array'Sound.WaveformPoint
 {
-    let samples = Sound.buildWaveform([0'u8, 0x80'u8, 0'u8, 0'u8, 0xFF'u8, 0x7F'u8], .Pcm16, 1)
-    Swag.require(samples.count == 3)
-    Swag.require(samples[0].peak == 1 and samples[1].peak == 0 and samples[2].peak > 0.99)
+    var result: #returntype
+    result.resize(pointCount)
+    let frameCount = samples.count / channels
+    var current    = 0'u64
+    var count      = 0'u64
+    var peak       = 0'f32
+    var sum        = 0'f64
+    for frame in frameCount
+    {
+        let target = Math.min(frame * pointCount / frameCount, pointCount - 1)
+        if target != current
+        {
+            result[current] = Sound.WaveformPoint{peak, count ? cast(f32, (sum / cast(f64, count))) : 0}
+            ready[]         = current + 1
+            current         = target
+            peak            = 0
+            sum             = 0
+            count           = 0
+        }
+
+        var mixed = 0'f32
+        for channel in channels do
+            mixed += cast(f32, samples[frame * channels + channel]) / 32768
+        let level = Math.abs(mixed / channels)
+        peak  = Math.max(peak, level)
+        sum   += level
+        count += 1
+    }
+
+    if count
+    {
+        result[current] = Sound.WaveformPoint{peak, cast(f32, (sum / cast(f64, count)))}
+        ready[]         = current + 1
+    }
+
+    return result
 }
 
-// Packed samples retain their byte order and sign; floating samples are clamped after decoding.
+// The reducer finds the point of a frame once per point rather than once per frame. On a ratio
+// that does not divide, over chunks that cut across points, and with more points than frames,
+// every point still holds what the reading of each frame on its own gives.
 #test
 {
-    let pcm24: [7] u8 = [0xAA, 0x00, 0x00, 0x80, 0x00, 0x00, 0x40]
-    Swag.require(Sound.sampleAt(pcm24, 1, .Pcm24) == -1)
-    Swag.require(Sound.sampleAt(pcm24, 4, .Pcm24) == 0.5)
+    var samples: Array's16
+    for index in 2 * 1_009 do
+        samples.add(cast(s16, cast(s64, index * 7_919 % 65_536) - 32_768))
+    let all = samples.toSlice()
 
-    let pcm32: [9] u8 = [0xAA, 0x00, 0x00, 0x00, 0x80, 0x00, 0x00, 0x00, 0x40]
-    Swag.require(Sound.sampleAt(pcm32, 1, .Pcm32) == -1)
-    Swag.require(Sound.sampleAt(pcm32, 5, .Pcm32) == 0.5)
+    for shape in [{frames: 1_009'u64, points: 13'u64}, {frames: 5'u64, points: 8'u64}]
+    {
+        let slice    = all[0 until shape.frames * 2]
+        var ready    = 0'u64
+        let expected = referenceWaveform(slice, 2, shape.points, &ready)
 
-    let floats: [12] u8 = [0x00, 0x00, 0x00, 0x3F,
-                           0x00, 0x00, 0x00, 0x40,
-                           0x00, 0x00, 0x00, 0xC0]
-    Swag.require(Sound.sampleAt(floats, 0, .Float32) == 0.5)
-    Swag.require(Sound.sampleAt(floats, 4, .Float32) == 1)
-    Swag.require(Sound.sampleAt(floats, 8, .Float32) == -1)
+        var points: Array'Sound.WaveformPoint
+        points.resize(shape.points)
+        var reducer = Sound.WaveformReducer{&points, shape.frames, shape.points, 2}
+        var start   = 0'u64
+        while start < shape.frames
+        {
+            let end = Math.min(start + 37, shape.frames)
+            reducer.consume(slice[start * 2 until end * 2])
+            start = end
+        }
+
+        reducer.finish()
+        Swag.require(reducer.readyCount == ready)
+        for point, index in points do
+            Swag.require(point.peak == expected[index].peak and point.body == expected[index].body, Format.toString("%", index))
+    }
 }
 
 // One slice covering several frames reports the loudest of them and the mean of them, and the two
-// are only equal when the slice is flat.
+// are only equal when the slice is flat. Channels are mixed before either is read.
 #test
 {
-    var payload: Array'u8
-    payload.resize(8)
-    for index in payload.count do
-        payload[index] = index == 0 ? 255'u8 : 128'u8
+    let mono = reduceWaveform([32767's16, 0, 0, 0], 1, 2)
+    Swag.require(mono[0].peak > 0.99 and mono[0].body > 0.49 and mono[0].body < 0.51)
+    Swag.require(mono[1].peak == 0 and mono[1].body == 0)
 
-    let samples = Sound.buildWaveform(payload.toSlice(), .Pcm8, 1)
-    Swag.require(samples.count == 8)
-    Swag.require(samples[0].peak > 0.99 and samples[0].body > 0.99)
-
-    let single = Sound.buildWaveform(payload.toSlice()[0 until 4], .Pcm8, 1)
-    Swag.require(single.count == 4)
-    Swag.require(single[0].peak > 0.99 and single[1].peak == 0)
+    let stereo = reduceWaveform([16384's16, 16384, -16384, 16384], 2, 2)
+    Swag.require(stereo[0].peak == 0.5 and stereo[1].peak == 0)
 }
 
 // Reads a recorded sound rather than a synthesized one. Its metadata and waveform must not depend
@@ -304,16 +386,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.require(sound.numChannels() == 1)
     Swag.require(sound.sampleStorageBits() == 8)
     Swag.require(sound.durationInSeconds() > 4.2 and sound.durationInSeconds() < 4.3)
-    let waveform = Sound.buildWaveform(sound.preloadedData(), sound.sampleEncoding(), sound.numChannels())
-    Swag.require(waveform.count == 4_096)
-    var visible: bool
-    for sample in waveform where sample.peak > 0.05 and sample.body > 0
-    {
-        visible = true
-        break
-    }
-
-    Swag.require(visible)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
@@ -329,6 +401,14 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     Swag.require(view.waveform.samples.count == 4_096)
     Swag.require(view.waveform.readyCount == view.waveform.samples.count)
     Swag.require(view.waveform.duration == view.duration)
+    var visible: bool
+    for sample in view.waveform.samples where sample.peak > 0.05 and sample.body > 0
+    {
+        visible = true
+        break
+    }
+
+    Swag.require(visible)
 }
 
 // Answers a sound that has been played through with the continuation stored on the view.
@@ -605,6 +685,10 @@ func soundInformation(bytes: const [..] u8)->String
     host.setup(640, 360)
     var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     let view   = assume cast(*Sound.Panel, result.view)
+
+    // A recording still opening cannot play, so it has no passage to mark.
+    view.setLoopStart()
+    Swag.require(view.loopStart < 0)
     waitForSoundOpen(&host, view)
     Swag.require(view.engineReady and view.duration > 2.9)
 
@@ -634,6 +718,24 @@ func soundInformation(bytes: const [..] u8)->String
                  not Utf8.contains(view.details.toString(), "0:00–"))
     view.seekSeconds(1.6)
     Swag.require(not view.followLoop())
+
+    // A passage looped up to the very end plays again from its start. By then the voice has
+    // handed the device its last buffer and stopped playing, while the transport still plays; the
+    // silent engine never runs a voice dry, so a pause stands for that here.
+    view.seekSeconds(1)
+    view.setLoopStart()
+    view.seekSeconds(view.duration)
+    view.setLoopEnd()
+    Swag.require(view.loopEnd > view.duration - 0.01)
+    view.togglePlayback()
+    let voice = unwrap view.voice
+    expect voice.pause()
+    view.elapsed = cast(f32, voice.playbackPositionSeconds())
+    Swag.require(view.playing and view.followLoop())
+    Swag.require(view.playing and voice.isPlaying() and Math.abs(voice.playbackPositionSeconds() - 1) < 0.01)
+    view.stopPlayback()
+    view.clearLoop()
+    view.seekSeconds(1.6)
 
     // The lens copies the instant playback stands at, as the clock writes it.
     var results: Lens.Results

@@ -78,7 +78,7 @@ private
     const WaveformPointCount = 4096'u64
 
     // The page of a recording, after `scope.sound`: the cover, the name and who made it, then the
-    // wave as a row of bars with the times under it.
+    // wave as a row of bars, with a band under it that keeps the bars clear of the transport.
     const CoverSize   = 180.0      // Side of the cover.
     const CoverTop    = 88.0       // Distance from the strip to the cover.
     const MinCoverTop = 24.0       // Distance a short window keeps between the strip and the cover.
@@ -92,8 +92,8 @@ private
     const WaveHeight  = 110.0      // Height of the bars at their loudest.
     const BarWidth    = 4.0        // Width of one bar of the wave.
     const BarGap      = 3.5        // Air between two bars.
-    const TimesGap    = 14.0       // Air between the bars and the times under them.
-    const TimesHeight = 26.0       // Height of the line of times.
+    const TimesGap    = 14.0       // Air between the bars and the band under them.
+    const TimesHeight = 26.0       // Height of the band under the bars.
     const WaveGap     = 32.0       // Least air between who made it and the wave.
 }
 
@@ -172,91 +172,37 @@ func releaseEngine()
     g_ViewerOwnsEngine = false
 }
 
-// Reads the PCM sample at `offset` as a level between -1 and 1, or 0 for an encoding that is not PCM.
-func sampleAt(bytes: const [..] u8, offset: u64, encoding: SoundFileEncoding)->f32
-{
-    switch encoding
-    {
-    case .Pcm8:
-        return (cast(f32, bytes[offset]) - 128) / 128
-
-    case .Pcm16:
-        let raw = Math.make16(bytes[offset + 1], bytes[offset])
-        return cast(f32, cast #bit (s16, raw)) / 32768
-
-    case .Pcm24:
-        var raw = Math.make32(0, bytes[offset + 2], bytes[offset + 1], bytes[offset])
-        if raw & 0x00800000 do
-            raw |= 0xFF000000
-        return cast(f32, cast #bit (s32, raw)) / 8388608
-
-    case .Pcm32:
-        let raw = Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
-        return cast(f32, cast #bit (s32, raw)) / 2147483648
-
-    case .Float32:
-        let raw = Math.make32(bytes[offset + 3], bytes[offset + 2], bytes[offset + 1], bytes[offset])
-        return Math.clamp(cast #bit (f32, raw), -1, 1)
-    }
-
-    return 0
-}
-
-// Reduces an interleaved PCM payload to at most [[WaveformPointCount]] points, mixing its channels.
-func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: u32)->Array'WaveformPoint
-{
-    var result: #returntype
-    if not bytes.count or not channels do
-        return result
-
-    var bytesPerSample = 4'u64
-    switch encoding
-    {
-    case .Pcm8:  bytesPerSample = 1
-    case .Pcm16: bytesPerSample = 2
-    case .Pcm24: bytesPerSample = 3
-    }
-
-    let bytesPerFrame = bytesPerSample * channels
-    let frameCount    = bytes.count / bytesPerFrame
-    let pointCount    = Math.min(frameCount, WaveformPointCount)
-    if not pointCount do
-        return result
-    result.resize(pointCount)
-
-    for point in pointCount
-    {
-        let first = point * frameCount / pointCount
-        let last  = Math.max((point + 1) * frameCount / pointCount, first + 1)
-        var peak  = 0'f32
-        var sum   = 0'f32
-        for frame in first until last
-        {
-            var mixed = 0'f32
-            for channel in channels
-            {
-                let offset = frame * bytesPerFrame + channel * bytesPerSample
-                mixed += sampleAt(bytes, offset, encoding)
-            }
-
-            mixed /= channels
-            let level = Math.abs(mixed)
-            peak = Math.max(peak, level)
-            sum  += level
-        }
-
-        result[point] = WaveformPoint{peak, sum / cast(f32, last - first)}
-    }
-
-    return result
-}
-
 // Formats the length of a sound for the host summary: milliseconds below one second, seconds with two decimals from there on.
 func durationText(seconds: f32)->String
 {
     if seconds < 1 do
         return Format.toString("% ms", cast(u32, Math.max(Math.round(seconds * 1000), 1)))
     return Format.toString("%{f2} s", seconds)
+}
+
+// Returns the established technical name of an audio payload encoding, the way the information
+// sheets of a recording and of the sound tracks of a film write it.
+func encodingText(encoding: SoundFileEncoding)->string
+{
+    switch encoding
+    {
+    case .Pcm8:     return "PCM 8-bit"
+    case .Pcm16:    return "PCM 16-bit"
+    case .Pcm24:    return "PCM 24-bit"
+    case .Pcm32:    return "PCM 32-bit"
+    case .Float32:  return "PCM float32"
+    case .AacLc:    return "AAC-LC"
+    case .Ac3:      return "AC-3"
+    case .Eac3:     return "E-AC-3"
+    case .Dts:      return "DTS"
+    case .Flac:     return "FLAC"
+    case .Mp3:      return "MP3"
+    case .Vorbis:   return "Vorbis"
+    case .Opus:     return "Opus"
+    case .AdpcmMs:  return "ADPCM"
+    case .AdpcmIma: return "IMA ADPCM"
+    default:        return "Audio"
+    }
 }
 
 // Plots the waveform of a sound as a row of bars, the played part apart from the rest.
@@ -272,14 +218,32 @@ struct WaveformView
     loopEnd:    f32 = -1     // Fraction where it ends, negative while only its start is set.
 }
 
+impl WaveformView
+{
+    // Returns how many bars the wave stands as across its width.
+    mtd barCount()->u64 => cast(u64, Math.max(Math.floor((.clientRect().width + BarGap) / (BarWidth + BarGap)), 1))
+
+    // Returns how many bars stand in Arc when `progress` of the recording has been played.
+    mtd playedBars(progress: f32)->f32 => Math.ceil(Math.clamp(progress, 0, 1) * cast(f32, .barCount()))
+
+    // Sets the played fraction, and repaints only when a bar changes color.
+    mtd setProgress(progress: f32)
+    {
+        let repaint = .playedBars(progress) != .playedBars(.progress)
+        .progress = progress
+        if repaint do
+            .invalidate()
+    }
+}
+
 // Levels of a whole recording, measured on the 16-bit samples its waveform is built from.
 struct SoundLevels
 {
-    peak:      u32     // Largest sample magnitude, 32,768 at full scale.
-    squares:   f64     // Sum of the squared samples.
-    samples:   u64     // Samples measured, every channel counted.
-    fullScale: u64     // Samples at the top or bottom of the scale, where a louder signal clips.
-    ceiling:   s16     // Highest value the source can store, once widened to 16 bits.
+    peak:      u32             // Largest sample magnitude, 32,768 at full scale.
+    squares:   f64             // Sum of the squared samples.
+    samples:   u64             // Samples measured, every channel counted.
+    fullScale: u64             // Samples at the top or bottom of the scale, where a louder signal clips.
+    ceiling:   s16 = 32767     // Highest value the source can store, once widened to 16 bits.
 }
 
 impl SoundLevels
@@ -330,6 +294,7 @@ struct WaveformReducer
     sampleCount:  u64
     readyCount:   u64
     levels:       SoundLevels
+    nextBoundary: u64     // First frame past the current point; the target is only worked out again there.
 }
 
 impl WaveformReducer
@@ -341,16 +306,24 @@ impl WaveformReducer
         let frames = samples.count / .channels
         for frame in frames
         {
-            let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
-            if target != .currentPoint
+            // Frame `f` belongs to point `f * pointCount / frameCount`, which only changes at the
+            // boundary where that quotient grows, so it is worked out once per point, not per frame.
+            if .frameOffset >= .nextBoundary
             {
-                let body = .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0
-                .points[][.currentPoint] = WaveformPoint{.peak, body}
-                .readyCount   = .currentPoint + 1
-                .currentPoint = target
-                .peak         = 0
-                .sum          = 0
-                .sampleCount  = 0
+                let target = Math.min(.frameOffset * .pointCount / .frameCount, .pointCount - 1)
+                if target != .currentPoint
+                {
+                    let body = .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0
+                    .points[][.currentPoint] = WaveformPoint{.peak, body}
+                    .readyCount   = .currentPoint + 1
+                    .currentPoint = target
+                    .peak         = 0
+                    .sum          = 0
+                    .sampleCount  = 0
+                }
+
+                // The last point takes every frame left, however many the decoder hands over.
+                .nextBoundary = target + 1 < .pointCount ? ((target + 1) * .frameCount + .pointCount - 1) / .pointCount : Swag.U64.Max
             }
 
             var mixed = 0'f32
@@ -369,6 +342,7 @@ impl WaveformReducer
         }
     }
 
+    // Stores the point the last frames were folded into, which no later frame moved past.
     mtd finish()
     {
         if not .sampleCount or .currentPoint >= .pointCount do
@@ -380,8 +354,8 @@ impl WaveformReducer
 
 private impl IWnd for WaveformView
 {
-    // Draws the wave as a row of bars, the played ones in Arc, with the elapsed time under its
-    // start and the length under its end.
+    // Draws the wave as a row of bars, the played ones in Arc, over the band of a looped passage.
+    // The times are the transport's to read.
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
@@ -389,7 +363,7 @@ private impl IWnd for WaveformView
         let room    = .clientRect()
         let bars    = Math.Rectangle{room.x, room.y, room.width, WaveHeight}
         let center  = bars.vertCenter()
-        let count   = cast(u64, Math.max(Math.floor((bars.width + BarGap) / (BarWidth + BarGap)), 1))
+        let count   = .barCount()
         let played  = Math.clamp(.progress, 0, 1) * cast(f32, count)
 
         painter.setParams(.Antialiased)
@@ -401,7 +375,7 @@ private impl IWnd for WaveformView
             band.a = 48
             let left = bars.x + Math.clamp(.loopStart, 0, 1) * bars.width
             if .loopEnd > .loopStart do
-                painter.fillRect(Math.Rectangle{left, bars.y, (Math.clamp(.loopEnd, 0, 1) - .loopStart) * bars.width, bars.height}, band)
+                painter.fillRect(Math.Rectangle{left, bars.y, bars.x + Math.clamp(.loopEnd, 0, 1) * bars.width - left, bars.height}, band)
             else do
                 painter.fillRect(Math.Rectangle{left, bars.y, 1, bars.height}, colors.arc)
         }
@@ -487,6 +461,10 @@ struct Panel
     loopStart:    f32 = -1     // Second the looped passage starts at, negative without one.
     loopEnd:      f32 = -1     // Second it ends at, negative while only its start is set.
 
+    // What the transport last showed, so a tick that would not change it pushes nothing.
+    clockSecond:   s64 = -1     // Whole second the clock was written at.
+    timelinePixel: s32 = -1     // Pixel column the timeline thumb was pushed to.
+
     retireRequested: bool
     retired:         bool
 
@@ -499,14 +477,19 @@ struct Panel
 
 impl Panel
 {
-    // Reports whether work remains whose result has not reached the waveform yet.
+    // Reports whether work remains whose result has not reached the waveform or the sheet yet.
+    //
+    // The worker can publish its last waveform point before it ends, so the waveform may look
+    // complete while the levels it measures last are still unknown to the sheet.
     mtd isLoading()->bool
     {
         if not .openFinished do
             return true
 
         let built = .publishedWaveformCount()
-        return .waveformTask.isPending() or .waveform.readyCount < built
+        return .waveformTask.isPending() or
+               .waveform.readyCount < built or
+               (.waveform.samples.count != 0 and not .levelsShown)
     }
 
     // Reports whether the host should cover the view, which is until the sound has opened.
@@ -766,7 +749,7 @@ impl Panel
         if not .levelsShown and .waveform.samples.count and not .waveformTask.isPending()
         {
             .levelsShown = true
-            .refreshDetails()
+            .services.informationChanged(me)
         }
 
         let ready = .publishedWaveformCount()
@@ -776,15 +759,46 @@ impl Panel
         .waveform.invalidate()
     }
 
+    // Shows the state of the transport after a gesture or a change of state, then where playback stands.
     mtd refreshTransport()
     {
-        .playButton.setIcon(.theme().icon(.playing ? .Pause : .Play, themeActionIconSize(.themeMetrics())))
-        .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        // Changing the icon lays the command bar out again, so it is changed only with the state.
+        let icon = .playing ? ThemeIcons.Pause : ThemeIcons.Play
+        if .playButton.icon.index != cast(s32, icon)
+        {
+            .playButton.setIcon(.theme().icon(icon, themeActionIconSize(.themeMetrics())))
+            .playButton.toolTip = .playing ? texts().ui_TipPause : texts().ui_TipPlay
+        }
+
         .stopButton.enable(.voice != null)
-        .timeline.setValueWithoutGesture(.elapsed)
-        .timeLabel.setText(Viewer.timeRangeText(.elapsed, .duration))
-        .waveform.progress = .duration > 0 ? .elapsed / .duration : 0
-        .waveform.invalidate()
+        .clockSecond   = -1
+        .timelinePixel = -1
+        .refreshTime()
+    }
+
+    // Shows where playback stands: the clock, the timeline and the played part of the wave.
+    //
+    // The timer calls this thirty times a second while the sound plays, so each part is touched
+    // only when it would visibly change: the clock once a second, the timeline when its thumb
+    // reaches another pixel, and the wave when another bar is played.
+    mtd refreshTime()
+    {
+        let second = cast(s64, Math.floor(Math.max(.elapsed, 0)))
+        if second != .clockSecond
+        {
+            .clockSecond = second
+            .timeLabel.setText(Viewer.timeRangeText(.elapsed, .duration))
+        }
+
+        let width = .timeline.position.width
+        let pixel = .duration > 0 and width > 1 ? cast(s32, .elapsed / .duration * width) : -1
+        if pixel < 0 or pixel != .timelinePixel
+        {
+            .timelinePixel = pixel
+            .timeline.setValueWithoutGesture(.elapsed)
+        }
+
+        .waveform.setProgress(.duration > 0 ? .elapsed / .duration : 0)
     }
 
     mtd ensureVoice()->bool
@@ -812,6 +826,18 @@ impl Panel
         catch .voice!.seekSampleFrame(frame)
         {
             return
+        }
+
+        // The voice stops playing once it has handed the device its last buffer, a moment before
+        // that buffer is heard, and a seek leaves a stopped voice where it lands. A jump made in
+        // that moment, such as the return of a passage looped up to the end, would park the sound
+        // while the transport still plays, so the voice is started again.
+        if .playing and not .voice!.isPlaying()
+        {
+            catch .voice!.play()
+            {
+                .playing = false
+            }
         }
 
         .elapsed = target
@@ -848,8 +874,9 @@ impl Panel
         if slower do
             slower.detail = Format.toString("% · %", Viewer.playbackRateText(.playbackRate), Input.formatKeyShortcut(.Shift, .Left))
 
-        // A passage is looped between two points the reader marks while listening.
         entries.add(Format.toString(texts.cmd_CopyTime, Viewer.timeText(cast(f64, .playbackPosition()))), .Copy, func|view = me|() { Clipboard.setString(Viewer.timeText(cast(f64, view.playbackPosition()))) }, disabled: not ready)
+
+        // A passage is looped between two points the reader marks while listening.
         entries.add(strings.cmd_LoopStart, .RepeatAll, func|view = me|() { view.setLoopStart() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem4))
         entries.add(strings.cmd_LoopEnd, .RepeatAll, func|view = me|() { view.setLoopEnd() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Oem6))
         if .loopStart >= 0 do
@@ -869,9 +896,12 @@ impl Panel
         .refreshDetails()
     }
 
-    // Starts the looped passage where playback stands; an end before it no longer holds.
+    // Starts the looped passage where playback stands; an end before it no longer holds. A
+    // recording that cannot play has no passage to repeat.
     mtd setLoopStart()
     {
+        if not .engineReady do
+            return
         .loopStart = .playbackPosition()
         if .loopEnd <= .loopStart do
             .loopEnd = -1
@@ -882,6 +912,8 @@ impl Panel
     // none was set. A point at or before the start sets nothing.
     mtd setLoopEnd()
     {
+        if not .engineReady do
+            return
         let position = .playbackPosition()
         let start    = .loopStart >= 0 ? .loopStart : 0
         if position <= start do
@@ -922,11 +954,7 @@ impl Panel
     // Returns where playback stands in the recording, in seconds.
     mtd playbackPosition()->f32 => .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
 
-    mtd seekRelative(seconds: f32)
-    {
-        let current = .voice ? cast(f32, .voice.playbackPositionSeconds()) : .elapsed
-        .seekSeconds(current + seconds)
-    }
+    mtd seekRelative(seconds: f32) => .seekSeconds(.playbackPosition() + seconds)
 
     mtd setMuted(muted: bool)
     {
@@ -1065,7 +1093,7 @@ impl IWnd for Panel
             return
         }
 
-        .refreshTransport()
+        .refreshTime()
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
@@ -1320,7 +1348,7 @@ impl Panel
         data.add(.Sound, group: true)
 
         // How the samples are stored, then the throughput of that payload over the length.
-        data.add(.Format, Film.audioEncodingText(.sound.sampleEncoding()))
+        data.add(.Format, encodingText(.sound.sampleEncoding()))
         let bitrate = videoBitrate(.sound.payloadSize(), cast(f64, .duration))
         if bitrate.count do
             data.add(.Bitrate, bitrate)

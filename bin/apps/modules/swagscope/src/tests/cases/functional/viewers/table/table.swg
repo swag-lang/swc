@@ -18,6 +18,19 @@ using Core, Pixel, Gui, Viewers
     Swag.require(not Table.isNumericCell("") and not Table.isNumericCell("-") and not Table.isNumericCell("v2"))
 }
 
+// A quantity reads the same whether it is written plainly or with spaces, a percent sign, or a
+// comma grouping thousands or marking decimals.
+#test
+{
+    var value: f64
+    Swag.require(Table.quantityOf("-3.25", &value) and value == -3.25)
+    Swag.require(Table.quantityOf("1,5", &value) and value == 1.5)
+    Swag.require(Table.quantityOf("1,234", &value) and value == 1234)
+    Swag.require(Table.quantityOf("1,234.5", &value) and value == 1234.5)
+    Swag.require(Table.quantityOf("12 %", &value) and value == 12)
+    Swag.require(not Table.quantityOf("-", &value) and not Table.quantityOf("1.2.3", &value))
+}
+
 #test
 {
     Table.registerTexts(&g_App)
@@ -256,13 +269,17 @@ using Core, Pixel, Gui, Viewers
     view.revealLine(1)
     Swag.require(view.selectionText() == "\"two\nlines\"\t\"say \"\"hi\"\"\"\n")
 
+    // The copied rows replace what the clipboard held, a picture copied before included.
+    var picture = Image.create(2, 2, .BGRA8)
+    picture.clear()
+    Clipboard.addImage(picture)
     var results: Lens.Results
     var entries = Viewer.LensEntries.create(&results, "Table", host.theme)
     view.revealLine(0)
     view.describeLens(&entries)
     for &entry in results.sections[0]!.entries where entry.title == Table.texts().ui_CopyRowsNames do
         entry.run!()
-    Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n")
+    Swag.require(Clipboard.getString() == "name\tnote\nplain\tété\n" and not Clipboard.hasImage())
 }
 
 // The information sheet profiles each column under its name: its kind, the range and the mean of
@@ -284,4 +301,35 @@ using Core, Pixel, Gui, Viewers
     Swag.require(Utf8.contains(text, "Columns\nname\ntext\nprice\ndecimal · 1.50 to 2.25 · mean 1.88 · 1 empty"), text)
     Swag.require(Utf8.contains(text, "qty\ninteger · 3 to 7 · mean 5.00 · 1 empty"), text)
     Swag.require(Table.groupThousands(1.999, true) == "2.00" and Table.groupThousands(1234567, false) == "1 234 567")
+
+    // A whole number is rounded rather than cut, and a value that rounds to nothing has no sign.
+    Swag.require(Table.groupThousands(6.7, false) == "7" and Table.groupThousands(-1234.5, true) == "-1 234.50")
+    Swag.require(Table.groupThousands(-0.001, true) == "0.00" and Table.groupThousands(-0.4, false) == "0")
+}
+
+// The foot sums the first column of quantities while the focus moves from row to row, and the
+// column the table is sorted on as soon as it is sorted on one that holds quantities.
+#test
+{
+    let fileName = Testing.tempFilePath("scope-table-sum-", ".csv")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "name,count,price\na,1,2.50\nb,2,1 000.25\nc,3,\n")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    let view   = assume cast(*Table.Panel, window.instances[window.activeChoiceIndex].view)
+    Swag.require(Utf8.contains(window.instances[window.activeChoiceIndex].details.toString(), "Σ count 6"))
+
+    view.revealLine(2)
+    let moved = window.instances[window.activeChoiceIndex].details.toString()
+    Swag.require(Utf8.contains(moved, "Σ count 6") and Utf8.contains(moved, Format.toString(Table.texts().ui_RowAt, 3).toString()), moved)
+
+    // Sorting moves the focused row to the line its price gives it, and the foot follows.
+    view.revealLine(0)
+    view.sortBy(2)
+    let sorted = window.instances[window.activeChoiceIndex].details.toString()
+    Swag.require(Utf8.contains(sorted, "Σ price 1 002.75") and Utf8.contains(sorted, Format.toString(Table.texts().ui_RowAt, 1).toString()), sorted)
+    view.sortBy(2)
+    let reversed = window.instances[window.activeChoiceIndex].details.toString()
+    Swag.require(Utf8.contains(reversed, Format.toString(Table.texts().ui_RowAt, 2).toString()), reversed)
 }

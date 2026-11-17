@@ -23,8 +23,16 @@ impl DocumentProperties
     // its fields empty rather than failing.
     func read(fileName: string)->DocumentProperties
     {
+        let archive = catch Archive.Zip.load(fileName) { return {}; }
+        return read(fileName, &archive)
+    }
+
+    // Reads the properties of the package `fileName` from its already opened `archive`, as a reader
+    // does on its loading worker; a missing, oversized or damaged part leaves its fields empty
+    // rather than failing.
+    func read(fileName: string, archive: const *Archive.Zip)->DocumentProperties
+    {
         var result: #returntype
-        let archive = catch Archive.Zip.load(fileName) { return result; }
 
         // Office Open XML keeps its core properties and the saving program apart.
         if let core = archive.tryFindEntry("docProps/core.xml")

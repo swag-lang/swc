@@ -3,6 +3,35 @@
 
 using StaticApi
 
+// Imported interface summaries must preserve the selected implementation's effects.
+func importedNonRetainingInterfaceKeepsInlineViewLocal()
+{
+    var writer: DepBorrowNonRetainingWriter
+    var callback: DepBorrowWriter = writer
+    var bytes: [8] u8
+    bytes[0] = 's'u8
+    let text: string = cast(string, bytes)
+
+    callback.print(text)
+    Swag.require(writer.calls == 1)
+}
+
+#test
+{
+    importedNonRetainingInterfaceKeepsInlineViewLocal()
+}
+
+func importedRetainingInterfaceRejectsInlineView()
+{
+    var writer: DepBorrowRetainingWriter
+    var callback: DepBorrowWriter = writer
+    var bytes: [8] u8     // swc-expected-note {{sema_note_borrow_source_declared_here}}
+    bytes[0] = 's'u8
+    let text: string = cast(string, bytes)
+
+    callback.print(text)     // swc-expected-error {{sanity_err_borrow_escape}}
+}
+
 // An imported scalar reader has no ambient observation, even though its masks are all zero.
 #[Swag.NoInline]
 func clearAfterImportedReader(holder: *DepBorrowContainer, value: *s32)

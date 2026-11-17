@@ -10,6 +10,8 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
+#include "Compiler/Sema/Symbol/Symbol.Interface.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
@@ -1529,6 +1531,97 @@ namespace
         return nullptr;
     }
 
+    const SymbolFunction* knownInterfaceMethodTarget(Sema&                       sema,
+                                                     const SymbolFunction&        interfaceMethod,
+                                                     const SmallVector<ResolvedCallArgument>& args)
+    {
+        for (const ResolvedCallArgument& arg : args)
+        {
+            if (arg.passKind != CallArgumentPassKind::InterfaceObject || arg.argRef.isInvalid())
+                continue;
+
+            const TypeRef receiverTypeRef = expressionTypeRef(sema, arg.argRef);
+            if (!receiverTypeRef.isValid())
+                return nullptr;
+
+            const TypeInfo& receiverType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), receiverTypeRef);
+            if (!receiverType.isInterface())
+                return nullptr;
+
+            const SymbolInterface& interfaceSym = receiverType.payloadSymInterface();
+            const SymbolFunction*  prototype    = nullptr;
+            for (const SymbolFunction* candidate : interfaceSym.functions())
+            {
+                if (!candidate || candidate->idRef() != interfaceMethod.idRef())
+                    continue;
+
+                const auto& candidateParams = candidate->parameters();
+                const auto& selectedParams  = interfaceMethod.parameters();
+                const size_t offset = selectedParams.size() == candidateParams.size() + 1 ? 1 : 0;
+                if (selectedParams.size() != candidateParams.size() + offset ||
+                    candidate->returnTypeRef() != interfaceMethod.returnTypeRef())
+                    continue;
+
+                bool sameSignature = true;
+                for (size_t i = 0; i < candidateParams.size(); ++i)
+                {
+                    if (!candidateParams[i] || !selectedParams[i + offset] ||
+                        unwrapAliasEnum(sema, candidateParams[i]->typeRef()) !=
+                            unwrapAliasEnum(sema, selectedParams[i + offset]->typeRef()))
+                    {
+                        sameSignature = false;
+                        break;
+                    }
+                }
+
+                if (!sameSignature)
+                    continue;
+                if (prototype)
+                    return nullptr;
+                prototype = candidate;
+            }
+            if (!prototype)
+                return nullptr;
+
+            const SymbolVariable* receiver = identifierVariable(sema, sema.resolvedNodeRef(arg.argRef));
+            if (!receiver)
+                return nullptr;
+
+            // A mutable binding is concrete only while its storage cannot be reassigned
+            // or exposed through an alias. Writes and address-taking mark it addressable.
+            if (!receiver->hasExtraFlag(SymbolVariableFlagsE::Let) &&
+                (!receiver->isFrameVariable() || receiver->hasExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage)))
+                return nullptr;
+
+            const auto* declaration = receiver->declAs<AstSingleVarDecl>();
+            if (!declaration || declaration->nodeInitRef.isInvalid())
+                return nullptr;
+
+            const AstNodeRef sourceRef = SemaHelpers::resolveTransparentExprSourceRef(sema, declaration->nodeInitRef);
+            if (sourceRef.isInvalid())
+                return nullptr;
+
+            const SymbolVariable* sourceVar = identifierVariable(sema, sourceRef);
+            if (!sourceVar)
+                sourceVar = identifierVariable(sema, sema.resolvedNodeRef(sourceRef));
+            TypeRef sourceTypeRef = sourceVar ? sourceVar->typeRef() : expressionTypeRef(sema, sourceRef);
+            if (!sourceTypeRef.isValid())
+                return nullptr;
+
+            const TypeInfo* sourceType = &sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceTypeRef);
+            if (sourceType->isPointerOrReference())
+                sourceType = &sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceType->payloadTypeRef());
+            if (!sourceType->isStruct())
+                return nullptr;
+
+            const SymbolImpl* interfaceImpl = sourceType->payloadSymStruct().findInterfaceImplOrUsingFields(
+                sema.ctx(), interfaceSym);
+            return interfaceImpl ? interfaceImpl->resolveInterfaceMethodTarget(sema.ctx(), *prototype) : nullptr;
+        }
+
+        return nullptr;
+    }
+
     bool isIndirectCallResult(Sema& sema, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())
@@ -2201,6 +2294,19 @@ namespace
         if (!fn)
             return false;
 
+        const SymbolFunction* summaryFn          = fn;
+        size_t                summaryParamOffset = 0;
+        SmallVector<ResolvedCallArgument> args;
+        sema.appendResolvedCallArguments(resolvedRef, args);
+        if (const SymbolFunction* target = knownInterfaceMethodTarget(sema, *fn, args))
+        {
+            if (target->parameters().size() != fn->parameters().size() + 1)
+                return false;
+
+            summaryFn          = target;
+            summaryParamOffset = 1;
+        }
+
         // Expanded calls no longer resolve to CallExpr. Do not use Inline attributes
         // to decide this: expansion depends on build settings, and imported inline
         // bodies are unavailable even though their generated foreign APIs keep the attribute.
@@ -2210,14 +2316,12 @@ namespace
             return false;
 
         const auto& params = fn->parameters();
-        if (params.empty())
+        if (params.empty() && summaryFn == fn)
             return false;
+        const auto& summaryParams = summaryFn->parameters();
 
         // Allocator free/realloc invalidate the pointer in the request's address field.
-        const bool calleeIsAllocFree = fn->isAllocatorRelease(sema.ctx());
-
-        SmallVector<ResolvedCallArgument> args;
-        sema.appendResolvedCallArguments(resolvedRef, args);
+        const bool calleeIsAllocFree = summaryFn->isAllocatorRelease(sema.ctx());
 
         struct ArgumentBorrow
         {
@@ -2240,21 +2344,36 @@ namespace
         size_t paramIndex = 0;
         for (const ResolvedCallArgument& arg : args)
         {
-            // Interface dispatch prepends the runtime receiver object, which does not
-            // consume a declared parameter slot.
+            size_t thisParam = 0;
+            const SymbolVariable* param = nullptr;
             if (arg.passKind == CallArgumentPassKind::InterfaceObject)
-                continue;
-            if (paramIndex >= params.size())
-                break;
+            {
+                // A known concrete target has a receiver parameter that the interface
+                // prototype omits. Include it so retaining the receiver is checked too.
+                if (summaryFn == fn || summaryParams.empty())
+                    continue;
+                param = summaryParams.front();
+            }
+            else
+            {
+                if (paramIndex >= params.size())
+                    break;
 
-            const size_t          thisParam = paramIndex++;
-            const SymbolVariable* param     = params[thisParam];
-            if (arg.argRef.isInvalid() || !param || thisParam >= 64)
+                thisParam = paramIndex++;
+                param     = params[thisParam];
+            }
+
+            if (arg.argRef.isInvalid() || !param)
                 continue;
+
+            const size_t summaryParam = arg.passKind == CallArgumentPassKind::InterfaceObject ? 0 : thisParam + summaryParamOffset;
+            if (summaryParam >= summaryParams.size() || summaryParam >= 64 || !summaryParams[summaryParam])
+                continue;
+            const SymbolVariable* summaryParamSym = summaryParams[summaryParam];
 
             // A variadic tail bundles its values into a temporary slice: the pairing
             // with a single summary bit stops there.
-            const TypeRef paramTypeRef = unwrapAliasEnum(sema, param->typeRef());
+            const TypeRef paramTypeRef = unwrapAliasEnum(sema, summaryParamSym->typeRef());
             if (paramTypeRef.isValid() && sema.typeMgr().get(paramTypeRef).isAnyVariadic())
                 break;
 
@@ -2268,7 +2387,7 @@ namespace
                 continue;
 
             uint32_t             argumentBudget = K_EXPR_BUDGET;
-            const SemaEscapeInfo directInfo     = borrowInfoFromCallArgument(sema, arg, param->typeRef(), argumentBudget);
+            const SemaEscapeInfo directInfo     = borrowInfoFromCallArgument(sema, arg, summaryParamSym->typeRef(), argumentBudget);
             SemaEscapeInfo       indirectInfo;
             if (paramTypeRef.isValid())
             {
@@ -2303,11 +2422,11 @@ namespace
                     // them within this budget, then let guards consult final return summaries.
                     SemaEscapeDeferredCallSnapshot nested;
                     if (captureOpaqueCallBorrows(sema, arg.argRef, false, nested, budget))
-                        appendGuardedCallBorrows(outCapture, nested, *fn, static_cast<uint32_t>(thisParam), indirect);
+                        appendGuardedCallBorrows(outCapture, nested, *summaryFn, static_cast<uint32_t>(summaryParam), indirect);
                 }
 
                 if (collectPairs && info.hasBorrow())
-                    argBorrows.push_back({static_cast<uint32_t>(thisParam), info, indirect});
+                    argBorrows.push_back({static_cast<uint32_t>(summaryParam), info, indirect});
 
                 // Allocator release follows the request's address borrow. Caller parameters
                 // seed the frees summary; releasing a non-owning frame borrow is a fault.
@@ -2365,8 +2484,8 @@ namespace
                     else if (carried.isLocalBorrow() && !carried.viaStoredField && !hasOwningLifecycle(sema, carried.sourceVar->typeRef()))
                     {
                         SemaEscapeDeferredCheck check;
-                        check.callee      = fn;
-                        check.paramIndex  = static_cast<uint32_t>(thisParam);
+                        check.callee      = summaryFn;
+                        check.paramIndex  = static_cast<uint32_t>(summaryParam);
                         check.judgeAlways = true;
                         fillDeferredCheckDiag(sema, check, carried);
                         check.diagId    = DiagnosticId::sanity_err_free_borrowed;
@@ -2384,12 +2503,14 @@ namespace
                     if (!callerFn)
                         continue;
 
-                    const SymbolVariable* callerField = callerArgumentProjectionField(sema, resolvedRef, *fn, thisParam, arg.argRef);
+                    const SymbolVariable* callerField = arg.passKind == CallArgumentPassKind::InterfaceObject
+                                                            ? nullptr
+                                                            : callerArgumentProjectionField(sema, resolvedRef, *fn, thisParam, arg.argRef);
                     if (info.sourceVar)
                     {
                         SemaEscapeDeferredCheck route;
-                        route.callee               = fn;
-                        route.paramIndex           = static_cast<uint32_t>(thisParam);
+                        route.callee               = summaryFn;
+                        route.paramIndex           = static_cast<uint32_t>(summaryParam);
                         route.indirect             = indirect;
                         route.borrowedVar          = info.sourceVar;
                         route.borrowedPayloadField = callerField;
@@ -2411,9 +2532,9 @@ namespace
 
                             SemaEscapeSummaryEdge edge;
                             edge.caller                = callerFn;
-                            edge.callee                = fn;
+                            edge.callee                = summaryFn;
                             edge.callerParamIndex      = static_cast<uint32_t>(callerParamIndex);
-                            edge.calleeParamIndex      = static_cast<uint32_t>(thisParam);
+                            edge.calleeParamIndex      = static_cast<uint32_t>(summaryParam);
                             edge.callerIndirect        = callerIndirect;
                             edge.calleeIndirect        = indirect;
                             edge.viaOwnedPayload       = info.viaOwnedPayload || info.detachedOwnedPayload;
@@ -2422,7 +2543,7 @@ namespace
                             edge.callerProjectionField = callerField;
 
                             outCapture.edges.push_back(edge);
-                            parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam), callerIndirect, indirect});
+                            parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(summaryParam), callerIndirect, indirect});
                         }
                     }
 
@@ -2439,7 +2560,7 @@ namespace
                         if (!snapshot)
                             continue;
 
-                        appendGuardedCallBorrows(outCapture, *snapshot, *fn, static_cast<uint32_t>(thisParam), indirect);
+                        appendGuardedCallBorrows(outCapture, *snapshot, *summaryFn, static_cast<uint32_t>(summaryParam), indirect);
                     }
 
                     continue;
@@ -2451,8 +2572,8 @@ namespace
                 if (info.kind == SemaEscapeKind::Static && info.sourceVar)
                 {
                     SemaEscapeDeferredCheck check;
-                    check.callee       = fn;
-                    check.paramIndex   = static_cast<uint32_t>(thisParam);
+                    check.callee       = summaryFn;
+                    check.paramIndex   = static_cast<uint32_t>(summaryParam);
                     check.indirect     = indirect;
                     check.borrowedVar  = info.sourceVar;
                     check.staticSource = true;
@@ -2467,8 +2588,8 @@ namespace
                 // Site, wording and judged summary are stamped when the borrow provably
                 // escapes (commitDeferredCallBorrows).
                 SemaEscapeDeferredCheck check;
-                check.callee     = fn;
-                check.paramIndex = static_cast<uint32_t>(thisParam);
+                check.callee     = summaryFn;
+                check.paramIndex = static_cast<uint32_t>(summaryParam);
                 check.indirect   = indirect;
                 fillDeferredCheckDiag(sema, check, info);
 
@@ -2492,7 +2613,7 @@ namespace
 
                     SemaEscapeSummaryEdge edge;
                     edge.caller               = sema.currentFunction();
-                    edge.callee               = fn;
+                    edge.callee               = summaryFn;
                     edge.callerParamIndex     = callerStored;
                     edge.calleeParamIndex     = calleeStored;
                     edge.callerIntoParamIndex = callerInto;
@@ -2523,7 +2644,7 @@ namespace
                                 continue;
 
                             SemaEscapeDeferredCallSnapshot forwarded;
-                            appendGuardedCallBorrows(forwarded, *snapshot, *fn, storedParam, storedIndirect);
+                            appendGuardedCallBorrows(forwarded, *snapshot, *summaryFn, storedParam, storedIndirect);
                             for (SemaEscapeDeferredCheck& check : forwarded.checks)
                             {
                                 if (check.staticSource || check.routeOnly)

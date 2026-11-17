@@ -63,6 +63,23 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(result.view != null and result.commands == null and result.info != null)
 
     let viewer = assume cast(*Midi.Panel, result.view)
+
+    // While the score loads there is no roll yet: the information sheet says nothing of it, and
+    // the lens offers the zoom of the roll disabled.
+    Swag.require(viewer.load.isPending())
+    viewer.describeInformation(InfoSheet.create(&host.root))
+    var pending: Lens.Results
+    var pendingEntries = Viewer.LensEntries.create(&pending, "MIDI", host.theme)
+    viewer.describeLens(&pendingEntries)
+    var zoomRows = 0
+    for &entry in pending.sections[0]!.entries where entry.title == appStrings().cmd_ZoomIn
+    {
+        Swag.require(entry.disabled)
+        zoomRows += 1
+    }
+
+    Swag.require(zoomRows == 1)
+
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.require(result.info.preferredSize.x == Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
     Swag.require(Utf8.contains(viewer.details.toSlice(), "7 notes"))
@@ -81,6 +98,50 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let fitZoom = viewer.roll.zoom
     viewer.roll.zoomIn()
     Swag.require(not viewer.roll.fit and viewer.roll.zoom > fitZoom)
+
+    // The lens fits the score back, as `F` does.
+    var zoomed: Lens.Results
+    var zoomedEntries = Viewer.LensEntries.create(&zoomed, "MIDI", host.theme)
+    viewer.describeLens(&zoomedEntries)
+    var fitRows = 0
+    for &entry in zoomed.sections[0]!.entries where entry.title == Midi.texts().ui_Fit
+    {
+        Swag.require(not entry.checked and not entry.disabled)
+        entry.run!()
+        fitRows += 1
+    }
+
+    Swag.require(fitRows == 1 and viewer.roll.fit)
+
+    // At the roll's limits, the step that cannot be taken reads as unavailable.
+    for value in [1000.0'f32, 0.0'f32]
+    {
+        viewer.roll.applyZoom(value)
+        var limit: Lens.Results
+        var limitEntries = Viewer.LensEntries.create(&limit, "MIDI", host.theme)
+        viewer.describeLens(&limitEntries)
+        for &entry in limit.sections[0]!.entries
+        {
+            if entry.title == appStrings().cmd_ZoomIn do
+                Swag.require(entry.disabled == (value > 1))
+            elif entry.title == appStrings().cmd_ZoomOut do
+                Swag.require(entry.disabled == (value < 1))
+        }
+    }
+
+    // Actual size reads as chosen while the roll shows at it, as the readout's 100 %.
+    viewer.roll.applyZoom(1)
+    var actual: Lens.Results
+    var actualEntries = Viewer.LensEntries.create(&actual, "MIDI", host.theme)
+    viewer.describeLens(&actualEntries)
+    var actualRows = 0
+    for &entry in actual.sections[0]!.entries where entry.title == appStrings().cmd_ZoomReset
+    {
+        Swag.require(entry.checked)
+        actualRows += 1
+    }
+
+    Swag.require(actualRows == 1 and viewer.zoomLabel.text() == Viewer.zoomText(100))
     viewer.roll.zoomToFit()
 
     host.root.applyLayout()
@@ -99,6 +160,48 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Testing.assertContentFits(viewer.info)
 }
 
+// A note held from the start of the piece still shows once the view scrolls far past where it
+// started, beyond many shorter notes that it no longer reaches.
+#test
+{
+    const ShortNotes = 64'u32
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "MThd"))
+    bytes.add([0'u8, 0, 0, 6, 0, 0, 0, 1, 1, 0xE0])
+    bytes.add(cast(const [..] u8, "MTrk"))
+    let trackSize = 4 + ShortNotes * 9 + 4 + 4
+    bytes.add([0'u8, 0, cast(u8, trackSize >> 8), cast(u8, trackSize & 0xFF)])
+    bytes.add([0'u8, 0x90, 60, 100])
+    for ShortNotes do
+        bytes.add([0'u8, 0x90, 64, 100, 0x83, 0x60, 0x80, 64, 0])
+    bytes.add([0'u8, 0x80, 60, 0])
+    bytes.add([0'u8, 0xFF, 0x2F, 0])
+    let fileName = Gui.Testing.tempFilePath("scope-midi-held-", ".mid")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes.toSlice())
+    var document = expect Midi.loadDocument(fileName)
+    Swag.require(document.notes.count == ShortNotes + 1 and document.longestNote == ShortNotes * 480)
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 600)
+    let roll = Midi.RollView.create(&host.root, #move document)
+    host.root.applyLayout()
+    roll.applyZoom(1)
+    roll.scroll.setScrollPos(roll.timelineWidth * 0.5, 0)
+    Swag.require(roll.scrollPos.x > roll.clientRect().width)
+
+    // The held key's row is painted across the view; the next white key, which no note plays, is not.
+    func rowY(roll: *Midi.RollView, key: u8)->s32
+    {
+        let middle = roll.plotTop + (cast(f32, roll.highKey - key) + 0.5) * roll.rowHeight
+        return cast(s32, roll.surfaceRect().y + middle)
+    }
+
+    let image = host.render(&host.root)
+    let x     = cast(s32, roll.surfaceRect().x + roll.clientRect().width * 0.75)
+    Swag.require(image.pixelColor(x, rowY(roll, 60)) != image.pixelColor(x, rowY(roll, 62)))
+}
+
 #test
 {
     let fileName = Gui.Testing.tempFilePath("scope-midi-bad-", ".mid")
@@ -112,6 +215,10 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     let viewer = assume cast(*Midi.Panel, result.view)
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.require(not viewer.failureReason.isEmpty())
+
+    // A file that failed has no roll to translate or describe.
+    host.notify(.LanguageChanged)
+    viewer.describeInformation(InfoSheet.create(&host.root))
 }
 
 // The tenth channel is percussion: its notes are hits drawn where they strike, whatever their

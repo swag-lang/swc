@@ -3,11 +3,9 @@
 ui_Track         Piste
 ui_AllTracks     Toutes les pistes
 ui_TrackName     Piste %
-ui_TrackChoice   % — %
 ui_ZoomOut       Réduire le zoom
 ui_ZoomIn        Agrandir le zoom
 ui_Fit           Ajuster la partition complète
-ui_FitShort      Ajusté
 ui_ZoomMenu Zoom…
 ui_PitchLabels   Noms des notes
 ui_PitchReference C4 = MIDI 60

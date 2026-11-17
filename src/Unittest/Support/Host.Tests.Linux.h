@@ -9,6 +9,7 @@ namespace swc::LinuxHostTests
     void testFileOwners();
     void testCrossToolchainDiscovery();
     void testDirectoryLocks();
+    void testPrivateCompilerCacheRoot();
     void testThreadStorage();
     void testModuleLoading();
     void testCallStacks();

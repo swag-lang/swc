@@ -813,6 +813,7 @@ impl ViewerWindow
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
         .folderFiles     = #move classified.folderFiles
+        .forgetLensFile()
         if .explorer and .explorer.displayPath(.currentFile) != .currentFile.toString() do
             .folderFiles.clear()
         .siblingsDirty = true

@@ -51,10 +51,11 @@ impl ZLib
     // Decompresses the zlib stream in `buffer` and returns its content.
     //
     // A non-zero `hintSize` reserves that many output bytes up front, which avoids reallocations
-    // when the uncompressed size is known. Fails with [[Core.Errors.InvalidFormatError]] for a
+    // when the uncompressed size is known. `maxOutputSize` limits the bytes the call may produce;
+    // the hint must not exceed that limit. Fails with [[Core.Errors.InvalidFormatError]] for a
     // malformed stream or a checksum mismatch, and with [[Core.Errors.UnsupportedFormatError]]
-    // for a preset dictionary or a window larger than 32 KiB.
-    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0)->Array'u8 fail
+    // for a preset dictionary, a window larger than 32 KiB, or output beyond the limit.
+    mtd decompress(buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max)->Array'u8 fail
     {
         var bs = ByteStream.openRead(buffer)
         if bs.length() < 6 do
@@ -80,9 +81,11 @@ impl ZLib
             fail UnsupportedFormatError{"unsupported dictionary"}
 
         var result: #returntype
+        if hintSize > maxOutputSize do
+            fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
         if hintSize do
             result.grow(hintSize)
-        try .decoder.decompress(&result, bs.remainingBytes(), winSize)
+        try .decoder.decompress(&result, bs.remainingBytes(), winSize, maxOutputSize)
 
         // The Adler-32 trailer follows the Deflate data at the next byte boundary.
         .decoder.stream.discardToNextByte()

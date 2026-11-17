@@ -23,10 +23,11 @@ integration around those engines.
 ### app.scope.document.001 — The full Markdown outline reads the whole source and has no breadcrumb
 
 - Evidence: `DocumentOutline` lists Markdown headings with depth and source offsets, marks the
-  heading being read from the reader's first move on, and keeps the mark through its filter. Choosing a
-  heading records the place left in `Viewer.History`; Alt+arrows and the lens return through
-  `Markdown.View.revealBlock`. The outline worker still reads the complete source, a rendered
-  link is not a recorded jump, and no breadcrumb names the enclosing sections.
+  heading being read from the reader's first move on while it is open, and keeps the mark through
+  its filter. Choosing a heading records the place left in `Viewer.History`; Alt+arrows and the
+  lens return through `Markdown.View.revealBlock`. The headings are read only when the outline
+  first opens, but that worker still reads the complete source, a rendered link is not a recorded
+  jump, and no breadcrumb names the enclosing sections.
 - Next: build a bounded heading index instead of reading the whole file, then show the path of
   enclosing headings for the marked one.
 - Done when: the outline of a very large document appears without retaining its whole source,

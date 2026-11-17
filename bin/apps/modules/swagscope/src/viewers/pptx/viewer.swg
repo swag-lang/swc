@@ -27,9 +27,6 @@ struct Panel
 {
     using wnd: Wnd
 
-    properties:     Package.DocumentProperties     // What the package says of the document, once read.
-    propertiesRead: bool
-
     presentation: Presentation
     load:         Viewer.BackgroundLoad'Presentation
     services:     Viewer.HostServices
@@ -325,18 +322,12 @@ func createViewer(host: Viewer.Host)
 
 impl Panel
 {
-    // Describes the document in the information sheet with what its package says of it, read
-    // once, the first time the sheet asks.
+    // Describes the presentation in the information sheet with what its package says of it, read
+    // with the slides on the loading worker.
     internal mtd describeInformation(sheet: *InfoSheet)
     {
-        if not .propertiesRead and not .load.fileName.isEmpty()
-        {
-            .properties     = Package.DocumentProperties.read(.load.fileName)
-            .propertiesRead = true
-        }
-
         var data: MediaInfoData
-        .properties.describe(&data)
+        .presentation.properties.describe(&data)
         data.describe(sheet)
     }
 }

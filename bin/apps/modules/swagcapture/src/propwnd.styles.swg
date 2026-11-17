@@ -525,13 +525,13 @@ impl PropWnd
 
             // A layer is named by its words when it has some, by its kind otherwise: a shape is a
             // rectangle or an ellipse, as the title of the inspector counts it.
-            var name: String = MainWnd.editModeName(mode)
+            var name: String = mode.name()
             if form is FormShape as shape where mode == .Shape do
                 name = shape.kind == .Ellipse ? texts.kind_Ellipse : texts.kind_Rectangle
             let words = formEditableText(form)
             if words and not words.isEmpty() do
                 name = words[]
-            with let button = IconButton.create(.addHeadRow(""), .main.icon(MainWnd.editModeIcon(mode), metrics.menuPopup_IconSize), {}, flags: .Radio)
+            with let button = IconButton.create(.addHeadRow(""), .main.icon(mode.glyph(), metrics.menuPopup_IconSize), {}, flags: .Radio)
             {
                 .dockStyle = .Center
                 .userData  = cast(*void, cast(u64, i))

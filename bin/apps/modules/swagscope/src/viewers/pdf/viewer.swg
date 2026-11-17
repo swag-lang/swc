@@ -224,7 +224,7 @@ private impl IWnd for Panel
         {
         case .Add, .OemPlus where evt.modifiers == .Control:       .pdfView.zoomIn()
         case .Subtract, .OemMinus where evt.modifiers == .Control: .pdfView.zoomOut()
-        case .D0 where evt.modifiers.has(.Control):                .pdfView.actualSize()
+        case .D0 where evt.modifiers == .Control:                  .pdfView.actualSize()
         case .F where evt.modifiers == .None:                      .pdfView.zoomToFit()
         case .W where evt.modifiers == .None:                      .pdfView.zoomToFitWidth()
         default: evt.accepted = false
@@ -275,7 +275,10 @@ private impl Panel
         {
             if not result.isEmpty() do
                 result += " · "
-            result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
+            if unreadable == 1 do
+                result += texts().ui_TextLayerOneUnreadable
+            else do
+                result += Format.toString(texts().ui_TextLayerUnreadable, unreadable)
         }
 
         return result
@@ -294,13 +297,18 @@ private impl Panel
         let pages = .pdfView.pageCount()
         if coverage.pictures == pages do
             result = texts().ui_NoTextLayer
+        elif coverage.pictures == 1 do
+            result = Format.toString(texts().ui_OneNoText, pages)
         elif coverage.pictures do
             result = Format.toString(texts().ui_SomeNoText, coverage.pictures, pages)
         if coverage.unreadable
         {
             if not result.isEmpty() do
                 result += " · "
-            result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
+            if coverage.unreadable == 1 do
+                result += texts().ui_OneUnreadable
+            else do
+                result += Format.toString(texts().ui_Unreadable, coverage.unreadable)
         }
 
         return result
@@ -315,9 +323,19 @@ private impl Panel
         .pageLabel.setText(.pageReadout())
     }
 
+    // Returns the size the pages are shown at, in percent of the size they would print at, as the
+    // zoom readout shows it. A page's 100 % is its actual size, as a picture's is its own pixels.
+    internal mtd zoomPercent()->u32 => cast(u32, Math.round(.pdfView.effectiveZoom() / PdfView.ActualSizeZoom * 100))
+
     mtd refreshZoom()
     {
-        .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
+        .zoomLabel.setText(Viewer.zoomText(.zoomPercent()))
+    }
+
+    // Shows the pages at `percent` of their actual size.
+    internal mtd setZoomPercent(percent: u32)
+    {
+        .pdfView.setZoom(PdfView.ActualSizeZoom * cast(f32, percent) / 100)
     }
 
     // Returns the label the document gives page `index`, or an empty string when it is only its
@@ -465,8 +483,11 @@ private impl Panel
                 view.history.visit(view.pdfView.readingPosition())
                 view.pdfView.showPage(index)
             })
+
+            // The row leads with the page's position, as the other numbered jump rows do: a label
+            // with its position would not fit the narrow column before the title.
             if entry do
-                entry.lead = named
+                entry.lead = Format.toString("%", index + 1)
             return
         }
 
@@ -476,10 +497,15 @@ private impl Panel
         entries.add(strings.ui_GoToPage, .GoTo, func|view = me|() { view.promptGoToPage() })
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
         entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
-        entries.add(strings.ui_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
-        entries.add(strings.ui_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+
+        // The page view zooms by factors, far past the shared bounds, so only actual size, the
+        // 100 % of the readout, is the shared row; it reads as chosen while the pages show at it.
+        // The steps read as unavailable at the page view's own limits.
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.pdfView.zoomIn() }, disabled: not .pdfView.canZoomIn(), shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, disabled: not .pdfView.canZoomOut(), shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.pdfView.actualSize() })
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
+        entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
 
         // The commands of the page's context menu, so none of them needs a right click.
@@ -510,15 +536,17 @@ private impl Panel
     }
 
     // Offers the zoom presets, fit to page or width, and the continuous or single-page layout, with
-    // the current fit and layout checked.
+    // the level in use, the fit and the layout checked. A page is read near its actual size, so the
+    // levels stay around 100 % as the text viewers' do rather than reaching down as a picture's do.
     mtd showZoomMenu()
     {
-        let menu = MenuCtrl.createPopup(me, owner: me)
-        menu.addItem("50 %", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())))
-        menu.addItem("100 %", "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())))
-        menu.addItem("125 %", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
-        menu.addItem("150 %", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
-        menu.addItem("200 %", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())))
+        let menu    = MenuCtrl.createPopup(me, owner: me)
+        let percent = .zoomPercent()
+        menu.addItem("50 %", "scope.pdf.zoom50", .theme().icon(.ZoomOut, themeRowIconSize(.themeMetrics())), checked: percent == 50)
+        menu.addItem("100 %", "scope.pdf.zoomActual", .theme().icon(.ActualSize, themeRowIconSize(.themeMetrics())), checked: percent == 100)
+        menu.addItem("125 %", "scope.pdf.zoom125", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 125)
+        menu.addItem("150 %", "scope.pdf.zoom150", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 150)
+        menu.addItem("200 %", "scope.pdf.zoom200", .theme().icon(.ZoomIn, themeRowIconSize(.themeMetrics())), checked: percent == 200)
         menu.addSeparator()
         menu.addItem(texts().ui_Fit, "scope.pdf.zoomFit", .theme().icon(.FitView, themeRowIconSize(.themeMetrics())), rightName: "F", checked: .pdfView.zoomMode == .FitPage)
         menu.addItem(texts().ui_FitWidth, "scope.pdf.zoomFitWidth", .theme().icon(.FitWidth, themeRowIconSize(.themeMetrics())), rightName: "W", checked: .pdfView.zoomMode == .FitWidth)
@@ -527,11 +555,11 @@ private impl Panel
         menu.addItem(texts().ui_SinglePage, "scope.pdf.layoutSingle", .theme().icon(.File, themeRowIconSize(.themeMetrics())), checked: .pdfView.pageLayout == .Single)
         switch menu.doModal(.zoomLabel, autoDestroy: true) orelse ""
         {
-        case "scope.pdf.zoom50":           .pdfView.setZoom(0.5)
+        case "scope.pdf.zoom50":           .setZoomPercent(50)
         case "scope.pdf.zoomActual":       .pdfView.actualSize()
-        case "scope.pdf.zoom125":          .pdfView.setZoom(1.25)
-        case "scope.pdf.zoom150":          .pdfView.setZoom(1.5)
-        case "scope.pdf.zoom200":          .pdfView.setZoom(2)
+        case "scope.pdf.zoom125":          .setZoomPercent(125)
+        case "scope.pdf.zoom150":          .setZoomPercent(150)
+        case "scope.pdf.zoom200":          .setZoomPercent(200)
         case "scope.pdf.zoomFit":          .pdfView.zoomToFit()
         case "scope.pdf.zoomFitWidth":     .pdfView.zoomToFitWidth()
         case "scope.pdf.layoutContinuous": .pdfView.setPageLayout(.Continuous)
@@ -629,7 +657,7 @@ private impl Panel
             // The text layer of every page is known; the information sheet can state it.
             .sigTextExtracted += func|view = me|(_)
             {
-                view.services.showDetails(view, view.details)
+                view.services.informationChanged(view)
             }
 
             .sigZoomChanged += func|view = me|(_)
@@ -637,9 +665,10 @@ private impl Panel
                 view.refreshZoom()
             }
 
+            // Only an open outline follows the reading as it moves; a closed one catches up as it opens.
             .sigScrolled += func|view = me|(_)
             {
-                view.followReading()
+                view.outline?.followOpenReading()
             }
 
             .sigRenderError += func|view = me|(_, message)

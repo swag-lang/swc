@@ -1868,6 +1868,12 @@ SWC_TEST_BEGIN(ELFArchive_IndexesDefinitionsAndPreservesMembers)
     ByteArray repeated;
     if (!buildElfStaticArchive(repeated, diagnostic, members) || repeated != bytes)
         return Result::Error;
+    ByteArray oversizedMemberSize = bytes;
+    std::memcpy(oversizedMemberSize.data() + 8 + 48, "4294967331", 10);
+    Archive rejectsWrappedMemberSize;
+    if (rejectsWrappedMemberSize.load(diagnostic, std::move(oversizedMemberSize)))
+        return Result::Error;
+
     const ByteArray original = members[1].bytes;
     members[1].bytes.writeLe64(40, UINT64_MAX);
     if (buildElfStaticArchive(bytes, diagnostic, members) || !bytes.empty())

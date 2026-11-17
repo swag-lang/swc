@@ -265,8 +265,13 @@ public:
     const ScopedSymbolNames& scopedSymbolNames() const;
 
 private:
-    size_t selectedNativeTestCount() const;
-    void   parseNativeTestSummary(const std::string& output);
+    struct NativeTestProgressContext;
+
+    Result      remapRDataReference(NativeSectionData& section, NativeSectionRelocation& relocation, const ScopedSymbolNames& names);
+    static void forwardNativeTestProgress(void* userData, std::string_view line);
+    void        updateNativeTestProgress(ScopedTimedLog& stage, std::string_view line);
+    size_t      selectedNativeTestCount() const;
+    void        parseNativeTestSummary(const std::string& output);
     Result      validateTarget();
     void        prepareFunctionCache();
     Result      buildObjects();

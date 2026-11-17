@@ -24,6 +24,8 @@ struct Grid
     showHidden:           bool
     keepSelectionVisible: bool
     syncing:              bool
+    hovering:             bool
+    hovered:              Address     // Cell under the pointer while `hovering`, which the tooltip shows.
     scratch:              RichString
     sigSelected:          SigArray'func||(*Wnd)
 }
@@ -242,7 +244,7 @@ impl Grid
     internal mtd copy()
     {
         if .hasSelection do
-            Clipboard.addString(.selectedText())
+            Clipboard.setString(.selectedText())
     }
 
     mtd addressAt(point: Math.Point)->{address: Address, found: bool}
@@ -257,6 +259,29 @@ impl Grid
         while column + 1 < .columnOffsets.count and .columnOffsets[column + 1] <= x do
             column += 1
         return {Address{.rowAt(y), column}, true}
+    }
+
+    // Shows the text of the cell under the pointer as the tooltip. The pointer moves many times
+    // inside one cell, so the tooltip is rebuilt only when it enters another cell or leaves them.
+    mtd hover(found: bool, address: Address)
+    {
+        if found == .hovering and address.row == .hovered.row and address.column == .hovered.column do
+            return
+        .hovering = found
+        .hovered  = address
+        .toolTip.clear()
+        if not found do
+            return
+
+        let range = .mergedRange(address)
+        if let cell = .sheet!.cellAt(range.first)
+        {
+            let text  = cell.text.toString()
+            var count = Math.min(text.count, 512)
+            while count < text.count and count > 0 and (text[count] & 0xC0) == 0x80 do
+                count -= 1
+            .toolTip = text[until count]
+        }
     }
 
     mtd drawCell(painter: *Painter, rect: Math.Rectangle, cell: const *Cell, textWidth = -1.0'f32)
@@ -277,26 +302,30 @@ impl Grid
         let width = Math.max(available - 6 - indent, 0)
         if width <= 0 do
             return
+
+        // The cell's text goes straight into the reused rich string, cut at a character boundary
+        // far beyond any visible width, so a paint copies no cell into a string of its own.
         let raw   = cell.text.toString()
         var count = Math.min(raw.count, 4096)
         while count < raw.count and count > 0 and (raw[count] & 0xC0) == 0x80 do
             count -= 1
-        var text = String.from(raw[until count])
+        .scratch.set(raw[until count])
         if count < raw.count do
-            text += "…"
+            .scratch.append("…")
+
+        // A number too wide for its cell shows as a row of hashes, as a spreadsheet shows it.
+        let deviceScale = .deviceScale()
         if cell.numeric and
            not look.alignment.wrap and
-           Painter.measureStringSnapped(text, font, deviceScale: .deviceScale()) > width
+           Painter.measureStringSnapped(.scratch.text, font, deviceScale: deviceScale) > width
         {
-            let hashWidth = Math.max(Painter.measureStringSnapped("#", font, deviceScale: .deviceScale()), 1)
+            let hashWidth = Math.max(Painter.measureStringSnapped("#", font, deviceScale: deviceScale), 1)
             let hashes    = Math.max(cast(u32, Math.floor(width / hashWidth)), 1)
-            text.clear()
+            .scratch.clear()
             for hashes do
-                text += '#'
+                .scratch.append("#")
         }
 
-        text.replace("<", "<\u2060")
-        .scratch.set(text)
         .scratch.compute()
         for &chunk in .scratch.chunks do
             chunk.under = look.font.underline ? .Underline : look.font.strike ? .Strikeout : .None
@@ -309,9 +338,9 @@ impl Grid
         format.vertAlignment = look.alignment.vertical == .Top ? .Top : look.alignment.vertical == .Bottom ? .Bottom : .Center
         format.horzAlignment = look.alignment.horizontal == .Center ? .Center :
                                look.alignment.horizontal == .Right or (look.alignment.horizontal == .General and cell.numeric) ? .Right : .Left
-        if available > rect.width and not text.isEmpty()
+        if available > rect.width and not .scratch.isEmpty()
         {
-            let painted = Painter.measureStringSnapped(text, font, deviceScale: .deviceScale())
+            let painted = Painter.measureStringSnapped(.scratch.text, font, deviceScale: deviceScale)
             painter.fillRect(rect.x + 1, rect.y + 1, Math.max(Math.min(painted + 6, available) - 2, 0), Math.max(rect.height - 2, 0), Argb.White)
         }
 
@@ -439,19 +468,7 @@ impl IWnd for Grid
             .setFocus()
 
         case .Move:
-            .toolTip = ""
-            if hit.found
-            {
-                let range = .mergedRange(hit.address)
-                if let cell = .sheet!.cellAt(range.first)
-                {
-                    let text  = cell.text.toString()
-                    var count = Math.min(text.count, 512)
-                    while count < text.count and count > 0 and (text[count] & 0xC0) == 0x80 do
-                        count -= 1
-                    .toolTip = text[until count]
-                }
-            }
+            .hover(hit.found, hit.address)
 
         case .Wheel:
             .keepSelectionVisible = false

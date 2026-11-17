@@ -50,6 +50,14 @@ struct CodeLanguageSample
     Swag.require(view.lines.lineAt(fileName, line30000) == 30_001)
     Swag.require(view.lines.lineAt(fileName, source.indexOf("int value12 ")) == 13)
     Swag.require(view.lines.lineAt(fileName, 0) == 1)
+
+    // A window too far from any counted line goes without numbers, and they come back with the
+    // next window that can be counted.
+    view.residentStart = Swag.U64.Max / 2
+    view.numberWindow()
+    Swag.require(not view.editor.flags.has(.LineNumbers))
+    Swag.require(view.revealOffset(0, ""))
+    Swag.require(view.editor.flags.has(.LineNumbers))
 }
 
 // The whole file is counted in the background apart from the streamed window, so the sheet gives
@@ -476,6 +484,11 @@ struct CodeLanguageSample
 
     view.editor.setCursorPos({3, 2})
     Swag.require(not view.goToMatchingDelimiter())
+
+    // The window read again is colored again before a pair is sought in it.
+    Swag.require(view.revealOffset(0, ""))
+    view.editor.setCursorPos({1, 0})
+    Swag.require(view.goToMatchingDelimiter() and view.editor.cursorLogicalLineIndex() == 4)
 
     // The lens offers the pair only beside a bracket.
     for line, index in [3'u64, 1'u64]

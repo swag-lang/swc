@@ -47,6 +47,15 @@ func orientRows(image: const *Image)->String
     Swag.require(orientRows(&unknown) == "12/34/56")
 }
 
+// The value-returning orientation helper transforms a copy and leaves its source unchanged.
+#test
+{
+    let source = orientSample()
+    let result = source.oriented(6)
+    Swag.require(orientRows(&source) == "12/34/56")
+    Swag.require(orientRows(&result) == "531/642")
+}
+
 // The orientation is read from the EXIF record a decoder keeps, whatever prefix precedes its
 // TIFF header, and anything unreadable means upright.
 #test

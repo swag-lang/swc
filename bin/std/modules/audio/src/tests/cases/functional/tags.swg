@@ -17,6 +17,18 @@ func appendId3Frame(tag: *Array'u8, id: string, body: const [..] u8)
         tag.add(byte)
 }
 
+// Appends one ID3v2.2 frame: its three-byte identifier, 24-bit size, and body.
+func appendId3v22Frame(tag: *Array'u8, id: string, body: const [..] u8)
+{
+    for byte in id do
+        tag.add(byte)
+    tag.add(cast(u8, (body.count >> 16) & 0xFF))
+    tag.add(cast(u8, (body.count >> 8) & 0xFF))
+    tag.add(cast(u8, body.count & 0xFF))
+    for byte in body do
+        tag.add(byte)
+}
+
 // Appends a little-endian 32-bit length, as a Vorbis comment block spells every count.
 func appendLittle32(block: *Array'u8, value: u64)
 {
@@ -100,6 +112,45 @@ func appendLittle32(block: *Array'u8, value: u64)
     Swag.require(tags.album == "Trois Gymnopédies")
     Swag.require(tags.albumArtist == "Various Artists")
     Swag.require(tags.track == "1/3" and tags.disc == "1/1" and tags.genre == "Classical", tags.genre)
+}
+
+// ID3v2.2 uses three-byte frame identifiers and a 24-bit body size.
+#test
+{
+    var frames: Array'u8
+    var title: Array'u8
+    title.add(0'u8)
+    for byte in "Aria" do
+        title.add(byte)
+    appendId3v22Frame(&frames, "TT2", title.toSlice())
+
+    var artist: Array'u8
+    artist.add(3'u8)
+    for byte in "Bach" do
+        artist.add(byte)
+    appendId3v22Frame(&frames, "TP1", artist.toSlice())
+
+    var file: Array'u8
+    for byte in "ID3" do
+        file.add(byte)
+    file.add(2'u8)
+    file.add(0'u8)
+    file.add(0'u8)
+    let size = frames.count
+    file.add(cast(u8, (size >> 21) & 0x7F))
+    file.add(cast(u8, (size >> 14) & 0x7F))
+    file.add(cast(u8, (size >> 7) & 0x7F))
+    file.add(cast(u8, size & 0x7F))
+    file.add(frames.toSlice())
+    file.add(0xFF'u8)
+    file.add(0xFB'u8)
+
+    let fileName = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("swag_audio_tags_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllBytes(fileName, file.toSlice())
+
+    let tags = SoundTags.read(fileName)
+    Swag.require(tags.title == "Aria" and tags.artist == "Bach")
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.

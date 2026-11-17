@@ -108,6 +108,7 @@ struct Type2State
     late subrs: const *CffIndex
     stack:      [MaxCharstringStack] f64
     transient:  [32] f64
+    randomState: u32 = 0x6D2B79F5
     depth:      u32
     x:          f64
     y:          f64
@@ -463,11 +464,31 @@ private func emitRelativeCurve(state: *Type2State, i: u32)
     state.curveTo(c1x, c1y, c2x, c2y, c2x + state.stack[i + 4], c2y + state.stack[i + 5])
 }
 
-// Runs the two-byte operators: the four flex forms and the arithmetic set.
-private func execType2Escape(state: *Type2State, op: u8)
+// Runs the Type 2 escape operators for curves, arithmetic, logic, stack values, and random values.
+func execType2Escape(state: *Type2State, op: u8)
 {
     switch op
     {
+    case 3:
+        if state.depth >= 2
+        {
+            let top = state.depth - 1
+            state.stack[top - 1] = (state.stack[top - 1] != 0 and state.stack[top] != 0) ? 1.0 : 0.0
+            state.depth -= 1
+        }
+
+    case 4:
+        if state.depth >= 2
+        {
+            let top = state.depth - 1
+            state.stack[top - 1] = (state.stack[top - 1] != 0 or state.stack[top] != 0) ? 1.0 : 0.0
+            state.depth -= 1
+        }
+
+    case 5:
+        if state.depth do
+            state.stack[state.depth - 1] = state.stack[state.depth - 1] == 0 ? 1.0 : 0.0
+
     case 34:
         if state.depth >= 7
         {
@@ -569,6 +590,14 @@ private func execType2Escape(state: *Type2State, op: u8)
         if state.depth do
             state.stack[state.depth - 1] = -state.stack[state.depth - 1]
 
+    case 15:
+        if state.depth >= 2
+        {
+            let top = state.depth - 1
+            state.stack[top - 1] = state.stack[top - 1] == state.stack[top] ? 1.0 : 0.0
+            state.depth -= 1
+        }
+
     case 18:
         if state.depth do
             state.depth -= 1
@@ -599,6 +628,41 @@ private func execType2Escape(state: *Type2State, op: u8)
             state.stack[state.depth - 2] = top
         }
 
+    case 29:
+        if state.depth
+        {
+            state.depth -= 1
+            if state.depth and state.depth < MaxCharstringStack
+            {
+                let requested = cast(s32, state.stack[state.depth])
+                let index = Math.clamp(requested, 0, cast(s32, state.depth - 1))
+                state.stack[state.depth] = state.stack[state.depth - 1 - cast(u32, index)]
+                state.depth += 1
+            }
+        }
+
+    case 30:
+        if state.depth >= 2
+        {
+            let top            = state.depth - 1
+            let requestedCount = cast(s32, state.stack[top - 1])
+            let rotation        = cast(s32, state.stack[top])
+            state.depth -= 2
+            if requestedCount > 1 and cast(u32, requestedCount) <= state.depth
+            {
+                let count = cast(u32, requestedCount)
+                let base  = state.depth - count
+                var values: [MaxCharstringStack] f64
+                for i in count do
+                    values[i] = state.stack[base + i]
+                var shift = rotation % cast(s32, count)
+                if shift < 0 do
+                    shift += cast(s32, count)
+                for i in count do
+                    state.stack[base + (i + cast(u32, shift)) % count] = values[i]
+            }
+        }
+
     case 20:
         if state.depth >= 2
         {
@@ -613,6 +677,32 @@ private func execType2Escape(state: *Type2State, op: u8)
         {
             let slot = cast(s32, state.stack[state.depth - 1])
             state.stack[state.depth - 1] = slot >= 0 and slot < 32 ? state.transient[slot] : 0.0
+        }
+
+    case 22:
+        if state.depth >= 4
+        {
+            let base         = state.depth - 4
+            let whenTrue     = state.stack[base]
+            let whenFalse    = state.stack[base + 1]
+            let firstValue   = state.stack[base + 2]
+            let secondValue = state.stack[base + 3]
+            state.stack[base] = firstValue <= secondValue ? whenTrue : whenFalse
+            state.depth = base + 1
+        }
+
+    case 23:
+        if state.depth < MaxCharstringStack
+        {
+            // Repeatable output keeps a glyph stable across renders while satisfying the
+            // Type 2 requirement that the generated value lies strictly between zero and one.
+            var value = state.randomState
+            value ^= value << 13
+            value ^= value >> 17
+            value ^= value << 5
+            state.randomState = value
+            state.stack[state.depth] = (cast(f64, state.randomState) + 0.5) / 4294967296.0
+            state.depth += 1
         }
 
     default:

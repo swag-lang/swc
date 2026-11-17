@@ -1448,6 +1448,16 @@ impl LossyCoder
         let current = .sourceY.storage()
         let prior   = .priorY.storage()
 
+        var unchanged = true
+        for row in rows where unchanged
+        {
+            let offset = cast(u64, top + row) * stride + cast(u64, left)
+            if Memory.compare(current + offset, prior + offset, cast(u64, width)) != 0 do
+                unchanged = false
+        }
+        if unchanged do
+            return {}
+
         // Row profiles: the sums of each row of the region, cell by cell, here and in the rows
         // of the previous picture a shift can reach.
         let cellsX = (width + Cell - 1) / Cell

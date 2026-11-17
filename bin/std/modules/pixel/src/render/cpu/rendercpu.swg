@@ -220,6 +220,58 @@ private struct FontLinearSample
     tx, ty:         f32
 }
 
+// A position in a glyph atlas, kept as a whole texel and an offset from it in texels.
+//
+// Where a glyph lands in its atlas depends on the text its font drew before. A normalized
+// coordinate rounds at the magnitude of that placement, so the same glyph would shade an
+// antialiased pixel a step lighter or darker depending on draw order. The offset from a whole
+// texel near the glyph keeps the precision of every sample independent of where the glyph lies.
+private struct AtlasPoint
+{
+    baseX, baseY: s32
+    offset:       Vector2
+}
+
+private impl AtlasPoint
+{
+    mtd const moved(delta: Vector2)->AtlasPoint => {.baseX, .baseY, .offset + delta}
+}
+
+// How one triangle maps target pixels onto the glyph atlas, in texels from its first vertex.
+//
+// The vertices of a glyph quad sit on whole texels of its cell, so the differences between
+// them, and every interpolated offset, are computed alike wherever the cell lies in the page.
+private struct FontFrame
+{
+    baseX, baseY: s32
+    origin:       Vector2     // First vertex, as an offset from the base texel.
+    edge1:        Vector2     // Second vertex minus the first, in texels.
+    edge2:        Vector2     // Third vertex minus the first, in texels.
+    dx:           Vector2     // Texel step of one target pixel to the right.
+    dy:           Vector2     // Texel step of one target pixel down.
+}
+
+private impl FontFrame
+{
+    func from(atlas: const *GlyphAtlas, uv0, uv1, uv2, p0, p1, p2: Vector2, invArea: f32)->FontFrame
+    {
+        let size  = Vector2{cast(f32, (atlas.width / atlas.bytesPerPixel)), cast(f32, atlas.height)}
+        let first = uv0 * size
+        var result: FontFrame
+        result.baseX  = cast(s32, Math.floor(first.x))
+        result.baseY  = cast(s32, Math.floor(first.y))
+        result.origin = first - Vector2{cast(f32, result.baseX), cast(f32, result.baseY)}
+        result.edge1  = (uv1 - uv0) * size
+        result.edge2  = (uv2 - uv0) * size
+        result.dx     = (result.edge1 * (p2.y - p0.y) + result.edge2 * (p0.y - p1.y)) * invArea
+        result.dy     = (result.edge1 * (p0.x - p2.x) + result.edge2 * (p1.x - p0.x)) * invArea
+        return result
+    }
+
+    // Returns the atlas position of the fragment with barycentric weights `w1` and `w2`.
+    mtd const at(w1, w2: f32)->AtlasPoint => {.baseX, .baseY, .origin + .edge1 * w1 + .edge2 * w2}
+}
+
 private impl RenderCpu
 {
     mtd findTexture(handle: TextureHandle)->*CpuTexture?
@@ -1379,25 +1431,19 @@ private impl RenderCpu
                        Math.mulAdd(factor, dst.w - src.w, src.w)}
     }
 
-    func sampleFontAtlas(atlas: const *GlyphAtlas, uv: Vector2, linear: bool)->Vector4
+    // Samples the atlas bilinearly; a texel outside the page reads as the nearest edge texel.
+    func sampleFontAtlas(atlas: const *GlyphAtlas, pos: AtlasPoint)->Vector4
     {
         let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
         let height = cast(s32, atlas.height)
-        if not linear
-        {
-            let x = Math.clamp(cast(s32, Math.floor(uv.x * width)), 0, width - 1)
-            let y = Math.clamp(cast(s32, Math.floor(uv.y * height)), 0, height - 1)
-            return readFontAtlas(atlas, x, y)
-        }
-
-        let px = Math.saturate(uv.x) * width - 0.5
-        let py = Math.saturate(uv.y) * height - 0.5
-        let x0 = cast(s32, Math.floor(px))
-        let y0 = cast(s32, Math.floor(py))
-        let x1 = Math.min(x0 + 1, width - 1)
-        let y1 = Math.min(y0 + 1, height - 1)
-        let tx = px - Math.floor(px)
-        let ty = py - Math.floor(py)
+        let px     = pos.offset.x - 0.5
+        let py     = pos.offset.y - 0.5
+        let x0     = pos.baseX + cast(s32, Math.floor(px))
+        let y0     = pos.baseY + cast(s32, Math.floor(py))
+        let x1     = Math.min(x0 + 1, width - 1)
+        let y1     = Math.min(y0 + 1, height - 1)
+        let tx     = px - Math.floor(px)
+        let ty     = py - Math.floor(py)
 
         // The MSDF shader takes four of these per shaded pixel; branching on the atlas layout
         // once, the four fetches then read the exact values [[readFontAtlas]] returns.
@@ -1429,9 +1475,9 @@ private impl RenderCpu
         return lerpFontSample(lerpFontSample(c00, c10, tx), lerpFontSample(c01, c11, tx), ty)
     }
 
-    func msdfCoverage(atlas: const *GlyphAtlas, uv: Vector2, screenPxRange, edge, aa: f32)->f32
+    func msdfCoverage(atlas: const *GlyphAtlas, pos: AtlasPoint, screenPxRange, edge, aa: f32)->f32
     {
-        let sample = sampleFontAtlas(atlas, uv, true)
+        let sample = sampleFontAtlas(atlas, pos)
         let sd     = median(sample.x, sample.y, sample.z)
         return Math.saturate((sd - edge) * screenPxRange / aa + 0.5)
     }
@@ -1439,12 +1485,12 @@ private impl RenderCpu
     // Evaluates the four quarter-pixel MSDF taps from their shared texel neighborhood. At normal
     // text scales the four bilinear footprints cover at most nine texels instead of fetching
     // sixteen; unusual minification falls back to the independent sampler without changing it.
-    func msdfCoverage4(atlas: const *GlyphAtlas, uv, offset: Vector2, screenPxRange: f32)->f32
+    func msdfCoverage4(atlas: const *GlyphAtlas, pos: AtlasPoint, offset: Vector2, screenPxRange: f32)->f32
     {
-        let points: [4] Vector2 = [uv + Vector2{-offset.x, -offset.y},
-                                   uv + Vector2{offset.x, -offset.y},
-                                   uv + Vector2{-offset.x, offset.y},
-                                   uv + Vector2{offset.x, offset.y}]
+        let points: [4] AtlasPoint = [pos.moved({-offset.x, -offset.y}),
+                                      pos.moved({offset.x, -offset.y}),
+                                      pos.moved({-offset.x, offset.y}),
+                                      pos.moved({offset.x, offset.y})]
         if atlas.bytesPerPixel != 4
         {
             var fallback = 0'f32
@@ -1460,13 +1506,16 @@ private impl RenderCpu
         var minY   = Swag.S32.Max
         var maxX   = Swag.S32.Min
         var maxY   = Swag.S32.Min
+
+        // A tap past the page only reads the edge texel, so clamping it there changes no value
+        // and keeps the shared neighborhood below ordered and at most three texels wide.
         for point, index in points
         {
-            let px     = Math.saturate(point.x) * width - 0.5
-            let py     = Math.saturate(point.y) * height - 0.5
+            let px     = point.offset.x - 0.5
+            let py     = point.offset.y - 0.5
             let sample = &samples[index]
-            sample.x0 = cast(s32, Math.floor(px))
-            sample.y0 = cast(s32, Math.floor(py))
+            sample.x0 = Math.clamp(point.baseX + cast(s32, Math.floor(px)), -1, width - 1)
+            sample.y0 = Math.clamp(point.baseY + cast(s32, Math.floor(py)), -1, height - 1)
             sample.x1 = Math.min(sample.x0 + 1, width - 1)
             sample.y1 = Math.min(sample.y0 + 1, height - 1)
             sample.tx = px - Math.floor(px)
@@ -1511,26 +1560,25 @@ private impl RenderCpu
         return result
     }
 
-    mtd shadeMsdf(faceColor: Color, uv, uvDx, uvDy: Vector2, safeAtlas: const *GlyphAtlas)->Color
+    // `texDx` and `texDy` are the texel steps of one target pixel to the right and down.
+    mtd shadeMsdf(faceColor: Color, pos: AtlasPoint, texDx, texDy: Vector2, safeAtlas: const *GlyphAtlas)->Color
     {
-        let width         = cast(f32, (safeAtlas.width / safeAtlas.bytesPerPixel))
-        let height        = cast(f32, safeAtlas.height)
-        let fwX           = Math.abs(uvDx.x) + Math.abs(uvDy.x)
-        let fwY           = Math.abs(uvDx.y) + Math.abs(uvDy.y)
-        let screenX       = fwX > 0.000001 ? 1.0 / fwX : 1.0
-        let screenY       = fwY > 0.000001 ? 1.0 / fwY : 1.0
-        let screenPxRange = Math.max(0.5 * (MsdfRange / width * screenX + MsdfRange / height * screenY), 1.0)
+        let fwX           = Math.abs(texDx.x) + Math.abs(texDy.x)
+        let fwY           = Math.abs(texDx.y) + Math.abs(texDy.y)
+        let screenX       = fwX > 0.000001 ? MsdfRange / fwX : 0.0
+        let screenY       = fwY > 0.000001 ? MsdfRange / fwY : 0.0
+        let screenPxRange = Math.max(0.5 * (screenX + screenY), 1.0)
 
         if .fontEffect.enabled < 0.5
         {
             let off   = Vector2{fwX * 0.25, fwY * 0.25}
-            let alpha = Math.pow(msdfCoverage4(safeAtlas, uv, off, screenPxRange) * 0.25, FontGamma)
+            let alpha = Math.pow(msdfCoverage4(safeAtlas, pos, off, screenPxRange) * 0.25, FontGamma)
             return faceColor.withAlphaF32(cast(f32, faceColor.a) / 255.0 * alpha)
         }
 
         let p           = &.fontEffect
         let aa          = Math.max(1.0, p.faceSoftness * screenPxRange)
-        let sample      = sampleFontAtlas(safeAtlas, uv, true)
+        let sample      = sampleFontAtlas(safeAtlas, pos)
         let sdMedian    = median(sample.x, sample.y, sample.z)
         let sdTrue      = sample.w
         let faceEdge    = 0.5 - p.faceDilate
@@ -1546,8 +1594,8 @@ private impl RenderCpu
         var faceB = face.z
         if p.bevel > 0
         {
-            let gradX     = sampleFontAtlas(safeAtlas, uv + uvDx, true).w - sdTrue
-            let gradY     = sampleFontAtlas(safeAtlas, uv + uvDy, true).w - sdTrue
+            let gradX     = sampleFontAtlas(safeAtlas, pos.moved(texDx)).w - sdTrue
+            let gradY     = sampleFontAtlas(safeAtlas, pos.moved(texDy)).w - sdTrue
             let magnitude = Math.sqrt(gradX * gradX + gradY * gradY)
             let reference = 1.0 / screenPxRange
             let strength  = smoothStep(0.0, 0.6 * reference, magnitude)
@@ -1602,7 +1650,7 @@ private impl RenderCpu
     // Shades one fragment like the general path did, with the paint, the atlas, and the font
     // gamma resolved per batch. Every arithmetic step keeps the general path's exact expression,
     // so the shaded color is bit-identical.
-    mtd shadeBatch(batch: *RasterBatch, paintPos, fontUv, fontUvDx, fontUvDy: Vector2, vertexColor: Color, coverage: f32)->Color
+    mtd shadeBatch(batch: *RasterBatch, paintPos: Vector2, fontPos: AtlasPoint, fontDx, fontDy: Vector2, vertexColor: Color, coverage: f32)->Color
     {
         var result = batch.solidPaint ? vertexColor : Color.multiply(vertexColor, .samplePaintBatch(batch, paintPos))
         if .program == CpuProgram_Font
@@ -1617,8 +1665,8 @@ private impl RenderCpu
             // lookup table replaces the per-pixel pow with the factor it would have computed.
             let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
             let height = cast(s32, atlas.height)
-            let x      = Math.clamp(cast(s32, Math.floor(fontUv.x * width)), 0, width - 1)
-            let y      = Math.clamp(cast(s32, Math.floor(fontUv.y * height)), 0, height - 1)
+            let x      = Math.clamp(fontPos.baseX + cast(s32, Math.floor(fontPos.offset.x)), 0, width - 1)
+            let y      = Math.clamp(fontPos.baseY + cast(s32, Math.floor(fontPos.offset.y)), 0, height - 1)
             let row    = cast(s32, atlas.height) - y - 1
             let value  = atlas.data.storage()[cast(u64, row) * atlas.width + cast(u64, x) * atlas.bytesPerPixel]
             result.a = cast(u8, Math.clamp(Math.round(cast(f32, result.a) * g_FontGammaLut[value]), 0.0, 255.0))
@@ -1628,7 +1676,7 @@ private impl RenderCpu
             let atlas = batch.atlas
             if not atlas do
                 return result
-            result = .shadeMsdf(result, fontUv, fontUvDx, fontUvDy, atlas)
+            result = .shadeMsdf(result, fontPos, fontDx, fontDy, atlas)
         }
         elif .program == CpuProgram_Default
         {
@@ -1694,10 +1742,11 @@ private impl RenderCpu
         let dcDx     = (v0.cov * (p1.y - p2.y) + v1.cov * (p2.y - p0.y) + v2.cov * (p0.y - p1.y)) * invArea
         let dcDy     = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
         let covWidth = Math.max(Math.abs(dcDx) + Math.abs(dcDy), 0.00001)
-        let fontUvDx = Vector2{(v0.uv.x * (p1.y - p2.y) + v1.uv.x * (p2.y - p0.y) + v2.uv.x * (p0.y - p1.y)) * invArea,
-                               (v0.uv.y * (p1.y - p2.y) + v1.uv.y * (p2.y - p0.y) + v2.uv.y * (p0.y - p1.y)) * invArea}
-        let fontUvDy = Vector2{(v0.uv.x * (p2.x - p1.x) + v1.uv.x * (p0.x - p2.x) + v2.uv.x * (p1.x - p0.x)) * invArea,
-                               (v0.uv.y * (p2.x - p1.x) + v1.uv.y * (p0.x - p2.x) + v2.uv.y * (p1.x - p0.x)) * invArea}
+
+        // Font fragments are located in texels from the first vertex, never in normalized atlas
+        // coordinates, so a glyph shades alike wherever earlier text placed it; see AtlasPoint.
+        let needFontPos = (.program == CpuProgram_Font or .program == CpuProgram_Msdf) and batch.atlas != null
+        let fontFrame   = needFontPos ? FontFrame.from(unwrap batch.atlas, v0.uv, v1.uv, v2.uv, p0, p1, p2, invArea) : {}
 
         let c0 = Color.fromArgb(v0.color)
         let c1 = Color.fromArgb(v1.color)
@@ -2000,7 +2049,6 @@ private impl RenderCpu
         }
 
         let needPaintPos = not batch.solidPaint
-        let needFontUv   = .program == CpuProgram_Font or .program == CpuProgram_Msdf
         let needCoverage = .program == CpuProgram_Default
         let copyAll      = fastCopy and maskFull
 
@@ -2044,13 +2092,13 @@ private impl RenderCpu
                 let w1          = e1 * invArea
                 let w2          = e2 * invArea
                 let paintPos    = needPaintPos ? v0.pos * w0 + v1.pos * w1 + v2.pos * w2 : {}
-                let fontUv      = needFontUv ? v0.uv * w0 + v1.uv * w1 + v2.uv * w2 : {}
+                let fontPos     = needFontPos ? fontFrame.at(w1, w2) : {}
                 let vertexColor = constantColor ? c0 : Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
                                                                          (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                                          (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
                 let cov = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
-                var src = .shadeBatch(batch, paintPos, fontUv, fontUvDx, fontUvDy, vertexColor, cov)
+                var src = .shadeBatch(batch, paintPos, fontPos, fontFrame.dx, fontFrame.dy, vertexColor, cov)
 
                 // Writing the region: the fragment's coverage — its antialiased edge, the alpha of
                 // its texture, the transparency of its colour — joins the mask and shades nothing.
@@ -3239,7 +3287,7 @@ impl RenderCpu
     // the caller handed over.
     internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
-        if view.width <= 0 or view.height <= 0 do
+        if not view.isValidLayout() do
             return {}
 
         var image = Image.create(view.width, view.height, .RGB8)
@@ -3260,7 +3308,7 @@ impl RenderCpu
     // Converts a planar picture into the surface that holds it.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
-        if not texture.isValid() or view.width != texture.width or view.height != texture.height do
+        if not view.isValidLayout() or not texture.isValid() or view.width != texture.width or view.height != texture.height do
             return false
         if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
            (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or

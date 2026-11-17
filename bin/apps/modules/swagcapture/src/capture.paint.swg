@@ -170,16 +170,12 @@ impl Capture
     // immediately, then [MaxFormCacheRefresh] forms per repaint sharpen at rest.
     // Only a content change rebuilds the shadow. Large unrotated content layers
     // retain the portion around the visible editor, bounded by [MaxFormCacheDim].
-    mtd paintFormCached(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32)->bool
+    //
+    // `boundRect` is the [[BaseForm.paintExtent]] of `f`: the geometry of the direct path, without
+    // its view clip. The cache keeps the whole form, so scrolling never invalidates it.
+    mtd paintFormCached(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, boundRect: Math.Rectangle, zoom: f32)->bool
     {
         let base: *BaseForm = f
-
-        // The geometry of the direct path, without its view clip: the cache keeps the
-        // whole form, so scrolling never invalidates it.
-        var boundRect = f.boundRect()
-        boundRect.width  = Math.max(boundRect.width, 1)
-        boundRect.height = Math.max(boundRect.height, 1)
-        boundRect.inflate(BaseForm.paintOverdraw(f, false))
 
         var pos = boundRect * zoom
         pos.offset(rect.x, rect.y)
@@ -341,7 +337,7 @@ impl Capture
         elif not base.paintShadow and entry.shadow.contentTarget != null do
             entry.shadow.releaseImmediate()
 
-        let colForm = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
+        let colForm = Color.fromArgb(base.opacityAlpha(), Argb.White)
         painter.pushTransform()
         var shadowRect = pos
         if base.isRotated()
@@ -377,10 +373,7 @@ impl Capture
     // leaves untouched the screen position the editor recorded for the form.
     func paintForm(painter: *Painter, clip, rect: Math.Rectangle, f: IForm, zoom: f32, quickMode = false, snapMode = false, writeAlpha = true)
     {
-        var boundRect = f.boundRect()
-        boundRect.width  = Math.max(boundRect.width, 1)
-        boundRect.height = Math.max(boundRect.height, 1)
-        boundRect.inflate(BaseForm.paintOverdraw(f, quickMode))
+        let boundRect = BaseForm.paintExtent(f, quickMode)
 
         var clipOffset:    Math.Vector2
         var savePaintPos:  Math.Rectangle
@@ -449,7 +442,7 @@ impl Capture
         if quickMode and (base.subKind == .Highlight or base.subKind == .PixSel) do
             colForm = Argb.White
         else do
-            colForm = Color.fromArgb(cast(u8, Math.map(cast(f32, base.alpha), 0, 100, 0, 255)), Argb.White)
+            colForm = Color.fromArgb(base.opacityAlpha(), Argb.White)
 
         var paintRect: Math.Rectangle
         paintRect.x      = base.paintPos.x + clipOffset.x
@@ -610,48 +603,12 @@ impl Capture
         view.invalidateRect(local)
     }
 
-    // Whether a group with a selected member also has a member left out of the selection.
-    mtd selectionSplitsGroup()->bool
-    {
-        var groups: Array'u64
-        for s in .selection
-        {
-            let g = formOuterGroup(.forms[s])
-            if g != 0 and not groups.contains(g) do
-                groups.add(g)
-        }
-
-        if groups.isEmpty() do
-            return false
-        for f, i in .forms where groups.contains(formOuterGroup(f)) and not .selection.contains(i) do
-            return true
-        return false
-    }
-
     // Draws a dashed box around every group with a selected member.
     mtd paintGroupOutlines(painter: *Painter, rect: Math.Rectangle, zoom: f32)
     {
-        var ids: Array'u64
-        for s in .selection
+        for gid in .outerGroupsOf(.selection)
         {
-            let g = formOuterGroup(.forms[s])
-            if g != 0 and not ids.contains(g) do
-                ids.add(g)
-        }
-
-        for gid in ids
-        {
-            var bound = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
-            for f in .forms where formOuterGroup(f) == gid
-            {
-                let br = f.boundRect()
-                bound.x = Math.min(bound.x, br.x)
-                bound.y = Math.min(bound.y, br.y)
-                bound.setRight(Math.max(bound.right(), br.right()))
-                bound.setBottom(Math.max(bound.bottom(), br.bottom()))
-            }
-
-            var vr = bound * zoom
+            var vr = .groupBoundRect(gid) * zoom
             vr.offset(rect.x, rect.y)
             vr.inflate(6)
             painter.drawRect(vr, Pen.createDash(.Dash, Argb.DarkGray, 3))
@@ -697,11 +654,8 @@ impl Capture
             // rendered geometry (arrow caps and thick strokes can reach beyond the tight
             // `boundRect`) and draws it offset by `rect`. Testing the raw, un-offset bound wrongly
             // hid forms whose tight bound fell just outside the clip, such as a thin arrow.
-            var cull = f.boundRect()
-            cull.width  = Math.max(cull.width, 1)
-            cull.height = Math.max(cull.height, 1)
-            cull.inflate(BaseForm.paintOverdraw(f, false))
-            cull *= zoom
+            let extent = BaseForm.paintExtent(f, false)
+            var cull   = extent * zoom
             cull.offset(rect.x, rect.y)
             if not cull.intersects(cullClip) do
                 continue
@@ -714,12 +668,15 @@ impl Capture
                 painter.pushClippingRect(pp)
             }
 
-            if not .paintFormCached(painter, clip, rect, f, zoom) do
+            if not .paintFormCached(painter, clip, rect, f, extent, zoom) do
                 paintForm(painter, clip, rect, f, zoom, writeAlpha: false)
             if clipped do
                 painter.popClippingRect()
         }
 
+        // Only the hot form and the selected ones show a gizmo.
+        painter.pushTransform()
+        painter.translateTransform(rect.x, rect.y)
         for f, i in .forms where .isFormShown(f)
         {
             var flags = FormFlags.Zero
@@ -727,12 +684,11 @@ impl Capture
                 flags.add(.Hot)
             if .selection.contains(i) do
                 flags.add(.Selected)
-
-            painter.pushTransform()
-            painter.translateTransform(rect.x, rect.y)
-            f.paintGizmo(painter, zoom, flags)
-            painter.popTransform()
+            if flags != .Zero do
+                f.paintGizmo(painter, zoom, flags)
         }
+
+        painter.popTransform()
 
         // Group outline: a dashed, embossed box around each selected group communicates
         // that its forms move as one unit (the individual member gizmos still show).

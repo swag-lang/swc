@@ -1586,7 +1586,8 @@ namespace
             captureSym->setClosureCaptureOffset(static_cast<uint32_t>(captureOffset));
             captureSym->setClosureCaptureByRef(captureByRef);
 
-            if (captureByRef && sourceVar && sourceVar->hasExtraFlag(SymbolVariableFlagsE::Parameter))
+            // The closure and its owner share this storage; keep the source addressable.
+            if (captureByRef && sourceVar)
                 sourceVar->addExtraFlag(SymbolVariableFlagsE::NeedsAddressableStorage);
 
             if (captureIdRef.isValid())

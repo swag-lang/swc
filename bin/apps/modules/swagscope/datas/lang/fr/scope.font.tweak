@@ -12,7 +12,6 @@ ui_Greek              Grec et copte
 ui_Cyrillic           Cyrillique
 ui_Symbols            Ponctuation et symboles
 ui_NotCovered         Aucun
-ui_Specimen           SPÉCIMEN
 ui_CharacterMap       Table des caractères
 ui_NoCharacters       Aucun caractère associé
 ui_ShowCharacter      Afficher % dans la table des caractères

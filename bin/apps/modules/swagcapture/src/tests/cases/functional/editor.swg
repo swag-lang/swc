@@ -226,6 +226,28 @@ using Swag, Core
     Swag.require(f.capture.selection[0] == 3)
 }
 
+// A press where a deleted form was last selected finds nothing to cycle through: it starts
+// a new form instead of reading past the empty list of forms under the pointer.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    discard testAddShape(f.capture, 10, 10, 40, 40)
+
+    f.clickImage({30, 30})
+    Swag.require(f.capture.selection.count == 1)
+
+    f.capture.pushUndo(f.capture.newUndo(.DeleteSelection))
+    Swag.require(f.capture.forms.isEmpty())
+
+    f.clickImage({30, 30})
+    Swag.require(f.capture.forms.isEmpty())
+    Swag.require(f.capture.selection.isEmpty())
+    Swag.require(f.capture.hotForm == Swag.U64.Max)
+    Swag.require(f.capture.mouseMode == .None)
+}
+
 // The edit view context menu posts real commands back to MainWnd through the
 // popup/menu dispatch path.
 #test

@@ -144,3 +144,40 @@ func(T) expectNumericOverflow(text: string, initial: T)
     expectNumericOverflow("1e39", 7'f32)
     expectNumericOverflow("1e309", 7'f64)
 }
+
+// Array parsing appends dynamic elements, fills static slots, and stops before a '#'.
+#test
+{
+    var dynamic: Array's32
+    dynamic.add(9)
+    let dynamicRest = expect StrConv.parseValue(&dynamic, #typeof(dynamic), "1 2 3 # palette")
+    Swag.require(Slice.equals(dynamic.toSlice(), [9, 1, 2, 3]))
+    Swag.require(dynamicRest == "# palette")
+
+    var fixed: [3] u8
+    let fixedRest = expect StrConv.parseValue(&fixed, #typeof(fixed), "4 5 6 #next")
+    Swag.require(Slice.equals(fixed, [4, 5, 6]))
+    Swag.require(fixedRest == "#next")
+
+    var tooManyOutcome: Swag.Error
+    discard catch StrConv.parseValue(&fixed, #typeof(fixed), "1 2 3 4") as tooManyOutcome
+    Swag.require(tooManyOutcome.value() is Errors.InvalidFormatError)
+}
+
+// Basic dispatch also parses strings, booleans and a multibyte rune without consuming its suffix.
+#test
+{
+    var text: String
+    let textRest = expect StrConv.parseValue(&text, #typeof(String), "\"hello\" tail")
+    Swag.require(text == "hello")
+    Swag.require(textRest == " tail")
+
+    var enabled = false
+    let boolRest = expect StrConv.parseValue(&enabled, #typeof(bool), "True,rest")
+    Swag.require(enabled and boolRest == ",rest")
+
+    var character: rune
+    let runeRest = expect StrConv.parseValue(&character, #typeof(rune), "😀tail")
+    Swag.require(character == '\U0001F600'rune)
+    Swag.require(runeRest == "tail")
+}

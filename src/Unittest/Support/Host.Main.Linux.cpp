@@ -245,6 +245,8 @@ int main(const int argc, char* argv[])
         std::puts("PASS file mappings, replacement, rejection and cleanup");
         testHostBasics();
         std::puts("PASS host identity, environment and errors");
+        testPrivateCompilerCacheRoot();
+        std::puts("PASS private compiler cache root ownership and permissions");
         testFileServices();
         std::puts("PASS atomic file publication and common I/O");
         testFileOwners();

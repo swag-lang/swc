@@ -4,6 +4,37 @@ using Swag, Core
 
 #test
 {
+    var grayPixels: [10] u8 = [1, 2, 3, 99, 99, 4, 5, 6, 99, 99]
+    var gray: Bitmap
+    gray.set(2, 3, 5, &grayPixels[0], .Gray)
+
+    let grayRow = expect gray.row(1)
+    Swag.require(grayRow.count == 3)
+    Swag.require(grayRow[0] == 4 and grayRow[1] == 5 and grayRow[2] == 6)
+
+    var rgbaPixels: [20] u8
+    for index in cast(u32, rgbaPixels.count) do
+        rgbaPixels[index] = cast(u8, index)
+    var rgba: Bitmap
+    rgba.set(2, 2, 12, &rgbaPixels[0], .Rgba)
+
+    let rgbaRow = expect rgba.row(1)
+    Swag.require(rgbaRow.count == 8)
+    Swag.require(rgbaRow[0] == 12 and rgbaRow[7] == 19)
+
+    var badRowOutcome: Swag.Error
+    discard catch gray.row(2) as badRowOutcome
+    Swag.require(badRowOutcome.value() != null)
+
+    var badPitch: Bitmap
+    badPitch.set(1, 3, 2, &grayPixels[0], .Gray)
+    var badPitchOutcome: Swag.Error
+    discard catch badPitch.row(0) as badPitchOutcome
+    Swag.require(badPitchOutcome.value() != null)
+}
+
+#test
+{
     var faceScope: FaceScope
     faceScope.init()
     let face = unwrap faceScope.face

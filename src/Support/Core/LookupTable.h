@@ -1,9 +1,10 @@
 #pragma once
+#include "Support/Core/LookupTable.Forward.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
-template<typename T, uint32_t CHUNK_BITS = 8>
+template<typename T, uint32_t CHUNK_BITS>
 class LookupTable
 {
 public:

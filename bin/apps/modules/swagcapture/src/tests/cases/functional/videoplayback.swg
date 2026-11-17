@@ -37,7 +37,7 @@ using Swag, Core, Gui, Pixel, Video
     defer timeline.stop()
     var event   = TimerEvent{timer: unwrap timeline.playTimer}
     let readyBy = Time.monotonicMicroseconds() + 2_000_000
-    while not timeline.videoBuffered() and not timeline.videoDecodeFailed()
+    while not timeline.decoder.isBuffered() and not timeline.decoder.hasFailed()
     {
         Swag.require(Time.monotonicMicroseconds() < readyBy, "video prefetch did not finish")
         Threading.Thread.sleep(1'ms)
@@ -104,9 +104,9 @@ using Swag, Core, Gui, Pixel, Video
 
     timeline.seek(timeline.trackX(frames.timeOf(4) + 1_000))
     timeline.togglePlay()
-    Swag.require(timeline.seekTimer == null and timeline.isPlaying() and timeline.videoFrom == 4)
+    Swag.require(timeline.seekTimer == null and timeline.isPlaying() and timeline.decoder.firstFrame == 4)
     let replayBy = Time.monotonicMicroseconds() + 2_000_000
-    while not timeline.videoBuffered()
+    while not timeline.decoder.isBuffered()
     {
         Swag.require(Time.monotonicMicroseconds() < replayBy, "video did not buffer after a pending seek")
         Threading.Thread.sleep(1'ms)

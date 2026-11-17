@@ -129,6 +129,29 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.chapter == 0 and view.outline.markedTarget() == 0 and chosen == 0)
 }
 
+// A closed outline does not follow the chapter as it scrolls; it marks the entry in view as it
+// opens again, and follows the scroll while open.
+#test
+{
+    var host: HeadlessHost
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view    = assume cast(*Epub.Panel, window.currentView)
+    let outline = view.outline
+    view.followLink("one.xhtml#passage")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(outline.markedTarget() == 1)
+
+    let chapter = unwrap view.view
+    Swag.require(chapter.navigateToFragment("#"))
+    Swag.require(outline.markedTarget() == 1)
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == 0)
+
+    Swag.require(chapter.navigateToFragment("#passage"))
+    Swag.require(outline.markedTarget() == 1)
+}
+
 // Book-owned link navigation updates the chapter counter and keeps external targets local.
 #test
 {
@@ -167,7 +190,7 @@ using Core, Gui, Gui.Testing, Viewers
     window.lens.open(":2")
     host.finishAnimations()
     let section = unwrap window.lens.results.sections[0]
-    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2))
+    Swag.require(section.entries[0].title == Format.toString(appStrings().lens_GoToChapter, 2) and section.entries[0].lead == "2")
     section.entries[0].run!()
     window.lens.close()
     host.finishAnimations()
@@ -179,4 +202,46 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(window.lens.results.sections.isEmpty())
     window.lens.close()
     host.finishAnimations()
+}
+
+// The chapter rows of the lens stop at the ends of the spine, as the chapter buttons do.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view   = assume cast(*Epub.Panel, window.currentView)
+    Swag.require(view.chapter == 0 and view.book.chapters.count == 2)
+
+    func chapterRows(window: *ViewerWindow, host: *HeadlessHost)->{previous: bool, next: bool}
+    {
+        var result: #returntype
+        window.lens.open()
+        host.finishAnimations()
+        defer
+        {
+            window.lens.close()
+            host.finishAnimations()
+        }
+
+        for section in window.lens.results.sections
+        {
+            for &entry in section!.entries
+            {
+                if entry.title == Epub.texts().ui_Previous do
+                    result.previous = not entry.disabled
+                elif entry.title == Epub.texts().ui_Next do
+                    result.next = not entry.disabled
+            }
+        }
+
+        return result
+    }
+
+    let first = chapterRows(window, &host)
+    Swag.require(not first.previous and first.next)
+
+    view.showChapter(1)
+    completeQueuedViewerFile(&host, window)
+    let last = chapterRows(window, &host)
+    Swag.require(last.previous and not last.next)
 }

@@ -320,8 +320,7 @@ impl Panel
         .refreshInspector()
     }
 
-    // Opens how the bytes are laid out and read: row width, value width, representation, byte order.
-    // Gives the lens the options and the zoom of the byte view.
+    // Gives the lens the commands, the options and the zoom of the byte view.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         // `:` and an offset, in the grammar of Go to Offset, go there.
@@ -348,21 +347,28 @@ impl Panel
         entries.add(Format.toString(strings.ui_CopyOffset, offsetHex(.grid.caret)), .Copy, func|view = me|() { Clipboard.setString(offsetHex(view.grid.caret)) }, disabled: not .grid.doc.fileSize)
         entries.add(strings.ui_SelectAll, .SelectAll, func|view = me|() { view.grid.selectAll() }, disabled: not .grid.doc.fileSize, shortcut: Input.formatKeyShortcut(.Control, .A))
         entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() })
+
+        // The zoom keys step the size of the bytes within the grid's own bounds rather than the
+        // shared ones, so only actual size is the shared row.
+        entries.add(appStrings().cmd_ZoomIn, .ZoomIn, func|view = me|() { view.grid.adjustFontSize(1) }, disabled: .grid.fontSize >= MaxFontSize, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
+        entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.grid.adjustFontSize(-1) }, disabled: .grid.fontSize <= MinFontSize, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
+        entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.grid.resetFontSize() })
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
 
         // The checksums of the last analysis read in full, each copied whole with its own row.
         let result = &.analysisView.result
         if result.hasDigests
         {
-            let crc = entries.add(texts().ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.crc32Text().toString()) })
+            let crc = entries.add(strings.ui_AnalysisCopyCrc32, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.crc32Text()) })
             if crc do
                 crc.detail = result.crc32Text()
-            entries.add(texts().ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha256Text().toString()) })
-            entries.add(texts().ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.md5Text().toString()) })
-            entries.add(texts().ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.addString(view.analysisView.result.sha1Text().toString()) })
+            entries.add(strings.ui_AnalysisCopySha256, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha256Text()) })
+            entries.add(strings.ui_AnalysisCopyMd5, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.md5Text()) })
+            entries.add(strings.ui_AnalysisCopySha1, .Copy, func|view = me|() { Clipboard.setString(view.analysisView.result.sha1Text()) })
         }
     }
 
+    // Opens how the bytes are laid out and read: row width, value width, representation, byte order.
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)

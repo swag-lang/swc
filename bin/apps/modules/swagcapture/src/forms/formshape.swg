@@ -148,7 +148,7 @@ impl IForm for FormShape
         let backBrush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
 
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
-            bk.a = .highlightAlpha()
+            bk.a = .opacityAlpha()
 
         switch #complete .kind
         {

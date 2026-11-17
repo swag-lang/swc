@@ -29,6 +29,24 @@ private func assertInvalidPocLsbMinus4(payload: const [..] u8)
     Swag.require(failure.value() is Errors.InvalidFormatError)
 }
 
+// The decoder rejects malformed NAL headers and slices that refer to parameter sets it has not
+// received before attempting picture reconstruction.
+#test
+{
+    var decoder: Hevc.Decoder
+    var rejected: Swag.Error
+
+    discard catch decoder.readNalUnit([0x02'u8, 0x01]) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+
+    discard catch decoder.readNalUnit([0x80'u8, 0x01, 0x00]) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+
+    // IDR_W_RADL, temporal_id_plus1 = 1, first segment, no prior-picture flag, PPS id zero.
+    discard catch decoder.readNalUnit([0x26'u8, 0x01, 0xA0]) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}
+
 // The fixture SPS has log2_max_pic_order_cnt_lsb_minus4 = 4. Replacing only that UE field with
 // 13 or U32.Max - 1 must fail before adding the syntax bias and deriving POC shifts.
 #test

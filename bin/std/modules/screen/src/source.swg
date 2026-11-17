@@ -2,6 +2,13 @@
 
 using Core, Core.Errors, Pixel
 
+// Validates dimensions before a native source or image storage is allocated.
+internal func validateSourceOptions(options: SourceOptions) fail
+{
+    if options.width <= 0 or options.height <= 0 or options.width > 0x7FFFFFFF's32 / 4 do
+        fail BadParameterError{"screen source needs positive dimensions"}
+}
+
 #[Swag.Inline]
 internal func copyFrameBytes(destination: [*] u8, source: const [*] u8, byteCount: u64)
 {
@@ -69,6 +76,7 @@ struct Source
         mirroredImage:       u64
         mirroredStorage:     u64
         mirrorReady:         bool
+        lastFrameCaptureTime: u64
     }
 }
 
@@ -79,8 +87,7 @@ impl Source
     // Rejects invalid dimensions, unavailable displays and capture permission failures.
     func open(options: SourceOptions)->Source fail
     {
-        if options.width <= 0 or options.height <= 0 or options.width > 0x7FFFFFFF's32 / 4 do
-            fail BadParameterError{"screen source needs positive dimensions"}
+        try validateSourceOptions(options)
         var result: #returntype
         result.options = options
         #static if #os == Swag.TargetOs.Windows
@@ -113,6 +120,56 @@ impl Source
         }
 
         return result
+    }
+
+    // Opens a source for one currently enumerated physical monitor.
+    //
+    // `monitorIndex` uses the current order from [[Core.Env.getMonitors]] and is not a persistent display identifier.
+    // The source captures that monitor's full physical bounds and can fail if the display is unavailable.
+    // `includeCursor` requests pointer composition where supported and defaults to false.
+    func openMonitor(monitorIndex: u64, includeCursor: bool = false)->Source fail
+    {
+        let monitors = Env.getMonitors()
+        if monitorIndex >= monitors.count do
+            fail BadParameterError{"screen monitor index is unavailable"}
+        return try .openMonitor(monitors[monitorIndex], includeCursor)
+    }
+
+    // Opens a source for a monitor value returned by [[Core.Env.getMonitors]].
+    //
+    // The value is a snapshot of physical bounds, not a persistent display identifier. The source can fail
+    // if those bounds are no longer available. `includeCursor` requests pointer composition where supported
+    // and defaults to false.
+    func openMonitor(monitor: Env.Monitor, includeCursor: bool = false)->Source fail
+    {
+        let bounds = monitor.physicalBounds
+        return try .open({cast(s32, bounds.x), cast(s32, bounds.y), cast(s32, bounds.width),
+                          cast(s32, bounds.height), includeCursor})
+    }
+
+    // Opens a source for the current virtual desktop bounds.
+    //
+    // The rectangle includes gaps between monitors. It can fail when no desktop bounds are available.
+    // `includeCursor` requests pointer composition where supported and defaults to false.
+    func openDesktop(includeCursor: bool = false)->Source fail
+    {
+        let monitors = Env.getMonitors()
+        if monitors.isEmpty() do
+            fail UnsupportedFormatError{"screen virtual desktop is unavailable"}
+        var left = monitors[0].physicalBounds.x
+        var top = monitors[0].physicalBounds.y
+        var right = monitors[0].physicalBounds.right()
+        var bottom = monitors[0].physicalBounds.bottom()
+        for monitor in monitors
+        {
+            let bounds = monitor.physicalBounds
+            left = Math.min(left, bounds.x)
+            top = Math.min(top, bounds.y)
+            right = Math.max(right, bounds.right())
+            bottom = Math.max(bottom, bounds.bottom())
+        }
+        return try .open({cast(s32, left), cast(s32, top), cast(s32, right - left),
+                          cast(s32, bottom - top), includeCursor})
     }
 
     private mtd addPart(options: SourceOptions) fail
@@ -154,11 +211,14 @@ impl Source
             if .sources.count == 1
             {
                 let native = .sources[0]
-                if native.options.x == .options.x and
-                   native.options.y == .options.y and
-                   native.options.width == .options.width and
-                   native.options.height == .options.height do
-                    return try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
+                if native.options.x == .options.x and native.options.y == .options.y and
+                   native.options.width == .options.width and native.options.height == .options.height
+                {
+                    let captured = try native.grabInto(target, preserveOnTimeout: not copyUnchanged)
+                    if captured do
+                        .lastFrameCaptureTime = Time.monotonicMicroseconds()
+                    return captured
+                }
             }
         }
 
@@ -225,6 +285,8 @@ impl Source
         if mirroring
         {
             .mirrorReady = true
+            if fresh do
+                .lastFrameCaptureTime = Time.monotonicMicroseconds()
             return fresh
         }
 
@@ -243,9 +305,17 @@ impl Source
             .mirroredStorage = cast(u64, target.pixels.storage())
             .mirrorReady     = true
         }
-
+        if fresh do
+            .lastFrameCaptureTime = Time.monotonicMicroseconds()
         return fresh
     }
+
+    // Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.
+    //
+    // The value uses the same microsecond clock as [[Core.Time.monotonicMicroseconds]]. It records when
+    // `grabInto` received a fresh frame, not the display's presentation time, and remains unchanged when
+    // a grab returns false. A successful reopen resets it to zero; failed attempts preserve it.
+    mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
     // Returns cumulative native and composition timing since this source was opened.
     mtd const metrics()->SourceMetrics
@@ -288,6 +358,7 @@ impl Source
             for source in .sources do
                 try source[].reopen()
         }
+        .lastFrameCaptureTime = 0
     }
 
     // Releases the native capture handles and cached frames on the opening thread.

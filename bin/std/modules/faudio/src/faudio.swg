@@ -64,6 +64,8 @@ struct FAudioBuffer
 #[Swag.Pack(1)]
 struct FAudioVoiceState { public { pCurrentBufferContext: *void?; BuffersQueued: u32; SamplesPlayed: u64 } }
 #[Swag.Pack(1)]
+struct FAudioVoiceDetails { public { CreationFlags: u32; ActiveFlags: u32; InputChannels: u32; InputSampleRate: u32 } }
+#[Swag.Pack(1)]
 struct FAudioSendDescriptor { public { Flags: u32; pOutputVoice: *FAudioVoice? } }
 #[Swag.Pack(1)]
 struct FAudioVoiceSends { public { SendCount: u32; pSends: *FAudioSendDescriptor? } }
@@ -131,6 +133,12 @@ alias FAudioVoice_SetVolume_fn                = func(*FAudioVoice, f32, u32)->u3
 
 #[Swag.CallingConvention(.C)]
 alias FAudioVoice_GetVolume_fn                = func(*FAudioVoice, *f32)
+
+#[Swag.CallingConvention(.C)]
+alias FAudioVoice_SetOutputMatrix_fn           = func(*FAudioVoice, *FAudioVoice, u32, u32, const *f32, u32)->u32
+
+#[Swag.CallingConvention(.C)]
+alias FAudioVoice_GetVoiceDetails_fn            = func(*FAudioVoice, *FAudioVoiceDetails)
 
 #[Swag.CallingConvention(.C)]
 alias FAudioVoice_SetOutputVoices_fn          = func(*FAudioVoice, const *FAudioVoiceSends?)->u32

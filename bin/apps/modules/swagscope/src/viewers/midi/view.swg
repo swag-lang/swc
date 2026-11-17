@@ -15,6 +15,11 @@ private
     const MinPitchZoom  = 0.5'f32
     const MaxPitchZoom  = 8.0'f32
 
+    // A key or lens step scales the timeline by a quarter and a wheel notch by an eighth, as the
+    // picture and PDF views scale their canvas, so the same gesture moves every canvas viewer alike.
+    const ZoomStep      = 1.25'f32
+    const WheelZoomStep = 1.12'f32
+
     // The measures of the tracks presentation, after `scope.midi`.
     const LaneColumn  = 208.0     // Width of the column the names of the tracks stand in.
     const AxisTop     = 40.0      // Distance from the strip to the line of bar numbers.
@@ -33,13 +38,16 @@ enum RollMode
     Tracks      // One lane per track, its notes spread by pitch in its own range.
 }
 
-// One lane of the tracks presentation: the track, the channel it plays on, and its range of keys.
+// One lane of the tracks presentation: the track, the channel it plays on, its range of keys, and
+// how many of its notes there are and how many of them are percussion hits.
 struct RollLane
 {
-    track:   u32
-    channel: u8
-    lowKey:  u8 = 127
-    highKey: u8
+    track:     u32
+    channel:   u8
+    lowKey:    u8 = 127
+    highKey:   u8
+    noteCount: u64
+    hitCount:  u64
 }
 
 // Paints a MIDI document as a scrolling piano roll under a summary header.
@@ -58,6 +66,7 @@ struct RollView
     document:       Document
     mode:           RollMode = .Pitches
     lanes:          Array'RollLane
+    laneOfTrack:    Array'u32     // Index in `lanes` of each track, or `Swag.U32.Max` for a track with no notes.
     selectedTrack:  u32      = Swag.U32.Max
     zoom:           f32      = 1
     pitchZoom:      f32      = 1
@@ -173,7 +182,11 @@ impl RollView
     mtd plotLeft()->f32 => .mode == .Tracks ? LaneColumn + ContentInset : .keyboardWidth + ContentInset
 
     // Gathers the tracks that hold notes, in the order of the file, each with the first channel it
-    // plays on and its range of keys.
+    // plays on, its range of keys and its counts of notes.
+    //
+    // The lanes depend on the document alone, so they are gathered once when the roll is created:
+    // walking every note again on each resize or zoom would cost a score of a million notes as
+    // much as its loading did.
     mtd collectLanes()
     {
         var ranges: Array'RollLane
@@ -187,13 +200,27 @@ impl RollView
             let range = &ranges[note.track]
             if range.lowKey > range.highKey do
                 range.channel = note.channel
-            range.lowKey  = Math.min(range.lowKey, note.key)
-            range.highKey = Math.max(range.highKey, note.key)
+            range.lowKey    = Math.min(range.lowKey, note.key)
+            range.highKey   = Math.max(range.highKey, note.key)
+            range.noteCount += 1
+            if note.isHit() do
+                range.hitCount += 1
         }
 
         .lanes.clear()
-        for range in ranges where range.lowKey <= range.highKey do
+        .laneOfTrack.clear()
+        .laneOfTrack.reserve(ranges.count)
+        for range in ranges
+        {
+            if range.lowKey > range.highKey
+            {
+                .laneOfTrack.add(Swag.U32.Max)
+                continue
+            }
+
+            .laneOfTrack.add(cast(u32, .lanes.count))
             .lanes.add(range)
+        }
     }
 
     // Returns the ticks of one bar, from the first time signature.
@@ -224,7 +251,6 @@ impl RollView
     mtd refreshLayout()
     {
         let client = .clientRect()
-        .collectLanes()
 
         // The rows span the keys of the notes shown: a chosen track has its own range, so a drum
         // track fills the view rather than a sliver of the range of the whole piece.
@@ -299,15 +325,14 @@ impl RollView
     // than pitches. A selected drum track does; all tracks do only when the piece holds nothing else.
     mtd showsPercussion()->bool
     {
-        var hits = false
-        for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
+        var notes, hits: u64
+        for lane in .lanes where .selectedTrack == Swag.U32.Max or lane.track == .selectedTrack
         {
-            if not note.isHit() do
-                return false
-            hits = true
+            notes += lane.noteCount
+            hits  += lane.hitCount
         }
 
-        return hits
+        return notes and hits == notes
     }
 
     mtd applyZoom(value: f32)
@@ -317,8 +342,22 @@ impl RollView
         .refreshLayout()
     }
 
-    mtd zoomIn()  => .applyZoom(.zoom * 1.5)
-    mtd zoomOut() => .applyZoom(.zoom / 1.5)
+    // Zooms to `target`, one step from the scale shown, unless the step heads past a limit the
+    // timeline already stands at. A step that changes nothing must leave the fit alone, or a score
+    // fitted at the smallest zoom would stop following the window.
+    mtd stepZoom(target: f32)
+    {
+        if target > .zoom ? .canZoomIn() : .canZoomOut() do
+            .applyZoom(target)
+    }
+
+    mtd zoomIn()  => .stepZoom(.zoom * ZoomStep)
+    mtd zoomOut() => .stepZoom(.zoom / ZoomStep)
+
+    // Report whether a zoom step still widens or narrows the timeline, so the commands that take
+    // one can read as unavailable at the limits instead of doing nothing.
+    mtd canZoomIn()  => .zoom < MaxZoom
+    mtd canZoomOut() => .zoom > MinZoom
 
     mtd applyPitchZoom(value: f32)
     {
@@ -386,26 +425,33 @@ impl RollView
             bar += BarStride
         }
 
-        for &lane, index in .lanes
+        // The notes are sorted by start, so one pass over them all, whatever their lane, begins at
+        // the first one that can reach the left edge and stops at the first one past the right
+        // edge. The lanes stand apart, so the order they are painted in does not show.
+        let leftEdge = .scrollPos.x + left
+        let right    = .scrollPos.x + .clientRect().width
+        for noteIndex in .firstNoteReaching(left, leftEdge, NoteHeight) until .document.notes.count
         {
+            let note = &.document.notes[noteIndex]
+            if note.track >= .laneOfTrack.count do
+                continue
+            let x = left + cast(f32, note.startTick) * .pixelsPerTick
+            if x > right do
+                break
+            let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+            if x + width < leftEdge do
+                continue
+
+            let index  = cast(u64, .laneOfTrack[note.track])
+            let lane   = &.lanes[index]
             let band   = .laneRect(index)
             let range  = Math.max(cast(f32, lane.highKey - lane.lowKey), 1)
             let spread = Math.max(band.height - 2 * LanePadding - NoteHeight, 0)
             var color  = colors.series[index % colors.series.count]
             if .selectedTrack != Swag.U32.Max and .selectedTrack != lane.track do
                 color = Color.lerp(colors.ground, color, 0.35)
-
-            for note in .document.notes where note.track == lane.track
-            {
-                let x = left + cast(f32, note.startTick) * .pixelsPerTick
-                if x > .scrollPos.x + .clientRect().width do
-                    break
-                let width = note.isHit() ? NoteHeight : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-                if x + width < .scrollPos.x + left do
-                    continue
-                let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
-                painter.fillRoundRect(Math.Rectangle{x, y, width, NoteHeight}, NoteHeight * 0.5, NoteHeight * 0.5, color)
-            }
+            let y = band.y + LanePadding + (cast(f32, lane.highKey - note.key) / range) * spread
+            painter.fillRoundRect(Math.Rectangle{x, y, width, NoteHeight}, NoteHeight * 0.5, NoteHeight * 0.5, color)
         }
 
         // The names stand in their own column, which the notes pass under when the time scrolls.
@@ -490,23 +536,48 @@ impl RollView
         painter.drawString(.scrollPos.x + ContentInset, top + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
     }
 
+    // Returns the index of the first note that can reach `edge` when the notes start at `left` and
+    // a hit is drawn `hitWidth` wide. The notes are sorted by start, and none is wider than the
+    // longest one or a hit, so a note that starts that far left of the edge ends before it, as
+    // does every note before it.
+    mtd firstNoteReaching(left, edge, hitWidth: f32)->u64
+    {
+        let widest = Math.max(cast(f32, .document.longestNote) * .pixelsPerTick, 2, hitWidth)
+        var first  = 0'u64
+        var last   = .document.notes.count
+        while first < last
+        {
+            let middle = first + (last - first) / 2
+            if left + cast(f32, .document.notes[middle].startTick) * .pixelsPerTick + widest < edge do
+                first = middle + 1
+            else do
+                last = middle
+        }
+
+        return first
+    }
+
     // Paints the visible notes of the selected track, or of every track, shading each track
-    // differently. Notes are sorted by start, so painting stops at the first one past the right
-    // edge.
+    // differently. Notes are sorted by start, so painting begins at the first one that can reach
+    // the left edge and stops at the first one past the right edge.
     mtd paintNotes(painter: *Painter)
     {
         let colors    = .themeColors()
         let plotLeft  = .keyboardWidth + ContentInset
         let alternate = .theme().palette.alternate.mark
+        let height    = Math.max(.rowHeight - 2, 1)
+        let leftEdge  = .scrollPos.x + .keyboardWidth
 
-        for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
+        for index in .firstNoteReaching(plotLeft, leftEdge, height) until .document.notes.count
         {
+            let note = &.document.notes[index]
+            if .selectedTrack != Swag.U32.Max and note.track != .selectedTrack do
+                continue
             let x = plotLeft + cast(f32, note.startTick) * .pixelsPerTick
             if x > .scrollPos.x + .clientRect().width do
                 break
-            let height = Math.max(.rowHeight - 2, 1)
-            let width  = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < .scrollPos.x + .keyboardWidth do
+            let width = note.isHit() ? height : Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
+            if x + width < leftEdge do
                 continue
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
@@ -621,9 +692,9 @@ impl IWnd for RollView
         if evt.kind == .Wheel and evt.modifiers == .Control
         {
             if evt.delta.y > 0 do
-                .zoomIn()
+                .stepZoom(.zoom * WheelZoomStep)
             elif evt.delta.y < 0 do
-                .zoomOut()
+                .stepZoom(.zoom / WheelZoomStep)
             return
         }
 
@@ -684,6 +755,7 @@ impl RollView
             .backgroundStyle = .View
             .focusPolicy     = .Tab
             .wndFlags        |= .NoFocusRing
+            .collectLanes()
             .refreshFonts()
             .refreshLayout()
         }

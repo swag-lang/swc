@@ -277,9 +277,10 @@ private impl Panel
                 panel.followReading()
             }
 
+            // Only an open outline follows the reading as it moves; a closed one catches up as it opens.
             .sigScrolled += func|panel = me|(_)
             {
-                panel.followReading()
+                panel.outline.followOpenReading()
             }
 
             .sigLoadFailed += func|panel = me|(_, reason)
@@ -418,6 +419,14 @@ private impl Panel
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
     }
 
+    // Offers the zoom levels beside the zoom readout, with the one in force checked.
+    mtd showZoomMenu()
+    {
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
+    }
+
     internal mtd setReadingColumn(column: ReadingColumn)
     {
         if .readingColumn == column do
@@ -437,17 +446,20 @@ private impl Panel
             let chapter = catch StrConv.toU64(typed) { return; }
             if not chapter or chapter > .book.chapters.count do
                 return
-            entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
+            let entry = entries.add(Format.toString(appStrings().lens_GoToChapter, chapter), .GoTo, func|view = me, chapter|() { view.showChapter(chapter - 1) })
+            if entry do
+                entry.lead = Format.toString("%", chapter)
             return
         }
 
         entries.add(texts().ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), shortcut: Input.formatKeyShortcut(.Alt, .Left))
         entries.add(texts().ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), shortcut: Input.formatKeyShortcut(.Alt, .Right))
-        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, shortcut: Input.formatKeyShortcut(.Control, .PageUp))
-        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+        entries.add(texts().ui_Previous, .ChevronLeft, func|view = me|() { view.turn(-1) }, disabled: not .previousButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageUp))
+        entries.add(texts().ui_Next, .ChevronRight, func|view = me|() { view.turn(1) }, disabled: not .nextButton.isEnabled(), shortcut: Input.formatKeyShortcut(.Control, .PageDown))
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
         entries.addZoom(.Out, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomOut(view.zoomPercent)) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me|() { view.setZoom(100) })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
         entries.add(texts().ui_CompactColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Compact) }, checked: .readingColumn == .Compact)
         entries.add(texts().ui_ComfortableColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Comfortable) }, checked: .readingColumn == .Comfortable)
         entries.add(texts().ui_WideColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Wide) }, checked: .readingColumn == .Wide)
@@ -485,12 +497,7 @@ private impl Panel
 
         with result.zoomLabel = Viewer.createZoomButton(host.createInfoGroup(Viewer.ZoomSlotWidth), "scope.epub.zoom", appStrings().cmd_ZoomMenu)
         {
-            .sigPressed += func|view = result|(_)
-            {
-                let percent = Viewer.pickZoom(view, view.zoomLabel, view.zoomPercent)
-                if percent do
-                    view.setZoom(percent)
-            }
+            .sigPressed += func|view = result|(_) { view.showZoomMenu() }
         }
 
         result.zoomLabel.setText(Viewer.zoomText(result.zoomPercent))

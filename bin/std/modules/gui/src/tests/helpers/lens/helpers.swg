@@ -79,11 +79,12 @@ func lensSetup(host: *Testing.HeadlessHost)->*Lens.View
             var section: *Lens.Section?
             for line, index in LensLines
             {
-                if not Lens.match(results.query, line).matched do
+                var found = Lens.match(results.folded, line)
+                if not found.matched do
                     continue
                 if not section do
                     section = results.addSection("In this file")
-                with let entry = section.addEntry(line)
+                with let entry = section.addEntry(line, #move found)
                 {
                     .lead      = Format.toString("%", index + 37)
                     .monoTitle = true

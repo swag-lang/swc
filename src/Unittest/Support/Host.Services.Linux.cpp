@@ -1,14 +1,25 @@
 #include "pch.h"
 #include "Main/ExitCodes.h"
+#include "Main/WorkspaceLayout.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Support/Host.Tests.Linux.h"
 #include <fcntl.h>
 #include <pthread.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 namespace swc::LinuxHostTests
 {
+    void testPrivateCompilerCacheRoot()
+    {
+        const fs::path root = WorkspaceLayout::cacheRoot();
+        struct stat info{};
+        require(root.is_absolute() && lstat(root.c_str(), &info) == 0, "compiler cache root is unavailable");
+        require(S_ISDIR(info.st_mode) && info.st_uid == geteuid() && (info.st_mode & 07777) == S_IRWXU, "compiler cache root is not a private user-owned directory");
+    }
+
     void testThreadStorage()
     {
         const uint32_t before      = Os::tlsSlotsInUse();

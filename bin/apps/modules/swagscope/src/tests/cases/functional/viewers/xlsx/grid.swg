@@ -26,9 +26,14 @@ using Core, Gui, Gui.Testing, Viewers
     let grid   = unwrap panel.grid
     grid.selectAddress({2, 1})
     Swag.require(grid.selected.label() == "B3" and grid.selectedText() == "$1,100.00")
+
+    // The copied cell replaces what the clipboard held, a picture copied before included.
+    var picture = Pixel.Image.create(2, 2, .BGRA8)
+    picture.clear()
+    Clipboard.addImage(picture)
     var copy = KeyEvent{kind: .Pressed, key: .C, modifiers: .Control}
     grid.sendEvent(&copy)
-    Swag.require(Clipboard.getString() == "$1,100.00")
+    Swag.require(Clipboard.getString() == "$1,100.00" and not Clipboard.hasImage())
     var right = KeyEvent{kind: .Pressed, key: .Right}
     grid.sendEvent(&right)
     Swag.require(grid.selected.label() == "D3")
@@ -82,4 +87,40 @@ using Core, Gui, Gui.Testing, Viewers
     var error: Swag.Error
     discard catch Xlsx.Workbook.load(path) as error
     Swag.require(error.value() is Errors.InvalidFormatError)
+}
+
+// A cell is painted as written: an angle bracket in its text gains no invisible companion.
+#test
+{
+    let source = "<worksheet><sheetData><row r='1'><c r='A1' t='inlineStr'><is><t>a&lt;b</t></is></c></row></sheetData></worksheet>"
+    let path   = formattedWorkbookVariant("xl/worksheets/one.xml", "", source, replacePart: true)
+    defer discard catch File.delete(path)
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, path, false)
+    let panel  = assume cast(*Xlsx.Panel, window.currentView)
+    let grid   = unwrap panel.grid
+    discard host.render(window)
+    Swag.require(grid.scratch.text == "a<b", grid.scratch.text)
+}
+
+// The tooltip names the hovered cell, the anchor's text over a merged range, and nothing over the
+// headers. It is rebuilt when the pointer enters another cell, not on each move inside one.
+#test
+{
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.geometry.xlsx"), false)
+    let panel  = assume cast(*Xlsx.Panel, window.currentView)
+    let grid   = unwrap panel.grid
+    let price  = grid.localToSurface(grid.cellRect({2, 1}, {2, 1}).center())
+    host.moveMouse(price)
+    Swag.require(grid.toolTip == "$1,100.00", grid.toolTip)
+
+    grid.toolTip = "unchanged"
+    host.moveMouse(price + Math.Point{1, 1})
+    Swag.require(grid.toolTip == "unchanged", grid.toolTip)
+
+    host.moveMouse(grid.localToSurface(grid.cellRect({7, 2}, {7, 2}).center()))
+    Swag.require(grid.toolTip == "Bring receipts to the next meeting.", grid.toolTip)
+    host.moveMouse(grid.localToSurface(Math.Point{4, 4}))
+    Swag.require(grid.toolTip.isEmpty(), grid.toolTip)
 }

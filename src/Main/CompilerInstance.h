@@ -7,7 +7,7 @@
 #include "Main/CompilerTagRegistry.h"
 #include "Main/ExitCodes.h"
 #include "Support/Core/DataSegment.h"
-#include "Support/Core/LookupTable.h"
+#include "Support/Core/LookupTable.Forward.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"

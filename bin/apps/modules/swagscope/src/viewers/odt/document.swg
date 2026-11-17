@@ -12,6 +12,7 @@ struct Document
     images:     u64
     omitted:    u64
     simplified: bool
+    properties: Package.DocumentProperties     // What the package says of the document.
 }
 
 private struct Inline
@@ -85,7 +86,9 @@ impl Document
         try reader.styles.read(try parts.text("styles.xml", required: false, limit: 8 * 1024 * 1024))
         try reader.styles.read(content)
         reader.styles.finish()
-        return try reader.read(content)
+        var result = try reader.read(content)
+        result.properties = Package.DocumentProperties.read(fileName, &archive)
+        return result
     }
 }
 

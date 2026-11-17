@@ -3,6 +3,32 @@
 
 using Core, Pixel
 
+// Scales a contiguous X11 TrueColor channel to an opaque 8-bit component.
+internal func x11Channel(pixel, mask: u32)->u8
+{
+    var shifted = pixel & mask
+    var maximum = mask
+    while maximum & 1 == 0
+    {
+        maximum >>= 1
+        shifted >>= 1
+    }
+
+    return cast(u8, (cast(u64, shifted) * 255 + maximum / 2) / maximum)
+}
+
+#[Swag.Inline]
+internal func x11Pixel(source: const [*] u8, offset: u64, byteCount, imageByteOrder: u32)->u32
+{
+    var pixel: u32
+    for component in byteCount
+    {
+        let shift = imageByteOrder == 0 ? component * 8 : (byteCount - component - 1) * 8
+        pixel |= cast(u32, source[offset + component]) << shift
+    }
+    return pixel
+}
+
 #[Swag.Inline]
 private func copyX11BgraRow(input: const [*] u8, output: [*] u8, width: u64, opaque: Math.Simd.U32x4)
 {
@@ -564,19 +590,6 @@ impl X11Capture
         if count < 0 or cast(u64, count) < stride * cast(u64, height) do
             fail Swag.SystemError{"X11 returned an incomplete desktop image"}
 
-        func channel(pixel, mask: u32)->u8
-        {
-            var shifted = pixel & mask
-            var maximum = mask
-            while maximum & 1 == 0
-            {
-                maximum >>= 1
-                shifted >>= 1
-            }
-
-            return cast(u8, (cast(u64, shifted) * 255 + maximum / 2) / maximum)
-        }
-
         if target.width != width or target.height != height or target.pixelFormat != .BGRA8 do
             target[] = Image.create(width, height, .BGRA8)
         let source      = shared ? cast([*] u8, unwrap .shmData) : data(captured)
@@ -629,17 +642,13 @@ impl X11Capture
             for column in cast(u64, width)
             {
                 let offset = row * stride + column * bytes
-                var pixel: u32
-                for component in cast(u32, bytes)
-                {
-                    let shift = .setup.image_byte_order == 0 ? component * 8 : (bytes - component - 1) * 8
-                    pixel |= cast(u32, source[offset + component]) << shift
-                }
+                let pixel = x11Pixel(source, offset, bytes,
+                                     cast(u32, .setup.image_byte_order))
 
                 let destination = (cast(u64, height) - row - 1) * cast(u64, target.rowStride) + column * 4
-                target.pixels[destination]     = channel(pixel, visual.blue_mask)
-                target.pixels[destination + 1] = channel(pixel, visual.green_mask)
-                target.pixels[destination + 2] = channel(pixel, visual.red_mask)
+                target.pixels[destination]     = x11Channel(pixel, visual.blue_mask)
+                target.pixels[destination + 1] = x11Channel(pixel, visual.green_mask)
+                target.pixels[destination + 2] = x11Channel(pixel, visual.red_mask)
                 target.pixels[destination + 3] = 255
             }
         }

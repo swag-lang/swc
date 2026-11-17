@@ -136,6 +136,61 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     }
 }
 
+// The lens finds the lines of the open file as the file is now: each line holding the query once,
+// led by its number, and `:` with a number the start of that line. A reload reads the file again.
+#test
+{
+    func inFile(window: *ViewerWindow)->*Lens.Section?
+    {
+        for section in window.lens.results.sections where section!.label == appStrings().lens_InFile do
+            return section
+        return null
+    }
+
+    let fileName = Testing.tempFilePath("scope-lens-reload-", ".txt")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "first ALPHA alpha\r\nsecond beta\r\nthird alpha\r\n")
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, fileName, true)
+    window.lens.open("alpha")
+    host.finishAnimations()
+    let found = unwrap inFile(window)
+    Swag.require(found.count == 2 and found.entries.count == 2)
+    Swag.require(found.entries[0].lead == "1" and found.entries[0].title == "first ALPHA alpha")
+    Swag.require(found.entries[1].lead == "3" and found.entries[1].title == "third alpha")
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":4")
+    host.finishAnimations()
+    Swag.require((unwrap inFile(window)).entries[0].title == Format.toString(appStrings().lens_GoToLine, 4))
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":5")
+    host.finishAnimations()
+    Swag.require(inFile(window) == null)
+    window.lens.close()
+    host.finishAnimations()
+
+    discard expect File.writeAllText(fileName, "beta\nalpha first\nalpha\nmore\nlast\n")
+    window.reloadCurrentFile()
+    completeQueuedViewerFile(&host, window)
+    window.lens.open("alpha")
+    host.finishAnimations()
+    let reloaded = unwrap inFile(window)
+    Swag.require(reloaded.count == 2 and reloaded.entries[0].lead == "2" and reloaded.entries[1].lead == "3")
+    window.lens.close()
+    host.finishAnimations()
+
+    window.lens.open(":5")
+    host.finishAnimations()
+    Swag.require((unwrap inFile(window)).entries[0].title == Format.toString(appStrings().lens_GoToLine, 5))
+    window.lens.close()
+    host.finishAnimations()
+}
+
 // A search that found nothing in a document of pictures of pages says why: there are no words to
 // find, not none that match. A document with text keeps the plain answer.
 #test
@@ -187,5 +242,51 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
     completeFind(&host, window)
     Swag.require(window.searchComplete and window.searchMatches.count == 1)
     let toolTip = window.searchCountLabel.toolTip.toString()
-    Swag.require(Utf8.contains(toolTip, Format.toString(PdfDocument.texts().ui_SomeNoText, 1, 2).toString()), toolTip)
+    Swag.require(Utf8.contains(toolTip, Format.toString(PdfDocument.texts().ui_OneNoText, 2).toString()), toolTip)
+}
+
+// One page whose text cannot be read is counted as one page, in the sheet and in the search's
+// explanation. The text is extracted from a copy reopened later, so removing the file once it is
+// open makes every page unreadable.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-pdf-unreadable-", ".pdf")
+    defer discard catch File.delete(fileName)
+    var document = Pdf.Document.create()
+    var page     = Pdf.Page.create(320, 220)
+    page.addText("lost words", 32, 28, 24, Color.fromArgb(Argb.Black))
+    document.addPage(#move page)
+    expect document.save(fileName)
+
+    var host: HeadlessHost
+    host.setup(960, 680)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.resize(960, 680)
+    window.openFile(fileName)
+    completeQueuedViewerFile(&host, window)
+    window.applyLayout()
+    expect File.delete(fileName)
+    window.toggleInformation()
+
+    let view     = assume cast(*PdfDocument.Panel, window.instances[window.activeChoiceIndex].view)
+    var attempts = 0
+    while not view.pdfView.textCoverage().complete and attempts < 5_000
+    {
+        Threading.Thread.sleep(1'ms)
+        host.pump()
+        attempts += 1
+    }
+
+    host.pump()
+    Swag.require(view.pdfView.textCoverage().unreadable == 1)
+    window.infoSheet.selectPage(1)
+    let text = window.infoSheet.text()
+    Swag.require(Utf8.contains(text, Format.toString("Text layer\n%", PdfDocument.texts().ui_TextLayerOneUnreadable).toString()), text)
+
+    window.showSearch()
+    window.searchBox.setText("lost")
+    completeFind(&host, window)
+    Swag.require(window.searchComplete and window.searchMatches.isEmpty())
+    let toolTip = window.searchCountLabel.toolTip.toString()
+    Swag.require(Utf8.contains(toolTip, PdfDocument.texts().ui_OneUnreadable), toolTip)
 }

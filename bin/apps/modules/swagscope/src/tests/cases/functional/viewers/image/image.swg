@@ -186,12 +186,54 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     var reset = KeyEvent{kind: .Pressed, key: .R, modifiers: .Control}
     view.sendEvent(&reset)
     Swag.require(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
+
+    // The actual size takes Ctrl alone, as the zoom steps and the other viewers do.
+    view.imageView.zoomToFit()
+    var shiftedActual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control | .Shift}
+    view.sendEvent(&shiftedActual)
+    Swag.require(view.imageView.isFitted)
+    var actualKey = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
+    view.sendEvent(&actualKey)
+    Swag.require(not view.imageView.isFitted and view.imageView.zoom == 1)
+    view.imageView.zoomToFit()
     view.dockStyle = .Center
     host.root.applyLayout()
     standTestCommands(foot, view.actions)
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
     Swag.require(view.playModeButton.position.right() <= view.actions.clientRect().right())
+
+    // The lens reads the zoom in force: the fit first, then the actual size chosen from its row.
+    func zoomRow(view: *Picture.Panel, host: *Gui.Testing.HeadlessHost, title: string, results: *Lens.Results)->*Lens.Entry?
+    {
+        var entries = Viewer.LensEntries.create(results, "Image", host.theme)
+        view.describeLens(&entries)
+        for &entry in results.sections[0]!.entries where entry.title == title do
+            return entry
+        Swag.require(false, title)
+        return null
+    }
+
+    var fitted: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, Picture.texts().ui_TipFit, &fitted)).checked)
+    var actualSize: Lens.Results
+    (unwrap zoomRow(view, &host, appStrings().cmd_ZoomReset, &actualSize)).run!()
+    var actual: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomReset, &actual)).checked)
+    var unfitted: Lens.Results
+    Swag.require(not (unwrap zoomRow(view, &host, Picture.texts().ui_TipFit, &unfitted)).checked)
+
+    // At the picture view's limits, the step that cannot be taken reads as unavailable.
+    var enlargeable: Lens.Results
+    Swag.require(not (unwrap zoomRow(view, &host, appStrings().cmd_ZoomIn, &enlargeable)).disabled)
+    view.imageView.setZoom(ImageView.MaxZoom)
+    var largest: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomIn, &largest)).disabled)
+    var shrinkable: Lens.Results
+    Swag.require(not (unwrap zoomRow(view, &host, appStrings().cmd_ZoomOut, &shrinkable)).disabled)
+    view.imageView.setZoom(ImageView.MinZoom)
+    var smallest: Lens.Results
+    Swag.require((unwrap zoomRow(view, &host, appStrings().cmd_ZoomOut, &smallest)).disabled)
 }
 
 // A decoder refusal crosses the viewer boundary as data; the viewer creates no competing error UI.
@@ -324,6 +366,9 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     }
 }
 
+// Times the image sheet was described while the pointer probed the picture.
+var g_ImageDescriptions: u32
+
 // The pointer over a picture reads the pixel it stands on, and its color, after the summary;
 // leaving the picture gives the summary back.
 #test
@@ -366,6 +411,25 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.require(found)
     if Clipboard.isFake() do
         Swag.require(Clipboard.getString() == code, Clipboard.getString())
+
+    // The pointer moving beside the picture tells the host nothing new, so the open sheet stays
+    // as it was described.
+    window.toggleInformation()
+    Swag.require(window.infoSheet.isLocallyVisible())
+    g_ImageDescriptions = 0
+    window.instances[window.activeChoiceIndex].describeInformation = func||(_) { g_ImageDescriptions += 1 }
+    let corner = view.imageView.surfaceRect()
+    let first  = Math.Point{corner.x + 1, corner.y + 1}
+    let second = Math.Point{corner.x + 3, corner.y + 2}
+    Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(first)).inside)
+    Swag.require(not view.imageView.pixelAt(view.imageView.surfaceToLocal(second)).inside)
+    host.moveMouse(corner.center())
+    let probed = g_ImageDescriptions
+    host.moveMouse(first)
+    Swag.require(g_ImageDescriptions > probed)
+    let left = g_ImageDescriptions
+    host.moveMouse(second)
+    Swag.require(g_ImageDescriptions == left, Format.toString("%", g_ImageDescriptions))
 }
 
 // The information sheet says how much of a picture its alpha hides: wholly transparent pixels,

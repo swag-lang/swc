@@ -3,6 +3,20 @@
 
 using Swag, Core
 
+struct ImageReaderMismatchDecoder {}
+
+impl IImageDecoder for ImageReaderMismatchDecoder
+{
+    mtd impl format()->ImageFormat => {"Reader mismatch", ".readermismatch"}
+
+    mtd impl decode(_: const [..] u8, options: DecodeOptions)->Image fail
+    {
+        if options.decodePixels do
+            return Image.create(2, 1, .BGRA8)
+        return Image.create(1, 1, .RGBA8)
+    }
+}
+
 struct ImageReaderDecoderAllocatorProbe
 {
     upstream:        IAllocator
@@ -265,6 +279,17 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
             Swag.require(truncatedError != null)
         }
     }
+}
+
+// A reader rejects a decoder whose pixel output differs from its indexed frame.
+#test
+{
+    Image.registerDecoder'(ImageReaderMismatchDecoder)()
+    var reader = expect ImageReader.decode("image.readermismatch", "input")
+    var errorOutcome: Swag.Error
+    var image: #decltype(expect reader.read(0))
+    catch { image = try reader.read(0) } as errorOutcome
+    Swag.require(errorOutcome.value() != null)
 }
 
 // Closing a reader uses the allocator that created its persistent decoder.

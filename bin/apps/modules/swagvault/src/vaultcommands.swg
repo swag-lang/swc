@@ -94,19 +94,17 @@ impl MainWindow
     // Answers the lens with the vaults the list knows; choosing one unfolds it.
     mtd describeVaults(results: *Lens.Results)
     {
-        let typed: String = results.query
-        let query         = typed.toString()
-
         var section: *Lens.Section?
         for &vault in .vaults
         {
-            let path = vault.path.toString()
-            let name = Path.fileName(path) orelse path
-            if not Lens.match(query, name).matched do
+            let path  = vault.path.toString()
+            let name  = Path.fileName(path) orelse path
+            var found = Lens.match(results.folded, name)
+            if not found.matched do
                 continue
             if not section do
                 section = results.addSection(appStrings().lens_Vaults)
-            with let entry = section.addEntry(name)
+            with let entry = section.addEntry(name, #move found)
             {
                 .detail     = me.vaultIdentity(path)
                 .monoDetail = true

@@ -740,6 +740,7 @@
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
         <ClInclude Include="src\Backend\JIT\JITPatchJob.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugInfoRecords.h"/>
         <ClInclude Include="src\Backend\Debug\DebugPath.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.CodeView.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.DWARF.h"/>
@@ -790,6 +791,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenTypeHelpers.h"/>
         <ClInclude Include="src\Compiler\Sema\Constant\ConstantIntrinsic.h"/>
         <ClInclude Include="src\Main\ExitCodes.h"/>
+        <ClInclude Include="src\Support\Core\LookupTable.Forward.h"/>
         <ClInclude Include="src\Support\Core\LookupTable.h"/>
         <ClInclude Include="src\Support\Core\ByteArray.h"/>
         <ClInclude Include="src\Support\Core\DenseBits.h"/>

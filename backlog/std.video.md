@@ -300,6 +300,26 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   input with its preceding source picture before macroblock analysis. In a Release
   3840×2160 probe, a fresh but identical picture took 1.2–1.6 ms and emitted the same
   11–53-byte P-skip packet, while the changing P picture took 39–73 ms.
+  `regionMotion` now compares each luma region with the preceding source picture before
+  building row/column motion profiles. On a deterministic 1080p30 QP 28 clip with a moving
+  384-pixel tile over an unchanged textured background, five paired Release runs had a median
+  8.3% encode-time reduction (group medians were 303 and 282 ms); a 12-picture 3840×2160
+  localized-motion run fell from 718,592 to 528,148 µs (26.5%). Packet bytes, MP4 bytes,
+  decoded hashes, PSNR and SSIM all matched. Six paired all-changing 1080p30 controls had a
+  2.0% median slowdown;
+  one pair was 23.6% slower, while the other five ranged from essentially equal to 13.1%
+  slower. These codec-only synthetic results have substantial run variation and do not claim
+  a live capture throughput gain.
+  On that localized 1080p clip at QP 28, Swag emitted 871 KB of packets at 39.50 dB luma
+  PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 732 KB at 39.95 dB, while
+  x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,
+  and x264's measured process time includes startup and muxing while Swag's timer covers only
+  encoding; these are rate-quality references, not direct speed ratios.
+  On the 12-picture 4K localized-motion clip at QP 28, Swag emitted 3.32 MB at 39.96 dB
+  luma PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 2.69 MB at 40.16 dB, and
+  Baseline/ultrafast at CRF 28 emitted 3.40 MB at 40.52 dB. Swag's encode-only timer was
+  552 ms and x264's process took 317 ms, but those timings include different stages and are
+  not directly comparable.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
   A deterministic four-slice stress case now measures 100 alternating 4K P pictures at
@@ -347,9 +367,12 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   region estimate, the 4x4 transforms and the Intra_4x4 predictions. Then 8×8 and 16×8
   partitions, which x264 uses on 2–5% of these macroblocks, and a trellis or adaptive dead
   zone; CABAC needs the Main profile. Give the exact QP 0 path the same motion search.
-  Measure slice-count changes with concurrent screen readback: eight slices improved isolated
-  4K P-picture throughput, but a scaled two-screen recording lost 363 slots in one 60-second
-  run, while four slices lost none in a subsequent run with varying desktop load.
+  The app allows eight slices up to 4096 pixels and four above that, where downscaled desktop
+  readback also needs CPU. In a 10-picture 4K testsrc Release benchmark, eight slices encoded
+  17–30% faster than four, with under 0.5% file-size and 0.01 dB luma-PSNR differences. A scaled
+  two-screen live recording instead lost 363 slots with eight slices in one run and none with
+  four in a later run under varying load. Remeasure 1080p60 and 4K60 capture with concurrent
+  readback; codec-only timing does not choose the end-to-end slice count.
   Connect the pure-Swag rate controller only after the encoder can change QP per picture;
   refresh `previousInput` across QP transitions and treat an MP4 writer failure as terminal
   or make packet submission transactional. Use each H.264 packet's bytes and duration for

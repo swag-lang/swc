@@ -50,6 +50,23 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
     Swag.require(times.count == 1 and times[0] == cast(s64, rawOffset))
 }
 
+func mp4AssertSignedCompositionOffset(rawOffset: u32, expected: s64) fail
+{
+    var bytes: [16] u8 = [1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
+    bytes[12] = cast(u8, (rawOffset >> 24) & 0xFF)
+    bytes[13] = cast(u8, (rawOffset >> 16) & 0xFF)
+    bytes[14] = cast(u8, (rawOffset >> 8) & 0xFF)
+    bytes[15] = cast(u8, rawOffset & 0xFF)
+
+    var source = ByteSource.openMemory(Swag.makeSlice(&bytes[0], bytes.count))
+    var track: Mp4.Track
+    track.times.add({1, 1})
+    track.sizes.add(1)
+    try track.parseCompositionOffsets(&source, bytes.count)
+    let times = try track.sampleTimes()
+    Swag.require(times.count == 1 and times[0] == expected)
+}
+
 // A fixed-size `stsz` table has no per-sample payload to bound its count, so reject an
 // unreasonable count before expanding the track's sample-size array.
 #test
@@ -88,6 +105,15 @@ func mp4AssertUnsignedCompositionOffset(rawOffset: u32) fail
 {
     expect mp4AssertUnsignedCompositionOffset(0x8000_0001)
     expect mp4AssertUnsignedCompositionOffset(Swag.U32.Max)
+}
+
+// Version-one composition offsets are signed, including both ends of the s32 range.
+#test
+{
+    expect mp4AssertSignedCompositionOffset(0xFFFF_FFFF, -1)
+    expect mp4AssertSignedCompositionOffset(0xFFFF_FF9C, -100)
+    expect mp4AssertSignedCompositionOffset(0x8000_0000, -2_147_483_648's64)
+    expect mp4AssertSignedCompositionOffset(0x7FFF_FFFF, 2_147_483_647's64)
 }
 
 // frameAtTime follows presentation timestamps when composition offsets extend the timeline

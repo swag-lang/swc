@@ -136,49 +136,27 @@ impl MainWnd
     // any other: its button posts it, and the command state checks the tool in use.
     mtd createDock()
     {
-        let glyph = .themeMetrics().toolDock_Glyph
         .dock = ToolDock.create(.editArea)
 
         // Eight cells, as the pictures; a cell with a mark stands for a group of tools, each of
         // which keeps its command and its key.
-        .dock.addTool(.icon(.Select, glyph), ActionToolMode.Selection)
-        let shape = .dock.addTool(.icon(.Shape, glyph), ActionToolMode.Shape)
-        .dock.addToGroup(shape, .icon(.Polygon, glyph), ActionToolMode.Poly)
-        let arrow = .dock.addTool(.icon(.Arrow, glyph), ActionToolMode.Arrow)
-        .dock.addToGroup(arrow, .icon(.Line, glyph), ActionToolMode.Line)
-        .dock.addTool(.icon(.Text, glyph), ActionToolMode.Text)
+        .dock.addTool(.toolIcon(.Select), ActionToolMode.Selection)
+        let shape = .dock.addTool(.toolIcon(.Shape), ActionToolMode.Shape)
+        .dock.addToGroup(shape, .toolIcon(.Polygon), ActionToolMode.Poly)
+        let arrow = .dock.addTool(.toolIcon(.Arrow), ActionToolMode.Arrow)
+        .dock.addToGroup(arrow, .toolIcon(.Line), ActionToolMode.Line)
+        .dock.addTool(.toolIcon(.Text), ActionToolMode.Text)
 
         // The callout has no sprite of its own: its cell draws the bubble.
-        let callout = .dock.addTool(.icon(.Text, glyph), ActionToolMode.Callout)
+        let callout = .dock.addTool(.toolIcon(.Text), ActionToolMode.Callout)
         callout.iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
 
-        let draw = .dock.addTool(.icon(.Draw, glyph), ActionToolMode.Draw)
-        .dock.addToGroup(draw, .icon(.Highlight, glyph), ActionToolMode.Highlight)
-        .dock.addTool(.icon(.Step, glyph), ActionToolMode.Step)
-        let image = .dock.addTool(.icon(.Image, glyph), ActionToolMode.Img)
-        .dock.addToGroup(image, .icon(.PixSel, glyph), ActionToolMode.PixSel)
-        .dock.addToGroup(image, .icon(.Favorites, glyph), ActionToolMode.Favorites)
-    }
-
-    // Returns the command of the tool drawing in `mode`.
-    func toolCommand(mode: EditMode)->WndId
-    {
-        switch #complete mode
-        {
-        case .Shape:     return ActionToolMode.Shape
-        case .Arrow:     return ActionToolMode.Arrow
-        case .Line:      return ActionToolMode.Line
-        case .Polygon:   return ActionToolMode.Poly
-        case .Text:      return ActionToolMode.Text
-        case .Callout:   return ActionToolMode.Callout
-        case .Draw:      return ActionToolMode.Draw
-        case .Highlight: return ActionToolMode.Highlight
-        case .Step:      return ActionToolMode.Step
-        case .Image:     return ActionToolMode.Img
-        case .PixSel:    return ActionToolMode.PixSel
-        case .Favorites: return ActionToolMode.Favorites
-        case .Selection: return ActionToolMode.Selection
-        }
+        let draw = .dock.addTool(.toolIcon(.Draw), ActionToolMode.Draw)
+        .dock.addToGroup(draw, .toolIcon(.Highlight), ActionToolMode.Highlight)
+        .dock.addTool(.toolIcon(.Step), ActionToolMode.Step)
+        let image = .dock.addTool(.toolIcon(.Image), ActionToolMode.Img)
+        .dock.addToGroup(image, .toolIcon(.PixSel), ActionToolMode.PixSel)
+        .dock.addToGroup(image, .toolIcon(.Favorites), ActionToolMode.Favorites)
     }
 
     // The properties of the selection, or of the tool when nothing is selected: the quick styles
@@ -774,8 +752,6 @@ impl MainWnd
         .placeTimeline()
     }
 
-    // Writes the foot line: what the tool in hand does, the key of the inspector while it is
-    // folded, and the searchable lens.
     // Reports whether the selection is one pixel selection, a region of the picture.
     mtd isPixelSelection()->bool
     {
@@ -786,6 +762,8 @@ impl MainWnd
         return base.subKind == .PixSel
     }
 
+    // Writes the foot line: what the tool in hand does, the key of the inspector while it is
+    // folded, and the searchable lens.
     mtd fillHintLine()
     {
         if .hintLine == null do

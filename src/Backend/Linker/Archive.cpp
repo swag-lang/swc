@@ -26,7 +26,10 @@ namespace
                 break;
             if (c < '0' || c > '9')
                 return false;
-            outSize = outSize * 10 + static_cast<uint32_t>(c - '0');
+            const uint32_t digit = static_cast<uint32_t>(c - '0');
+            if (outSize > (UINT32_MAX - digit) / 10)
+                return false;
+            outSize = outSize * 10 + digit;
         }
 
         return true;

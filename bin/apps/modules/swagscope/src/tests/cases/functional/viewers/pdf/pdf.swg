@@ -75,10 +75,12 @@ internal func createPdfFixture()->String
     Swag.require(pdf.pageCount() == 2 and pdf.pageIndex == 0)
     Swag.require(pdf.zoomMode == .FitPage and pdf.pageLayout == .Continuous)
 
-    // Actual size shows one PDF point per 1/96 logical inch; an explicit zoom multiplies the
-    // shown size exactly, with the rasterization following the widget internally.
+    // Actual size shows one PDF point per 1/96 logical inch, and it is the 100 % of the readout,
+    // as a picture's own pixels are; an explicit zoom multiplies the shown size exactly, with the
+    // rasterization following the widget internally.
     pdf.actualSize()
     Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
+    Swag.require(view.zoomPercent() == 100 and view.zoomLabel.text() == Viewer.zoomText(100))
     let shown = pdf.effectiveZoom()
     pdf.setZoom(shown * 4)
     Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), shown * 4, 0.001))
@@ -86,7 +88,13 @@ internal func createPdfFixture()->String
     let beforeZoomOut = pdf.effectiveZoom()
     var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract, modifiers: .Control}
     view.sendEvent(&zoomOut)
-    Swag.require(pdf.effectiveZoom() < beforeZoomOut)
+    let zoomedOut = pdf.effectiveZoom()
+    Swag.require(zoomedOut < beforeZoomOut)
+
+    // The actual size takes Ctrl alone, as the zoom steps and the other viewers do.
+    var shiftedActual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control | .Shift}
+    view.sendEvent(&shiftedActual)
+    Swag.require(pdf.effectiveZoom() == zoomedOut)
     var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     view.sendEvent(&actual)
     Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))
@@ -222,7 +230,7 @@ internal func createPdfFixture()->String
     window.lens.open(":ii")
     windowHost.finishAnimations()
     let row = (unwrap window.lens.results.sections[0]).entries[0]
-    Swag.require(row.title == Format.toString(appStrings().lens_GoToPage, "ii (3)"))
+    Swag.require(row.title == Format.toString(appStrings().lens_GoToPage, "ii (3)") and row.lead == "3")
     row.run!()
     window.lens.close()
     windowHost.finishAnimations()
@@ -264,6 +272,35 @@ internal func createPdfFixture()->String
     Swag.require(not entry.disabled)
     entry.run!()
     Swag.require(not Clipboard.getString().isEmpty())
+
+    // The zoom rows bear the names every reading viewer gives them.
+    var zoom: Lens.Results
+    (unwrap row(view, &host, appStrings().cmd_ZoomIn, &zoom)).run!()
+    Swag.require(view.pdfView.zoomMode == .Free)
+
+    // Actual size, which `Ctrl 0` reaches, has its row too: a point shown as the 1/72 inch it
+    // measures. The row reads as chosen once the pages show at it, as the readout's 100 %.
+    var actual: Lens.Results
+    let actualRow = unwrap row(view, &host, appStrings().cmd_ZoomReset, &actual)
+    Swag.require(not actualRow.checked)
+    actualRow.run!()
+    Swag.require(view.pdfView.zoomMode == .Free and view.pdfView.zoom == PdfView.ActualSizeZoom)
+    var chosen: Lens.Results
+    Swag.require((unwrap row(view, &host, appStrings().cmd_ZoomReset, &chosen)).checked)
+
+    // The menu's percentages are of the same actual size the readout measures against.
+    view.setZoomPercent(200)
+    Swag.require(view.zoomPercent() == 200 and Math.isEqualEpsilon(view.pdfView.effectiveZoom(), 2 * PdfView.ActualSizeZoom, 0.001))
+
+    // At the page view's limits, the step that cannot be taken reads as unavailable.
+    view.pdfView.setZoom(PdfView.MaxZoom)
+    var largest: Lens.Results
+    Swag.require((unwrap row(view, &host, appStrings().cmd_ZoomIn, &largest)).disabled)
+    var shrinkable: Lens.Results
+    Swag.require(not (unwrap row(view, &host, appStrings().cmd_ZoomOut, &shrinkable)).disabled)
+    view.pdfView.setZoom(PdfView.MinZoom)
+    var smallest: Lens.Results
+    Swag.require((unwrap row(view, &host, appStrings().cmd_ZoomOut, &smallest)).disabled)
 }
 
 // The information sheet says whether the pages carry text, without a search: once the text is

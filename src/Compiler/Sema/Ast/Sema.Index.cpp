@@ -437,20 +437,23 @@ Result AstIndexListExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
     const auto indexedView = sema.viewType(nodeExprRef);
     if (indexedView.typeRef().isInvalid())
         return Result::Continue;
-    TypeRef                 currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
-    SmallVector<AstNodeRef> arguments;
-    sema.ast().appendNodes(arguments, spanChildrenRef);
-    for (const AstNodeRef argumentRef : arguments)
+    TypeRef currentTypeRef = resolveIndexedExprTypeRef(sema, indexedView);
+    const auto arguments = sema.ast().nodeSpan(spanChildrenRef);
+    for (auto chunk = arguments.chunksBegin(); chunk != arguments.chunksEnd(); ++chunk)
     {
-        if (currentTypeRef.isInvalid())
-            break;
-        currentTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), currentTypeRef);
-        if (argumentRef == childRef)
+        const auto chunkArguments = std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+        for (const AstNodeRef argumentRef : chunkArguments)
         {
-            bindArrayIndex(sema, currentTypeRef, childRef);
-            break;
+            if (currentTypeRef.isInvalid())
+                return Result::Continue;
+            currentTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), currentTypeRef);
+            if (argumentRef == childRef)
+            {
+                bindArrayIndex(sema, currentTypeRef, childRef);
+                return Result::Continue;
+            }
+            currentTypeRef = typeAfterSequentialIndex(sema, currentTypeRef, argumentRef);
         }
-        currentTypeRef = typeAfterSequentialIndex(sema, currentTypeRef, argumentRef);
     }
     return Result::Continue;
 }
@@ -597,14 +600,18 @@ Result AstIndexListExpr::semaPostNode(Sema& sema)
 
     if (indexedType.isArrayOrSlice() || indexedType.isAnyVariadic())
     {
-        const uint32_t maxIndexCount = resolveMaxSequentialIndexCount(sema, indexedTypeRef);
-        if (children.size() > maxIndexCount)
+        const uint32_t directIndexCount = indexedType.isArray() ? static_cast<uint32_t>(indexedType.payloadArrayDims().size()) : 1;
+        if (children.size() > directIndexCount)
         {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[maxIndexCount]);
-            diag.addArgument(Diagnostic::ARG_COUNT, maxIndexCount);
-            diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(children.size()));
-            diag.report(sema.ctx());
-            return Result::Error;
+            const uint32_t maxIndexCount = resolveMaxSequentialIndexCount(sema, indexedTypeRef);
+            if (children.size() > maxIndexCount)
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_array_num_dims, children[maxIndexCount]);
+                diag.addArgument(Diagnostic::ARG_COUNT, maxIndexCount);
+                diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(children.size()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
         }
     }
 

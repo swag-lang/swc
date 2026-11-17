@@ -42,7 +42,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">37</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">40</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#FAudio_FAudio">FAudio.FAudio</a></li>
@@ -67,10 +67,13 @@
 <li><a href="#FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn">FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn</a></li>
 <li><a href="#FAudio_FAudioVoice">FAudio.FAudioVoice</a></li>
 <li><a href="#FAudio_FAudioVoice_DestroyVoice_fn">FAudio.FAudioVoice_DestroyVoice_fn</a></li>
+<li><a href="#FAudio_FAudioVoice_GetVoiceDetails_fn">FAudio.FAudioVoice_GetVoiceDetails_fn</a></li>
 <li><a href="#FAudio_FAudioVoice_GetVolume_fn">FAudio.FAudioVoice_GetVolume_fn</a></li>
+<li><a href="#FAudio_FAudioVoice_SetOutputMatrix_fn">FAudio.FAudioVoice_SetOutputMatrix_fn</a></li>
 <li><a href="#FAudio_FAudioVoice_SetOutputVoices_fn">FAudio.FAudioVoice_SetOutputVoices_fn</a></li>
 <li><a href="#FAudio_FAudioVoice_SetVolume_fn">FAudio.FAudioVoice_SetVolume_fn</a></li>
 <li><a href="#FAudio_FAudioVoiceCallback">FAudio.FAudioVoiceCallback</a></li>
+<li><a href="#FAudio_FAudioVoiceDetails">FAudio.FAudioVoiceDetails</a></li>
 <li><a href="#FAudio_FAudioVoiceSends">FAudio.FAudioVoiceSends</a></li>
 <li><a href="#FAudio_FAudioVoiceState">FAudio.FAudioVoiceState</a></li>
 <li><a href="#FAudio_FAudioWaveFormatEx">FAudio.FAudioWaveFormatEx</a></li>
@@ -137,10 +140,13 @@
 <tr><td class="code-type"><a href="#FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn">FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice">FAudio.FAudioVoice</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_DestroyVoice_fn">FAudio.FAudioVoice_DestroyVoice_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#FAudio_FAudioVoice_GetVoiceDetails_fn">FAudio.FAudioVoice_GetVoiceDetails_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_GetVolume_fn">FAudio.FAudioVoice_GetVolume_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#FAudio_FAudioVoice_SetOutputMatrix_fn">FAudio.FAudioVoice_SetOutputMatrix_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_SetOutputVoices_fn">FAudio.FAudioVoice_SetOutputVoices_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_SetVolume_fn">FAudio.FAudioVoice_SetVolume_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoiceCallback">FAudio.FAudioVoiceCallback</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#FAudio_FAudioVoiceDetails">FAudio.FAudioVoiceDetails</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoiceSends">FAudio.FAudioVoiceSends</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoiceState">FAudio.FAudioVoiceState</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioWaveFormatEx">FAudio.FAudioWaveFormatEx</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
@@ -197,10 +203,13 @@
 <tr><td class="code-type"><a href="#FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn">FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice">FAudio.FAudioVoice</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_DestroyVoice_fn">FAudio.FAudioVoice_DestroyVoice_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#FAudio_FAudioVoice_GetVoiceDetails_fn">FAudio.FAudioVoice_GetVoiceDetails_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_GetVolume_fn">FAudio.FAudioVoice_GetVolume_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#FAudio_FAudioVoice_SetOutputMatrix_fn">FAudio.FAudioVoice_SetOutputMatrix_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_SetOutputVoices_fn">FAudio.FAudioVoice_SetOutputVoices_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoice_SetVolume_fn">FAudio.FAudioVoice_SetVolume_fn</a></td><td><span class="kind-chip kind-alias">type alias</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoiceCallback">FAudio.FAudioVoiceCallback</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
+<tr><td class="code-type"><a href="#FAudio_FAudioVoiceDetails">FAudio.FAudioVoiceDetails</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoiceSends">FAudio.FAudioVoiceSends</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioVoiceState">FAudio.FAudioVoiceState</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
 <tr><td class="code-type"><a href="#FAudio_FAudioWaveFormatEx">FAudio.FAudioWaveFormatEx</a></td><td><span class="kind-chip kind-struct">struct</span></td><td></td></tr>
@@ -232,32 +241,32 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">FAudio</span>      = <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudio_CreateMasteringVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_CreateMasteringVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_CreateMasteringVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L118">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudio_CreateMasteringVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_CreateMasteringVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_CreateMasteringVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L120">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudio_CreateMasteringVoice_fn</span>          = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>, **<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>?, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="SKwd">const</span> *<span class="STpe">void</span>?)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudio_CreateSourceVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_CreateSourceVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_CreateSourceVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L121">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudio_CreateSourceVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_CreateSourceVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_CreateSourceVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L123">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudio_CreateSourceVoice_fn</span>             = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>, **<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>?, <span class="SKwd">const</span> *<span class="SCst"><a href="#FAudio_FAudioWaveFormatEx">FAudioWaveFormatEx</a></span>, <span class="STpe">u32</span>, <span class="STpe">f32</span>, *<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>?, <span class="SKwd">const</span> *<span class="SCst"><a href="#FAudio_FAudioVoiceSends">FAudioVoiceSends</a></span>?, <span class="SKwd">const</span> *<span class="STpe">void</span>?)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudio_CreateSubmixVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_CreateSubmixVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_CreateSubmixVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L124">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudio_CreateSubmixVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_CreateSubmixVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_CreateSubmixVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L126">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudio_CreateSubmixVoice_fn</span>             = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>, **<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>?, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#FAudio_FAudioVoiceSends">FAudioVoiceSends</a></span>?, <span class="SKwd">const</span> *<span class="STpe">void</span>?)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudio_Release_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_Release_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_Release_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L112">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudio_Release_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_Release_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_Release_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L114">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudio_Release_fn</span>                       = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudio_SetEngineProcedureEXT_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_SetEngineProcedureEXT_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_SetEngineProcedureEXT_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L164">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudio_SetEngineProcedureEXT_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_SetEngineProcedureEXT_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_SetEngineProcedureEXT_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L172">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudio_SetEngineProcedureEXT_fn</span>         = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>, <span class="SCst"><a href="#FAudio_FAudioEngineProcedureEXT">FAudioEngineProcedureEXT</a></span>, *<span class="STpe">void</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudio_StopEngine_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_StopEngine_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_StopEngine_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L115">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudio_StopEngine_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudio_StopEngine_fn</span> <a class="api-item-permalink" href="#FAudio_FAudio_StopEngine_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L117">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudio_StopEngine_fn</span>                    = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>)</span></div>
 </section>
@@ -282,17 +291,17 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioCreate_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioCreate_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioCreate_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L109">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioCreate_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioCreate_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioCreate_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L111">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioCreate_fn</span>                         = <span class="SKwd">func</span>(**<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>?, <span class="STpe">u32</span>, <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioEngineCallEXT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioEngineCallEXT</span> <a class="api-item-permalink" href="#FAudio_FAudioEngineCallEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L160">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioEngineCallEXT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioEngineCallEXT</span> <a class="api-item-permalink" href="#FAudio_FAudioEngineCallEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L168">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioEngineCallEXT</span>                     = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>, *<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioEngineProcedureEXT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioEngineProcedureEXT</span> <a class="api-item-permalink" href="#FAudio_FAudioEngineProcedureEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L162">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioEngineProcedureEXT" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioEngineProcedureEXT</span> <a class="api-item-permalink" href="#FAudio_FAudioEngineProcedureEXT" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L170">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioEngineProcedureEXT</span>                = <span class="SKwd">func</span>(<span class="SCst"><a href="#FAudio_FAudioEngineCallEXT">FAudioEngineCallEXT</a></span>, *<span class="SCst"><a href="#FAudio_FAudio">FAudio</a></span>, *<span class="STpe">f32</span>, *<span class="STpe">void</span>)</span></div>
 </section>
@@ -312,7 +321,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="FAudio_FAudioSendDescriptor" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioSendDescriptor</span> <a class="api-item-permalink" href="#FAudio_FAudioSendDescriptor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L67">src</a></div>
+<div class="api-item api-item-struct"><span id="FAudio_FAudioSendDescriptor" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioSendDescriptor</span> <a class="api-item-permalink" href="#FAudio_FAudioSendDescriptor" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L69">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Pack">Pack</a>(1)]</span>
 <span class="SKwd">struct</span> <span class="SCst">FAudioSendDescriptor</span></span></div>
 </section>
@@ -325,37 +334,37 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_FlushSourceBuffers_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_FlushSourceBuffers_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_FlushSourceBuffers_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L145">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_FlushSourceBuffers_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_FlushSourceBuffers_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_FlushSourceBuffers_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L153">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_FlushSourceBuffers_fn</span> = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_GetFrequencyRatio_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_GetFrequencyRatio_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_GetFrequencyRatio_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L157">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_GetFrequencyRatio_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_GetFrequencyRatio_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_GetFrequencyRatio_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L165">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_GetFrequencyRatio_fn</span>  = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, *<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_GetState_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_GetState_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_GetState_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L151">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_GetState_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_GetState_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_GetState_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L159">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_GetState_fn</span>           = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, *<span class="SCst"><a href="#FAudio_FAudioVoiceState">FAudioVoiceState</a></span>, <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_SetFrequencyRatio_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_SetFrequencyRatio_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_SetFrequencyRatio_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L154">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_SetFrequencyRatio_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_SetFrequencyRatio_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_SetFrequencyRatio_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L162">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_SetFrequencyRatio_fn</span>  = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="STpe">f32</span>, <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_Start_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_Start_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_Start_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L139">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_Start_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_Start_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_Start_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L147">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_Start_fn</span>              = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_Stop_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_Stop_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_Stop_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L142">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_Stop_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_Stop_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_Stop_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L150">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_Stop_fn</span>               = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L148">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L156">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioSourceVoice_SubmitSourceBuffer_fn</span> = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#FAudio_FAudioBuffer">FAudioBuffer</a></span>, <span class="SKwd">const</span> *<span class="STpe">void</span>?)-&gt;<span class="STpe">u32</span></span></div>
 </section>
@@ -364,27 +373,37 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">alias</span> <span class="SCst">FAudioVoice</span> = <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_DestroyVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_DestroyVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_DestroyVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L127">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_DestroyVoice_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_DestroyVoice_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_DestroyVoice_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L129">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioVoice_DestroyVoice_fn</span>             = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_GetVolume_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_GetVolume_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_GetVolume_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L133">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_GetVoiceDetails_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_GetVoiceDetails_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_GetVoiceDetails_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L141">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
+<span class="SKwd">alias</span> <span class="SCst">FAudioVoice_GetVoiceDetails_fn</span>            = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, *<span class="SCst"><a href="#FAudio_FAudioVoiceDetails">FAudioVoiceDetails</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_GetVolume_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_GetVolume_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_GetVolume_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L135">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioVoice_GetVolume_fn</span>                = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, *<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_SetOutputVoices_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_SetOutputVoices_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_SetOutputVoices_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L136">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_SetOutputMatrix_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_SetOutputMatrix_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_SetOutputMatrix_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L138">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
+<span class="SKwd">alias</span> <span class="SCst">FAudioVoice_SetOutputMatrix_fn</span>           = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, *<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="STpe">u32</span>, <span class="STpe">u32</span>, <span class="SKwd">const</span> *<span class="STpe">f32</span>, <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_SetOutputVoices_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_SetOutputVoices_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_SetOutputVoices_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L144">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioVoice_SetOutputVoices_fn</span>          = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="SKwd">const</span> *<span class="SCst"><a href="#FAudio_FAudioVoiceSends">FAudioVoiceSends</a></span>?)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_SetVolume_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_SetVolume_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_SetVolume_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L130">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_FAudioVoice_SetVolume_fn" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.FAudioVoice_SetVolume_fn</span> <a class="api-item-permalink" href="#FAudio_FAudioVoice_SetVolume_fn" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L132">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">FAudioVoice_SetVolume_fn</span>                = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoice">FAudioVoice</a></span>, <span class="STpe">f32</span>, <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="FAudio_FAudioVoiceCallback" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioVoiceCallback</span> <a class="api-item-permalink" href="#FAudio_FAudioVoiceCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L86">src</a></div>
+<div class="api-item api-item-struct"><span id="FAudio_FAudioVoiceCallback" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioVoiceCallback</span> <a class="api-item-permalink" href="#FAudio_FAudioVoiceCallback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L88">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">FAudioVoiceCallback</span></span></div>
 </section>
 <h3>Fields</h3>
@@ -401,7 +420,22 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="FAudio_FAudioVoiceSends" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioVoiceSends</span> <a class="api-item-permalink" href="#FAudio_FAudioVoiceSends" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L69">src</a></div>
+<div class="api-item api-item-struct"><span id="FAudio_FAudioVoiceDetails" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioVoiceDetails</span> <a class="api-item-permalink" href="#FAudio_FAudioVoiceDetails" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L67">src</a></div>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Pack">Pack</a>(1)]</span>
+<span class="SKwd">struct</span> <span class="SCst">FAudioVoiceDetails</span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="FAudio_FAudioVoiceDetails_ActiveFlags" class="code-type">ActiveFlags</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="FAudio_FAudioVoiceDetails_CreationFlags" class="code-type">CreationFlags</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="FAudio_FAudioVoiceDetails_InputChannels" class="code-type">InputChannels</td><td class="code-type">u32</td><td></td></tr>
+<tr><td id="FAudio_FAudioVoiceDetails_InputSampleRate" class="code-type">InputSampleRate</td><td class="code-type">u32</td><td></td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="FAudio_FAudioVoiceSends" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">FAudio.FAudioVoiceSends</span> <a class="api-item-permalink" href="#FAudio_FAudioVoiceSends" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L71">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Pack">Pack</a>(1)]</span>
 <span class="SKwd">struct</span> <span class="SCst">FAudioVoiceSends</span></span></div>
 </section>
@@ -461,37 +495,37 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnBufferEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnBufferEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnBufferEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L72">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnBufferEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnBufferEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnBufferEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L74">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnBufferEndFunc</span>                = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>, *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnBufferStartFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnBufferStartFunc</span> <a class="api-item-permalink" href="#FAudio_OnBufferStartFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L74">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnBufferStartFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnBufferStartFunc</span> <a class="api-item-permalink" href="#FAudio_OnBufferStartFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L76">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnBufferStartFunc</span>              = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>, *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnLoopEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnLoopEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnLoopEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L76">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnLoopEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnLoopEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnLoopEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L78">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnLoopEndFunc</span>                  = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>, *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnStreamEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnStreamEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnStreamEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L78">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnStreamEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnStreamEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnStreamEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L80">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnStreamEndFunc</span>                = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnVoiceErrorFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnVoiceErrorFunc</span> <a class="api-item-permalink" href="#FAudio_OnVoiceErrorFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L80">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnVoiceErrorFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnVoiceErrorFunc</span> <a class="api-item-permalink" href="#FAudio_OnVoiceErrorFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L82">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnVoiceErrorFunc</span>               = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>, *<span class="STpe">void</span>?, <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnVoiceProcessingPassEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnVoiceProcessingPassEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnVoiceProcessingPassEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L82">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnVoiceProcessingPassEndFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnVoiceProcessingPassEndFunc</span> <a class="api-item-permalink" href="#FAudio_OnVoiceProcessingPassEndFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L84">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnVoiceProcessingPassEndFunc</span>   = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-alias"><span id="FAudio_OnVoiceProcessingPassStartFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnVoiceProcessingPassStartFunc</span> <a class="api-item-permalink" href="#FAudio_OnVoiceProcessingPassStartFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L84">src</a></div>
+<div class="api-item api-item-alias"><span id="FAudio_OnVoiceProcessingPassStartFunc" class="api-item-title"><span class="api-item-title-kind">type alias</span> <span class="api-item-title-strong">FAudio.OnVoiceProcessingPassStartFunc</span> <a class="api-item-permalink" href="#FAudio_OnVoiceProcessingPassStartFunc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/faudio/src/faudio.swg#L86">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_CallingConvention">CallingConvention</a>(.C)]</span>
 <span class="SKwd">alias</span> <span class="SCst">OnVoiceProcessingPassStartFunc</span> = <span class="SKwd">func</span>(*<span class="SCst"><a href="#FAudio_FAudioVoiceCallback">FAudioVoiceCallback</a></span>, <span class="STpe">u32</span>)</span></div>
 </section>
@@ -801,6 +835,11 @@
 "v|FAudio.FAudioVoiceCallback.OnVoiceError|FAudio_FAudioVoiceCallback_OnVoiceError|",
 "v|FAudio.FAudioVoiceCallback.OnVoiceProcessingPassEnd|FAudio_FAudioVoiceCallback_OnVoiceProcessingPassEnd|",
 "v|FAudio.FAudioVoiceCallback.OnVoiceProcessingPassStart|FAudio_FAudioVoiceCallback_OnVoiceProcessingPassStart|",
+"s|FAudio.FAudioVoiceDetails|FAudio_FAudioVoiceDetails|",
+"v|FAudio.FAudioVoiceDetails.ActiveFlags|FAudio_FAudioVoiceDetails_ActiveFlags|",
+"v|FAudio.FAudioVoiceDetails.CreationFlags|FAudio_FAudioVoiceDetails_CreationFlags|",
+"v|FAudio.FAudioVoiceDetails.InputChannels|FAudio_FAudioVoiceDetails_InputChannels|",
+"v|FAudio.FAudioVoiceDetails.InputSampleRate|FAudio_FAudioVoiceDetails_InputSampleRate|",
 "s|FAudio.FAudioVoiceSends|FAudio_FAudioVoiceSends|",
 "v|FAudio.FAudioVoiceSends.pSends|FAudio_FAudioVoiceSends_pSends|",
 "v|FAudio.FAudioVoiceSends.SendCount|FAudio_FAudioVoiceSends_SendCount|",
@@ -845,7 +884,9 @@
 "a|FAudio.FAudioSourceVoice_SubmitSourceBuffer_fn|FAudio_FAudioSourceVoice_SubmitSourceBuffer_fn|",
 "a|FAudio.FAudioVoice|FAudio_FAudioVoice|",
 "a|FAudio.FAudioVoice_DestroyVoice_fn|FAudio_FAudioVoice_DestroyVoice_fn|",
+"a|FAudio.FAudioVoice_GetVoiceDetails_fn|FAudio_FAudioVoice_GetVoiceDetails_fn|",
 "a|FAudio.FAudioVoice_GetVolume_fn|FAudio_FAudioVoice_GetVolume_fn|",
+"a|FAudio.FAudioVoice_SetOutputMatrix_fn|FAudio_FAudioVoice_SetOutputMatrix_fn|",
 "a|FAudio.FAudioVoice_SetOutputVoices_fn|FAudio_FAudioVoice_SetOutputVoices_fn|",
 "a|FAudio.FAudioVoice_SetVolume_fn|FAudio_FAudioVoice_SetVolume_fn|",
 "a|FAudio.OnBufferEndFunc|FAudio_OnBufferEndFunc|",

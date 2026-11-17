@@ -1756,6 +1756,22 @@ impl ListCtrl
         return result
     }
 
+    // Returns how many rows [[Gui.ListCtrl.isLineSelected]] reports as selected.
+    //
+    // The answer comes from the selection itself, without visiting the unselected rows, so a
+    // virtual list of a million rows answers as fast as a short one. A retained row that stays
+    // selected under a collapsed parent is hidden, and is not counted.
+    mtd const selectedLineCount()->u32
+    {
+        if .isVirtual do
+            return cast(u32, .selModel.selectedCount())
+
+        var result: u32
+        for index in .selModel where .idxLineToIdxList.contains(index) do
+            result += 1
+        return result
+    }
+
     // Returns the first selected retained row, or null in virtual mode or without a selection.
     //
     // This is the selected row of a single-selection list.

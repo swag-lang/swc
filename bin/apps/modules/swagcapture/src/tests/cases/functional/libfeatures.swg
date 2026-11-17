@@ -57,6 +57,92 @@ using Swag, Core
     discard catch File.delete(restored)
 }
 
+// Erasing or restoring trashed captures says when some of them stayed in the recycle bin,
+// instead of leaving the reader to find out.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testUseScratchLibrary()
+    let lib = f.setupLibraryWnd()
+
+    // A capture whose file is already gone can be neither erased nor moved back.
+    let missing = testTempCapturePath()
+    discard testAddLibraryItem(lib.view, missing, 10, 1)
+    lib.view.selModel.select(0)
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    lib.deleteForeverSelected()
+    Swag.require(f.gui.autoHandled)
+
+    discard testAddLibraryItem(lib.view, missing, 10, 1)
+    lib.view.selModel.select(0)
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    lib.restoreSelected()
+    Swag.require(f.gui.autoHandled)
+}
+
+// A folder tab keeps its count until its folder is written to or the library index changes,
+// instead of listing the folder and asking the decoders about every file on each refresh.
+#test
+{
+    var f: HeadlessFixture
+    f.setup(width: 1100, height: 700)
+    defer f.shutdown()
+    testUseScratchLibrary()
+
+    let sub = Path.combine(Library.getFolder(), "tab-counts")
+    expect Directory.create(sub)
+    defer discard catch Directory.delete(sub, recurse: true)
+    discard expect File.writeAllText(Path.combine(sub, "one.scc"), "capture")
+
+    g_Library.loaded = true
+    f.main.libWnd = LibraryWnd.create(f.main)
+    let lib = f.main.libWnd
+
+    func countOf(lib: *LibraryWnd, folder: string)->String
+    {
+        for path, i in lib.tabFolders where path[] == folder do
+            return lib.folderTabs.items[i]!.count
+        return ""
+    }
+
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "1")
+
+    // A count the folder has not outdated is reused as it is.
+    for &cached in lib.folderCounts where cached.folder == sub do
+        cached.count = 7
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "7")
+
+    g_Library.revision += 1
+    lib.updateFolderTabs()
+    Swag.require(countOf(lib, sub) == "1")
+}
+
+// Registering a capture the index already holds refreshes its entry instead of listing it twice:
+// the recent strip registers what it shows while a fill may already have indexed it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testUseScratchLibrary()
+    defer g_Library.files.clear()
+
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    discard expect File.writeAllText(path, "capture")
+
+    g_Library.addFile(path)
+    let revision = g_Library.revision
+    g_Library.addFile(path)
+    Swag.require(g_Library.files.count == 1)
+    Swag.require(g_Library.files[0].fullName == path)
+    Swag.require(g_Library.revision > revision)
+}
+
 // Renaming and marking an inactive capture update its model and library header while preserving
 // the exact compressed background chunk.
 #test

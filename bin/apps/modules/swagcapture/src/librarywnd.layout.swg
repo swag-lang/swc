@@ -212,20 +212,39 @@ impl LibraryWnd
         .folderTabs.setItemCount(0, Format.toString("%", rootCount))
         .tabFolders.add(root)
 
+        // Counting a folder lists it and asks the decoders about every file, so a count is kept
+        // until the folder is written to or the library changes.
+        var counts: Array'LibraryFolderCount
         let dirs = catch Directory.enumerateDirectories(root)
         for d in dirs
         {
             let isTrash = d.fullName == Library.getTrashFolder()
-            var count   = 0'u64
-            if isTrash do
-                count = (catch Library.enumerateTrash()).count
-            else do
-                count = (catch Library.enumerateSupportedFiles(d.fullName)).count
+            var count   = Swag.U64.Max
+            for cached in .folderCounts
+            {
+                if cached.folder == d.fullName and cached.written == d.lastWriteTime and cached.revision == g_Library.revision
+                {
+                    count = cached.count
+                    break
+                }
+            }
+
+            if count == Swag.U64.Max
+            {
+                if isTrash do
+                    count = (catch Library.enumerateTrash()).count
+                else do
+                    count = (catch Library.enumerateSupportedFiles(d.fullName)).count
+            }
+
+            counts.add({d.fullName, d.lastWriteTime, g_Library.revision, count})
             let name = isTrash ? appStrings().act_RecycleBin : (Path.fileName(d.fullName) orelse d.fullName.toString())
             .folderTabs.addItem(name)
             .folderTabs.setItemCount(cast(u32, .folderTabs.items.count - 1), Format.toString("%", count))
             .tabFolders.add(d.fullName)
         }
+
+        .folderCounts = #move counts
 
         let current = .currentFolder()
         for folder, i in .tabFolders where folder[] == current

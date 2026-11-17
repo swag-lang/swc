@@ -22,6 +22,27 @@ using Swag, Core
     }
 }
 
+// A voice that has played the last frame of a long packet stream stands exactly at its duration,
+// once its position is rounded to single precision like the duration. Past 2^24 frames, a
+// duration divided in single precision lands a step beyond, where no position ever reaches.
+#test
+{
+    const Frames = 16_779_519'u64
+    Swag.require(cast(f32, Frames) / 44_100'f32 > cast(f32, cast(f64, Frames) / 44_100))
+
+    let silence: [1] SoundPacket = [SoundPacket{0, 0, cast(u32, Frames)}]
+    var config:  Array'u8
+    var sound = expect SoundFile.openPacketStream(audioGetTestDataPath("pcm16_stereo.wav"), .Mp3, 44_100, 1, Frames, silence, config.toSlice())
+
+    discard expect createNoSoundEngine()
+    defer destroyEngine()
+    let voice = expect Voice.create(&sound)
+    defer voice.destroy()
+    discard expect voice.seekSampleFrame(Frames)
+    Swag.require(voice.playbackSampleFrame() == sound.sampleFrameCount())
+    Swag.require(cast(f32, voice.playbackPositionSeconds()) == sound.durationInSeconds())
+}
+
 // PCM ranges address audible frames, preserve interleaving and do not call back for an empty span.
 #test
 {

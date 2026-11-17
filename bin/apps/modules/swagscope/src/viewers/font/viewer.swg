@@ -53,8 +53,19 @@ func blockNames()->[5] string
     return [strings.ui_BasicLatin, strings.ui_Latin1, strings.ui_Greek, strings.ui_Cyrillic, strings.ui_Symbols]
 }
 
-// What loading a font file produces: its bytes, the face and typeface built on them, and the
-// details line.
+// What the panel reads about a face beyond its own fields: how much of each block of
+// [[BlockFirst]] it maps, and what its OS/2 table declares. They are gathered once, on the loading
+// worker, rather than whenever the lens, the range menu or the information sheet asks.
+struct FaceFacts
+{
+    coverage:    [BlockFirst.count] u32     // Characters of each block the face maps.
+    hasMetadata: bool     // Whether the face's metadata could be read.
+    weight:      u16      // Weight class, when `hasMetadata`.
+    embedding:   u16      // Embedding permission bits, when `hasMetadata`.
+}
+
+// What loading a font file produces: its bytes, the face and typeface built on them, the details
+// line, the pages of the character map, and the facts the panel reads about the face.
 #[Swag.NoCopy]
 struct ViewerContent
 {
@@ -63,6 +74,7 @@ struct ViewerContent
     typeFace:   *TypeFace?
     details:    String
     pageStarts: Array'u32
+    facts:      FaceFacts
 }
 
 impl ViewerContent
@@ -99,6 +111,20 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         if not page.hasNext do
             break
         start = page.end + 1
+    }
+
+    for &count, index in result.facts.coverage
+    {
+        for code in BlockFirst[index] to BlockLast[index] where result.face.hasChar(cast(rune, code)) do
+            count[] += 1
+    }
+
+    catch
+    {
+        let metadata = try Face.metadataAt(result.bytes.toSlice(), 0)
+        result.facts.weight      = metadata.weight
+        result.facts.embedding   = metadata.embedding
+        result.facts.hasMetadata = true
     }
 
     return result
@@ -148,6 +174,7 @@ struct Panel
     }
 
     details:       String
+    facts:         FaceFacts
     sampleDefault: String
     load:          Viewer.BackgroundLoad'ViewerContent
     services:      Viewer.HostServices
@@ -188,7 +215,7 @@ private impl Panel
         .sampleEdit.setPlaceholder(texts().ui_SamplePlaceholder)
         .previousButton.toolTip = appStrings().ui_PreviousPage
         .nextButton.toolTip     = appStrings().ui_NextPage
-        if not .load.isPending() do
+        if .document != null do
             .document.invalidate()
     }
 
@@ -237,20 +264,18 @@ private impl Panel
         let character = queriedCharacter(entries.query)
         if character and not .load.isPending() and .document != null
         {
-            let code       = Format.toString("U+%{X04} %", cast(u32, character), character)
-            let mapped     = .document.face and .document.face.hasChar(character)
-            with let entry = entries.add(Format.toString(strings.ui_ShowCharacter, code),
-                                         .GoTo,
-                                         func|view = me, character|()
-                                         {
-                                             view.document.showCharacter(character)
-                                             view.refreshPageCommands()
-                                         },
-                                         disabled: not mapped)
-            {
-                if not mapped do
-                    .detail = strings.ui_NotInFont
-            }
+            let code   = Format.toString("U+%{X04} %", cast(u32, character), character)
+            let mapped = .document.face and .document.face.hasChar(character)
+            let entry  = entries.add(Format.toString(strings.ui_ShowCharacter, code),
+                                     .GoTo,
+                                     func|view = me, character|()
+                                     {
+                                         view.document.showCharacter(character)
+                                         view.refreshPageCommands()
+                                     },
+                                     disabled: not mapped)
+            if entry and not mapped do
+                entry.detail = strings.ui_NotInFont
         }
 
         // A block the face maps nothing of cannot be shown, so it is offered disabled.
@@ -264,33 +289,22 @@ private impl Panel
                             view.document.goToCharacterPage(range)
                             view.refreshPageCommands()
                         },
-                        disabled: .blockCoverage(index) == 0)
+                        disabled: .facts.coverage[index] == 0)
         }
-    }
-
-    // Counts the characters of block `index` of [[BlockFirst]] the face maps.
-    mtd blockCoverage(index: u64)->u32
-    {
-        let face = .document.face
-        if not face do
-            return 0
-        var result = 0'u32
-        for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
-            result += 1
-        return result
     }
 
     // Offers the Unicode blocks the glyph grid can jump to, and shows the first page of the one
     // chosen.
     mtd showRangeMenu()
     {
+        let icon      = .theme().icon(.GoTo, themeRowIconSize(.themeMetrics()))
         with let menu = MenuCtrl.createPopup(me, owner: me)
         {
-            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(0) == 0)
-            .addItem(texts().ui_Latin1, "scope.font.range.latin1", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(1) == 0)
-            .addItem(texts().ui_Greek, "scope.font.range.greek", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(2) == 0)
-            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(3) == 0)
-            .addItem(texts().ui_Symbols, "scope.font.range.symbols", .theme().icon(.GoTo, themeRowIconSize(.themeMetrics())), disabled: me.blockCoverage(4) == 0)
+            .addItem(texts().ui_BasicLatin, "scope.font.range.basic", icon, disabled: me.facts.coverage[0] == 0)
+            .addItem(texts().ui_Latin1, "scope.font.range.latin1", icon, disabled: me.facts.coverage[1] == 0)
+            .addItem(texts().ui_Greek, "scope.font.range.greek", icon, disabled: me.facts.coverage[2] == 0)
+            .addItem(texts().ui_Cyrillic, "scope.font.range.cyrillic", icon, disabled: me.facts.coverage[3] == 0)
+            .addItem(texts().ui_Symbols, "scope.font.range.symbols", icon, disabled: me.facts.coverage[4] == 0)
         }
 
         switch menu.doModal(.pageLabel, autoDestroy: true) orelse ""
@@ -331,9 +345,10 @@ private impl IWnd for Panel
 
         .document            = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
         .document.pageStarts = #move content.pageStarts
-        .document.sigMarked  += func|view = me|(_) { view.services.showDetails(view, view.details) }
+        .document.sigMarked  += func|view = me|(_) { view.services.informationChanged(view) }
         content.face         = null
         .details             = #move content.details
+        .facts               = content.facts
         .refreshPageCommands()
         .applyLayout()
 
@@ -420,14 +435,13 @@ impl Panel
             .setPlaceholder(texts().ui_SamplePlaceholder)
             .sigTextChanged += func|view = me|(_)
             {
-                if not view.load.isPending() do
+                if view.document != null do
                     view.document.invalidate()
             }
         }
     }
 }
 
-// Creates the integrated TrueType specimen and character-map view.
 impl Panel
 {
     // Describes the face in the information sheet, titled by its family with the file name
@@ -456,21 +470,17 @@ impl Panel
             data.add(.Copyright, face.copyright.toString())
 
         // The weight class and the embedding permissions the OS/2 table declares.
-        catch
+        if .facts.hasMetadata
         {
-            let metadata = try Face.metadataAt(.document.fontBytes.toSlice(), 0)
-            data.add(.Weight, weightText(metadata.weight))
-            data.add(.Embedding, embeddingText(metadata.embedding))
+            data.add(.Weight, weightText(.facts.weight))
+            data.add(.Embedding, embeddingText(.facts.embedding))
         }
 
         // How much of each block the character map jumps to the face maps.
         data.add(.Coverage, group: true)
         let names = blockNames()
-        for index in BlockFirst.count
-        {
-            let count = .blockCoverage(index)
+        for count, index in .facts.coverage do
             data.addText(names[index], count ? characterCountText(count) : String.from(texts().ui_NotCovered))
-        }
 
         // The character marked in the map: its code point and the glyph the face draws it with.
         let shown = .document.shown
@@ -518,6 +528,7 @@ func embeddingText(fsType: u16)->String
     return result
 }
 
+// Creates the integrated TrueType specimen and character-map view.
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()

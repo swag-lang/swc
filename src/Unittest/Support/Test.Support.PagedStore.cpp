@@ -177,6 +177,17 @@ SWC_TEST_BEGIN(DataSegment_CopyDataSegmentRelocationTargetsPreservesOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_CopyRelocationsEmptySegmentClearsOutput)
+{
+    DataSegment segment;
+    std::vector<DataSegmentRelocation> relocations{DataSegmentRelocation{.offset = 4, .targetOffset = 8}};
+
+    segment.copyRelocations(relocations, 0, 16);
+    if (!relocations.empty())
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_RelocationIndexHandlesInterleavedMonotonicAdds)
 {
     DataSegment segment;

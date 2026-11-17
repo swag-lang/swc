@@ -9,6 +9,35 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    template<typename Depth>
+    inline void updateDelimiterDepth(TokenId tokenId, Depth& parenDepth, Depth& bracketDepth, Depth& curlyDepth)
+    {
+        switch (tokenId)
+        {
+            case TokenId::SymLeftParen:
+                ++parenDepth;
+                break;
+            case TokenId::SymRightParen:
+                --parenDepth;
+                break;
+            case TokenId::SymLeftBracket:
+            case TokenId::SymAttrStart:
+                ++bracketDepth;
+                break;
+            case TokenId::SymRightBracket:
+                --bracketDepth;
+                break;
+            case TokenId::SymLeftCurly:
+                ++curlyDepth;
+                break;
+            case TokenId::SymRightCurly:
+                --curlyDepth;
+                break;
+            default:
+                break;
+        }
+    }
+
     // A function or callee name with its content hash. An identifier token carries the hash the
     // lexer already computed, so the module-wide walk below keys its tables without hashing the
     // bytes of every name it meets again.
@@ -894,30 +923,7 @@ bool Parser::skip(const SmallVector<TokenId>& targets, SkipUntilFlags flags)
 
         // Update delimiter depths first (so we won't prematurely stop
         // on a target that appears inside a nested construct).
-        switch (id())
-        {
-            case TokenId::SymLeftParen:
-                ++parenDepth;
-                break;
-            case TokenId::SymRightParen:
-                --parenDepth;
-                break;
-            case TokenId::SymLeftBracket:
-            case TokenId::SymAttrStart:
-                ++bracketDepth;
-                break;
-            case TokenId::SymRightBracket:
-                --bracketDepth;
-                break;
-            case TokenId::SymLeftCurly:
-                ++curlyDepth;
-                break;
-            case TokenId::SymRightCurly:
-                --curlyDepth;
-                break;
-            default:
-                break;
-        }
+        updateDelimiterDepth(id(), parenDepth, bracketDepth, curlyDepth);
 
         // Never let depths go negative (keeps recovery robust even on stray closers).
         parenDepth   = std::max(parenDepth, 0);
@@ -942,30 +948,7 @@ TokenRef Parser::consume()
     if (atEnd())
         return TokenRef::invalid();
     const TokenRef result = ref();
-    switch (id())
-    {
-        case TokenId::SymLeftParen:
-            depthParen_++;
-            break;
-        case TokenId::SymRightParen:
-            depthParen_--;
-            break;
-        case TokenId::SymLeftBracket:
-        case TokenId::SymAttrStart:
-            depthBracket_++;
-            break;
-        case TokenId::SymRightBracket:
-            depthBracket_--;
-            break;
-        case TokenId::SymLeftCurly:
-            depthCurly_++;
-            break;
-        case TokenId::SymRightCurly:
-            depthCurly_--;
-            break;
-        default:
-            break;
-    }
+    updateDelimiterDepth(id(), depthParen_, depthBracket_, depthCurly_);
 
     curToken_++;
     return result;

@@ -118,21 +118,6 @@ fs::path FileSystem::commonPathPrefix(const fs::path& lhs, const fs::path& rhs)
     return result;
 }
 
-const char* FileSystem::filePathDisplayModeName(const FilePathDisplayMode mode)
-{
-    switch (mode)
-    {
-        case FilePathDisplayMode::AsIs:
-            return "AsIs";
-        case FilePathDisplayMode::BaseName:
-            return "BaseName";
-        case FilePathDisplayMode::Absolute:
-            return "Absolute";
-    }
-
-    SWC_UNREACHABLE();
-}
-
 fs::path FileSystem::absolutePathNoThrow(const fs::path& path)
 {
     if (path.empty())
@@ -191,25 +176,6 @@ fs::path FileSystem::generatedDependencyApiDir(const fs::path& exeFullName, cons
     return lexicallyNormalize(result);
 }
 
-Utf8 FileSystem::formatDiagnosticPath(const TaskContext* ctx, const fs::path& path)
-{
-    const FilePathDisplayMode displayMode = ctx ? ctx->cmdLine().filePathDisplay : FilePathDisplayMode::AsIs;
-    switch (displayMode)
-    {
-        case FilePathDisplayMode::AsIs:
-            return lexicallyNormalize(path).string();
-
-        case FilePathDisplayMode::BaseName:
-            return lexicallyNormalize(path).filename().string();
-
-        case FilePathDisplayMode::Absolute:
-            return normalizePath(path).string();
-
-        default:
-            SWC_UNREACHABLE();
-    }
-}
-
 Result FileSystem::normalizeAbsolutePath(fs::path& path, Utf8& because)
 {
     because.clear();
@@ -265,7 +231,7 @@ Result FileSystem::reportInvalidFolder(TaskContext& ctx, const fs::path& path, c
 Result FileSystem::reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path)
 {
     Diagnostic diag = Diagnostic::get(id);
-    setDiagnosticPath(diag, &ctx, path);
+    setDiagnosticPath(diag, path);
     diag.report(ctx);
     return Result::Error;
 }
@@ -273,7 +239,7 @@ Result FileSystem::reportPathError(TaskContext& ctx, DiagnosticId id, const fs::
 Result FileSystem::reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because)
 {
     Diagnostic diag = Diagnostic::get(id);
-    setDiagnosticPathAndBecause(diag, &ctx, path, because);
+    setDiagnosticPathAndBecause(diag, path, because);
     diag.report(ctx);
     return Result::Error;
 }
@@ -299,14 +265,14 @@ bool FileSystem::pathStartsWith(const fs::path& path, const fs::path& prefix)
     return true;
 }
 
-void FileSystem::setDiagnosticPath(Diagnostic& diag, const TaskContext* ctx, const fs::path& path)
+void FileSystem::setDiagnosticPath(Diagnostic& diag, const fs::path& path)
 {
-    diag.addArgument(Diagnostic::ARG_PATH, formatDiagnosticPath(ctx, path));
+    diag.addArgument(Diagnostic::ARG_PATH, formatFileName(path));
 }
 
-void FileSystem::setDiagnosticPathAndBecause(Diagnostic& diag, const TaskContext* ctx, const fs::path& path, const Utf8& because)
+void FileSystem::setDiagnosticPathAndBecause(Diagnostic& diag, const fs::path& path, const Utf8& because)
 {
-    setDiagnosticPath(diag, ctx, path);
+    setDiagnosticPath(diag, path);
     diag.addArgument(Diagnostic::ARG_BECAUSE, because);
 }
 
@@ -364,23 +330,31 @@ Utf8 FileSystem::appendFileUsers(Utf8 because, const fs::path& path)
     return because;
 }
 
-Utf8 FileSystem::formatFileName(const TaskContext* ctx, const fs::path& filePath)
+// Where the compiler was launched. Read once, before a program the compiler runs could move the
+// process elsewhere.
+const fs::path& FileSystem::displayRoot()
 {
-    const FilePathDisplayMode displayMode = ctx ? ctx->cmdLine().filePathDisplay : FilePathDisplayMode::AsIs;
-    switch (displayMode)
+    static const fs::path root = normalizePath(currentPathNoThrow());
+    return root;
+}
+
+// A path as the agent that launched the compiler opens it: relative to the working directory when
+// the file lies under it, absolute otherwise.
+Utf8 FileSystem::formatFileName(const fs::path& filePath)
+{
+    if (filePath.empty())
+        return {};
+
+    const fs::path  absolute = normalizePath(filePath);
+    const fs::path& root     = displayRoot();
+    if (!root.empty() && pathStartsWith(absolute, root))
     {
-        case FilePathDisplayMode::AsIs:
-            return filePath.string();
-
-        case FilePathDisplayMode::BaseName:
-            return filePath.filename().string();
-
-        case FilePathDisplayMode::Absolute:
-            return normalizePath(filePath).string();
-
-        default:
-            SWC_UNREACHABLE();
+        const fs::path relative = absolute.lexically_relative(root);
+        if (!relative.empty() && relative != ".")
+            return relative.string();
     }
+
+    return absolute.string();
 }
 
 Utf8 FileSystem::formatFileLocation(Utf8 fileName, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
@@ -406,9 +380,9 @@ Utf8 FileSystem::formatFileLocation(Utf8 fileName, const uint32_t line, const ui
     return fileName;
 }
 
-Utf8 FileSystem::formatFileLocation(const TaskContext* ctx, const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
+Utf8 FileSystem::formatPathLocation(const fs::path& filePath, const uint32_t line, const uint32_t column, const uint32_t columnEnd)
 {
-    return formatFileLocation(formatFileName(ctx, filePath), line, column, columnEnd);
+    return formatFileLocation(formatFileName(filePath), line, column, columnEnd);
 }
 
 Utf8 FileSystem::sanitizeFileName(Utf8 value)

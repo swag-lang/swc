@@ -43,7 +43,7 @@ namespace
 
             CompilerInstance::ResolvedSourceLocation resolvedLocation;
             if (ctx->compiler().tryResolveSourceLocation(*ctx, resolvedLocation, state.codeRef) && resolvedLocation.sourceFile)
-                HardwareException::appendField(outMsg, "source", resolvedLocation.sourceFile->formatFileLocation(ctx, resolvedLocation.codeRange.line, resolvedLocation.codeRange.column));
+                HardwareException::appendField(outMsg, "source", resolvedLocation.sourceFile->formatFileLocation(resolvedLocation.codeRange.line, resolvedLocation.codeRange.column));
         }
 
         appendTaskFunction(outMsg, *ctx, state.runJitFunction);

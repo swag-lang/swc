@@ -235,7 +235,6 @@ struct CommandLine
 
     uint32_t                        numCores        = 0;
     uint32_t                        tabSize         = 4;
-    FileSystem::FilePathDisplayMode filePathDisplay = FileSystem::FilePathDisplayMode::Absolute;
 
     Utf8              verboseVerifyFilter;
     Utf8              docCss;

@@ -389,7 +389,6 @@ SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
     {
         CommandLine cmdLine;
         cmdLine.tabSize         = 4;
-        cmdLine.filePathDisplay = FileSystem::FilePathDisplayMode::AsIs;
         CompilerInstance compiler(ctx.global(), cmdLine);
         TaskContext      compilerCtx(compiler);
         compilerCtx.setMuteOutput(true);
@@ -426,7 +425,7 @@ SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
                 if (!diag.last().hasSpans())
                     return Result::Error;
                 const Utf8 text     = DiagnosticBuilder(compilerCtx, diag).build();
-                const Utf8 location = file.formatFileLocation(&compilerCtx, range.line, range.column, range.column);
+                const Utf8 location = file.formatFileLocation(range.line, range.column, range.column);
                 if (text.find(location) == Utf8::npos || (overload && text != previous))
                     return Result::Error;
                 previous = text;

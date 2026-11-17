@@ -416,11 +416,11 @@ void DiagnosticBuilder::writeLocation(const DiagnosticElement& el)
     if (el.srcView()->fileRef().isValid())
     {
         const SourceFile& file = ctx_->compiler().file(el.srcView()->fileRef());
-        out_ += file.formatFileLocation(ctx_, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        out_ += file.formatFileLocation(codeRange.line, codeRange.column, codeRange.column + codeRange.len);
     }
     else
     {
-        out_ += FileSystem::formatFileLocation(ctx_, fs::path{}, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
+        out_ += FileSystem::formatPathLocation(fs::path{}, codeRange.line, codeRange.column, codeRange.column + codeRange.len);
     }
 }
 

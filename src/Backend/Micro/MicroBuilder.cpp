@@ -1237,7 +1237,7 @@ Utf8 MicroBuilder::printFilePath() const
     if (!printSymbol_ || !ctx_ || !ctx_->hasCompiler())
         return {};
     const SourceFile* file = ctx_->compiler().srcView(printSymbol_->srcViewRef()).file();
-    return file ? file->formattedFileName(ctx_) : Utf8{};
+    return file ? file->formattedFileName() : Utf8{};
 }
 
 uint32_t MicroBuilder::printSourceLine() const

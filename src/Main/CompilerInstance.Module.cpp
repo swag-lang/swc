@@ -3332,7 +3332,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         if (ec)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_invalid_folder);
-            FileSystem::setDiagnosticPathAndBecause(diag, &ctx, modulesPath, FileSystem::normalizeSystemMessage(ec));
+            FileSystem::setDiagnosticPathAndBecause(diag, modulesPath, FileSystem::normalizeSystemMessage(ec));
             diag.report(ctx);
             return ExitCode::CompileError;
         }
@@ -3397,7 +3397,7 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
             if (it == moduleIndices.end())
             {
                 Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_workspace_requested_module_missing);
-                FileSystem::setDiagnosticPath(diag, &ctx, cmdLine().workspacePath);
+                FileSystem::setDiagnosticPath(diag, cmdLine().workspacePath);
                 diag.addArgument(Diagnostic::ARG_SYM, requestedModule);
                 diag.report(ctx);
                 return ExitCode::CompileError;

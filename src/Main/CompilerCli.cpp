@@ -5,6 +5,7 @@
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
+#include "Main/FileSystem.h"
 #include "Main/ExitCodes.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
@@ -18,6 +19,9 @@ SWC_BEGIN_NAMESPACE();
 
 ExitCode runCompilerCli(const int argc, char* argv[])
 {
+    // Diagnostics name files relative to the launch directory; fix it before anything runs.
+    (void) FileSystem::displayRoot();
+
     Global            global;
     CommandLine       cmdLine;
     CommandLineParser parser(global, cmdLine);

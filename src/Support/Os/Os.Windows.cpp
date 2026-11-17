@@ -447,7 +447,7 @@ namespace
 
         if (lookup.hasLine)
         {
-            const Utf8 fileLoc = FileSystem::formatFileLocation(ctx, fs::path(lookup.lineInfo.FileName), lookup.lineInfo.LineNumber);
+            const Utf8 fileLoc = FileSystem::formatPathLocation(fs::path(lookup.lineInfo.FileName), lookup.lineInfo.LineNumber);
             appendOsField(outMsg, "source", std::format("{} (+{})", fileLoc, lookup.lineDisp), leftPadding);
         }
 
@@ -483,7 +483,7 @@ namespace
         const bool hasModulePath = windowsModulePath(modulePath, modBase);
         if (hasModulePath)
         {
-            const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+            const Utf8 moduleName = FileSystem::formatFileName(fs::path(modulePath));
             outMsg += std::format(" ({} + 0x{:X})", moduleName, address - modBase);
         }
 
@@ -506,7 +506,7 @@ namespace
             char       modulePath[MAX_PATH + 1]{};
             if (windowsModulePath(modulePath, modBase))
             {
-                const Utf8 moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+                const Utf8 moduleName = FileSystem::formatFileName(fs::path(modulePath));
                 outMsg += std::format("  {} + 0x{:X}", moduleName, address - modBase);
             }
         }
@@ -592,7 +592,7 @@ namespace
             char modulePath[MAX_PATH + 1]{};
             if (windowsModulePath(modulePath, reinterpret_cast<uintptr_t>(mbi.AllocationBase)))
             {
-                outAddress.moduleName = FileSystem::formatFileName(ctx, fs::path(modulePath));
+                outAddress.moduleName = FileSystem::formatFileName(fs::path(modulePath));
                 hasInfo               = true;
             }
         }
@@ -614,7 +614,7 @@ namespace
 
         if (lookup.hasLine)
         {
-            outAddress.sourceLocation = FileSystem::formatFileLocation(ctx, fs::path(lookup.lineInfo.FileName), lookup.lineInfo.LineNumber);
+            outAddress.sourceLocation = FileSystem::formatPathLocation(fs::path(lookup.lineInfo.FileName), lookup.lineInfo.LineNumber);
             if (lookup.lineDisp)
                 outAddress.sourceLocation += std::format(" (+{})", lookup.lineDisp);
             hasInfo = true;

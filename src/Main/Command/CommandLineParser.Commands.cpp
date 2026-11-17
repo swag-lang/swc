@@ -193,15 +193,6 @@ void CommandLineParser::registerCommands()
         &cmdLine_->outputDoc,
         "Write generated documentation files; use --no-output-doc to validate without writing");
 
-    addEnum<FileSystem::FilePathDisplayMode>(
-        HelpOptionGroup::Diagnostics, "all", "--path-display", "-pd",
-        &cmdLine_->filePathDisplay,
-        {
-            {"as-is", FileSystem::FilePathDisplayMode::AsIs},
-            {"basename", FileSystem::FilePathDisplayMode::BaseName},
-            {"absolute", FileSystem::FilePathDisplayMode::Absolute},
-        },
-        "Choose how diagnostics, stack traces, and source locations display file paths");
     add(HelpOptionGroup::Diagnostics, "all", "--warn-as-error", "-we",
         &cmdLine_->warnAsErrors,
         "Report the named warnings as errors; repeat the option, or separate names with '|', and use 'all' for every warning");

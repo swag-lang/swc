@@ -84,7 +84,6 @@ namespace
 
         addInfoEntry(entries, "Core count", std::to_string(cmdLine.numCores));
         addInfoEntry(entries, "Tab size", std::to_string(cmdLine.tabSize));
-        addInfoEntry(entries, "File path display", FileSystem::filePathDisplayModeName(cmdLine.filePathDisplay));
         addInfoEntry(entries, "Verify filter", cmdLine.verboseVerifyFilter);
         Logger::printFieldGroup(ctx, "Modes & Diagnostics", entries);
 

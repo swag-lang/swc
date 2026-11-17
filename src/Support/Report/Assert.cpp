@@ -65,7 +65,7 @@ namespace
         const Utf8        codeLine      = codeRange.srcView->codeLine(ctx, codeRange.line);
         const Utf8        lineNoStr     = std::to_string(codeRange.line);
         const SourceFile* sourceFile    = codeRange.srcView->file();
-        const Utf8        fileLoc       = sourceFile ? sourceFile->formatFileLocation(&ctx, codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatFileLocation(&ctx, fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
+        const Utf8        fileLoc       = sourceFile ? sourceFile->formatFileLocation(codeRange.line, codeRange.column, codeRange.column + tokenLenChars) : FileSystem::formatPathLocation(fs::path{}, codeRange.line, codeRange.column, codeRange.column + tokenLenChars);
 
         msg += "source context:\n";
         msg += std::format("  --> {}\n", fileLoc);
@@ -110,7 +110,7 @@ namespace
 
 void swcPanic(const char* title, const char* file, int line, const char* expr, const std::string_view detail)
 {
-    const Utf8 fileLoc = FileSystem::formatFileLocation(nullptr, fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
+    const Utf8 fileLoc = FileSystem::formatPathLocation(fs::path(file ? file : "<null>"), static_cast<uint32_t>(line));
     Utf8       msg     = std::format("{}\nfile: {}\n", title ? title : "internal compiler error", fileLoc);
     if (expr)
         msg += std::format("expression: {}\n", expr);

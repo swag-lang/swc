@@ -1042,7 +1042,7 @@ namespace
         if (FileSystem::readBinaryFile(iconPath, outConfig.iconBytes, ioError) != Result::Continue)
         {
             Diagnostic diag = Diagnostic::get(DiagnosticId::cmd_err_link_resource_read_failed);
-            FileSystem::setDiagnosticPathAndBecause(diag, &builder.ctx(), iconPath, FileSystem::describeIoFailure(ioError));
+            FileSystem::setDiagnosticPathAndBecause(diag, iconPath, FileSystem::describeIoFailure(ioError));
             return builder.reportError(diag);
         }
 

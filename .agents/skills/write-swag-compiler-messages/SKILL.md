@@ -207,6 +207,8 @@ command <outcome>: <command> <target>, <part>, <duration>
 - A diagnostic is its elements in order: the `error` or `warning`, then its `note` and `help`
   elements. Every element keeps its whole message; an `error` or a `warning` always carries its
   identifier in brackets.
+- A path is relative to the directory `swc` was launched from when the file lies under it, and
+  absolute otherwise. No option changes it.
 - A located element starts with the location of its first span. Each further span, and each span
   that carries a label, has its own indented `line:column-end` line.
 - A stage line ends each compilation stage; `<outcome>` is `ok`, `up-to-date`, `warning` or

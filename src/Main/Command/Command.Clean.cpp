@@ -168,7 +168,7 @@ namespace
         const fs::path held  = firstEntryStillPresent(target.path);
         Diagnostic     diag  = Diagnostic::get(DiagnosticId::cmd_err_clean_remove_failed);
         Utf8           cause = FileSystem::appendFileUsers(FileSystem::normalizeSystemMessage(ec), held);
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, held, cause);
+        FileSystem::setDiagnosticPathAndBecause(diag, held, cause);
         diag.report(ctx);
         return Result::Error;
     }

@@ -40,24 +40,15 @@ const Utf8& SourceFile::genericPathString() const
 
 // Resolve formatted names lazily: absolute paths require filesystem calls,
 // and most files never appear in a diagnostic.
-const Utf8& SourceFile::formattedFileName(const TaskContext* ctx) const
+const Utf8& SourceFile::formattedFileName() const
 {
-    const auto displayMode = ctx ? ctx->cmdLine().filePathDisplay : FileSystem::FilePathDisplayMode::AsIs;
-    const auto index       = static_cast<size_t>(displayMode);
-
-    const std::scoped_lock lock(formattedFileNamesMutex_);
-    if (!formattedFileNamesComputed_[index])
-    {
-        formattedFileNames_[index]         = FileSystem::formatFileName(ctx, path_);
-        formattedFileNamesComputed_[index] = true;
-    }
-
-    return formattedFileNames_[index];
+    std::call_once(formattedFileNameOnce_, [this] { formattedFileName_ = FileSystem::formatFileName(path_); });
+    return formattedFileName_;
 }
 
-Utf8 SourceFile::formatFileLocation(const TaskContext* ctx, const uint32_t line, const uint32_t column, const uint32_t columnEnd) const
+Utf8 SourceFile::formatFileLocation(const uint32_t line, const uint32_t column, const uint32_t columnEnd) const
 {
-    return FileSystem::formatFileLocation(formattedFileName(ctx), line, column, columnEnd);
+    return FileSystem::formatFileLocation(formattedFileName(), line, column, columnEnd);
 }
 
 void SourceFile::setModuleNamespace(SymbolNamespace& ns) const
@@ -175,7 +166,7 @@ Result SourceFile::loadContent(TaskContext& ctx)
         const DiagnosticId diagId = ioError.problem == FileSystem::IoProblem::OpenRead ? DiagnosticId::io_err_open_file : DiagnosticId::io_err_read_file;
 
         Diagnostic diag = Diagnostic::get(diagId, ref());
-        FileSystem::setDiagnosticPathAndBecause(diag, &ctx, path_, ioError.because);
+        FileSystem::setDiagnosticPathAndBecause(diag, path_, ioError.because);
         diag.report(ctx);
 
         return Result::Error;

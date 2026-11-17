@@ -29,12 +29,59 @@ func writeBigU32(buffer: *Array'u8, offset: u64, value: u32)
     buffer[offset + 3] = cast(u8, (value & 0xFF))
 }
 
+func writeBigU16(buffer: *Array'u8, offset: u64, value: u16)
+{
+    buffer[offset]     = cast(u8, value >> 8)
+    buffer[offset + 1] = cast(u8, value & 0xFF)
+}
+
 func readBigU16(buffer: *Array'u8, offset: u64)->u16 => cast(u16, buffer[offset]) << 8 | buffer[offset + 1]
 
 func readBigU32(buffer: *Array'u8, offset: u64)->u32 => cast(u32, buffer[offset]) << 24 |
                                                         cast(u32, buffer[offset + 1]) << 16 |
                                                         cast(u32, buffer[offset + 2]) << 8 |
                                                         buffer[offset + 3]
+
+// Wraps an sfnt font in WOFF1, compressing tables where zlib saves space.
+func buildWoffFont(sfnt: const [..] u8)->Array'u8 fail
+{
+    let numTables = try readU16(sfnt, 4)
+    var result: Array'u8
+    result.resize(44 + cast(u64, numTables) * 20)
+    writeBigU32(&result, 0, TAG_WOFF)
+    writeBigU32(&result, 4, try readU32(sfnt, 0))
+    writeBigU16(&result, 12, numTables)
+    writeBigU32(&result, 16, cast(u32, sfnt.count))
+
+    var zlib: Compress.ZLib
+    for index in numTables
+    {
+        let sfntRecord = 12'u64 + cast(u64, index) * 16
+        let tag        = try readU32(sfnt, sfntRecord)
+        let checksum   = try readU32(sfnt, sfntRecord + 4)
+        let offset     = try readU32(sfnt, sfntRecord + 8)
+        let length     = try readU32(sfnt, sfntRecord + 12)
+        let original   = try getSlice(sfnt, offset, length)
+        let compressed = try zlib.compress(original)
+        let useCompressed = compressed.count < original.count
+        let payload = useCompressed ? compressed.toSlice() : original
+
+        while (result.count & 3) != 0 do
+            result.add(0)
+        let woffOffset = cast(u32, result.count)
+        result.add(payload)
+
+        let woffRecord = 44'u64 + cast(u64, index) * 20
+        writeBigU32(&result, woffRecord, tag)
+        writeBigU32(&result, woffRecord + 4, woffOffset)
+        writeBigU32(&result, woffRecord + 8, cast(u32, payload.count))
+        writeBigU32(&result, woffRecord + 12, length)
+        writeBigU32(&result, woffRecord + 16, checksum)
+    }
+
+    writeBigU32(&result, 8, cast(u32, result.count))
+    return result
+}
 
 // Packs the named font files into one `ttcf` collection, so a collection can be
 // exercised without checking a second multi-megabyte binary into the repository.

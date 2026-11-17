@@ -15,8 +15,8 @@ remains in [std.truetype.md](std.truetype.md).
   the matching content probe at the viewer boundary. Keep unsupported font containers explicit.
 - Done when: a small licensed CFF OpenType fixture and a renamed copy both open a readable
   specimen and character map, while damaged fonts report a useful failure and retain Binary/Hex
-  inspection. WOFF and WOFF2 container work remains in the font engine backlog.
-- Related: std.truetype.001, std.truetype.002
+  inspection. WOFF2 container work remains in the font engine backlog.
+- Related: std.truetype.002
 
 ### app.scope.font.001 — Font collections expose only their first face
 

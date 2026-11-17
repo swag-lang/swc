@@ -132,14 +132,24 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
 
+    var normalized: Array'u8
+    var fontBytes = bytes
+    if bytes.count >= 4 and try readU32(bytes, 0) == TAG_WOFF
+    {
+        if faceIndex do
+            try fault(0x0F)
+        normalized = try inflateWoff(bytes)
+        fontBytes = normalized.toSlice()
+    }
+
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
-    faceData.fontData.resize(bytes.count)
+    faceData.fontData.resize(fontBytes.count)
     let fontData = faceData.fontData.storage()
-    Memory.copy(fontData, bytes.buffer, bytes.count)
+    Memory.copy(fontData, fontBytes.buffer, fontBytes.count)
 
-    let detected = detectProgramSource(bytes)
+    let detected = detectProgramSource(fontBytes)
     if detected.sfnt
     {
         try parseFace(faceData, faceIndex, fallbackFamilyName)
@@ -241,8 +251,8 @@ public impl Face
     //
     // `bytes` may be a TrueType or OpenType file, a bare CFF or Type 1 font program,
     // or a `ttcf` collection, of which the first face is taken; use
-    // [[TrueType.Face.loadAt]] to reach the others. WOFF containers are reported as
-    // unsupported rather than as an unknown format.
+    // [[TrueType.Face.loadAt]] to reach the others. WOFF1 data is expanded to sfnt
+    // before parsing; WOFF2 is unsupported.
     //
     // ```swag
     // let bytes = try File.readAllBytes("Inter-Regular.ttf")
@@ -290,17 +300,17 @@ public impl Face
 
     // Returns how many faces an in-memory font file holds.
     //
-    // A `ttcf` collection answers its declared face count; every other supported
-    // file answers one. The bytes are only inspected, so nothing is allocated and
-    // no face is loaded. Failure is reported for a container this module cannot
-    // read, which is the same diagnostic [[TrueType.Face.load]] would give.
+    // A `ttcf` collection answers its declared face count; a valid WOFF1 or other
+    // standalone font answers one. WOFF1 headers and table ranges are validated
+    // without inflating table data. No face is loaded. Unsupported containers fail.
     func countFaces(bytes: const [..] u8)->u32 fail => try countFacesIn(bytes)
 
     // Returns the family name the face at `faceIndex` declares.
     //
-    // Only the offset table and the `name` table are read, so no face is loaded
-    // and nothing but the returned string is allocated. This is what makes a
-    // collection searchable by family: a caller looking for one member reads the
+    // For sfnt input, only the offset table and the `name` table are read. WOFF1
+    // input is reconstructed before its name table is read. No face is loaded;
+    // WOFF1 also requires temporary storage for the reconstructed font. This makes
+    // a collection searchable by family: a caller looking for one member reads the
     // names first, then calls [[TrueType.Face.loadAt]] once, instead of loading
     // every face to ask each one what it is called. The answer is the value
     // [[TrueType.Face.familyName]] carries once that face is loaded.
@@ -318,8 +328,9 @@ public impl Face
 
     // Reads a face's names, weight, width class, and style without loading its glyphs.
     //
-    // Accepts an sfnt font or a TrueType/OpenType collection. `faceIndex` is zero-based;
-    // a standalone font accepts only zero. The result owns its strings and retains no bytes.
+    // Accepts an sfnt font, WOFF1 font, or TrueType/OpenType collection. `faceIndex` is
+    // zero-based; a standalone font accepts only zero. WOFF1 is reconstructed in temporary
+    // storage. The result owns its strings and retains no bytes.
     // Missing style tables fall back to the subfamily name. Absent or out-of-range weight
     // values use 400/700 according to the bold trait; absent or invalid width classes use 5.
     // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.

@@ -38,14 +38,6 @@ replace the allocator; a similar architecture alone does not establish comparabl
   whose one-shot OS commit had just failed, violating `allocator_os_failures.swg`'s fallback
   contract. Skipping the rescan would risk creating a segment while another thread had made a page
   available; a correct retry protocol needs to distinguish failed claims from concurrent changes.
-- `allocator.concurrent.swg` now also allocates 256 blocks on a page owned by the current thread,
-  starts four remote-free workers behind a shared gate to free them in parallel, then checks that
-  `trim()` can collect remote frees while they are arriving and later retire the empty page and
-  segment. This exercises remote-free publication on Linux, where the native `CreateThread`
-  allocator stress tests are not built.
-- Validation on Linux: the full `core` suite passed 1,130 tests in devmode/native and 1,129 in
-  release-safe/native. The native allocator suite passed 73 tests in devmode and 49 in
-  release-safe; the targeted concurrency case also passes JIT and native execution.
 - Next: prototype a scalar `IAllocator` free operation with a default adapter for existing custom
   allocators and a default-allocator fast implementation. Preserve frees summaries and
   `SanityRelease` behavior for both direct and interface dispatch, and compare generated code to

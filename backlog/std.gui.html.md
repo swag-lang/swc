@@ -143,8 +143,7 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 
 ### std.gui.html.014 — Legacy presentational HTML support is incomplete
 
-- Implemented: `HtmlStyleResolver` applies `align` and image `width`/`height` before author CSS.
-- Intent: the remaining attributes legacy documents style themselves with — cell dimensions,
+- Evidence: the remaining attributes legacy documents style themselves with — cell dimensions,
   `valign`, `bgcolor`, `border`, `cellpadding`, `cellspacing`,
   `hspace`, `vspace`, `nowrap`, and `<font color size face>` — are stored and never consulted,
   and the legacy elements `<center>`, `<font>`, `<big>`, `<strike>`, `<tt>` are unknown tags

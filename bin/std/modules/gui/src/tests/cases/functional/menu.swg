@@ -69,6 +69,53 @@ using Swag, Core
     Swag.require(not disabled.accepted and not unavailable.isModalEnded())
 }
 
+// Directional keys open a submenu on its shown side and return to the owning row from the child.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(440, 320)
+    defer host.shutdown()
+
+    let menu    = MenuCtrl.createPopup(&host.root)
+    let submenu = MenuCtrl.createPopup(&host.root)
+    submenu.addItem("Open", "document.open")
+    menu.addPopup("More", submenu)
+    menu.setSubmenuDirection(.Right)
+    menu.computeLayoutPopup()
+
+    var down = KeyEvent{kind: .Pressed, key: .Down}
+    menu.handleKeyboard(&down)
+    Swag.require(down.accepted and menu.selectedIdx == 0)
+
+    var right = KeyEvent{kind: .Pressed, key: .Right}
+    menu.handleKeyboard(&right)
+    Swag.require(right.accepted and menu.subVisible == submenu)
+
+    var left = KeyEvent{kind: .Pressed, key: .Left}
+    submenu.handleKeyboard(&left)
+    Swag.require(left.accepted)
+    Swag.require(menu.subVisible == null and menu.selectedIdx == 0)
+
+    let leftMenu    = MenuCtrl.createPopup(&host.root)
+    let leftSubmenu = MenuCtrl.createPopup(&host.root)
+    leftSubmenu.addItem("Open", "document.open")
+    leftMenu.addPopup("More", leftSubmenu)
+    leftMenu.setSubmenuDirection(.Left)
+    leftMenu.items[0]!.submenuOpensLeft = true
+    leftMenu.computeLayoutPopup()
+
+    var selectLeft = KeyEvent{kind: .Pressed, key: .Down}
+    leftMenu.handleKeyboard(&selectLeft)
+    var openLeft = KeyEvent{kind: .Pressed, key: .Left}
+    leftMenu.handleKeyboard(&openLeft)
+    Swag.require(openLeft.accepted and leftMenu.subVisible == leftSubmenu)
+
+    var returnRight = KeyEvent{kind: .Pressed, key: .Right}
+    leftSubmenu.handleKeyboard(&returnRight)
+    Swag.require(returnRight.accepted)
+    Swag.require(leftMenu.subVisible == null and leftMenu.selectedIdx == 0)
+}
+
 // A menu-bar mnemonic opens its popup and restores the field that owned focus when the menu closes.
 #test
 {

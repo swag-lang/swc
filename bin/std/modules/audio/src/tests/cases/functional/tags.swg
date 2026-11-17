@@ -242,6 +242,26 @@ func appendLittle32(block: *Array'u8, value: u64)
     defer discard catch File.delete(framePath)
     discard expect File.writeAllBytes(framePath, invalidFrame.toSlice())
     Swag.require(SoundTags.read(framePath).isEmpty())
+
+    var invalidExtended: Array'u8
+    for byte in "ID3" do
+        invalidExtended.add(byte)
+    invalidExtended.add(4'u8)
+    invalidExtended.add(0'u8)
+    invalidExtended.add(0x40'u8) // Extended header.
+    let extendedTagSize = frames.count + 6
+    invalidExtended.add(cast(u8, (extendedTagSize >> 21) & 0x7F))
+    invalidExtended.add(cast(u8, (extendedTagSize >> 14) & 0x7F))
+    invalidExtended.add(cast(u8, (extendedTagSize >> 7) & 0x7F))
+    invalidExtended.add(cast(u8, extendedTagSize & 0x7F))
+    for byte in [0x80'u8, 0, 0, 6, 1, 0] do // Extended size has a forbidden high bit.
+        invalidExtended.add(byte)
+    invalidExtended.add(frames.toSlice())
+    let extendedPath = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                                    Format.toString("swag_audio_tags_bad_extended_%.mp3", Guid64.random()).toString())
+    defer discard catch File.delete(extendedPath)
+    discard expect File.writeAllBytes(extendedPath, invalidExtended.toSlice())
+    Swag.require(SoundTags.read(extendedPath).isEmpty())
 }
 
 // A FLAC file names its recording in a Vorbis comment block, whatever the case of its field names.

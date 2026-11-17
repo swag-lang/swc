@@ -74,6 +74,23 @@ impl LibraryNamedFilter
                                                            .executable == other.executable
 }
 
+// Uses a normalized name as a case-insensitive lookup key and retains its output index.
+struct LibraryNamedFilterKey
+{
+    name:  String
+    index: u64
+}
+
+impl LibraryNamedFilterKey
+{
+    mtd const opEquals(other: LibraryNamedFilterKey)->bool => .name == other.name
+}
+
+impl Hash.IHash32 for LibraryNamedFilterKey
+{
+    mtd const impl compute()->u32 => Hash.hash32(.name)
+}
+
 // What a folder tab last counted in its folder, with the time the folder was last written and the
 // revision of the library index then: either one moving says the count may have changed.
 struct LibraryFolderCount
@@ -1337,11 +1354,17 @@ impl LibraryWnd
     // library, for the sidebar groups. Both lists are sorted by name.
     mtd collectNamedFilters()->{applications: Array'LibraryNamedFilter, tags: Array'LibraryNamedFilter}
     {
-        // Counts one more capture under `name`, which the groups compare without case.
-        func count(entries: *Array'LibraryNamedFilter, name: string, executable: string)
+        // Counts one more capture under `name`, combining case variants through the lookup key.
+        func count(entries: *Array'LibraryNamedFilter,
+                   index: *HashSet'LibraryNamedFilterKey,
+                   name: string,
+                   executable: string)
         {
-            for &entry in entries[] where Utf8.compare(entry.name.toSlice(), name, .Latin1NoCase) == 0
+            let key   = LibraryNamedFilterKey{String.toLower(name), entries.count}
+            let found = index[].add(#move key)
+            if found.key.index < entries.count
             {
+                let entry = &entries[found.key.index]
                 entry.count += 1
                 if entry.executable.isEmpty() and executable.count != 0 do
                     entry.executable = executable
@@ -1352,6 +1375,8 @@ impl LibraryWnd
         }
 
         var result: #returntype
+        var applications: HashSet'LibraryNamedFilterKey
+        var tags:         HashSet'LibraryNamedFilterKey
         for item in .view.allItems
         {
             .view.mutexLoaded.lock()
@@ -1361,9 +1386,12 @@ impl LibraryWnd
                 continue
 
             if not capture.sourceApplication.isEmpty() do
-                count(&result.applications, capture.sourceApplication, capture.sourceExecutable)
+                count(&result.applications,
+                      &applications,
+                      capture.sourceApplication,
+                      capture.sourceExecutable)
             for tag in capture.tags do
-                count(&result.tags, tag[], "")
+                count(&result.tags, &tags, tag[], "")
         }
 
         result.applications.sort(func(a, b) => Utf8.compare(a.name.toSlice(), b.name.toSlice(), .Latin1NoCase))

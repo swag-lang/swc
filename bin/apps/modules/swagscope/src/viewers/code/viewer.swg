@@ -90,6 +90,10 @@ struct Panel
 
     late editor: *RichEditCtrl
 
+    // Whether every line of the resident window is colored since the window last changed, which
+    // pairing brackets needs and a jump between brackets would otherwise redo every time.
+    lexed: bool
+
     info:              *Wnd?
     zoomLabel:         *IconButton?
     zoomPercent:       u32 = 100
@@ -229,6 +233,7 @@ impl Panel
         }
 
         .editor.addText(chunk)
+        .lexed = false
         var positionErrorOutcome: Swag.Error
         var position: #decltype(expect .stream.position())
         catch { position = try .stream.position() } as positionErrorOutcome
@@ -270,6 +275,7 @@ impl Panel
             let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
             .residentStart = actual
             .editor.setText(chunk)
+            .lexed = false
             .numberWindow()
             var positionErrorOutcome: Swag.Error
             var position: #decltype(expect .stream.position())
@@ -382,7 +388,12 @@ impl Panel
             return false
 
         // Lines are colored as they are painted; the pair may lie on lines never shown.
-        .editor.lexAll()
+        if not .lexed
+        {
+            .editor.lexAll()
+            .lexed = true
+        }
+
         let first   = .editor.runeAt(start)
         let partner = delimiterPartner(first.char)
         let forward = first.char == '(' or first.char == '[' or first.char == '{'
@@ -622,6 +633,7 @@ impl Panel
         }
 
         .editor.lexAll()
+        .lexed = true
         .editor.invalidate()
         .services.showDetails(me, Format.toString(texts().ui_Details, .languageName))
     }

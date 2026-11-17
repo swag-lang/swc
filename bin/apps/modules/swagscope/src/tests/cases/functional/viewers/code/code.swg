@@ -477,6 +477,11 @@ struct CodeLanguageSample
     view.editor.setCursorPos({3, 2})
     Swag.require(not view.goToMatchingDelimiter())
 
+    // The window read again is colored again before a pair is sought in it.
+    Swag.require(view.revealOffset(0, ""))
+    view.editor.setCursorPos({1, 0})
+    Swag.require(view.goToMatchingDelimiter() and view.editor.cursorLogicalLineIndex() == 4)
+
     // The lens offers the pair only beside a bracket.
     for line, index in [3'u64, 1'u64]
     {

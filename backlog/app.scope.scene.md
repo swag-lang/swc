@@ -12,7 +12,9 @@ Swag-implemented product gate described by the [viewer audit](../bin/apps/module
   and [MeshLab](https://www.meshlab.net/) also inspect material libraries, textures, scene
   hierarchy, transforms, and glTF 2.0 scenes, while this reader displays one triangle mesh without
   selection, material visualization, or multiple-node transforms.
-- Next: replace or constrain fan triangulation so concave OBJ polygons cannot be silently
+- Next: replace average-triangle painter sorting with a depth-buffer renderer; add overlapping and
+  intersecting OBJ/STL fixtures to verify per-pixel visibility. Then replace or constrain fan
+  triangulation so concave OBJ polygons cannot be silently
   misrendered, with parser fixtures that cover convex and concave faces. Then add glTF 2.0
   (`.gltf`/`.glb`) to `std/scene3d` with bounded buffers and accessors, preserve nodes and transforms
   through the shared scene model and display them in Scope. Resolve OBJ `mtllib` and texture

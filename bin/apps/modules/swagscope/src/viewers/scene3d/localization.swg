@@ -20,7 +20,8 @@ struct Texts
     ui_Nodes:      string = "% nodes"
     ui_Vertices:   string = "% vertices"
     ui_Triangles:  string = "% triangles"
-    ui_Details:    string = "% meshes · % triangles · % vertices"
+    ui_Details:           string = "% meshes · % triangles · % vertices"
+    err_RangeUnsupported: string = "The scene is too large to frame safely."
 }
 
 private const FrenchStringsName = "lang/fr/scope.scene3d.tweak"

@@ -57,6 +57,54 @@ private func scene3dTestFile(fileName: string)
     Swag.require(image.isValid())
 }
 
+// Camera gestures and shortcuts arrive through the same window routing used by the application.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scene3dFixturePath(), false, 800, 600)
+    let viewer = assume cast(*Viewers.Scene.Panel, window.currentView)
+    viewer.setFocus()
+
+    let center = viewer.surfaceRect().center()
+    host.mouseWheel(center, 120, .Control)
+    Swag.require(viewer.zoomPercent == Viewer.zoomIn(100))
+
+    host.mouseDown(center)
+    host.moveMouse(center + Math.Point{18, 9})
+    host.mouseUp(center + Math.Point{18, 9})
+    Swag.require(viewer.yaw != 0.65 and viewer.pitch != 0.45)
+
+    host.mouseDown(center, .Right)
+    host.moveMouse(center + Math.Point{12, 7})
+    host.mouseUp(center + Math.Point{12, 7}, .Right)
+    Swag.require(viewer.pan.x != 0 and viewer.pan.y != 0)
+
+    host.keyPress(Input.Key.F, .Control)
+    Swag.require(viewer.zoomPercent == Viewer.zoomIn(100) and viewer.pan.x != 0)
+    host.focus(viewer)
+    host.keyPress(Input.Key.F)
+    Swag.require(viewer.zoomPercent == 100)
+    Swag.require(viewer.yaw == 0.65)
+    Swag.require(viewer.pitch == 0.45)
+    Swag.require(viewer.pan.x == 0 and viewer.pan.y == 0)
+}
+
+// Finite f32 vertices beyond the camera's safe range fail as a readable format error.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(800, 600)
+    let foot = createTestViewerFoot(&host.root)
+    let session = openTestViewer(Viewers.Scene.viewerPlugin(),
+                                 &host.root,
+                                 scopeTestDataPath("viewer.extreme.obj"),
+                                 commandParent: foot.commands,
+                                 infoParent: foot.readings)
+    let viewer = assume cast(*Viewers.Scene.Panel, session.view)
+    completeViewerBackgroundLoad(&host, &viewer.load)
+    Swag.require(not viewer.failureReason.isEmpty())
+}
+
 // The app routes both ASCII and binary STL files to the reusable scene codecs and draws their facets.
 #test
 {

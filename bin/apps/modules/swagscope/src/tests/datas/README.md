@@ -125,3 +125,6 @@ An independent LibreOfficeDev 26.8 re-save materializes B2's column XF, B3/B5's 
 B4's unchanged direct XF, confirming the expected precedence. The workbook itself is the
 unmodified openpyxl package, not that materialized re-save. Its licence is this repository's.
 SHA-256: `0a251d0cab7928d459a051dc43da26a39e49ab7fea1ef85912860e3e7323a8f3`.
+
+`viewer.extreme.obj` contains finite coordinates outside the scene viewer's safe camera range and
+confirms that framing fails with a user-facing format error.

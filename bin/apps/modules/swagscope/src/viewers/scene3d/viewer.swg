@@ -3,8 +3,41 @@
 
 using Core, Pixel, Gui
 
-// Loads a scene through the shared format-neutral decoder.
-private func loadScene(fileName: string)->Scene3d.Scene fail => try Scene3d.load(fileName)
+// Loads a scene through the shared format-neutral decoder and validates the camera range.
+private func loadScene(fileName: string)->Scene3d.Scene fail
+{
+    let scene = try Scene3d.load(fileName)
+    discard try cameraFrame(scene.bounds)
+    return scene
+}
+
+private struct CameraFrame
+{
+    center: Math.Vector3
+    radius: f32
+}
+
+// Computes camera dimensions in f64 so finite f32 coordinates cannot overflow while framing.
+private func cameraFrame(bounds: Scene3d.Bounds)->CameraFrame fail
+{
+    var result: #returntype
+    if bounds.isEmpty do
+        return result
+
+    let centerX = (cast(f64, bounds.min.x) + cast(f64, bounds.max.x)) * 0.5
+    let centerY = (cast(f64, bounds.min.y) + cast(f64, bounds.max.y)) * 0.5
+    let centerZ = (cast(f64, bounds.min.z) + cast(f64, bounds.max.z)) * 0.5
+    let halfX = (cast(f64, bounds.max.x) - cast(f64, bounds.min.x)) * 0.5
+    let halfY = (cast(f64, bounds.max.y) - cast(f64, bounds.min.y)) * 0.5
+    let halfZ = (cast(f64, bounds.max.z) - cast(f64, bounds.min.z)) * 0.5
+    let radius = Math.sqrt(halfX * halfX + halfY * halfY + halfZ * halfZ)
+    if not Math.isFinite(radius) or radius > cast(f64, Swag.F32.Max) / 5 do
+        fail Errors.InvalidFormatError{texts().err_RangeUnsupported}
+
+    result.center = Math.Vector3{cast(f32, centerX), cast(f32, centerY), cast(f32, centerZ)}
+    result.radius = Math.max(cast(f32, radius), 0.001)
+    return result
+}
 
 // Uses shared decoders for extensionless text meshes; binary STL needs its `.stl` extension because
 // the host deliberately supplies only a 4 KiB prefix, not the complete length-bearing buffer.
@@ -88,8 +121,9 @@ private impl Panel
         .scene = #move scene[]
         if not .scene.bounds.isEmpty
         {
-            .center = (.scene.bounds.min + .scene.bounds.max) * 0.5
-            .radius = Math.max((.scene.bounds.max - .scene.bounds.min).length() * 0.5, 0.001)
+            let frame = expect cameraFrame(.scene.bounds)
+            .center = frame.center
+            .radius = frame.radius
         }
         .services.showDetails(me, .detailsText())
         .invalidate()
@@ -311,8 +345,8 @@ private impl IWnd for Panel
                     let z = -vertex.x * Math.sin(.yaw) + vertex.z * Math.cos(.yaw)
                     let y = vertex.y * Math.cos(.pitch) - z * Math.sin(.pitch)
                     let depth = Math.max(distance + vertex.y * Math.sin(.pitch) + z * Math.cos(.pitch), .radius * 0.15)
-                    projected.points[corner] = Math.Vector2{client.x + client.width * 0.5 + .pan.x + x * focal / depth,
-                                                           client.y + client.height * 0.5 + .pan.y - y * focal / depth}
+                    projected.points[corner] = Math.Vector2{client.x + client.width * 0.5 + .pan.x + x * (focal / depth),
+                                                           client.y + client.height * 0.5 + .pan.y - y * (focal / depth)}
                     projected.depth += depth / 3
                 }
                 .projected.add(#move projected)

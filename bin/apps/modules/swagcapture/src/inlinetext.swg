@@ -183,7 +183,8 @@ impl EditView
         else do
             last.setSelection(last.text().count, last.text().count)
 
-        capture.invalidateAllFormCaches()
+        // The form leaves its words to the fields; no other form changes.
+        capture.invalidateFormCache(form)
         .main.fillHintLine()
         .main.placeMiniBar()
         .invalidate()
@@ -212,9 +213,9 @@ impl EditView
                 .turnForm(form, form.rotate, .textRotate)
             if keep and text != .textSpec.text do
                 .commitText(form, text)
+            .capture?.invalidateFormCache(form)
         }
 
-        .capture?.invalidateAllFormCaches()
         .main.fillHintLine()
         .main.placeMiniBar()
         if focus do
@@ -275,7 +276,7 @@ impl EditView
                                                for f in capture.forms where cast(*BaseForm, f) == base
                                                {
                                                    base.rotate = value
-                                                   capture.invalidateAllFormCaches()
+                                                   capture.invalidateFormCache(f)
                                                    view.invalidate()
                                                }
                                            },

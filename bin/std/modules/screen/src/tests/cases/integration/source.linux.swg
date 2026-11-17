@@ -99,6 +99,32 @@ private func sharedSegmentCount()->u64 fail
     Swag.require(secondMetrics.acquiredFrames == 2 and secondMetrics.readbackMicroseconds > 0)
 }
 
+// A failed reopen after a geometry change preserves the current connection and last delivered frame time.
+#[Swag.TestTag("integration.host.linux")]
+#test
+{
+    var source = expect Source.open({0, 0, 64, 48, false})
+    var image: Image
+    let fresh = expect source.grabInto(&image)
+    Swag.require(fresh)
+    let captureTime = source.lastFrameCaptureMicroseconds()
+    let native = source.sources[0]
+    let connection = native.capture.nativeConnection()
+    let originalX = native.options.x
+    native.options.x = cast(s32, native.capture.desktopWidth())
+    var failure: Swag.Error
+    discard catch source.reopen() as failure
+    Swag.require(failure.value() is Errors.BadParameterError)
+    Swag.require(source.lastFrameCaptureMicroseconds() == captureTime and
+                 native.capture.nativeConnection() == connection)
+
+    native.options.x = originalX
+    expect source.reopen()
+    Swag.require(source.lastFrameCaptureMicroseconds() == 0)
+    let freshAfterReopen = expect source.grabInto(&image)
+    Swag.require(freshAfterReopen and source.lastFrameCaptureMicroseconds() >= captureTime)
+}
+
 // A broken XCB socket reconnects without keeping its old descriptor or SysV mapping.
 #[Swag.TestTag("integration.host.linux")]
 #test

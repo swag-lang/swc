@@ -26,6 +26,8 @@ struct FAudioDriverNative
     late FAudioVoice_DestroyVoice:             FAudio.FAudioVoice_DestroyVoice_fn
     late FAudioVoice_SetVolume:                FAudio.FAudioVoice_SetVolume_fn
     late FAudioVoice_GetVolume:                FAudio.FAudioVoice_GetVolume_fn
+    late FAudioVoice_SetOutputMatrix:          FAudio.FAudioVoice_SetOutputMatrix_fn
+    late FAudioVoice_GetVoiceDetails:          FAudio.FAudioVoice_GetVoiceDetails_fn
     late FAudioVoice_SetOutputVoices:          FAudio.FAudioVoice_SetOutputVoices_fn
     late FAudioSourceVoice_Start:              FAudio.FAudioSourceVoice_Start_fn
     late FAudioSourceVoice_Stop:               FAudio.FAudioSourceVoice_Stop_fn
@@ -60,6 +62,8 @@ impl FAudioDriverNative
         .FAudioVoice_DestroyVoice             = try .symbol'FAudio.FAudioVoice_DestroyVoice_fn("FAudioVoice_DestroyVoice")
         .FAudioVoice_SetVolume                = try .symbol'FAudio.FAudioVoice_SetVolume_fn("FAudioVoice_SetVolume")
         .FAudioVoice_GetVolume                = try .symbol'FAudio.FAudioVoice_GetVolume_fn("FAudioVoice_GetVolume")
+        .FAudioVoice_SetOutputMatrix          = try .symbol'FAudio.FAudioVoice_SetOutputMatrix_fn("FAudioVoice_SetOutputMatrix")
+        .FAudioVoice_GetVoiceDetails          = try .symbol'FAudio.FAudioVoice_GetVoiceDetails_fn("FAudioVoice_GetVoiceDetails")
         .FAudioVoice_SetOutputVoices          = try .symbol'FAudio.FAudioVoice_SetOutputVoices_fn("FAudioVoice_SetOutputVoices")
         .FAudioSourceVoice_Start              = try .symbol'FAudio.FAudioSourceVoice_Start_fn("FAudioSourceVoice_Start")
         .FAudioSourceVoice_Stop               = try .symbol'FAudio.FAudioSourceVoice_Stop_fn("FAudioSourceVoice_Stop")
@@ -288,6 +292,53 @@ impl Voice
         var ratio: f32
         g_Driver.fAudio.FAudioSourceVoice_GetFrequencyRatio(unwrap .handle, &ratio)
         return ratio
+    }
+
+    mtd validatePanMasterFAudio() fail
+    {
+        let native = &g_Driver.fAudio
+        var details: FAudio.FAudioVoiceDetails
+        native.FAudioVoice_GetVoiceDetails(cast(*FAudio.FAudioVoice, unwrap native.master), &details)
+        if details.InputChannels != 2 do
+            fail BadParameterError{"stereo pan requires a stereo output route"}
+    }
+
+    mtd setPanFAudio(pan: f32, batchId: u32 = 0) fail
+    {
+        if not .handle do
+            return
+        if pan == 0 and .panValue == 0 do
+            return
+        let file           = unwrap .file
+        let sourceChannels = file.numChannels()
+        if sourceChannels == 0 or sourceChannels > 2 do
+            fail BadParameterError{"stereo pan supports mono and stereo sources"}
+
+        let matrix = try voicePanMatrix(sourceChannels, pan)
+
+        let native = &g_Driver.fAudio
+        if .routingBusCount
+        {
+            for i in .routingBusCount
+            {
+                let bus = unwrap .routingBuses[i]
+                let destination = cast(*FAudio.FAudioVoice, unwrap bus.handle)
+                try checkFAudio(native.FAudioVoice_SetOutputMatrix(.handle, destination,
+                                                                   sourceChannels, bus.channelCount,
+                                                                   &matrix[0], batchId),
+                                "cannot set FAudio voice pan")
+            }
+        }
+        else
+        {
+            var details: FAudio.FAudioVoiceDetails
+            let destination = cast(*FAudio.FAudioVoice, unwrap native.master)
+            native.FAudioVoice_GetVoiceDetails(destination, &details)
+            try checkFAudio(native.FAudioVoice_SetOutputMatrix(.handle, destination,
+                                                               sourceChannels, details.InputChannels,
+                                                               &matrix[0], batchId),
+                            "cannot set FAudio voice pan")
+        }
     }
 
     mtd setRoutingFAudio(buses: const [..] *Bus) fail

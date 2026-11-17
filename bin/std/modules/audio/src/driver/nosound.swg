@@ -3,6 +3,7 @@ using Swag, Core, Core.Errors
 struct NoSoundVoice
 {
     volume:         f32 = 1
+    pan:            f32
     frequencyRatio: f32 = 1
     isPlaying:      bool
     busCount:       u32
@@ -144,6 +145,24 @@ internal impl Voice
         return handle.frequencyRatio
     }
 
+    mtd setPanNoSound(pan: f32, _: u32 = 0) fail
+    {
+        if not .handle do
+            return
+        let file     = unwrap .file
+        let channels = file.numChannels()
+        if channels == 0 or channels > 2 do
+            fail BadParameterError{"stereo pan supports mono and stereo sources"}
+        let handle = cast(*NoSoundVoice, .handle)
+        for i in handle.busCount
+        {
+            let bus = unwrap handle.buses[i]
+            if bus.channelCount != 2 do
+                fail BadParameterError{"stereo pan requires a stereo output route"}
+        }
+        handle.pan = pan
+    }
+
     // Validates and records no-sound bus routing without producing audio.
     mtd setRoutingNoSound(buses: const [..] *Bus) fail
     {
@@ -155,13 +174,16 @@ internal impl Voice
         if count > handle.buses.count do
             fail SystemError{"too many buses", errorID: count}
 
+        for bus in buses
+        {
+            if not bus.handle do
+                fail BadParameterError{"bus invalid"}
+        }
+
         handle.busCount = cast(u32, count)
         for i in count
         {
-            let bus = buses[i]
-            if not bus.handle do
-                fail BadParameterError{"bus invalid"}
-            handle.buses[i] = bus
+            handle.buses[i] = buses[i]
         }
     }
 }

@@ -62,6 +62,16 @@ impl LibraryNamedFilter
                                                            .executable == other.executable
 }
 
+// What a folder tab last counted in its folder, with the time the folder was last written and the
+// revision of the library index then: either one moving says the count may have changed.
+struct LibraryFolderCount
+{
+    folder:   String
+    written:  DateTime
+    revision: u64
+    count:    u64
+}
+
 // The library page: its title, folder tabs and tag chips, the quiet menus and the search, the
 // thumbnail grid, and the hint line naming what the lens offers here.
 struct LibraryWnd
@@ -88,12 +98,21 @@ struct LibraryWnd
     // The first capture, offered where an empty library says it holds none.
     emptyCapture: *PushButton?
 
-    // The folder each tab opens, in the order of the tabs.
+    // The folder each tab opens, in the order of the tabs, and what the tabs of the sub-folders
+    // counted last.
     tabFolders:   Array'String
+    folderCounts: Array'LibraryFolderCount
     updatingTabs: bool
 
     // The folders the lens offered last, which its rows open.
     lensFolders: Array'String
+
+    // The applications and the tags the lens offered last, which its rows narrow the page to.
+    lensNames: Array'String
+
+    // The applications and the tags the filter sheet offers, which its choices narrow the page to.
+    applicationChoices: Array'String
+    tagChoices:         Array'String
 
     // The dates the captures were taken on, newest first, offered by the lens.
     dateFilters: Array'LibraryDateFilter

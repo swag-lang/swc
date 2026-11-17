@@ -51,6 +51,8 @@ impl NativeSource
 
     mtd reopen() fail
     {
-        .capture = try X11Capture.create()
+        let capture = try X11Capture.create()
+        try validateCaptureRect(.options, capture.desktopWidth(), capture.desktopHeight())
+        .capture = #move capture
     }
 }

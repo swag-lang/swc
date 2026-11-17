@@ -25,10 +25,18 @@ const OpenImageMessage = 1'u32
 
 #main
 {
-    let args = Env.arguments()
-    for arg in args where Path.isValidPathName(arg) and Image.canLoad(arg)
+    // The first image named on the command line opens in the editor, in the running instance
+    // when there is one.
+    var imageToOpen: string = ""
+    for arg in Env.arguments() where Path.isValidPathName(arg) and Image.canLoad(arg)
     {
-        Clipboard.addString(arg)
+        imageToOpen = arg
+        break
+    }
+
+    if imageToOpen.count
+    {
+        Clipboard.addString(imageToOpen)
         if Surface.sendCustomMessage(SurfaceId, OpenImageMessage, 0) do
             return
     }
@@ -51,10 +59,6 @@ const OpenImageMessage = 1'u32
     // anything is shown. `--hide` starts behind the icon whatever they say, as a start with the
     // session does; an image to open always opens in the editor.
     mainWnd.restoreState()
-    var imageToOpen: string = ""
-    for arg in args where imageToOpen.count == 0 and Path.isValidPathName(arg) and Image.canLoad(arg) do
-        imageToOpen = arg
-
     var startup = mainWnd.editorOptions.startup
     if imageToOpen.count do
         startup = .Editor

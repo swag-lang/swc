@@ -50,7 +50,7 @@ using Core, Pixel
     image = Image.create(1, 1, .BGRA8)
     discard expect source.grabInto(&image, copyUnchanged: false)
     Swag.require(image.width == captureWidth and image.height == captureHeight)
-    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, unwrap source.cursorPixels),
+    Swag.require(Memory.compare(image.pixels.storage(), cast([*] u8, source.cursorPixels),
                                 image.byteCount) == 0,
                  "a replacement target should receive the current cursor-composited frame")
 }

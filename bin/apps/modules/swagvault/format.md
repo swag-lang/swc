@@ -142,7 +142,7 @@ Names and labels use the same sized-string encoding: a little-endian `u32` byte 
 that many bytes, canonically UTF-8. The current reader bounds the count but does not validate
 UTF-8. The root node has identifier 1, empty name, and itself as parent.
 The free-block map is not stored; it is rebuilt as the complement of metadata pages and file
-blocks. Node names are indexed case-insensitively by Unicode case folding. Production readers cap
+blocks. Node names are indexed after Unicode simple lowercase mapping. Production readers cap
 the node count at 100,000,000, names at 4 KiB, labels at 128 bytes, and security data at 1 MiB.
 Each node's run count cannot exceed the block count; run ranges must fit the container and
 physical blocks cannot be shared by nodes or metadata pages.

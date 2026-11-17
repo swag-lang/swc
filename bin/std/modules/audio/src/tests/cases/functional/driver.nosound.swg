@@ -70,6 +70,14 @@ func audioStartNoSoundEngine()
     discard expect setOutputVolumeDb(-6.0206)
     audioAssertFloat(expect outputVolume(), 0.5, 0.0002)
     audioAssertFloat(expect outputVolumeDb(), -6.0206, 0.0002)
+
+    var invalidVolume: Swag.Error
+    discard catch setOutputVolume(Swag.F32.NaN) as invalidVolume
+    Swag.require(invalidVolume.value() is Errors.BadParameterError)
+    audioAssertFloat(expect outputVolume(), 0.5, 0.0002)
+    discard catch setOutputVolume(Swag.F32.Max * 2) as invalidVolume
+    Swag.require(invalidVolume.value() is Errors.BadParameterError)
+    audioAssertFloat(expect outputVolume(), 0.5, 0.0002)
 }
 
 #test
@@ -99,6 +107,13 @@ func audioStartNoSoundEngine()
     discard expect child.setVolumeDb(-6.0206)
     audioAssertFloat(expect child.volume(), 0.5, 0.0002)
     audioAssertFloat(expect child.volumeDb(), -6.0206, 0.0002)
+    var invalidVolume: Swag.Error
+    discard catch child.setVolume(Swag.F32.NaN) as invalidVolume
+    Swag.require(invalidVolume.value() is Errors.BadParameterError)
+    audioAssertFloat(expect child.volume(), 0.5, 0.0002)
+    discard catch child.setVolume(Swag.F32.Max * 2) as invalidVolume
+    Swag.require(invalidVolume.value() is Errors.BadParameterError)
+    audioAssertFloat(expect child.volume(), 0.5, 0.0002)
     var invalidParent: Bus
     var err12Outcome:  Swag.Error
     catch checkBusCreation(1, &invalidParent) as err12Outcome
@@ -129,6 +144,13 @@ func audioStartNoSoundEngine()
     discard expect voice.setVolumeDb(-6.0206)
     audioAssertFloat(expect voice.volume(), 0.5, 0.0002)
     audioAssertFloat(expect voice.volumeDb(), -6.0206, 0.0002)
+    var invalidVolume: Swag.Error
+    discard catch voice.setVolume(Swag.F32.NaN) as invalidVolume
+    Swag.require(invalidVolume.value() is Errors.BadParameterError)
+    audioAssertFloat(expect voice.volume(), 0.5, 0.0002)
+    discard catch voice.setVolume(Swag.F32.Max * 2) as invalidVolume
+    Swag.require(invalidVolume.value() is Errors.BadParameterError)
+    audioAssertFloat(expect voice.volume(), 0.5, 0.0002)
     discard expect voice.setFrequencyRatio(1.75)
     audioAssertFloat(handle.frequencyRatio, 1.75)
     audioAssertFloat(expect voice.frequencyRatio(), 1.75)

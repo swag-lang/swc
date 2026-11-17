@@ -29,16 +29,18 @@ impl NavigationEntry
     func resolve(basePath, reference: string)->NavigationEntry
     {
         var result: #returntype
-        if not reference.count or
-           Utf8.contains(reference, ':'rune) or
-           Utf8.startsWith(reference, "/") or
-           Utf8.contains(reference, "\\") do
+        if not reference.count do
             return result
 
         let hash     = Utf8.indexOf(reference, '#'rune)
         let path     = hash == Swag.U64.Max ? reference : reference[0 until hash]
         let query    = Utf8.indexOf(path, '?'rune)
         let resource = query == Swag.U64.Max ? path : path[0 until query]
+        if Utf8.contains(resource, ':'rune) or
+           Utf8.startsWith(resource, "/") or
+           Utf8.contains(resource, "\\") do
+            return result
+
         let decoded  = catch Url.decodeComponent(resource) { return result; }
         let local    = cast(string, decoded.toSlice())
         if Utf8.contains(local, ':'rune) or

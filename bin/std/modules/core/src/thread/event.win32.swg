@@ -2,7 +2,7 @@
 #global public
 #global namespace Sync
 
-using Win32
+using Win32, Core.Errors, Math, Time
 
 // Owns an operating-system event that threads signal and wait on.
 //
@@ -95,6 +95,41 @@ impl Event
     {
         Swag.assert(.isValid())
         expect .waitStatus().raise()
+    }
+
+    // Waits for a signal for up to `timeout`, returning false when it expires.
+    //
+    // The timeout is measured with the monotonic clock and rounded up to whole milliseconds.
+    // It must be finite, nonnegative, and representable as a u64 millisecond count. A successful
+    // auto-reset wait consumes the signal. The wait is non-alertable and does not dispatch
+    // callbacks or messages. Native synchronization failures are raised.
+    mtd waitFor(timeout: Time.Duration)->bool fail
+    {
+        if not Math.isFinite(timeout.seconds) or
+           timeout.seconds < 0 or
+           timeout.seconds >= 18_446_744_073_709_550.0 do
+            fail Errors.BadParameterError{"event timeout is outside the supported range"}
+
+        let timeoutMilliseconds = timeout.millisecondsCeiling()
+        var stopwatch: Time.Stopwatch
+        stopwatch.start()
+        var remaining = timeoutMilliseconds
+        for
+        {
+            let chunk = Math.min(remaining, cast(u64, Swag.U32.Max - 1))
+            let status = waitForSingleObjectStatus(.handle, cast(DWORD, chunk))
+            if status.result == WAIT_OBJECT_0 do
+                return true
+            if status.result == WAIT_FAILED do
+                try raiseEventFailure(status.errorCode)
+            if status.result != WAIT_TIMEOUT do
+                try raiseEventFailure(0)
+
+            let elapsed = stopwatch.elapsedMilliseconds()
+            if elapsed >= timeoutMilliseconds do
+                return false
+            remaining = timeoutMilliseconds - elapsed
+        }
     }
 
     // Signals the event and returns its outcome without allocating or invoking error hooks.

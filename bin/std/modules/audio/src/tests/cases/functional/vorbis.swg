@@ -133,3 +133,21 @@ private func vorbisAssertCloseTo(name: string, sampleRate, channels: u32)
     let err = errOutcome.value()
     Swag.require((err is Errors.InvalidFormatError))
 }
+
+// A raw Vorbis header packet is rejected when a packet stream presents it as audio.
+#test
+{
+    let template = expect SoundFile.load(audioGetTestDataPath("vorbis-stereo-44100.ogg").toString())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-vorbis-header-as-audio-%.ogg", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), [1'u8])
+
+    const Packets: [1] SoundPacket = [SoundPacket{0, 1, 1}]
+    var sound = expect SoundFile.openPacketStream(path.toString(), .Vorbis, template.sampleRateHz(),
+                                                  template.numChannels(), 1, Packets,
+                                                  template.decoderConfig.toSlice())
+    var rejected: Swag.Error
+    discard catch vorbisDecodeAll(&sound) as rejected
+    Swag.require(rejected.value() is Errors.InvalidFormatError)
+}

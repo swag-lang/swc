@@ -277,9 +277,10 @@ private impl Panel
                 panel.followReading()
             }
 
+            // Only an open outline follows the reading as it moves; a closed one catches up as it opens.
             .sigScrolled += func|panel = me|(_)
             {
-                panel.followReading()
+                panel.outline.followOpenReading()
             }
 
             .sigLoadFailed += func|panel = me|(_, reason)

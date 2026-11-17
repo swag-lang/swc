@@ -744,6 +744,7 @@
         <ClInclude Include="src\Backend\JIT\JITMemoryManager.h"/>
         <ClInclude Include="src\Backend\JIT\JITPatchJob.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.h"/>
+        <ClInclude Include="src\Backend\Debug\DebugInfoRecords.h"/>
         <ClInclude Include="src\Backend\Debug\DebugPath.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.CodeView.h"/>
         <ClInclude Include="src\Backend\Debug\DebugInfo.DWARF.h"/>

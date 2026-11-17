@@ -17,7 +17,7 @@ struct ZipEntry
     modified:         Time.DateTime     // Last modification recorded for the entry, in the archive's local time; zero when none.
 }
 
-// The central directory of a ZIP archive, with its entries sorted by path.
+// The central directory of a ZIP archive, with its entries sorted by path, ignoring case.
 struct Zip
 {
     entries:          Array'ZipEntry
@@ -28,11 +28,33 @@ struct Zip
 
 impl Zip
 {
-    // Returns the entry stored at `path`, or null when the archive has none.
+    // Returns the first entry stored at `path`, or null when the archive has none.
+    //
+    // Readers of packaged documents look up many parts, so the search halves the entries in their
+    // sorted order, which ignores case, down to the paths equal to `path` but for case. The first
+    // of them stored with exactly its case is the one a scan in that order would find.
     mtd const tryFindEntry(path: string)->const *ZipEntry?
     {
-        for entry in .entries where entry.path == path do
-            return entry
+        var first = 0'u64
+        var last  = .entries.count
+        while first < last
+        {
+            let middle = first + (last - first) / 2
+            if Utf8.compare(.entries[middle].path.toSlice(), path, .Latin1NoCase) < 0 do
+                first = middle + 1
+            else do
+                last = middle
+        }
+
+        for index in first until .entries.count
+        {
+            let entry = &.entries[index]
+            if Utf8.compare(entry.path.toSlice(), path, .Latin1NoCase) != 0 do
+                break
+            if entry.path == path do
+                return entry
+        }
+
         return null
     }
 

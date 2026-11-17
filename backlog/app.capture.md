@@ -348,7 +348,9 @@ whole recording loaded at once.
 ### app.capture.013 — Keep recorded sound available and synchronized over long sessions
 
 - Evidence: microphone and system-output loopback feed separate 48 kHz AAC tracks through bounded
-  timestamped queues and drift-correcting resampling. Source loss inserts silence while retrying;
+  timestamped queues and drift-correcting resampling. The microphone remains mono and now uses
+  AAC full bandwidth to Nyquist instead of the 4.1 kHz voice profile. Source loss inserts silence
+  while retrying;
   native system-output recording and editor output are covered by the short Windows browser
   integration. Microphone-device execution, sustained drift and device changes remain unverified.
   The capture queue retains eight blocks of at most 1024 frames (about 171 ms at 48 kHz).

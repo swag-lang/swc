@@ -32,7 +32,7 @@ impl VideoRecordingAudio
     {
         var result: #returntype
         if microphone do
-            result.add(Mp4.SoftwareAudioConfig{48_000, 1, .Voice})
+            result.add(Mp4.SoftwareAudioConfig{48_000, 1, .Full})
         if system do
             result.add(Mp4.SoftwareAudioConfig{48_000, 2, .Full})
         return result

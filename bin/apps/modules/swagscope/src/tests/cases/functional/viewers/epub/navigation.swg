@@ -129,6 +129,29 @@ using Core, Gui, Gui.Testing, Viewers
     Swag.require(view.chapter == 0 and view.outline.markedTarget() == 0 and chosen == 0)
 }
 
+// A closed outline does not follow the chapter as it scrolls; it marks the entry in view as it
+// opens again, and follows the scroll while open.
+#test
+{
+    var host: HeadlessHost
+    let window  = framedViewerWindow(&host, scopeTestDataPath("viewer.navigation.epub"), true)
+    let view    = assume cast(*Epub.Panel, window.currentView)
+    let outline = view.outline
+    view.followLink("one.xhtml#passage")
+    completeQueuedViewerFile(&host, window)
+    Swag.require(outline.markedTarget() == 1)
+
+    let chapter = unwrap view.view
+    Swag.require(chapter.navigateToFragment("#"))
+    Swag.require(outline.markedTarget() == 1)
+    outline.toggle.setChecked(true)
+    outline.toggle.sigCheckedChanged.call(outline.toggle)
+    Swag.require(outline.markedTarget() == 0)
+
+    Swag.require(chapter.navigateToFragment("#passage"))
+    Swag.require(outline.markedTarget() == 1)
+}
+
 // Book-owned link navigation updates the chapter counter and keeps external targets local.
 #test
 {

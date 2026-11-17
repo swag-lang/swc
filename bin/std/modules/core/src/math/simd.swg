@@ -708,4 +708,37 @@ namespace Simd
     // Interpolates angles along their shortest path, per lane, in radians.
     func lerpAngle(start, end, factor: Simd.F32x4)->Simd.F32x4 => start + deltaAngle(start, end) * factor
     func lerpAngle(start, end, factor: Simd.F64x2)->Simd.F64x2 => start + deltaAngle(start, end) * factor
+
+    // Repeats each lane as a triangle wave between zero and its matching positive length.
+    func pingPong(value, length: Simd.F32x4)->Simd.F32x4
+    {
+        let phase = wrap(value, Swag.vecSplat(0'f32), length * 2)
+        return length - abs(phase - length)
+    }
+
+    func pingPong(value, length: Simd.F64x2)->Simd.F64x2
+    {
+        let phase = wrap(value, Swag.vecSplat(0'f64), length * 2)
+        return length - abs(phase - length)
+    }
+
+    // Maps each lane from its source range into its destination range without clamping.
+    func map(value, sourceMinimum, sourceMaximum, destinationMinimum, destinationMaximum: Simd.F32x4)->Simd.F32x4
+        => destinationMinimum + inverseLerp(sourceMinimum, sourceMaximum, value) * (destinationMaximum - destinationMinimum)
+
+    func map(value, sourceMinimum, sourceMaximum, destinationMinimum, destinationMaximum: Simd.F64x2)->Simd.F64x2
+        => destinationMinimum + inverseLerp(sourceMinimum, sourceMaximum, value) * (destinationMaximum - destinationMinimum)
+
+    // Returns the smooth Hermite step between per-lane edge pairs, clamped to [0, 1]. Edges must differ.
+    func smoothstep(edge0, edge1, value: Simd.F32x4)->Simd.F32x4
+    {
+        let t = saturate((value - edge0) / (edge1 - edge0))
+        return interpHermite(t)
+    }
+
+    func smoothstep(edge0, edge1, value: Simd.F64x2)->Simd.F64x2
+    {
+        let t = saturate((value - edge0) / (edge1 - edge0))
+        return interpHermite(t)
+    }
 }

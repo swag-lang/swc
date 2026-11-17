@@ -882,10 +882,18 @@ impl IAllocator for LibraryRejectAllocator
     other.capture!.sourceApplication = "chrome"
     other.capture.tags.add("Docs")
     other.capture.tags.add("work")
+    for index in 64
+    {
+        let name = Format.toString("bulk%.scc", index)
+        let item = testAddLibraryItem(lib.view, name, 10, cast(u16, index + 3))
+        item.capture!.tags.add(Format.toString("tag%", index))
+    }
+    let duplicate = testAddLibraryItem(lib.view, "duplicate.scc", 10, 68)
+    duplicate.capture!.tags.add("DOCS")
 
     let filters = lib.collectNamedFilters()
     Swag.require(filters.applications.count == 1 and filters.applications[0].count == 2)
-    Swag.require(filters.tags.count == 2 and filters.tags[0].name == "docs" and filters.tags[0].count == 2)
+    Swag.require(filters.tags.count == 66 and filters.tags[0].name == "docs" and filters.tags[0].count == 3)
 
     lib.refreshAutomaticFilters()
     var results: Lens.Results

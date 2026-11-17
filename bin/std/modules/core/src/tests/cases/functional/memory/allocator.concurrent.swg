@@ -12,6 +12,30 @@ struct PageCommitShared
     errors:    u32
 }
 
+struct RemoteFreeShared
+{
+    allocator: IAllocator
+    addresses: [64] u64
+    errors:    u32
+}
+
+func remoteFreeWorker(thread: const *Threading.Thread)
+{
+    let shared = cast(*RemoteFreeShared, unwrap thread.userParam)
+    for i in shared.addresses.count
+    {
+        let address = shared.addresses[i]
+        let bytes   = cast([*] u8, address)
+        if bytes[0] != cast(u8, i) or bytes[63] != cast(u8, i ^ 0xA5) do
+            discard Swag.atomicAdd(&shared.errors, 1)
+
+        var request: AllocatorRequest
+        request.address = cast(*void, address)
+        request.size    = 64
+        shared.allocator.free(&request)
+    }
+}
+
 func pageCommitWorker(thread: const *Threading.Thread)
 {
     let shared = cast(*PageCommitShared, unwrap thread.userParam)
@@ -83,6 +107,40 @@ func pageCommitWorker(thread: const *Threading.Thread)
     for &thread in threads do
         thread.wait()
 
+    allocator.trim()
+    let stats = allocator.stats()
+    Swag.require(shared.errors == 0)
+    Swag.require(stats.countAlloc == 0)
+    Swag.require(stats.countPage == 0)
+    Swag.require(stats.countSegment == 0)
+}
+
+// A page owned by this thread must accept frees from another thread and retire after collection.
+#test
+{
+    var allocator: Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+
+    var shared = RemoteFreeShared{allocator: &allocator}
+    for i in shared.addresses.count
+    {
+        var request: AllocatorRequest
+        request.size = 64
+        shared.allocator.alloc(&request)
+        Swag.require(request.address != null)
+        let bytes = cast([*] u8, request.address)
+        bytes[0]                = cast(u8, i)
+        bytes[63]               = cast(u8, i ^ 0xA5)
+        shared.addresses[i]     = cast(u64, request.address)
+    }
+
+    var thread: Threading.Thread
+    discard expect thread.init(&remoteFreeWorker, &shared)
+    discard expect thread.start()
+    thread.wait()
+
+    Swag.releaseAllocatorThreadCache()
     allocator.trim()
     let stats = allocator.stats()
     Swag.require(shared.errors == 0)

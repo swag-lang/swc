@@ -70,6 +70,17 @@ private func reportEmbeddedDetails(view: *Wnd, details: string)
     }
 }
 
+// Describes the owner's sheet again when it presents this viewer's contribution.
+private func reportEmbeddedInformationChanged(view: *Wnd)
+{
+    let embedded = embeddedViewerFor(view)
+    if embedded.informationOnly
+    {
+        let information = embedded.owner.information
+        information.postRefresh()
+    }
+}
+
 private func reportEmbeddedChromeChanged(view: *Wnd)
 {
     with let embedded = embeddedViewerFor(view)
@@ -94,10 +105,11 @@ private func embeddedHostServices()->Viewer.HostServices
 {
     with var result: #returntype
     {
-        .reportFailure        = &reportEmbeddedFailure
-        .reportDetails        = &reportEmbeddedDetails
-        .reportChromeChanged  = &reportEmbeddedChromeChanged
-        .reportLoadingChanged = &reportEmbeddedLoadingChanged
+        .reportFailure            = &reportEmbeddedFailure
+        .reportDetails            = &reportEmbeddedDetails
+        .reportInformationChanged = &reportEmbeddedInformationChanged
+        .reportChromeChanged      = &reportEmbeddedChromeChanged
+        .reportLoadingChanged     = &reportEmbeddedLoadingChanged
     }
 
     return result

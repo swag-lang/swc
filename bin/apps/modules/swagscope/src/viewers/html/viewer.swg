@@ -212,7 +212,7 @@ func createViewer(host: Viewer.Host)
            facts.description != result.shownFacts.description
         {
             result.shownFacts = facts
-            result.services.showDetails(result, "")
+            result.services.informationChanged(result)
         }
     }
 

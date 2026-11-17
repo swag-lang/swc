@@ -209,6 +209,17 @@ func reportViewerDetails(view: *Wnd, details: string)
     }
 }
 
+// Describes the open information sheet again when the viewer whose contribution changed is the
+// one it describes.
+func reportViewerInformationChanged(view: *Wnd)
+{
+    let window = viewerWindowFor(view)
+    if window.activeChoiceIndex >= window.instances.count or window.instances[window.activeChoiceIndex].view != view do
+        return
+    if window.infoSheet.isLocallyVisible() do
+        window.refreshInformation()
+}
+
 // Re-measures viewer-owned chrome after a compact value or action group changes shape.
 func reportViewerChromeChanged(view: *Wnd)
 {
@@ -267,15 +278,16 @@ func viewerHostServices()->Viewer.HostServices
 {
     with var result: #returntype
     {
-        .reportFailure          = &reportViewerFailure
-        .reportDetails          = &reportViewerDetails
-        .reportChromeChanged    = &reportViewerChromeChanged
-        .reportLoadingChanged   = &reportViewerLoadingChanged
-        .navigateFile           = &navigateViewerFile
-        .reportFinished         = &reportViewerFinished
-        .reportShown            = &reportViewerShown
-        .playback.readSettings  = &readViewerPlayback
-        .playback.writeSettings = &writeViewerPlayback
+        .reportFailure            = &reportViewerFailure
+        .reportDetails            = &reportViewerDetails
+        .reportInformationChanged = &reportViewerInformationChanged
+        .reportChromeChanged      = &reportViewerChromeChanged
+        .reportLoadingChanged     = &reportViewerLoadingChanged
+        .navigateFile             = &navigateViewerFile
+        .reportFinished           = &reportViewerFinished
+        .reportShown              = &reportViewerShown
+        .playback.readSettings    = &readViewerPlayback
+        .playback.writeSettings   = &writeViewerPlayback
     }
 
     return result

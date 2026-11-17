@@ -744,7 +744,7 @@ impl Panel
         if not .levelsShown and .waveform.samples.count and not .waveformTask.isPending()
         {
             .levelsShown = true
-            .refreshDetails()
+            .services.informationChanged(me)
         }
 
         let ready = .publishedWaveformCount()

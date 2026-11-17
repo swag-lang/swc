@@ -645,7 +645,7 @@ private impl Panel
             // The text layer of every page is known; the information sheet can state it.
             .sigTextExtracted += func|view = me|(_)
             {
-                view.services.showDetails(view, view.details)
+                view.services.informationChanged(view)
             }
 
             .sigZoomChanged += func|view = me|(_)

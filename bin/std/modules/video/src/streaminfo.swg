@@ -16,8 +16,8 @@ struct StreamInfo
         // Size the frame is meant to be shown at, in pixels, when that is not its stored size.
         //
         // A picture with non-square samples, common in television standards and disc sources, can store a
-        // different width than its displayed width. Zero means the stored and displayed sizes match, as
-        // they do for modern encodes.
+        // different width than its displayed width. H.264 and H.265 VUI, ISO-BMFF `pasp`, and Matroska
+        // display geometry can state this ratio. Zero means the stored and displayed sizes match.
         displayWidth:  s32
         displayHeight: s32     // Display height in pixels; zero uses the stored frame height.
 

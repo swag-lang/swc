@@ -225,6 +225,10 @@ private impl Track
         return {width: width, height: cast(s32, ((cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth))}
     }
 
+    // Recognized explicit display geometry takes priority over codec pixel aspect, including an
+    // explicit 1:1 geometry that happens to match the coded dimensions.
+    mtd const hasDisplaySize()->bool => (.displayUnit == 0 or .displayUnit == 3) and .displayWidth and .displayHeight
+
     mtd const isPlayableVideo()->bool
     {
         if not .isEnabled or .hasEncodings or .kind != VideoTrackType do
@@ -1914,6 +1918,8 @@ private impl Decoder
     mtd configureMetadata(layout: *Layout) fail
     {
         var video = &layout.tracks[layout.selectedVideo]
+        var aspectWidth = 1'u32
+        var aspectHeight = 1'u32
         if video.needsInlineSetup() and video.setup.isEmpty()
         {
             // A track that carries its layer in the stream needs one sample read before it can
@@ -1949,6 +1955,8 @@ private impl Decoder
             try probe.open(video.codecPrivate.toSlice(), #move empty)
             .info.width  = probe.width
             .info.height = probe.height
+            aspectWidth  = probe.sampleAspectWidth
+            aspectHeight = probe.sampleAspectHeight
         }
         else
         {
@@ -1960,11 +1968,19 @@ private impl Decoder
                 fail InvalidFormatError{"H.264 decoder configuration has no sequence parameter set"}
             .info.width  = sps.width()
             .info.height = sps.height()
+            aspectWidth  = sps.sampleAspectWidth
+            aspectHeight = sps.sampleAspectHeight
         }
 
         let display = video.displaySize(.info.width, .info.height)
         .info.displayWidth  = display.width
         .info.displayHeight = display.height
+        if not video.hasDisplaySize()
+        {
+            let codecDisplay = pictureDisplaySize(.info.width, .info.height, aspectWidth, aspectHeight)
+            .info.displayWidth  = codecDisplay.width
+            .info.displayHeight = codecDisplay.height
+        }
         if video.defaultDuration do
             .info.frameRate = try frameRateFromDuration(video.defaultDuration)
         if layout.durationTicks > 0 do

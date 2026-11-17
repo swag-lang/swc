@@ -67,6 +67,18 @@ fragmented MP4 writer without making a test depend on `ffprobe`.
 - SHA-256: `b3e87542fd01f592ddd70e3345e24263e777eee7e986a6ab9ed034f2b0a8d3d0`.
 - License: same as `ffmpeg-h264-baseline.mp4`.
 
+`ffmpeg-h264-mp3.mp4` combines the H.264 video of `ffmpeg-h264-baseline.mp4` with the synthetic
+mono 48 kHz Layer III stream in std/audio's `mp3-mono-48000.mp3`, using FFmpeg 7.1.5 with
+`-map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart`. Both streams are copied without
+re-encoding. `mp4-layer3-reference.pcm` is the FFmpeg decode of the multiplexed audio track as
+signed 16-bit little-endian PCM.
+
+- `ffmpeg-h264-mp3.mp4`: 5,797 bytes, SHA-256:
+  `2813c5c7486ab14df9006f70684ab76b72545877922b52e9fed6f5229543158e`.
+- `mp4-layer3-reference.pcm`: 32,256 bytes, SHA-256:
+  `deff7b2483049b80e4eba31d5ad4fe49375351c04d211e991d75f9416c73d364`.
+- License: same as this repository and the std/audio MP3 fixture.
+
 `glint-aac-lc-stereo.packets` holds the first three AAC-LC access units of
 `std/audio`'s `aac-lc-stereo-44100.aac` fixture, with ADTS headers removed. Each unit is preceded
 by its 32-bit big-endian byte length. The source contains generated 440 Hz and 660 Hz tones.

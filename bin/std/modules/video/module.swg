@@ -14,6 +14,11 @@ encoding them. [[Video.Timebase]] converts absolute timestamps between integer m
 including nanosecond capture timestamps and video or audio track ticks, without cumulative
 rounding.
 
+For H.264 and H.265, [[Video.Reader.width]] and [[Video.Reader.height]] describe stored pixels,
+while [[Video.Reader.displayWidth]] and [[Video.Reader.displayHeight]] include the sample aspect
+ratio carried by codec metadata or the container. Matroska track display geometry takes priority
+over codec metadata; ISO-BMFF `pasp` takes priority over codec metadata.
+
 ```swag
 #import("video")
 
@@ -47,7 +52,7 @@ Four codecs ship in the box:
   MPEG-4 Part 2 seeks to a preceding sync picture and reconstructs prediction dependencies
   through the requested frame.
 - ISO-BMFF (`.mp4`, `.m4v`, and `.mov`) reads Motion JPEG, H.264, and H.265 pictures, writes
-  Motion JPEG, and exposes AAC-LC mono/stereo audio. [[Video.Mp4.FragmentedWriter]] separately
+  Motion JPEG, and exposes AAC-LC and MPEG Layer III audio. [[Video.Mp4.FragmentedWriter]] separately
   writes already encoded H.264 packets as bounded fragments, optionally interleaved with up to four
   AAC-LC sound tracks, and can resume after the last complete fragment of a stopped recording.
   The writer reports submitted video and audio packet counts, track end times, and completed byte

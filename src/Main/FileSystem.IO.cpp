@@ -177,7 +177,10 @@ namespace
         static std::atomic_uint64_t sequence = 0;
         // A valid artifact name may already reach the filesystem's component or path limit.
         // Keep publication names independent of that basename, on the same volume.
-        return path.parent_path() / std::format(".swc-{}.{}{}", Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed), extension);
+        // Distinct leading punctuation also prevents a reserved-looking target from aliasing
+        // its temporary or stale sibling on case-insensitive filesystems.
+        const char prefix = path.filename().native().starts_with('.') ? '_' : '.';
+        return path.parent_path() / std::format("{}swc-{}.{}{}", prefix, Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed), extension);
     }
 }
 

@@ -410,14 +410,40 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
 {
     const fs::path  directory = Os::getTemporaryPath() / std::format("swc_cache_mapping_p{}", Os::currentProcessId());
-    const fs::path  path      = directory / "cache.bin";
     std::error_code ec;
     fs::create_directories(directory, ec);
     if (ec)
         return Result::Error;
 
     FileSystem::IoErrorInfo error;
-    Result                  result = FileSystem::writeBinaryFileAtomic(path, "old", 3, error);
+    const fs::path          seed = directory / "seed";
+    SWC_RESULT(FileSystem::writeBinaryFile(seed, "seed", 4, error));
+    if (!FileSystem::moveFileAside(seed))
+        return Result::Error;
+    std::string siblingStem;
+    {
+        const fs::directory_iterator first(directory, ec);
+        if (ec || first == fs::directory_iterator{})
+            return Result::Error;
+        siblingStem = first->path().stem().string();
+    }
+    const size_t numberStart = siblingStem.rfind('.');
+    if (numberStart == std::string::npos)
+        return Result::Error;
+    uint64_t   sequence = 0;
+    const auto parsed   = std::from_chars(siblingStem.data() + numberStart + 1, siblingStem.data() + siblingStem.size(), sequence);
+    if (parsed.ec != std::errc{} || parsed.ptr != siblingStem.data() + siblingStem.size())
+        return Result::Error;
+    FileSystem::removeMovedAsideFiles(directory);
+
+    // Make the target look exactly like the next temporary name. It must still publish a
+    // separate generation instead of truncating the storage its current reader maps.
+#ifdef _WIN32
+    const fs::path path = directory / std::format(".SWC-{}.{}.SWCTMP", Os::currentProcessId(), sequence + 1);
+#else
+    const fs::path path = directory / std::format(".swc-{}.{}.swctmp", Os::currentProcessId(), sequence + 1);
+#endif
+    Result result = FileSystem::writeBinaryFile(path, "old", 3, error);
     if (result == Result::Continue)
     {
         Os::ReadOnlyFileMapping oldGeneration;

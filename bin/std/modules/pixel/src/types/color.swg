@@ -548,6 +548,17 @@ impl Color
         }
     }
 
+    // Returns a copy lightened or darkened toward the requested contrast ratio.
+    //
+    // The source is unchanged. The iteration limit and possible shortfall follow
+    // [[Pixel.Color.ensureContrast]].
+    mtd const ensuredContrast(target: Color, requiredContrast: f32 = 4.5, step: f32 = 0.02, maxSteps: s32 = 64)->Color
+    {
+        var result: #returntype = me
+        result.ensureContrast(target, requiredContrast, step, maxSteps)
+        return result
+    }
+
     // Returns the color with its hue rotated by `degrees` around the color wheel, keeping alpha.
     #[ConstExpr]
     mtd const rotateHue(degrees: f32)->Color

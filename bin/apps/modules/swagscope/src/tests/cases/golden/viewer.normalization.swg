@@ -8,6 +8,7 @@ using Core, Gui, Pixel
 #test
 {
     var host: Testing.HeadlessHost
+
     // Pixel owns these shared faces until module shutdown; the host copies their pointer list.
     let cjk    = expect TypeFace.create("scope-fixture-cjk", #include("../../datas/font-fixture-cjk.otf"))
     let arabic = expect TypeFace.create("scope-fixture-arabic", #include("../../datas/viewer.ttf"))

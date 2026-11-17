@@ -277,6 +277,30 @@ internal func testEndRecording()
     Swag.require(reopened.timeline.frameCount == kept.timeline.frameCount and not reopened.mediaMissing)
 }
 
+// A producer failure before its first frame stops the recorder and preserves its cause.
+#[Swag.TestTag("record.failure")]
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+
+    var recorder: Recorder
+    recorder.main      = f.main
+    recorder.videoMode = true
+    recorder.state     = .Recording
+    catch { fail Errors.BadParameterError{"video producer test failure"} }
+    {
+        recorder.videoProducer.error.capture(Swag.err)
+    }
+    Atomic.exchange(&recorder.videoProducer.failed, 1)
+
+    recorder.advance()
+
+    Swag.require(recorder.state == .Stopped)
+    Swag.require(recorder.recordError.value() is Errors.BadParameterError)
+}
+
 // The video preparation waits for Record, then creates an MP4 from the live target.
 #[Swag.TestTag("record.preparation")]
 #test

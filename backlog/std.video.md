@@ -315,6 +315,15 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   it scans chroma across a luma-unchanged region before falling back to per-macroblock checks.
   The gain therefore applies to regions unchanged in all three planes; it does not establish a
   general throughput gain for changing scenes. Focused Release H.264 tests passed 8/8.
+  Motion search now stops accumulating a candidate SAD once its partial score reaches the
+  strict winner bound; losing candidates cannot change the selected vector or output. Focused
+  Release H.264 tests passed 9/9 with this change. On a
+  1080p30 code-window scroll clip at QP 28/four slices, alternating baseline/candidate runs
+  averaged 364 to 325 ms (10.7% faster). Packet and MP4 sizes, decoded hashes, PSNR and SSIM
+  matched exactly. On a scaled-up 4K screen-content clip the candidate was effectively even
+  (503 vs 502 ms); on a changing full-screen 4K control it was 2.8% slower, within run
+  variation. These results are workload-dependent and the encode-only benchmark does not
+  establish a capture-cadence gain for a physical display.
   On the same virtual root with a changing full-screen background, two QP 28 runs per slice
   count measured median video capture/encode/MP4 time of 8.01 seconds for four slices and
   7.45 seconds for eight (6.9% faster). Eight slices emitted 3.43 MB at 46.17 dB luma PSNR,

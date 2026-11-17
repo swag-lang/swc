@@ -207,7 +207,8 @@ impl IForm for FormCallout
                .fontName == other.fontName and
                .textColor == other.textColor and
                .alignHorz == other.alignHorz and
-               .alignVert == other.alignVert
+               .alignVert == other.alignVert and
+               .lineSpacing == other.lineSpacing
     }
 
     mtd impl copy(dst, src: *BaseForm)
@@ -223,6 +224,7 @@ impl IForm for FormCallout
         d.textColor = s.textColor
         d.alignHorz = s.alignHorz
         d.alignVert = s.alignVert
+        d.lineSpacing = s.lineSpacing
         d.scale     = s.scale
     }
 

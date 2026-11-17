@@ -469,7 +469,7 @@ impl Recorder
     }
 
     // Grabs the next frame when its time has come, and ends the recording at its limit.
-    private mtd advance()
+    mtd advance()
     {
         .hud?.refresh()
         if .state == .Counting and Time.monotonicMicroseconds() >= .startsAt
@@ -610,13 +610,10 @@ impl Recorder
     // Reads one video slot and transfers both enabled sound sources into their MP4 tracks.
     private mtd advanceVideo() fail
     {
+        if .videoProducer.hasFailed() do
+            try .videoProducer.raiseError()
         if not .videoProducer.worker.isValid() do
             try .videoProducer.start(&.video, VideoCaptureFramesPerSecond)
-        if .videoProducer.hasFailed()
-        {
-            .stop()
-            return
-        }
 
         if not .videoProducer.hasOrigin() do
             return

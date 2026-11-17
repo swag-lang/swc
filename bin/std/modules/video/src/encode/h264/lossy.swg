@@ -976,6 +976,19 @@ func lossySad16(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, ro
     return sum
 }
 
+// Exact SAD below a strict winner bound, or the bound itself when this candidate cannot win.
+func lossySad16Below(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, rows: u64, bound: u32)->u32
+{
+    var sum = 0'u32
+    for row in rows
+    {
+        sum += Simd.sumAbsoluteDifferences(Simd.load(a + row * aStride), Simd.load(b + row * bStride))
+        if sum >= bound do
+            return bound
+    }
+    return sum
+}
+
 // Sum of the absolute Hadamard coefficients of the difference of two 16x16 blocks, halved. It
 // follows the bits a residual costs once transformed far closer than a plain difference does: a
 // shift of brightness lands in one coefficient per block, and noise spreads over all of them.
@@ -1067,6 +1080,23 @@ func lossySadSmall(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64,
             sum += cast(u32, Math.abs(cast(s32, lineA[column]) - cast(s32, lineB[column])))
     }
 
+    return sum
+}
+
+func lossySadSmallBelow(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u64, width, rows: u64, bound: u32)->u32
+{
+    var sum = 0'u32
+    for row in rows
+    {
+        let lineA = a + row * aStride
+        let lineB = b + row * bStride
+        for column in width
+        {
+            sum += cast(u32, Math.abs(cast(s32, lineA[column]) - cast(s32, lineB[column])))
+            if sum >= bound do
+                return bound
+        }
+    }
     return sum
 }
 
@@ -1427,6 +1457,26 @@ impl LossyCoder
         return lossySadSmall(source, .lumaStride(), other, stride, columns, rows)
     }
 
+    mtd blockDistanceBelow(mbX, mbY: u32, vector: LossyVector, scratch: [*] u8, bound: u32)->u32
+    {
+        if bound == 0 do
+            return 0
+        let source  = .sourceY.storage() + cast(u64, mbY) * 16 * .lumaStride() + cast(u64, mbX) * 16
+        let x       = cast(s32, mbX) * 16 + (vector.x >> 2)
+        let y       = cast(s32, mbY) * 16 + (vector.y >> 2)
+        let frame   = .reference()
+        let columns = cast(u64, Math.min(.width - cast(s32, mbX) * 16, 16))
+        let rows    = cast(u64, Math.min(.height - cast(s32, mbY) * 16, 16))
+        let whole   = vector.x & 3 == 0 and vector.y & 3 == 0
+        if not whole do
+            mcLuma(scratch, 16, frame, 0, x, y, vector.x & 3, vector.y & 3, 16, 16)
+        let other  = whole ? cast(const [*] u8, frame.pixLuma(x, y)) : cast(const [*] u8, scratch)
+        let stride = whole ? frame.strideLuma : 16'u64
+        if columns == 16 do
+            return lossySad16Below(source, .lumaStride(), other, stride, rows, bound)
+        return lossySadSmallBelow(source, .lumaStride(), other, stride, columns, rows, bound)
+    }
+
     mtd const vectorCost(vector, predicted: LossyVector)->u32
     {
         return cast(u32, .lambda * (lossySignedBits(vector.x - predicted.x) + lossySignedBits(vector.y - predicted.y)))
@@ -1678,11 +1728,16 @@ impl LossyCoder
             candidates[candidate] = vector
             if seen do
                 continue
-            let trial = .blockDistance(mbX, mbY, vector, scratch.buffer) + .vectorCost(vector, predicted)
-            if trial < cost
+            let penalty = .vectorCost(vector, predicted)
+            if penalty < cost
             {
-                cost = trial
-                best = vector
+                let distance = .blockDistanceBelow(mbX, mbY, vector, scratch.buffer, cost - penalty)
+                let trial    = distance + penalty
+                if trial < cost
+                {
+                    cost = trial
+                    best = vector
+                }
             }
         }
 
@@ -1699,11 +1754,16 @@ impl LossyCoder
             for jump in 24'u64
             {
                 let vector = .clampVector(mbX, mbY, {Jumps[jump, 0] * 4, Jumps[jump, 1] * 4})
-                let trial  = .blockDistance(mbX, mbY, vector, scratch.buffer) + .vectorCost(vector, predicted)
-                if trial < cost
+                let penalty = .vectorCost(vector, predicted)
+                if penalty < cost
                 {
-                    cost = trial
-                    best = vector
+                    let distance = .blockDistanceBelow(mbX, mbY, vector, scratch.buffer, cost - penalty)
+                    let trial    = distance + penalty
+                    if trial < cost
+                    {
+                        cost = trial
+                        best = vector
+                    }
                 }
             }
         }
@@ -1718,11 +1778,16 @@ impl LossyCoder
                 let vector = .clampVector(mbX, mbY, {best.x + Hexagon[point, 0], best.y + Hexagon[point, 1]})
                 if vector.x == best.x and vector.y == best.y do
                     continue
-                let trial = .blockDistance(mbX, mbY, vector, scratch.buffer) + .vectorCost(vector, predicted)
-                if trial < cost
+                let penalty = .vectorCost(vector, predicted)
+                if penalty < cost
                 {
-                    cost  = trial
-                    moved = vector
+                    let distance = .blockDistanceBelow(mbX, mbY, vector, scratch.buffer, cost - penalty)
+                    let trial    = distance + penalty
+                    if trial < cost
+                    {
+                        cost  = trial
+                        moved = vector
+                    }
                 }
             }
 
@@ -1746,11 +1811,16 @@ impl LossyCoder
                 let vector = .clampVector(mbX, mbY, {centre.x + Around[point, 0] * step, centre.y + Around[point, 1] * step})
                 if vector.x == centre.x and vector.y == centre.y do
                     continue
-                let trial = .blockDistance(mbX, mbY, vector, scratch.buffer) + .vectorCost(vector, predicted)
-                if trial < cost
+                let penalty = .vectorCost(vector, predicted)
+                if penalty < cost
                 {
-                    cost = trial
-                    best = vector
+                    let distance = .blockDistanceBelow(mbX, mbY, vector, scratch.buffer, cost - penalty)
+                    let trial    = distance + penalty
+                    if trial < cost
+                    {
+                        cost = trial
+                        best = vector
+                    }
                 }
             }
         }

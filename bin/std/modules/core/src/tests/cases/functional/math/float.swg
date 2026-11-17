@@ -181,6 +181,31 @@ using Swag
 
 #test
 {
+    Swag.require(Math.inverseLerp(0'f32, 10'f32, 2'f32) == 0.2'f32)
+    Swag.require(Math.inverseLerp(10'f32, 0'f32, 2'f32) == 0.8'f32)
+    Swag.require(Math.inverseLerp(0'f64, 10'f64, 2'f64) == 0.2'f64)
+    Swag.require(Math.inverseLerp(10'f64, 0'f64, 2'f64) == 0.8'f64)
+
+    Swag.require(Math.wrap(2.25'f32, 0'f32, 1'f32) == 0.25'f32)
+    Swag.require(Math.wrap(-0.25'f32, 0'f32, 1'f32) == 0.75'f32)
+    Swag.require(Math.wrap(3'f32, -1'f32, 2'f32) == 0'f32)
+    Swag.require(Math.wrap(2.25'f64, 0'f64, 1'f64) == 0.25'f64)
+    Swag.require(Math.wrap(-0.25'f64, 0'f64, 1'f64) == 0.75'f64)
+
+    Swag.require(Math.pingPong(0'f32, 3'f32) == 0'f32)
+    Swag.require(Math.pingPong(2'f32, 3'f32) == 2'f32)
+    Swag.require(Math.pingPong(4'f32, 3'f32) == 2'f32)
+    Swag.require(Math.pingPong(-2'f32, 3'f32) == 2'f32)
+    Swag.require(Math.pingPong(4'f64, 3'f64) == 2'f64)
+
+    Swag.require(Math.isEqualEpsilon(Math.deltaAngle(0'f32, Math.ConstF32.PiBy2), Math.ConstF32.PiBy2, 0.001))
+    Swag.require(Math.isEqualEpsilon(Math.deltaAngle(Math.toRadians(170'f32), Math.toRadians(-170'f32)), Math.toRadians(20'f32), 0.001))
+    Swag.require(Math.isEqualEpsilon(Math.deltaAngle(Math.toRadians(-170'f64), Math.toRadians(170'f64)), Math.toRadians(-20'f64), 0.001))
+    Swag.require(Math.isEqualEpsilon(Math.lerpAngle(Math.toRadians(170'f32), Math.toRadians(-170'f32), 0.5'f32), Math.ConstF32.Pi, 0.001))
+}
+
+#test
+{
     Swag.require(Math.isEqualEpsilon(Math.atan2(1'f32, 0'f32), Math.ConstF32.PiBy2, 0.001))
     Swag.require(Math.isEqualEpsilon(Math.atan2(1'f64, 0'f64), Math.ConstF64.PiBy2, 0.001))
     Swag.require(Math.sqrt(9'f32) == 3'f32)

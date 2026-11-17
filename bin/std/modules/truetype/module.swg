@@ -34,8 +34,8 @@ document subsets whose family identity is supplied outside the font program.
 
 It does not shape text. Ligatures, mark attachment and script-specific reordering
 need `GSUB` and the rest of `GPOS`, so Arabic, Indic and Thai are positioned
-incorrectly rather than imperfectly. WOFF and WOFF2 containers are reported as
-unsupported rather than read.
+incorrectly rather than imperfectly. WOFF1 containers are reconstructed to sfnt
+before parsing; WOFF2 containers remain unsupported.
 */
 
 #import("core")

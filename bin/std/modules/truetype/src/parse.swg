@@ -467,7 +467,7 @@ func initFaceRecords(faceData: *FaceImpl)
 func checkSfntVersion(data: const [..] u8, offset: u64) fail
 {
     let tag = readU32(data, offset)
-    if tag == TAG_WOFF or tag == TAG_WOF2 do
+    if tag == TAG_WOF2 do
         fault(0x0E)
     if tag != TAG_SFNT and tag != TAG_TRUE and tag != TAG_OTTO do
         fault(0x02)
@@ -482,6 +482,11 @@ func countFacesIn(data: const [..] u8)->u32 fail
         fault(0x02)
     if readU32(data, 0) == TAG_TTCF do
         return readU32(data, 8)
+    if readU32(data, 0) == TAG_WOFF
+    {
+        discard readWoffDirectory(data)
+        return 1
+    }
 
     checkSfntVersion(data, 0)
     return 1
@@ -536,6 +541,12 @@ func findTableAt(data: const [..] u8, faceOffset: u64, tag: u32)->const [..] u8?
 #[Swag.Propagate]
 func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 {
+    if data.count >= 4 and readU32(data, 0) == TAG_WOFF
+    {
+        let sfnt = inflateWoff(data)
+        return familyNameIn(sfnt.toSlice(), faceIndex)
+    }
+
     let faceOffset = findFaceOffset(data, faceIndex)
     let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
     if not nameTable do
@@ -553,6 +564,12 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 #[Swag.Propagate]
 func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
 {
+    if data.count >= 4 and readU32(data, 0) == TAG_WOFF
+    {
+        let sfnt = inflateWoff(data)
+        return metadataIn(sfnt.toSlice(), faceIndex)
+    }
+
     let faceOffset = findFaceOffset(data, faceIndex)
     let nameTable  = findTableAt(data, faceOffset, TAG_NAME)
     if not nameTable do

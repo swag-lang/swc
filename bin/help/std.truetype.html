@@ -44,7 +44,7 @@
 </ul>
 </details>
 <details class="toc-group" open>
-<summary><span class="toc-label">Types</span><span class="toc-count">13</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">14</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#TrueType_BBox">TrueType.BBox</a></li>
@@ -54,6 +54,7 @@
 <li><a href="#TrueType_FaceMetadata">TrueType.FaceMetadata</a></li>
 <li><a href="#TrueType_GlyphMetrics">TrueType.GlyphMetrics</a></li>
 <li><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></li>
+<li><a href="#TrueType_GlyphVerticalMetrics">TrueType.GlyphVerticalMetrics</a></li>
 <li><a href="#TrueType_Matrix">TrueType.Matrix</a></li>
 <li><a href="#TrueType_Outline">TrueType.Outline</a></li>
 <li><a href="#TrueType_OutlineCommand">TrueType.OutlineCommand</a></li>
@@ -81,13 +82,15 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">32</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">34</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
+<li><a href="#TrueType_Bitmap_row">Bitmap.row</a></li>
 <li><a href="#TrueType_Face_countFaces">Face.countFaces</a></li>
 <li><a href="#TrueType_Face_destroy">Face.destroy</a></li>
 <li><a href="#TrueType_Face_familyNameAt">Face.familyNameAt</a></li>
 <li><a href="#TrueType_Face_getKerning">Face.getKerning</a></li>
+<li><a href="#TrueType_Face_getVerticalMetrics">Face.getVerticalMetrics</a></li>
 <li><a href="#TrueType_Face_glyphIndex">Face.glyphIndex</a></li>
 <li><a href="#TrueType_Face_glyphIndexByCid">Face.glyphIndexByCid</a></li>
 <li><a href="#TrueType_Face_glyphIndexByCode">Face.glyphIndexByCode</a></li>
@@ -135,8 +138,8 @@
 
 <span class="SKwd">let</span> bitmap = &amp;face.glyph.bitmap
 <span class="SCmt">// bitmap.buffer remains valid until this face loads or renders another glyph.</span></span></div>
-<p>The module covers TrueType <span class="code-inline">glyf</span> outlines, OpenType and bare CFF programs, Type 1 programs, <span class="code-inline">ttcf</span> collections, Unicode character maps including variation sequences, kerning from <span class="code-inline">GPOS</span> and from the legacy <span class="code-inline">kern</span> table, grayscale rasterization, and single- or multi-channel signed-distance fields. <a href="#TrueType_Face_loadSubset">TrueType.Face.loadSubset</a> also accepts rendering-only document subsets whose family identity is supplied outside the font program.</p>
-<p>It does not shape text. Ligatures, mark attachment and script-specific reordering need <span class="code-inline">GSUB</span> and the rest of <span class="code-inline">GPOS</span>, so Arabic, Indic and Thai are positioned incorrectly rather than imperfectly. WOFF and WOFF2 containers are reported as unsupported rather than read.</p>
+<p>The module covers TrueType <span class="code-inline">glyf</span> outlines, OpenType and bare CFF programs, Type 1 programs, <span class="code-inline">ttcf</span> collections, Unicode character maps including variation sequences, kerning from <span class="code-inline">GPOS</span> and from the legacy <span class="code-inline">kern</span> table, grayscale rasterization, and single- or multi-channel signed-distance fields. Faces with <span class="code-inline">vhea</span> and <span class="code-inline">vmtx</span> expose optional vertical glyph advances and top side bearings. <a href="#TrueType_Face_loadSubset">TrueType.Face.loadSubset</a> also accepts rendering-only document subsets whose family identity is supplied outside the font program.</p>
+<p>It does not shape text. Ligatures, mark attachment and script-specific reordering need <span class="code-inline">GSUB</span> and the rest of <span class="code-inline">GPOS</span>, so Arabic, Indic and Thai are positioned incorrectly rather than imperfectly. WOFF1 containers are reconstructed to sfnt before parsing; WOFF2 containers remain unsupported.</p>
 </section>
 <section class="api-guide"><h2 id="guide_Loading_fonts_and_glyphs">Loading fonts and glyphs</h2>
 <p>TrueType works from bytes already present in memory. A <a href="#TrueType_Face">TrueType.Face</a> parses and owns a private copy of those bytes, so the source buffer does not need to remain alive.</p>
@@ -145,7 +148,7 @@
 <span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
-<p>The input can be a TrueType font with <span class="code-inline">glyf</span> outlines, an OpenType font with CFF outlines (<span class="code-inline">OTTO</span>), or a bare CFF or Type 1 program. WOFF and WOFF2 containers are recognized and reported as unsupported, so a failure names the container.</p>
+<p>The input can be a TrueType font with <span class="code-inline">glyf</span> outlines, an OpenType font with CFF outlines (<span class="code-inline">OTTO</span>), a WOFF1 font, or a bare CFF or Type 1 program. WOFF1 table streams are decompressed and rebuilt as sfnt before parsing. WOFF2 is recognized and reported as unsupported.</p>
 <h3 id="guide_Loading_fonts_and_glyphs_Rendering-only_subsets">Rendering-only subsets</h3>
 <p>PDF and similar document formats may embed a TrueType subset without the <span class="code-inline">name</span>, <span class="code-inline">post</span>, or <span class="code-inline">cmap</span> metadata required of an installable font. Use <a href="#TrueType_Face_loadSubset">TrueType.Face.loadSubset</a> for those programs and provide the family identity from the document's font descriptor. The outline, location, and horizontal-metric tables are still validated normally. Without a character map, address glyphs by index or through the document's own encoding.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> face = <span class="SKwd">try</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">loadSubset</span>(embeddedBytes, <span class="SStr">"DocumentSans"</span>)
@@ -254,6 +257,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Holds the outline, metrics, and bitmap of the most recently loaded glyph.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#TrueType_GlyphVerticalMetrics">TrueType.GlyphVerticalMetrics</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Holds one glyph's vertical advance and top side bearing in font design units.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#TrueType_Matrix">TrueType.Matrix</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores a 2x2 affine linear transform in 16.16 fixed-point form.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Outline">TrueType.Outline</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Exposes the borrowed contours of the current scalable glyph.</p>
@@ -296,6 +301,8 @@
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#TrueType_Bitmap_row">Bitmap.row</a></td><td><p>Returns one borrowed row without its trailing pitch padding.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_countFaces">Face.countFaces</a></td><td><p>Returns how many faces an in-memory font file holds.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_destroy">Face.destroy</a></td><td><p>Releases this face and every resource borrowed from it.</p>
@@ -303,6 +310,8 @@
 <tr><td class="code-type"><a href="#TrueType_Face_familyNameAt">Face.familyNameAt</a></td><td><p>Returns the family name the face at <span class="code-inline">faceIndex</span> declares.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_getKerning">Face.getKerning</a></td><td><p>Returns horizontal kerning between two glyph indices.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#TrueType_Face_getVerticalMetrics">Face.getVerticalMetrics</a></td><td><p>Returns a glyph's vertical advance and top side bearing in font design units.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_glyphIndex">Face.glyphIndex</a></td><td><p>Resolves a Unicode scalar value to a glyph index.</p>
 </td></tr>
@@ -386,6 +395,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_GlyphSlot">TrueType.GlyphSlot</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Holds the outline, metrics, and bitmap of the most recently loaded glyph.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#TrueType_GlyphVerticalMetrics">TrueType.GlyphVerticalMetrics</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Holds one glyph's vertical advance and top side bearing in font design units.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#TrueType_Matrix">TrueType.Matrix</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Stores a 2x2 affine linear transform in 16.16 fixed-point form.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Outline">TrueType.Outline</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Exposes the borrowed contours of the current scalable glyph.</p>
@@ -439,9 +450,9 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Bitmap" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Bitmap</span> <a class="api-item-permalink" href="#TrueType_Bitmap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L52">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Bitmap" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Bitmap</span> <a class="api-item-permalink" href="#TrueType_Bitmap" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L88">src</a></div>
 <p>Describes the borrowed pixels produced for the current glyph.</p>
-<p>The buffer belongs to the parent <a href="#TrueType_Face">TrueType.Face</a>. Its address and contents may change after another load or render operation, and become invalid when the face is destroyed. Walk rows by <span class="code-inline">pitch</span> bytes rather than deriving a stride from <span class="code-inline">width</span>.</p>
+<p>The buffer belongs to the parent <a href="#TrueType_Face">TrueType.Face</a>. Its address and contents may change after another load or render operation, and become invalid when the face is destroyed. Use <a href="#TrueType_Bitmap_row">TrueType.Bitmap.row</a> to read one row without pitch padding.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Bitmap">Bitmap</a></span></span></div>
 </section>
 <h3>Fields</h3>
@@ -459,6 +470,14 @@
 <tr><td id="TrueType_Bitmap_rows" class="code-type">rows</td><td class="code-type">u32</td><td><p>Number of pixel rows.</p>
 </td></tr>
 <tr><td id="TrueType_Bitmap_width" class="code-type">width</td><td class="code-type">u32</td><td><p>Number of pixels in each row.</p>
+</td></tr>
+</tbody>
+</table>
+<h3 id="TrueType_Bitmap_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#TrueType_Bitmap_row">row</a></td><td><p>Returns one borrowed row without its trailing pitch padding.</p>
 </td></tr>
 </tbody>
 </table>
@@ -483,7 +502,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Face" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Face</span> <a class="api-item-permalink" href="#TrueType_Face" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L43">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Face" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Face</span> <a class="api-item-permalink" href="#TrueType_Face" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L63">src</a></div>
 <p>Owns one parsed TrueType font face and its reusable glyph workspace.</p>
 <p>Create a face with <a href="#TrueType_Face_load">TrueType.Face.load</a> and release it exactly once with <a href="#TrueType_Face_destroy">TrueType.Face.destroy</a>. Metadata strings, the size, character map, glyph slot, outlines, and bitmaps all belong to the face.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Face">Face</a></span></span></div>
@@ -546,6 +565,8 @@
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_getKerning">getKerning</a></td><td><p>Returns horizontal kerning between two glyph indices.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#TrueType_Face_getVerticalMetrics">getVerticalMetrics</a></td><td><p>Returns a glyph's vertical advance and top side bearing in font design units.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_glyphIndex">glyphIndex</a></td><td><p>Resolves a Unicode scalar value to a glyph index.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#TrueType_Face_glyphIndexByCid">glyphIndexByCid</a></td><td><p>Resolves a character identifier through a CID-keyed CFF charset.</p>
@@ -602,6 +623,8 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td id="TrueType_FaceMetadata_embedding" class="code-type">embedding</td><td class="code-type">u16</td><td><p>Embedding permission bits of the OS/2 <span class="code-inline">fsType</span>, as written; zero is installable, or a face without OS/2.</p>
+</td></tr>
 <tr><td id="TrueType_FaceMetadata_familyName" class="code-type">familyName</td><td class="code-type"><a href="std.core.html#Core_String">Core.String</a></td><td><p>Family name, using the same name records as <a href="#TrueType_Face_familyNameAt">TrueType.Face.familyNameAt</a>.</p>
 </td></tr>
 <tr><td id="TrueType_FaceMetadata_style" class="code-type">style</td><td class="code-type"><a href="#TrueType_StyleFlag">TrueType.StyleFlag</a></td><td><p>Bold and italic traits declared by the style tables or subfamily name.</p>
@@ -636,12 +659,16 @@
 </td></tr>
 <tr><td id="TrueType_GlyphMetrics_horizontalBearingY" class="code-type">horizontalBearingY</td><td class="code-type">s32</td><td><p>Offset from the baseline to the top outline bound.</p>
 </td></tr>
+<tr><td id="TrueType_GlyphMetrics_verticalAdvance" class="code-type">verticalAdvance</td><td class="code-type">s32</td><td><p>Recommended vertical pen advance, or zero without vertical metrics.</p>
+</td></tr>
+<tr><td id="TrueType_GlyphMetrics_verticalTopSideBearing" class="code-type">verticalTopSideBearing</td><td class="code-type">s32</td><td><p>Distance from the glyph's top bound to its vertical origin.</p>
+</td></tr>
 <tr><td id="TrueType_GlyphMetrics_width" class="code-type">width</td><td class="code-type">s32</td><td><p>Width of the outline control box.</p>
 </td></tr>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_GlyphSlot" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.GlyphSlot</span> <a class="api-item-permalink" href="#TrueType_GlyphSlot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L54">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_GlyphSlot" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.GlyphSlot</span> <a class="api-item-permalink" href="#TrueType_GlyphSlot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L57">src</a></div>
 <p>Holds the outline, metrics, and bitmap of the most recently loaded glyph.</p>
 <p>Every face has one reusable slot. Calling <a href="#TrueType_Face_loadGlyph">TrueType.Face.loadGlyph</a> or <a href="#TrueType_Face_loadChar">TrueType.Face.loadChar</a> replaces its borrowed outline and bitmap storage. Copy owned data before loading another glyph when it must outlive the operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_GlyphSlot">GlyphSlot</a></span></span></div>
@@ -675,6 +702,21 @@
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td class="code-type"><a href="#TrueType_GlyphSlot_oblique">oblique</a></td><td><p>Applies a synthetic italic slant to the current outline.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="TrueType_GlyphVerticalMetrics" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.GlyphVerticalMetrics</span> <a class="api-item-permalink" href="#TrueType_GlyphVerticalMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L40">src</a></div>
+<p>Holds one glyph's vertical advance and top side bearing in font design units.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_GlyphVerticalMetrics">GlyphVerticalMetrics</a></span></span></div>
+</section>
+<h3>Fields</h3>
+<table class="table-enumeration api-summary">
+<thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td id="TrueType_GlyphVerticalMetrics_advanceHeight" class="code-type">advanceHeight</td><td class="code-type">u16</td><td><p>Vertical pen advance after drawing the glyph.</p>
+</td></tr>
+<tr><td id="TrueType_GlyphVerticalMetrics_topSideBearing" class="code-type">topSideBearing</td><td class="code-type">s16</td><td><p>Distance from the glyph's top bound to its vertical origin.</p>
 </td></tr>
 </tbody>
 </table>
@@ -873,7 +915,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-enum"><span id="TrueType_PixelMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.PixelMode</span> <a class="api-item-permalink" href="#TrueType_PixelMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L4">src</a></div>
+<div class="api-item api-item-enum"><span id="TrueType_PixelMode" class="api-item-title"><span class="api-item-title-kind">enum</span> <span class="api-item-title-strong">TrueType.PixelMode</span> <a class="api-item-permalink" href="#TrueType_PixelMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L6">src</a></div>
 <p>Identifies the storage layout of a rendered <a href="#TrueType_Bitmap">TrueType.Bitmap</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">enum</span> <span class="SCst"><a href="#TrueType_PixelMode">PixelMode</a></span></span></div>
 </section>
@@ -921,21 +963,28 @@
 </section>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_countFaces" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.countFaces</span> <a class="api-item-permalink" href="#TrueType_Face_countFaces" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L277">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Bitmap_row" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Bitmap.row</span> <a class="api-item-permalink" href="#TrueType_Bitmap_row" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L36">src</a></div>
+<p>Returns one borrowed row without its trailing pitch padding.</p>
+<p><span class="code-inline">y</span> is zero-based from the first stored row. The slice contains <span class="code-inline">width * [[TrueType.PixelMode.bytesPerPixel]]</span> bytes and remains valid until the owning face loads or renders another glyph. The pitch must be non-negative and at least as large as the row, and non-empty data requires a non-null buffer.</p>
+<p>Invalid rows or inconsistent bitmap layouts fail with an invalid-argument error.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">row</span>(y: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> [..] <span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="TrueType_Face_countFaces" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.countFaces</span> <a class="api-item-permalink" href="#TrueType_Face_countFaces" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L306">src</a></div>
 <p>Returns how many faces an in-memory font file holds.</p>
-<p>A <span class="code-inline">ttcf</span> collection answers its declared face count; every other supported file answers one. The bytes are only inspected, so nothing is allocated and no face is loaded. Failure is reported for a container this module cannot read, which is the same diagnostic <a href="#TrueType_Face_load">TrueType.Face.load</a> would give.</p>
+<p>A <span class="code-inline">ttcf</span> collection answers its declared face count; a valid WOFF1 or other standalone font answers one. WOFF1 headers and table ranges are validated without inflating table data. No face is loaded. Unsupported containers fail.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">countFaces</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.destroy</span> <a class="api-item-permalink" href="#TrueType_Face_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L319">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.destroy</span> <a class="api-item-permalink" href="#TrueType_Face_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L350">src</a></div>
 <p>Releases this face and every resource borrowed from it.</p>
 <p>The pointer and all strings, outlines, and bitmaps obtained from it become invalid immediately. Call this method exactly once.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">destroy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_familyNameAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.familyNameAt</span> <a class="api-item-permalink" href="#TrueType_Face_familyNameAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L297">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_familyNameAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.familyNameAt</span> <a class="api-item-permalink" href="#TrueType_Face_familyNameAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L327">src</a></div>
 <p>Returns the family name the face at <span class="code-inline">faceIndex</span> declares.</p>
-<p>Only the offset table and the <span class="code-inline">name</span> table are read, so no face is loaded and nothing but the returned string is allocated. This is what makes a collection searchable by family: a caller looking for one member reads the names first, then calls <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> once, instead of loading every face to ask each one what it is called. The answer is the value <a href="#TrueType_Face_familyName">TrueType.Face.familyName</a> carries once that face is loaded.</p>
+<p>For sfnt input, only the offset table and the <span class="code-inline">name</span> table are read. WOFF1 input is reconstructed before its name table is read. No face is loaded; WOFF1 also requires temporary storage for the reconstructed font. This makes a collection searchable by family: a caller looking for one member reads the names first, then calls <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> once, instead of loading every face to ask each one what it is called. The answer is the value <a href="#TrueType_Face_familyName">TrueType.Face.familyName</a> carries once that face is loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
 <span class="SKwd">let</span> count = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">countFaces</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">for</span> index <span class="SLgc">in</span> count
@@ -946,32 +995,38 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">familyNameAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_getKerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.getKerning</span> <a class="api-item-permalink" href="#TrueType_Face_getKerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L376">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_getKerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.getKerning</span> <a class="api-item-permalink" href="#TrueType_Face_getKerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L424">src</a></div>
 <p>Returns horizontal kerning between two glyph indices.</p>
 <p>The x component uses 26.6 fixed-point pixels at the active size. Both components are zero when either index is missing or the pair has no adjustment.</p>
 <p>The <span class="code-inline">GPOS</span> <span class="code-inline">kern</span> feature answers first, and the legacy <span class="code-inline">kern</span> table answers for any pair it leaves at zero. <span class="code-inline">GPOS</span> is where a modern face states its kerning and is the value its designer maintained, so it wins wherever it speaks. But this module reads pair adjustment only: a face that puts most of its kerning behind contextual lookups — Segoe UI states 5159 of its pairs that way — would lose it entirely if the legacy table, which is the designer's own flattening of those same rules, were discarded along with the rest.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">getKerning</span>(leftGlyph, rightGlyph: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#TrueType_Vector">Vector</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndex</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L403">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_getVerticalMetrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.getVerticalMetrics</span> <a class="api-item-permalink" href="#TrueType_Face_getVerticalMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L400">src</a></div>
+<p>Returns a glyph's vertical advance and top side bearing in font design units.</p>
+<p>The borrowed result remains valid until the face is destroyed. It is null when the face has no <span class="code-inline">vhea</span> and <span class="code-inline">vmtx</span> tables. An index outside <a href="#TrueType_Face_glyphCount">TrueType.Face.glyphCount</a> fails with an invalid-glyph error.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">getVerticalMetrics</span>(glyphIndex: <span class="STpe">u32</span>)-&gt;<span class="SKwd">const</span> *<span class="SCst"><a href="#TrueType_GlyphVerticalMetrics">GlyphVerticalMetrics</a></span>? <span class="SKwd">fail</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndex" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndex</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndex" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L451">src</a></div>
 <p>Resolves a Unicode scalar value to a glyph index.</p>
 <p>Zero is returned when the character is absent or the character map cannot be read; zero also identifies the font's conventional missing-glyph entry.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndex</span>(charCode: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByCid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByCid</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByCid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L446">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByCid" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByCid</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByCid" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L494">src</a></div>
 <p>Resolves a character identifier through a CID-keyed CFF charset.</p>
 <p>Composite document fonts address a CID-keyed program by identifier rather than by glyph index, and the two coincide only when the font says so. Zero is returned for any face that is not CID-keyed.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByCid</span>(cid: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByCode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByCode</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByCode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L435">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByCode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByCode</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByCode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L483">src</a></div>
 <p>Resolves a code through the font program's own built-in encoding.</p>
 <p>This is the encoding the font file declares, not a Unicode map: a CFF states one in its <span class="code-inline">Encoding</span> structure and a Type 1 program in its <span class="code-inline">/Encoding</span> array. Zero is returned for a face that declares none, and for an unused code.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByCode</span>(code: <span class="STpe">u32</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByName</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L424">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexByName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexByName</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexByName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L472">src</a></div>
 <p>Resolves a PostScript glyph name to a glyph index.</p>
 <p>A CFF or Type 1 program keys its outlines by name, which is how a document format addresses them: the encoding of such a font is a table of names, not of characters, and resolving it through Unicode would go through a mapping the font never declared. Zero is returned for a face with no name table of its own, which every TrueType face is, and for a name it does not carry.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes)
@@ -979,61 +1034,61 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexByName</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexVariant" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexVariant</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexVariant" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L466">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_glyphIndexVariant" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.glyphIndexVariant</span> <a class="api-item-permalink" href="#TrueType_Face_glyphIndexVariant" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L514">src</a></div>
 <p>Resolves a Unicode scalar value qualified by a variation selector.</p>
 <p>A variation sequence picks between the forms of one character: a CJK regional variant through <span class="code-inline">U+E0100</span> to <span class="code-inline">U+E01EF</span>, or the text and emoji presentations of the same code point through <span class="code-inline">U+FE0E</span> and <span class="code-inline">U+FE0F</span>. When the face registers no distinct glyph for the pair, the selector is ignored and the result is the one <a href="#TrueType_Face_glyphIndex">TrueType.Face.glyphIndex</a> gives for <span class="code-inline">charCode</span> alone.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">glyphIndexVariant</span>(charCode, selector: <span class="STpe">rune</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_hasChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasChar</span> <a class="api-item-permalink" href="#TrueType_Face_hasChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L410">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_hasChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasChar</span> <a class="api-item-permalink" href="#TrueType_Face_hasChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L458">src</a></div>
 <p>Returns whether the selected character map contains a glyph for <span class="code-inline">charCode</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasChar</span>(charCode: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_hasKerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasKerning</span> <a class="api-item-permalink" href="#TrueType_Face_hasKerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L358">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_hasKerning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasKerning</span> <a class="api-item-permalink" href="#TrueType_Face_hasKerning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L389">src</a></div>
 <p>Returns whether the face contains supported kerning pairs.</p>
 <p>Both the <span class="code-inline">GPOS</span> <span class="code-inline">kern</span> feature and the legacy <span class="code-inline">kern</span> table count. Use this inexpensive check to skip pair lookups for faces carrying neither.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasKerning</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_hasVariant" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasVariant</span> <a class="api-item-permalink" href="#TrueType_Face_hasVariant" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L478">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_hasVariant" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hasVariant</span> <a class="api-item-permalink" href="#TrueType_Face_hasVariant" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L526">src</a></div>
 <p>Returns whether the face registers <span class="code-inline">charCode</span> followed by <span class="code-inline">selector</span>.</p>
 <p>A false answer means <a href="#TrueType_Face_glyphIndexVariant">TrueType.Face.glyphIndexVariant</a> ignores the selector, not that the character is absent. The face declares no variation sequence at all when it ships no <span class="code-inline">cmap</span> format-14 subtable.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hasVariant</span>(charCode, selector: <span class="STpe">rune</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_hintVertical" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hintVertical</span> <a class="api-item-permalink" href="#TrueType_Face_hintVertical" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L518">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_hintVertical" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.hintVertical</span> <a class="api-item-permalink" href="#TrueType_Face_hintVertical" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L566">src</a></div>
 <p>Aligns important vertical zones of the current outline to whole pixels.</p>
 <p>The operation mutates the reusable outline to keep horizontal stems crisp. It does nothing when the font lacks x-height data. Apply it before grayscale rendering, but not before size-independent SDF or MSDF generation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">hintVertical</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_isBold" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isBold</span> <a class="api-item-permalink" href="#TrueType_Face_isBold" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L327">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_isBold" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isBold</span> <a class="api-item-permalink" href="#TrueType_Face_isBold" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L358">src</a></div>
 <p>Returns whether the font declares a bold style.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isBold</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_isItalic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isItalic</span> <a class="api-item-permalink" href="#TrueType_Face_isItalic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L330">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_isItalic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isItalic</span> <a class="api-item-permalink" href="#TrueType_Face_isItalic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L361">src</a></div>
 <p>Returns whether the font declares an italic style.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isItalic</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_isPostScript" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isPostScript</span> <a class="api-item-permalink" href="#TrueType_Face_isPostScript" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L453">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_isPostScript" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.isPostScript</span> <a class="api-item-permalink" href="#TrueType_Face_isPostScript" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L501">src</a></div>
 <p>Returns whether this face stores its outlines as PostScript charstrings.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isPostScript</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.load</span> <a class="api-item-permalink" href="#TrueType_Face_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L232">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.load</span> <a class="api-item-permalink" href="#TrueType_Face_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L262">src</a></div>
 <p>Loads a TrueType face from an in-memory font file.</p>
 <p>The face owns a private copy of <span class="code-inline">bytes</span>, so the input may be released after this call. Success returns a non-null face. Release the returned pointer with <a href="#TrueType_Face_destroy">TrueType.Face.destroy</a>. When <span class="code-inline">allocator</span> is null, the allocator active at the start of the call owns the face allocation.</p>
-<p><span class="code-inline">bytes</span> may be a TrueType or OpenType file, a bare CFF or Type 1 font program, or a <span class="code-inline">ttcf</span> collection, of which the first face is taken; use <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> to reach the others. WOFF containers are reported as unsupported rather than as an unknown format.</p>
+<p><span class="code-inline">bytes</span> may be a TrueType or OpenType file, a bare CFF or Type 1 font program, or a <span class="code-inline">ttcf</span> collection, of which the first face is taken; use <a href="#TrueType_Face_loadAt">TrueType.Face.loadAt</a> to reach the others. WOFF1 data is expanded to sfnt before parsing; WOFF2 is unsupported.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"Inter-Regular.ttf"</span>)
 <span class="SKwd">let</span> face  = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">load</span>(bytes.<span class="SFct">toSlice</span>())
 <span class="SLgc">defer</span> face.<span class="SFct">destroy</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_loadAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadAt</span> <a class="api-item-permalink" href="#TrueType_Face_loadAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L269">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_loadAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadAt</span> <a class="api-item-permalink" href="#TrueType_Face_loadAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L299">src</a></div>
 <p>Loads one face of a TrueType collection by index.</p>
 <p>A <span class="code-inline">ttcf</span> collection packs several faces into one file, which is the form a stock Windows installation ships many of its font families in. Indices run from zero to <a href="#TrueType_Face_countFaces">TrueType.Face.countFaces</a> minus one, and a bare font file behaves as a collection holding its single face at index zero. Ownership and cleanup match <a href="#TrueType_Face_load">TrueType.Face.load</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"msgothic.ttc"</span>)
@@ -1046,59 +1101,59 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_loadChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadChar</span> <a class="api-item-permalink" href="#TrueType_Face_loadChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L500">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_loadChar" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadChar</span> <a class="api-item-permalink" href="#TrueType_Face_loadChar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L548">src</a></div>
 <p>Resolves and loads a Unicode scalar value into the reusable slot.</p>
 <p>This is equivalent to combining <a href="#TrueType_Face_glyphIndex">TrueType.Face.glyphIndex</a> and <a href="#TrueType_Face_loadGlyph">TrueType.Face.loadGlyph</a>, except lookup failures are reported.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadChar</span>(charCode: <span class="STpe">rune</span>, loadFlags = <span class="SCst"><a href="#TrueType_LoadFlag">LoadFlag</a></span>.<span class="SCst"><a href="#TrueType_LoadFlag_Default">Default</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_loadGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_loadGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L489">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_loadGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_loadGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L537">src</a></div>
 <p>Loads a glyph by index into the face's reusable slot.</p>
 <p>The active pixel size controls scaling. Existing outline and bitmap pointers from this face are invalidated. Add <span class="code-inline">.Render</span> to produce a grayscale bitmap in the same operation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">loadGlyph</span>(glyphIndex: <span class="STpe">u32</span>, loadFlags = <span class="SCst"><a href="#TrueType_LoadFlag">LoadFlag</a></span>.<span class="SCst"><a href="#TrueType_LoadFlag_Default">Default</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_loadSubset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadSubset</span> <a class="api-item-permalink" href="#TrueType_Face_loadSubset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L245">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_loadSubset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.loadSubset</span> <a class="api-item-permalink" href="#TrueType_Face_loadSubset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L275">src</a></div>
 <p>Loads a rendering-only TrueType subset from an in-memory font program.</p>
 <p>Document formats such as PDF may legally omit the <span class="code-inline">name</span>, <span class="code-inline">post</span> and <span class="code-inline">cmap</span> tables that an installable OpenType font requires: the document addresses such a font by glyph index or through its own encoding, never by asking the font what character a glyph stands for. <span class="code-inline">familyName</span> supplies the missing family identity; absent style and underline metadata use <span class="code-inline">Regular</span> and zero, and a face with no character map answers no character lookup. All outline, location, and horizontal-metric tables remain mandatory. Use <a href="#TrueType_Face_load">TrueType.Face.load</a> for standalone font files, where missing metadata is an error.</p>
 <p>Ownership and cleanup match <a href="#TrueType_Face_load">TrueType.Face.load</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadSubset</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, familyName: <span class="STpe">string</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#TrueType_Face">Face</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_metadataAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.metadataAt</span> <a class="api-item-permalink" href="#TrueType_Face_metadataAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L313">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_metadataAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.metadataAt</span> <a class="api-item-permalink" href="#TrueType_Face_metadataAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L344">src</a></div>
 <p>Reads a face's names, weight, width class, and style without loading its glyphs.</p>
-<p>Accepts an sfnt font or a TrueType/OpenType collection. <span class="code-inline">faceIndex</span> is zero-based; a standalone font accepts only zero. The result owns its strings and retains no bytes. Missing style tables fall back to the subfamily name. Absent or out-of-range weight values use 400/700 according to the bold trait; absent or invalid width classes use 5. Out-of-bounds metadata fields, unsupported containers, and invalid indices fail. This inspects metadata only; it does not validate that every glyph can be loaded.</p>
+<p>Accepts an sfnt font, WOFF1 font, or TrueType/OpenType collection. <span class="code-inline">faceIndex</span> is zero-based; a standalone font accepts only zero. WOFF1 is reconstructed in temporary storage. The result owns its strings and retains no bytes. Missing style tables fall back to the subfamily name. Absent or out-of-range weight values use 400/700 according to the bold trait; absent or invalid width classes use 5. Out-of-bounds metadata fields, unsupported containers, and invalid indices fail. This inspects metadata only; it does not validate that every glyph can be loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> bytes = <span class="SKwd">try</span> <span class="SCst">Core</span>.<span class="SCst"><a href="std.core.html#namespace_Core_File">File</a></span>.<span class="SFct">readAllBytes</span>(<span class="SStr">"family.ttc"</span>)
 <span class="SKwd">let</span> metadata = <span class="SKwd">try</span> <span class="SCst"><a href="#namespace_TrueType">TrueType</a></span>.<span class="SCst"><a href="#TrueType_Face">Face</a></span>.<span class="SFct">metadataAt</span>(bytes.<span class="SFct">toSlice</span>(), <span class="SNum">1</span>)
 <span class="SNsp">Swag</span>.<span class="SFct">print</span>(metadata.familyName.<span class="SFct">toString</span>(), <span class="SStr">": "</span>, metadata.styleName.<span class="SFct">toString</span>())</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">metadataAt</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>, faceIndex: <span class="STpe">u32</span>)-&gt;<span class="SCst"><a href="#TrueType_FaceMetadata">FaceMetadata</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L511">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyph" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyph</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyph" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L559">src</a></div>
 <p>Rasterizes the current outline into an 8-bit grayscale bitmap.</p>
 <p>The result is stored in <a href="#TrueType_GlyphSlot_bitmap">TrueType.GlyphSlot.bitmap</a> and replaces any previous bitmap from this face.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyph</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphMsdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphMsdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphMsdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L563">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphMsdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphMsdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphMsdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L611">src</a></div>
 <p>Renders the current outline as a multi-channel signed-distance field.</p>
 <p><span class="code-inline">spread</span> is clamped to 1 through 64. The resulting four-byte pixels store the multi-channel field in RGB and a true signed distance in alpha; the bitmap reports <a href="#TrueType_PixelMode_Rgba">TrueType.PixelMode.Rgba</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphMsdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphSdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphSdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphSdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L556">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_renderGlyphSdf" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.renderGlyphSdf</span> <a class="api-item-permalink" href="#TrueType_Face_renderGlyphSdf" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L604">src</a></div>
 <p>Renders the current outline as a single-channel signed-distance field.</p>
 <p><span class="code-inline">spread</span> is the pixel distance mapped across the field transition and is clamped to 1 through 64. The result uses <a href="#TrueType_PixelMode_Gray">TrueType.PixelMode.Gray</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">renderGlyphSdf</span>(spread: <span class="STpe">u32</span> = <span class="SNum">8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Face_setPixelSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.setPixelSize</span> <a class="api-item-permalink" href="#TrueType_Face_setPixelSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L337">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Face_setPixelSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Face.setPixelSize</span> <a class="api-item-permalink" href="#TrueType_Face_setPixelSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/face.swg#L368">src</a></div>
 <p>Selects the pixel dimensions used by subsequent glyph loads.</p>
 <p>Pass zero for one dimension to copy the other dimension. Fails when both are zero, either exceeds 65535, or the resulting scale and metrics cannot fit their 16.16 and 26.6 fields. Scaled metrics are exposed through <a href="#TrueType_Face_size">TrueType.Face.size</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPixelSize</span>(pixelWidth, pixelHeight: <span class="STpe">u32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_GlyphSlot_oblique" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">GlyphSlot.oblique</span> <a class="api-item-permalink" href="#TrueType_GlyphSlot_oblique" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L81">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_GlyphSlot_oblique" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">GlyphSlot.oblique</span> <a class="api-item-permalink" href="#TrueType_GlyphSlot_oblique" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/glyphslot.swg#L84">src</a></div>
 <p>Applies a synthetic italic slant to the current outline.</p>
 <p>The operation mutates the reusable outline and refreshes its bounds. Load the glyph again to recover the original geometry.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">oblique</span>()</span></div>
@@ -1127,7 +1182,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translate</span>(xOffset, yOffset: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_PixelMode_bytesPerPixel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelMode.bytesPerPixel</span> <a class="api-item-permalink" href="#TrueType_PixelMode_bytesPerPixel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L13">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_PixelMode_bytesPerPixel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">PixelMode.bytesPerPixel</span> <a class="api-item-permalink" href="#TrueType_PixelMode_bytesPerPixel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/bitmap.swg#L15">src</a></div>
 <p>Returns the number of bytes occupied by one pixel in this mode.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">bytesPerPixel</span>()-&gt;<span class="STpe">u32</span></span></div>
 </section>
@@ -1429,6 +1484,7 @@
 "v|TrueType.Face.version|TrueType_Face_version|Version string the face declares, such as Version 7.01, or empty.",
 "v|TrueType.Face.xHeight|TrueType_Face_xHeight|Height of a lowercase x in design units, or zero when the face declares none.",
 "s|TrueType.FaceMetadata|TrueType_FaceMetadata|Owned names and normalized style information for one font face.",
+"v|TrueType.FaceMetadata.embedding|TrueType_FaceMetadata_embedding|Embedding permission bits of the OS/2 fsType, as written; zero is installable, or a face without OS/2.",
 "v|TrueType.FaceMetadata.familyName|TrueType_FaceMetadata_familyName|Family name, using the same name records as TrueType.Face.familyNameAt.",
 "v|TrueType.FaceMetadata.style|TrueType_FaceMetadata_style|Bold and italic traits declared by the style tables or subfamily name.",
 "v|TrueType.FaceMetadata.styleName|TrueType_FaceMetadata_styleName|Legacy subfamily name such as Regular, Light, or Bold Italic.",
@@ -1441,6 +1497,8 @@
 "v|TrueType.GlyphMetrics.horizontalAdvance|TrueType_GlyphMetrics_horizontalAdvance|Recommended horizontal pen advance.",
 "v|TrueType.GlyphMetrics.horizontalBearingX|TrueType_GlyphMetrics_horizontalBearingX|Offset from the pen to the left outline bound.",
 "v|TrueType.GlyphMetrics.horizontalBearingY|TrueType_GlyphMetrics_horizontalBearingY|Offset from the baseline to the top outline bound.",
+"v|TrueType.GlyphMetrics.verticalAdvance|TrueType_GlyphMetrics_verticalAdvance|Recommended vertical pen advance, or zero without vertical metrics.",
+"v|TrueType.GlyphMetrics.verticalTopSideBearing|TrueType_GlyphMetrics_verticalTopSideBearing|Distance from the glyph's top bound to its vertical origin.",
 "v|TrueType.GlyphMetrics.width|TrueType_GlyphMetrics_width|Width of the outline control box.",
 "s|TrueType.GlyphSlot|TrueType_GlyphSlot|Holds the outline, metrics, and bitmap of the most recently loaded glyph.",
 "v|TrueType.GlyphSlot.advance|TrueType_GlyphSlot_advance|Pen displacement after drawing this glyph.",
@@ -1452,6 +1510,9 @@
 "v|TrueType.GlyphSlot.index|TrueType_GlyphSlot_index|Glyph index represented by this slot.",
 "v|TrueType.GlyphSlot.metrics|TrueType_GlyphSlot_metrics|Scaled measurements for the glyph.",
 "v|TrueType.GlyphSlot.outline|TrueType_GlyphSlot_outline|Borrowed scalable outline for the glyph.",
+"s|TrueType.GlyphVerticalMetrics|TrueType_GlyphVerticalMetrics|Holds one glyph's vertical advance and top side bearing in font design units.",
+"v|TrueType.GlyphVerticalMetrics.advanceHeight|TrueType_GlyphVerticalMetrics_advanceHeight|Vertical pen advance after drawing the glyph.",
+"v|TrueType.GlyphVerticalMetrics.topSideBearing|TrueType_GlyphVerticalMetrics_topSideBearing|Distance from the glyph's top bound to its vertical origin.",
 "s|TrueType.Matrix|TrueType_Matrix|Stores a 2x2 affine linear transform in 16.16 fixed-point form.",
 "v|TrueType.Matrix.xx|TrueType_Matrix_xx|Coefficients that produce the transformed x coordinate.",
 "v|TrueType.Matrix.xy|TrueType_Matrix_xy|Coefficients that produce the transformed x coordinate.",
@@ -1502,10 +1563,12 @@
 "k|TrueType.StyleFlag.Italic|TrueType_StyleFlag_Italic|The face declares an italic style.",
 "k|TrueType.StyleFlag.None|TrueType_StyleFlag_None|The face declares no bold or italic trait.",
 "c|TrueType.Matrix.Identity|TrueType_Matrix_Identity|Identity transform in 16.16 fixed-point form.",
+"f|TrueType.Bitmap.row|TrueType_Bitmap_row|Returns one borrowed row without its trailing pitch padding.",
 "f|TrueType.Face.countFaces|TrueType_Face_countFaces|Returns how many faces an in-memory font file holds.",
 "f|TrueType.Face.destroy|TrueType_Face_destroy|Releases this face and every resource borrowed from it.",
 "f|TrueType.Face.familyNameAt|TrueType_Face_familyNameAt|Returns the family name the face at faceIndex declares.",
 "f|TrueType.Face.getKerning|TrueType_Face_getKerning|Returns horizontal kerning between two glyph indices.",
+"f|TrueType.Face.getVerticalMetrics|TrueType_Face_getVerticalMetrics|Returns a glyph's vertical advance and top side bearing in font design units.",
 "f|TrueType.Face.glyphIndex|TrueType_Face_glyphIndex|Resolves a Unicode scalar value to a glyph index.",
 "f|TrueType.Face.glyphIndexByCid|TrueType_Face_glyphIndexByCid|Resolves a character identifier through a CID-keyed CFF charset.",
 "f|TrueType.Face.glyphIndexByCode|TrueType_Face_glyphIndexByCode|Resolves a code through the font program's own built-in encoding.",

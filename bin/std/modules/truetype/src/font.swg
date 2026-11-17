@@ -20,8 +20,8 @@ const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2'u32)
 const TAG_CFF  = imageTag('C'u32, 'F'u32, 'F'u32, ' 'u32)
 
 // Container signatures found at offset zero of a font file. The sfnt wrappers
-// carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF
-// containers are recognized so the parser can report that they are unsupported.
+// carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF1 is
+// rebuilt as sfnt; WOFF2 is recognized so the parser can report it unsupported.
 const TAG_SFNT = 0x0001_0000'u32
 const TAG_TRUE = imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32)
 const TAG_TTCF = imageTag('t'u32, 't'u32, 'c'u32, 'f'u32)

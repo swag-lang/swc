@@ -29,7 +29,8 @@ class LinuxPackageTests(unittest.TestCase):
 
     def test_publishes_valid_sibling_library_symlinks(self):
         (self.build / 'libfixture.so.1').write_bytes(b'shared library')
-        (self.build / 'libfixture.so').symlink_to('libfixture.so.1')
+        (self.build / 'libfixture.so.2').symlink_to('libfixture.so.1')
+        (self.build / 'libfixture.so').symlink_to('libfixture.so.2')
         output = self.root / 'valid.tar.gz'
 
         result = self.package(output)
@@ -38,7 +39,10 @@ class LinuxPackageTests(unittest.TestCase):
         with tarfile.open(output, 'r:gz') as archive:
             link = archive.getmember('usr/local/libexec/swag/swagscope/libfixture.so')
             self.assertTrue(link.issym())
-            self.assertEqual(link.linkname, 'libfixture.so.1')
+            self.assertEqual(link.linkname, 'libfixture.so.2')
+            chained_link = archive.getmember('usr/local/libexec/swag/swagscope/libfixture.so.2')
+            self.assertTrue(chained_link.issym())
+            self.assertEqual(chained_link.linkname, 'libfixture.so.1')
             self.assertIn('usr/local/libexec/swag/swagscope/libfixture.so.1', archive.getnames())
 
     def test_rejects_dangling_nested_and_traversing_library_symlinks(self):

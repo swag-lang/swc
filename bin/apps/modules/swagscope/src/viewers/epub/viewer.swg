@@ -419,6 +419,14 @@ private impl Panel
         .zoomLabel.setText(Viewer.zoomText(.zoomPercent))
     }
 
+    // Offers the zoom levels beside the zoom readout, with the one in force checked.
+    mtd showZoomMenu()
+    {
+        let percent = Viewer.pickZoom(me, .zoomLabel, .zoomPercent)
+        if percent do
+            .setZoom(percent)
+    }
+
     internal mtd setReadingColumn(column: ReadingColumn)
     {
         if .readingColumn == column do
@@ -451,6 +459,7 @@ private impl Panel
         entries.addZoom(.In, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomIn(view.zoomPercent)) })
         entries.addZoom(.Out, .zoomPercent, func|view = me|() { view.setZoom(Viewer.zoomOut(view.zoomPercent)) })
         entries.addZoom(.Reset, .zoomPercent, func|view = me|() { view.setZoom(100) })
+        entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
         entries.add(texts().ui_CompactColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Compact) }, checked: .readingColumn == .Compact)
         entries.add(texts().ui_ComfortableColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Comfortable) }, checked: .readingColumn == .Comfortable)
         entries.add(texts().ui_WideColumn, .Wrap, func|view = me|() { view.setReadingColumn(.Wide) }, checked: .readingColumn == .Wide)
@@ -488,12 +497,7 @@ private impl Panel
 
         with result.zoomLabel = Viewer.createZoomButton(host.createInfoGroup(Viewer.ZoomSlotWidth), "scope.epub.zoom", appStrings().cmd_ZoomMenu)
         {
-            .sigPressed += func|view = result|(_)
-            {
-                let percent = Viewer.pickZoom(view, view.zoomLabel, view.zoomPercent)
-                if percent do
-                    view.setZoom(percent)
-            }
+            .sigPressed += func|view = result|(_) { view.showZoomMenu() }
         }
 
         result.zoomLabel.setText(Viewer.zoomText(result.zoomPercent))

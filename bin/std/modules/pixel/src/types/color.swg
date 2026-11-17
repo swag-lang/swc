@@ -457,9 +457,14 @@ impl Color
     #[Inline]
     mtd const isLight()->bool => .grayscaleValue() >= 0.5
 
-    // Returns white for a dark color and black for a light one, for readable text over it.
+    // Returns whichever of black and white has greater WCAG contrast against this color's RGB values.
     #[Inline, ConstExpr]
-    mtd const contrasting()->Color => .isDark() ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Black)
+    mtd const contrasting()->Color
+    {
+        let black = Color.fromArgb(Argb.Black)
+        let white = Color.fromArgb(Argb.White)
+        return .contrastRatio(black) >= .contrastRatio(white) ? black : white
+    }
 
     // Returns the perceived brightness in [0, 1], using BT.601 luma weights on the gamma-encoded components.
     #[Inline, ConstExpr]

@@ -66,23 +66,6 @@ struct Image
     workingBuffer: *Image?
 }
 
-internal func validateImagePixelStorage(image: const *Image)
-{
-    if not image.pixels.buffer or
-       image.width <= 0 or
-       image.height <= 0 or
-       not image.bytesPerPixel or
-       not image.pixelFormat.isPacked() do
-        Swag.panic("cannot visit pixels of an invalid image", #curlocation)
-
-    let rowBytes = cast(u64, image.width) * cast(u64, image.bytesPerPixel)
-    if rowBytes > Swag.S32.Max or
-       image.rowStride != cast(s32, rowBytes) or
-       image.byteCount != rowBytes * cast(u64, image.height) or
-       image.pixels.count != image.byteCount or
-       image.bytesPerPixel != image.pixelFormat.bitsPerPixel() / 8 do
-        Swag.panic("image pixel storage does not match its geometry", #curlocation)
-}
 
 // One logical pixel in the representation used between storage formats.
 // Integer formats map their full range to zero through one; floating-point formats retain
@@ -522,7 +505,23 @@ impl Image
     {
         if stride <= 0 do
             Swag.panic("pixel visit stride must be positive", #curlocation)
-        validateImagePixelStorage(me)
+        // This validation is expanded at the call site with the macro, so keep the checks here
+        // instead of calling an internal helper that would not be visible to the caller module.
+        let checked: const *Image = me
+        if not checked.pixels.buffer or
+           checked.width <= 0 or
+           checked.height <= 0 or
+           not checked.bytesPerPixel or
+           not checked.pixelFormat.isPacked() do
+            Swag.panic("cannot visit pixels of an invalid image", #curlocation)
+
+        let rowBytes = cast(u64, checked.width) * cast(u64, checked.bytesPerPixel)
+        if rowBytes > Swag.S32.Max or
+           checked.rowStride != cast(s32, rowBytes) or
+           checked.byteCount != rowBytes * cast(u64, checked.height) or
+           checked.pixels.count != checked.byteCount or
+           checked.bytesPerPixel != checked.pixelFormat.bitsPerPixel() / 8 do
+            Swag.panic("image pixel storage does not match its geometry", #curlocation)
 
         let self: const *Image = me
         let step   = cast(u64, .bytesPerPixel) * cast(u64, stride)

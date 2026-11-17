@@ -423,9 +423,11 @@ func shipFrame(host: *Testing.HeadlessHost)
 //
 // The strip floats over the document with the glyph, the name and the window buttons, so a
 // picture of the window is judged whole against its charter picture.
-func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600)->*ViewerWindow
+func framedViewerWindow(host: *Testing.HeadlessHost, fileName: string, light: bool, width = 960, height = 600, fallbackFaces: const [..] (*TypeFace) = [])->*ViewerWindow
 {
     host.setup(width, height)
+    if fallbackFaces.count do
+        host.app.renderer.fontCache().setFallbackTypeFaces(fallbackFaces, false)
     host.surface.updateFlags(SurfaceFlags.StandardWindow | SurfaceFlags.NoShadow)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     if light do
@@ -474,6 +476,15 @@ func picturedViewer(fileName: string, light: bool, golden: string, width = 960, 
             view.imageView.setFrameIndex(0)
             Swag.require(view.imageView.movie.isPaused and view.imageView.movie.frameIndex == 0)
         }
+
+        // The picture's rank belongs to this scenario, not to the growing fixture directory.
+        window.siblings.clear()
+        window.siblings.add(window.currentFile)
+        window.siblings.add(picturedFixture("title.png"))
+        window.siblingIndex  = 0
+        window.siblingsDirty = false
+        window.updateFileInfo(view.shownDetails())
+        Swag.require(window.siblings.count == 2 and window.siblingIndex == 0)
     }
 
     photographViewer(&host, window, golden, options)

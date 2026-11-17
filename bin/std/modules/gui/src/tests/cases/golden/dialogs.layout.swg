@@ -49,7 +49,7 @@ func renderDialog(host: *Testing.HeadlessHost, dlg: *Dialog)->Image
     host.setup(900, 600)
 
     let prompt = EditDlg.createSingleLine(&host.surface, {title: "Go to Address", message: "Decimal, or hexadecimal preceded by 0x.", text: "0x0001F400", confirmButtonText: "Go"})
-    var image = renderDialog(&host, &prompt.dialog)
+    var image  = renderDialog(&host, &prompt.dialog)
     Pixel.Testing.assertImageGolden(&image, "dialogs.prompt.ink")
 }
 

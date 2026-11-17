@@ -45,6 +45,14 @@ struct Options
         // Return true when it painted the preview, false to use the texture or fallback. Restore
         // any painter state changed by the callback before returning.
         previewPainter: (func||(*Wnd, *Painter, Math.Rectangle)->bool)?
+
+        // Optional replacement for the leading metadata text, called synchronously during paint.
+        //
+        // The rectangle uses host-local logical pixels and excludes the trailing detail and its
+        // inset. Painting is clipped to that rectangle. The callback replaces `Content.facts`,
+        // borrows its arguments only for this call, and must restore any painter state it changes.
+        // It is not called when captions are hidden or no leading metadata space remains.
+        factsPainter: (func||(*Wnd, *Painter, Math.Rectangle))?
     }
 }
 
@@ -204,8 +212,19 @@ private func paintCaption(host: *Wnd, painter: *Painter, tile: Math.Rectangle, c
         right -= metrics.fileTile_Inset
     }
 
-    let label = Painter.elideString(content.facts, mono, Math.max(right - facts.x, 0), host.deviceScale())
-    painter.drawString(facts.x, y, label, mono, colors.faintText)
+    let leading = Math.Rectangle{facts.x, facts.y, Math.max(right - facts.x, 0), facts.height}
+    if options.factsPainter and leading.width > 0
+    {
+        painter.pushClippingRect(leading)
+        options.factsPainter(host, painter, leading)
+        painter.popClippingRect()
+    }
+    elif not options.factsPainter
+    {
+        let label = Painter.elideString(content.facts, mono, leading.width, host.deviceScale())
+        painter.drawString(facts.x, y, label, mono, colors.faintText)
+    }
+
     painter.popClippingRect()
     return active and width > rect.width
 }

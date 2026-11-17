@@ -21,6 +21,33 @@ var g_UpdatingLib: bool
 var g_DirtyList:   bool = true
 const RatingGlyphSize = 12.0
 
+// File metadata uses atlas marks, so a fixed-pitch font never needs a star or heart glyph.
+func paintLibraryFacts(host: *Wnd, painter: *Painter, rect: Math.Rectangle, date: string, favorite: bool, rating: u8)
+{
+    let font = host.theme().createDefaultFontFs(host.themeMetrics().fileTile_FactsFontSize)
+    let ink  = host.themeColors().faintText
+    let y    = font.opticalLineTop(rect.vertCenter())
+    var x    = rect.x
+    painter.drawString(x, y, date, font, ink)
+    x += Painter.measureString(date, font).width
+    let separator = " · "
+    for kind in [ThemeIcons.Star, .StarFilled]
+    {
+        if kind == .Star and not favorite or kind == .StarFilled and not rating do
+            continue
+        painter.drawString(x, y, separator, font, ink)
+        x += Painter.measureString(separator, font).width
+        let icon = host.theme().icon(kind, RatingGlyphSize)
+        icon.paint(painter, x, Math.round(rect.vertCenter() - RatingGlyphSize * 0.5), ink)
+        x += RatingGlyphSize
+        if kind == .StarFilled
+        {
+            let score = Format.toString(" %", rating)
+            painter.drawString(x, y, score, font, ink)
+        }
+    }
+}
+
 // The grid of the library: thumbnails with their name and a mono line of facts under them.
 const LibraryCellGap  = 32.0     // Air between two cells of a row.
 const LibraryRowGap   = 12.0     // Air between two rows of cells.
@@ -337,14 +364,12 @@ impl IWnd for LibraryView
     // The library owns the item's facts and actions; Gui supplies the common file-tile rendering.
     mtd paintItem(painter: *Painter, it: *LibraryItem, index: u64, capture: *Capture?, itemLoaded: bool)->bool
     {
-        let label = LibraryItem.nameOf(it.fi.fullName, capture)
-        let date  = it.fi.lastWriteTime
-        var facts = Format.toString("%/%", twoDigits(date.day), twoDigits(date.month))
-        if capture and capture.favorite do
-            facts += " · ♥"
-        if capture and capture.rating and .libWnd.showRatingOverlay do
-            facts += Format.toString(" · ★ %", capture.rating)
-        var size: String = ""
+        let label          = LibraryItem.nameOf(it.fi.fullName, capture)
+        let date           = it.fi.lastWriteTime
+        let facts          = Format.toString("%/%", twoDigits(date.day), twoDigits(date.month))
+        let favorite       = capture and capture.favorite
+        let rating: u8     = capture and .libWnd.showRatingOverlay ? capture.rating : 0
+        var size:   String = ""
         if capture do
             size = Format.toString("% × %", capture.width, capture.height)
         elif it.image.isValid() do
@@ -363,9 +388,14 @@ impl IWnd for LibraryView
         elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
             content.icon = .mainWnd.icon(.Archive, 32)
         var options: FileTile.Options
-        options.hovered  = index == .hotItem
-        options.selected = .selModel.isSelected(cast(index))
-        options.nameTick = .nameTick
+        options.hovered      = index == .hotItem
+        options.selected     = .selModel.isSelected(cast(index))
+        options.nameTick     = .nameTick
+        options.factsPainter = func|dateText = facts.toString(), favorite, rating|(host, painter, rect)
+        {
+            paintLibraryFacts(host, painter, rect, dateText, favorite, rating)
+        }
+
         let {w, h}  = .getPreviewSize()
         let rect    = Math.Rectangle{it.rect.x, it.rect.y, w, h}
         let animate = FileTile.paint(me, painter, rect, &content, options)

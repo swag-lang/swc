@@ -345,4 +345,25 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     host.moveMouse(Math.Point{2, 2})
     Swag.require(window.instances[window.activeChoiceIndex].details == view.details)
+
+    // The pixel read last stays offered in the lens, its color copied as a code.
+    var code = Format.toString("#%{X02}%{X02}%{X02}", stored.r, stored.g, stored.b)
+    if stored.a != 255 do
+        code += Format.toString("%{X02}", stored.a)
+    Swag.require(view.probedColorText() == code, view.probedColorText())
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Image", host.theme)
+    entries.query = "color"
+    view.describeLens(&entries)
+    let title = Format.toString(Picture.texts().ui_CopyColor, code, Format.toString(Picture.texts().ui_ProbePixel, pixel.x, pixel.y))
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == title
+    {
+        entry.run!()
+        found = true
+    }
+
+    Swag.require(found)
+    if Clipboard.isFake() do
+        Swag.require(Clipboard.getString() == code, Clipboard.getString())
 }

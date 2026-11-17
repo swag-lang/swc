@@ -214,6 +214,8 @@ struct Panel
     handedOff:          bool     // The host was told the animation has run its cycle, and answered that it moves on.
     load:               Viewer.BackgroundLoad'ViewerContent
     failureReason:      String
+    probed:             Math.Point     // Pixel of the stored picture the pointer last read.
+    hasProbe:           bool           // Whether the pointer has read a pixel of the picture shown.
 }
 
 impl Panel
@@ -382,6 +384,33 @@ impl Panel
         return menu
     }
 
+    // Returns the color of the pixel the pointer last read, as `#RRGGBB`, or `#RRGGBBAA` when it is
+    // not opaque; empty when no pixel of the bitmap shown has been read.
+    mtd probedColorText()->String
+    {
+        var result: #returntype
+        let picture = .imageView.picture()
+        if not .hasProbe or not picture do
+            return result
+        let x = cast(s32, .probed.x)
+        let y = cast(s32, .probed.y)
+        if x >= picture.width or y >= picture.height do
+            return result
+        let color = picture.pixelColor(x, y)
+        result = Format.toString("#%{X02}%{X02}%{X02}", color.r, color.g, color.b)
+        if color.a != 255 do
+            result += Format.toString("%{X02}", color.a)
+        return result
+    }
+
+    // Puts the color of the pixel the pointer last read on the clipboard, as the lens names it.
+    mtd copyProbedColor()
+    {
+        let color = .probedColorText()
+        if color.count do
+            Clipboard.setString(color)
+    }
+
     // Puts the picture on the clipboard as decoded and stood upright, without the view's own
     // rotation or zoom.
     mtd copyPicture()
@@ -406,6 +435,11 @@ impl Panel
         entries.add(texts.ui_ResetTransform, .Update, func|view = me|() { view.resetTransform() }, shortcut: Input.formatKeyShortcut(.Control, .R))
         if .imageView.picture() do
             entries.add(texts.ui_CopyImage, .Copy, func|view = me|() { view.copyPicture() }, shortcut: Input.formatKeyShortcut(.Control, .C))
+
+        // The pixel the pointer read last, whose color the reader may want elsewhere.
+        let color = .probedColorText()
+        if color.count do
+            entries.add(Format.toString(texts.ui_CopyColor, color, Format.toString(texts.ui_ProbePixel, cast(s32, .probed.x), cast(s32, .probed.y))), .Copy, func|view = me|() { view.copyProbedColor() }, shortcut: Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .C))
         entries.add(texts.ui_TipFit, .FitView, func|view = me|() { view.imageView.zoomToFit() }, shortcut: Input.formatKeyShortcut(.None, .F))
         entries.add(lens.cmd_ZoomIn, .ZoomIn, func|view = me|() { view.imageView.zoomIn() }, shortcut: Input.formatKeyShortcut(.Control, .OemPlus))
         entries.add(lens.cmd_ZoomOut, .ZoomOut, func|view = me|() { view.imageView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
@@ -587,6 +621,9 @@ private impl IWnd for Panel
 
         case .C where evt.modifiers == .Control:
             .copyPicture()
+
+        case .C where evt.modifiers == (Input.KeyModifiers.Control | .Shift):
+            .copyProbedColor()
 
         case .H where evt.modifiers == .None:
             .mirrorHorizontally()
@@ -784,7 +821,9 @@ private impl Panel
         if not pixel.inside do
             return result
 
-        result = Format.toString(texts().ui_ProbePixel, pixel.x, pixel.y)
+        result    = Format.toString(texts().ui_ProbePixel, pixel.x, pixel.y)
+        .probed   = {cast(f32, pixel.x), cast(f32, pixel.y)}
+        .hasProbe = true
         let picture = .imageView.picture()
         if picture
         {

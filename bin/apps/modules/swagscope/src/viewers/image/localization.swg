@@ -21,6 +21,7 @@ struct Texts
     ui_MirrorVertical:         string = "Mirror Vertically"            // Vertical reflection menu action.
     ui_ResetTransform:         string = "Reset Orientation"            // Restores source orientation.
     ui_CopyImage:              string = "Copy Image"                   // Puts the picture on the clipboard.
+    ui_CopyColor:              string = "Copy Color % at %"            // Puts the color of the pixel last under the pointer on the clipboard; its code, then where it is.
     word_Mirrored:             string = "mirrored"                     // Status of reflected image content.
     word_Frame:                string = "frame"                        // One animation frame.
     word_Frames:               string = "frames"                       // Several animation frames.

@@ -112,9 +112,11 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Evidence: the pointer over a picture reads its pixel (counted in the stored picture through
   zoom, pan, rotation and mirror, `ImageView.pixelAt`) and its straight 8-bit color and opacity
-  into the information band. Stored channel depth, premultiplied versus straight values, palette
-  index, physical resolution, keyboard stepping between pixels, copy, and distance or angle between
-  points are absent.
+  into the information band. The color of the pixel read last can be copied as `#RRGGBB`, or
+  `#RRGGBBAA` when it is not opaque, from the lens, which names it and where it is, or with
+  Ctrl+Shift+C. Stored channel depth, premultiplied versus straight values, palette index,
+  physical resolution, keyboard stepping between pixels, a copy of the whole reading, and distance
+  or angle between points are absent.
 - Next: let the keyboard move a probe one pixel at a time at high zoom and copy its reading, then
   add a non-destructive line/rectangle measurement overlay.
 - Done when: coordinates and exact stored/converted channel values are copyable, alpha and

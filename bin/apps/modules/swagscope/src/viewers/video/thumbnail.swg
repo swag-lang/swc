@@ -116,6 +116,19 @@ func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
 // is read as a key picture: the clean point the container indexes near it, read alone.
 const ThumbnailPositions: [5] f64 = [0.3, 0.5, 0.15, 0.7, 0.9]
 
+// Decodes picture `index` of `fileName` with a reader of its own and brings it to the
+// `displayWidth` by `displayHeight` the film is shown at.
+func decodeShownFrame(fileName: string, index: u64, displayWidth, displayHeight: s32)->Image fail
+{
+    var reader = try Reader.open(fileName, pictureOnly: true)
+    var image  = try reader.decodeFrame(index)
+    if displayWidth > 0 and
+       displayHeight > 0 and
+       (displayWidth != image.width or displayHeight != image.height) do
+        image.resize(displayWidth, displayHeight, .Bilinear)
+    return image
+}
+
 func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 {
     var reader      = try Reader.open(fileName, pictureOnly: true)

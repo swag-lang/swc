@@ -54,16 +54,23 @@ using Core, Pixel
     Swag.require(native.pending)
     native.abortGrab()
     Swag.require(not native.pending and native.pendingResource == null and native.pendingTexture == null)
+    var image: Image
+    let fresh = expect source.grabInto(&image)
+    Swag.require(fresh)
+    let lastCaptureTime = source.lastFrameCaptureMicroseconds()
+    Swag.require(lastCaptureTime > 0)
     let originalX = native.options.x
     native.options.x = Env.getSystemMetric(.DesktopX) + Env.getSystemMetric(.DesktopWidth) + 32
     var rejected = false
-    catch native.reopen() { rejected = true }
+    catch source.reopen() { rejected = true }
     Swag.require(rejected, "reopening an unavailable output should fail")
+    Swag.require(source.lastFrameCaptureMicroseconds() == lastCaptureTime)
     rejected = false
     discard catch native.beginGrab() { rejected = true }
     Swag.require(rejected, "a failed reopen should leave a recoverable source")
     native.options.x = originalX
-    expect native.reopen()
+    expect source.reopen()
+    Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     Swag.require(expect native.beginGrab())
     native.abortGrab()
 }
@@ -146,13 +153,11 @@ using Core, Pixel
 #[Swag.TestTag("integration.host.windows")]
 #test
 {
-    let x = Env.getSystemMetric(.DesktopX)
-    let y = Env.getSystemMetric(.DesktopY)
     let width = Env.getSystemMetric(.DesktopWidth)
     let height = Env.getSystemMetric(.DesktopHeight)
     if width <= 0 or height <= 0 do
         return
-    var source = expect Source.open({x, y, width, height, false})
+    var source = expect Source.openDesktop()
     var image: Image
     Swag.require(expect source.grabInto(&image, copyUnchanged: false,
                                         updateChangedOnly: true))

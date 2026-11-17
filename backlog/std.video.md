@@ -300,6 +300,20 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   input with its preceding source picture before macroblock analysis. In a Release
   3840×2160 probe, a fresh but identical picture took 1.2–1.6 ms and emitted the same
   11–53-byte P-skip packet, while the changing P picture took 39–73 ms.
+  `regionMotion` now compares each luma region with the preceding source picture before
+  building row/column motion profiles. On a deterministic 1080p30 QP 28 clip with a moving
+  384-pixel tile over an unchanged textured background, five paired Release runs improved
+  median encode time by 8.3% (303 to 282 ms); a 12-picture 3840×2160 localized-motion run improved from
+  718,592 to 528,148 µs (26.5%). Packet bytes, MP4 bytes, decoded hashes, PSNR and SSIM
+  matched exactly. Six paired all-changing 1080p30 controls had a 2.0% median slowdown;
+  one pair was 23.6% slower, while the other five ranged from essentially equal to 13.1%
+  slower. These codec-only synthetic results have substantial run variation and do not claim
+  a live capture throughput gain.
+  On that localized 1080p clip at QP 28, Swag emitted 871 KB of packets at 39.50 dB luma
+  PSNR; x264 Baseline/veryfast at fixed QP 28 emitted 732 KB at 39.95 dB, while
+  x264 Baseline/ultrafast at CRF 28 emitted 954 KB at 40.42 dB. CRF is not equivalent to QP,
+  and x264's measured process time includes startup and muxing while Swag's timer covers only
+  encoding; these are rate-quality references, not direct speed ratios.
   Screen recording in Swag Capture (app.capture.011) needs a modern
   codec at 4K and 60 frames per second, while the module already decodes H.264.
   A deterministic four-slice stress case now measures 100 alternating 4K P pictures at

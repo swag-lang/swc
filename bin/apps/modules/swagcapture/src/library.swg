@@ -282,6 +282,9 @@ impl Library
         return dst
     }
 
+    // Registers `name` in the index, or refreshes its entry when it is already there. The recent
+    // strip registers each capture it shows, so that a delete from the strip finds it, and the
+    // index may already hold it: a fill, or the video recovery, can run while the strip loads.
     mtd addFile(name: String)
     {
         let file = catch File.info(name)
@@ -289,7 +292,13 @@ impl Library
             return
         }
 
-        .files.add(file)
         .revision += 1
+        for &fi in .files where fi.fullName == name
+        {
+            fi[] = file
+            return
+        }
+
+        .files.add(file)
     }
 }

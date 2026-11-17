@@ -17,6 +17,38 @@ using Swag
     }
 }
 
+// A caller can cap inflation exactly and reject output before reserving an oversized hint.
+#test
+{
+    let input = cast(const [..] u8, "bounded output")
+    var writer: Compress.ZLib
+    let compressed = expect writer.compress(input)
+
+    var exactReader: Compress.ZLib
+    let decoded = expect exactReader.decompress(compressed.toSlice(), input.count, input.count)
+    Swag.require(Slice.equals(decoded.toSlice(), input))
+
+    var limitedReader: Compress.ZLib
+    var limitedResult: #decltype(expect limitedReader.decompress(compressed.toSlice()))
+    var limitedError: Swag.Error
+    catch
+    {
+        limitedResult = try limitedReader.decompress(compressed.toSlice(), maxOutputSize: input.count - 1)
+    } as limitedError
+    Swag.require(limitedResult.isEmpty())
+    Swag.require(limitedError.value() is Errors.UnsupportedFormatError)
+
+    var hintReader: Compress.ZLib
+    var hintResult: #decltype(expect hintReader.decompress(compressed.toSlice()))
+    var hintError: Swag.Error
+    catch
+    {
+        hintResult = try hintReader.decompress(compressed.toSlice(), input.count, input.count - 1)
+    } as hintError
+    Swag.require(hintResult.isEmpty())
+    Swag.require(hintError.value() is Errors.UnsupportedFormatError)
+}
+
 func fillCompressPattern(buffer: [..] u8)
 {
     for i in buffer.count

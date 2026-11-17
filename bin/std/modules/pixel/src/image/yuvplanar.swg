@@ -51,10 +51,24 @@ struct YuvPlanarView
 
 impl YuvPlanarView
 {
+    // Reports whether dimensions, chroma subsampling, and row strides form a supported layout.
+    //
+    // Plane pointers must still refer to readable storage for the described rows.
+    public mtd const isValidLayout()->bool
+    {
+        if .width <= 0 or .height <= 0 or (.chromaShift != 0 and .chromaShift != 1) do
+            return false
+
+        let divisor    = 1's32 << .chromaShift
+        let chromaWidth = .width / divisor + (.width % divisor != 0 ? 1 : 0)
+        return .lumaStride >= cast(u64, .width) and .chromaStride >= cast(u64, chromaWidth)
+    }
+
     // Returns the width of one chroma plane, in samples.
     #[Swag.Inline]
     mtd const chromaWidth()->s32
     {
+        Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
         let divisor = 1's32 << .chromaShift
         return .width / divisor + (.width % divisor != 0 ? 1 : 0)
     }
@@ -63,6 +77,7 @@ impl YuvPlanarView
     #[Swag.Inline]
     mtd const chromaHeight()->s32
     {
+        Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
         let divisor = 1's32 << .chromaShift
         return .height / divisor + (.height % divisor != 0 ? 1 : 0)
     }
@@ -76,6 +91,7 @@ impl YuvPlanarView
     // costs more processor time than decoding it, and a renderer converts where it draws.
     mtd const convertToRgb(target: *Image)
     {
+        Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
         if target.width != .width or target.height != .height or target.pixelFormat != .RGB8 do
             target[] = Image.create(.width, .height, .RGB8)
 
@@ -97,6 +113,7 @@ impl YuvPlanarView
     // Bands write disjoint destination rows, so they run concurrently on one target.
     mtd const convertRowsToRgb(target: *Image, firstY, endY: s32)
     {
+        Swag.assert(.isValidLayout(), "YUV planar view has an invalid layout")
         let factors = .conversionFactors()
         for y in firstY until endY
         {

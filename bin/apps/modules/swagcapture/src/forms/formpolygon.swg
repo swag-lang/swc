@@ -135,7 +135,7 @@ impl IForm for FormPolygon
         let backBrush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
         var bk        = .backColor
         if cxt.quickMode and .alpha != 100 and .subKind == .Highlight do
-            bk.a = .highlightAlpha()
+            bk.a = .opacityAlpha()
 
         if .subKind == .PixSel
         {

@@ -269,7 +269,7 @@ impl Undo
             .selection = capture.selection
             foreachSelected'BaseForm(capture, .selection)
             {
-                .oldGroups.add(form.groups.isEmpty() ? 0'u64 : form.groups[0])
+                .oldGroups.add(Capture.formOuterGroup(itf))
             }
 
         case .SetText:

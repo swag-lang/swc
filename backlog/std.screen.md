@@ -12,9 +12,10 @@ continues to own media frames and codecs, not desktop access.
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
   cached-frame copy for a recorder that will emit a held picture. `Source` now exposes the
-  monotonic capture-completion time of its latest fresh frame and opens the full bounds of a monitor
-  selected from the current `Env.getMonitors` order. The index is only a snapshot; native presentation
-  timestamps, borrowed GPU frames, persistent monitor IDs, and window targets remain unavailable.
+  monotonic capture-completion time of its latest fresh frame, opens one monitor from the current
+  `Env.getMonitors` order, and opens the virtual-desktop bounds including gaps. Monitor indices are
+  only snapshots; native presentation timestamps, borrowed GPU frames, persistent monitor IDs, and
+  window targets remain unavailable.
 - Next: expose native presentation time with a documented cross-platform clock and add a bounded
   borrowed-frame contract, persistent monitor/window targets, permission and source-loss results.
   Keep pacing and encoding outside the source.

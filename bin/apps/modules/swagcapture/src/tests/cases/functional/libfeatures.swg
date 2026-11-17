@@ -57,6 +57,53 @@ using Swag, Core
     discard catch File.delete(restored)
 }
 
+// Erasing or restoring trashed captures says when some of them stayed in the recycle bin,
+// instead of leaving the reader to find out.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testUseScratchLibrary()
+    let lib = f.setupLibraryWnd()
+
+    // A capture whose file is already gone can be neither erased nor moved back.
+    let missing = testTempCapturePath()
+    discard testAddLibraryItem(lib.view, missing, 10, 1)
+    lib.view.selModel.select(0)
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    lib.deleteForeverSelected()
+    Swag.require(f.gui.autoHandled)
+
+    discard testAddLibraryItem(lib.view, missing, 10, 1)
+    lib.view.selModel.select(0)
+    f.gui.clickModalButtonWhenShown(Dialog.BtnOk)
+    lib.restoreSelected()
+    Swag.require(f.gui.autoHandled)
+}
+
+// Registering a capture the index already holds refreshes its entry instead of listing it twice:
+// the recent strip registers what it shows while a fill may already have indexed it.
+#test
+{
+    var f: HeadlessFixture
+    f.setup()
+    defer f.shutdown()
+    testUseScratchLibrary()
+    defer g_Library.files.clear()
+
+    let path = testTempCapturePath()
+    defer discard catch File.delete(path)
+    discard expect File.writeAllText(path, "capture")
+
+    g_Library.addFile(path)
+    let revision = g_Library.revision
+    g_Library.addFile(path)
+    Swag.require(g_Library.files.count == 1)
+    Swag.require(g_Library.files[0].fullName == path)
+    Swag.require(g_Library.revision > revision)
+}
+
 // Renaming and marking an inactive capture update its model and library header while preserving
 // the exact compressed background chunk.
 #test

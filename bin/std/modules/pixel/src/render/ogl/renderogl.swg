@@ -1375,7 +1375,7 @@ impl RenderOgl
     // Registers a planar picture as three single-channel planes the shader converts.
     internal mtd addImageImpl(view: const *YuvPlanarView)->Texture
     {
-        if view.width <= 0 or view.height <= 0
+        if not view.isValidLayout()
         {
             return {}
         }
@@ -1413,7 +1413,7 @@ impl RenderOgl
     // Replaces the planar picture held by a texture, converting nothing.
     internal mtd updatePlanarImpl(texture: Texture, view: const *YuvPlanarView)->bool
     {
-        if not texture.isValid() or view.width != texture.width or view.height != texture.height do
+        if not view.isValidLayout() or not texture.isValid() or view.width != texture.width or view.height != texture.height do
             return false
         if (texture.pixelFormat == .Yuv420 and view.chromaShift != 1) or
            (texture.pixelFormat == .Yuv444 and view.chromaShift != 0) or

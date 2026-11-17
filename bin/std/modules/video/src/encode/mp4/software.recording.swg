@@ -67,6 +67,7 @@ struct SoftwareRecording
         nextVideoTime:  u64
         frameCount:     u64
         repeatedFrames: u64
+        videoPacketBytes: u64
         rateControl:    H264.RateControl
         hasRateControl: bool
         videoQp:       u32
@@ -184,6 +185,9 @@ impl SoftwareRecording
     // Returns the number of frame slots filled by repeating the previous picture.
     mtd const repeatedFrameCount()->u64 => .repeatedFrames
 
+    // Returns the total accepted H.264 access-unit bytes, excluding MP4 and audio overhead.
+    mtd const videoPacketByteCount()->u64 => .videoPacketBytes
+
     // Returns the base QP selected for the most recently submitted slot, or the configured fixed QP.
     //
     // Before the first slot, rate-controlled recordings return zero.
@@ -253,6 +257,8 @@ impl SoftwareRecording
         {
             packet = try .video.encode(&.nv12, slot.decodeTime + .videoOffset, slot.duration)
         }
+        if packet.bytes.count > Swag.U64.Max - .videoPacketBytes do
+            fail OverflowError{"software recording video packet byte count overflows"}
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .writer.addPacket(packet)
@@ -260,6 +266,7 @@ impl SoftwareRecording
         {
             try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
         }
+        .videoPacketBytes += packet.bytes.count
         .frameCount    += 1
         .nextVideoTime = slot.decodeTime + slot.duration
     }
@@ -291,6 +298,8 @@ impl SoftwareRecording
         {
             packet = try .video.repeatPrevious(slot.decodeTime + .videoOffset, slot.duration)
         }
+        if packet.bytes.count > Swag.U64.Max - .videoPacketBytes do
+            fail OverflowError{"software recording video packet byte count overflows"}
         .muxMutex.lock()
         defer .muxMutex.unlock()
         try .writer.addPacket(packet)
@@ -298,6 +307,7 @@ impl SoftwareRecording
         {
             try .rateControl.observe(packet.bytes.count, slot.duration, .videoQp)
         }
+        .videoPacketBytes += packet.bytes.count
         .frameCount     += 1
         .repeatedFrames += 1
         .nextVideoTime  = slot.decodeTime + slot.duration

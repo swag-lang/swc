@@ -88,7 +88,13 @@ internal func createPdfFixture()->String
     let beforeZoomOut = pdf.effectiveZoom()
     var zoomOut       = KeyEvent{kind: .Pressed, key: .Subtract, modifiers: .Control}
     view.sendEvent(&zoomOut)
-    Swag.require(pdf.effectiveZoom() < beforeZoomOut)
+    let zoomedOut = pdf.effectiveZoom()
+    Swag.require(zoomedOut < beforeZoomOut)
+
+    // The actual size takes Ctrl alone, as the zoom steps and the other viewers do.
+    var shiftedActual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control | .Shift}
+    view.sendEvent(&shiftedActual)
+    Swag.require(pdf.effectiveZoom() == zoomedOut)
     var actual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     view.sendEvent(&actual)
     Swag.require(Math.isEqualEpsilon(pdf.effectiveZoom(), 96.0'f32 / 72.0, 0.001))

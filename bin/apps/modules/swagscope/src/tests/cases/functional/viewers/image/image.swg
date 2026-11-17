@@ -186,6 +186,16 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     var reset = KeyEvent{kind: .Pressed, key: .R, modifiers: .Control}
     view.sendEvent(&reset)
     Swag.require(view.imageView.rotationQuarterTurns == 0 and not view.imageView.isMirrored)
+
+    // The actual size takes Ctrl alone, as the zoom steps and the other viewers do.
+    view.imageView.zoomToFit()
+    var shiftedActual = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control | .Shift}
+    view.sendEvent(&shiftedActual)
+    Swag.require(view.imageView.isFitted)
+    var actualKey = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
+    view.sendEvent(&actualKey)
+    Swag.require(not view.imageView.isFitted and view.imageView.zoom == 1)
+    view.imageView.zoomToFit()
     view.dockStyle = .Center
     host.root.applyLayout()
     standTestCommands(foot, view.actions)

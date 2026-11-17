@@ -702,7 +702,7 @@ private impl IWnd for Panel
         case .Subtract, .OemMinus where evt.modifiers == .Control:
             .imageView.zoomOut()
 
-        case .D0 where evt.modifiers.has(.Control):
+        case .D0 where evt.modifiers == .Control:
             .imageView.actualSize()
 
         case .F where evt.modifiers == .None:

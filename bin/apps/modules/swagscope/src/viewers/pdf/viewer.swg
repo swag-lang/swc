@@ -224,7 +224,7 @@ private impl IWnd for Panel
         {
         case .Add, .OemPlus where evt.modifiers == .Control:       .pdfView.zoomIn()
         case .Subtract, .OemMinus where evt.modifiers == .Control: .pdfView.zoomOut()
-        case .D0 where evt.modifiers.has(.Control):                .pdfView.actualSize()
+        case .D0 where evt.modifiers == .Control:                  .pdfView.actualSize()
         case .F where evt.modifiers == .None:                      .pdfView.zoomToFit()
         case .W where evt.modifiers == .None:                      .pdfView.zoomToFitWidth()
         default: evt.accepted = false

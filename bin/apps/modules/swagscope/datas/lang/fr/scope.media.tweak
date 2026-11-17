@@ -54,6 +54,7 @@ publisher   Éditeur
 published   Publication
 created     Création
 application Application
+description Description
 bookmarks   Signets
 textLayer   Couche de texte
 style       Style

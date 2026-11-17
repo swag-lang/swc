@@ -44,6 +44,8 @@ struct Panel
 
     zoomPercent: u32 = 100
     outline:     *DocumentOutline?
+    services:    Viewer.HostServices
+    shownFacts:  HtmlDocumentFacts     // What the information sheet was last told of the page's head.
 }
 
 // The fallback reading measure for a page without its own CSS width.
@@ -111,6 +113,21 @@ private impl Panel
     mtd describeInformation(sheet: *InfoSheet)
     {
         var data: MediaInfoData
+
+        // What the page says of itself in its head, as written.
+        let facts = .view.documentFacts()
+        .shownFacts = facts
+        if not facts.title.isEmpty() or not facts.language.isEmpty() or not facts.description.isEmpty()
+        {
+            data.add(.Document, group: true)
+            if not facts.title.isEmpty() do
+                data.add(.Title, facts.title)
+            if not facts.language.isEmpty() do
+                data.add(.Language, facts.language)
+            if not facts.description.isEmpty() do
+                data.add(.Description, facts.description)
+        }
+
         data.add(.Text, group: true)
         data.add(.Format, "HTML")
         data.add(.Encoding, .encodingText())
@@ -175,7 +192,21 @@ func createViewer(host: Viewer.Host)
     result.createZoomControl(host.createInfoGroup(Viewer.ZoomSlotWidth))
     result.hookZoomKeys()
 
+    // A head read once the page has streamed in changes what the information sheet says.
     let services = host.services()
+    result.services = services
+    result.view.sigDocumentChanged += func|result|(_)
+    {
+        let facts = result.view.documentFacts()
+        if facts.title != result.shownFacts.title or
+           facts.language != result.shownFacts.language or
+           facts.description != result.shownFacts.description
+        {
+            result.shownFacts = facts
+            result.services.showDetails(result, "")
+        }
+    }
+
     if services.reportFailure
     {
         let reportFailure: Viewer.ReportFailure = services.reportFailure

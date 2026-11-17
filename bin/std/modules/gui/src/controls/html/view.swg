@@ -135,6 +135,17 @@ enum HtmlEncodingSource
 // Handles a link activation in an HTML view; true consumes it, false permits default navigation.
 alias HtmlLinkHandler = func||(*HtmlView, string)->bool
 
+// What a page says of itself in its head, as written. See [[Gui.HtmlView.documentFacts]].
+struct HtmlDocumentFacts
+{
+    public
+    {
+        title:       String     // Text of the first `title` element, trimmed.
+        language:    String     // The `lang` attribute of the `html` element.
+        description: String     // The content of the first `meta` element named `description`.
+    }
+}
+
 // Displays HTML as a laid-out document.
 //
 // [[Gui.HtmlView.createText]] renders in-memory source, and [[Gui.HtmlView.createFile]] streams a
@@ -422,6 +433,35 @@ internal impl HtmlView
         .placeDocument()
         .restoreRegionScrolls(regionScrolls.toSlice())
         .sigDocumentChanged.call(me)
+    }
+
+    // Returns what the page says of itself in its head: the text of its first `title`, the `lang`
+    // of its `html` element and the content of its first `meta` named `description`, each empty
+    // when the page does not say.
+    public mtd documentFacts()->HtmlDocumentFacts
+    {
+        var result: #returntype
+        for index in .document.nodes.count
+        {
+            let element = cast(u32, index)
+            let node    = .document.constNode(element)
+            if node.kind != .Element do
+                continue
+            switch node.tag
+            {
+            case .Title where result.title.isEmpty():
+                result.title = .document.textContent(element)
+                result.title.trim()
+
+            case .Html where result.language.isEmpty():
+                result.language = Latin1.trim(.document.attribute(element, "lang"))
+
+            case .Meta where result.description.isEmpty() and Latin1.compare(.document.attribute(element, "name"), "description", ignoreCase: true) == 0:
+                result.description = Latin1.trim(.document.attribute(element, "content"))
+            }
+        }
+
+        return result
     }
 
     // Returns owned, visible h1 through h6 headings in document order.

@@ -48,8 +48,9 @@ integration around those engines.
 ### app.scope.document.010 — HTML has no reader-mode or page-level diagnostics
 
 - Evidence: a professional local-page viewer needs both faithful layout and a way to understand an
-  unreadable page. There is no extracted reading view, title/language/description summary,
-  standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
+  unreadable page. The information sheet gives the title, language and description the head of
+  the page writes (`HtmlView.documentFacts`), refreshed when a streamed head changes them. There is
+  no extracted reading view, standards quirks indicator, or list of layout/parser warnings. A heading outline already ships
   through `DocumentOutline.bindHtml`; it does not expose those document facts or warnings. An
   unstyled HTML page opened during the outline test starts at the left edge, where an optional
   reading layout could supply a comfortable measure without changing faithful rendering.

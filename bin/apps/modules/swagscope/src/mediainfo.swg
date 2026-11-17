@@ -53,6 +53,7 @@ enum MediaInfoField
     Published
     Created
     Application
+    Description
     Bookmarks
     TextLayer
     Style
@@ -122,6 +123,7 @@ struct MediaInfoStrings
     published:      string = "Published"
     created:        string = "Created"
     application:    string = "Application"
+    description:    string = "Description"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -251,6 +253,7 @@ impl MediaInfoRow
         case .Published:      return s.published
         case .Created:        return s.created
         case .Application:    return s.application
+        case .Description:    return s.description
         case .Bookmarks:      return s.bookmarks
         case .TextLayer:      return s.textLayer
         case .Style:          return s.style

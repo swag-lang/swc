@@ -52,6 +52,7 @@ compressed variants and 32x24 for the uncompressed ones; the `.y4m` clips are 32
 | `ffmpeg-rawvideo-bgr24.avi` | `-c:v rawvideo -pix_fmt bgr24` | Uncompressed 24-bit frames, `biCompression` zero, negative bitmap height, `00dc` chunks |
 | `ffmpeg-rawvideo-bgra.avi` | `-c:v rawvideo -pix_fmt bgra` | Uncompressed 32-bit frames, whose alpha byte is dropped |
 | `ffmpeg-rawvideo-odd.avi` | `-c:v rawvideo -pix_fmt bgr24`, 33x25 | A row of 99 bytes padded to 100, which is the bitmap rule |
+| `synthetic-rgb555-padding-bottom-up.avi` | Built in-repository; 5x2, two bottom-up RGB555 frames | BI_RGB 16-bit pixels, DWORD-padded rows, row direction, and frame seeking; no external media |
 | `ffmpeg-c422.y4m` | `-pix_fmt yuv422p` | 4:2:2 planes |
 | `ffmpeg-c444.y4m` | `-pix_fmt yuv444p` | 4:4:4 planes |
 | `ffmpeg-mono.y4m` | `-pix_fmt gray` | Luma alone, with the `XCOLORRANGE=FULL` tag |

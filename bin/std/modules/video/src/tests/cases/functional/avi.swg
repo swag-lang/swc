@@ -144,6 +144,24 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
         videoAssertFixtureFrame(expect odd.decodeFrame(index), index, tolerance: 0)
 }
 
+// BI_RGB 16-bit frames use the default RGB555 masks. This synthetic 5x2 stream has padded rows
+// stored bottom-up, and its two frames use distinct colors to exercise seeking as well as pixels.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("synthetic-rgb555-padding-bottom-up.avi"))
+    Swag.require(reader.width() == 5 and reader.height() == 2 and reader.frameCount() == 2)
+
+    var frame = expect reader.decodeFrame(1)
+    videoAssertColor(frame.pixelColor(0, 0), 16, 33, 49, tolerance: 0)
+    videoAssertColor(frame.pixelColor(4, 0), 74, 41, 24, tolerance: 0)
+    videoAssertColor(frame.pixelColor(0, 1), 247, 16, 66, tolerance: 0)
+
+    frame = expect reader.decodeFrame(0)
+    videoAssertColor(frame.pixelColor(0, 0), 255, 0, 0, tolerance: 0)
+    videoAssertColor(frame.pixelColor(2, 0), 0, 0, 255, tolerance: 0)
+    videoAssertColor(frame.pixelColor(1, 1), 0, 255, 255, tolerance: 0)
+}
+
 // The container shapes a writer other than ffmpeg produces, injected into a file ffmpeg wrote so
 // that only the shape under test differs: rows the other way up, no index at all, an index
 // counted from the file, and frames grouped in the lists an OpenDML file uses.

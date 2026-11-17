@@ -409,6 +409,65 @@ SWC_TEST_BEGIN(MicroSsa_RebuildsWideBlocksAcrossShapeChanges)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroSsa_PhiPlacementSkipsRegistersWithoutFrontierDefinitions)
+{
+    constexpr uint32_t nonFrontierRegCount = 32;
+    constexpr MicroReg  joinReg            = MicroReg::virtualIntReg(100);
+    MicroSsaState       ssa;
+
+    MicroBuilder builder(ctx);
+    for (uint32_t reg = 0; reg < nonFrontierRegCount; ++reg)
+        builder.emitLoadRegImm(MicroReg::virtualIntReg(reg), ApInt(reg, 64), MicroOpBits::B64);
+    const auto thenLabel = builder.createLabel();
+    const auto joinLabel = builder.createLabel();
+    builder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, thenLabel);
+    builder.emitLoadRegImm(joinReg, ApInt(1, 64), MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, joinLabel);
+    builder.placeLabel(thenLabel);
+    builder.emitLoadRegImm(joinReg, ApInt(2, 64), MicroOpBits::B64);
+    builder.placeLabel(joinLabel);
+    builder.emitLoadMemReg(MicroReg::intReg(2), 0, joinReg, MicroOpBits::B64);
+    const auto joinUse = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    ssa.build(builder, builder.instructions(), builder.operands(), nullptr);
+    const auto joined = ssa.reachingDef(joinReg, joinUse);
+    if (!joined.isPhi || ssa.phis().size() != 1 || !ssa.phiInfoForValue(joined.valueId))
+        return Result::Error;
+
+    // Rebuild with fewer tracked registers and no frontier. The prior active register
+    // index must remain safe to clear even though the new dense register set is smaller.
+    MicroBuilder linearBuilder(ctx);
+    constexpr MicroReg linearReg = MicroReg::virtualIntReg(0);
+    linearBuilder.emitLoadRegImm(linearReg, ApInt(3, 64), MicroOpBits::B64);
+    linearBuilder.emitLoadMemReg(MicroReg::intReg(2), 0, linearReg, MicroOpBits::B64);
+    linearBuilder.emitRet();
+    ssa.build(linearBuilder, linearBuilder.instructions(), linearBuilder.operands(), nullptr);
+    if (!ssa.phis().empty())
+        return Result::Error;
+
+    // A subsequent frontier build must not see stale definitions from either build.
+    MicroBuilder rebuiltBuilder(ctx);
+    const auto rebuiltThen = rebuiltBuilder.createLabel();
+    const auto rebuiltJoin = rebuiltBuilder.createLabel();
+    rebuiltBuilder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, rebuiltThen);
+    rebuiltBuilder.emitLoadRegImm(linearReg, ApInt(4, 64), MicroOpBits::B64);
+    rebuiltBuilder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B64, rebuiltJoin);
+    rebuiltBuilder.placeLabel(rebuiltThen);
+    rebuiltBuilder.emitLoadRegImm(linearReg, ApInt(5, 64), MicroOpBits::B64);
+    rebuiltBuilder.placeLabel(rebuiltJoin);
+    rebuiltBuilder.emitLoadMemReg(MicroReg::intReg(2), 0, linearReg, MicroOpBits::B64);
+    const auto rebuiltUse = rebuiltBuilder.instructions().lastInstructionRef();
+    rebuiltBuilder.emitRet();
+    ssa.build(rebuiltBuilder, rebuiltBuilder.instructions(), rebuiltBuilder.operands(), nullptr);
+    const auto rebuilt = ssa.reachingDef(linearReg, rebuiltUse);
+    if (!rebuilt.isPhi || ssa.phis().size() != 1 || !ssa.phiInfoForValue(rebuilt.valueId))
+        return Result::Error;
+
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroSsa_RebuildAddsFrontierAfterLinearBlocks)
 {
     constexpr MicroReg value = MicroReg::virtualIntReg(1);

@@ -924,14 +924,19 @@ bool MicroSsaState::finalizeDominators(std::vector<uint32_t>& idomValues)
 
 void MicroSsaState::placePhiNodes()
 {
+    for (const uint32_t regIndex : phiActiveDefRegs_)
+    {
+        if (regIndex < defBlocksByReg_.size())
+            defBlocksByReg_[regIndex].clear();
+    }
+    phiActiveDefRegs_.clear();
+
     if (blocks_.size() < 2)
         return;
 
     const size_t trackedRegCount = trackedRegs_.regs().size();
     if (defBlocksByReg_.size() < trackedRegCount)
         defBlocksByReg_.resize(trackedRegCount);
-    for (size_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
-        defBlocksByReg_[regIndex].clear();
     auto& defBlocksByReg = defBlocksByReg_;
 
     for (uint32_t blockIndex = 0; blockIndex < blocks_.size(); ++blockIndex)
@@ -947,7 +952,12 @@ void MicroSsaState::placePhiNodes()
             for (const uint32_t regIndex : info.defRegIndices)
             {
                 auto& regDefBlocks = defBlocksByReg[regIndex];
-                if (regDefBlocks.empty() || regDefBlocks.back() != blockIndex)
+                if (regDefBlocks.empty())
+                {
+                    phiActiveDefRegs_.push_back(regIndex);
+                    regDefBlocks.push_back(blockIndex);
+                }
+                else if (regDefBlocks.back() != blockIndex)
                     regDefBlocks.push_back(blockIndex);
             }
         }
@@ -962,11 +972,10 @@ void MicroSsaState::placePhiNodes()
         hasPhiStamp.resize(blocks_.size(), 0);
     uint32_t    stamp = phiStamp_;
     const auto& regs  = trackedRegs_.regs();
-    for (uint32_t regIndex = 0; regIndex < trackedRegCount; ++regIndex)
+    std::ranges::sort(phiActiveDefRegs_);
+    for (const uint32_t regIndex : phiActiveDefRegs_)
     {
         const auto& defBlocks = defBlocksByReg[regIndex];
-        if (defBlocks.empty())
-            continue;
 
         if (stamp == std::numeric_limits<uint32_t>::max())
         {

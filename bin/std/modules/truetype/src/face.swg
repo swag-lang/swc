@@ -21,6 +21,7 @@ public enum StyleFlag
 //
 // [[TrueType.Face.metadataAt]] reads this description without loading outlines or retaining
 // the source bytes. Weight ranges from 1 to 1000; 400 is regular, 600 semibold, and 700 bold.
+// The fixed-pitch flag comes from `post` and defaults to false when that table is absent.
 public struct FaceMetadata
 {
     public
@@ -33,6 +34,7 @@ public struct FaceMetadata
         widthClass:            u16 = 5       // Width class from 1 (ultra-condensed) to 9 (ultra-expanded); 5 is normal.
         embedding:             u16           // Embedding permission bits of the OS/2 `fsType`, as written; zero is installable, or a face without OS/2.
         style:                 StyleFlag     // Bold and italic traits declared by the style tables or subfamily name.
+        isFixedPitch:          bool = false  // True when the `post` table declares a nonzero fixed-pitch value.
     }
 }
 
@@ -72,6 +74,7 @@ public struct Face
     public readonly
     {
         style:              StyleFlag     // Declared bold and italic traits.
+        isFixedPitch:       bool          // True when the `post` table declares a nonzero fixed-pitch value.
         glyphCount:         u32           // Number of glyphs in the face.
         familyName:         String        // Owned font-family name.
         styleName:          String        // Owned style name such as `Regular` or `Bold`.
@@ -245,6 +248,11 @@ public impl Face
         .style = style
     }
 
+    internal mtd setFixedPitch(value: bool)
+    {
+        .isFixedPitch = value
+    }
+
     internal mtd initializeRecords()
     {
         .glyph.initialize(me)
@@ -282,7 +290,8 @@ public impl Face
     // an installable OpenType font requires: the document addresses such a font by glyph index
     // or through its own encoding, never by asking the font what character a glyph stands for.
     // `familyName` supplies the missing family identity; absent style and underline metadata use
-    // `Regular` and zero, and a face with no character map answers no character lookup. All
+    // `Regular` and zero, absent fixed-pitch metadata is false, and a face with no character map
+    // answers no character lookup. All
     // outline, location, and horizontal-metric tables remain mandatory. Use
     // [[TrueType.Face.load]] for standalone font files, where missing metadata is an error.
     //
@@ -341,13 +350,15 @@ public impl Face
     // ```
     func familyNameAt(bytes: const [..] u8, faceIndex: u32)->String fail => try familyNameIn(bytes, faceIndex)
 
-    // Reads a face's names, weight, width class, and style without loading its glyphs.
+    // Reads a face's names, weight, width class, style, and fixed-pitch flag without loading its glyphs.
     //
     // Accepts an sfnt font, WOFF1 font, or TrueType/OpenType collection. `faceIndex` is
     // zero-based; a standalone font accepts only zero. WOFF1 is reconstructed in temporary
     // storage. The result owns its strings and retains no bytes.
     // Missing style tables fall back to the subfamily name. Absent or out-of-range weight
     // values use 400/700 according to the bold trait; absent or invalid width classes use 5.
+    // The fixed-pitch flag is true for any nonzero `post.isFixedPitch` value and false when
+    // the `post` table is absent.
     // Out-of-bounds metadata fields, unsupported containers, and invalid indices fail.
     // This inspects metadata only; it does not validate that every glyph can be loaded.
     //

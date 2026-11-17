@@ -167,6 +167,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x9A)
 
     faceData.face.setUnderline(try readS16(postTable, 8), try readS16(postTable, 10))
+    faceData.face.setFixedPitch(try readU32(postTable, 12) != 0)
     try parsePostGlyphNames(faceData, postTable, format)
 }
 
@@ -615,6 +616,13 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
         let selection = readU16(os2, 62)
         bold   = bold or (selection & 0x20) != 0
         italic = italic or (selection & 1) != 0 or (version >= 4 and (selection & 0x200) != 0)
+    }
+
+    if let post = findTableAt(data, faceOffset, TAG_POST)
+    {
+        if post.count < 32 do
+            fault(0x9B)
+        result.isFixedPitch = readU32(post, 12) != 0
     }
 
     result.weight = weight >= 1 and weight <= 1000 ? weight : bold ? 700'u16 : 400'u16

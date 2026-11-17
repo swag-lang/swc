@@ -166,3 +166,25 @@ func midiViewerFixturePath()->String => scopeTestDataPath("viewer.mid")
     Swag.require(document.tracks[0].program == 24 and Midi.instrumentName(24) == "Acoustic Guitar (nylon)")
     Swag.require(Utf8.contains(text, "channel 1 · Acoustic Guitar (nylon) · 1 note"), text)
 }
+
+// The Explorer preview of a MIDI file is its notes as a small piano roll on a light ground.
+#test
+{
+    let plugin = Midi.viewerPlugin()
+    let image  = expect plugin.thumbnail!(midiViewerFixturePath(), 128)
+    Swag.require(image.width == 128 and image.height == 64)
+
+    // Some pixels carry the ink of the notes, the rest the ground.
+    var ink = 0'u32
+    for y in image.height
+    {
+        for x in image.width
+        {
+            let color = image.pixelColor(x, y)
+            if color.r < 100 do
+                ink += 1
+        }
+    }
+
+    Swag.require(ink > 20 and ink < 128 * 64 / 2, Format.toString("%", ink))
+}

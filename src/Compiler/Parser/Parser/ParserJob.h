@@ -5,6 +5,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class SourceFile;
+class TaskContext;
 
 struct ParserJobOptions
 {

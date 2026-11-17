@@ -155,7 +155,7 @@ impl IForm for FormStep
 
         var bk = .backColor
         if cxt.quickMode and .alpha != 100 do
-            bk.a = .highlightAlpha()
+            bk.a = .opacityAlpha()
 
         let pp = .boundRect() * z
 

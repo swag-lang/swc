@@ -168,7 +168,7 @@ impl IForm for FormDraw
             var pen1 = pen
             pen1.brush = Brush.createHatch(.CheckBoardLarge, Argb.DarkGray)
             painter.drawPath(&pl, pen1)
-            pen.brush.color.a = .highlightAlpha()
+            pen.brush.color.a = .opacityAlpha()
 
             // The hatch pass already laid the contour down; a second one would darken the
             // translucent stroke drawn over it.

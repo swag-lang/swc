@@ -16,19 +16,20 @@ using Swag, Core, Gui
         host.shutdown()
         g_Main = null
     }
-    let view = editor.editWnd.editView
+
+    let view    = editor.editWnd.editView
     let capture = unwrap editor.capture
-    let count = capture.forms.count
+    let count   = capture.forms.count
     Swag.require(count > 0)
 
     for media in [CaptureMedia.Video, CaptureMedia.Animation]
     {
         editor.setMedia(media)
         host.runFrames(1)
-        let zone = view.getCaptureRect()
+        let zone    = view.getCaptureRect()
         let outside = Math.Point{zone.x - 80, zone.y - 80}
-        let width = capture.width
-        let height = capture.height
+        let width   = capture.width
+        let height  = capture.height
         editor.newMain.editMode = .Draw
         host.drag(view.localToSurface(outside), view.localToSurface(outside + Math.Point{40, 30}))
         Swag.require(capture.width == width and capture.height == height)
@@ -62,6 +63,7 @@ using Swag, Core, Gui
             Swag.require(host.clickPopupMenuItem(kindMenuId(.Picture)))
             chosen[] = true
         }
+
         host.clickWnd(unwrap editor.kindButton)
         host.app.sigFrame.clear()
         Swag.require(chosen and g_CaptureMedia == .Picture)

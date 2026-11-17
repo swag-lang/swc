@@ -32,6 +32,7 @@ impl Capture
             result += "."
             digit(&result, time / 100_000)
         }
+
         return result
     }
 
@@ -335,13 +336,16 @@ impl Capture
     // Shows frame `frame` on the canvas.
     mtd showFrame(frame: u64) fail
     {
-        if .media == .Video do
+        if .media == .Video
+        {
             try .frames!.readVideoInto(&.backImg, frame)
+        }
         else
         {
             let picture = try .frames!.read(frame)
             .backImg = picture[]
         }
+
         .playbackPlanar = false
         .playhead       = frame
         .backgroundChanged()
@@ -370,7 +374,7 @@ impl Capture
     {
         var spare = #move .playbackPlanes
         .playbackPlanes = #move planes[]
-        planes[] = #move spare
+        planes[]        = #move spare
         .playbackPlanar = true
         .playhead       = frame
         .backgroundChanged()

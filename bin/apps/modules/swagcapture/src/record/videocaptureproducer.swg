@@ -5,16 +5,16 @@ using Core, Video
 #[Swag.NoCopy]
 struct VideoCaptureProducer
 {
-    late session: *VideoCaptureSession
-    rate:         u32
-    worker:       Threading.Thread
+    late session:  *VideoCaptureSession
+    rate:          u32
+    worker:        Threading.Thread
     positionMutex: Swag.Mutex
-    x, y:         s32
-    paused:       u32
-    ready:        u32
-    failed:       u32
-    missedSlots:  u64
-    error:        Swag.Error
+    x, y:          s32
+    paused:        u32
+    ready:         u32
+    failed:        u32
+    missedSlots:   u64
+    error:         Swag.Error
 }
 
 impl VideoCaptureProducer
@@ -22,9 +22,9 @@ impl VideoCaptureProducer
     mtd start(session: *VideoCaptureSession, rate: u32) fail
     {
         .session = session
-        .rate = rate
-        .x = session.source.x
-        .y = session.source.y
+        .rate    = rate
+        .x       = session.source.x
+        .y       = session.source.y
         try .worker.init(func|producer = me|(thread) { producer.run(thread) })
         try .worker.start()
     }
@@ -81,6 +81,7 @@ impl VideoCaptureProducer
     {
         discard Atomic.exchange(&.paused, paused ? 1'u32 : 0'u32)
     }
+
     mtd const hasOrigin()->bool => Atomic.get(&.ready) != 0
     mtd const hasFailed()->bool => Atomic.get(&.failed) != 0
     mtd const missedFrameSlotCount()->u64 => Atomic.get(&.missedSlots)

@@ -24,7 +24,7 @@ using Swag, Core, Pixel
 #test
 {
     var source = expect ScreenFrameSource.create(true, 0, 0, 6, 4)
-    var frame = Image.create(6, 4, .BGRA8)
+    var frame  = Image.create(6, 4, .BGRA8)
     frame.fill(Argb.White)
     source.saveCursorPixels(&frame, 1, 1, 3, 3)
     frame.fill(Argb.Black)

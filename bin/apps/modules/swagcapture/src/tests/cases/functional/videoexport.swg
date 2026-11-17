@@ -7,7 +7,7 @@ using Swag, Core, Gui, Pixel, Video
 #test
 {
     let missing = Gui.Testing.tempFilePath("capture-missing-video-", ".mp4")
-    let target = Gui.Testing.tempFilePath("capture-existing-video-", ".mp4")
+    let target  = Gui.Testing.tempFilePath("capture-existing-video-", ".mp4")
     defer discard catch File.delete(target)
     expect File.writeAllText(target, "previous export")
     var failure: Swag.Error

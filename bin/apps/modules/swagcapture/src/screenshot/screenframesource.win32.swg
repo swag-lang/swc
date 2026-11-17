@@ -7,29 +7,29 @@ using Core, Core.Errors, Pixel, Win32, Gdi32
 #[Swag.NoCopy]
 struct ScreenFrameSource
 {
-    x:          s32
-    y:          s32
-    width:      s32
-    height:     s32
-    drawCursor: bool
-    memoryDC:   HDC
-    bitmap:     HBITMAP
-    oldBitmap:  HGDIOBJ
-    pixels:     *void?
-    accelerated: *Screen.Source?
-    triedAccelerated: bool
-    acceleratedX: s32
-    acceleratedY: s32
-    fresh:        bool
-    dcMicroseconds:    u64
-    blitMicroseconds:  u64
-    flushMicroseconds: u64
-    copyMicroseconds:  u64
+    x:                  s32
+    y:                  s32
+    width:              s32
+    height:             s32
+    drawCursor:         bool
+    memoryDC:           HDC
+    bitmap:             HBITMAP
+    oldBitmap:          HGDIOBJ
+    pixels:             *void?
+    accelerated:        *Screen.Source?
+    triedAccelerated:   bool
+    acceleratedX:       s32
+    acceleratedY:       s32
+    fresh:              bool
+    dcMicroseconds:     u64
+    blitMicroseconds:   u64
+    flushMicroseconds:  u64
+    copyMicroseconds:   u64
     cursorMicroseconds: u64
-    cursorBackup: Array'u8
+    cursorBackup:       Array'u8
     cursorTarget, cursorStorage: u64
     cursorLeft, cursorTop, cursorRight, cursorBottom: s32
-    cursorRendered: Array'u8
+    cursorRendered:     Array'u8
     cursorRenderedLeft, cursorRenderedTop, cursorRenderedRight, cursorRenderedBottom: s32
 }
 
@@ -55,6 +55,7 @@ impl ScreenFrameSource
             Memory.delete(.accelerated)
             .accelerated = null
         }
+
         .triedAccelerated = false
         if .memoryDC and .oldBitmap do
             discard SelectObject(.memoryDC, .oldBitmap)
@@ -85,6 +86,7 @@ impl ScreenFrameSource
         }
 
         .memoryDC = catch CreateCompatibleDC(desktopDC) { return false }
+
         // A positive height gives the bottom-up BGRA layout expected by Image.
         var info: BITMAPINFO
         info.bmiHeader.biSize        = #sizeof(BITMAPINFOHEADER)
@@ -121,18 +123,19 @@ impl ScreenFrameSource
         if .accelerated and (.x != .acceleratedX or .y != .acceleratedY)
         {
             Memory.delete(.accelerated)
-            .accelerated = null
+            .accelerated      = null
             .triedAccelerated = false
         }
+
         if not .triedAccelerated
         {
             .triedAccelerated = true
             catch
             {
-                .accelerated = Memory.new'Screen.Source()
+                .accelerated   = Memory.new'Screen.Source()
                 .accelerated[] = try Screen.Source.open({.x, .y, .width, .height, false})
-                .acceleratedX = .x
-                .acceleratedY = .y
+                .acceleratedX  = .x
+                .acceleratedY  = .y
             }
             {
                 if .accelerated
@@ -142,6 +145,7 @@ impl ScreenFrameSource
                 }
             }
         }
+
         if .accelerated
         {
             catch
@@ -153,11 +157,12 @@ impl ScreenFrameSource
                                                    updateChangedOnly: not copyUnchanged)
                 if .drawCursor
                 {
-                    let cursorStart = Time.monotonicMicroseconds()
+                    let cursorStart   = Time.monotonicMicroseconds()
                     let cursorChanged = .drawCursorOnImage(target)
                     .cursorMicroseconds += Time.monotonicMicroseconds() - cursorStart
                     .fresh = .fresh or cursorChanged
                 }
+
                 return
             }
             {
@@ -177,7 +182,7 @@ impl ScreenFrameSource
 
         // Refresh the desktop DC per grab: it belongs to this thread and can change
         // across a desktop switch, while the selected memory DC and DIB remain reusable.
-        let dcStart = Time.monotonicMicroseconds()
+        let dcStart    = Time.monotonicMicroseconds()
         let desktopWnd = GetDesktopWindow()
         let desktopDC  = GetDC(desktopWnd)
         .dcMicroseconds += Time.monotonicMicroseconds() - dcStart
@@ -187,6 +192,7 @@ impl ScreenFrameSource
             try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
             return
         }
+
         defer discard ReleaseDC(desktopWnd, desktopDC)
         let blitStart = Time.monotonicMicroseconds()
         catch BitBlt(.memoryDC, 0, 0, .width, .height, desktopDC, .x, .y, SRCCOPY | CAPTUREBLT)
@@ -195,6 +201,7 @@ impl ScreenFrameSource
             try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
             return
         }
+
         .blitMicroseconds += Time.monotonicMicroseconds() - blitStart
         if .drawCursor do
             drawCursorInto(.memoryDC, .x, .y)
@@ -205,6 +212,7 @@ impl ScreenFrameSource
             try getScreenRectImageInto(target, .drawCursor, .x, .y, .width, .height)
             return
         }
+
         .flushMicroseconds += Time.monotonicMicroseconds() - flushStart
         if target.width != .width or target.height != .height or target.pixelFormat != .BGRA8 do
             target[] = Image.create(.width, .height, .BGRA8)
@@ -221,16 +229,17 @@ impl ScreenFrameSource
         .cursorBackup.resize(rowBytes * cast(u64, bottom - top))
         .cursorTarget  = cast(u64, target)
         .cursorStorage = cast(u64, target.pixels.storage())
-        .cursorLeft   = left
-        .cursorTop    = top
-        .cursorRight  = right
-        .cursorBottom = bottom
+        .cursorLeft    = left
+        .cursorTop     = top
+        .cursorRight   = right
+        .cursorBottom  = bottom
         for row in cast(u64, bottom - top)
         {
             let offset = cast(u64, .height - 1 - top - cast(s32, row)) * cast(u64, target.rowStride) +
                          cast(u64, left) * 4
             Memory.copy(.cursorBackup.storage() + row * rowBytes,
-                        target.pixels.storage() + offset, rowBytes)
+                        target.pixels.storage() + offset,
+                        rowBytes)
         }
     }
 
@@ -240,7 +249,8 @@ impl ScreenFrameSource
             return
         if cast(u64, target) == .cursorTarget and
            cast(u64, target.pixels.storage()) == .cursorStorage and
-           target.width == .width and target.height == .height
+           target.width == .width and
+           target.height == .height
         {
             let rowBytes = cast(u64, .cursorRight - .cursorLeft) * 4
             for row in cast(u64, .cursorBottom - .cursorTop)
@@ -248,9 +258,11 @@ impl ScreenFrameSource
                 let offset = cast(u64, .height - 1 - .cursorTop - cast(s32, row)) * cast(u64, target.rowStride) +
                              cast(u64, .cursorLeft) * 4
                 Memory.copy(target.pixels.storage() + offset,
-                            .cursorBackup.storage() + row * rowBytes, rowBytes)
+                            .cursorBackup.storage() + row * rowBytes,
+                            rowBytes)
             }
         }
+
         .cursorBackup.clear()
     }
 
@@ -258,11 +270,13 @@ impl ScreenFrameSource
     internal mtd cursorPixelsChanged(target: *Image, left, top, right, bottom: s32)->bool
     {
         let rowBytes = cast(u64, right - left) * 4
-        let rows = cast(u64, bottom - top)
-        let bytes = rowBytes * rows
-        var changed = .cursorRendered.count != bytes or
-                      .cursorRenderedLeft != left or .cursorRenderedTop != top or
-                      .cursorRenderedRight != right or .cursorRenderedBottom != bottom
+        let rows     = cast(u64, bottom - top)
+        let bytes    = rowBytes * rows
+        var changed  = .cursorRendered.count != bytes or
+                       .cursorRenderedLeft != left or
+                       .cursorRenderedTop != top or
+                       .cursorRenderedRight != right or
+                       .cursorRenderedBottom != bottom
         if not changed
         {
             for row in rows
@@ -270,13 +284,15 @@ impl ScreenFrameSource
                 let offset = cast(u64, .height - 1 - top - cast(s32, row)) * cast(u64, target.rowStride) +
                              cast(u64, left) * 4
                 if Memory.compare(target.pixels.storage() + offset,
-                                  .cursorRendered.storage() + row * rowBytes, rowBytes) != 0
+                                  .cursorRendered.storage() + row * rowBytes,
+                                  rowBytes) != 0
                 {
                     changed = true
                     break
                 }
             }
         }
+
         .cursorRendered.resize(bytes)
         .cursorRenderedLeft   = left
         .cursorRenderedTop    = top
@@ -287,8 +303,10 @@ impl ScreenFrameSource
             let offset = cast(u64, .height - 1 - top - cast(s32, row)) * cast(u64, target.rowStride) +
                          cast(u64, left) * 4
             Memory.copy(.cursorRendered.storage() + row * rowBytes,
-                        target.pixels.storage() + offset, rowBytes)
+                        target.pixels.storage() + offset,
+                        rowBytes)
         }
+
         return changed
     }
 
@@ -316,29 +334,31 @@ impl ScreenFrameSource
             if info.hbmColor do
                 catch DeleteObject(cast(info.hbmColor))
         }
+
         var bitmap: BITMAP
         let iconBitmap = info.hbmColor ? info.hbmColor : info.hbmMask
         catch GetObjectW(cast(HANDLE, iconBitmap), #sizeof(BITMAP), cast(*void, &bitmap)) { return .clearCursorRendered(); }
         let iconHeight = info.hbmColor ? bitmap.bmHeight : bitmap.bmHeight / 2
-        let left = Math.max(0's32, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot))
-        let top = Math.max(0's32, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot))
-        let right = Math.min(.width, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot) + bitmap.bmWidth)
-        let bottom = Math.min(.height, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot) + iconHeight)
+        let left       = Math.max(0's32, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot))
+        let top        = Math.max(0's32, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot))
+        let right      = Math.min(.width, cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot) + bitmap.bmWidth)
+        let bottom     = Math.min(.height, cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot) + iconHeight)
         if right <= left or bottom <= top do
             return .clearCursorRendered()
         if not .memoryDC and not .openNative() do
             return .clearCursorRendered()
-        let source = target.pixels.storage()
-        let overlay = assume cast([*] u8, .pixels)
-        let rowBytes = cast(u64, .width) * 4
+        let source    = target.pixels.storage()
+        let overlay   = assume cast([*] u8, .pixels)
+        let rowBytes  = cast(u64, .width) * 4
         let copyBytes = cast(u64, right - left) * 4
         .saveCursorPixels(target, left, top, right, bottom)
         for row in cast(u64, bottom - top)
         {
-            let y = top + cast(s32, row)
+            let y      = top + cast(s32, row)
             let offset = (cast(u64, .height - 1 - y) * rowBytes) + cast(u64, left) * 4
             Memory.copy(overlay + offset, source + offset, copyBytes)
         }
+
         let iconX = cursor.ptScreenPos.x - .x - cast(s32, info.xHotspot)
         let iconY = cursor.ptScreenPos.y - .y - cast(s32, info.yHotspot)
         DrawIconEx(.memoryDC, iconX, iconY, icon, 0, 0, 0, null, DI_NORMAL)
@@ -346,12 +366,14 @@ impl ScreenFrameSource
         {
             for row in cast(u64, bottom - top)
             {
-                let y = top + cast(s32, row)
+                let y      = top + cast(s32, row)
                 let offset = (cast(u64, .height - 1 - y) * rowBytes) + cast(u64, left) * 4
                 Memory.copy(source + offset, overlay + offset, copyBytes)
             }
+
             return .cursorPixelsChanged(target, left, top, right, bottom)
         }
+
         .cursorBackup.clear()
         return .clearCursorRendered()
     }

@@ -492,7 +492,7 @@ private impl Panel
         entries.add(appStrings().cmd_ZoomOut, .ZoomOut, func|view = me|() { view.pdfView.zoomOut() }, shortcut: Input.formatKeyShortcut(.Control, .OemMinus))
         entries.add(appStrings().cmd_ZoomReset, .ActualSize, func|view = me|() { view.pdfView.actualSize() }, shortcut: Input.formatKeyShortcut(.Control, .D0))
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, shortcut: Input.formatKeyShortcut(.None, .F))
-        entries.add(strings.ui_FitWidth, .FitView, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
+        entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, shortcut: Input.formatKeyShortcut(.None, .W))
         entries.add(appStrings().cmd_ZoomMenu, .ZoomIn, func|view = me|() { view.showZoomMenu() })
 
         // The commands of the page's context menu, so none of them needs a right click.

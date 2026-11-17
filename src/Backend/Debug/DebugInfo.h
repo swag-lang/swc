@@ -1,19 +1,15 @@
 #pragma once
 #include "Backend/Debug/DebugPdbLocal.h"
-#include "Backend/Micro/MicroReg.h"
+#include "Backend/Debug/DebugInfoRecords.h"
 #include "Backend/Native/NativeSection.h"
 #include "Backend/RuntimeBase.h"
 #include "Support/Core/ByteArray.h"
-#include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();
 
-class SymbolFunction;
-class SourceFile;
 class TaskContext;
-struct MachineCode;
 
 struct DebugInfoDefinedSymbol
 {
@@ -22,50 +18,6 @@ struct DebugInfoDefinedSymbol
     uint32_t value        = 0;
     uint16_t type         = 0;
     uint8_t  storageClass = K_COFF_SYM_CLASS_STATIC;
-};
-
-struct DebugInfoTypedRecord
-{
-    Utf8    name;
-    Utf8    linkageName;
-    TypeRef typeRef = TypeRef::invalid();
-    bool    isConst = false;
-};
-
-struct DebugInfoLocalRecord : DebugInfoTypedRecord
-{
-    uint32_t offset  = 0;
-    MicroReg baseReg = MicroReg::invalid();
-};
-
-struct DebugInfoDataRecord : DebugInfoTypedRecord
-{
-    Utf8     symbolName;
-    Utf8     sectionName;
-    uint32_t symbolOffset = 0;
-    bool     isGlobal     = true;
-};
-
-struct DebugInfoConstantRecord : DebugInfoTypedRecord
-{
-    ConstantRef valueRef = ConstantRef::invalid();
-};
-
-struct DebugInfoFunctionRecord
-{
-    Utf8    symbolName;
-    Utf8    debugName;
-    TypeRef returnTypeRef = TypeRef::invalid();
-
-    const MachineCode* machineCode = nullptr;
-    const SourceFile*  sourceFile  = nullptr;
-
-    uint32_t frameSize    = 0;
-    MicroReg frameBaseReg = MicroReg::invalid();
-
-    std::span<const DebugInfoLocalRecord>    parameters;
-    std::span<const DebugInfoLocalRecord>    locals;
-    std::span<const DebugInfoConstantRecord> constants;
 };
 
 struct DebugInfoObjectRequest

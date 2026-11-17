@@ -820,8 +820,12 @@ internal func binaryCellText(line: *ListLine, column: Binary.Column)->String => 
     var entries = Viewer.LensEntries.create(&results, "Binary", host.theme)
     view.describeLens(&entries)
     var copies = 0
-    for &entry in results.sections[0]!.entries where entry.title == Binary.texts().ui_MenuCopyAll
+    for &entry in results.sections[0]!.entries
     {
+        if entry.title == Binary.texts().ui_MenuBack do
+            Swag.require(entry.detail == Input.formatKeyShortcut(.Alt, .Left), "the lens teaches the key of the context menu")
+        if entry.title != Binary.texts().ui_MenuCopyAll do
+            continue
         entry.run!()
         copies += 1
     }

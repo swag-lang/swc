@@ -3,6 +3,24 @@
 
 using Core, Pixel
 
+// Pin the displayed levels independently of the host's drive-root syntax.
+func pinFolderBreadcrumb(bar: *PathBar, folders: const [..] string)
+{
+    var path = String.from("C:/")
+    bar.breadcrumb.clear()
+    bar.breadcrumb.addItem("C:/", tag: "C:/")
+    for folder, index in folders
+    {
+        if index != 0 do
+            path.append("/")
+        path.append(folder)
+        bar.breadcrumb.addItem(folder, tag: path.toString())
+    }
+
+    bar.setText(path.toString())
+    bar.refreshPath()
+}
+
 // A monitor-scale change preserves both complete timestamps, including the selected row.
 #[Swag.TestTag("golden")]
 #test
@@ -14,7 +32,7 @@ using Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(720, 200, dpiScale: 1.5)
     let browser = FileBrowserCtrl.create(&host.root, {mode: .SelectFolder, initialFolder: root, showLocationsPane: false}, {12, 12, 696, 176})
-    browser.pathBar.setPath("C:/Perso")
+    pinFolderBreadcrumb(browser.pathBar, ["Perso"])
     browser.listCtrl.selectLine(0)
     browser.choiceLabel.setText("C:/Perso/chouette")
     discard browser.listCtrl.lines[0]!.setItem(1, "3 Nov · 13:00")
@@ -101,7 +119,7 @@ using Core, Pixel
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     expect host.app.setLanguage("fr")
     let dlg = FileDlg.create(&host.surface, {mode: .SelectFolder, initialFolder: root, showLocationsPane: false})
-    dlg.browser.pathBar.setPath("C:/Perso/Projets")
+    pinFolderBreadcrumb(dlg.browser.pathBar, ["Perso", "Projets"])
     dlg.browser.listCtrl.selectLine(0)
     dlg.browser.choiceLabel.setText(Format.toString("C:/Perso/Projets/%", longName))
     pinBrowserDates(dlg.browser)

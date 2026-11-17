@@ -2,8 +2,8 @@
 
 ## Unreleased
 
-- Remove the compiler-backed language server, its settings, and its restart command. The
-  extension now provides syntax highlighting, the Swag Dark theme, and build tasks only.
+- Remove the compiler-backed language server, the build tasks, and the problem matchers. The
+  extension is declarative: syntax highlighting and the Swag Dark theme.
 - Remove semantic token colors from Swag Dark; TextMate scopes carry every color.
 
 ## 0.0.170

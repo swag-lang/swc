@@ -11,6 +11,7 @@ riderModule.iml
 *.user
 __pycache__/
 /vscode/node_modules/
+/vscode/*.vsix
 *.actual.png
 *.parity.cpu.png
 *.parity.gpu.png

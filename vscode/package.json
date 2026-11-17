@@ -1,7 +1,7 @@
 {
   "name": "swag",
   "displayName": "Swag",
-  "description": "Syntax highlighting, a dark theme, and build tasks for the Swag programming language",
+  "description": "Syntax highlighting and a dark theme for the Swag programming language",
   "version": "0.0.178",
   "publisher": "swag-lang",
   "icon": "images/swag_icon.png",
@@ -20,26 +20,27 @@
     "Programming Languages",
     "Themes"
   ],
-  "main": "./extension.js",
   "scripts": {
     "test": "node --test tests"
   },
-  "activationEvents": [
-    "onTaskType:swag-build"
-  ],
   "contributes": {
     "themes": [
-			{
-				"label": "Swag Dark",
-				"uiTheme": "vs-dark",
-				"path": "./themes/swag-dark.json"
-			}
-		],
+      {
+        "label": "Swag Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/swag-dark.json"
+      }
+    ],
     "languages": [
       {
         "id": "swag",
-        "aliases": [ "swag" ],
-        "extensions": [ ".swg", ".swgs" ],
+        "aliases": [
+          "swag"
+        ],
+        "extensions": [
+          ".swg",
+          ".swgs"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -49,66 +50,10 @@
         "scopeName": "source",
         "path": "./syntaxes/swag.tmLanguage.json"
       }
-    ],
-    "taskDefinitions": [
-      {
-        "type": "swag-build",
-        "required": ["command"],
-        "properties": {
-          "command": {
-            "type": "string",
-            "enum": ["build", "rebuild", "format"],
-            "description": "The compiler task to run"
-          }
-        }
-      }
-    ],
-    "problemMatchers": [
-      {
-        "name": "swag",
-        "source": "swag",
-        "owner": "swag",
-        "fileLocation": [ "absolute" ],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):(\\d+)(?:-(\\d+))?: (warning|error)(?:\\[[^\\]]+\\])?: (.*)$",
-          "file": 1,
-          "line": 2,
-          "column": 3,
-          "endColumn": 4,
-          "severity": 5,
-          "message": 6
-        }
-      },
-      {
-        "name": "swag-background",
-        "source": "swag",
-        "owner": "swag",
-        "fileLocation": [ "absolute" ],
-        "pattern": {
-          "regexp": "^(.*):(\\d+):(\\d+)(?:-(\\d+))?: (warning|error)(?:\\[[^\\]]+\\])?: (.*)$",
-          "file": 1,
-          "line": 2,
-          "column": 3,
-          "endColumn": 4,
-          "severity": 5,
-          "message": 6
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": "File change detected",
-          "endsPattern": "Watching for file changes"
-        }
-      }
     ]
   },
   "devDependencies": {
     "vscode-oniguruma": "2.0.1",
     "vscode-textmate": "9.3.2"
-  },
-  "capabilities": {
-    "untrustedWorkspaces": {
-      "supported": true
-    },
-    "virtualWorkspaces": false
   }
 }

@@ -75,7 +75,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
 
     var point = window.surfaceRect().center()
     window.surface!.surfaceToScreen(&point)
-    Swag.require(host.dragFilesOver(point, ["c:/vaults/private"]) == DropEffect.Copy)
+    Swag.require(host.dragFilesOver(point, ["/vaults/private"]) == DropEffect.Copy)
     Swag.require(window.dropHighlight.isLocallyVisible())
     Swag.require(not window.dropHighlight.prompt.isLocallyVisible())
     assertSurfaceGolden(&host, window, true, "drop")
@@ -89,7 +89,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
     fillPictureList(window)
-    window.chooseVault("C:\\vault.bin")
+    window.chooseVault("/vault.bin")
     assertSurfaceGolden(&host, window, false, "unlock")
 }
 
@@ -100,10 +100,10 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
     window.showPage(.Create, animate: false)
-    window.createPath.setText("C:\\Users\\vault\\Documents\\papiers.bin")
+    window.createPath.setText("/home/vault/Documents/papiers.bin")
 
     // The room left on a volume belongs to the machine, so the picture states it.
-    window.createPage.showFreeSpace(212'u64 * 1024 * 1024 * 1024, "C:\\")
+    window.createPage.showFreeSpace(212'u64 * 1024 * 1024 * 1024, "/")
     assertSurfaceGolden(&host, window, true, "create")
 }
 
@@ -114,7 +114,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
     let texts  = appStrings()
-    window.progressPage.begin("C:\\Users\\vault\\papiers.bin", texts.ui_Randomizing, texts.ui_RandomizeHelp, texts.ui_StopCreating)
+    window.progressPage.begin("/home/vault/papiers.bin", texts.ui_Randomizing, texts.ui_RandomizeHelp, texts.ui_StopCreating)
     window.progressPage.setProgress(0.62, 159 * 1024 * 1024, 256 * 1024 * 1024, Format.toString(texts.ui_SecondsLeft, 12))
     window.showPage(.Progress, animate: false)
     assertSurfaceGolden(&host, window, false, "progress")
@@ -143,7 +143,7 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     useTestDestination(window)
-    window.openVault("C:\\vaults\\example")
+    window.openVault("/vaults/example")
     window.lens.open()
     Swag.require(window.lens.chosenEntry()!.id == VaultCommands.NewVault)
     host.settleAnimations(window)

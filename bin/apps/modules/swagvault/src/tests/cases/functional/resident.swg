@@ -33,13 +33,18 @@ using Core, Gui
     Swag.require(panel.paths.count == 1)
     Swag.require(panel.menu.items[0]!.id == VaultCommands.ShowWindow)
     Swag.require(panel.menu.items[1]!.id == VaultCommands.OpenFile)
+    const ExpectedDriveLabel = #os == Swag.TargetOs.Windows ? "P:" : "Drive 1"
+    var hasExpectedDriveLabel = false
     for item in panel.menu.items
     {
         Swag.require(item!.popup == null)
         let text = item.name.text.toString()
         Swag.require(not Utf8.contains(text, "papiers"))
         Swag.require(not Utf8.contains(text, "Users"))
+        if text == ExpectedDriveLabel do
+            hasExpectedDriveLabel = true
     }
+    Swag.require(hasExpectedDriveLabel)
 
     for action in ["open", "unmount", "force"]
     {

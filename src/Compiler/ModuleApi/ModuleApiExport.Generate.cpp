@@ -758,19 +758,8 @@ namespace
         trimTrailingModuleApiWhitespace(text);
     }
 
-    std::string encodeReturnFieldOrigins(const SymbolFunction& function, const SymbolFunction* variant)
+    SWC_FORCE_INLINE std::string encodeFieldOrigins(std::vector<SymbolFunction::ReturnFieldBorrow>& origins)
     {
-        std::vector<SymbolFunction::ReturnFieldBorrow> origins;
-        const auto append = [&origins](const SymbolFunction* source) {
-            if (!source)
-                return;
-            for (const auto& entry : source->returnFieldBorrows())
-                origins.push_back(entry);
-            for (const auto& entry : source->importedReturnFieldBorrows())
-                origins.push_back(entry);
-        };
-        append(&function);
-        append(variant);
         std::ranges::sort(origins, [](const auto& lhs, const auto& rhs) {
             return std::tie(lhs.paramIndex, lhs.fieldName) < std::tie(rhs.paramIndex, rhs.fieldName);
         });
@@ -791,6 +780,22 @@ namespace
             }
         }
         return result;
+    }
+
+    std::string encodeReturnFieldOrigins(const SymbolFunction& function, const SymbolFunction* variant)
+    {
+        std::vector<SymbolFunction::ReturnFieldBorrow> origins;
+        const auto append = [&origins](const SymbolFunction* source) {
+            if (!source)
+                return;
+            for (const auto& entry : source->returnFieldBorrows())
+                origins.push_back(entry);
+            for (const auto& entry : source->importedReturnFieldBorrows())
+                origins.push_back(entry);
+        };
+        append(&function);
+        append(variant);
+        return encodeFieldOrigins(origins);
     }
 
     std::string encodeEffectFields(const SymbolFunction& function, const SymbolFunction* variant, bool writes)
@@ -806,26 +811,7 @@ namespace
         };
         append(&function);
         append(variant);
-        std::ranges::sort(origins, [](const auto& lhs, const auto& rhs) {
-            return std::tie(lhs.paramIndex, lhs.fieldName) < std::tie(rhs.paramIndex, rhs.fieldName);
-        });
-        origins.erase(std::unique(origins.begin(), origins.end()), origins.end());
-
-        constexpr char HEX[] = "0123456789abcdef";
-        std::string result;
-        for (const auto& entry : origins)
-        {
-            if (!result.empty())
-                result += ';';
-            result += std::to_string(entry.paramIndex);
-            result += ':';
-            for (const unsigned char byte : entry.fieldName)
-            {
-                result += HEX[byte >> 4];
-                result += HEX[byte & 15];
-            }
-        }
-        return result;
+        return encodeFieldOrigins(origins);
     }
 
     std::string encodePossibleWriteFields(const SymbolFunction& function, const SymbolFunction* variant)
@@ -841,26 +827,7 @@ namespace
         };
         append(&function);
         append(variant);
-        std::ranges::sort(origins, [](const auto& lhs, const auto& rhs) {
-            return std::tie(lhs.paramIndex, lhs.fieldName) < std::tie(rhs.paramIndex, rhs.fieldName);
-        });
-        origins.erase(std::unique(origins.begin(), origins.end()), origins.end());
-
-        constexpr char HEX[] = "0123456789abcdef";
-        std::string result;
-        for (const auto& entry : origins)
-        {
-            if (!result.empty())
-                result += ';';
-            result += std::to_string(entry.paramIndex);
-            result += ':';
-            for (const unsigned char byte : entry.fieldName)
-            {
-                result += HEX[byte >> 4];
-                result += HEX[byte & 15];
-            }
-        }
-        return result;
+        return encodeFieldOrigins(origins);
     }
 
     void collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, const bool hasExportedBody, const Utf8& snippet, const SymbolFunction* fwdMoveVariant)

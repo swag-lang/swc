@@ -241,13 +241,51 @@ impl Panel
         .services.chromeChanged(me)
     }
 
+    // Returns what the image set says of the item in view when the items stand apart — an icon
+    // size, a page, a layer or a texture level — rather than following one another in time: its
+    // size, then its place in a texture and its name. Empty for a single image or an animation.
+    mtd itemText()->String
+    {
+        var result: String
+        let movie = &.imageView.movie
+        if movie.frameCount <= 1 do
+            return result
+        let info = movie.frameInfo()
+        if not info or info.kind == .Animation do
+            return result
+
+        result = Format.toString("% × %", info.width, info.height)
+        if info.kind == .Texture
+        {
+            if info.level do
+                result += Format.toString(" · %", Format.toString(texts().ui_ItemLevel, info.level))
+            if info.layer do
+                result += Format.toString(" · %", Format.toString(texts().ui_ItemLayer, info.layer))
+            if info.face do
+                result += Format.toString(" · %", Format.toString(texts().ui_ItemFace, info.face))
+        }
+
+        if not info.name.isEmpty() do
+            result += Format.toString(" · %", info.name)
+        return result
+    }
+
+    // Returns the summary of the picture, followed by what the image set says of the item in view.
+    mtd shownDetails()->String
+    {
+        let item = .itemText()
+        return item.isEmpty() ? String.from(.details) : Format.toString("% · %", .details, item)
+    }
+
     // Updates the frame controls of an animation, and ends the cycle the first time the movie
-    // completes a loop.
+    // completes a loop. Over a set of independent images, the summary follows the item in view.
     mtd refreshFrame()
     {
         let movie = &.imageView.movie
         if movie.frameCount <= 1 do
             return
+        if not .itemText().isEmpty() do
+            .services.showDetails(me, .shownDetails())
         .timeline.setValueWithoutGesture(cast(f32, movie.frameIndex))
         .frameLabel.setText(Viewer.pageText(cast(u64, movie.frameIndex), cast(u64, movie.frameCount)))
         .previousPage.enable(movie.frameIndex > 0)
@@ -445,7 +483,7 @@ private impl IWnd for Panel
             if not .facts.width.isEmpty()
             {
                 .details = .facts.text()
-                .services.showDetails(me, .details)
+                .services.showDetails(me, .shownDetails())
             }
         }
 
@@ -495,7 +533,7 @@ private impl IWnd for Panel
         .information = #move content.information
         .refreshZoom()
         .applyLayout()
-        .services.showDetails(me, .details)
+        .services.showDetails(me, .shownDetails())
         .services.loadingChanged(me)
 
         // A still picture has no end of its own; the host's slideshow gives it one.
@@ -763,7 +801,8 @@ private impl Panel
     mtd showProbe(local: Math.Point)
     {
         let probe = .probeText(local)
-        .services.showDetails(me, probe.isEmpty() ? .details : Format.toString("% · %", .details, probe))
+        let shown = .shownDetails()
+        .services.showDetails(me, probe.isEmpty() ? shown : Format.toString("% · %", shown, probe))
     }
 
     // Creates the picture view and keeps the zoom readout and the frame transport in step with it.
@@ -779,7 +818,7 @@ private impl Panel
                     if mouse.kind == .Move do
                         view.showProbe(imageView.surfaceToLocal(mouse.surfacePos))
                     elif mouse.kind == .Leave do
-                        view.services.showDetails(view, view.details)
+                        view.services.showDetails(view, view.shownDetails())
                 }
 
                 return false

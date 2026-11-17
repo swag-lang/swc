@@ -30,3 +30,33 @@ using Core, Pixel, Gui, Viewers
         Swag.require(Utf8.contains(information.text(), Format.toString("%", movie.frameCount).toString()))
     }
 }
+
+// Over a set of independent images the summary names the item in view, its size and its place in
+// a texture; an animation keeps the summary of the whole.
+#test
+{
+    for name in ["imageset-icons.ico", "imageset-array.dds", "imageset-animation.gif"]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(960, 540)
+        var session = openTestViewer(Picture.viewerPlugin(), &host.root, scopeTestDataPath(name))
+        let view    = assume cast(*Picture.Panel, session.view)
+        completeViewerBackgroundLoad(&host, &view.load)
+        let movie = &view.imageView.movie
+        view.imageView.setPaused(true)
+        view.imageView.setFrameIndex(1)
+        view.refreshFrame()
+        let info  = unwrap movie.frameInfo()
+        let shown = view.shownDetails()
+        if info.kind == .Animation
+        {
+            Swag.require(view.itemText().isEmpty() and shown == view.details, name)
+            continue
+        }
+
+        Swag.require(Utf8.startsWith(shown.toString(), view.details.toString()), name)
+        Swag.require(Utf8.contains(shown.toString(), Format.toString("% × %", info.width, info.height).toString()), shown.toString())
+        if info.kind == .Texture and info.layer do
+            Swag.require(Utf8.contains(shown.toString(), Format.toString(Picture.texts().ui_ItemLayer, info.layer).toString()), shown.toString())
+    }
+}

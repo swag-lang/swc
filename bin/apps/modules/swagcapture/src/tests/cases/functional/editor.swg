@@ -559,12 +559,13 @@ using Swag, Core
     shape.backColor   = Argb.Zero
     shape.borderColor = Argb.Red
     f.capture.selection.add(0)
-    Swag.require(f.main.miniBarColorField().name == #nameof(BaseForm.borderColor))
-    Swag.require(f.main.miniBarColor() == Argb.Red)
+    let bar = SelectionBar.create(f.main, f.main)
+    Swag.require(bar.swatchField().name == #nameof(BaseForm.borderColor))
+    Swag.require(bar.swatchColor() == Argb.Red)
 
     shape.backColor = Argb.Blue
-    Swag.require(f.main.miniBarColorField().name == #nameof(BaseForm.backColor))
-    Swag.require(f.main.miniBarColor() == Argb.Blue)
+    Swag.require(bar.swatchField().name == #nameof(BaseForm.backColor))
+    Swag.require(bar.swatchColor() == Argb.Blue)
 }
 
 // The handles that resize the picture come out only near its edges, inside or out, and leave

@@ -1345,7 +1345,8 @@ impl IPropertyNotify for PropWnd
             capture.hasChanged()
         }
 
-        .main.updateMiniBarTextControls()
+        if .main.miniBar != null do
+            .main.miniBar.refreshTextControls()
         .main.quickWnd.updateSelection()
         .main.editWnd.invalidate()
 
@@ -1398,7 +1399,8 @@ impl IWnd for PropWnd
         {
             .needRebuild = false
             .selectionHasChanged()
-            .main.updateMiniBarTextControls()
+            if .main.miniBar != null do
+                .main.miniBar.refreshTextControls()
         }
     }
 

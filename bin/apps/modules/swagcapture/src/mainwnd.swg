@@ -76,10 +76,6 @@ impl EditMode
     }
 }
 
-// What the mini-bar beside the selection carries: nothing without a selection, the colour of one
-// object, the face of a text, the counter of a step, or the alignment of several objects.
-enum MiniBarKind { None, Single, Text, Step, Multi }
-
 // Identifies a glyph of the application icon set (`datas/icons.svg`), in the grid
 // order of the document. The set is rasterized on demand per size and scale through
 // [[Gui.IconSet]], so every glyph stays sharp at any display density.
@@ -186,7 +182,7 @@ struct MainWnd
         editWnd:             *EditWnd
         dock:                *ToolDock
         inspector:           *Inspector
-        miniBar:             *MiniBar
+        miniBar:             *SelectionBar
         hintLine:            *HintLine
         recentSmall, recentMedium, recentBig: *IconButton
         sizeReading:         *IconButton
@@ -226,13 +222,6 @@ struct MainWnd
     videoRecoveryJob: *CaptureVideoRecoveryJob?
     videoRecoveryFolder: String
     videoRecoveryCount: u64
-
-    // The kind of selection the mini-bar was last built for, so it is rebuilt only when that changes.
-    miniBarKind:       MiniBarKind = .None
-    miniBarForm:       *BaseForm?              // The form the mini-bar was filled for, whose face, size and style it shows.
-    miniBarFontFace:   *IconButton?            // Current text face, opened as a filtered choice popup.
-    miniBarFontSize:   *IconButton?            // Current text size, opened through the same choice popup.
-    textChoicePopover: *TextChoicePopover?     // Open face or size list, if any.
 
     icons:    IconSet
     appIcon:  ImageList

@@ -22,7 +22,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-// One line of a cue's words as the list sets it: a byte range of the words, and the width it takes.
+// One line of a cue's words as the list sets it: a byte range of the words.
 struct CueLine
 {
     start: u64
@@ -54,13 +54,6 @@ private func clockText(seconds: f64)->String
     let rest     = millis / 1_000 % 60
     let fraction = millis % 1_000
     return Format.toString("%{02}:%{02}:%{02},%{03}", hours, minutes, rest, fraction)
-}
-
-// Formats a time as HH:MM:SS, the reading at the foot of the list.
-private func secondsText(seconds: f64)->String
-{
-    let whole = cast(u64, Math.max(Math.floor(seconds), 0.0))
-    return Format.toString("%{02}:%{02}:%{02}", whole / 3_600, whole / 60 % 60, whole % 60)
 }
 
 // Returns the established name of a subtitle syntax.
@@ -494,11 +487,12 @@ impl Panel
         .sheet.invalidate()
     }
 
-    // Says the current cue on the readings at the foot: its rank on the left, its time on the right.
+    // Says the current cue on the readings at the foot: its rank on the left, its time on the right,
+    // spelled as every clock of Swag Scope spells one.
     mtd refreshReadings()
     {
         .services.showDetails(me, .cuePosition())
-        let time = .currentCue == Swag.U64.Max ? Viewer.durationText(.duration) : secondsText(.track!.cueStartTime(.currentCue))
+        let time = .currentCue == Swag.U64.Max ? Viewer.durationText(.duration) : Viewer.timeText(.track!.cueStartTime(.currentCue))
         .timeButton.setQuietText(time)
         .services.chromeChanged(me)
     }

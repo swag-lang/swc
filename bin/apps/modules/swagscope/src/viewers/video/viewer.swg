@@ -88,18 +88,6 @@ private
     const OpenFailed    = 2'u32
 }
 
-// The player is a black picture in either application theme. Its window chrome follows the same
-// dark ground so caption feedback and the outline remain legible against that picture.
-func videoChromePalette()->ThemePalette
-{
-    var result = ThemeColors.encrePalette()
-    result.ground  = 0xFF000000
-    result.surface = 0xFF000000
-    result.raised  = 0xFF000000
-    result.line    = 0xFF000000
-    return result
-}
-
 // Returns the decoded-picture count that fits the run-ahead budget.
 func prefetchSlotCount(width, height: s32, planar: bool)->u32
 {
@@ -1023,7 +1011,10 @@ private impl Panel
         .refreshDetails()
     }
 
-    // Enables the track choices once the film offers a sound or subtitle choice.
+    // Enables the track choices and the time once a picture is on screen.
+    //
+    // Every presented picture comes through here, and enabling a control moves nothing, so the
+    // veil is not laid out again: its size and the width of the time arrange it.
     mtd refreshControls()
     {
         if .optionsOpen do
@@ -1031,7 +1022,6 @@ private impl Panel
 
         .tracksButton.enable(.hasFrame)
         .bottomVeil.timeButton.enable(.hasFrame)
-        .bottomVeil.arrange()
     }
 
     // Gives the lens the transport, the frame steps, the sound and the options of the film.
@@ -1068,8 +1058,8 @@ private impl Panel
 
         entries.add(.playing ? texts.cmd_Pause : texts.cmd_Play, .playing ? .Pause : .Play, func|view = me|() { view.togglePlayback() }, disabled: not ready, shortcut: Input.formatKeyShortcut(.None, .Space))
         entries.add(texts.cmd_Stop, .Stop, func|view = me|() { view.stopPlayback() }, disabled: not .hasFrame or (.frameIndex == 0 and not .playing))
-        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Left))
-        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, shortcut: Input.formatKeyShortcut(.None, .Right))
+        entries.add(texts.cmd_SeekBackward, .SeekBackward, func|view = me|() { view.seekRelative(-SeekSeconds) }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Left))
+        entries.add(texts.cmd_SeekForward, .SeekForward, func|view = me|() { view.seekRelative(SeekSeconds) }, disabled: not .hasFrame, shortcut: Input.formatKeyShortcut(.None, .Right))
         entries.add(texts.cmd_PreviousFrame, .ChevronLeft, func|view = me|() { discard view.stepFrame(false) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Left))
         entries.add(texts.cmd_NextFrame, .ChevronRight, func|view = me|() { discard view.stepFrame(true) }, disabled: not ready, shortcut: Input.formatKeyShortcut(.Control, .Right))
         entries.add(texts.cmd_Mute, .VolumeMute, func|view = me|() { view.setMuted(not view.muted) }, checked: .muted, disabled: not .muteButton.isEnabled(), shortcut: Input.formatKeyShortcut(.None, .M))

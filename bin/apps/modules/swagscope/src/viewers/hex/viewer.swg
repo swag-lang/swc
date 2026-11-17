@@ -320,8 +320,7 @@ impl Panel
         .refreshInspector()
     }
 
-    // Opens how the bytes are laid out and read: row width, value width, representation, byte order.
-    // Gives the lens the options and the zoom of the byte view.
+    // Gives the lens the commands, the options and the zoom of the byte view.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         // `:` and an offset, in the grammar of Go to Offset, go there.
@@ -363,6 +362,7 @@ impl Panel
         }
     }
 
+    // Opens how the bytes are laid out and read: row width, value width, representation, byte order.
     mtd showOptions()
     {
         let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)

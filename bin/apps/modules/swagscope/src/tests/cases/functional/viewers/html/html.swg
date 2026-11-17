@@ -176,3 +176,39 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
                  Utf8.contains(text, "Description\nWhat changed"),
                  text)
 }
+
+// A page followed from a link brings its own head to the information sheet, while a loaded page
+// laid out again keeps the head it was read with.
+#test
+{
+    let firstName  = Gui.Testing.tempFilePath("scope-html-first-", ".html")
+    let secondName = Gui.Testing.tempFilePath("scope-html-second-", ".html")
+    defer discard catch File.delete(firstName)
+    defer discard catch File.delete(secondName)
+    let secondLink = Path.fileName(secondName) orelse ""
+    discard expect File.writeAllText(firstName, Format.toString("<html><head><title>First</title></head><body><p><a href=\"%\">Onward</a></p></body></html>", secondLink).toString())
+    discard expect File.writeAllText(secondName, "<html><head><title>Second</title></head><body><p>Arrived</p></body></html>")
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, firstName, false)
+    let panel  = assume cast(*Html.Panel, window.currentView)
+    Swag.require(panel.factsFinal and panel.shownFacts.title == "First")
+
+    // The zoom is shared by every page opened after this one.
+    panel.setZoom(150)
+    Swag.require(panel.factsFinal and panel.shownFacts.title == "First")
+    panel.setZoom(100)
+
+    Swag.require(panel.view.findText("Onward"))
+    var bounds: Math.Rectangle
+    Swag.require(panel.view.searchMatchRect(&bounds))
+    panel.view.clearSearch()
+    host.click(Math.Point{bounds.x + bounds.width / 2, bounds.y + bounds.height / 2})
+    for 100 where panel.view.isLoading()
+    {
+        Threading.Thread.sleep(5'ms)
+        host.app.runFrame()
+    }
+
+    Swag.require(panel.factsFinal and panel.shownFacts.title == "Second", panel.shownFacts.title)
+}

@@ -264,6 +264,11 @@ internal func createPdfFixture()->String
     Swag.require(not entry.disabled)
     entry.run!()
     Swag.require(not Clipboard.getString().isEmpty())
+
+    // The zoom rows bear the names every reading viewer gives them.
+    var zoom: Lens.Results
+    (unwrap row(view, &host, appStrings().cmd_ZoomIn, &zoom)).run!()
+    Swag.require(view.pdfView.zoomMode == .Free)
 }
 
 // The information sheet says whether the pages carry text, without a search: once the text is

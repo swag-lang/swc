@@ -210,6 +210,9 @@ private func sharedSegmentCount()->u64 fail
                  native.capture.nativeConnection() == connection)
 
     native.options.x = originalX
+    let staleAfterFailure = expect source.grabInto(&image, copyUnchanged: false)
+    Swag.require(not staleAfterFailure and source.lastFrameCaptureMicroseconds() == captureTime,
+                 "a failed reopen should preserve the cached Linux frame")
     expect source.reopen()
     Swag.require(source.lastFrameCaptureMicroseconds() == 0)
     let freshAfterReopen = expect source.grabInto(&image)

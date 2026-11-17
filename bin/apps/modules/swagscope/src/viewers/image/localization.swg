@@ -35,6 +35,9 @@ struct Texts
     // Reading of the point under the pointer, after the summary: its pixel, counted from the
     // top-left corner of the picture as stored, then its color and its opacity.
     ui_ProbePixel: string = "x %, y %"
+    ui_ItemLevel:  string = "level %"        // Mipmap level of the texture item in view.
+    ui_ItemLayer:  string = "layer %"        // Array layer of the texture item in view.
+    ui_ItemFace:   string = "face %"         // Cube face of the texture item in view.
     ui_ProbeAlpha: string = "opacity %%"     // The value, then the percent sign.
 }
 

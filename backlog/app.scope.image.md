@@ -86,9 +86,10 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 
 - Evidence: the image viewer (`Viewers.Picture.Panel`) browses every indexed format through
   `Movie` and one `timeline` slider; `src/tests/cases/functional/viewers/image/imageset.swg` covers all nine multi-image codec
-  paths, including unequal dimensions. The slider and counter do not show the selected item's
-  kind, name, dimensions, mip/layer/face coordinates, or thumbnail, although `ImageFrameInfo`
-  already supplies the indexed properties.
+  paths, including unequal dimensions. Over independent items (sizes, pages, layers, texture
+  levels) the summary names the item in view: its dimensions, its level, layer and face, and its
+  name. The selector itself shows a counter and a slider only, with no list of the items or their
+  thumbnails.
 - Next: present those properties and lazy thumbnails in a collection selector over the existing
   reader, keeping animation playback distinct from independent-image selection.
 - Done when: item identity survives view changes and the selector shows each item's description,

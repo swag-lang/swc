@@ -43,6 +43,10 @@ enum MediaInfoField
     SampleRate
     Channels
     SampleSize
+    Levels
+    SamplePeak
+    RmsLevel
+    FullScale
     Title
     Author
     Bookmarks
@@ -100,6 +104,10 @@ struct MediaInfoStrings
     sampleRate:     string = "Sample rate"
     channels:       string = "Channels"
     sampleSize:     string = "Sample size"
+    levels:         string = "Levels"
+    samplePeak:     string = "Sample peak"
+    rmsLevel:       string = "RMS level"
+    fullScale:      string = "Full scale"
     title:          string = "Title"
     author:         string = "Author"
     bookmarks:      string = "Bookmarks"
@@ -122,6 +130,8 @@ struct MediaInfoStrings
     mono:           string = "mono"
     stereo:         string = "stereo"
     channelCount:   string = "% channels"
+    oneSample:      string = "1 sample"
+    sampleCount:    string = "% samples"
     track:          string = "Track %"
     empty:          string = "None"
     unavailable:    string = "Read error"
@@ -214,6 +224,10 @@ impl MediaInfoRow
         case .SampleRate:     return s.sampleRate
         case .Channels:       return s.channels
         case .SampleSize:     return s.sampleSize
+        case .Levels:         return s.levels
+        case .SamplePeak:     return s.samplePeak
+        case .RmsLevel:       return s.rmsLevel
+        case .FullScale:      return s.fullScale
         case .Title:          return s.title
         case .Author:         return s.author
         case .Bookmarks:      return s.bookmarks
@@ -237,15 +251,19 @@ impl MediaInfoRow
     {
         switch .field
         {
-        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages, .Lines,
-             .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate, .Bitrate, .SampleRate,
-             .Channels, .SampleSize, .Bookmarks, .UnitsPerEm, .Faces, .Meter, .LineEnds:
+        case .Dimensions, .DisplaySize, .AspectRatio, .Depth, .Frames, .Pages,
+             .Lines, .Sections, .Members, .Duration, .FrameRate, .ExactFrameRate,
+             .Bitrate, .SampleRate, .Channels, .SampleSize, .SamplePeak, .RmsLevel,
+             .FullScale, .Bookmarks, .UnitsPerEm, .Faces, .Meter, .LineEnds:
             return true
         }
 
         return false
     }
 }
+
+// Counts samples as a reading says it.
+func sampleCountText(count: u64)->String => count == 1 ? String.from(g_MediaInfoStrings.oneSample) : Format.toString(g_MediaInfoStrings.sampleCount, count)
 
 // Names a channel layout as a reader says it: mono, stereo, or a count.
 func channelsText(channels: u32)->String

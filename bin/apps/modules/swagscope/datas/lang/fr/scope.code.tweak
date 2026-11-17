@@ -3,6 +3,7 @@
 ui_ZoomMenu Zoom…
 ui_HighlightAs Colorer comme %
 ui_Blanks   Afficher les espaces
+ui_TabWidth Largeur des tabulations
 ui_Details  % · UTF-8
 
 err_Read     impossible de lire le fichier source

@@ -85,6 +85,12 @@ func jumpRowText(title: string, value: string, typed: string)->String
     return Format.toString(title, Format.toString("% (%)", value, query))
 }
 
+// Tab stops a reader can choose in text and code, in space advances.
+const TabWidths: [3] s32 = [2, 4, 8]
+
+// Returns the words of the lens row choosing the tab stop `width`, after `title`.
+func tabWidthRowText(title: string, width: s32)->String => Format.toString("% · %", title, width)
+
 // The zoom commands every reading viewer offers in the lens.
 enum ZoomCommand
 {

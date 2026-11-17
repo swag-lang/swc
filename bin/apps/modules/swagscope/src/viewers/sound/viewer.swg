@@ -270,6 +270,50 @@ struct WaveformView
     progress:   f32     // Played fraction, from 0 to 1.
 }
 
+// Levels of a whole recording, measured on the 16-bit samples its waveform is built from.
+struct SoundLevels
+{
+    peak:      u32     // Largest sample magnitude, 32,768 at full scale.
+    squares:   f64     // Sum of the squared samples.
+    samples:   u64     // Samples measured, every channel counted.
+    fullScale: u64     // Samples at the top or bottom of the scale, where a louder signal clips.
+    ceiling:   s16     // Highest value the source can store, once widened to 16 bits.
+}
+
+impl SoundLevels
+{
+    // Folds one sample into the levels.
+    #[Swag.Inline]
+    mtd add(sample: s16)
+    {
+        let value     = cast(s32, sample)
+        let magnitude = cast(u32, value < 0 ? -value : value)
+        .peak    = Math.max(.peak, magnitude)
+        .squares += cast(f64, value) * cast(f64, value)
+        .samples += 1
+        if sample == -32768 or sample >= .ceiling do
+            .fullScale += 1
+    }
+
+    // Returns the sample peak in decibels below full scale.
+    mtd const peakDecibels()->f64 => decibels(cast(f64, .peak) / 32768)
+
+    // Returns the root mean square level in decibels below full scale.
+    mtd const rmsDecibels()->f64 => .samples ? decibels(Math.sqrt(.squares / cast(f64, .samples)) / 32768) : decibels(0)
+}
+
+// Converts an amplitude relative to full scale into the `dBFS` reading the sheet writes, with
+// one decimal; silence has no finite level.
+func decibelsText(value: f64)->String
+{
+    if value == Swag.F64.NegInf do
+        return String.from("−∞ dBFS")
+    return Format.toString("%{f1} dBFS", value > -0.05 ? 0'f64 : value)
+}
+
+// Converts an amplitude relative to full scale into decibels; zero is minus infinity.
+func decibels(amplitude: f64)->f64 => amplitude > 0 ? 20 * Math.log10(amplitude) : Swag.F64.NegInf
+
 // Reduces successive interleaved PCM16 chunks without retaining their borrowed storage.
 struct WaveformReducer
 {
@@ -283,6 +327,7 @@ struct WaveformReducer
     sum:          f64
     sampleCount:  u64
     readyCount:   u64
+    levels:       SoundLevels
 }
 
 impl WaveformReducer
@@ -307,8 +352,13 @@ impl WaveformReducer
             }
 
             var mixed = 0'f32
-            for channel in .channels do
-                mixed += cast(f32, samples[frame * .channels + channel]) / 32768
+            for channel in .channels
+            {
+                let sample = samples[frame * .channels + channel]
+                .levels.add(sample)
+                mixed += cast(f32, sample) / 32768
+            }
+
             let level = Math.abs(mixed / .channels)
             .peak        = Math.max(.peak, level)
             .sum         += level
@@ -405,6 +455,9 @@ struct Panel
     waveformTask:  Swag.Task
     waveformLock:  Swag.Mutex
     waveformBuilt: u64
+    levels:        SoundLevels     // Written by the waveform worker; read once it has finished.
+    levelsRead:    bool            // Whether the whole recording was measured, set with `levels`.
+    levelsShown:   bool            // Whether the sheet has been told the levels are known.
 
     voice:        *Voice?
     timer:        *Timer?
@@ -649,6 +702,11 @@ impl Panel
             return
 
         var reducer = WaveformReducer{&.waveform.samples, frameCount, pointCount, channels}
+
+        // A source narrower than 16 bits is widened by shifting, so its top value sits lower.
+        let storage = .sound.sampleStorageBits()
+        reducer.levels.ceiling = storage < 16 ? cast(s16, 32767 - ((1 << (16 - storage)) - 1)) : 32767
+        var decoded = true
         catch .sound.decodePcm16(func|reducer = &reducer, view = me|(samples: const [..] s16)->bool
         {
             reducer.consume(samples)
@@ -656,7 +714,18 @@ impl Panel
                 view.publishWaveform(reducer.readyCount)
             return not Swag.isCancelled()
         })
+        {
+            decoded = false
+        }
+
         reducer.finish()
+        if decoded and not Swag.isCancelled() and reducer.levels.samples
+        {
+            Sync.scopedLock(&.waveformLock)
+            .levels     = reducer.levels
+            .levelsRead = true
+        }
+
         .publishWaveform(reducer.readyCount)
     }
 
@@ -673,6 +742,13 @@ impl Panel
 
     mtd syncWaveform()
     {
+        // Once the worker has measured the whole recording, the sheet can state its levels.
+        if not .levelsShown and .waveform.samples.count and not .waveformTask.isPending()
+        {
+            .levelsShown = true
+            .refreshDetails()
+        }
+
         let ready = .publishedWaveformCount()
         if ready == .waveform.readyCount do
             return
@@ -1159,6 +1235,16 @@ impl Panel
         data.add(.SampleRate, Format.toString("% Hz", .sound.sampleRateHz()))
         data.add(.Channels, channelsText(cast(u32, .sound.numChannels())))
         data.add(.SampleSize, Format.toString("% bit", .sound.sampleStorageBits()))
+
+        // The levels are known once the waveform worker has read every sample.
+        if .levelsShown and .levelsRead
+        {
+            data.add(.Levels, group: true)
+            data.add(.SamplePeak, decibelsText(.levels.peakDecibels()))
+            data.add(.RmsLevel, decibelsText(.levels.rmsDecibels()))
+            data.add(.FullScale, sampleCountText(.levels.fullScale))
+        }
+
         data.describe(sheet)
     }
 }

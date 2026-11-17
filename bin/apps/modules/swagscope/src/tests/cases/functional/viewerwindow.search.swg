@@ -113,6 +113,26 @@ func completeFind(host: *Testing.HeadlessHost, window: *ViewerWindow)
         let caret = editor.cursorDisplayPosition(editor.selectionStart())
         let top   = editor.scrollPosition().y
         Swag.require(caret.y > top and caret.y <= top + editor.paddedClientRect().height, "the line is out of view")
+
+        // A column after a second colon places the caret on that character of the line; one past
+        // its end stops at the end, and the row says so.
+        for typed, index in [":451:4", ":452:999"]
+        {
+            window.lens.open(typed)
+            host.finishAnimations()
+            let columns = unwrap window.lens.results.sections[0]
+            let column  = index == 0 ? 4'u64 : 44
+            Swag.require(columns.entries[0].title == Format.toString(appStrings().lens_GoToLineColumn, 451 + index, column), columns.entries[0].title)
+            columns.entries[0].run!()
+            window.lens.close()
+            host.finishAnimations()
+            if extension == ".txt" do
+                completeTextReads(&host, assume cast(*PlainText.Panel, view))
+            else do
+                discard host.render(unwrap view)
+            Swag.require(editor.cursorLogicalLineIndex() == 450 + index or extension == ".txt")
+            Swag.require(editor.cursorLogicalCharPos() == column - 1, Format.toString("column %", editor.cursorLogicalCharPos() + 1))
+        }
     }
 }
 

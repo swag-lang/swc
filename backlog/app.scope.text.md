@@ -38,15 +38,14 @@ large-file work without editing, implicit network access, macros or source mutat
 ### app.scope.text.002 — Text navigation has no column, byte-offset, or percentage jump
 
 - Evidence: `:` and a line number in the lens move basic text and code to that line and place the
-  caret on it, and basic text names the cursor's line in the whole file once the window is
+  caret on it; `:line:column` places it on that character of the line, counted in characters from
+  1 and stopped at the line's end, the row naming the column reached. Basic text names the cursor's line in the whole file once the window is
   counted (`Viewer.LineCounter.offsetOfLine` and `lineAt`). The lens resolves the line in the first
   `LensFileLimit` bytes of the file by counting byte 10, so a line further down is not offered and a
   UTF-16 or UTF-32 file is numbered wrongly; a window more than a few megabytes past the last
-  count names no line until the gutter is shown; columns, byte offsets and percentages cannot be
-  typed.
+  count names no line until the gutter is shown; byte offsets and percentages cannot be typed.
 - Next: let the active viewer resolve a typed line itself through its encoding-aware
-  `LineCounter`, and extend the `:` grammar with `line:column`, an absolute byte offset and a
-  percentage.
+  `LineCounter`, and extend the `:` grammar with an absolute byte offset and a percentage.
 - Done when: jumps work before a full line index exists, report exact versus estimated
   positions, align to an encoding boundary, and keep line/column/offset visible for the caret.
 
@@ -171,8 +170,11 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.042 — Text layout cannot control tab width, wrap column, or reading ruler
 
-- Evidence: Basic text exposes wrap on/off and zoom only. A tab always inherits the widget default,
-  wrapped lines follow the viewport rather than a chosen column, and there is no column ruler,
+- Evidence: Basic text exposes wrap on/off, zoom and the tab stops. Basic text and Code place a tab
+  stop every 2, 4 or 8 spaces, chosen in the lens when a query is typed and, for basic text, in its
+  options; the choice follows the reader from file to file within a session but is not saved and
+  is not read from the file or an `.editorconfig`. Wrapped lines follow the viewport rather than a
+  chosen column, and there is no column ruler,
   horizontal guide, line-spacing choice, or explicit fixed-font identity to explain alignment.
 - Next: define presentation-only text layout settings shared with Code, keeping every source
   position independent of visual lines and glyph metrics.

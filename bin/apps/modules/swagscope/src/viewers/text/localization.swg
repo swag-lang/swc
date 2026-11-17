@@ -13,6 +13,7 @@ struct Texts
     ui_Wrap:         string = "Wrap Long Lines"        // Option folding long lines into the view; Ctrl+W also switches it.
     ui_Numbers:      string = "Line Numbers"           // Option numbering the lines in a gutter.
     ui_Blanks:       string = "Show Whitespace"        // Option marking each space with a dot and each tabulation with an arrow.
+    ui_TabWidth:     string = "Tab Width"              // Option placing a tab stop every 2, 4 or 8 spaces.
     ui_Encoding:     string = "Character Encoding"     // Option choosing how the bytes are read as text.
     ui_ZoomMenu:     string = "Zoom…"                  // Tooltip of the zoom value menu.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.

@@ -518,3 +518,62 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     window.lens.close()
     host.finishAnimations()
 }
+
+// Writes `samples` as a 16-bit mono WAV at 8 kHz.
+func pcm16Wav(samples: const [..] s16)->Array'u8
+{
+    var result: #returntype
+    result.resize(44 + samples.count * 2)
+    for value, index in TinyWav[0 until 44] do
+        result[index] = value
+    writeU32(&result, 4, cast(u32, 36 + samples.count * 2))
+    writeU32(&result, 28, 16_000)     // Bytes per second.
+    result[32] = 2      // Bytes per frame.
+    result[34] = 16     // Bits per sample.
+    writeU32(&result, 40, cast(u32, samples.count * 2))
+    for sample, index in samples do
+        writeU16(&result, 44 + index * 2, cast #bit (u16, sample))
+    return result
+}
+
+// Opens `bytes` as a WAV, measures it in full, and returns what the information sheet reads.
+func soundInformation(bytes: const [..] u8)->String
+{
+    let fileName = Gui.Testing.tempFilePath("scope-sound-levels-", ".wav")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, bytes)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 360)
+    var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Sound.Panel, result.view)
+    waitForSoundOpen(&host, view)
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    Swag.require(not Utf8.contains(sheet.text(), "Sample peak"))
+    finishWaveform(view)
+    view.describeInformation(sheet)
+    return sheet.text()
+}
+
+// Once the waveform worker has read every sample, the sheet states the levels of the whole
+// recording: its sample peak, its RMS level and how many samples touch full scale, where an 8-bit
+// source tops out lower than a 16-bit one.
+#test
+{
+    let halfBytes = pcm16Wav([16384's16, -16384, 0, 0])
+    let half      = soundInformation(halfBytes.toSlice())
+    Swag.require(Utf8.contains(half, "Levels"), half)
+    Swag.require(Utf8.contains(half, "Sample peak\n-6.0 dBFS"), half)
+    Swag.require(Utf8.contains(half, "RMS level\n-9.0 dBFS"), half)
+    Swag.require(Utf8.contains(half, "Full scale\n0 samples"), half)
+
+    let full = soundInformation(TinyWav)
+    Swag.require(Utf8.contains(full, "Sample peak\n0.0 dBFS"), full)
+    Swag.require(Utf8.contains(full, "RMS level\n-3.0 dBFS"), full)
+    Swag.require(Utf8.contains(full, "Full scale\n2 samples"), full)
+
+    let silentBytes = pcm16Wav([0's16, 0, 0, 0])
+    let silent      = soundInformation(silentBytes.toSlice())
+    Swag.require(Utf8.contains(silent, "Sample peak\n−∞ dBFS"), silent)
+}

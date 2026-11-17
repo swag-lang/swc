@@ -69,8 +69,12 @@ the professional listening and inspection surface; decoder and output-engine wor
 
 ### app.scope.audio.007 — Audio has no loudness, peak, clipping, silence, or DC analysis
 
-- Evidence: the waveform is visual only. It reports neither sample/true peak nor RMS/LUFS, channel
-  balance, clipping runs, silence ranges, DC offset, crest factor, or analysis scope.
+- Evidence: the worker that builds the waveform measures every decoded sample as it goes, and once
+  the whole recording has been read the information sheet states its sample peak and RMS level in
+  dBFS and how many samples sit at full scale, the top of an 8-bit source counted where widening
+  puts it. The levels are measured on the 16-bit samples the decoder delivers, every channel
+  together, for the whole file only. There is no true peak, LUFS, per-channel balance, clipping
+  run, silence range, DC offset or crest factor, and a reading does not navigate to the waveform.
 - Next: implement cancellable exact peak/RMS/DC and clipping scans, then add a standards-based
   integrated/short-term loudness pass where channel layout is known.
 - Done when: units and thresholds are explicit, whole-file versus selection scope is visible,

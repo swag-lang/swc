@@ -12,8 +12,9 @@ continues to own media frames and codecs, not desktop access.
   native Windows and X11 tests exercise opening, capture and recovery. The API reports unchanged
   pixels and can leave the caller's target untouched when `copyUnchanged` is false, avoiding a
   cached-frame copy for a recorder that will emit a held picture. `Source` exposes the monotonic
-  capture-completion time and age of its latest fresh frame (zero before the first frame or after a
-  successful reopen), opens a monitor by enumeration index or `Env.Monitor` physical-bounds snapshot,
+  capture-completion time and age of its latest fresh frame (zero before the first frame, after a
+  successful reopen, or for a frame less than one microsecond old), opens a monitor by enumeration index
+  or `Env.Monitor` physical-bounds snapshot,
   and opens the virtual-desktop bounds including gaps.
   It also exposes DXGI presentation time in the monotonic clock (zero on backends without that
   timestamp), supports cursor composition on X11 and Windows, and can reset cumulative metrics

@@ -109,7 +109,7 @@
 <tbody>
 <tr><td class="code-type"><a href="#Screen_Source_captureOptions">Source.captureOptions</a></td><td><p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Screen_Source_frameAgeMicroseconds">Source.frameAgeMicroseconds</a></td><td><p>Returns the age of the latest delivered frame in monotonic microseconds; zero means no frame has been delivered.</p>
+<tr><td class="code-type"><a href="#Screen_Source_frameAgeMicroseconds">Source.frameAgeMicroseconds</a></td><td><p>Returns the age of the latest delivered frame in monotonic microseconds. Zero means no frame has been delivered</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_grabInto">Source.grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
 </td></tr>
@@ -168,7 +168,7 @@
 <tbody>
 <tr><td class="code-type"><a href="#Screen_Source_captureOptions">captureOptions</a></td><td><p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Screen_Source_frameAgeMicroseconds">frameAgeMicroseconds</a></td><td><p>Returns the age of the latest delivered frame in monotonic microseconds; zero means no frame has been delivered.</p>
+<tr><td class="code-type"><a href="#Screen_Source_frameAgeMicroseconds">frameAgeMicroseconds</a></td><td><p>Returns the age of the latest delivered frame in monotonic microseconds. Zero means no frame has been delivered</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Screen_Source_grabInto">grabInto</a></td><td><p>Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.</p>
 </td></tr>
@@ -231,7 +231,7 @@
 </td></tr>
 <tr><td id="Screen_SourceMetrics_readbackMicroseconds" class="code-type">readbackMicroseconds</td><td class="code-type">u64</td><td><p>CPU time submitting and waiting for native pixel readbacks.</p>
 </td></tr>
-<tr><td id="Screen_SourceMetrics_unchangedFrames" class="code-type">unchangedFrames</td><td class="code-type">u64</td><td><p>Polls with no newer desktop pixels.</p>
+<tr><td id="Screen_SourceMetrics_unchangedFrames" class="code-type">unchangedFrames</td><td class="code-type">u64</td><td><p>Polls where a backend detected no newer desktop pixels.</p>
 </td></tr>
 </tbody>
 </table>
@@ -258,13 +258,13 @@
 </table>
 <h3 id="functions">Functions</h3>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_captureOptions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.captureOptions</span> <a class="api-item-permalink" href="#Screen_Source_captureOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L424">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_captureOptions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.captureOptions</span> <a class="api-item-permalink" href="#Screen_Source_captureOptions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L425">src</a></div>
 <p>Returns the physical desktop rectangle and cursor policy selected when this source was opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">captureOptions</span>()-&gt;<span class="SCst"><a href="#Screen_SourceOptions">SourceOptions</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_frameAgeMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.frameAgeMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_frameAgeMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L379">src</a></div>
-<p>Returns the age of the latest delivered frame in monotonic microseconds; zero means no frame has been delivered. Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.</p>
+<div class="api-item api-item-func"><span id="Screen_Source_frameAgeMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.frameAgeMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_frameAgeMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L380">src</a></div>
+<p>Returns the age of the latest delivered frame in monotonic microseconds. Zero means no frame has been delivered or less than one microsecond has elapsed; check lastFrameCaptureMicroseconds() to distinguish those cases. Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">frameAgeMicroseconds</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
@@ -281,17 +281,17 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lastFrameCaptureMicroseconds</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_lastFramePresentationMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.lastFramePresentationMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_lastFramePresentationMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L383">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_lastFramePresentationMicroseconds" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.lastFramePresentationMicroseconds</span> <a class="api-item-permalink" href="#Screen_Source_lastFramePresentationMicroseconds" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L384">src</a></div>
 <p>Returns the display presentation time for the latest acquired frame, when the backend reports it. The value shares the monotonic microsecond clock; zero means the backend has no presentation time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">lastFramePresentationMicroseconds</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L386">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_metrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.metrics</span> <a class="api-item-permalink" href="#Screen_Source_metrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L387">src</a></div>
 <p>Returns cumulative native and composition timing since this source was opened.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">metrics</span>()-&gt;<span class="SCst"><a href="#Screen_SourceMetrics">SourceMetrics</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L444">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.opDrop</span> <a class="api-item-permalink" href="#Screen_Source_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L445">src</a></div>
 <p>Releases the native capture handles and cached frames on the opening thread.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
@@ -322,12 +322,12 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">openMonitorAt</span>(point: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>, includeCursor: <span class="STpe">bool</span> = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Screen_Source">Source</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L427">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_reopen" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.reopen</span> <a class="api-item-permalink" href="#Screen_Source_reopen" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L428">src</a></div>
 <p>Reopens a source after a display change or native access loss.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reopen</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Screen_Source_resetMetrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.resetMetrics</span> <a class="api-item-permalink" href="#Screen_Source_resetMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L415">src</a></div>
+<div class="api-item api-item-func"><span id="Screen_Source_resetMetrics" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Source.resetMetrics</span> <a class="api-item-permalink" href="#Screen_Source_resetMetrics" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/screen/src/source.swg#L416">src</a></div>
 <p>Resets cumulative acquisition and composition counters without reopening the source. The native capture handles, cached frame and last frame capture time are preserved.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetMetrics</span>()</span></div>
 </section>
@@ -606,7 +606,7 @@
 "v|Screen.SourceMetrics.outputMicroseconds|Screen_SourceMetrics_outputMicroseconds|Native cache-output time, zero for current backends.",
 "v|Screen.SourceMetrics.partialFrames|Screen_SourceMetrics_partialFrames|Frames read through a region smaller than the selected output.",
 "v|Screen.SourceMetrics.readbackMicroseconds|Screen_SourceMetrics_readbackMicroseconds|CPU time submitting and waiting for native pixel readbacks.",
-"v|Screen.SourceMetrics.unchangedFrames|Screen_SourceMetrics_unchangedFrames|Polls with no newer desktop pixels.",
+"v|Screen.SourceMetrics.unchangedFrames|Screen_SourceMetrics_unchangedFrames|Polls where a backend detected no newer desktop pixels.",
 "s|Screen.SourceOptions|Screen_SourceOptions|One physical desktop area to capture; dimensions must be positive.",
 "v|Screen.SourceOptions.height|Screen_SourceOptions_height|Height in physical pixels.",
 "v|Screen.SourceOptions.includeCursor|Screen_SourceOptions_includeCursor|Composites the pointer over the captured desktop pixels.",
@@ -614,7 +614,7 @@
 "v|Screen.SourceOptions.x|Screen_SourceOptions_x|Left edge in physical desktop pixels.",
 "v|Screen.SourceOptions.y|Screen_SourceOptions_y|Top edge in physical desktop pixels.",
 "f|Screen.Source.captureOptions|Screen_Source_captureOptions|Returns the physical desktop rectangle and cursor policy selected when this source was opened.",
-"f|Screen.Source.frameAgeMicroseconds|Screen_Source_frameAgeMicroseconds|Returns the age of the latest delivered frame in monotonic microseconds; zero means no frame has been delivere...",
+"f|Screen.Source.frameAgeMicroseconds|Screen_Source_frameAgeMicroseconds|Returns the age of the latest delivered frame in monotonic microseconds. Zero means no frame has been delivere...",
 "f|Screen.Source.grabInto|Screen_Source_grabInto|Writes a bottom-up BGRA8 image, returning true when desktop pixels or the composed cursor changed.",
 "f|Screen.Source.lastFrameCaptureMicroseconds|Screen_Source_lastFrameCaptureMicroseconds|Returns the monotonic capture-completion time of the latest fresh frame, or zero before one is acquired.",
 "f|Screen.Source.lastFramePresentationMicroseconds|Screen_Source_lastFramePresentationMicroseconds|Returns the display presentation time for the latest acquired frame, when the backend reports it.",

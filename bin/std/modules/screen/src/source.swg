@@ -59,7 +59,7 @@ struct SourceOptions
 struct SourceMetrics
 {
     public acquiredFrames:       u64 // Desktop frames returned by the native source.
-    public unchangedFrames:      u64 // Polls with no newer desktop pixels.
+    public unchangedFrames:      u64 // Polls where a backend detected no newer desktop pixels.
     public coalescedUpdates:      u64 // Desktop updates combined before acquisition, when reported by the source.
     public acquireMicroseconds:  u64 // Time waiting for a native frame.
     public maxAcquireMicroseconds: u64 // Longest single native acquisition wait.
@@ -374,7 +374,8 @@ impl Source
     // A successful reopen resets it to zero; failed attempts preserve it.
     mtd const lastFrameCaptureMicroseconds()->u64 => .lastFrameCaptureTime
 
-    // Returns the age of the latest delivered frame in monotonic microseconds; zero means no frame has been delivered.
+    // Returns the age of the latest delivered frame in monotonic microseconds. Zero means no frame has been delivered
+    // or less than one microsecond has elapsed; check lastFrameCaptureMicroseconds() to distinguish those cases.
     // Cursor-only changes count as delivered frames when cursor composition is enabled. A successful reopen clears the age.
     mtd const frameAgeMicroseconds()->u64 => frameAgeAt(Time.monotonicMicroseconds(), .lastFrameCaptureTime)
 

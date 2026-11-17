@@ -84,9 +84,11 @@ remains in [std.truetype.md](std.truetype.md).
 
 ### app.scope.font.005 — A glyph cell has no detail inspector
 
-- Evidence: each cell paints a glyph and `U+` label only. Glyph ID/name, advance, bearings, bounding
-  box, contours/points, components, instructions, anchors, color layers, substitutions, and mapped
-  Unicode values cannot be inspected.
+- Evidence: each cell paints a glyph and `U+` label. A click on a cell marks its character, as the
+  lens's Show command does; the information sheet then gives its code point and glyph index, and
+  the lens copies it. There is no keyboard selection, and glyph name, advance, bearings, bounding
+  box, contours/points, components, instructions, anchors, color layers and substitutions cannot be
+  inspected.
 - Next: make map cells selectable and expose available outline/metric/mapping facts in a side panel,
   with unsupported table families explicitly labelled.
 - Done when: pointer and keyboard selection report glyph identity, mappings, advance/bearings,

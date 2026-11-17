@@ -70,6 +70,8 @@ enum MediaInfoField
     ControlCharacters
     Replacements
     Transparency
+    Character
+    GlyphIndex
     Bookmarks
     TextLayer
     Style
@@ -156,6 +158,8 @@ struct MediaInfoStrings
     controls:       string = "Control characters"
     replacements:   string = "Unreadable characters (U+FFFD)"
     transparency:   string = "Transparency"
+    character:      string = "Character"
+    glyphIndex:     string = "Glyph index"
     bookmarks:      string = "Bookmarks"
     textLayer:      string = "Text layer"
     style:          string = "Style"
@@ -302,6 +306,8 @@ impl MediaInfoRow
         case .ControlCharacters: return s.controls
         case .Replacements:      return s.replacements
         case .Transparency:      return s.transparency
+        case .Character:         return s.character
+        case .GlyphIndex:        return s.glyphIndex
         case .Bookmarks:         return s.bookmarks
         case .TextLayer:         return s.textLayer
         case .Style:             return s.style

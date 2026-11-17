@@ -145,6 +145,8 @@ struct DocumentView
     pageEnd:    u32
     hasNext:    bool
     shown:      rune     // Character the reader asked to see, marked in its cell; zero for none.
+
+    sigMarked: SigArray'func||(*DocumentView)     // Emitted when a click marks another character.
 }
 
 private impl DocumentView
@@ -379,6 +381,30 @@ impl IWnd for DocumentView
         }
     }
 
+    // A click on a cell of the map marks its character.
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind != .Pressed or evt.button != .Left
+        {
+            evt.accepted = false
+            return
+        }
+
+        var point = .surfaceToLocal(evt.surfacePos)
+        point.x += .scrollPos.x
+        point.y += .scrollPos.y
+        let index = .cellAt(point)
+        if index >= .cells.count or .cells[index].character == .shown
+        {
+            evt.accepted = false
+            return
+        }
+
+        .shown = .cells[index].character
+        .invalidate()
+        .sigMarked.call(me)
+    }
+
     mtd impl onPaint(evt: *PaintEvent)
     {
         // The paint transform already carries the scroll offset: this view *is* the viewport, and
@@ -555,6 +581,23 @@ impl DocumentView
             .pageIndex = index
         .loadPage(.pageStarts[.pageIndex])
         .revealCharacterMap()
+    }
+
+    // Returns the cell of the loaded page under `point`, in document coordinates, or `Swag.U64.Max`
+    // between cells or outside the map.
+    mtd cellAt(point: Math.Point)->u64
+    {
+        let pitch = .layout.cellHeight + CellGap
+        if point.y < .layout.gridTop or point.x < .layout.gridLeft do
+            return Swag.U64.Max
+        let row    = cast(u64, (point.y - .layout.gridTop) / pitch)
+        let column = cast(u64, (point.x - .layout.gridLeft) / (CellWidth + CellGap))
+        if column >= .layout.columns or
+           point.y - .layout.gridTop - cast(f32, row) * pitch > .layout.cellHeight or
+           point.x - .layout.gridLeft - cast(f32, column) * (CellWidth + CellGap) > CellWidth do
+            return Swag.U64.Max
+        let index = row * .layout.columns + column
+        return index < .cells.count ? index : Swag.U64.Max
     }
 
     // Shows the page holding `character` and marks its cell in the middle of the view. A character

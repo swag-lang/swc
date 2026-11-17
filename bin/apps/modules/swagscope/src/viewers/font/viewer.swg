@@ -193,7 +193,7 @@ private impl Panel
     }
 
     // Gives the lens the sample, the pages of the glyph grid and the blocks it can jump to.
-    mtd describeLens(entries: *Viewer.LensEntries)
+    internal mtd describeLens(entries: *Viewer.LensEntries)
     {
         let strings = texts()
         entries.add(strings.ui_EditSample, .Edit, func|view = me|()
@@ -219,6 +219,19 @@ private impl Panel
                     },
                     disabled: not .nextButton.isEnabled(),
                     shortcut: Input.formatKeyShortcut(.Control, .PageDown))
+
+        // The character marked in the map, to paste elsewhere.
+        if .document != null and .document.shown
+        {
+            var text: String
+            text.append(.document.shown)
+            entries.add(Format.toString(strings.ui_CopyCharacter, text), .Copy, func|view = me|()
+            {
+                var marked: String
+                marked.append(view.document.shown)
+                Clipboard.setString(marked)
+            })
+        }
 
         // A typed character, or its code point after `U+`, is a cell of the map to go to.
         let character = queriedCharacter(entries.query)
@@ -318,6 +331,7 @@ private impl IWnd for Panel
 
         .document            = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
         .document.pageStarts = #move content.pageStarts
+        .document.sigMarked  += func|view = me|(_) { view.services.showDetails(view, view.details) }
         content.face         = null
         .details             = #move content.details
         .refreshPageCommands()
@@ -456,6 +470,17 @@ impl Panel
         {
             let count = .blockCoverage(index)
             data.addText(names[index], count ? characterCountText(count) : String.from(texts().ui_NotCovered))
+        }
+
+        // The character marked in the map: its code point and the glyph the face draws it with.
+        let shown = .document.shown
+        if shown
+        {
+            var text: String
+            text.append(shown)
+            data.add(.Character, group: true)
+            data.addText("Unicode", Format.toString("U+%{X04} · %", cast(u32, shown), text))
+            data.add(.GlyphIndex, Format.toString("%", face.glyphIndex(shown)))
         }
 
         data.describe(sheet)

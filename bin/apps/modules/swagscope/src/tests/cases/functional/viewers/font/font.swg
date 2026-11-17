@@ -145,3 +145,41 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     Swag.require(Typeface.embeddingText(0) == "installable" and Typeface.embeddingText(0x0104) == "preview and print · no subsetting")
     Swag.require(Typeface.embeddingText(0x000C) == "editable" and Typeface.weightText(680) == "680 · Bold")
 }
+
+// A click on a cell of the map marks its character; the information sheet then gives its code
+// point and glyph, and the lens copies it.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fontFixturePath(), false)
+    let view   = assume cast(*Typeface.Panel, window.instances[window.activeChoiceIndex].view)
+    let doc    = view.document
+    doc.showCharacter('A')
+    discard host.render(&host.surfaceWnd)
+    doc.shown = 0
+
+    // The cell of `A` is found back from a point inside it, as a click reads it.
+    var index = Swag.U64.Max
+    for cell, at in doc.cells where cell.character == 'A' do
+        index = at
+    Swag.require(index != Swag.U64.Max)
+    let pitch = doc.layout.cellHeight + Typeface.CellGap
+    let point = Math.Point{doc.layout.gridLeft + cast(f32, index % doc.layout.columns) * (Typeface.CellWidth + Typeface.CellGap) + 10,
+                           doc.layout.gridTop + cast(f32, index / doc.layout.columns) * pitch + 10}
+    Swag.require(doc.cellAt(point) == index and doc.cellAt({doc.layout.gridLeft - 4, point.y}) == Swag.U64.Max)
+
+    doc.shown = 'A'
+    let sheet = InfoSheet.create(&host.root)
+    view.describeInformation(sheet)
+    let text = sheet.text()
+    Swag.require(Utf8.contains(text, "Unicode\nU+0041 · A") and Utf8.contains(text, "Glyph index\n"), text)
+
+    var results: Lens.Results
+    var entries = Viewer.LensEntries.create(&results, "Font", host.theme)
+    entries.query = "copy"
+    view.describeLens(&entries)
+    var found = false
+    for &entry in results.sections[0]!.entries where entry.title == Format.toString(Typeface.texts().ui_CopyCharacter, "A") do
+        found = true
+    Swag.require(found)
+}

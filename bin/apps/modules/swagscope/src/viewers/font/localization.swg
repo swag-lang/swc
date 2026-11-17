@@ -23,6 +23,7 @@ struct Texts
     ui_NoCharacters:      string = "No mapped characters"
     ui_NotCovered:        string = "None"     // Reading of a Unicode block the face maps no character of.
     ui_ShowCharacter:     string = "Show % in the Character Map"     // Lens row going to the cell of the character typed, or of its U+ code point.
+    ui_CopyCharacter:     string = "Copy Character %"     // Lens command copying the character marked in the map.
     ui_NotInFont:         string = "Not in this font"     // Faint reading of a typed character the face does not map.
     ui_Regular:           string = "Regular"
 

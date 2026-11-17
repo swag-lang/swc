@@ -36,3 +36,4 @@ ui_EmbedPreview       aperçu et impression
 ui_EmbedEditable      modifiable
 ui_EmbedNoSubset      sans sous-ensemble
 ui_EmbedBitmap        bitmaps seulement
+ui_CopyCharacter      Copier le caractère %

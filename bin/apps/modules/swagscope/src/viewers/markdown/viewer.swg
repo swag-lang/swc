@@ -657,11 +657,8 @@ func createViewer(host: Viewer.Host)
         case KeyEvent as key where zoomButton.handleHistoryKey(key):
             return true
 
-        case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
-            if mouse.delta.y > 0 do
-                zoomButton.applyZoom(Viewer.zoomIn(zoomButton.zoomPercent))
-            elif mouse.delta.y < 0 do
-                zoomButton.applyZoom(Viewer.zoomOut(zoomButton.zoomPercent))
+        case MouseEvent as mouse where Viewer.isZoomWheel(mouse):
+            zoomButton.applyZoom(Viewer.zoomAfterWheel(mouse, zoomButton.zoomPercent))
             return true
 
         case NotifyEvent as notification where notification.kind == .LanguageChanged:

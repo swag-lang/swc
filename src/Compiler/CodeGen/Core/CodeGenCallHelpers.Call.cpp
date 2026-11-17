@@ -1648,7 +1648,7 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
 
     if (calleePayload)
     {
-        const ScopedDebugSource debugSource(builder, calleePayload->sourceCodeRef);
+        const ScopedDebugSource debugSource(builder, *calleePayload);
         CodeGenNodePayload      callablePayload = *calleePayload;
         TypeRef                 callableTypeRef = CodeGenExprView::payloadTypeRef(codeGen, callablePayload, calleeRef);
         CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, callablePayload, callableTypeRef);

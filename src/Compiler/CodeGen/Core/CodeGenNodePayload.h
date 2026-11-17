@@ -5,6 +5,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class WarningPolicy;
+
 struct CodeGenNodePayload : CodeGenLoweringPayload
 {
     enum class StorageKind : uint8_t
@@ -15,8 +17,10 @@ struct CodeGenNodePayload : CodeGenLoweringPayload
 
     MicroReg      reg;
     SourceCodeRef sourceCodeRef = SourceCodeRef::invalid();
-    TypeRef       typeRef       = TypeRef::invalid();
-    StorageKind   storageKind   = StorageKind::Value;
+    // Borrowed from the semantic owner until deferred value materialization completes.
+    const WarningPolicy* sourceWarningPolicy = nullptr;
+    TypeRef              typeRef             = TypeRef::invalid();
+    StorageKind          storageKind         = StorageKind::Value;
 
     bool materializedPointerLikeValue = false;
     bool runtimeStorageOverridden     = false;

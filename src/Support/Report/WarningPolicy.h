@@ -5,6 +5,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct ByteArray;
+
 // One layer of warning decisions. Three layers exist: the command line, the module build
 // configuration, and the '#[Swag.Warning]' attributes in scope where a warning is raised.
 // A layer holds at most one blanket decision and at most one decision per named warning.
@@ -19,6 +21,7 @@ public:
     static constexpr std::string_view ALL = "all";
 
     void reset();
+    void appendCacheIdentity(ByteArray& identity) const;
     bool empty() const { return !blanketLevel_.has_value() && levels_.empty(); }
 
     void setBlanketLevel(WarningLevel level) { blanketLevel_ = level; }

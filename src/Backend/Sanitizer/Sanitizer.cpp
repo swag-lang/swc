@@ -16,6 +16,8 @@
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -633,7 +635,8 @@ void Sanitizer::walkChain(uint32_t head, SanitizerState cur, const std::span<con
         transferCallTarget_ = nullptr;
         if (def.flags.has(MicroInstrFlagsE::IsCallInstruction))
             transferCallTarget_ = callTargets_.find(instRef);
-        currentCallTarget_ = transferCallTarget_;
+        currentCallTarget_     = transferCallTarget_;
+        currentInstructionRef_ = instRef;
 
         if (!checks.empty())
         {
@@ -2454,16 +2457,38 @@ void Sanitizer::report(const MicroInstr& inst, const DiagnosticId id, const std:
 
 void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArguments& arguments, const std::span<const ReportNote> notes)
 {
-    const SourceCodeRef& codeRef = inst.debugSourceInfo.sourceCodeRef;
+    const SourceCodeRef& codeRef  = inst.debugSourceInfo.sourceCodeRef;
+    const WarningPolicy* policy   = context_.builder->sourceWarningPolicy(currentInstructionRef_);
+    DiagnosticSeverity   severity = Diagnostic::diagIdSeverity(id);
+    if (severity == DiagnosticSeverity::Warning)
+    {
+        WarningLevelQuery query;
+        query.id       = id;
+        query.cmdLine  = &ctx().cmdLine().warningPolicy;
+        query.buildCfg = &ctx().compiler().warningPolicy();
+        if (policy)
+        {
+            query.sourceBlanketLevel = policy->blanketLevel();
+            query.sourceLevel        = policy->levelOf(id);
+        }
+        const WarningLevel level = resolveWarningLevel(query);
+        if (level == WarningLevel::Disable)
+            return;
+        if (level == WarningLevel::Error)
+            severity = DiagnosticSeverity::Error;
+    }
 
     // The same source location can be reached by several paths and can lower to several
-    // instructions; report each (location, diagnostic) pair at most once.
+    // instructions; report each (location, diagnostic) pair once per effective severity.
+    // A warning in one expansion cannot hide an error requested in another.
     const uint64_t key = (static_cast<uint64_t>(codeRef.srcViewRef.get()) << 40) ^ (static_cast<uint64_t>(codeRef.tokRef.get()) << 8) ^ static_cast<uint64_t>(id);
-    reported_ |= Diagnostic::diagIdSeverity(id) == DiagnosticSeverity::Error;
+    reported_ |= severity == DiagnosticSeverity::Error;
     if (!reportedLocations_)
         reportedLocations_.emplace();
-    if (!reportedLocations_->insert(key).second)
+    const auto [found, inserted] = reportedLocations_->try_emplace(key, severity);
+    if (!inserted && (found->second == severity || found->second == DiagnosticSeverity::Error))
         return;
+    found->second = severity;
 
     ResolvedDebugSourceInfo resolved;
     if (!tryResolveDebugSourceInfo(*context_.taskContext, resolved, inst.debugSourceInfo))
@@ -2471,11 +2496,13 @@ void Sanitizer::report(const MicroInstr& inst, DiagnosticId id, const ReportArgu
 
     const FileRef fileRef = resolved.sourceFile ? resolved.sourceFile->ref() : FileRef::invalid();
     Diagnostic    diag    = Diagnostic::get(id, fileRef);
+    if (policy && Diagnostic::diagIdSeverity(id) == DiagnosticSeverity::Warning)
+        diag.setSourceWarningLevels(policy->blanketLevel(), policy->levelOf(id));
     if (!arguments.sym.empty())
         diag.last().addArgument(Diagnostic::ARG_SYM, arguments.sym);
     if (!arguments.what.empty())
         diag.last().addArgument(Diagnostic::ARG_WHAT, arguments.what);
-    diag.last().addSpan(resolved.codeRange, "", Diagnostic::diagIdSeverity(id));
+    diag.last().addSpan(resolved.codeRange, "", severity);
     for (const ReportNote& note : notes)
     {
         ResolvedDebugSourceInfo resolvedNote;

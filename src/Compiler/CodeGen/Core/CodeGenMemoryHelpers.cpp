@@ -60,12 +60,12 @@ namespace
         return MicroOptimizationLimits::configured(buildCfg.optimizer.unroll.memoryBytes, MicroOptimizationLimits::Memory::K_DEFAULT_UNROLL_MEM_LIMIT);
     }
 
-    void emitMemCopyChunk(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid())
+    void emitMemCopyChunk(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid(), std::optional<const WarningPolicy*> sourcePolicy = std::nullopt)
     {
         if (chunkSize == 16)
         {
             {
-                const ScopedDebugSource debugSource(builder, sourceCodeRef);
+                const ScopedDebugSource debugSource(builder, sourceCodeRef, sourcePolicy);
                 builder.emitLoadRegMem(tmpFloatReg, srcReg, offset, MicroOpBits::B128);
             }
             {
@@ -77,7 +77,7 @@ namespace
 
         const MicroOpBits opBits = microOpBitsFromChunkSize(chunkSize);
         {
-            const ScopedDebugSource debugSource(builder, sourceCodeRef);
+            const ScopedDebugSource debugSource(builder, sourceCodeRef, sourcePolicy);
             builder.emitLoadRegMem(tmpIntReg, srcReg, offset, opBits);
         }
         {
@@ -86,7 +86,7 @@ namespace
         }
     }
 
-    void emitMemCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid(), uint64_t startOffset = 0)
+    void emitMemCopyUnrolled(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid(), uint64_t startOffset = 0, std::optional<const WarningPolicy*> sourcePolicy = std::nullopt)
     {
         uint64_t offset = startOffset;
         uint32_t remain = sizeInBytes;
@@ -95,7 +95,7 @@ namespace
         {
             while (remain >= 16)
             {
-                emitMemCopyChunk(builder, dstReg, srcReg, offset, 16, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+                emitMemCopyChunk(builder, dstReg, srcReg, offset, 16, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
                 offset += 16;
                 remain -= 16;
             }
@@ -103,30 +103,30 @@ namespace
 
         while (remain >= 8)
         {
-            emitMemCopyChunk(builder, dstReg, srcReg, offset, 8, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+            emitMemCopyChunk(builder, dstReg, srcReg, offset, 8, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
             offset += 8;
             remain -= 8;
         }
 
         if (remain >= 4)
         {
-            emitMemCopyChunk(builder, dstReg, srcReg, offset, 4, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+            emitMemCopyChunk(builder, dstReg, srcReg, offset, 4, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
             offset += 4;
             remain -= 4;
         }
 
         if (remain >= 2)
         {
-            emitMemCopyChunk(builder, dstReg, srcReg, offset, 2, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+            emitMemCopyChunk(builder, dstReg, srcReg, offset, 2, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
             offset += 2;
             remain -= 2;
         }
 
         if (remain)
-            emitMemCopyChunk(builder, dstReg, srcReg, offset, 1, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+            emitMemCopyChunk(builder, dstReg, srcReg, offset, 1, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
     }
 
-    void emitMemCopyLoop(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, MicroReg countReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid())
+    void emitMemCopyLoop(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, MicroReg countReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid(), std::optional<const WarningPolicy*> sourcePolicy = std::nullopt)
     {
         const uint32_t chunkCount = sizeInBytes / chunkSize;
         const uint32_t tailSize   = sizeInBytes % chunkSize;
@@ -144,7 +144,7 @@ namespace
         builder.emitLoadRegImm(countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.placeLabel(loopLabel);
         {
-            const ScopedDebugSource debugSource(builder, sourceCodeRef);
+            const ScopedDebugSource debugSource(builder, sourceCodeRef, sourcePolicy);
             builder.emitLoadAmcRegMem(tmpReg, chunkBits, srcReg, countReg, 1, 0, MicroOpBits::B64);
         }
         {
@@ -156,7 +156,7 @@ namespace
         builder.emitJumpToLabel(MicroCond::NotZero, MicroOpBits::B32, loopLabel);
 
         if (tailSize)
-            emitMemCopyUnrolled(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, loopBytes);
+            emitMemCopyUnrolled(builder, dstReg, srcReg, tailSize, false, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, loopBytes, sourcePolicy);
     }
 
     void emitMemCopyUnrolledBackward(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint32_t sizeInBytes, bool allow128, MicroReg tmpIntReg, MicroReg tmpFloatReg)
@@ -759,7 +759,7 @@ void CodeGenMemoryHelpers::loadOperandToRegister(MicroReg& outReg, CodeGen& code
     MicroBuilder& builder = codeGen.builder();
     if (payload.isAddress())
     {
-        const ScopedDebugSource debugSource(builder, payload.sourceCodeRef);
+        const ScopedDebugSource debugSource(builder, payload);
         builder.emitLoadRegMem(outReg, payload.reg, 0, opBits);
     }
     else
@@ -930,7 +930,7 @@ void CodeGenMemoryHelpers::storePayloadToAddress(CodeGen& codeGen, MicroReg dstR
     MicroBuilder& builder = codeGen.builder();
     if (srcPayload.isAddress())
     {
-        emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize, srcPayload.sourceCodeRef, builder.currentDebugSourceCodeRef());
+        emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize, srcPayload.sourceCodeRef, builder.currentDebugSourceCodeRef(), srcPayload.sourceWarningPolicy);
         return;
     }
 
@@ -944,7 +944,7 @@ void CodeGenMemoryHelpers::storePayloadToAddress(CodeGen& codeGen, MicroReg dstR
 
     if (copySize > 8)
     {
-        emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize, srcPayload.sourceCodeRef, builder.currentDebugSourceCodeRef());
+        emitMemCopy(codeGen, dstReg, srcPayload.reg, copySize, srcPayload.sourceCodeRef, builder.currentDebugSourceCodeRef(), srcPayload.sourceWarningPolicy);
         return;
     }
 
@@ -960,7 +960,7 @@ void CodeGenMemoryHelpers::storePayloadToAddress(CodeGen& codeGen, MicroReg dstR
     builder.emitLoadMemReg(dstReg, 0, srcPayload.reg, copyBits);
 }
 
-void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes, const SourceCodeRef& sourceCodeRef, const SourceCodeRef& destinationCodeRef)
+void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes, const SourceCodeRef& sourceCodeRef, const SourceCodeRef& destinationCodeRef, std::optional<const WarningPolicy*> sourcePolicy)
 {
     if (!sizeInBytes)
         return;
@@ -983,24 +983,24 @@ void CodeGenMemoryHelpers::emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroR
     {
         if (sizeInBytes <= unrollLimit)
         {
-            emitMemCopyUnrolled(builder, dstRegTmp, srcReg, sizeInBytes, false, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+            emitMemCopyUnrolled(builder, dstRegTmp, srcReg, sizeInBytes, false, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, 0, sourcePolicy);
             return;
         }
 
         const MicroReg countReg = codeGen.nextVirtualIntRegister();
-        emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, 8, tmpIntReg, tmpFloatReg, countReg, sourceCodeRef, destinationCodeRef);
+        emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, 8, tmpIntReg, tmpFloatReg, countReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
         return;
     }
 
     if (sizeInBytes <= unrollLimit)
     {
-        emitMemCopyUnrolled(builder, dstRegTmp, srcReg, sizeInBytes, allow128, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef);
+        emitMemCopyUnrolled(builder, dstRegTmp, srcReg, sizeInBytes, allow128, tmpIntReg, tmpFloatReg, sourceCodeRef, destinationCodeRef, 0, sourcePolicy);
         return;
     }
 
     const MicroReg countReg  = codeGen.nextVirtualIntRegister();
     const uint32_t chunkSize = allow128 ? 16 : 8;
-    emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg, sourceCodeRef, destinationCodeRef);
+    emitMemCopyLoop(builder, dstRegTmp, srcReg, sizeInBytes, chunkSize, tmpIntReg, tmpFloatReg, countReg, sourceCodeRef, destinationCodeRef, sourcePolicy);
 }
 
 void CodeGenMemoryHelpers::emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, const uint32_t elementSizeInBytes, const uint32_t elementCount)

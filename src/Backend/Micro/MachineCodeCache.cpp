@@ -467,6 +467,7 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     identity.appendLe64(K_MAGIC);
     identity.appendLe32(static_cast<uint32_t>(hostTargetOs()));
     builder.backendBuildCfg().appendCacheIdentity(identity);
+    builder.appendWarningPolicyCacheIdentity(identity);
     identity.appendLe32(ctx.compiler().buildCfg().backend.enableExceptions);
     identity.appendLe32(static_cast<uint32_t>(command.targetOs));
     identity.appendLe32(static_cast<uint32_t>(command.targetArch));

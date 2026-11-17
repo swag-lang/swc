@@ -14,6 +14,7 @@ struct MicroInstrOperand;
 enum class MicroCond : uint8_t;
 enum class MicroOpBits : uint8_t;
 enum class DiagnosticId;
+enum class DiagnosticSeverity;
 class SanitizerCheck;
 class Symbol;
 class SymbolFunction;
@@ -223,20 +224,21 @@ private:
     bool                         stackBaseStable_        = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.
-    const Symbol*                               transferCallTarget_ = nullptr;
-    const MicroControlFlowGraph*                cfg_                = nullptr;
-    const Symbol*                               currentCallTarget_  = nullptr;
-    bool                                        reported_           = false;
-    bool                                        converged_          = true;
-    std::vector<SanitizerState>                 inState_; // populated only at chain heads
-    std::vector<uint32_t>                       headStateIndex_;
-    MicroDenseRegIndex                          liveRegIndex_;
-    std::vector<uint64_t>                       chainLiveIn_;  // liveWords_ words per stored state
-    std::vector<uint64_t>                       chainLiveOut_; // liveWords_ words per stored state
-    uint32_t                                    liveWords_ = 0;
-    std::vector<char>                           reached_;
-    std::vector<char>                           inWorklist_;
-    std::optional<std::unordered_set<uint64_t>> reportedLocations_;
+    const Symbol*                                                   transferCallTarget_ = nullptr;
+    const MicroControlFlowGraph*                                    cfg_                = nullptr;
+    const Symbol*                                                   currentCallTarget_  = nullptr;
+    bool                                                            reported_           = false;
+    bool                                                            converged_          = true;
+    std::vector<SanitizerState>                                     inState_; // populated only at chain heads
+    std::vector<uint32_t>                                           headStateIndex_;
+    MicroDenseRegIndex                                              liveRegIndex_;
+    std::vector<uint64_t>                                           chainLiveIn_;  // liveWords_ words per stored state
+    std::vector<uint64_t>                                           chainLiveOut_; // liveWords_ words per stored state
+    uint32_t                                                        liveWords_ = 0;
+    std::vector<char>                                               reached_;
+    std::vector<char>                                               inWorklist_;
+    std::optional<std::unordered_map<uint64_t, DiagnosticSeverity>> reportedLocations_;
+    MicroInstrRef                                                   currentInstructionRef_ = MicroInstrRef::invalid();
 
     RefPointerMap<MicroInstrRef, const Symbol> callTargets_;
 };

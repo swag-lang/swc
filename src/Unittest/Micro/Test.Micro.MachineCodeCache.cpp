@@ -644,6 +644,34 @@ SWC_TEST_BEGIN(MachineCodeCache_DistinguishesSystemVAggregateRegisterClasses)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_InvalidatesSuppressedSourceWarnings)
+{
+    ModuleCacheFixture fixture(ctx, "cacheSourceWarningPolicy");
+    TaskContext&       localCtx = *fixture.context;
+    WarningPolicy      policy;
+    policy.setLevel(DiagnosticId::sanity_warn_possible_use_after_free, WarningLevel::Disable);
+    MicroBuilder builder(localCtx);
+    builder.setCurrentSourceWarningPolicy(&policy);
+    builder.emitRet();
+    MachineCode expected;
+    expected.bytes.pushBack(std::byte{0xC3});
+    MachineCodeCache suppressed(localCtx, *fixture.function, builder);
+    suppressed.write(expected);
+    MachineCode restored;
+    if (!suppressed.read(restored))
+        return Result::Error;
+
+    policy.setLevel(DiagnosticId::sanity_warn_possible_use_after_free, WarningLevel::Error);
+    MachineCodeCache promoted(localCtx, *fixture.function, builder);
+    if (promoted.read(restored))
+        return Result::Error;
+    policy.setLevel(DiagnosticId::sanity_warn_possible_use_after_free, WarningLevel::Disable);
+    MachineCodeCache unchanged(localCtx, *fixture.function, builder);
+    if (!unchanged.read(restored))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

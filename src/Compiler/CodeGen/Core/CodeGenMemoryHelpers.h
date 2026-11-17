@@ -11,6 +11,7 @@ class CodeGen;
 class SymbolVariable;
 class TypeInfo;
 struct CodeGenNodePayload;
+class WarningPolicy;
 
 namespace CodeGenMemoryHelpers
 {
@@ -39,7 +40,7 @@ namespace CodeGenMemoryHelpers
     Result emitDynamicIdentity(CodeGen& codeGen, TypeRef typeRef, MicroReg dstReg);
     void   emitCopyPreservingDynamicIdentity(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, MicroReg srcReg);
 
-    void emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid());
+    void emitMemCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t sizeInBytes, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid(), std::optional<const WarningPolicy*> sourcePolicy = std::nullopt);
     void emitMemFill(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t elementSizeInBytes, uint32_t elementCount);
     void emitMemRepeatCopy(CodeGen& codeGen, MicroReg dstReg, MicroReg srcAddressReg, uint32_t elementSizeInBytes, uint32_t elementCount);
     void emitMemSet(CodeGen& codeGen, MicroReg dstReg, MicroReg fillValueReg, uint32_t sizeInBytes);

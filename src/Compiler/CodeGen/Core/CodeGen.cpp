@@ -676,8 +676,10 @@ Result CodeGen::exec(SymbolFunction& symbolFunc, AstNodeRef root)
             symVar->removeExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack);
         }
 
-        MicroBuilderFlags        builderFlags     = MicroBuilderFlagsE::Zero;
-        const AttributeList&     attributes       = symbolFunc.attributes();
+        MicroBuilderFlags    builderFlags = MicroBuilderFlagsE::Zero;
+        const AttributeList& attributes   = symbolFunc.attributes();
+        frame().setSourceWarningPolicy(&attributes.warnings);
+        builder_->setCurrentSourceWarningPolicy(&attributes.warnings);
         const Runtime::BuildCfg& compilerBuildCfg = buildCfg();
         Runtime::BuildCfgBackend backendBuildCfg  = compilerBuildCfg.backend;
 
@@ -1043,7 +1045,10 @@ CodeGenNodePayload& CodeGen::inheritPayload(AstNodeRef dstNodeRef, AstNodeRef sr
     CodeGenNodePayload& dstPayload = setPayload(dstNodeRef, typeRef);
     dstPayload.reg                 = srcPayloadCopy.reg;
     if (srcPayloadCopy.sourceCodeRef.isValid())
-        dstPayload.sourceCodeRef = srcPayloadCopy.sourceCodeRef;
+    {
+        dstPayload.sourceCodeRef       = srcPayloadCopy.sourceCodeRef;
+        dstPayload.sourceWarningPolicy = srcPayloadCopy.sourceWarningPolicy;
+    }
     dstPayload.storageKind = srcPayloadCopy.storageKind;
     if (srcPayloadCopy.hasMaterializedPointerLikeValue())
         dstPayload.markMaterializedPointerLikeValue();
@@ -1076,13 +1081,17 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 
     CodeGenNodePayload& nodePayload = ensureNodePayload<CodeGenNodePayload>(nodeRef);
 
-    nodePayload.reg           = nextVirtualIntRegister();
-    nodePayload.sourceCodeRef = payloadNode.codeRef();
+    nodePayload.reg                 = nextVirtualIntRegister();
+    nodePayload.sourceCodeRef       = payloadNode.codeRef();
+    nodePayload.sourceWarningPolicy = frame().sourceWarningPolicy();
     if (const auto* memberAccess = payloadNode.safeCast<AstMemberAccessExpr>())
     {
         const CodeGenNodePayload* leftPayload = safePayload(memberAccess->nodeLeftRef);
         if (leftPayload && leftPayload->sourceCodeRef.isValid())
-            nodePayload.sourceCodeRef = leftPayload->sourceCodeRef;
+        {
+            nodePayload.sourceCodeRef       = leftPayload->sourceCodeRef;
+            nodePayload.sourceWarningPolicy = leftPayload->sourceWarningPolicy;
+        }
     }
 
     nodePayload.typeRef     = typeRef;
@@ -1149,9 +1158,10 @@ MicroReg CodeGen::vectorZeroRegister()
     }
 
     std::array<MicroInstrOperand, 2> clearOps;
-    clearOps[0].reg    = vectorZeroReg_;
-    clearOps[1].opBits = MicroOpBits::B128;
-    instrs.insertSyntheticBefore(builder().operands(), beforeRef, MicroInstrOpcode::ClearReg, clearOps);
+    clearOps[0].reg              = vectorZeroReg_;
+    clearOps[1].opBits           = MicroOpBits::B128;
+    const MicroInstrRef clearRef = instrs.insertSyntheticBefore(builder().operands(), beforeRef, MicroInstrOpcode::ClearReg, clearOps);
+    builder().inheritSourceWarningPolicy(clearRef, beforeRef);
     return vectorZeroReg_;
 }
 
@@ -1600,7 +1610,8 @@ void CodeGen::initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar)
             ops[1].opBits   = bits;
             ops[2].valueU64 = address;
             ops[3].setImmediateValue(ApInt(0, width * 8));
-            instructions.insertSyntheticBefore(builder().operands(), beforeRef, MicroInstrOpcode::LoadMemImm, ops);
+            const MicroInstrRef initRef = instructions.insertSyntheticBefore(builder().operands(), beforeRef, MicroInstrOpcode::LoadMemImm, ops);
+            builder().inheritSourceWarningPolicy(initRef, beforeRef);
         }
         else
             builder().emitLoadMemImm(localStackBaseReg(), address, ApInt(0, width * 8), bits);
@@ -1618,11 +1629,12 @@ void CodeGen::registerDefer(const AstNodeRef deferStmtRef, const AstNodeRef body
     if (deferScopes_.empty())
         return;
 
-    auto& action         = lifetimeDeferScope().actions.emplace_back();
-    action.kind          = CodeGenDeferredAction::Kind::DeferStmt;
-    action.deferStmtRef  = resolvedNodeRef(deferStmtRef);
-    action.bodyRef       = resolvedNodeRef(bodyRef);
-    action.modifierFlags = modifierFlags;
+    auto& action               = lifetimeDeferScope().actions.emplace_back();
+    action.kind                = CodeGenDeferredAction::Kind::DeferStmt;
+    action.deferStmtRef        = resolvedNodeRef(deferStmtRef);
+    action.bodyRef             = resolvedNodeRef(bodyRef);
+    action.modifierFlags       = modifierFlags;
+    action.sourceWarningPolicy = frame().sourceWarningPolicy();
 }
 
 void CodeGen::registerValueBorrowEnd(uint32_t recordOffset)
@@ -1823,7 +1835,14 @@ Result CodeGen::emitDeferredAction(const CodeGenDeferredAction& action)
                 // Match the semantic scope of the deferred body, including a single statement.
                 // New owners must not be appended to the outer scope already being unwound.
                 pushDeferScope(action.deferStmtRef);
-                SWC_RESULT(emitNodeNow(action.bodyRef));
+                CodeGenFrame sourceFrame = frame();
+                sourceFrame.setSourceWarningPolicy(action.sourceWarningPolicy);
+                pushFrame(sourceFrame);
+                builder().setCurrentSourceWarningPolicy(action.sourceWarningPolicy);
+                const Result result = emitNodeNow(action.bodyRef);
+                popFrame();
+                builder().setCurrentSourceWarningPolicy(frame().sourceWarningPolicy());
+                SWC_RESULT(result);
                 return popDeferScope();
             };
 
@@ -2302,6 +2321,7 @@ void CodeGen::setCurrentInlineSanityMask()
     }
     const bool isInlineFunction = inlinePayload != nullptr;
     builder().setCurrentSanityMaskOverride(isInlineFunction ? inlinePayload->sanityMask : 0, isInlineFunction);
+    builder().setCurrentSourceWarningPolicy(frame().sourceWarningPolicy());
 }
 
 uint16_t CodeGen::effectiveSanityMask() const
@@ -2347,6 +2367,8 @@ Result CodeGen::preNode(AstNode& node)
     {
         CodeGenFrame frame = this->frame();
         frame.setCurrentInlineContext(currentNodeRef, inlinePayload, MicroLabelRef::invalid());
+        if (inlinePayload->sourceFunction && !inlinePayload->sourceFunction->attributes().hasMacroOrMixin())
+            frame.setSourceWarningPolicy(&inlinePayload->sourceFunction->attributes().warnings);
         if (inlinePayload->resultVar && inlinePayload->returnTypeRef.isValid())
         {
             MicroReg        resultStorageReg = MicroReg::invalid();
@@ -2375,6 +2397,18 @@ Result CodeGen::preNode(AstNode& node)
             const CodeGenFrame::InlineContext* matchingInlineCtx = findMatchingInlineContext(frames(), targetInlinePayload->inlineRootRef, targetInlinePayload);
             const MicroLabelRef                doneLabel         = matchingInlineCtx ? matchingInlineCtx->doneLabel : MicroLabelRef::invalid();
             frame.setCurrentInlineContext(targetInlinePayload->inlineRootRef, targetInlinePayload, doneLabel);
+            if (targetInlinePayload->sourceFunction && !targetInlinePayload->sourceFunction->attributes().hasMacroOrMixin())
+            {
+                frame.setSourceWarningPolicy(&targetInlinePayload->sourceFunction->attributes().warnings);
+                for (auto it = frames_.rbegin(); it != frames_.rend(); ++it)
+                {
+                    if (it->hasCurrentInlineContext() && it->currentInlineContext().payload == targetInlinePayload)
+                    {
+                        frame.setSourceWarningPolicy(it->sourceWarningPolicy());
+                        break;
+                    }
+                }
+            }
             if (matchingInlineCtx)
             {
                 frame.currentInlineContext().resultStorageReg    = matchingInlineCtx->resultStorageReg;
@@ -2390,6 +2424,15 @@ Result CodeGen::preNode(AstNode& node)
         else
         {
             frame.clearCurrentInlineContext();
+            // A substituted argument belongs to the caller, even while its callee is inline.
+            for (auto it = frames_.rbegin(); it != frames_.rend(); ++it)
+            {
+                if (!it->hasCurrentInlineContext())
+                {
+                    frame.setSourceWarningPolicy(it->sourceWarningPolicy());
+                    break;
+                }
+            }
         }
 
         frame.setCurrentInlineBoundaryRootRef(currentNodeRef);
@@ -2483,6 +2526,16 @@ Result CodeGen::preNodeChild(AstNode& node, AstNodeRef& childRef)
     if (childRef.isValid())
         builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
 
+    if (node.id() == AstNodeId::AttributeList && childRef == node.cast<AstAttributeList>().nodeBodyRef)
+    {
+        if (const auto* warnings = sema().semaPayload<WarningPolicy>(curNodeRef()))
+        {
+            CodeGenFrame frame = this->frame();
+            frame.setSourceWarningPolicy(warnings);
+            pushFrame(frame);
+            builder().setCurrentSourceWarningPolicy(warnings);
+        }
+    }
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
     return info.codeGenPreNodeChild(*this, node, childRef);
 }
@@ -2493,7 +2546,13 @@ Result CodeGen::postNodeChild(AstNode& node, AstNodeRef& childRef)
         builder().setCurrentDebugSourceCodeRef(this->node(childRef).codeRef());
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());
-    return info.codeGenPostNodeChild(*this, node, childRef);
+    SWC_RESULT(info.codeGenPostNodeChild(*this, node, childRef));
+    if (node.id() == AstNodeId::AttributeList && childRef == node.cast<AstAttributeList>().nodeBodyRef && sema().hasSemaPayload(curNodeRef()))
+    {
+        popFrame();
+        builder().setCurrentSourceWarningPolicy(frame().sourceWarningPolicy());
+    }
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

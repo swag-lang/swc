@@ -444,7 +444,6 @@ impl Panel
     }
 }
 
-// Creates the integrated TrueType specimen and character-map view.
 impl Panel
 {
     // Describes the face in the information sheet, titled by its family with the file name
@@ -531,6 +530,7 @@ func embeddingText(fsType: u16)->String
     return result
 }
 
+// Creates the integrated TrueType specimen and character-map view.
 func createViewer(host: Viewer.Host)
 {
     let services = host.services()

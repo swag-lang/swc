@@ -8,7 +8,6 @@ ui_Fit       Ajuster la page
 ui_FitWidth  Ajuster à la largeur
 ui_CopyText    Copier le texte sélectionné
 ui_SelectPage  Sélectionner le texte de la page
-ui_Actual    Taille réelle
 ui_ZoomMenu Zoom…
 ui_GoToPage  Aller à la page
 ui_PageRange Numéro de page entre 1 et %.

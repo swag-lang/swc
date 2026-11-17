@@ -33,7 +33,6 @@ private
     const CellPadding = 8.0
 
     // Sizes the document sets its own chrome at, and the sizes the specimen is shown at.
-    const NameSize    = 32'u32
     const GlyphSize   = 40'u32
     const CaptionSize = 12'u32
     const CodeSize    = 11'u32
@@ -107,7 +106,6 @@ struct DocumentLayout
     nameTop:      f32         // Top of the family name.
     metricsTop:   f32         // Top of the style, version, glyph count and units-per-em line.
     noticeTop:    f32         // Top of the designer and copyright line, when the face names either.
-    captionTop:   f32         // Top of the specimen caption.
     sampleTops:   [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
     mapTop:       f32         // Top of the character-map caption.
     gridTop:      f32         // Top of the first row of cells.
@@ -128,7 +126,6 @@ struct DocumentView
         scroll:     *ScrollWnd
         typeFace:   *TypeFace
         sampleEdit: *EditBox
-        fontName:   *Font
         fontGlyph:  *Font
         fontLabel:  *Font
         fontCode:   *Font
@@ -447,7 +444,6 @@ impl DocumentView
         }
 
         let cache = result.app().renderer.fontCache()
-        result.fontName  = cache.createFont(typeFace, NameSize)
         result.fontGlyph = cache.createFont(typeFace, GlyphSize)
         result.fontLabel = result.theme().createDefaultFont(CaptionSize, .Bold)
         result.fontCode  = result.theme().createDefaultFontFs(CodeSize)
@@ -511,7 +507,6 @@ impl DocumentView
         }
 
         y = Math.max(y - SampleGap, leftBottom)
-        .layout.captionTop = 0
         .layout.mapTop     = y + SectionGap
         .layout.gridTop    = .layout.mapTop + .fontLabel.height + CaptionGap
         .layout.cellHeight = 3 * CellPadding + .fontGlyph.height + .fontCode.height

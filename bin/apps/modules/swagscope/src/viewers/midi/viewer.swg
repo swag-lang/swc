@@ -79,6 +79,9 @@ impl ViewerSettings
 
 var g_ViewerSettings: ViewerSettings
 
+// Widths of the piano keyboard, in pixels, for each `keyboardWidthMode`: compact, standard, wide.
+private const KeyboardWidths: [3] f32 = [56, 72, 112]
+
 private func addViewerOptions(grid: *PropertiesCtrl, section: string) => grid.addStruct(g_ViewerSettings, section)
 
 // Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
@@ -124,7 +127,7 @@ private impl Panel
         .roll      = RollView.create(me, #move document[])
         .roll.mode = .Tracks
         .roll.setPitchLabelMode(.pitchLabelMode)
-        .roll.setKeyboardWidth(.keyboardWidthMode == 0 ? 56 : .keyboardWidthMode == 1 ? 72 : 112)
+        .roll.setKeyboardWidth(KeyboardWidths[.keyboardWidthMode])
         .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
         .applyLayout()
         .roll.refreshLayout()
@@ -300,7 +303,7 @@ impl Panel
         .keyboardWidthMode = index
         g_ViewerSettings.keyboardWidthMode = index
         if .hasRoll() do
-            .roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)
+            .roll.setKeyboardWidth(KeyboardWidths[index])
     }
 
     // Builds the MIDI panel: the options button and the zoom button. Loads the file in the
@@ -310,6 +313,9 @@ impl Panel
         let services = host.services()
         let info     = host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
 
+        // The settings come back from the saved window state as written there, so they are
+        // brought within range before they index anything.
+        g_ViewerSettings.sanitize()
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
             .backgroundStyle   = .View
